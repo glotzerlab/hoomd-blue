@@ -771,14 +771,14 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
         {
         // MEM TRANSFER: 4 bytes
         int neigh_bin;
-        /*if (transpose_bin_adj)
+        if (transpose_bin_adj)
             neigh_bin = tex2D(bin_adj_tex, my_bin, cur_adj);
         else
-            neigh_bin = tex2D(bin_adj_tex, cur_adj, my_bin);*/
-        if (transpose_bin_adj)
+            neigh_bin = tex2D(bin_adj_tex, cur_adj, my_bin);
+        /*if (transpose_bin_adj)
             neigh_bin = d_bin_adj[my_bin + cur_adj*bin_adj_width];
         else
-            neigh_bin = d_bin_adj[cur_adj + my_bin*bin_adj_width];
+            neigh_bin = d_bin_adj[cur_adj + my_bin*bin_adj_width];*/
         
         /*if (transpose_bin_adj)
             neigh_bin = tex1Dfetch(bin_adj_linear_tex, my_bin + cur_adj*bin_adj_width);
@@ -793,10 +793,10 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
             {
             // MEM TRANSFER: 16 bytes
             float4 cur_neigh_blob;
-            /*if (transpose_idxlist_coord)
+            if (transpose_idxlist_coord)
                 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, cur_offset);
             else
-                cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, cur_offset, neigh_bin);*/
+                cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, cur_offset, neigh_bin);
             
             if (transpose_idxlist_coord)
                 cur_neigh_blob = d_idxlist_coord[cur_offset * idxlist_coord_width + neigh_bin];
@@ -916,7 +916,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_devic
     
     float min_t = 10000.0f;
     unsigned int fastest_block_size = 0;
-    for (unsigned int block_size=128; block_size<=128; block_size+=32)
+    for (unsigned int block_size=32; block_size<=512; block_size+=32)
         {
         // benchmarks
         timeval start;
@@ -1150,10 +1150,12 @@ void bmark_N()
 
 int main(int argc, char **argv)
     {
-//    bmark_line();
-    bmark_N();
+//   bmark_line();
+//   bmark_N();
 
-#if 0
+#if 1
+//  cudaSetDevice(1);
+
     float phi;
     if (argc == 1)
         {
@@ -1212,9 +1214,9 @@ int main(int argc, char **argv)
     bmark_host_nlist<true, true>();*/
     
     bmark_device_nlist<false, false>();
-    /*bmark_device_nlist<false, true>();
+    bmark_device_nlist<false, true>();
     bmark_device_nlist<true, false>();
-    bmark_device_nlist<true, true>();*/
+    bmark_device_nlist<true, true>();
     
     printf("sorting bin_adj:\n");
     sort_bin_adj();
@@ -1224,10 +1226,10 @@ int main(int argc, char **argv)
     bmark_host_nlist<true, false>();
     bmark_host_nlist<true, true>();*/
     
-    //bmark_device_nlist<false, false>();
-    /*bmark_device_nlist<false, true>();
+    bmark_device_nlist<false, false>();
+    bmark_device_nlist<false, true>();
     bmark_device_nlist<true, false>();
-    bmark_device_nlist<true, true>();*/
+    bmark_device_nlist<true, true>();
     
     free_data();
 #endif

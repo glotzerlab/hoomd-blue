@@ -1150,9 +1150,9 @@ void bmark_N()
 int main(int argc, char **argv)
     {
     //bmark_grid();
-    bmark_N();
+    //bmark_N();
 
-#if 0
+#if 1
     // choose defaults if no args specified
     float phi;
     if (argc == 1)
