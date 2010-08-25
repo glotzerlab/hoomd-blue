@@ -94,7 +94,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
         {
-        d_conditions[1] = idx;
+        d_conditions[1] = idx+1;
         return;
         }
     
@@ -116,7 +116,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     // check if the particle is inside the dimensions
     if (bin >= ci.getNumElements())
         {
-        d_conditions[2] = idx;
+        d_conditions[2] = idx+1;
         return;
         }
     

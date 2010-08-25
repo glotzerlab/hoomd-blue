@@ -379,7 +379,7 @@ void CellList::computeCellList()
         {
         if (isnan(arrays.x[n]) || isnan(arrays.y[n]) || isnan(arrays.z[n]))
             {
-            h_conditions.data[1] = n;
+            h_conditions.data[1] = n+1;
             continue;
             }
             
@@ -404,7 +404,7 @@ void CellList::computeCellList()
         // check if the particle is inside the dimensions
         if (bin >= ci.getNumElements())
             {
-            h_conditions.data[2] = n;
+            h_conditions.data[2] = n+1;
             continue;
             }
 
@@ -468,7 +468,7 @@ bool CellList::checkConditions()
     // detect particles leaving box errors
     if (h_conditions.data[2])
         {
-        unsigned int n = h_conditions.data[1] - 1;
+        unsigned int n = h_conditions.data[2] - 1;
         cerr << endl << "***Error! Particle " << n << " is no longer in the simulation box." << endl
              << endl;
         throw runtime_error("Error computing cell list");
