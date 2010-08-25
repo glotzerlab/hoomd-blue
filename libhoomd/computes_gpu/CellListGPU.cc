@@ -82,21 +82,43 @@ void CellListGPU::computeCellList()
     ArrayHandle<Scalar4> d_tdb(m_tdb, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
-    gpu_compute_cell_list(d_cell_size.data,
-                          d_xyzf.data,
-                          d_tdb.data,
-                          d_conditions.data,
-                          d_pdata.pos,
-                          d_pdata.charge,
-                          d_pdata.diameter,
-                          d_pdata.body,
-                          m_pdata->getN(),
-                          m_Nmax,
-                          m_flag_charge,
-                          scale,
-                          box,
-                          m_cell_indexer,
-                          m_cell_list_indexer);
+    // take optimized code paths for different GPU generations
+    if (exec_conf->getComputeCapability() >= 200)
+        {
+        gpu_compute_cell_list(d_cell_size.data,
+                              d_xyzf.data,
+                              d_tdb.data,
+                              d_conditions.data,
+                              d_pdata.pos,
+                              d_pdata.charge,
+                              d_pdata.diameter,
+                              d_pdata.body,
+                              m_pdata->getN(),
+                              m_Nmax,
+                              m_flag_charge,
+                              scale,
+                              box,
+                              m_cell_indexer,
+                              m_cell_list_indexer);
+        }
+    else
+        {
+        gpu_compute_cell_list_1x(d_cell_size.data,
+                                 d_xyzf.data,
+                                 d_tdb.data,
+                                 d_conditions.data,
+                                 d_pdata.pos,
+                                 d_pdata.charge,
+                                 d_pdata.diameter,
+                                 d_pdata.body,
+                                 m_pdata->getN(),
+                                 m_Nmax,
+                                 m_flag_charge,
+                                 scale,
+                                 box,
+                                 m_cell_indexer,
+                                 m_cell_list_indexer);
+        }
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
