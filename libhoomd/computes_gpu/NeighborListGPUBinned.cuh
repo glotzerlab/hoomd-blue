@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
-//! Kernel driver for the the GPU nlist build
+//! Kernel driver for gpu_compute_nlist_binned_new_kernel()
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      float4 *d_last_updated_pos,
@@ -76,7 +76,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const float r_maxsq,
                                      const unsigned int block_size);
 
-//! Kernel driver for the GPU nlist build, optimized for compute 1.x devices
+//! Kernel driver for gpu_compute_nlist_binned_1x_kernel()
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         unsigned int *d_n_neigh,
                                         float4 *d_last_updated_pos,
@@ -94,7 +94,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         const float r_maxsq,
                                         const unsigned int block_size);
 
-//! Sets up parameters for the kernel call
+//! Sets up parameters for the gpu_compute_nlist_binned_kernel() call
 cudaError_t gpu_setup_compute_nlist_binned();
 
 #endif

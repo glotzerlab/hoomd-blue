@@ -112,7 +112,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     \b Exclusions:
     
-     TODO: Document new exclusions method
+    Exclusions are stored in \a ex_list, a data structure similar in structure to \a nlist, except this time exclusions
+    are stored. User-specified exclusions are stored by tag and translated to indices whenever a particle sort occurs
+    (updateExListIdx()). If any exclusions are set, filterNlist() is called after buildNlist(). filterNlist() loops
+    through the neighbor list and removes any particles that are excluded. This allows an arbitrary number of exclusions
+    to be processed without slowing the performance of the buildNlist() step itself.
     
     <b>Overvlow handling:</b>
     For easy support of derived GPU classes to implement overvlow detectio the overflow condition is storeed in the

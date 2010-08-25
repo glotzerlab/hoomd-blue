@@ -1,8 +1,68 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
+contributors may be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+// $Id$
+// $URL$
+// Maintainer: joaander
+
+/*! \file NeighborListGPUBinned.cu
+    \brief Defines GPU kernel code for neighbor list processing on the GPU
+*/
+
 #include "NeighborListGPUBinned.cuh"
 
 #include "NeighborListGPU.cuh"
 #include <stdio.h>
 
+/*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
+    \param d_last_pos Particle positions at the time the nlist was last updated
+    \param d_pos Current particle positions
+    \param N Number of particles
+    \param box Box dimensions
+    \param maxshiftsq The maximum drsq a particle can have before an update is needed
+    
+    gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
+    compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
+    is set to 1. Consequently, d_result must be set to 0 prior to launching this kernel.
+*/
 __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const float4 *d_last_pos,
                                                         const float4 *d_pos,
@@ -58,8 +118,31 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
     return cudaSuccess;
     }
 
+//! Number of elements of the exclusion list to process in each batch
 const unsigned int FILTER_BATCH_SIZE = 4;
 
+/*! \param d_n_neigh Number of neighbors for each particle (read/write)
+    \param d_nlist Neighbor list for each particle (read/write)
+    \param nli Indexer for indexing into d_nlist
+    \param d_n_ex Number of exclusions for each particle
+    \param d_ex_list List of exclusions for each particle
+    \param exli Indexer for indexing into d_ex_list
+    \param N Number of particles
+    \param ex_start Start filtering the nlist from exclusion number \a ex_start
+    
+    gpu_nlist_filter_kernel() processes the neighbor list \a d_nlist and removes any entries that are excluded. To allow
+    for an arbitrary large number of exclusions, these are processed in batch sizes of FILTER_BATCH_SIZE. The kernel
+    must be called multiple times in order to fully remove all exclusions from the nlist. 
+    
+    \note The driver gpu_nlist_filter properly makes as many calls as are necessary, it only needs to be called once.
+    
+    \b Implementation
+    
+    One thread is run for each particle. Exclusions \a ex_start, \a ex_start + 1, ... are loaded in for that particle
+    (or the thread returns if there are no exlusions past that point). The thread then loops over the neighbor list,
+    comparing each entry to the list of exclusions. If the entry is not excluded, it is written back out. \a d_n_neigh
+    is updated to reflect the current number of particles in the list at the end of the kernel call.
+*/
 __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
                                         unsigned int *d_nlist,
                                         const Index2D nli,

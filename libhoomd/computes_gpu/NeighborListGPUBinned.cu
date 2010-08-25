@@ -55,7 +55,24 @@ texture<unsigned int, 2, cudaReadModeElementType> cell_adj_tex;
 texture<unsigned int, 1, cudaReadModeElementType> cell_size_tex;
 
 //! Kernel call for generating neighbor list on the GPU
-/*! \note optimized for Fermi
+/*! \param d_nlist Neighbor list data structure to write
+    \param d_n_neigh Number of neighbors to write
+    \param d_last_updated_pos Particle positions at this update are written to this array
+    \param d_conditions Conditions array for writing overflow condition
+    \param nli Indexer to access \a d_nlist
+    \param d_pos Particle positions
+    \param N Number of particles
+    \param d_cell_size Number of particles in each cell
+    \param d_cell_xyzf Cell contents (xyzf array from CellList with flag=type)
+    \param ci Cell indexer for indexing cells
+    \param cli Cell list indexer for indexing into d_cell_xyzf
+    \param cadji Adjacent cell indexer listing the 27 neighboring cells
+    \param cell_scale Multiplication factor (in x, y, and z) which converts positions into cell coordinates
+    \param cell_dim Dimensions of the cell list
+    \param box Simulation box dimensions
+    \param r_maxsq The maximum radius for which to include particles as neighbors, squared
+    
+    \note optimized for Fermi
 */
 __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_n_neigh,
@@ -204,7 +221,20 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
 texture<float4, 2, cudaReadModeElementType> cell_xyzf_tex;
 
 //! Kernel call for generating neighbor list on the GPU
-/*! \note optimized for compute 1.x devices
+/*! \param d_nlist Neighbor list data structure to write
+    \param d_n_neigh Number of neighbors to write
+    \param d_last_updated_pos Particle positions at this update are written to this array
+    \param d_conditions Conditions array for writing overflow condition
+    \param nli Indexer to access \a d_nlist
+    \param d_pos Particle positions
+    \param N Number of particles
+    \param ci Cell indexer for indexing cells
+    \param cell_scale Multiplication factor (in x, y, and z) which converts positions into cell coordinates
+    \param cell_dim Dimensions of the cell list
+    \param box Simulation box dimensions
+    \param r_maxsq The maximum radius for which to include particles as neighbors, squared
+
+    \note optimized for compute 1.x devices
 */
 __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
                                                    unsigned int *d_n_neigh,
@@ -344,6 +374,9 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
     return cudaSuccess;
     }
 
+/*! Call this method once at initialization. It specifies that gpu_compute_nlist_binned_new_kernel() utilize the 48k
+    L1 cache on Fermi.
+*/
 cudaError_t gpu_setup_compute_nlist_binned()
     {
     return cudaFuncSetCacheConfig(gpu_compute_nlist_binned_new_kernel, cudaFuncCachePreferL1);

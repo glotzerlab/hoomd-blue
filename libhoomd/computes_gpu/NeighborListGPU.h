@@ -55,6 +55,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Neighbor list build on the GPU
 /*! Implements the O(N^2) neighbor list build on the GPU. Also implements common functions (like distance check)
     on the GPU for use by other GPU nlist classes derived from NeighborListGPU.
+    
+    GPU kernel methods are defined in NeighborListGPU.cuh and defined in NeighborListGPU.cu.
+    
+    \ingroup computes
 */
 class NeighborListGPU : public NeighborList
     {

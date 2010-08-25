@@ -43,6 +43,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
+/*! \file NeighborListGPU.cc
+    \brief Implementation of the NeighborListGPU class
+*/
+
 #include "NeighborListGPU.h"
 #include "NeighborListGPU.cuh"
 

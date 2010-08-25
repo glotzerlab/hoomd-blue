@@ -55,6 +55,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Neighbor list build on the GPU
 /*! Implements the O(N) neighbor list build on the GPU using a cell list.
+    
+    GPU kernel methods are defined in NeighborListGPUBinned.cuh and defined in NeighborListGPUBinned.cu.
+    
+    \ingroup computes
 */
 class NeighborListGPUBinned : public NeighborListGPU
     {
