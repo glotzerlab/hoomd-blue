@@ -254,10 +254,13 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
         int neigh_cell = tex2D(cell_adj_tex, cur_adj, my_cell);
         unsigned int size = tex1Dfetch(cell_size_tex, neigh_cell);
         
+        float4 next_xyzf = tex2D(cell_xyzf_tex, 0, neigh_cell);
+
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
             {
-            float4 cur_xyzf = tex2D(cell_xyzf_tex, cur_offset, neigh_cell);
+            float4 cur_xyzf = next_xyzf;
+			next_xyzf = tex2D(cell_xyzf_tex, cur_offset+1, neigh_cell);
             
             float3 neigh_pos;
             neigh_pos.x = cur_xyzf.x;

@@ -73,6 +73,12 @@ class NeighborListGPUBinned : public NeighborListGPU
     
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
+
+		//! Set the block size
+		void setBlockSize(unsigned int block_size)
+			{
+			m_block_size = block_size;
+			}
     
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list
@@ -80,6 +86,7 @@ class NeighborListGPUBinned : public NeighborListGPU
         cudaArray *dca_cell_xyzf;           //!< CUDA array for tex2D access to d_cell_xyzf
         uint3 m_last_dim;                   //!< The last dimensions allocated for the cell list tex2D arrays
         unsigned int m_last_cell_Nmax;      //!< The last Nmax allocated for the cell list tex2D arrays
+		unsigned int m_block_size;			//!< Block size to execute on the GPU
         
         //! Test if the cuda arrays need reallocation
         bool needReallocateCudaArrays();

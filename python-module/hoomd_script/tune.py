@@ -80,7 +80,7 @@ _default_block_size_db['1.0'] = _default_block_size_db['1.1'];
 _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihedral.harmonic': 256, 'angle.cgcmm': 320,
                                  'pair.cgcmm': 416, 'pair.table': 96, 'pair.slj': 352, 'pair.morse': 352,
                                  'bond.harmonic': 352, 'bond.fene': 224, 'pair.yukawa': 352, 'angle.harmonic': 192,
-                                 'pair.gauss': 352, 'nlist': 288}
+                                 'pair.gauss': 352, 'nlist': 416}
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
 
@@ -255,7 +255,6 @@ def _find_optimal_block_size_fc(fc, n):
 #
 def _find_optimal_block_size_nl(nl, n):
     timings = [];
-    hoomd.set_gpu_error_checking(True)
     
     # run the benchmark
     try:

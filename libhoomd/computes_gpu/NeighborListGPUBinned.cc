@@ -75,6 +75,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     m_last_cell_Nmax = 0;
     dca_cell_adj = NULL;
     dca_cell_xyzf = NULL;
+	m_block_size = 64;
     }
 
 NeighborListGPUBinned::~NeighborListGPUBinned()
@@ -165,7 +166,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getDim(),
                                  box,
                                  (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
-                                 96);
+                                 m_block_size);
         }
     else
         {
@@ -179,7 +180,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
             }
 
         // update the values in those arrays
+        if (m_prof) m_prof->push(exec_conf, "copy");
         cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(float4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
+        if (m_prof) m_prof->pop(exec_conf);
         
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -199,7 +202,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     m_cl->getDim(),
                                     box,
                                     (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
-                                    192);
+                                    m_block_size);
         }
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
@@ -264,5 +267,6 @@ void export_NeighborListGPUBinned()
     {
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
                      ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
+					.def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
                      ;
     }
