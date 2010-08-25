@@ -53,9 +53,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __CELLLISTGPU_H__
 
 //! Computes a cell list from the particles in the system on the GPU
-/*! \sa CellList
+/*! Calls GPU functions in CellListGPU.cuh and CellListGPU.cu
+    \sa CellList
+    \ingroup computes
 */
-
 class CellListGPU : public CellList
     {
     public:

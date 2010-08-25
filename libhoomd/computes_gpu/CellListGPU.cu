@@ -50,7 +50,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Kernel that computes the cell list on the GPU
-/*! 
+/*! \param d_cell_size Number of particles in each cell
+    \param d_xyzf Cell XYZF data array
+    \param d_tdb Cell TDB data array
+    \param d_conditions Conditions flags for detecting overflow and other error conditions
+    \param d_pos Particle position array
+    \param d_charge Particle charge array
+    \param d_diameter Particle diameter array
+    \param d_body Particle body array
+    \param N Number of particles
+    \param Nmax Maximum number of particles that can be placed in a single cell
+    \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
+    \param scale Multipler to convert from particle coordinates to grid coordinates
+    \param box Box dimensions
+    \param ci Indexer to compute cell id from cell grid coords
+    \param cli Indexer to index into \a d_xyzf and \a d_tdb
+    
     \note Optimized for Fermi
 */
 __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
@@ -180,7 +195,11 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     }
 
 // ********************* Following are helper functions, structs, etc for the 1x optimized cell list build
-// bitonic sort from CUDA SDK
+//! \internal
+/*! \param a First element
+    \param b Second element
+    The two elements are swapped
+*/
 template<class T> __device__ inline void swap(T & a, T & b)
     {
     T tmp = a;
@@ -188,16 +207,17 @@ template<class T> __device__ inline void swap(T & a, T & b)
     b = tmp;
     }
 
+//! \internal
+/*! \param shared Pointer to shared memory to bitonic sort
+*/
 template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T *shared)
     {
     unsigned int tid = threadIdx.x;
     
     // Parallel bitonic sort.
-#pragma unroll
     for (int k = 2; k <= block_size; k *= 2)
         {
         // Bitonic merge:
-#pragma unroll
         for (int j = k / 2; j>0; j /= 2)
             {
             int ixj = tid ^ j;
@@ -225,13 +245,18 @@ template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T
         }
     }
 
+//! \internal
 struct bin_id_pair
     {
-    unsigned int bin;
-    unsigned int id;
-    unsigned int start_offset;  // pad to minimize bank conflicts
+    unsigned int bin;   //!< Cell index
+    unsigned int id;    //!< Particle id
+    unsigned int start_offset;  //!< Write offset
     };
 
+//! \internal
+/*! \param bin Cell index
+    \param id Particle id
+*/
 __device__ inline bin_id_pair make_bin_id_pair(unsigned int bin, unsigned int id)
     {
     bin_id_pair res;
@@ -241,6 +266,10 @@ __device__ inline bin_id_pair make_bin_id_pair(unsigned int bin, unsigned int id
     return res;
     }
 
+//! \internal
+/*! \param a First element
+    \param b Second element
+*/
 __device__ inline bool operator< (const bin_id_pair& a, const bin_id_pair& b)
     {
     if (a.bin == b.bin)
@@ -249,6 +278,10 @@ __device__ inline bool operator< (const bin_id_pair& a, const bin_id_pair& b)
         return (a.bin < b.bin);
     }
 
+//! \internal
+/*! \param a First element
+    \param b Second element
+*/
 __device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
     {
     if (a.bin == b.bin)
@@ -257,6 +290,9 @@ __device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
         return (a.bin > b.bin);
     }
 
+//! \internal
+/*! \param temp Temporary array in shared memory to scan
+*/
 template<class T, unsigned int block_size> __device__ inline void scan_naive(T *temp)
     {
     int thid = threadIdx.x;
@@ -264,7 +300,6 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
     int pout = 0;
     int pin = 1;
     
-#pragma unroll
     for (int offset = 1; offset < block_size; offset *= 2)
         {
         pout = 1 - pout;
@@ -289,7 +324,22 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
     }
 
 //! Kernel that computes the cell list on the GPU
-/*! 
+/*! \param d_cell_size Number of particles in each cell
+    \param d_xyzf Cell XYZF data array
+    \param d_tdb Cell TDB data array
+    \param d_conditions Conditions flags for detecting overflow and other error conditions
+    \param d_pos Particle position array
+    \param d_charge Particle charge array
+    \param d_diameter Particle diameter array
+    \param d_body Particle body array
+    \param N Number of particles
+    \param Nmax Maximum number of particles that can be placed in a single cell
+    \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
+    \param scale Multipler to convert from particle coordinates to grid coordinates
+    \param box Box dimensions
+    \param ci Indexer to compute cell id from cell grid coords
+    \param cli Indexer to index into \a d_xyzf and \a d_tdb
+    
     \note Optimized for compute 1.x hardware
 */
 template<unsigned int block_size>

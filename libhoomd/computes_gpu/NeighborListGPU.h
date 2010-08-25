@@ -79,6 +79,7 @@ class NeighborListGPU : public NeighborList
     protected:
         GPUArray<unsigned int> m_flags;     //!< Storage for device flags on the GPU
 
+        //! Perform the nlist distance check on the GPU
         virtual bool distanceCheck();
         
         //! GPU nlists set their last updated pos in the compute kernel, this call does nothing

@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for cell list generation on the GPU
 */
 
-//! Kernel driver for the the cell list computation on the GPU
+//! Kernel driver for gpu_compute_cell_list_kernel()
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   float4 *d_xyzf,
                                   float4 *d_tdb,
@@ -73,7 +73,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Index3D& ci,
                                   const Index2D& cli);
 
-//! Kernel driver for the the cell list computation on the GPU, optimized for compute 1.x devices
+//! Kernel driver for gpu_compute_cell_list_1x_kernel()
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      float4 *d_xyzf,
                                      float4 *d_tdb,
