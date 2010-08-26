@@ -214,10 +214,10 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                              const unsigned int *d_n_ex,
                              const unsigned int *d_ex_list,
                              const Index2D& exli,
-                             const unsigned int N)
+                             const unsigned int N,
+                             const unsigned int block_size)
     {
     // determine parameters for kernel launch
-    unsigned int block_size = 192;
     int n_blocks = (int)ceil(float(N)/(float)block_size);
     
     // split the processing of the full exclusion list up into a number of batches

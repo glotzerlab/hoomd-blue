@@ -72,6 +72,7 @@ class NeighborListGPU : public NeighborList
             
             // default to full mode
             m_storage_mode = full;
+            m_block_size_filter = 192;
             }
         
         //! Destructor
@@ -79,6 +80,14 @@ class NeighborListGPU : public NeighborList
             {
             }
 
+        //! Set block size for filter kernel
+        void setBlockSizeFilter(unsigned int block_size)
+            {
+            m_block_size_filter = block_size;
+            }
+        
+        //! Benchmark the filter kernel
+        double benchmarkFilter(unsigned int num_iters);
     protected:
         GPUArray<unsigned int> m_flags;     //!< Storage for device flags on the GPU
 
@@ -93,6 +102,9 @@ class NeighborListGPU : public NeighborList
         
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
+    
+    private:
+        unsigned int m_block_size_filter;   //!< Block size for the filter kernel
     };
 
 //! Exports NeighborListGPU to python

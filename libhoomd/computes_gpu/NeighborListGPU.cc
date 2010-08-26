@@ -56,6 +56,43 @@ using namespace boost::python;
 #include <iostream>
 using namespace std;
 
+/*! \param num_iters Number of iterations to average for the benchmark
+    \returns Milliseconds of execution time per calculation
+
+    Calls filterNlist repeatedly to benchmark the neighbor list filter step.
+*/
+double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
+    {
+    ClockSource t;
+    // warm up run
+    forceUpdate();
+    compute(0);
+    buildNlist(0);
+    filterNlist();
+    
+#ifdef ENABLE_CUDA
+    if (exec_conf->isCUDAEnabled())
+        {
+        cudaThreadSynchronize();
+        CHECK_CUDA_ERROR();
+        }
+#endif
+    
+    // benchmark
+    uint64_t start_time = t.getTime();
+    for (unsigned int i = 0; i < num_iters; i++)
+        filterNlist();
+        
+#ifdef ENABLE_CUDA
+    if (exec_conf->isCUDAEnabled())
+        cudaThreadSynchronize();
+#endif
+    uint64_t total_time_ns = t.getTime() - start_time;
+    
+    // convert the run time to milliseconds
+    return double(total_time_ns) / 1e6 / double(num_iters);
+    }
+
 void NeighborListGPU::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
@@ -159,7 +196,8 @@ void NeighborListGPU::filterNlist()
                      d_n_ex_idx.data,
                      d_ex_list_idx.data,
                      m_ex_list_indexer,
-                     m_pdata->getN());
+                     m_pdata->getN(),
+                     m_block_size_filter);
     
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -170,5 +208,7 @@ void export_NeighborListGPU()
     {
     class_<NeighborListGPU, boost::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >
                      ("NeighborListGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+                     .def("setBlockSizeFilter", &NeighborListGPU::setBlockSizeFilter)
+                     .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;
     }
