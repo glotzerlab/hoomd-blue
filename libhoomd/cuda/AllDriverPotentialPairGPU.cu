@@ -251,7 +251,7 @@ cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_d
     }                                          
 
 
-/*! This is just a driver function for gpu_compute_compute_forces<EvaluatorPairDPDThermo>(). See it for details.
+/*! This is just a driver function for gpu_compute_forces<EvaluatorPairDPDThermo>(). See it for details.
 
     \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
