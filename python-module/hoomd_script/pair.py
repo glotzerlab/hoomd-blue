@@ -324,7 +324,9 @@ class nlist:
         # create the C++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             if mode == "binned":
-                self.cpp_nlist = hoomd.BinnedNeighborList(globals.system_definition, r_cut, default_r_buff)
+                cl_c = hoomd.CellList(globals.system_definition);
+                globals.system.addCompute(cl_c, "auto_cl")
+                self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
             elif mode == "nsq":
                 self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
             else:

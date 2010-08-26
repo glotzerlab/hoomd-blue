@@ -53,7 +53,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
                                              Scalar r_cut,
                                              Scalar r_buff,
                                              boost::shared_ptr<CellList> cl)
-            : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl)
     {
     // create a default cell list if one was not specified
     if (!m_cl)

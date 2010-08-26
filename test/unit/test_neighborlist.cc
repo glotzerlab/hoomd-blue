@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "NeighborList.h"
-#include "BinnedNeighborList.h"
+#include "NeighborListBinned.h"
 #include "Initializers.h"
 
 #ifdef ENABLE_CUDA
@@ -429,6 +429,27 @@ BOOST_AUTO_TEST_CASE( NeighborList_exclusion )
 BOOST_AUTO_TEST_CASE( NeighborList_large_ex )
     {
     neighborlist_large_ex_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
+//! basic test case for binned class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_basic )
+    {
+    neighborlist_basic_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! exclusion test case for binned class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_exclusion )
+    {
+    neighborlist_exclusion_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! large exclusion test case for binned class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_large_ex )
+    {
+    neighborlist_large_ex_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! comparison test case for binned class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_comparison )
+    {
+    neighborlist_comparison_test<NeighborList, NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #ifdef ENABLE_CUDA
