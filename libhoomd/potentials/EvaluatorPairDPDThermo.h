@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
+// Maintainer: phillicl
 
 #ifndef __PAIR_EVALUATOR_DPD_H__
 #define __PAIR_EVALUATOR_DPD_H__

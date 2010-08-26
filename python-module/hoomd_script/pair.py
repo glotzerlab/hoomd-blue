@@ -1496,6 +1496,7 @@ class morse(pair):
 # - \f$ A \f$ - \a A
 # - \f$ \gamma \f$ gamma
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
 # To use the dpd thermostat, an nve integrator must be applied to the system and the user must specify a temperature, which can be a %variant.
 # (see hoomd_script.variant for more information).  Use of the
@@ -1519,6 +1520,8 @@ class morse(pair):
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
+#
+# pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
 #
 class dpd(pair):
     ## Specify the DPD %pair %force and thermostat
@@ -1596,14 +1599,14 @@ class dpd(pair):
         gamma = coeff['gamma'];
         return hoomd.make_scalar2(a, gamma);     
 
-## DPD %pair %force
+## DPD Conservative %pair %force
 #
-# The command pair.dpd specifies that a DPD %pair %force and thermostat should be added to every
-# non-bonded particle %pair in the simulation.
+# The command pair.dpd_conservative specifies that the conservative part of the DPD %pair %force should be added to every
+# non-bonded particle %pair in the simulation.  No thermostat (e.g. Drag Force and Random Force) is applied.
 #   
 # \f{eqnarray*}
-# V_{\mathrm{DPD-C}}(r) = & V_{\mathrm{DPD-C}}(r) = A \cdot \left( r_{\mathrm{cut}} - r \right) 
-#						- \frac{1}{2} \cdot \frac{a}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
+# V_{\mathrm{DPD-C}}(r)  = & A \cdot \left( r_{\mathrm{cut}} - r \right) 
+#						- \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
 #                               & r < r_{\mathrm{cut}} \\
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
@@ -1613,22 +1616,18 @@ class dpd(pair):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \a epsilon
 # - \f$ A \f$ - \a A
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on
-#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-#
-# pair.dpd_conservative is a standard %pair potential and supports a number of energy shift / smoothing modes.
-# See pair for a full description of the various options.
 #
 # \b Example:
 # \code
-# dpd.pair_coeff.set('A', 'A', A=1.0)
-# dpd.pair_coeff.set('A', 'B', A=2.0)
-# dpd.pair_coeff.set('B', 'B', A=1.0)
+# dpdc.pair_coeff.set('A', 'A', A=1.0)
+# dpdc.pair_coeff.set('A', 'B', A=2.0, r_cut = 1.0)
+# dpdc.pair_coeff.set('B', 'B', A=1.0)
 # \endcode
+#
+# pair.dpd_conservative does not implement and energy shift / smoothing modes due to the function of the force.
 #
 # The cutoff radius \a r_cut passed into the initial pair.dpd_conservative command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
@@ -1643,15 +1642,15 @@ class dpd_conservative(pair):
     #
     # \b Example:
     # \code
-    # dpd = pair.dpd_conservative(r_cut=3.0)
-    # dpd.pair_coeff.set('A', 'A', A=1.0)
-    # dpd.pair_coeff.set('A', 'B', A=2.0)
-    # dpd.pair_coeff.set('B', 'B', A=1.0)
+    # dpdc = pair.dpd_conservative(r_cut=3.0)
+    # dpdc.pair_coeff.set('A', 'A', A=1.0)
+    # dpdc.pair_coeff.set('A', 'B', A=2.0)
+    # dpdc.pair_coeff.set('B', 'B', A=1.0)
     # \endcode
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, seed=1, name=None):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
@@ -1683,3 +1682,9 @@ class dpd_conservative(pair):
         a = coeff['A'];
         gamma = 0;
         return hoomd.make_scalar2(a, gamma);     
+
+    ## Not implemented for dpd_conservative
+    # 
+    def set_params(self, coeff):
+        raise RuntimeError('Not implemented for DPD Conservative');
+        return;
