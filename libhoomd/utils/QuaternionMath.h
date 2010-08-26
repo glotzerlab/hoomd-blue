@@ -130,10 +130,10 @@ DEVICE inline void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scal
         }
     else
         {
-        kq.x = 0.0;  kp.x = 0.0;
-        kq.y = 0.0;  kp.y = 0.0;
-        kq.z = 0.0;  kp.z = 0.0;
-        kq.w = 0.0;  kp.w = 0.0;
+        kq.x = Scalar(0.0);  kp.x = Scalar(0.0);
+        kq.y = Scalar(0.0);  kp.y = Scalar(0.0);
+        kq.z = Scalar(0.0);  kp.z = Scalar(0.0);
+        kq.w = Scalar(0.0);  kp.w = Scalar(0.0);
         }
             
     // obtain phi, cosines and sines
@@ -145,8 +145,8 @@ DEVICE inline void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scal
     else if (k == 2) inertia_t = inertia.y;
     else if (k == 3) inertia_t = inertia.z;
     else inertia_t = Scalar(0.0);
-    if (fabs(inertia_t) < EPSILON) phi *= 0.0;
-    else phi /= (4.0 * inertia_t);
+    if (fabs(inertia_t) < EPSILON) phi *= Scalar(0.0);
+    else phi /= (Scalar(4.0) * inertia_t);
     
     c_phi = __COS(dt * phi);
     s_phi = __SIN(dt * phi);
@@ -174,17 +174,17 @@ DEVICE inline void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 
     {
     // ex_space
     ex_space.x = quat.x * quat.x + quat.y * quat.y - quat.z * quat.z - quat.w * quat.w;
-    ex_space.y = 2.0 * (quat.y * quat.z + quat.x * quat.w);
-    ex_space.z = 2.0 * (quat.y * quat.w - quat.x * quat.z);
+    ex_space.y = Scalar(2.0) * (quat.y * quat.z + quat.x * quat.w);
+    ex_space.z = Scalar(2.0) * (quat.y * quat.w - quat.x * quat.z);
     
     // ey_space
-    ey_space.x = 2.0 * (quat.y * quat.z - quat.x * quat.w);
+    ey_space.x = Scalar(2.0) * (quat.y * quat.z - quat.x * quat.w);
     ey_space.y = quat.x * quat.x - quat.y * quat.y + quat.z * quat.z - quat.w * quat.w;
-    ey_space.z = 2.0 * (quat.z * quat.w + quat.x * quat.y);
+    ey_space.z = Scalar(2.0) * (quat.z * quat.w + quat.x * quat.y);
     
     // ez_space
-    ez_space.x = 2.0 * (quat.y * quat.w + quat.x * quat.z);
-    ez_space.y = 2.0 * (quat.z * quat.w - quat.x * quat.y);
+    ez_space.x = Scalar(2.0) * (quat.y * quat.w + quat.x * quat.z);
+    ez_space.y = Scalar(2.0) * (quat.z * quat.w - quat.x * quat.y);
     ez_space.z = quat.x * quat.x - quat.y * quat.y - quat.z * quat.z + quat.w * quat.w;
     }
 
@@ -217,15 +217,15 @@ DEVICE inline void computeAngularVelocity(Scalar4& angmom,
     Scalar angbody[3];
     
     // angbody = angmom_body / moment_inertia = transpose(rotation_matrix) * angmom / moment_inertia
-    if (moment_inertia.x < EPSILON) angbody[0] = 0.0;
+    if (moment_inertia.x < EPSILON) angbody[0] = Scalar(0.0);
     else angbody[0] = (ex_space.x * angmom.x + ex_space.y * angmom.y
                            + ex_space.z * angmom.z) / moment_inertia.x;
                            
-    if (moment_inertia.y < EPSILON) angbody[1] = 0.0;
+    if (moment_inertia.y < EPSILON) angbody[1] = Scalar(0.0);
     else angbody[1] = (ey_space.x * angmom.x + ey_space.y * angmom.y
                            + ey_space.z * angmom.z) / moment_inertia.y;
                            
-    if (moment_inertia.z < EPSILON) angbody[2] = 0.0;
+    if (moment_inertia.z < EPSILON) angbody[2] = Scalar(0.0);
     else angbody[2] = (ez_space.x * angmom.x + ez_space.y * angmom.y
                            + ez_space.z * angmom.z) / moment_inertia.z;
                            
@@ -268,7 +268,7 @@ DEVICE inline void advanceQuaternion(Scalar4& angmom,
                                      Scalar4 &quat)
     {
     Scalar4 qhalf, qfull, omegaq;
-    Scalar dtq = 0.5 * deltaT;
+    Scalar dtq = Scalar(0.5) * deltaT;
     
     computeAngularVelocity(angmom, moment_inertia, ex_space, ey_space, ez_space, angvel);
     
@@ -283,10 +283,10 @@ DEVICE inline void advanceQuaternion(Scalar4& angmom,
     normalize(qfull);
     
     // 1st half update from dq/dt = 1/2 w q
-    qhalf.x = quat.x + 0.5 * dtq * omegaq.x;
-    qhalf.y = quat.y + 0.5 * dtq * omegaq.y;
-    qhalf.z = quat.z + 0.5 * dtq * omegaq.z;
-    qhalf.w = quat.w + 0.5 * dtq * omegaq.w;
+    qhalf.x = quat.x + Scalar(0.5) * dtq * omegaq.x;
+    qhalf.y = quat.y + Scalar(0.5) * dtq * omegaq.y;
+    qhalf.z = quat.z + Scalar(0.5) * dtq * omegaq.z;
+    qhalf.w = quat.w + Scalar(0.5) * dtq * omegaq.w;
     normalize(qhalf);
     
     // Udpate ex, ey, ez from qhalf = update A
@@ -299,17 +299,17 @@ DEVICE inline void advanceQuaternion(Scalar4& angmom,
     vec_multiply(angvel, qhalf, omegaq);
     
     // 2nd half update from dq/dt = 1/2 w q
-    qhalf.x += 0.5 * dtq * omegaq.x;
-    qhalf.y += 0.5 * dtq * omegaq.y;
-    qhalf.z += 0.5 * dtq * omegaq.z;
-    qhalf.w += 0.5 * dtq * omegaq.w;
+    qhalf.x += Scalar(0.5) * dtq * omegaq.x;
+    qhalf.y += Scalar(0.5) * dtq * omegaq.y;
+    qhalf.z += Scalar(0.5) * dtq * omegaq.z;
+    qhalf.w += Scalar(0.5) * dtq * omegaq.w;
     normalize(qhalf);
     
     // Corrected Richardson update
-    quat.x = 2.0 * qhalf.x - qfull.x;
-    quat.y = 2.0 * qhalf.y - qfull.y;
-    quat.z = 2.0 * qhalf.z - qfull.z;
-    quat.w = 2.0 * qhalf.w - qfull.w;
+    quat.x = Scalar(2.0) * qhalf.x - qfull.x;
+    quat.y = Scalar(2.0) * qhalf.y - qfull.y;
+    quat.z = Scalar(2.0) * qhalf.z - qfull.z;
+    quat.w = Scalar(2.0) * qhalf.w - qfull.w;
     normalize(quat);
     
     exyzFromQuaternion(quat, ex_space, ey_space, ez_space);

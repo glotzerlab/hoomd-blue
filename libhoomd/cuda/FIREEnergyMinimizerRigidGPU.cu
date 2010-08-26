@@ -246,7 +246,7 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(float* d_sum_Pr,
             unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, start + threadIdx.x);
             float Prot = 0.0f;
             float w2 = 0.0f;
-            float t2 = 0.0;
+            float t2 = 0.0f;
             
             if (idx_body < n_bodies)
                 {
@@ -384,14 +384,14 @@ extern "C" __global__ void gpu_fire_rigid_update_v_kernel(float4* rdata_vel,
             float4 torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
             
             float4 vel2;
-            vel2.x = vel.x * (1.0 - alpha) + force.x * factor_t;
-            vel2.y = vel.y * (1.0 - alpha) + force.y * factor_t;
-            vel2.z = vel.z * (1.0 - alpha) + force.z * factor_t;
+            vel2.x = vel.x * (1.0f - alpha) + force.x * factor_t;
+            vel2.y = vel.y * (1.0f - alpha) + force.y * factor_t;
+            vel2.z = vel.z * (1.0f - alpha) + force.z * factor_t;
             
             float4 angmom2;
-            angmom2.x = angmom.x * (1.0 - alpha) + torque.x * factor_r;
-            angmom2.y = angmom.y * (1.0 - alpha) + torque.y * factor_r;
-            angmom2.z = angmom.z * (1.0 - alpha) + torque.z * factor_r;                
+            angmom2.x = angmom.x * (1.0f - alpha) + torque.x * factor_r;
+            angmom2.y = angmom.y * (1.0f - alpha) + torque.y * factor_r;
+            angmom2.z = angmom.z * (1.0f - alpha) + torque.z * factor_r;                
             
             // write out the results (MEM_TRANSFER: 32 bytes)
             rdata_vel[idx_body] = vel2;

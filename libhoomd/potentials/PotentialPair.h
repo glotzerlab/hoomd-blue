@@ -391,6 +391,8 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 dj = arrays.diameter[j];
             if (evaluator::needsCharge())
                 qj = arrays.charge[j];
+
+                
             
             // apply periodic boundary conditions (FLOPS: 9)
             if (dx >= box.xhi)

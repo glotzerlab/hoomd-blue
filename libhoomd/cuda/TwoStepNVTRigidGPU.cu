@@ -127,7 +127,7 @@ __device__ float taylor_exp(float x)
     x3 = x2 * x;
     x4 = x2 * x2;
     x5 = x4 * x;
-    return (1.0 + x + x2 / 2.0 + x3 / 6.0 + x4 / 24.0 + x5 / 120.0);
+    return (1.0f + x + x2 / 2.0f + x3 / 6.0f + x4 / 24.0f + x5 / 120.0f);
     }
 
 #pragma mark RIGID_STEP_ONE_KERNEL
@@ -189,11 +189,11 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
         int body_imagex, body_imagey, body_imagez;
         float4 mbody, tbody, fquat;
         
-        float dt_half = 0.5 * deltaT;
+        float dt_half = 0.5f * deltaT;
         float   tmp, scale_t, scale_r, akin_t, akin_r;
-        tmp = -1.0 * dt_half * nvt_rdata_eta_dot_t0;
+        tmp = -1.0f * dt_half * nvt_rdata_eta_dot_t0;
         scale_t = __expf(tmp);
-        tmp = -1.0 * dt_half * nvt_rdata_eta_dot_r0;
+        tmp = -1.0f * dt_half * nvt_rdata_eta_dot_r0;
         scale_r = __expf(tmp);
         
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
@@ -280,9 +280,9 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
             inv_quat_multiply(orientation, conjqm2, mbody);
             transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
             
-            angmom2.x *= 0.5;
-            angmom2.y *= 0.5;
-            angmom2.z *= 0.5;
+            angmom2.x *= 0.5f;
+            angmom2.y *= 0.5f;
+            angmom2.z *= 0.5f;
             
             float4 angvel2;
             computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel2);
@@ -336,7 +336,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_particle_kernel(float4* pdata_
     __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
     __shared__ int body_imagex, body_imagey, body_imagez;
     
-    float dt_half = 0.5 * deltaT;
+    float dt_half = 0.5f * deltaT;
     
     int idx_body = -1;    
 
@@ -415,14 +415,14 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_particle_kernel(float4* pdata_
             pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
             pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
             pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-            pvel.w = 0.0;
+            pvel.w = 0.0f;
             
             float4 fc;
             fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
             fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
             fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
             
-            float pvirial = 0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
+            float pvirial = 0.5f * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0f;
             
             // write out the results (MEM_TRANSFER: ? bytes)
             pdata_pos[idx_particle_index] = ppos;
@@ -463,7 +463,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_particle_sliding_kernel(float4
     __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
     __shared__ int body_imagex, body_imagey, body_imagez;
     
-    float dt_half = 0.5 * deltaT;
+    float dt_half = 0.5f * deltaT;
     
     int idx_body = -1;
     
@@ -546,14 +546,14 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_particle_sliding_kernel(float4
                     pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
                     pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
                     pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-                    pvel.w = 0.0;
+                    pvel.w = 0.0f;
                     
                     float4 fc;
                     fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
                     fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
                     fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
             
-                    float pvirial = 0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
+                    float pvirial = 0.5f * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0f;
                     
                     // write out the results (MEM_TRANSFER: ? bytes)
                     pdata_pos[idx_particle_index] = ppos;
@@ -834,11 +834,11 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
         float4 force, torque;
         float4 mbody, tbody, fquat;
         
-        float dt_half = 0.5 * deltaT;
+        float dt_half = 0.5f * deltaT;
         float   tmp, scale_t, scale_r, akin_t, akin_r;
-        tmp = -1.0 * dt_half * nvt_rdata_eta_dot_t0;
+        tmp = -1.0f * dt_half * nvt_rdata_eta_dot_t0;
         scale_t = __expf(tmp);
-        tmp = -1.0 * dt_half * nvt_rdata_eta_dot_r0;
+        tmp = -1.0f * dt_half * nvt_rdata_eta_dot_r0;
         scale_r = __expf(tmp);
         
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
@@ -864,7 +864,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
             vel2.x = scale_t * vel.x + dtfm * force.x;
             vel2.y = scale_t * vel.y + dtfm * force.y;
             vel2.z = scale_t * vel.z + dtfm * force.z;
-            vel2.w = 0.0;
+            vel2.w = 0.0f;
             
             tmp = vel2.x * vel2.x + vel2.y * vel2.y + vel2.z * vel2.z;
             akin_t = body_mass * tmp;
@@ -882,10 +882,10 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
             inv_quat_multiply(orientation, conjqm2, mbody);
             transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
             
-            angmom2.x *= 0.5;
-            angmom2.y *= 0.5;
-            angmom2.z *= 0.5;
-            angmom2.w = 0.0;
+            angmom2.x *= 0.5f;
+            angmom2.y *= 0.5f;
+            angmom2.z *= 0.5f;
+            angmom2.w = 0.0f;
             
             // update angular velocity
             float4 angvel2;
@@ -928,7 +928,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_particle_kernel(float4* pdata_
     
     __shared__ float4 vel, angvel, ex_space, ey_space, ez_space;
     
-    float dt_half = 0.5 * deltaT;
+    float dt_half = 0.5f * deltaT;
     
     int idx_body = -1;    
 
@@ -979,14 +979,14 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_particle_kernel(float4* pdata_
             pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
             pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
             pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-            pvel.w = 0.0;
+            pvel.w = 0.0f;
             
             float4 fc;
             fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
             fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
             fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
             
-            float pvirial = 0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
+            float pvirial = 0.5f * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0f;
             
             // accumulate the virial contribution from the first part into the net particle virial
             pvirial += virial;
@@ -1024,7 +1024,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_particle_sliding_kernel(float4
     
     __shared__ float4 vel, angvel, ex_space, ey_space, ez_space;
     
-    float dt_half = 0.5 * deltaT;
+    float dt_half = 0.5f * deltaT;
 
     int idx_body = -1;
     
@@ -1082,14 +1082,14 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_particle_sliding_kernel(float4
                     pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
                     pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
                     pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-                    pvel.w = 0.0;
+                    pvel.w = 0.0f;
                     
                     float4 fc;
                     fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
                     fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
                     fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
                     
-                    float pvirial = 0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
+                    float pvirial = 0.5f * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0f;
             
                     // accumulate the virial contribution from the first part into the net particle virial
                     pvirial += virial;
