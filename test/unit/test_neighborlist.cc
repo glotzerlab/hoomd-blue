@@ -411,7 +411,7 @@ void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_
     // check to make sure that every neighbor matches
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        BOOST_CHECK_EQUAL(h_n_neigh.data[i], 0);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[i], 0);
         }
     }
 
