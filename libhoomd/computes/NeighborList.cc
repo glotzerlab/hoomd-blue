@@ -790,6 +790,7 @@ void NeighborList::resetStats()
     }
 
 /*! Loops through the particles and finds all of the particles \c j who's distance is less than
+    \param timestep Current time step of the simulation
     \c r_cut \c + \c r_buff from particle \c i, includes either i < j or all neighbors depending
     on the mode set by setStorageMode()
 */
