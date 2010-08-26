@@ -328,7 +328,29 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     // check the CUDA driver version
     int driverVersion = 0;
     cudaDriverGetVersion(&driverVersion);
-    
+
+    // first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
+    if (driverVersion == 0)
+        {
+        cout << endl << "***Warning! NVIDIA driver not installed or is too old, ignoring any GPUs in the system."
+             << endl << endl;
+        return;
+        }
+        
+    // next, check to see if the driver is capable of running the version of CUDART that HOOMD was compiled against
+    if (driverVersion < CUDART_VERSION)
+        {
+        int driver_major = driverVersion / 1000;
+        int driver_minor = (driverVersion - driver_major * 1000) / 10;
+        int cudart_major = CUDART_VERSION / 1000;
+        int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
+        
+        cout << endl << "***Warning! The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
+             << driver_minor << ", but HOOMD was built against CUDA " << cudart_major << "." << cudart_minor << endl;
+        cout << "            Ignoring any GPUs in the system." << endl;
+        return;
+        }
+
     // determine the number of GPUs that CUDA thinks there is
     int dev_count;
     cudaError_t error = cudaGetDeviceCount(&dev_count);
