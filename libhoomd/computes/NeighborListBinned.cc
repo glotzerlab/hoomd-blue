@@ -124,7 +124,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     // for each particle
 #pragma omp parallel for schedule(dynamic, 100)
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (int i = 0; i < (int)arrays.nparticles; i++)
         {
         unsigned int cur_n_neigh = 0;
         
@@ -180,9 +180,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     
                 float dr_sq = dx*dx + dy*dy + dz*dz;
                 
-                if (dr_sq <= rmaxsq && i != cur_neigh)
+                if (dr_sq <= rmaxsq && i != (int)cur_neigh)
                     {
-                    if (m_storage_mode == full || i < cur_neigh)
+                    if (m_storage_mode == full || i < (int)cur_neigh)
                         {
                         if (cur_n_neigh < m_nlist_indexer.getH())
                             h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
