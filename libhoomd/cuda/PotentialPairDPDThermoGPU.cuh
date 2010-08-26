@@ -1,4 +1,4 @@
-/*! \file AllDriverPotentialPairExtGPU.cuh
+/*! \file PotentialPairDPDThermoGPU.cuh
     \brief Declares driver functions for computing all types of pair forces on the GPU from glotzer-hoomd-plugins
 */
 
@@ -16,10 +16,10 @@
 struct dpd_pair_args
     {
     int block_size;         //!< block size to execute on
-    unsigned int seed;
-    unsigned int timestep;
-    float deltaT;
-    float T;    
+    unsigned int seed;      //!< user provided seed for PRNG
+    unsigned int timestep;  //!< timestep of simulation
+    float deltaT;           //!< timestep size
+    float T;                //!< temperature 
     };
 
 #ifdef NVCC
@@ -39,6 +39,10 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
     \param nlist Neigbhor list data on the GPU to use to calculate the forces
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
+    \param d_seed user defined seed for PRNG    
+    \param d_timestep timestep of simulation    
+    \param d_deltaT timestep size    
+    \param d_T temperature
     \param ntypes Number of types in the simulation
     
     \a d_params, and \a d_rcutsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the

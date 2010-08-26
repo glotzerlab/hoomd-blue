@@ -82,6 +82,7 @@ typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
 typedef PotentialPair<EvaluatorPairMorse> PotentialPairMorse;
 //! Pair potential force compute for dpd conservative forces
 typedef PotentialPair<EvaluatorPairDPDThermo> PotentialPairDPD;
+//! Pair potential force compute for dpd thermostat and conservative forces
 typedef PotentialPairDPDThermo<EvaluatorPairDPDThermo> PotentialPairDPDThermoDPD;
 
 #ifdef ENABLE_CUDA
@@ -97,6 +98,7 @@ typedef PotentialPairGPU< EvaluatorPairYukawa, gpu_compute_yukawa_forces > Poten
 typedef PotentialPairGPU< EvaluatorPairMorse, gpu_compute_morse_forces > PotentialPairMorseGPU;
 //! Pair potential force compute for dpd conservative forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > PotentialPairDPDGPU;
+//! Pair potential force compute for dpd thermostat and conservative forces on the GPU
 typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > PotentialPairDPDThermoDPDGPU;
 #endif
 

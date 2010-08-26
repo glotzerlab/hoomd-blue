@@ -79,23 +79,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RSQRT(x) Scalar(1.0) / sqrt( (x) )
 #endif
 
-// call different division functions on the host / device
-#ifdef NVCC
-#define FDIV(x,y) __fdiv_rn(x,y)
-#else
-#define FDIV(x,y) x/y
-#endif
-
-
 // call different Saru PRNG initializers on the host / device
-//! is SaruGPU when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
+//! SARU is SaruGPU Class when included in nvcc and Saru Class when included into the host compiler
 #ifdef NVCC
 #define SARU(ix,iy,iz) SaruGPU saru( (ix) , (iy) , (iz) )
-#define CALL_SARU(x,y) saru.f( (x), (y))
 #else
 #define SARU(ix, iy, iz) Saru saru( (ix) , (iy) , (iz))
+#endif
+
+// use different Saru PRNG returns on the host / device
+//! CALL_SARU is currently define to return a random float for both the GPU and Host.  By changing saru.f to saru.d, a double could be returned instead.
+#ifdef NVCC
+#define CALL_SARU(x,y) saru.f( (x), (y))
+#else
 #define CALL_SARU(x,y) saru.f( (x), (y))
 #endif
+
+
 
 //! Class for evaluating the DPD Thermostat pair potential
 /*! <b>General Overview</b>
@@ -187,11 +187,6 @@ class EvaluatorPairDPDThermo
             // compute the force divided by r in force_divr
             if (rsq < rcutsq)
                 {
-             // Tried using more Exact versions of these functions, no difference seen   
-             //   Scalar r = SQRT(rsq);
-             //   Scalar rinv = FDIV(Scalar(1.0), r);
-             //   Scalar rcut = SQRT(rcutsq);
-             //   Scalar rcutinv = FDIV(Scalar(1.0), rcut);
                
                 Scalar rinv = RSQRT(rsq);
                 Scalar r = Scalar(1.0) / rinv;
@@ -199,14 +194,9 @@ class EvaluatorPairDPDThermo
                 Scalar rcut = Scalar(1.0) / rcutinv;
 
                 // force is easy to calculate
-                //force_divr = FDIV(a,r)*(Scalar(1.0) - r*rcutinv);
                 force_divr = a*(rinv - rcutinv);
                 pair_eng = a * (rcut - r) - Scalar(1.0/2.0) * a * rcutinv * (rcutsq - rsq);
 
-                //if (energy_shift)
-                    //{
-                    // do nothing in energy_shift mode: DPD-C goes to 0 at the cutoff
-                    //}
                 return true;
                 }
             else
@@ -300,7 +290,7 @@ class EvaluatorPairDPDThermo
         unsigned int m_j;   //!< index of second particle (should it be tag?). For use in PRNG
         unsigned int m_timestep; //!< timestep for use in PRNG
         Scalar m_T;         //!< Temperature for Themostat
-        Scalar m_dot;       //! < Velocity difference dotted with displacement vector
+        Scalar m_dot;       //!< Velocity difference dotted with displacement vector
         Scalar m_deltaT;   //!<  timestep size stored from constructor
     };
 

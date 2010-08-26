@@ -136,7 +136,7 @@ void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
     m_seed = seed;
     }
 
-/*! \param the temperature the system is thermostated to at this time step.
+/*! \param T the temperature the system is thermostated on this time step.
 */
 template< class evaluator >
 void PotentialPairDPDThermo< evaluator >::setT(boost::shared_ptr<Variant> T)

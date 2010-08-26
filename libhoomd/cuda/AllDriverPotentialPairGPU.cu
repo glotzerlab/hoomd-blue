@@ -228,7 +228,6 @@ cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
     \param nlist Neigbhor list data on the GPU to use to calculate the forces
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
     \param ntypes Number of types in the simulation
     \param args Additional arguments specific to DPD 
 */
