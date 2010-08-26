@@ -80,14 +80,14 @@ _default_block_size_db['1.0'] = _default_block_size_db['1.1'];
 _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihedral.harmonic': 256, 'angle.cgcmm': 320,
                                  'pair.cgcmm': 416, 'pair.table': 96, 'pair.slj': 352, 'pair.morse': 352,
                                  'bond.harmonic': 352, 'bond.fene': 224, 'pair.yukawa': 352, 'angle.harmonic': 192,
-                                 'pair.gauss': 352, 'nlist': 416, 'nlist.filter': 128}
+                                 'pair.gauss': 352, 'nlist': 416, 'nlist.filter': 160}
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
 
 _default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihedral.harmonic': 64, 'angle.cgcmm': 96,
                                  'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'nlist': 96,
                                  'bond.harmonic': 416, 'pair.gauss': 320, 'bond.fene': 160, 'angle.harmonic': 96,
-                                 'pair.yukawa': 256, 'pair.morse': 160, 'nlist.filter': 128}
+                                 'pair.yukawa': 256, 'pair.morse': 160, 'nlist.filter': 224}
 
 # no 2.1 devices to tune on. Assume the same as 2.0
 _default_block_size_db['2.1'] = _default_block_size_db['2.0'];
