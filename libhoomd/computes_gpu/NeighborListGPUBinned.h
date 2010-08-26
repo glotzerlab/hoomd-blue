@@ -75,9 +75,6 @@ class NeighborListGPUBinned : public NeighborListGPU
         //! Change the cuttoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
     
-        //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
-
 		//! Set the block size
 		void setBlockSize(unsigned int block_size)
 			{
@@ -91,6 +88,9 @@ class NeighborListGPUBinned : public NeighborListGPU
         uint3 m_last_dim;                   //!< The last dimensions allocated for the cell list tex2D arrays
         unsigned int m_last_cell_Nmax;      //!< The last Nmax allocated for the cell list tex2D arrays
 		unsigned int m_block_size;			//!< Block size to execute on the GPU
+
+        //! Builds the neighbor list
+        virtual void buildNlist(unsigned int timestep);
         
         //! Test if the cuda arrays need reallocation
         bool needReallocateCudaArrays();

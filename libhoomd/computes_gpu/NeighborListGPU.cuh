@@ -71,4 +71,15 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                              const Index2D& exli,
                              const unsigned int N);
 
+//! Kernel driver for gpu_compute_nlist_nsq_kernel()
+cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
+                                  unsigned int *d_n_neigh,
+                                  float4 *d_last_updated_pos,
+                                  unsigned int *d_conditions,
+                                  const Index2D& nli,
+                                  const float4 *d_pos,
+                                  const unsigned int N,
+                                  const gpu_boxsize& box,
+                                  const float r_maxsq);
+
 #endif

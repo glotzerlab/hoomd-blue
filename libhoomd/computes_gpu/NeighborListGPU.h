@@ -69,6 +69,9 @@ class NeighborListGPU : public NeighborList
             {
             GPUArray<unsigned int> flags(1, exec_conf);
             m_flags.swap(flags);
+            
+            // default to full mode
+            m_storage_mode = full;
             }
         
         //! Destructor
@@ -78,6 +81,9 @@ class NeighborListGPU : public NeighborList
 
     protected:
         GPUArray<unsigned int> m_flags;     //!< Storage for device flags on the GPU
+
+        //! Builds the neighbor list
+        virtual void buildNlist(unsigned int timestep);
 
         //! Perform the nlist distance check on the GPU
         virtual bool distanceCheck();

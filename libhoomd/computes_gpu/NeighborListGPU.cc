@@ -56,6 +56,58 @@ using namespace boost::python;
 #include <iostream>
 using namespace std;
 
+void NeighborListGPU::buildNlist(unsigned int timestep)
+    {
+    if (m_storage_mode != full)
+        {
+        cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
+        throw runtime_error("Error computing neighbor list");
+        }
+    
+    // check that the simulation box is big enough
+    const BoxDim& box = m_pdata->getBox();
+    
+    if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff) * 2.0 ||
+        (box.yhi - box.ylo) <= (m_r_cut+m_r_buff) * 2.0 ||
+        (box.zhi - box.zlo) <= (m_r_cut+m_r_buff) * 2.0)
+        {
+        cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves."
+             << endl << endl;
+        throw runtime_error("Error computing neighbor list");
+        }
+
+    if (m_prof)
+        m_prof->push(exec_conf, "compute");
+
+    // acquire the particle data
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_boxsize gpubox = m_pdata->getBoxGPU();
+    
+    // access the nlist data arrays
+    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
+
+    gpu_compute_nlist_nsq(d_nlist.data,
+                          d_n_neigh.data,
+                          d_last_pos.data,
+                          d_conditions.data,
+                          m_nlist_indexer,
+                          d_pdata.pos,
+                          m_pdata->getN(),
+                          gpubox,
+                          (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff));
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    m_pdata->release();
+    
+    if (m_prof)
+        m_prof->pop(exec_conf);
+    }
+
 bool NeighborListGPU::distanceCheck()
     {
     // scan through the particle data arrays and calculate distances

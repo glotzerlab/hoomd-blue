@@ -239,3 +239,148 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
     
     return cudaSuccess;
     }
+
+//! Compile time determined block size for the NSQ neighbor list calculation
+const int NLIST_BLOCK_SIZE = 128;
+
+//! Generate the neighbor list on the GPU in O(N^2) time
+/*! \param d_nlist Neighbor list to write out
+    \param d_n_neigh Number of neighbors to write
+    \param d_last_updated_pos Particle positions will be written here
+    \param d_conditions Overflow condition flag
+    \param nli Indexer for indexing into d_nlist
+    \param d_pos Current particle positions
+    \param N number of particles
+    \param box Box dimensions for handling periodic boundary conditions
+    \param r_maxsq Precalculated value for r_max*r_max
+
+    each thread is to compute the neighborlist for a single particle i
+    each block will load a bunch of particles into shared mem and then each thread will compare it's particle
+    to each particle in shmem to see if they are a neighbor. Since all threads in the block access the same
+    shmem element at the same time, the value is broadcast and there are no bank conflicts
+*/
+__global__
+void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
+                                  unsigned int *d_n_neigh,
+                                  float4 *d_last_updated_pos,
+                                  unsigned int *d_conditions,
+                                  const Index2D nli,
+                                  const float4 *d_pos,
+                                  const unsigned int N,
+                                  const gpu_boxsize box,
+                                  const float r_maxsq)
+    {
+    // shared data to store all of the particles we compare against
+    __shared__ float sdata[NLIST_BLOCK_SIZE*4];
+    
+    // load in the particle
+    int pidx = blockIdx.x * NLIST_BLOCK_SIZE + threadIdx.x;
+    
+    float4 pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    if (pidx < N)
+        pos = d_pos[pidx];
+        
+    float px = pos.x;
+    float py = pos.y;
+    float pz = pos.z;
+    
+    // track the number of neighbors added so far
+    int n_neigh = 0;
+    
+    // each block is going to loop over all N particles (this assumes memory is padded to a multiple of blockDim.x)
+    // in blocks of blockDim.x
+    for (int start = 0; start < N; start += NLIST_BLOCK_SIZE)
+        {
+        // load data
+        float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        if (start + threadIdx.x < N)
+            neigh_pos = d_pos[start + threadIdx.x];
+            
+        // make sure everybody is caught up before we stomp on the memory
+        __syncthreads();
+        sdata[threadIdx.x] = neigh_pos.x;
+        sdata[threadIdx.x + NLIST_BLOCK_SIZE] = neigh_pos.y;
+        sdata[threadIdx.x + 2*NLIST_BLOCK_SIZE] = neigh_pos.z;
+        sdata[threadIdx.x + 3*NLIST_BLOCK_SIZE] = neigh_pos.w; //< unused, but try to get compiler to fully coalesce reads
+        
+        // ensure all data is loaded
+        __syncthreads();
+        
+        // now each thread loops over every particle in shmem, but doesn't loop past the end of the particle list (since
+        // the block might extend that far)
+        int end_offset= NLIST_BLOCK_SIZE;
+        end_offset = min(end_offset, N - start);
+        
+        if (pidx < N)
+            {
+            for (int cur_offset = 0; cur_offset < end_offset; cur_offset++)
+                {
+                // calculate dr
+                float dx = px - sdata[cur_offset];
+                dx = dx - box.Lx * rintf(dx * box.Lxinv);
+                
+                if (dx*dx < r_maxsq)
+                    {
+                    float dy = py - sdata[cur_offset + NLIST_BLOCK_SIZE];
+                    dy = dy - box.Ly * rintf(dy * box.Lyinv);
+                    
+                    if (dy*dy < r_maxsq)
+                        {
+                        float dz = pz - sdata[cur_offset + 2*NLIST_BLOCK_SIZE];
+                        dz = dz - box.Lz * rintf(dz * box.Lzinv);
+                        
+                        float drsq = dx*dx + dy*dy + dz*dz;
+                        
+                        // we don't add if we are comparing to ourselves, and we don't add if we are above the cut
+                        if ((drsq < r_maxsq) && ((start + cur_offset) != pidx))
+                            {
+                            if (n_neigh < nli.getH())
+                                d_nlist[nli(pidx, n_neigh)] = start+cur_offset;
+                            else
+                                atomicMax(&d_conditions[0], n_neigh+1);
+                            
+                            n_neigh++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+    // now that we are done: update the first row that lists the number of neighbors
+    if (pidx < N)
+        {
+        d_n_neigh[pidx] = n_neigh;
+        d_last_updated_pos[pidx] = d_pos[pidx];
+        }
+    }
+
+//! Generate the neighbor list on the GPU in O(N^2) time
+cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
+                                  unsigned int *d_n_neigh,
+                                  float4 *d_last_updated_pos,
+                                  unsigned int *d_conditions,
+                                  const Index2D& nli,
+                                  const float4 *d_pos,
+                                  const unsigned int N,
+                                  const gpu_boxsize& box,
+                                  const float r_maxsq)
+    {
+    // setup the grid to run the kernel
+    int block_size = NLIST_BLOCK_SIZE;
+    dim3 grid( (N/block_size) + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+    
+    // run the kernel
+    gpu_compute_nlist_nsq_kernel<<< grid, threads >>>(d_nlist,
+                                                      d_n_neigh,
+                                                      d_last_updated_pos,
+                                                      d_conditions,
+                                                      nli,
+                                                      d_pos,
+                                                      N,
+                                                      box,
+                                                      r_maxsq);
+
+    return cudaSuccess;
+    }

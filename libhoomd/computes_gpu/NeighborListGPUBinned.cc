@@ -67,9 +67,6 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     gpu_setup_compute_nlist_binned();
     CHECK_CUDA_ERROR();
     
-    // default to full mode
-    m_storage_mode = full;
-    
     // default to 0 last allocated quantities
     m_last_dim = make_uint3(0,0,0);
     m_last_cell_Nmax = 0;
