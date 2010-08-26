@@ -73,6 +73,13 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     dca_cell_adj = NULL;
     dca_cell_xyzf = NULL;
 	m_block_size = 64;
+    
+    // When running on compute 1.x, textures are allocated with the height equal to the number of cells
+    // limit the number of cells to the maximum texture dimension
+    if (exec_conf->getComputeCapability() < 200)
+        {
+        m_cl->setMaxCells(exec_conf->dev_prop.maxTexture2D[1]);
+        }
     }
 
 NeighborListGPUBinned::~NeighborListGPUBinned()
