@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTGPU.h"
 #endif
 
-#include "BinnedNeighborList.h"
+#include "NeighborListBinned.h"
 #include "Initializers.h"
 #include "AllPairPotentials.h"
 

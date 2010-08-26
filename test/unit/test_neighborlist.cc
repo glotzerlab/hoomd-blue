@@ -60,8 +60,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Initializers.h"
 
 #ifdef ENABLE_CUDA
-#include "NeighborListNsqGPU.h"
-#include "BinnedNeighborListGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
 #endif
@@ -497,42 +495,6 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
     }
 
 #endif
-
-/*//! boost test case for BinnedNeighborList
-BOOST_AUTO_TEST_CASE( BinnedNeighborList_tests )
-    {
-    nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
-    nlist_creator_typ binned_creator = bind(binned_nlist_creator, _1, _2, _3);
-    
-    neighborlist_basic_tests(binned_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    neighborlist_exclusion_tests(binned_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    neighborlist_comparison_test(base_creator, binned_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
-
-#ifdef ENABLE_CUDA
-//! boost test case for NeighborListNsqGPU
-BOOST_AUTO_TEST_CASE( NeighborListNsqGPU_tests )
-    {
-    nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
-    nlist_creator_typ gpu_creator = bind(gpu_nsq_nlist_creator, _1, _2, _3);
-    
-    neighborlist_basic_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    neighborlist_exclusion_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    neighborlist_comparison_test(base_creator, gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    }
-
-//! boost test case for BinnedNeighborListGPU
-BOOST_AUTO_TEST_CASE( BinnedNeighborListGPU_tests )
-    {
-    nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
-    nlist_creator_typ gpu_creator = bind(gpu_binned_nlist_creator, _1, _2, _3);
-    
-    neighborlist_basic_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    neighborlist_exclusion_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    neighborlist_comparison_test(base_creator, gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    }
-
-#endif*/
 
 #ifdef WIN32
 #pragma warning( pop )

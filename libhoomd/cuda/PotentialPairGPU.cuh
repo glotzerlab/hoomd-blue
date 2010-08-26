@@ -45,7 +45,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 #include "ForceCompute.cuh"
-#include "NeighborList.cuh"
 #include "ParticleData.cuh"
 #include "Index1D.h"
 

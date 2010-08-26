@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: akohlmey
 
 #include "ForceCompute.cuh"
-#include "NeighborList.cuh"
 #include "ParticleData.cuh"
 #include "Index1D.h"
 

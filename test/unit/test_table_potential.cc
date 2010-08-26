@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 #include "TablePotential.h"
-#include "BinnedNeighborList.h"
+#include "NeighborList.h"
 #ifdef ENABLE_CUDA
 #include "TablePotentialGPU.h"
 #endif

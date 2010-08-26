@@ -80,7 +80,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ComputeThermoGPU.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
-#include "BinnedNeighborList.h"
 #include "Analyzer.h"
 #include "IMDInterface.h"
 #include "HOOMDDumpWriter.h"
@@ -117,8 +116,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNPTGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
-#include "BinnedNeighborListGPU.h"
-#include "NeighborListNsqGPU.h"
 #include "CGCMMForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
@@ -399,14 +396,11 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ComputeThermo();
     export_NeighborList();
     export_NeighborListBinned();
-    export_BinnedNeighborList();
     export_ConstraintSphere();
 #ifdef ENABLE_CUDA
     export_CellListGPU();
     export_NeighborListGPU();
     export_NeighborListGPUBinned();
-    export_BinnedNeighborListGPU();
-    export_NeighborListNsqGPU();
     export_CGCMMForceComputeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
