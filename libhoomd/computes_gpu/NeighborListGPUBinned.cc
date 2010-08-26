@@ -144,15 +144,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     // take optimized code paths for different GPU generations
     if (exec_conf->getComputeCapability() >= 200)
         {
-        unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
-
-        // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
-        if (needReallocateCudaArrays())
-            {
-            allocateCudaArrays();
-            cudaMemcpyToArray(dca_cell_adj, 0, 0, d_cell_adj.data, sizeof(unsigned int)*ncell*27, cudaMemcpyDeviceToDevice);
-            }
-        
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
@@ -162,7 +153,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_pdata->getN(),
                                  d_cell_size.data,
                                  d_cell_xyzf.data,
-                                 dca_cell_adj,
+                                 d_cell_adj.data,
                                  m_cl->getCellIndexer(),
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
