@@ -58,8 +58,8 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
     
-    m_cl->setNominalWidth((r_cut + r_buff)/2.0);
-    m_cl->setRadius(2);
+    m_cl->setNominalWidth(r_cut + r_buff);
+    m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
     }
@@ -72,7 +72,7 @@ void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborList::setRCut(r_cut, r_buff);
     
-    m_cl->setNominalWidth((r_cut + r_buff)/2.0);
+    m_cl->setNominalWidth(r_cut + r_buff);
     }
 
 void NeighborListBinned::buildNlist(unsigned int timestep)
