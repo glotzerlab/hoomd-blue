@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: PotentialPairDPDThermoGPU.h 3019 2010-05-04 20:58:05Z joaander $
 // $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/PotentialPairDPDThermoGPU.h $
-// Maintainer: joaander
+// Maintainer: phillicl
 
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
 #define __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
