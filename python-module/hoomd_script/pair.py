@@ -1673,7 +1673,7 @@ class dpd_conservative(pair):
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialPairDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
-            self.cpp_class = hoomd.PotentialPairDPDT;
+            self.cpp_class = hoomd.PotentialPairDPD;
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
