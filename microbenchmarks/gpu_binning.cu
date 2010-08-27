@@ -110,6 +110,9 @@ void allocate_data()
     g_Mx = std::min(g_Mx, (unsigned)30);
     g_My = std::min(g_My, (unsigned)30);
     g_Mz = std::min(g_Mz, (unsigned)30);
+    g_Mx = std::max(g_Mx, (unsigned)1);
+    g_My = std::max(g_My, (unsigned)1);
+    g_Mz = std::max(g_Mz, (unsigned)1);
 
     // allocate bins
     unsigned int Nbins = g_Mx * g_My * g_Mz;
@@ -379,7 +382,7 @@ void rebin_particles_host(unsigned int *idxlist, unsigned int *bin_size, float4 
     }
 
 // benchmark the host rebinning
-void bmark_host_rebinning(bool include_memcpy)
+float bmark_host_rebinning(bool include_memcpy, bool quiet=false)
     {
     // warm up
     rebin_particles_host(gh_idxlist, gh_bin_size, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
@@ -388,7 +391,7 @@ void bmark_host_rebinning(bool include_memcpy)
     if (!verify())
         {
         printf("Invalid results in host bmark!\n");
-        return;
+        return 0.0f;
         }
         
     // benchmarks
@@ -415,11 +418,15 @@ void bmark_host_rebinning(bool include_memcpy)
     float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
     float avg_t = t/float(iters);
     
-    if (include_memcpy)
-        printf("Host w/device memcpy: ");
-    else
-        printf("Host                : ");
-    printf("%f ms\n", avg_t);
+    if (!quiet)
+        {
+        if (include_memcpy)
+            printf("Host w/device memcpy: ");
+        else
+            printf("Host                : ");
+        printf("%f ms\n", avg_t);
+        }
+    return avg_t;
     }
 
 #if CUDA_ARCH >= 11
@@ -485,7 +492,7 @@ void rebin_particles_simple(unsigned int *idxlist, unsigned int *bin_size, float
     }
 
 // benchmark the device rebinning
-float bmark_simple_rebinning()
+float bmark_simple_rebinning(bool quiet=false)
     {
     // warm up
     rebin_particles_simple(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
@@ -534,8 +541,11 @@ float bmark_simple_rebinning()
         return 0.0f;
         }
         
-    printf("GPU/simple          : ");
-    printf("%f ms\n", avg_t);
+    if (!quiet)
+        {
+        printf("GPU/simple          : ");
+        printf("%f ms\n", avg_t);
+        }
     return avg_t;
     }
 
@@ -786,7 +796,7 @@ void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, 
     }
 
 // benchmark the device rebinning
-void bmark_simple_sort_rebinning(unsigned int block_size)
+float bmark_simple_sort_rebinning(unsigned int block_size, bool quiet=false)
     {
     // warm up
     rebin_particles_simple_sort(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, block_size);
@@ -799,7 +809,7 @@ void bmark_simple_sort_rebinning(unsigned int block_size)
     if (!verify())
         {
         printf("Invalid results in GPU/simple/sort bmark!\n");
-        return;
+        return 0.0f;
         }
         
     // benchmarks
@@ -832,11 +842,15 @@ void bmark_simple_sort_rebinning(unsigned int block_size)
     if (!verify())
         {
         printf("Invalid results at end of GPU/simple/sort bmark!\n");
-        return;
+        return 0.0f;
         }
-        
-    printf("GPU/simple/sort/%3d : ", block_size);
-    printf("%f ms\n", avg_t);
+    
+    if (!quiet)
+        {
+        printf("GPU/simple/sort/%3d : ", block_size);
+        printf("%f ms\n", avg_t);
+        }
+    return avg_t;
     }
 
 
@@ -1083,11 +1097,62 @@ void bmark_grid()
     std::cout << "];" << std::endl;
     }
 
+void bmark_N()
+    {
+    g_rcut = 3.1f;
+    float phi = 0.20f;
+    
+    std::vector<unsigned int> N_list;
+    for (unsigned int power = 2; power < 6 ; power++)
+        {
+        N_list.push_back(1*pow(10.0f,float(power)));
+        N_list.push_back(2*pow(10.0f,float(power)));
+        N_list.push_back(3*pow(10.0f,float(power)));
+        N_list.push_back(4*pow(10.0f,float(power)));
+        N_list.push_back(5*pow(10.0f,float(power)));
+        N_list.push_back(6*pow(10.0f,float(power)));
+        N_list.push_back(7*pow(10.0f,float(power)));
+        N_list.push_back(8*pow(10.0f,float(power)));
+        N_list.push_back(9*pow(10.0f,float(power)));
+        }
+
+
+    std::cout << "N = [";
+    for (unsigned int i = 0; i < N_list.size(); i++)
+        std::cout << N_list[i] << " ";
+    std::cout << "];" << std::endl;
+
+    std::cout << "btim = [";
+    for (unsigned int i = 0; i < N_list.size(); i++)
+        {
+        g_N = N_list[i];
+        float L = pow(float(M_PI/6.0)*float(g_N) / phi, 1.0f/3.0f);
+        g_Lx = g_Ly = g_Lz = L;
+    
+        // setup
+        allocate_data();
+        initialize_data();
+        sort_data();
+    
+        // normally, data in HOOMD is not perfectly sorted:
+        for (unsigned int k = 0; k < 100; k++)
+            tweak_data();
+    
+        //float time = bmark_host_rebinning(true, true);
+        float time = bmark_simple_sort_rebinning(64, true);
+        std::cout << time << " ";
+
+        free_data();
+        }
+    std::cout << "];" << std::endl;
+    }
 
 int main(int argc, char **argv)
     {
     //bmark_grid();
+    bmark_N();
 
+#if 0
     // choose defaults if no args specified
     float phi;
     if (argc == 1)
@@ -1133,15 +1198,16 @@ int main(int argc, char **argv)
     //bmark_host_rebinning(true);
 #if CUDA_ARCH >= 11
     bmark_simple_rebinning();
-    /*bmark_simple_sort_rebinning(32);
+    bmark_simple_sort_rebinning(32);
     bmark_simple_sort_rebinning(64);
     bmark_simple_sort_rebinning(128);
     bmark_simple_sort_rebinning(256);
     bmark_simple_sort_rebinning(512);
-    bmark_simple_updating();*/
+    /*bmark_simple_updating();*/
 #endif
     
     free_data();
+#endif
     
     return 0;
     }

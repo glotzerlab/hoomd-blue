@@ -61,8 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU
-	(if requested), stores information about the GPU on which this simulation is executing, and the number of CPUs
-	utilized in the CPU mode. 
+    (if requested), stores information about the GPU on which this simulation is executing, and the number of CPUs
+    utilized in the CPU mode. 
 
     The execution configuration is determined at the beginning of the run and must
     remain static for the entire run. It can be accessed from the ParticleData of the
@@ -70,9 +70,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     The execution mode is specified in exec_mode. This is only to be taken as a hint,
     different compute classes are free to fall back on CPU implementations if no GPU is available. However,
-	<b>ABSOLUTELY NO</b> CUDA calls should be made if exec_mode is set to CPU - making a CUDA call will initialize a
-	GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
-	interpret the exec_mode and test if CUDA calls can be made or not.
+    <b>ABSOLUTELY NO</b> CUDA calls should be made if exec_mode is set to CPU - making a CUDA call will initialize a
+    GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
+    interpret the exec_mode and test if CUDA calls can be made or not.
 */
 struct ExecutionConfiguration : boost::noncopyable
     {
@@ -91,43 +91,43 @@ struct ExecutionConfiguration : boost::noncopyable
     
     ~ExecutionConfiguration();
     
-	executionMode exec_mode;    //!< Execution mode specified in the constructor
+    executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
-	bool m_cuda_error_checking;				//!< Set to true if GPU error checking is enabled
+    bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
 
-	//! Returns true if CUDA is enabled
-	bool isCUDAEnabled() const
-		{
-		return (exec_mode == GPU);
-		}
-	
-	//! Returns true if CUDA error checking is enabled
-	bool isCUDAErrorCheckingEnabled() const
-		{
+    //! Returns true if CUDA is enabled
+    bool isCUDAEnabled() const
+        {
+        return (exec_mode == GPU);
+        }
+    
+    //! Returns true if CUDA error checking is enabled
+    bool isCUDAErrorCheckingEnabled() const
+        {
         #ifdef NDEBUG
         return true;
         #else
-		return m_cuda_error_checking;
+        return m_cuda_error_checking;
         #endif
-		}
-	
-	//! Sets the cuda error checking mode
-	void setCUDAErrorChecking(bool cuda_error_checking)
-		{
-		m_cuda_error_checking = cuda_error_checking;
-		}
+        }
+    
+    //! Sets the cuda error checking mode
+    void setCUDAErrorChecking(bool cuda_error_checking)
+        {
+        m_cuda_error_checking = cuda_error_checking;
+        }
 
 #ifdef ENABLE_CUDA
-	cudaDeviceProp dev_prop;	//!< Cached device properties
+    cudaDeviceProp dev_prop;    //!< Cached device properties
     
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapability();
 
-	//! Handle cuda error message
-	static void handleCUDAError(cudaError_t err, const char *file, unsigned int line);
-	
-	//! Check for cuda errors
-	static void checkCUDAError(const char *file, unsigned int line);
+    //! Handle cuda error message
+    static void handleCUDAError(cudaError_t err, const char *file, unsigned int line);
+    
+    //! Check for cuda errors
+    static void checkCUDAError(const char *file, unsigned int line);
     
 private:
     //! Initialize the GPU with the given id

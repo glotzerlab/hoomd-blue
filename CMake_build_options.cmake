@@ -95,6 +95,12 @@ if (ENABLE_CUDA)
     else (CUDA_VERSION VERSION_GREATER 2.99) 
         list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
     endif (CUDA_VERSION VERSION_GREATER 2.99) 
+    
+    if (CUDA_VERSION VERSION_EQUAL 3.1) 
+        message(STATUS "Enabling reg usage workaround for CUDA 3.1") 
+        list(APPEND CUDA_NVCC_FLAGS "-Xptxas;-abi=no")
+    endif (CUDA_VERSION VERSION_EQUAL 3.1)
+    
     endif (ENABLE_OCELOT)
     
 endif (ENABLE_CUDA)
@@ -129,6 +135,7 @@ endif(WIN32)
 set (_cmake_ver "${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
 if (_cmake_ver VERSION_GREATER 2.6.3)
 
+if(NOT APPLE)
 find_package(OpenMP)
 if (OPENMP_FOUND)
     option(ENABLE_OPENMP "Enable openmp compliation to accelerate CPU code on multi-core machines" ON)
@@ -137,6 +144,7 @@ if (OPENMP_FOUND)
         # the compiler options to enable openmp are set in HOOMDCFlagsSetup
     endif (ENABLE_OPENMP)
 endif (OPENMP_FOUND)
+endif(NOT APPLE)
 
 else (_cmake_ver VERSION_GREATER 2.6.3)
 message(STATUS "Upgrade to CMake 2.6.4 or newer to enable OpenMP compilation")
