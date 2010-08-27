@@ -102,17 +102,40 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     See EvaluatorPairLJ
     
-    <b>DPD Conservative specifics</b>
+    <b>DPD Thermostat and Conservative specifics</b>
     
-    EvaluatorPairDPDThermo evaluates the function:
-    \f[ V_{\mathrm{DPD-C}}(r) = a \cdot \left( r_{\mathrm{cut}} - r \right) 
-                        - \frac{1}{2} \cdot \frac{a}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)\f]
-    
-    The DPD Conservative potential does not need charge or diameter. One parameters is specified and stored in a Scalar. 
-    \a a is placed in \a param.
+    EvaluatorPairDPDThermo::evalForceAndEnergy evaluates the function:
+    \f[ V_{\mathrm{DPD-C}}(r) = A \cdot \left( r_{\mathrm{cut}} - r \right) 
+                        - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)\f]
+                        
+    The DPD Conservative potential does not need charge or diameter. One parameter is specified and stored in a Scalar. 
+    \a A is placed in \a param.
+        
+    EvaluatorPairDPDThermo::evalForceEnergyThermo evaluates the function:
+    \f{eqnarray*}  
+    F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
+    \f}
+
+    \f{eqnarray*}
+    F_{\mathrm{C}}(r) = & A \cdot  w(r_{ij}) \\
+    F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3} \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
+    F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left( \hat r_{ij} \circ v_{ij} \right)  \\
+    \f}
+
+    \f{eqnarray*}
+    w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)  & r < r_{\mathrm{cut}} \\
+                     = & 0 & r \ge r_{\mathrm{cut}} \\
+    \f}
+    where \f$\hat r_{ij} \f$ is a normalized vector from particle i to particle j, \f$ v_{ij} = v_i - v_j \f$, and \f$ \theta_{ij} \f$ is a uniformly distributed
+    random number in the range [-1, 1].                        
+ 
+    The DPD Thermostat potential does not need charge or diameter. Two parameters are specified and stored in a Scalar. 
+    \a A and \a gamma are placed in \a param.   
     
     These are related to the standard lj parameters sigma and epsilon by:
-    - \a a = \f$ a \f$    
+    - \a A = \f$ A \f$   
+    - \a gamma = \f$ \gamma \f$    
+     
 */
 class EvaluatorPairDPDThermo
     {
