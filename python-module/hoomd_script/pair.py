@@ -1507,7 +1507,7 @@ class morse(pair):
 #
 # \b Example:
 # \code
-# dpd = pair.dpd(r_cut=1.0)
+# dpd = pair.dpd(r_cut=1.0, T=1.0)
 # dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
 # dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
 # dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
@@ -1527,6 +1527,7 @@ class dpd(pair):
     ## Specify the DPD %pair %force and thermostat
     #
     # \param r_cut Default cutoff radius
+    # \param T Temperature of thermostat
     # \param name Name of the force instance
     # \param seed seed for the PRNG in the DPD thermostat
     #
@@ -1540,7 +1541,7 @@ class dpd(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, seed=1, name=None):
+    def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
@@ -1571,6 +1572,12 @@ class dpd(pair):
         
         # set the seed for dpd thermostat
         self.cpp_force.setSeed(seed);
+ 
+        # set the temperature
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+        self.cpp_force.setT(T.cpp_variant);  
+            
 
     ## Changes parameters
     # \param T Temperature (if set)

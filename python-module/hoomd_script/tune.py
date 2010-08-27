@@ -524,9 +524,8 @@ def pair_morse_setup():
 ## \internal
 # \brief Setup pair.dpd for benchmarking
 def pair_dpd_setup():
-    fc = pair.dpd(r_cut=3.0);
-    fc.pair_coeff.set('A', 'A', A=40.0, gamma=4.5);
-    fc.set_params(T=1.0)   
+    fc = pair.dpd(r_cut=3.0, T=1.0);
+    fc.pair_coeff.set('A', 'A', A=40.0, gamma=4.5); 
     
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
