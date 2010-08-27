@@ -188,16 +188,16 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     opt.T = this->m_T->getValue(timestep);    
     
     gpu_cpdf(this->m_gpu_forces.d_data,
-			 pdata,
-			 box,
-			 nlist,
-			 d_params.data,
-			 d_rcutsq.data,
-			 this->m_pdata->getNTypes(),
-			 opt);
-	
-	if (this->exec_conf->isCUDAErrorCheckingEnabled())
-		CHECK_CUDA_ERROR();
+             pdata,
+             box,
+             nlist,
+             d_params.data,
+             d_rcutsq.data,
+             this->m_pdata->getNTypes(),
+             opt);
+    
+    if (this->exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     this->m_pdata->release();
     

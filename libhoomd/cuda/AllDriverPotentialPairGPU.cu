@@ -283,3 +283,4 @@ cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data
                                                     ntypes,
                                                     args);
     }   
+

@@ -197,7 +197,7 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
             force.y += __fmul_rn(dy, force_divr);
             force.z += __fmul_rn(dz, force_divr);
             #endif
-			
+            
             force.w += pair_eng;
             }
         }
@@ -263,7 +263,7 @@ cudaError_t gpu_compute_dpd_forces(const gpu_force_data_arrays& force_data,
               <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, args.seed, args.timestep, args.deltaT, args.T, ntypes);
 
         
-	return cudaSuccess;
+    return cudaSuccess;
     }
 
 #endif

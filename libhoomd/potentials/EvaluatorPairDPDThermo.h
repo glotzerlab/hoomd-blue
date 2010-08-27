@@ -106,7 +106,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     EvaluatorPairDPDThermo evaluates the function:
     \f[ V_{\mathrm{DPD-C}}(r) = a \cdot \left( r_{\mathrm{cut}} - r \right) 
-						- \frac{1}{2} \cdot \frac{a}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)\f]
+                        - \frac{1}{2} \cdot \frac{a}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)\f]
     
     The DPD Conservative potential does not need charge or diameter. One parameters is specified and stored in a Scalar. 
     \a a is placed in \a param.
