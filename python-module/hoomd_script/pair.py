@@ -1606,7 +1606,7 @@ class dpd(pair):
 #   
 # \f{eqnarray*}
 # V_{\mathrm{DPD-C}}(r)  = & A \cdot \left( r_{\mathrm{cut}} - r \right) 
-#						- \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
+#                        - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
 #                               & r < r_{\mathrm{cut}} \\
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
@@ -1688,3 +1688,4 @@ class dpd_conservative(pair):
     def set_params(self, coeff):
         raise RuntimeError('Not implemented for DPD Conservative');
         return;
+
