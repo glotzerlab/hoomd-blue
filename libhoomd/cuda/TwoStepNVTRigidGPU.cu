@@ -1253,6 +1253,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
         
     error = cudaBindTexture(0, net_virial_tex, d_net_virial, sizeof(float) * pdata.N);
     if (error != cudaSuccess)
+        return error;
     
     error = cudaBindTexture(0, virial_tex, rigid_data.virial, sizeof(float) * pdata.N);
     if (error != cudaSuccess)
