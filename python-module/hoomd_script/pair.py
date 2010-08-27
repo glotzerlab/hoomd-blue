@@ -1511,12 +1511,12 @@ class morse(pair):
 # dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
 # dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
 # dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
-# dpd.set-params(T = 1.0)
+# dpd.set_params(T = 1.0)
 # integrate.mode_standard(dt=0.02)
 # integrate.nve(group=group.all())
 # \endcode
 #
-# The cutoff radius \a r_cut passed into the initial pair.dpd_conservative command sets the default \a r_cut for all
+# The cutoff radius \a r_cut passed into the initial pair.dpd command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
