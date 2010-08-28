@@ -83,6 +83,60 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 
+template <class PP_DPD>
+void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(50.0), 1, 0, 0, 0, 0, exec_conf));   
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData(); 
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    
+    // setup a simple initial system
+    arrays.x[0] = 0;
+    arrays.y[0] = 0;
+    arrays.z[0] = 0;
+    arrays.vx[0] = 0.0;
+    arrays.vy[0] = 0.0;
+    arrays.vz[0] = 0.0;    
+    arrays.x[1] = 0.1;
+    arrays.y[1] = 0;
+    arrays.z[1] = 0;
+    arrays.vx[1] = 0.0;
+    arrays.vy[1] = 0.0;
+    arrays.vz[1] = 0.0;  
+    pdata->release();
+    
+    
+    // Construction of the Force Compute
+    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));   
+    nlist->setStorageMode(NeighborList::full);     
+    shared_ptr<PotentialPairDPD> dpdc(new PP_DPD(sysdef,nlist));
+    dpdc->setParams(0,0,make_scalar2(30,0));
+    dpdc->setRcut(0, 0, Scalar(2.0));
+ 
+    // compute the forces
+    dpdc->compute(0);
+    
+    ForceDataArrays force_arrays = dpdc->acquire();
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -28.5, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 13.5375, tol);
+    }
+ 
+BOOST_AUTO_TEST_CASE( DPD_ForceConservative_Test )
+	    {       
+	   dpd_conservative_force_test< PotentialPair<EvaluatorPairDPDThermo> >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+	    }    
+
+#ifdef ENABLE_CUDA
+BOOST_AUTO_TEST_CASE( DPD_GPU_ForceConservative_Test )
+	    {       
+	   dpd_conservative_force_test< PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+	    }   
+#endif      
 
 template <class PP_DPD>
 void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
