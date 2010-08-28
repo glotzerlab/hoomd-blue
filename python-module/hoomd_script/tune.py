@@ -71,7 +71,7 @@ import sys
 _default_block_size_db = {};
 _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.lj': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 128,
                                  'pair.cgcmm': 64, 'pair.table': 64, 'pair.slj': 128, 'pair.morse': 320, 'pair.dpd': 64,
-                                 'pair.dpd_conservative': 64,
+                                 'pair.dpd_conservative': 320,
                                  'bond.harmonic': 320, 'bond.fene': 96, 'pair.yukawa': 64, 'angle.harmonic': 192,
                                  'pair.gauss': 320, 'nlist': 288}
 
