@@ -87,7 +87,7 @@ _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihed
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
 
 _default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihedral.harmonic': 64, 'angle.cgcmm': 96,
-                                 'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'pair.dpd': 352, 'pair.dpd_conservative': 352, 
+                                 'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'pair.dpd': 224, 'pair.dpd_conservative': 320, 
                                  'nlist': 128,
                                  'bond.harmonic': 416, 'pair.gauss': 320, 'bond.fene': 160, 'angle.harmonic': 96,
                                  'pair.yukawa': 256, 'pair.morse': 160}
