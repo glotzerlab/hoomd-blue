@@ -79,7 +79,7 @@ float g_Lz;
 float g_rcut;
 const unsigned int g_Nmax = 64;    // Maximum number of particles each cell can hold
 const float tweak_dist = 0.1f;
-const unsigned int g_neigh_max = 512;
+const unsigned int g_neigh_max = 192;
 
 //*************** data structures
 float4 *gh_pos, *gd_pos;            // particle positions
@@ -128,13 +128,16 @@ void allocate_data()
     g_Mx = int((g_Lx) / (g_rcut));
     g_My = int((g_Ly) / (g_rcut));
     g_Mz = int((g_Lz) / (g_rcut));
-    g_Mx = std::min(g_Mx, (unsigned)30);
-    g_My = std::min(g_My, (unsigned)30);
-    g_Mz = std::min(g_Mz, (unsigned)30);
+    g_Mx = std::min(g_Mx, (unsigned)40);
+    g_My = std::min(g_My, (unsigned)40);
+    g_Mz = std::min(g_Mz, (unsigned)40);
+    g_Mx = std::max(g_Mx, (unsigned)1);
+    g_My = std::max(g_My, (unsigned)1);
+    g_Mz = std::max(g_Mz, (unsigned)1);
 
     // allocate bins
     unsigned int Nbins = g_Mx * g_My * g_Mz;
-    std::cout << "Allocating " << g_Mx << "x" << g_My << "x" << g_Mz << " = " << Nbins << " bins" << std::endl;
+//    std::cout << "Allocating " << g_Mx << "x" << g_My << "x" << g_Mz << " = " << Nbins << " bins" << std::endl;
     gh_idxlist_coord = (float4 *)malloc(Nbins * g_Nmax * sizeof(float4));
     gh_idxlist_coord_trans = (float4 *)malloc(Nbins * g_Nmax * sizeof(float4));
     cudaChannelFormatDesc channelDescFloat4 = cudaCreateChannelDesc<float4>();
@@ -658,7 +661,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void neighbor_par
 
 
 // benchmark the host neighborlist
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_host_nlist()
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_host_nlist(bool quiet=false)
     {
     float4 *idxlist_coord;
     if (transpose_idxlist_coord)
@@ -679,7 +682,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_host_n
     if (!verify())
         {
         printf("Invalid results in host bmark!\n");
-        return;
+        return 0.0f;
         }
         
     // benchmarks
@@ -697,8 +700,12 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_host_n
     float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
     float avg_t = t/float(iters);
     
-    printf("Host<%1d,%1d>            : ", transpose_idxlist_coord, transpose_bin_adj);
-    printf("%f ms\n", avg_t);
+    if (!quiet)
+        {
+        printf("Host<%1d,%1d>            : ", transpose_idxlist_coord, transpose_bin_adj);
+        printf("%f ms\n", avg_t);
+        }
+    return avg_t;
     }
 
 
@@ -707,6 +714,8 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_host_n
 texture<float4, 2, cudaReadModeElementType> nlist_coord_idxlist_tex;
 //! Texture for reading the bins adjacent to a given bin
 texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
+
+texture<unsigned int, 1, cudaReadModeElementType> bin_adj_linear_tex;
 
 texture<unsigned int, 1, cudaReadModeElementType> bin_size_tex;
 
@@ -756,7 +765,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
     
     // each thread will determine the neighborlist of a single particle
     int n_neigh = 0;    // count number of neighbors found so far
-    
+
     // loop over all adjacent bins
     for (unsigned int cur_adj = 0; cur_adj < 27; cur_adj++)
         {
@@ -770,6 +779,11 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
             neigh_bin = d_bin_adj[my_bin + cur_adj*bin_adj_width];
         else
             neigh_bin = d_bin_adj[cur_adj + my_bin*bin_adj_width];
+        
+        /*if (transpose_bin_adj)
+            neigh_bin = tex1Dfetch(bin_adj_linear_tex, my_bin + cur_adj*bin_adj_width);
+        else
+            neigh_bin = tex1Dfetch(bin_adj_linear_tex, cur_adj + my_bin*bin_adj_width);*/
             
         //unsigned int size = tex1Dfetch(bin_size_tex, neigh_bin);
         unsigned int size = d_bin_size[neigh_bin];
@@ -783,6 +797,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
                 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, cur_offset);
             else
                 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, cur_offset, neigh_bin);*/
+            
             if (transpose_idxlist_coord)
                 cur_neigh_blob = d_idxlist_coord[cur_offset * idxlist_coord_width + neigh_bin];
             else
@@ -796,12 +811,11 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
             
             // FLOPS: 15
             float dx = my_pos.x - neigh_pos.x;
-            dx = dx - Lx * rintf(dx * Lxinv);
-            
             float dy = my_pos.y - neigh_pos.y;
-            dy = dy - Ly * rintf(dy * Lyinv);
-            
             float dz = my_pos.z - neigh_pos.z;
+            
+            dx = dx - Lx * rintf(dx * Lxinv);
+            dy = dy - Ly * rintf(dy * Lyinv);
             dz = dz - Lz * rintf(dz * Lzinv);
             
             // FLOPS: 5
@@ -810,22 +824,18 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
             // FLOPS: 1 / MEM TRANSFER total = N * estimated number of neighbors * 4
             if (dr <= r_maxsq && my_pidx != cur_neigh)
                 {
-                if (n_neigh < neigh_max)
-                    {
-                    d_nlist[my_pidx + n_neigh*nlist_pitch] = cur_neigh;
-                    n_neigh++;
-                    }
+                d_nlist[my_pidx + min(n_neigh,neigh_max)*nlist_pitch] = cur_neigh;
+                n_neigh++;
                 }
             }
         }
-        
+    
+
     d_n_neigh[my_pidx] = n_neigh;
     }
 
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_nlist_binned(unsigned int *nlist, unsigned int *n_neigh, unsigned int nlist_pitch, float r_cut_sq, unsigned int neigh_max, cudaArray *idxlist_coord, unsigned int *bin_size, uint4 *bin_coords, cudaArray *bin_adj, float4 *pos, float4 *d_idxlist_coord, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, unsigned int *d_bin_adj)
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_nlist_binned(unsigned int *nlist, unsigned int *n_neigh, unsigned int nlist_pitch, float r_cut_sq, unsigned int neigh_max, cudaArray *idxlist_coord, unsigned int *bin_size, uint4 *bin_coords, cudaArray *bin_adj, float4 *pos, float4 *d_idxlist_coord, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, unsigned int *d_bin_adj, unsigned int block_size)
     {
-    const int block_size = 64;
-    
     // setup the grid to run the kernel
     int nblocks = (int)ceil((double)N/ (double)block_size);
     
@@ -844,6 +854,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_
     CUT_CHECK_ERROR("error binding texture");
     
     cudaBindTexture(0, bin_size_tex, bin_size, sizeof(unsigned int)*Mx*My*Mz);
+    cudaBindTexture(0, bin_adj_linear_tex, d_bin_adj, sizeof(unsigned int)*Mx*My*Mz*27);
     
     // make even bin dimensions
     float binx = (Lx) / float(Mx);
@@ -860,7 +871,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_
     }
 
 // benchmark the device neighborlist
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_device_nlist()
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_device_nlist(bool quiet=false)
     {
     cudaArray *idxlist_coord_array;
     float4 *d_idxlist_coord;
@@ -890,39 +901,53 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_devic
         
     // warm up
     CUDA_SAFE_CALL(cudaFuncSetCacheConfig(gpu_compute_nlist_binned_kernel<transpose_idxlist_coord, transpose_bin_adj>, cudaFuncCachePreferL1));
-    gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj);
+    gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj, 128);
     CUT_CHECK_ERROR("kernel failed");
     
     // copy results back
     CUDA_SAFE_CALL(cudaMemcpy(gh_n_neigh, gd_n_neigh, g_N*sizeof(unsigned int), cudaMemcpyDeviceToHost));
    
     // verify results
-    /*if (!verify())
+    if (!verify())
         {
         printf("Invalid results in device bmark!\n");
         return 0.0f;
-        }*/
-        
-    // benchmarks
-    timeval start;
-    cudaThreadSynchronize();
-    gettimeofday(&start, NULL);
-    
-    unsigned int iters = 100;
-    for (unsigned int i = 0; i < iters; i++)
-        {
-        gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj);
         }
-        
-    cudaThreadSynchronize();
-    timeval end;
-    gettimeofday(&end, NULL);
-    float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
-    float avg_t = t/float(iters);
     
-    printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
-    printf("%f ms\n", avg_t);
-    return avg_t;
+    float min_t = 10000.0f;
+    unsigned int fastest_block_size = 0;
+    for (unsigned int block_size=128; block_size<=128; block_size+=32)
+        {
+        // benchmarks
+        timeval start;
+        cudaThreadSynchronize();
+        gettimeofday(&start, NULL);
+    
+        unsigned int iters = 100;
+        for (unsigned int i = 0; i < iters; i++)
+            {
+            gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj, block_size);
+            }
+        
+        cudaThreadSynchronize();
+        timeval end;
+        gettimeofday(&end, NULL);
+        float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
+        float avg_t = t/float(iters);
+
+        if (avg_t < min_t)
+            {
+            min_t = avg_t;
+            fastest_block_size = block_size;
+            }
+        }
+    
+    if (!quiet)
+        {
+        printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
+        printf("%f ms, %d blk\n", min_t, fastest_block_size);
+        }
+    return min_t;
     }
 
 void bmark_grid()
@@ -1061,10 +1086,74 @@ void bmark_line()
     std::cout << "];" << std::endl;
     }
 
+void bmark_N()
+    {
+    g_rcut = 3.1f;
+    float phi = 0.20f;
+
+    std::vector<unsigned int> N_list;
+    for (unsigned int power = 2; power < 6 ; power++)
+        {
+        N_list.push_back(1*pow(10.0f,float(power)));
+        N_list.push_back(2*pow(10.0f,float(power)));
+        N_list.push_back(3*pow(10.0f,float(power)));
+        N_list.push_back(4*pow(10.0f,float(power)));
+        N_list.push_back(5*pow(10.0f,float(power)));
+        N_list.push_back(6*pow(10.0f,float(power)));
+        N_list.push_back(7*pow(10.0f,float(power)));
+        N_list.push_back(8*pow(10.0f,float(power)));
+        N_list.push_back(9*pow(10.0f,float(power)));
+        }
+
+
+    std::cout << "N = [";
+    for (unsigned int i = 0; i < N_list.size(); i++)
+        std::cout << N_list[i] << " ";
+    std::cout << "];" << std::endl;
+
+    std::cout << "btim = [";
+    for (unsigned int i = 0; i < N_list.size(); i++)
+        {
+        g_N = N_list[i];
+        float L = pow(float(M_PI/6.0)*float(g_N) / phi, 1.0f/3.0f);
+        g_Lx = g_Ly = g_Lz = L;
+
+        // setup
+        allocate_data();
+        initialize_data();
+        sort_data();
+        sort_bin_adj();
+
+        // normally, data in HOOMD is not perfectly sorted:
+        //for (unsigned int k = 0; k < 100; k++)
+            //tweak_data();
+
+        rebin_particles_host(gh_idxlist_coord, gh_idxlist_coord_trans, gh_bin_size, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+        // copy it to the device
+        CUDA_SAFE_CALL(cudaMemcpyToArray(gd_idxlist_coord_array, 0, 0, gh_idxlist_coord, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpyToArray(gd_idxlist_coord_trans_array, 0, 0, gh_idxlist_coord_trans, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpy(gd_idxlist_coord, gh_idxlist_coord, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpy(gd_idxlist_coord_trans, gh_idxlist_coord_trans, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));    CUDA_SAFE_CALL(cudaMemcpy(gd_bin_size, gh_bin_size, g_Mx*g_My*g_Mz*sizeof(unsigned int), cudaMemcpyHostToDevice));
+    
+        // generate the reference data
+        neighbor_particles_host<false, false>(gh_nlist_ref, gh_n_neigh_ref, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, gh_idxlist_coord, gh_bin_size, gh_bin_coords, gh_bin_adj, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+
+        //float time = bmark_device_nlist<false, false>(true);
+        float time = bmark_host_nlist<false, false>(true);
+        
+        std::cout << time << " ";
+
+        free_data();
+        }
+    std::cout << "];" << std::endl;
+    }
+
 int main(int argc, char **argv)
     {
 //    bmark_line();
+    bmark_N();
 
+#if 0
     float phi;
     if (argc == 1)
         {
@@ -1102,7 +1191,7 @@ int main(int argc, char **argv)
     
     // normally, data in HOOMD is not perfectly sorted:
     //for (unsigned int i = 0; i < 100; i++)
-    //  tweak_data();
+      //tweak_data();
     
     // prepare the binned data
     rebin_particles_host(gh_idxlist_coord, gh_idxlist_coord_trans, gh_bin_size, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
@@ -1123,25 +1212,25 @@ int main(int argc, char **argv)
     bmark_host_nlist<true, true>();*/
     
     bmark_device_nlist<false, false>();
-    bmark_device_nlist<false, true>();
+    /*bmark_device_nlist<false, true>();
     bmark_device_nlist<true, false>();
-    bmark_device_nlist<true, true>();
+    bmark_device_nlist<true, true>();*/
     
     printf("sorting bin_adj:\n");
     sort_bin_adj();
     
-    /*bmark_host_nlist<false, false>();
-    bmark_host_nlist<false, true>();
+    //bmark_host_nlist<false, false>();
+    /*bmark_host_nlist<false, true>();
     bmark_host_nlist<true, false>();
     bmark_host_nlist<true, true>();*/
     
-    bmark_device_nlist<false, false>();
-    bmark_device_nlist<false, true>();
+    //bmark_device_nlist<false, false>();
+    /*bmark_device_nlist<false, true>();
     bmark_device_nlist<true, false>();
-    bmark_device_nlist<true, true>();
+    bmark_device_nlist<true, true>();*/
     
     free_data();
-
+#endif
     return 0;
     }
 

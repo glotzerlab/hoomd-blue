@@ -72,12 +72,8 @@ using namespace boost;
 typedef boost::function<shared_ptr<HarmonicAngleForceCompute>  (shared_ptr<SystemDefinition> sysdef)> angleforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfiguration exec_conf)
+void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box with only one bond type !!!! NO ANGLES
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0, exec_conf));
@@ -322,12 +318,8 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 
 
 //! Compares the output of two HarmonicAngleForceComputes
-void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_creator af_creator2, ExecutionConfiguration exec_conf)
+void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_creator af_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 1000;
     
     // create a particle system to sum forces on
@@ -387,7 +379,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForceCompute_basic )
     printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
     //cout << " IN BOOST_AUTO_TEST_CASE: CPU \n";
     angleforce_creator af_creator = bind(base_class_af_creator, _1);
-    angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    angle_force_basic_tests(af_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -397,7 +389,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForceComputeGPU_basic )
     printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
     cout << " IN BOOST_AUTO_TEST_CASE: GPU \n";
     angleforce_creator af_creator = bind(gpu_af_creator, _1);
-    angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    angle_force_basic_tests(af_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 
@@ -406,7 +398,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForceComputeGPU_compare )
     {
     angleforce_creator af_creator_gpu = bind(gpu_af_creator, _1);
     angleforce_creator af_creator = bind(base_class_af_creator, _1);
-    angle_force_comparison_tests(af_creator, af_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    angle_force_comparison_tests(af_creator, af_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 

@@ -56,9 +56,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/utility.hpp>
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime_api.h>
+#include <cuda_runtime.h>
 #include "BondData.cuh"
 #endif
+
+#include "ExecutionConfiguration.h"
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
@@ -139,7 +141,7 @@ class BondData : boost::noncopyable
         
 # ifdef ENABLE_CUDA
         //! Access the bonds on the GPU
-        std::vector<gpu_bondtable_array>& acquireGPU();
+        gpu_bondtable_array& acquireGPU();
 #endif
         
     private:
@@ -151,6 +153,8 @@ class BondData : boost::noncopyable
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
         
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
+        
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_bonds_dirty flag when partciles are sorted or a bond is added.
             The flag is used to test if the data structure needs updating on the GPU.
@@ -161,7 +165,7 @@ class BondData : boost::noncopyable
             }
             
 #ifdef ENABLE_CUDA
-        std::vector<gpu_bondtable_array> m_gpu_bonddata;    //!< List of bonds on the GPU
+        gpu_bondtable_array m_gpu_bonddata; //!< List of bonds on the GPU
         uint2 *m_host_bonds;                //!< Host copy of the bond list
         unsigned int *m_host_n_bonds;       //!< Host copy of the number of bonds
         

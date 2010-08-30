@@ -322,7 +322,7 @@ class nlist:
             mode = "nsq";
         
         # create the C++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             if mode == "binned":
                 self.cpp_nlist = hoomd.BinnedNeighborList(globals.system_definition, r_cut, default_r_buff)
             elif mode == "nsq":
@@ -330,7 +330,7 @@ class nlist:
             else:
                 print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
                 raise RuntimeError("Error creating neighbor list");
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             if mode == "binned":
                 self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.system_definition, r_cut, default_r_buff)
                 self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
@@ -339,9 +339,6 @@ class nlist:
             else:
                 print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
                 raise RuntimeError("Error creating neighbor list");
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating neighbor list");
             
         self.cpp_nlist.setEvery(1);
         self.is_exclusion_overridden = False;
@@ -798,17 +795,14 @@ class lj(pair):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialPairLJ(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJ;
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating lj pair force");
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         
@@ -889,17 +883,14 @@ class gauss(pair):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialPairGauss(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGauss;
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairGaussGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGaussGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating gauss pair force");
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         
@@ -995,17 +986,14 @@ class slj(pair):
         neighbor_list.subscribe(lambda: self.log*(self.get_max_rcut() + self.d_max - 1.0))
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialPairSLJ(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJ;
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairSLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.slj'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating slj pair force");
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         
@@ -1113,17 +1101,14 @@ class yukawa(pair):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialPairYukawa(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawa;
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairYukawaGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawaGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.yukawa'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating yukawa pair force");
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         
@@ -1201,16 +1186,12 @@ class cgcmm(force._force):
         neighbor_list.subscribe(lambda: self.log*r_cut)
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.CGCMMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.cgcmm'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating cgcmm pair force");
-            
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         
@@ -1326,16 +1307,12 @@ class table(force._force):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.TablePotential(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.table'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating table pair force");
-            
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         
@@ -1470,17 +1447,14 @@ class morse(pair):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialPairMorse(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorse;
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairMorseGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorseGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.morse'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating morse pair force");
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         

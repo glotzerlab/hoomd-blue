@@ -67,9 +67,8 @@ using namespace std;
 */
 Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
     {
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
     // at least one GPU is needed
-    if (exec_conf.gpu.size() == 0)
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a Enforce2DUpdaterGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing Enforce2DUpdaterGPU");
@@ -88,16 +87,14 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
         m_prof->push(exec_conf, "Enforce2D");
         
     // access the particle data arrays
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     
-    // call the enforce 2d kernel on all GPUs in parallel
-    exec_conf.tagAll(__FILE__, __LINE__);
-    
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(gpu_enforce2d, d_pdata[cur_gpu]));
-    
-    exec_conf.syncAll();
-                        
+    // call the enforce 2d kernel
+    gpu_enforce2d(d_pdata);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
     m_pdata->release();
     
     if (m_prof)

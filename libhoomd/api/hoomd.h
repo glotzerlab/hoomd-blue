@@ -124,7 +124,6 @@
 // utility classes
 #include "FileFormatManager.h"
 #include "FileFormatProxy.h"
-#include "GPUWorker.h"
 #include "Index1D.h"
 #include "MolFilePlugin.h"
 #include "Profiler.h"

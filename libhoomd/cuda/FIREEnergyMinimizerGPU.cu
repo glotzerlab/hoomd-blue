@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: askeys
 
 #include "FIREEnergyMinimizerGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -132,15 +131,7 @@ cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata,
                                                 d_group_members,
                                                 group_size);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 //! Kernel function for reducing the potential energy to a partial sum
@@ -279,15 +270,7 @@ cudaError_t gpu_fire_compute_sum_pe(
                                                                                       d_partial_sum_pe, 
                                                                                       num_blocks);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 //! Kernel function to compute the partial sum over the P term in the FIRE algorithm
@@ -626,15 +609,7 @@ cudaError_t gpu_fire_compute_sum_all(
     gpu_fire_reduce_partial_sum_3_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_sum_all, d_partial_sum_P, d_partial_sum_vsq, d_partial_sum_asq, num_blocks);
     */
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 
@@ -712,14 +687,6 @@ cudaError_t gpu_fire_update_v(gpu_pdata_arrays pdata,
                                                   vnorm, 
                                                   invfnorm);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

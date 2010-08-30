@@ -76,10 +76,6 @@ using namespace boost;
 //! boost test case to verify proper operation of ComputeThermo
 BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // verify that we can constructe a TempCompute properly
     // create a simple particle data to test with
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
@@ -107,8 +103,6 @@ BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
 //! boost test case to verify proper operation of ComputeThermoGPU
 BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
     {
-    g_gpu_error_checking = true;
-    
     // verify that we can constructe a TempCompute properly
     // create a simple particle data to test with
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
@@ -136,10 +130,6 @@ BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
 //! boost test case to verify proper operation of TempRescaleUpdater
 BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // create a simple particle data to test with
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();

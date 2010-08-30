@@ -72,6 +72,12 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    const std::string& suffix)
     : ComputeThermo(sysdef, group, suffix)
     {
+    if (!exec_conf->isCUDAEnabled())
+        {
+        cerr << endl << "***Error! Creating a ComputeThermoGPU with no GPU in the execution configuration" << endl << endl;
+        throw std::runtime_error("Error initializing ComputeThermoGPU");
+        }
+
     m_block_size = 512;
     m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     
@@ -96,7 +102,7 @@ void ComputeThermoGPU::computeProperties()
     assert(m_ndof != 0);
     
     // access the particle data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // access the net force, pe, and virial
@@ -121,12 +127,15 @@ void ComputeThermoGPU::computeProperties()
     args.n_blocks = m_num_blocks;
     
     // perform the computation on the GPU
-    exec_conf.gpu[0]->call(bind(gpu_compute_thermo, d_properties.data,
-                                                    d_pdata[0],
-                                                    d_index_array.data,
-                                                    group_size,
-                                                    box,
-                                                    args));
+    gpu_compute_thermo( d_properties.data,
+                        d_pdata,
+                        d_index_array.data,
+                        group_size,
+                        box,
+                        args);
+    
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
 

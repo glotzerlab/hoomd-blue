@@ -80,34 +80,31 @@ ForceDataArraysGPU::ForceDataArraysGPU()
     d_data.virial = NULL;
     h_staging = NULL;
     // zero flags
-    m_num_local = m_local_start = 0;
+    m_num = 0;
     }
 
-/*! \param num_local Number of particles local to this GPU
-    \param local_start Starting index of the particles local to this GPU
+/*! \param num Number of particles in the system
 
     \pre allocate() has not previously been called
     \post Memory is allocated on the GPU for the force data
-    \note allocate() \b must be called on the GPU on which the data is going to be used
 */
-cudaError_t ForceDataArraysGPU::allocate(unsigned int num_local, unsigned int local_start)
+cudaError_t ForceDataArraysGPU::allocate(unsigned int num)
     {
     // sanity checks
     assert(h_staging == NULL);
     
     // allocate GPU data and check for errors
-    cudaError_t error = d_data.allocate(num_local);
+    cudaError_t error = d_data.allocate(num);
     if (error != cudaSuccess)
         return error;
         
     // allocate host staging memory and check for errors
-    error = cudaMallocHost((void **)((void *)&h_staging), num_local*sizeof(float4));
+    error = cudaMallocHost((void **)((void *)&h_staging), num*sizeof(float4));
     if (error != cudaSuccess)
         return error;
         
     // fill out variables
-    m_num_local = num_local;
-    m_local_start = local_start;
+    m_num = num;
     
     // all done, return success
     return cudaSuccess;
@@ -154,25 +151,21 @@ cudaError_t ForceDataArraysGPU::hostToDeviceCopy(Scalar *fx, Scalar *fy, Scalar 
     assert(virial != NULL);
     assert(d_data.force != NULL);
     assert(d_data.virial != NULL);
-    assert(m_num_local != 0);
+    assert(m_num != 0);
     
     // start by filling out the staging array with interleaved forces
-    for (unsigned int i = 0; i < m_num_local; i++)
+    for (unsigned int i = 0; i < m_num; i++)
         {
-        unsigned int global_idx = i + m_local_start;
-        h_staging[i] = make_float4(fx[global_idx],
-                                   fy[global_idx],
-                                   fz[global_idx],
-                                   pe[global_idx]);
+        h_staging[i] = make_float4(fx[i], fy[i], fz[i], pe[i]);
         }
         
     // copy it to the device and check for errors
-    cudaError_t error = cudaMemcpy(d_data.force, h_staging, sizeof(float4)*m_num_local, cudaMemcpyHostToDevice);
+    cudaError_t error = cudaMemcpy(d_data.force, h_staging, sizeof(float4)*m_num, cudaMemcpyHostToDevice);
     if (error != cudaSuccess)
         return error;
         
     // copy virial to the device and check for errors
-    error = cudaMemcpy(d_data.virial, virial + m_local_start, sizeof(float)*m_num_local, cudaMemcpyHostToDevice);
+    error = cudaMemcpy(d_data.virial, virial, sizeof(float)*m_num, cudaMemcpyHostToDevice);
     if (error != cudaSuccess)
         return error;
         
@@ -198,26 +191,25 @@ cudaError_t ForceDataArraysGPU::deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar 
     assert(virial != NULL);
     assert(d_data.force != NULL);
     assert(d_data.virial != NULL);
-    assert(m_num_local != 0);
+    assert(m_num != 0);
     
     // copy from the device to the staging area
-    cudaError_t error = cudaMemcpy(h_staging, d_data.force, sizeof(float4)*m_num_local, cudaMemcpyDeviceToHost);
+    cudaError_t error = cudaMemcpy(h_staging, d_data.force, sizeof(float4)*m_num, cudaMemcpyDeviceToHost);
     if (error != cudaSuccess)
         return error;
         
     // start by filling out the staging array with interleaved forces
-    for (unsigned int i = 0; i < m_num_local; i++)
+    for (unsigned int i = 0; i < m_num; i++)
         {
-        unsigned int global_idx = i + m_local_start;
         float4 f = h_staging[i];
-        fx[global_idx] = f.x;
-        fy[global_idx] = f.y;
-        fz[global_idx] = f.z;
-        pe[global_idx] = f.w;
+        fx[i] = f.x;
+        fy[i] = f.y;
+        fz[i] = f.z;
+        pe[i] = f.w;
         }
         
     // copy virial to the device and check for errors
-    error = cudaMemcpy(virial + m_local_start, d_data.virial, sizeof(float)*m_num_local, cudaMemcpyDeviceToHost);
+    error = cudaMemcpy(virial, d_data.virial, sizeof(float)*m_num, cudaMemcpyDeviceToHost);
     if (error != cudaSuccess)
         return error;
         
@@ -253,16 +245,12 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
         m_fx[i] = m_fy[i] = m_fz[i] = m_pe[i] = m_virial[i] = Scalar(0.0);
         
 #ifdef ENABLE_CUDA
-    // setup ForceDataArrays on each GPU
-    m_gpu_forces.resize(exec_conf.gpu.size());
-    
-    if (!exec_conf.gpu.empty())
+    // setup ForceDataArrays the GPU
+    if (exec_conf->isCUDAEnabled())
         {
-        exec_conf.tagAll(__FILE__, __LINE__);
+        m_gpu_forces.allocate(m_pdata->getN());
+        CHECK_CUDA_ERROR();
         
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            exec_conf.gpu[cur_gpu]->call(bind(&ForceDataArraysGPU::allocate, &m_gpu_forces[cur_gpu], m_pdata->getLocalNum(cur_gpu), m_pdata->getLocalBeg(cur_gpu)));
-            
         hostToDeviceCopy();
         m_data_location = cpugpu;
         }
@@ -278,8 +266,8 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 */
 void ForceCompute::allocateThreadPartial()
     {
-    assert(exec_conf.n_cpu >= 1);
-    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf.n_cpu);
+    assert(exec_conf->n_cpu >= 1);
+    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
     }
@@ -301,8 +289,11 @@ ForceCompute::~ForceCompute()
     m_arrays.virial = m_virial = NULL;
     
 #ifdef ENABLE_CUDA
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(&ForceDataArraysGPU::deallocate, &m_gpu_forces[cur_gpu]));
+    if (exec_conf->isCUDAEnabled())
+        {
+        m_gpu_forces.deallocate();
+        CHECK_CUDA_ERROR();
+        }
 #endif
 
     if (m_fdata_partial)
@@ -394,11 +385,11 @@ const ForceDataArrays& ForceCompute::acquire()
     from call to call. The call still must be made, however, to ensure that
     the data has been copied to the GPU.
 */
-vector<ForceDataArraysGPU>& ForceCompute::acquireGPU()
+ForceDataArraysGPU& ForceCompute::acquireGPU()
     {
-    if (exec_conf.gpu.empty())
+    if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Acquiring forces on GPU, but there is no GPU in the exection configuration" << endl << endl;
+        cerr << endl << "***Error! Acquiring forces on GPU, but hoomd is running on the CPU" << endl << endl;
         throw runtime_error("Error acquiring GPU forces");
         }
         
@@ -438,11 +429,10 @@ void ForceCompute::hostToDeviceCopy()
     // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
     // if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(&ForceDataArraysGPU::hostToDeviceCopy, &m_gpu_forces[cur_gpu], m_fx, m_fy, m_fz, m_pe, m_virial));
-    exec_conf.syncAll();
-    
+    m_gpu_forces.hostToDeviceCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
     //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
     }
 
@@ -453,10 +443,9 @@ void ForceCompute::deviceToHostCopy()
     // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
     // if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(&ForceDataArraysGPU::deviceToHostCopy, &m_gpu_forces[cur_gpu], m_fx, m_fy, m_fz, m_pe, m_virial));
-    exec_conf.syncAll();
+    m_gpu_forces.deviceToHostCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
     }
@@ -491,7 +480,11 @@ double ForceCompute::benchmark(unsigned int num_iters)
     computeForces(0);
     
 #ifdef ENABLE_CUDA
-    exec_conf.callAll(bind(cudaThreadSynchronize));
+    if (exec_conf->isCUDAEnabled())
+        {
+        cudaThreadSynchronize();
+        CHECK_CUDA_ERROR();
+        }
 #endif
     
     // benchmark
@@ -500,7 +493,8 @@ double ForceCompute::benchmark(unsigned int num_iters)
         computeForces(0);
         
 #ifdef ENABLE_CUDA
-    exec_conf.callAll(bind(cudaThreadSynchronize));
+    if (exec_conf->isCUDAEnabled())
+        cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
     

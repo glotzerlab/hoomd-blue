@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "gpu_settings.h"
 #include "ConstraintSphereGPU.cuh"
 #include "EvaluatorConstraint.h"
 #include "EvaluatorConstraintSphere.h"
@@ -145,8 +144,8 @@ cudaError_t gpu_compute_constraint_sphere_forces(const gpu_force_data_arrays& fo
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    cudaMemset(force_data.force, 0, sizeof(float4)*pdata.local_num);
-    cudaMemset(force_data.virial, 0, sizeof(float)*pdata.local_num);
+    cudaMemset(force_data.force, 0, sizeof(float4)*pdata.N);
+    cudaMemset(force_data.virial, 0, sizeof(float)*pdata.N);
     gpu_compute_constraint_sphere_forces_kernel<<< grid, threads>>>(force_data,
                                                                     d_group_members,
                                                                     group_size,
@@ -156,14 +155,6 @@ cudaError_t gpu_compute_constraint_sphere_forces(const gpu_force_data_arrays& fo
                                                                     r,
                                                                     deltaT);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

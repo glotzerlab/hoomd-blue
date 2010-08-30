@@ -98,8 +98,8 @@ class FENEBondForceComputeGPU : public FENEBondForceCompute
         
     protected:
         int m_block_size;                   //!< Block size to run calculation on
-        std::vector<float4 *> m_gpu_params; //!< Parameters stored on the GPU
-        std::vector<int *> m_checkr;        //!< Error flag stored on the GPU
+        float4 * m_gpu_params;              //!< Parameters stored on the GPU
+        int * m_checkr;                     //!< Error flag stored on the GPU
         float4 *m_host_params;              //!< Host parameters
         
         //! Actually compute the forces

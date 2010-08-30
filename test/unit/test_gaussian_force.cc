@@ -79,12 +79,8 @@ typedef boost::function<shared_ptr<PotentialPairGauss> (shared_ptr<SystemDefinit
                                                         shared_ptr<NeighborList> nlist)> gaussforce_creator;
 
 //! Test the ability of the gauss force compute to actually calucate forces
-void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
+void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
@@ -154,12 +150,8 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfig
     }
 
 //! Tests the ability of a PotentialPairGauss to handle periodic boundary conditions
-void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
+void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -249,12 +241,8 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfig
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
 void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
                                  gaussforce_creator gauss_creator2,
-                                 ExecutionConfiguration exec_conf)
+                                 boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 5000;
     
     // create a random particle system to sum forces on
@@ -314,12 +302,8 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     }
 
 //! Test the ability of the gauss force compute to compute forces with different shift modes
-void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
+void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 2-particle test is just to get a plot of the potential and force vs r cut
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
@@ -409,21 +393,21 @@ shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(shared_ptr<SystemDefinition>
 BOOST_AUTO_TEST_CASE( GaussForce_particle )
     {
     gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
-    gauss_force_particle_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    gauss_force_particle_test(gauss_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( GaussForce_periodic )
     {
     gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
-    gauss_force_periodic_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    gauss_force_periodic_test(gauss_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( GaussForce_shift )
     {
     gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
-    gauss_force_shift_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    gauss_force_shift_test(gauss_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
@@ -431,21 +415,21 @@ BOOST_AUTO_TEST_CASE( GaussForce_shift )
 BOOST_AUTO_TEST_CASE( GaussForceGPU_particle )
     {
     gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
-    gauss_force_particle_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    gauss_force_particle_test(gauss_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_periodic )
     {
     gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
-    gauss_force_periodic_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    gauss_force_periodic_test(gauss_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for shift test on GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_shift )
     {
     gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
-    gauss_force_shift_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    gauss_force_shift_test(gauss_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -453,7 +437,7 @@ BOOST_AUTO_TEST_CASE( GaussForceGPU_compare )
     {
     gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
     gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
-    gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

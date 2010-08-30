@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "ComputeThermoGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -215,7 +214,7 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
             // "volume" is area in 2D
             volume = box.Lx * box.Ly;
             // W needs to be corrected since the 1/3 factor is built in
-            W *= Scalar(3.0/2.0);
+            W *= Scalar(3.0)/Scalar(2.0);
             }
         else
             {
@@ -223,7 +222,7 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
             }
 
         // pressure: P = (N * K_B * T + W)/V
-        Scalar pressure =  (2.0 * ke_total / Scalar(D) + W) / volume;
+        Scalar pressure =  (Scalar(2.0) * ke_total / Scalar(D) + W) / volume;
 
         // fill out the GPUArray
         d_properties[thermo_index::temperature] = temperature;
@@ -273,14 +272,6 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                     group_size);
 
         
-    if (g_gpu_error_checking)
-        {
-        cudaThreadSynchronize();
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess)
-            return err;
-        }
-
     // setup the grid to run the final kernel
     int final_block_size = 512;
     grid = dim3(1, 1, 1);
@@ -296,14 +287,6 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                    group_size,
                                                                    args.n_blocks);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
