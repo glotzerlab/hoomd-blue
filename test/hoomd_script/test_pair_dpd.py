@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
-# $Id: test_pair_dpd.py 2965 2010-04-27 14:16:39Z joaander $
-# $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/dpd/test/hoomd_script/test_pair_dpd.py $
+# $Id$
+# $URL$
 # Maintainer: joaander
 
 from hoomd_script import *

@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: PotentialPairDPDThermo.h 2904 2010-03-23 17:10:10Z joaander $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/PotentialPairDPDThermo.h $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_H__

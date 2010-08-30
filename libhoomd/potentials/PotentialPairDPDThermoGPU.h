@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: PotentialPairDPDThermoGPU.h 3019 2010-05-04 20:58:05Z joaander $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/PotentialPairDPDThermoGPU.h $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_GPU_H__

@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: test_lj_force.cc 3302 2010-08-04 20:15:44Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/dpd/test/unit/test_lj_force.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 #ifdef WIN32
@@ -127,15 +127,15 @@ void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_
     }
  
 BOOST_AUTO_TEST_CASE( DPD_ForceConservative_Test )
-	    {       
-	   dpd_conservative_force_test< PotentialPair<EvaluatorPairDPDThermo> >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-	    }    
+    {       
+    dpd_conservative_force_test< PotentialPair<EvaluatorPairDPDThermo> >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }    
 
 #ifdef ENABLE_CUDA
 BOOST_AUTO_TEST_CASE( DPD_GPU_ForceConservative_Test )
-	    {       
-	   dpd_conservative_force_test< PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-	    }   
+    {       
+    dpd_conservative_force_test< PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }   
 #endif      
 
 template <class PP_DPD>
@@ -232,15 +232,15 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     }
     
 BOOST_AUTO_TEST_CASE( DPD_Temp_Test )
-	    {       
-	   dpd_temperature_test< PotentialPairDPDThermo<EvaluatorPairDPDThermo> >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-	    }    
+    {       
+    dpd_temperature_test< PotentialPairDPDThermo<EvaluatorPairDPDThermo> >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }    
 
 #ifdef ENABLE_CUDA
 BOOST_AUTO_TEST_CASE( DPD_GPU_Temp_Test )
-	    {       
-	   dpd_temperature_test< PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-	    }   
+    {       
+    dpd_temperature_test< PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }   
 #endif
 
 #ifdef WIN32
