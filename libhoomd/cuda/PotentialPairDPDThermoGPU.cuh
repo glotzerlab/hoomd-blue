@@ -7,7 +7,6 @@
 
 #include "ForceCompute.cuh"
 #include "ParticleData.cuh"
-#include "NeighborList.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "Index1D.h"
 #include <cassert>
@@ -36,7 +35,9 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
     \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_n_neigh Device memory array listing the number of neighbors for each particle
+    \param d_nlist Device memory array containing the neighbor list contents
+    \param nli Indexer for indexing \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param d_seed user defined seed for PRNG    
@@ -64,14 +65,16 @@ template< class evaluator >
 __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
                                                gpu_pdata_arrays pdata,
                                                gpu_boxsize box,
-                                               gpu_nlist_array nlist,
-                                               typename evaluator::param_type *d_params,
-                                               float *d_rcutsq,
-                                               unsigned int d_seed,
-                                               unsigned int d_timestep,
-                                               float d_deltaT,
-                                               float d_T,
-                                               int ntypes)
+                                               const unsigned int *d_n_neigh,
+                                               const unsigned int *d_nlist,
+                                               const Index2D nli,
+                                               const typename evaluator::param_type *d_params,
+                                               const float *d_rcutsq,
+                                               const unsigned int d_seed,
+                                               const unsigned int d_timestep,
+                                               const float d_deltaT,
+                                               const float d_T,
+                                               const int ntypes)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -100,7 +103,7 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
         return;
         
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
-    unsigned int n_neigh = nlist.n_neigh[idx];
+    unsigned int n_neigh = d_n_neigh[idx];
     
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
@@ -116,14 +119,14 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
     
     // prefetch neighbor index
     unsigned int cur_j = 0;
-    unsigned int next_j = nlist.list[idx];
+    unsigned int next_j = d_nlist[nli(idx, 0)];
     
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
     // inside the loop
     #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+    for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
     #else
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
     #endif
@@ -135,7 +138,7 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
             // prefetch the next value and set the current one
             cur_j = next_j;
-            next_j = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
+            next_j = d_nlist[nli(idx, neigh_idx+1)];
             
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             float4 posj = tex1Dfetch(pdata_dpd_pos_tex, cur_j);
@@ -213,7 +216,9 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
 /*! \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_n_neigh Device memory array listing the number of neighbors for each particle
+    \param d_nlist Device memory array containing the neighbor list contents
+    \param nli Indexer for indexing \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param ntypes Number of types in the simulation
@@ -225,10 +230,12 @@ template< class evaluator >
 cudaError_t gpu_compute_dpd_forces(const gpu_force_data_arrays& force_data,
                                     const gpu_pdata_arrays &pdata,
                                     const gpu_boxsize &box,
-                                    const gpu_nlist_array &nlist,
-                                    typename evaluator::param_type *d_params,
-                                    float *d_rcutsq,
-                                    int ntypes,
+                                    const unsigned int *d_n_neigh,
+                                    const unsigned int *d_nlist,
+                                    const Index2D& nli,
+                                    const typename evaluator::param_type *d_params,
+                                    const float *d_rcutsq,
+                                    const unsigned int ntypes,
                                     const dpd_pair_args& args)
     {
     assert(d_params);
@@ -260,7 +267,20 @@ cudaError_t gpu_compute_dpd_forces(const gpu_force_data_arrays& force_data,
     
     // run the kernel
     gpu_compute_dpd_forces_kernel<evaluator>
-              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, args.seed, args.timestep, args.deltaT, args.T, ntypes);
+                                 <<<grid, threads, shared_bytes>>>
+                                 (force_data,
+                                  pdata,
+                                  box,
+                                  d_n_neigh,
+                                  d_nlist,
+                                  nli,
+                                  d_params,
+                                  d_rcutsq,
+                                  args.seed,
+                                  args.timestep,
+                                  args.deltaT,
+                                  args.T,
+                                  ntypes);
 
         
     return cudaSuccess;

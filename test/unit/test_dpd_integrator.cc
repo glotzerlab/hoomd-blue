@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVEGPU.h"
 #endif
 
-#include "BinnedNeighborList.h"
+#include "NeighborListBinned.h"
 #include "Initializers.h"
 #include "IntegratorTwoStep.h"
 

@@ -56,21 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDThermo.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
-/*! This is just a driver function for gpu_compute_pair_forces<EvaluatorPairLJ>(). See it for details.
-
-    \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param d_n_neigh Device memory array listing the number of neighbors for each particle
-    \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param block_size Block size to execute on the GPU
-    \param shift_mode Energy shift mode to apply to the potential calculation
-*/
 cudaError_t gpu_compute_ljtemp_forces(const gpu_force_data_arrays& force_data,
                                       const gpu_pdata_arrays &pdata,
                                       const gpu_boxsize &box,
@@ -98,22 +83,6 @@ cudaError_t gpu_compute_ljtemp_forces(const gpu_force_data_arrays& force_data,
                                                     shift_mode);
     }
 
-/*! This is just a driver function for gpu_compute_pair_forces<EvaluatorPairGauss>(). See it for details.
-
-    \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param d_n_neigh Device memory array listing the number of neighbors for each particle
-    \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param block_size Block size to execute on the GPU
-    \param shift_mode Energy shift mode to apply to the potential calculation
-
-*/
 cudaError_t gpu_compute_gauss_forces(const gpu_force_data_arrays& force_data,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
@@ -141,22 +110,6 @@ cudaError_t gpu_compute_gauss_forces(const gpu_force_data_arrays& force_data,
                                                        shift_mode);
     }
 
-/*! This is just a driver function for gpu_compute_pair_forces<EvaluatorPairSLJ>(). See it for details.
-
-    \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param d_n_neigh Device memory array listing the number of neighbors for each particle
-    \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param block_size Block size to execute on the GPU
-    \param shift_mode Energy shift mode to apply to the potential calculation
-
-*/
 cudaError_t gpu_compute_slj_forces(const gpu_force_data_arrays& force_data,
                                    const gpu_pdata_arrays &pdata,
                                    const gpu_boxsize &box,
@@ -184,22 +137,6 @@ cudaError_t gpu_compute_slj_forces(const gpu_force_data_arrays& force_data,
                                                      shift_mode);
     }
 
-/*! This is just a driver function for gpu_compute_pair_forces<EvaluatorPairYukawa>(). See it for details.
-
-    \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param d_n_neigh Device memory array listing the number of neighbors for each particle
-    \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param block_size Block size to execute on the GPU
-    \param shift_mode Energy shift mode to apply to the potential calculation
-
-*/
 cudaError_t gpu_compute_yukawa_forces(const gpu_force_data_arrays& force_data,
                                       const gpu_pdata_arrays &pdata,
                                       const gpu_boxsize &box,
@@ -227,22 +164,7 @@ cudaError_t gpu_compute_yukawa_forces(const gpu_force_data_arrays& force_data,
                                                         shift_mode);
     }
 
-/*! This is just a driver function for gpu_compute_pair_forces<EvaluatorPairMorse>(). See it for details.
 
-    \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param d_n_neigh Device memory array listing the number of neighbors for each particle
-    \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param block_size Block size to execute on the GPU
-    \param shift_mode Energy shift mode to apply to the potential calculation
-
-*/
 cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
@@ -269,67 +191,55 @@ cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
                                                        block_size,
                                                        shift_mode);
     }
-/*! This is just a driver function for gpu_compute_dpd_forces<EvaluatorPairDPDThermo>(). See it for details.
 
-    \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param args Additional arguments specific to DPD 
-*/
 cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_data,
-                                      const gpu_pdata_arrays &pdata,
-                                      const gpu_boxsize &box,
-                                      const gpu_nlist_array &nlist,
-                                      float2 *d_params,
-                                      float *d_rcutsq,
-                                      int ntypes,
-                                      const dpd_pair_args& args)
+                                            const gpu_pdata_arrays &pdata,
+                                            const gpu_boxsize &box,
+                                            const unsigned int *d_n_neigh,
+                                            const unsigned int *d_nlist,
+                                            const Index2D& nli,
+                                            const float2 *d_params,
+                                            const float *d_rcutsq,
+                                            const int ntypes,
+                                            const dpd_pair_args& args)
     {
     return gpu_compute_dpd_forces<EvaluatorPairDPDThermo>(force_data,
-                                                    pdata,
-                                                    box,
-                                                    nlist,
-                                                    d_params,
-                                                    d_rcutsq,
-                                                    ntypes,
-                                                    args);
+                                                          pdata,
+                                                          box,
+                                                          d_n_neigh,
+                                                          d_nlist,
+                                                          nli,
+                                                          d_params,
+                                                          d_rcutsq,
+                                                          ntypes,
+                                                          args);
     }                                          
 
 
-/*! This is just a driver function for gpu_compute_forces<EvaluatorPairDPDThermo>(). See it for details.
-
-    \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param args Additional arguments
-*/
 cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data,
-                                      const gpu_pdata_arrays &pdata,
-                                      const gpu_boxsize &box,
-                                      const gpu_nlist_array &nlist,
-                                      float2 *d_params,
-                                      float *d_rcutsq,
-                                      float *d_ronsq,
-                                      int ntypes,
-                                      const pair_args& args)
+                                         const gpu_pdata_arrays &pdata,
+                                         const gpu_boxsize &box,
+                                         const unsigned int *d_n_neigh,
+                                         const unsigned int *d_nlist,
+                                         const Index2D& nli,
+                                         const float2 *d_params,
+                                         const float *d_rcutsq,
+                                         const float *d_ronsq,
+                                         const unsigned int ntypes,
+                                         const unsigned int block_size,
+                                         const unsigned int shift_mode)
     {
     return gpu_compute_pair_forces<EvaluatorPairDPDThermo>(force_data,
-                                                    pdata,
-                                                    box,
-                                                    nlist,
-                                                    d_params,
-                                                    d_rcutsq,
-                                                    d_ronsq,
-                                                    ntypes,
-                                                    args);
+                                                           pdata,
+                                                           box,
+                                                           d_n_neigh,
+                                                           d_nlist,
+                                                           nli,
+                                                           d_params,
+                                                           d_rcutsq,
+                                                           d_ronsq,
+                                                           ntypes,
+                                                           block_size,
+                                                           shift_mode);
     }   
 

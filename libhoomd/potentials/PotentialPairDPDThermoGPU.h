@@ -82,10 +82,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template< class evaluator, cudaError_t gpu_cpdf(const gpu_force_data_arrays& force_data,
                                                 const gpu_pdata_arrays &pdata,
                                                 const gpu_boxsize &box,
-                                                const gpu_nlist_array &nlist,
-                                                typename evaluator::param_type *d_params,
-                                                float *d_rcutsq,
-                                                int ntypes,
+                                                const unsigned int *d_n_neigh,
+                                                const unsigned int *d_nlist,
+                                                const Index2D& nli,
+                                                const typename evaluator::param_type *d_params,
+                                                const float *d_rcutsq,
+                                                const int ntypes,
                                                 const dpd_pair_args& args) >
 class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
@@ -116,10 +118,12 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
 template< class evaluator, cudaError_t gpu_cpdf(const gpu_force_data_arrays& force_data,
                                                 const gpu_pdata_arrays &pdata,
                                                 const gpu_boxsize &box,
-                                                const gpu_nlist_array &nlist,
-                                                typename evaluator::param_type *d_params,
-                                                float *d_rcutsq,
-                                                int ntypes,                                               
+                                                const unsigned int *d_n_neigh,
+                                                const unsigned int *d_nlist,
+                                                const Index2D& nli,
+                                                const typename evaluator::param_type *d_params,
+                                                const float *d_rcutsq,
+                                                const int ntypes,
                                                 const dpd_pair_args& args) >
 PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
@@ -144,10 +148,12 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boos
 template< class evaluator, cudaError_t gpu_cpdf(const gpu_force_data_arrays& force_data,
                                                 const gpu_pdata_arrays &pdata,
                                                 const gpu_boxsize &box,
-                                                const gpu_nlist_array &nlist,
-                                                typename evaluator::param_type *d_params,
-                                                float *d_rcutsq,
-                                                int ntypes,
+                                                const unsigned int *d_n_neigh,
+                                                const unsigned int *d_nlist,
+                                                const Index2D& nli,
+                                                const typename evaluator::param_type *d_params,
+                                                const float *d_rcutsq,
+                                                const int ntypes,
                                                 const dpd_pair_args& args) >
 void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep)
     {
@@ -166,9 +172,10 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
         throw std::runtime_error("Error computing forces in PotentialPairDPDThermoGPU");
         }
         
-    // access the neighbor list, which just selects the neighborlist into the device's memory, copying
-    // it there if needed
-    gpu_nlist_array& nlist = this->m_nlist->getListGPU();
+    // access the neighbor list
+    ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
+    Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
     gpu_pdata_arrays& pdata = this->m_pdata->acquireReadOnlyGPU();
@@ -190,7 +197,9 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     gpu_cpdf(this->m_gpu_forces.d_data,
              pdata,
              box,
-             nlist,
+             d_n_neigh.data,
+             d_nlist.data,
+             nli,
              d_params.data,
              d_rcutsq.data,
              this->m_pdata->getNTypes(),
