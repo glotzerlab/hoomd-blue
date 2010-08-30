@@ -87,7 +87,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         m_etol(Scalar(1e-3)),
         m_deltaT_max(dt),
         m_deltaT_set(dt/Scalar(10.0)),
-        m_run_minsteps(Scalar(10))
+        m_run_minsteps(10)
     {
     // sanity check
     assert(m_sysdef);

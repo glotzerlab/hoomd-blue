@@ -51,6 +51,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __ALL_DRIVER_POTENTIAL_PAIR_GPU_CUH__
 
 #include "PotentialPairGPU.cuh"
+#include "PotentialPairDPDThermoGPU.cuh"
+#include "EvaluatorPairDPDThermo.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 cudaError_t gpu_compute_ljtemp_forces(const gpu_force_data_arrays& force_data,
@@ -101,6 +103,25 @@ cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
                                       const gpu_boxsize &box,
                                       const gpu_nlist_array &nlist,
                                       float4 *d_params,
+                                      float *d_rcutsq,
+                                      float *d_ronsq,
+                                      int ntypes,
+                                      const pair_args& args);
+//!  Compute dpd thermostat on GPU with PairEvaluatorDPDThermo 
+cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_data,
+                                      const gpu_pdata_arrays &pdata,
+                                      const gpu_boxsize &box,
+                                      const gpu_nlist_array &nlist,
+                                      float2 *d_params,
+                                      float *d_rcutsq,
+                                      int ntypes,
+                                      const dpd_pair_args& args);                                               
+//! Compute dpd conservative force on GPU with PairEvaluatorDPDThermo
+cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data,
+                                      const gpu_pdata_arrays &pdata,
+                                      const gpu_boxsize &box,
+                                      const gpu_nlist_array &nlist,
+                                      float2 *d_params,
                                       float *d_rcutsq,
                                       float *d_ronsq,
                                       int ntypes,

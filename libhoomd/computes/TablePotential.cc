@@ -311,7 +311,7 @@ void TablePotential::computeForces(unsigned int timestep)
                 Scalar value_f = (r - rmin) / delta_r;
                 
                 // compute index into the table and read in values
-                unsigned int value_i = floor(value_f);
+                unsigned int value_i = (unsigned int)floor(value_f);
                 float2 VF0 = h_tables.data[table_value(value_i, cur_table_index)];
                 float2 VF1 = h_tables.data[table_value(value_i+1, cur_table_index)];
                 // unpack the data

@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use File::Find;
-use Text::Diff::Parser;
+# use Text::Diff::Parser;
 use File::Temp;
 
 # parameters for controlling what gets reported
