@@ -214,7 +214,7 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
             // "volume" is area in 2D
             volume = box.Lx * box.Ly;
             // W needs to be corrected since the 1/3 factor is built in
-            W *= Scalar(3.0/2.0);
+            W *= Scalar(3.0)/Scalar(2.0);
             }
         else
             {
@@ -222,7 +222,7 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
             }
 
         // pressure: P = (N * K_B * T + W)/V
-        Scalar pressure =  (2.0 * ke_total / Scalar(D) + W) / volume;
+        Scalar pressure =  (Scalar(2.0) * ke_total / Scalar(D) + W) / volume;
 
         // fill out the GPUArray
         d_properties[thermo_index::temperature] = temperature;
