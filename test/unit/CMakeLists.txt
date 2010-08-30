@@ -84,6 +84,7 @@ set(TEST_LIST
     set(TEST_LIST ${TEST_LIST}
     test_bdnvt_integrator
     test_npt_integrator
+    test_dpd_integrator
     test_bd_rigid_updater)
 
 foreach (CUR_TEST ${TEST_LIST})
