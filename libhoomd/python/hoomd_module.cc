@@ -106,6 +106,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "System.h"
 #include "Variant.h"
 #include "ConstraintSphere.h"
+#include "PotentialPairDPDThermo.h"
+#include "EvaluatorPairDPDThermo.h"
+#include "PotentialPair.h"
+
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -127,6 +131,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "PotentialPairGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -392,6 +397,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
     export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
+    export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
+    export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
     export_LJWallForceCompute();
     export_ComputeThermo();
     export_NeighborList();
@@ -407,6 +414,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
+    export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
+    export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_TablePotentialGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();

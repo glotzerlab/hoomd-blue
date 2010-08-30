@@ -76,6 +76,7 @@ import util;
 import tune;
 import init;
 import data;
+import variant;
 
 import math;
 import sys;
@@ -1473,4 +1474,233 @@ class morse(pair):
         r0 = coeff['r0']
 
         return hoomd.make_scalar4(D0, alpha, r0, 0.0);
+
+## NVT Integration via Dissipative Particle Dynamics %pair %force
+#
+# The command pair.dpd specifies that a DPD %pair %force and thermostat should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# \f{eqnarray*}  
+# F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
+# \f}
+#
+# \f{eqnarray*}
+# F_{\mathrm{C}}(r) = & A \cdot  w(r_{ij}) \\
+# F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3} \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
+# F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left( \hat r_{ij} \circ v_{ij} \right)  \\
+# \f}
+#
+# \f{eqnarray*}
+# w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)  & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+# where \f$\hat r_{ij} \f$ is a normalized vector from particle i to particle j, \f$ v_{ij} = v_i - v_j \f$, and \f$ \theta_{ij} \f$ is a uniformly distributed
+# random number in the range [-1, 1].
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ A \f$ - \a A
+# - \f$ \gamma \f$ gamma
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# To use the dpd thermostat, an nve integrator must be applied to the system and the user must specify a temperature, which can be a %variant.
+# (see hoomd_script.variant for more information).  Use of the
+# dpd thermostat pair force with other integrators will result in unphysical behavior. 
+# To use pair.dpd with a different conservative potential than \f$ F_C \f$, simply set A to zero.  Note that dpd thermostats
+# are often defined in terms of \f$ \sigma \f$ where \f$ \sigma = \sqrt{2k_b\gamma T} \f$.
+#
+#
+# \b Example:
+# \code
+# dpd = pair.dpd(r_cut=1.0, T=1.0)
+# dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
+# dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
+# dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
+# dpd.set_params(T = 1.0)
+# integrate.mode_standard(dt=0.02)
+# integrate.nve(group=group.all())
+# \endcode
+#
+# The cutoff radius \a r_cut passed into the initial pair.dpd command sets the default \a r_cut for all
+# %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
+# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
+#
+# pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
+#
+class dpd(pair):
+    ## Specify the DPD %pair %force and thermostat
+    #
+    # \param r_cut Default cutoff radius
+    # \param T Temperature of thermostat
+    # \param name Name of the force instance
+    # \param seed seed for the PRNG in the DPD thermostat
+    #
+    # \b Example:
+    # \code
+    # dpd = pair.dpd(r_cut=3.0, seed=12345)
+    # dpd.pair_coeff.set('A', 'A', A=1.0, gamma = 3.0)
+    # dpd.pair_coeff.set('A', 'B', A=2.0, gamma = 3.0, r_cut = 1.0)
+    # dpd.pair_coeff.set('B', 'B', A=1.0, gamma = 3.0)
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, T, seed=1, name=None):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairDPDThermoDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDThermoDPD;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairDPDThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDThermoDPDGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.dpd'));
+            self.cpp_force.setBlockSize(64);
+
+                
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['A', 'gamma'];
+        
+        # set the seed for dpd thermostat
+        self.cpp_force.setSeed(seed);
+ 
+        # set the temperature
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+        self.cpp_force.setT(T.cpp_variant);  
+            
+
+    ## Changes parameters
+    # \param T Temperature (if set)
+    #
+    # To change the parameters of an existing pair force, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # dpd = pair.dpd(r_cut = 1.0)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # dpd.set_params(T=2.0)
+    # \endcode
+    def set_params(self, T=None):
+        util.print_status_line();
+        self.check_initialization();
+        
+        # change the parameters
+        if T is not None:
+            # setup the variant inputs
+            T = variant._setup_variant_input(T);
+            self.cpp_force.setT(T.cpp_variant);
+        
+    def process_coeff(self, coeff):
+        a = coeff['A'];
+        gamma = coeff['gamma'];
+        return hoomd.make_scalar2(a, gamma);     
+
+## DPD Conservative %pair %force
+#
+# The command pair.dpd_conservative specifies that the conservative part of the DPD %pair %force should be added to every
+# non-bonded particle %pair in the simulation.  No thermostat (e.g. Drag Force and Random Force) is applied.
+#   
+# \f{eqnarray*}
+# V_{\mathrm{DPD-C}}(r)  = & A \cdot \left( r_{\mathrm{cut}} - r \right) 
+#                        - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
+#                               & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair in the
+# main hoomd documentation.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ A \f$ - \a A
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# \b Example:
+# \code
+# dpdc.pair_coeff.set('A', 'A', A=1.0)
+# dpdc.pair_coeff.set('A', 'B', A=2.0, r_cut = 1.0)
+# dpdc.pair_coeff.set('B', 'B', A=1.0)
+# \endcode
+#
+# pair.dpd_conservative does not implement and energy shift / smoothing modes due to the function of the force.
+#
+# The cutoff radius \a r_cut passed into the initial pair.dpd_conservative command sets the default \a r_cut for all
+# %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
+# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
+#
+class dpd_conservative(pair):
+    ## Specify the DPD conservative %pair %force
+    #
+    # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # dpdc = pair.dpd_conservative(r_cut=3.0)
+    # dpdc.pair_coeff.set('A', 'A', A=1.0)
+    # dpdc.pair_coeff.set('A', 'B', A=2.0)
+    # dpdc.pair_coeff.set('B', 'B', A=1.0)
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPD;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.dpd_conservative'));
+            self.cpp_force.setBlockSize(64);
+                
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['A'];
+
+        
+    def process_coeff(self, coeff):
+        a = coeff['A'];
+        gamma = 0;
+        return hoomd.make_scalar2(a, gamma);     
+
+    ## Not implemented for dpd_conservative
+    # 
+    def set_params(self, coeff):
+        raise RuntimeError('Not implemented for DPD Conservative');
+        return;
 

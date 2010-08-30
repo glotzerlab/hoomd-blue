@@ -84,7 +84,8 @@ set(TEST_LIST
     # put the longest tests last
     set(TEST_LIST ${TEST_LIST}
     test_bdnvt_integrator
-    test_npt_integrator)
+    test_npt_integrator
+    test_dpd_integrator)
 
 foreach (CUR_TEST ${TEST_LIST})
     # add and link the unit test executable
