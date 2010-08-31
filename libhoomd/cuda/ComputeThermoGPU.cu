@@ -243,6 +243,17 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
     
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
+#include "PPPM.cuh"
+__global__ void add_ewald_values(float *d_properties, float virial, float energy)
+{
+  int tid = threadIdx.x;
+  if(tid==0)
+  {
+    d_properties[thermo_index::pressure] += virial;
+    d_properties[thermo_index::potential_energy] += energy;
+  }
+}
+
 cudaError_t gpu_compute_thermo(float *d_properties,
                                const gpu_pdata_arrays &pdata,
                                unsigned int *d_group_members,
@@ -287,6 +298,10 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                    group_size,
                                                                    args.n_blocks);
     
+    // computes long-ranged electrostatic contributions to the thero quantities  
+   float3 GPU_thermos = calculate_thermo_quantities(pdata, box);
+    add_ewald_values <<< 1,1 >>> (d_properties, GPU_thermos.x, GPU_thermos.y);
+
     return cudaSuccess;
     }
 

@@ -72,7 +72,7 @@ _default_block_size_db = {};
 _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.lj': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 128,
                                  'pair.cgcmm': 64, 'pair.table': 64, 'pair.slj': 128, 'pair.morse': 320, 'pair.dpd': 64,
                                  'pair.dpd_conservative': 320,
-                                 'bond.harmonic': 320, 'bond.fene': 96, 'pair.yukawa': 64, 'angle.harmonic': 192,
+                                 'bond.harmonic': 320, 'bond.fene': 96, 'pair.yukawa': 64, 'pair.ewald': 64, 'angle.harmonic': 192,
                                  'pair.gauss': 320, 'nlist': 288}
 
 # no longer independently tuning 1.0 devices, they are very old
@@ -81,7 +81,7 @@ _default_block_size_db['1.0'] = _default_block_size_db['1.1'];
 _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihedral.harmonic': 256, 'angle.cgcmm': 320,
                                  'pair.cgcmm': 416, 'pair.table': 96, 'pair.slj': 352, 'pair.morse': 352, 'pair.dpd': 224,
                                  'pair.dpd_conservative': 352,
-                                 'bond.harmonic': 352, 'bond.fene': 224, 'pair.yukawa': 352, 'angle.harmonic': 192,
+                                 'bond.harmonic': 352, 'bond.fene': 224, 'pair.yukawa': 352, 'pair.ewald': 352, 'angle.harmonic': 192,
                                  'pair.gauss': 352, 'nlist': 288}
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
@@ -90,7 +90,7 @@ _default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihed
                                  'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'pair.dpd': 224, 'pair.dpd_conservative': 320, 
                                  'nlist': 128,
                                  'bond.harmonic': 416, 'pair.gauss': 320, 'bond.fene': 160, 'angle.harmonic': 96,
-                                 'pair.yukawa': 256, 'pair.morse': 160}
+                                 'pair.yukawa': 256, 'pair.ewald': 256, 'pair.morse': 160}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -349,6 +349,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.lj', 'pair_lj_setup', 500),
                 ('pair.slj', 'pair_slj_setup', 500),
                 ('pair.yukawa', 'pair_yukawa_setup', 500),
+                ('pair.ewald', 'pair_ewald_setup', 500),
                 ('pair.cgcmm', 'pair_cgcmm_setup', 500),
                 ('pair.gauss', 'pair_gauss_setup', 500),
                 ('pair.morse', 'pair_morse_setup', 500),
@@ -486,6 +487,16 @@ def pair_slj_setup():
 def pair_yukawa_setup():
     fc = pair.yukawa(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0);
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup pair.ewald for benchmarking
+def pair_ewald_setup():
+    fc = pair.ewald(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', kappa=1.0, grid=16, order=4);
     
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();

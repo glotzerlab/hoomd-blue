@@ -1122,6 +1122,86 @@ class yukawa(pair):
 
         return hoomd.make_scalar2(epsilon, kappa);
 
+## Ewald %pair %force
+#
+# The command pair.ewald specifies that an Ewald %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# \f{eqnarray*}
+#  V_{\mathrm{ewald}}(r)  = & \frac {q_i q_j { \text{erfc}(-\kappa r) }{r} & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \kappa \f$ - \c kappa
+# - \f$ \grid \f$ - \c grid
+# - \f$ \order \f$ - \c order
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# \b Example:
+# \code
+# ewald.pair_coeff.set('A', 'A', kappa=1.0, grid=64, order=5)
+# \endcode
+#
+# The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for all %pair
+# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
+#
+class ewald(pair):
+    ## Specify the Ewald %pair %force
+    #
+    # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # ewald = pair.ewald(r_cut=3.0)
+    # ewald.pair_coeff.set('A', 'A', kappa=1.0, order=5, grid=64)
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairEwald(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairEwlad;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairEwaldGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairEwaldGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.ewald'));
+             
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['kappa', 'grid', 'order'];
+        
+    def process_coeff(self, coeff):
+        kappa = coeff['kappa'];
+        grid = coeff['grid'];
+        order = coeff['order'];
+
+        return hoomd.make_scalar3(kappa, grid, order);
+
 ## CMM coarse-grain model %pair %force
 #
 # The command pair.cgcmm specifies that a special version of Lennard-Jones type %pair %force

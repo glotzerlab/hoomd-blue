@@ -127,5 +127,15 @@ cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data
                                       int ntypes,
                                       const pair_args& args);
 
+//! Compute ewlad pair forces on the GPU with PairEvaluatorEwald
+cudaError_t gpu_compute_ewald_forces(const gpu_force_data_arrays& force_data,
+                                      const gpu_pdata_arrays &pdata,
+                                      const gpu_boxsize &box,
+                                      const gpu_nlist_array &nlist,
+                                      float3 *d_params,
+                                      float *d_rcutsq,
+                                      float *d_ronsq,
+                                      int ntypes,
+                                      const pair_args& args);
 #endif
 
