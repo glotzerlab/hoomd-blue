@@ -648,3 +648,4 @@ BOOST_AUTO_TEST_CASE( CellListGPU_large )
     celllist_large_test<CellListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
+

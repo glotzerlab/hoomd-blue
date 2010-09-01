@@ -84,3 +84,4 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const float r_maxsq);
 
 #endif
+

@@ -135,3 +135,4 @@ void export_CellListGPU()
         ("CellListGPU", init< boost::shared_ptr<SystemDefinition> >())
         ;
     }
+

@@ -384,3 +384,4 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
 
     return cudaSuccess;
     }
+

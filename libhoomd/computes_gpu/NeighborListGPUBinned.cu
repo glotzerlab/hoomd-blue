@@ -282,7 +282,7 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
             {
             float4 cur_xyzf = next_xyzf;
-			next_xyzf = tex2D(cell_xyzf_tex, cur_offset+1, neigh_cell);
+            next_xyzf = tex2D(cell_xyzf_tex, cur_offset+1, neigh_cell);
             
             float3 neigh_pos;
             neigh_pos.x = cur_xyzf.x;
@@ -373,3 +373,4 @@ cudaError_t gpu_setup_compute_nlist_binned()
     {
     return cudaFuncSetCacheConfig(gpu_compute_nlist_binned_new_kernel, cudaFuncCachePreferL1);
     }
+

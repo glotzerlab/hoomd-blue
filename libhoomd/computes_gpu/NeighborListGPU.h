@@ -111,3 +111,4 @@ class NeighborListGPU : public NeighborList
 void export_NeighborListGPU();
 
 #endif
+

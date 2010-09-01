@@ -212,3 +212,4 @@ void export_NeighborListGPU()
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;
     }
+

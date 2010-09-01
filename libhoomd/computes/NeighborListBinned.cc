@@ -210,3 +210,4 @@ void export_NeighborListBinned()
                      ("NeighborListBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
                      ;
     }
+

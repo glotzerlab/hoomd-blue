@@ -72,7 +72,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     m_last_cell_Nmax = 0;
     dca_cell_adj = NULL;
     dca_cell_xyzf = NULL;
-	m_block_size = 64;
+    m_block_size = 64;
     
     // When running on compute 1.x, textures are allocated with the height equal to the number of cells
     // limit the number of cells to the maximum texture dimension
@@ -262,6 +262,7 @@ void export_NeighborListGPUBinned()
     {
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
                      ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
-					.def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
+                    .def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
                      ;
     }
+
