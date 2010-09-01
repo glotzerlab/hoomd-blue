@@ -68,7 +68,9 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_n_neigh Device memory array listing the number of neighbors for each particle
+    \param d_nlist Device memory array containing the neighbor list contents
+    \param nli Indexer for indexing \a d_nlist
     \param d_params Parameters for each table associated with a type pair
     \param ntypes Number of particle types in the system
     \param table_width Number of points in each table
@@ -81,12 +83,14 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
       at a later date may result in this changing.
 */
 __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data,
-                                                gpu_pdata_arrays pdata,
-                                                gpu_boxsize box,
-                                                gpu_nlist_array nlist,
-                                                float4 *d_params,
-                                                int ntypes,
-                                                unsigned int table_width)
+                                                const gpu_pdata_arrays pdata,
+                                                const gpu_boxsize box,
+                                                const unsigned int *d_n_neigh,
+                                                const unsigned int *d_nlist,
+                                                const Index2D nli,
+                                                const float4 *d_params,
+                                                const unsigned int ntypes,
+                                                const unsigned int table_width)
     {
     // index calculation helpers
     Index2DUpperTriangular table_index(ntypes);
@@ -108,7 +112,7 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
         return;
     
     // load in the length of the list
-    unsigned int n_neigh = nlist.n_neigh[idx];
+    unsigned int n_neigh = d_n_neigh[idx];
     
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     float4 pos = tex1Dfetch(pdata_pos_tex, idx);
@@ -120,14 +124,14 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
     
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
-    unsigned int next_neigh = nlist.list[idx];
+    unsigned int next_neigh = d_nlist[nli(idx, 0)];
     
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
     // inside the loop
     #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+    for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
     #else
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
     #endif
@@ -139,7 +143,7 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
             // read the current neighbor index
             // prefetch the next value and set the current one
             cur_neigh = next_neigh;
-            next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
+            next_neigh = d_nlist[nli(idx, (neigh_idx+1))];
             
             // get the neighbor's position
             float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -215,7 +219,9 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
 /*! \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_n_neigh Device memory array listing the number of neighbors for each particle
+    \param d_nlist Device memory array containing the neighbor list contents
+    \param nli Indexer for indexing \a d_nlist
     \param d_tables Tables of the potential and force
     \param d_params Parameters for each table associated with a type pair
     \param ntypes Number of particle types in the system
@@ -227,12 +233,14 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
 cudaError_t gpu_compute_table_forces(const gpu_force_data_arrays& force_data,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
-                                     const gpu_nlist_array &nlist,
-                                     float2 *d_tables,
-                                     float4 *d_params,
-                                     unsigned int ntypes,
-                                     unsigned int table_width,
-                                     unsigned int block_size)
+                                     const unsigned int *d_n_neigh,
+                                     const unsigned int *d_nlist,
+                                     const Index2D& nli,
+                                     const float2 *d_tables,
+                                     const float4 *d_params,
+                                     const unsigned int ntypes,
+                                     const unsigned int table_width,
+                                     const unsigned int block_size)
     {
     assert(d_params);
     assert(d_tables);
@@ -260,7 +268,8 @@ cudaError_t gpu_compute_table_forces(const gpu_force_data_arrays& force_data,
     if (error != cudaSuccess)
         return error;
         
-    gpu_compute_table_forces_kernel<<< grid, threads, sizeof(float4)*table_index.getNumElements() >>>(force_data, pdata, box, nlist, d_params, ntypes, table_width);
+    gpu_compute_table_forces_kernel<<< grid, threads, sizeof(float4)*table_index.getNumElements() >>>
+            (force_data, pdata, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
     
     return cudaSuccess;
     }

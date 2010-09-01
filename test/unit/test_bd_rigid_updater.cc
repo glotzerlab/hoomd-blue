@@ -66,18 +66,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BoxResizeUpdater.h"
 
 #include "AllPairPotentials.h"
-#include "BinnedNeighborList.h"
+#include "NeighborList.h"
 #include "Initializers.h"
-
-#ifdef ENABLE_CUDA
-#include "BinnedNeighborListGPU.h"
-#endif
-
-#include "FENEBondForceCompute.h"
-
-#ifdef ENABLE_CUDA
-#include "FENEBondForceComputeGPU.h"
-#endif
 
 #include "saruprng.h"
 #include <math.h>

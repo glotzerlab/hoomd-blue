@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegratorTwoStep.h"
 
 #include "AllPairPotentials.h"
-#include "BinnedNeighborList.h"
+#include "NeighborList.h"
 #include "Initializers.h"
 
 #include <math.h>

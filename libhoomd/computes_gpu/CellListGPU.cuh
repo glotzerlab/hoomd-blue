@@ -43,23 +43,52 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#ifndef _NEIGHBORLISTNSQGPU_CUH_
-#define _NEIGHBORLISTNSQGPU_CUH_
+#ifndef __CELLLISTGPU_CUH__
+#define __CELLLISTGPU_CUH__
 
 #include <cuda_runtime.h>
 
-#include "NeighborList.cuh"
+#include "HOOMDMath.h"
+#include "Index1D.h"
+#include "ParticleData.cuh"
 
-/*! \file NeighborListNsqGPU.cuh
-    \brief Declares data structures and methods used by NeighborListNsqGPU
+/*! \file CellListGPU.cuh
+    \brief Declares GPU kernel code for cell list generation on the GPU
 */
 
-//! Kernel driver to run GPU code called by NeighborListNsqGPU
-cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist,
-                                  const gpu_pdata_arrays &pdata,
-                                  const gpu_boxsize &box,
-                                  float r_maxsq,
-                                  bool exclude_same_body);
+//! Kernel driver for gpu_compute_cell_list_kernel()
+cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
+                                  float4 *d_xyzf,
+                                  float4 *d_tdb,
+                                  unsigned int *d_conditions,
+                                  const float4 *d_pos,
+                                  const float *d_charge,
+                                  const float *d_diameter,
+                                  const unsigned int *d_body,
+                                  const unsigned int N,
+                                  const unsigned int Nmax,
+                                  const bool flag_charge,
+                                  const Scalar3& scale,
+                                  const gpu_boxsize& box,
+                                  const Index3D& ci,
+                                  const Index2D& cli);
+
+//! Kernel driver for gpu_compute_cell_list_1x_kernel()
+cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
+                                     float4 *d_xyzf,
+                                     float4 *d_tdb,
+                                     unsigned int *d_conditions,
+                                     const float4 *d_pos,
+                                     const float *d_charge,
+                                     const float *d_diameter,
+                                     const unsigned int *d_body,
+                                     const unsigned int N,
+                                     const unsigned int Nmax,
+                                     const bool flag_charge,
+                                     const Scalar3& scale,
+                                     const gpu_boxsize& box,
+                                     const Index3D& ci,
+                                     const Index2D& cli);
 
 #endif
 

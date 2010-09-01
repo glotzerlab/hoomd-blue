@@ -199,7 +199,9 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
         
     // access the neighbor list, which just selects the neighborlist into the device's memory, copying
     // it there if needed
-    gpu_nlist_array& nlist = m_nlist->getListGPU();
+    ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
+    Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
@@ -209,7 +211,9 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_cgcmm_forces(m_gpu_forces.d_data,
                              pdata,
                              box,
-                             nlist,
+                             d_n_neigh.data,
+                             d_nlist.data,
+                             nli,
                              d_coeffs,
                              m_pdata->getNTypes(),
                              m_r_cut * m_r_cut,

@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 
-#include "BinnedNeighborList.h"
+#include "NeighborListBinned.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -161,7 +161,7 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
+    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairYukawa> fc1 = yukawa_creator1(sysdef, nlist);
     shared_ptr<PotentialPairYukawa> fc2 = yukawa_creator2(sysdef, nlist);

@@ -43,29 +43,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file TablePotentialGPU.cuh
-    \brief Declares GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
+#include "CellList.h"
+
+/*! \file CellListGPU.h
+    \brief Declares the CellListGPU class
 */
 
-#include "ForceCompute.cuh"
-#include "ParticleData.cuh"
-#include "Index1D.h"
+#ifndef __CELLLISTGPU_H__
+#define __CELLLISTGPU_H__
 
-#ifndef __TABLEPOTENTIALGPU_CUH__
-#define __TABLEPOTENTIALGPU_CUH__
+//! Computes a cell list from the particles in the system on the GPU
+/*! Calls GPU functions in CellListGPU.cuh and CellListGPU.cu
+    \sa CellList
+    \ingroup computes
+*/
+class CellListGPU : public CellList
+    {
+    public:
+        //! Construct a cell list
+        CellListGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        
+        virtual ~CellListGPU() { };
+    
+    protected:
+        //! Compute the cell list
+        virtual void computeCellList();
+    };
 
-//! Kernel driver that computes table forces on the GPU for TablePotentialGPU
-cudaError_t gpu_compute_table_forces(const gpu_force_data_arrays& force_data,
-                                     const gpu_pdata_arrays &pdata,
-                                     const gpu_boxsize &box,
-                                     const unsigned int *d_n_neigh,
-                                     const unsigned int *d_nlist,
-                                     const Index2D& nli,
-                                     const float2 *d_tables,
-                                     const float4 *d_params,
-                                     const unsigned int ntypes,
-                                     const unsigned int table_width,
-                                     const unsigned int block_size);
+//! Exports CellListGPU to python
+void export_CellListGPU();
 
 #endif
 

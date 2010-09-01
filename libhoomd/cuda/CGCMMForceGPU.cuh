@@ -44,8 +44,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: akohlmey
 
 #include "ForceCompute.cuh"
-#include "NeighborList.cuh"
 #include "ParticleData.cuh"
+#include "Index1D.h"
 
 /*! \file CGCMMForceGPU.cuh
     \brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
@@ -58,11 +58,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
-                                     const gpu_nlist_array &nlist,
-                                     float4 *d_coeffs,
-                                     int coeff_width,
-                                     float r_cutsq,
-                                     int block_size);
+                                     const unsigned int *d_n_neigh,
+                                     const unsigned int *d_nlist,
+                                     const Index2D& nli,
+                                     const float4 *d_coeffs,
+                                     const unsigned int coeff_width,
+                                     const float r_cutsq,
+                                     const unsigned int block_size);
 
 #endif
 

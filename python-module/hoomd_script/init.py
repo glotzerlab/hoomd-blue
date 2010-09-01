@@ -474,7 +474,6 @@ def create_random_polymers(box, polymers, separation, seed=1):
     
     # parse command line
     _parse_command_line();
-    my_exec_conf = _create_exec_conf();
     
     if type(polymers) != type([]) or len(polymers) == 0:
         print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
@@ -575,6 +574,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
     # generate the particles
     generator.generate();
     
+    my_exec_conf = _create_exec_conf();
     globals.system_definition = hoomd.SystemDefinition(generator, my_exec_conf);
     
     # initialize the system
