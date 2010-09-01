@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! Impelements an algorithm that reorders particles in the ParticleData so that particles
     near each other in space become near each other in memory. This transformation improves
     cache locality in almost every other calculation in HOOMD, such as LJForceCompute,
-    HarmonicBondForceCompute, and BinnedNeighborList, to name a few. As particles move
+    HarmonicBondForceCompute, and NeighborListBinned, to name a few. As particles move
     through time, they will tend to unsort themselves at a rate depending on how diffusive
     the simulation is. Tests preformed on a Leannard-Jones liquid simulation at a temperature of 1.2
     showed that performing the sort every 1,000 time steps is sufficient to maintain the

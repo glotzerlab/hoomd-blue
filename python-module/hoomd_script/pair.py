@@ -302,7 +302,7 @@ class nlist:
             raise RuntimeError('Error creating neighbor list');
         
         # decide wether to create an all-to-all neighbor list or a binned one based on box size:
-        default_r_buff = 0.8;
+        default_r_buff = 0.4;
         
         mode = "binned";
         
@@ -325,7 +325,9 @@ class nlist:
         # create the C++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             if mode == "binned":
-                self.cpp_nlist = hoomd.BinnedNeighborList(globals.system_definition, r_cut, default_r_buff)
+                cl_c = hoomd.CellList(globals.system_definition);
+                globals.system.addCompute(cl_c, "auto_cl")
+                self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
             elif mode == "nsq":
                 self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
             else:
@@ -333,10 +335,14 @@ class nlist:
                 raise RuntimeError("Error creating neighbor list");
         else:
             if mode == "binned":
-                self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.system_definition, r_cut, default_r_buff)
+                cl_g = hoomd.CellListGPU(globals.system_definition);
+                globals.system.addCompute(cl_g, "auto_cl")
+                self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
                 self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
+                self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             elif mode == "nsq":
-                self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.system_definition, r_cut, default_r_buff)
+                self.cpp_nlist = hoomd.NeighborListGPU(globals.system_definition, r_cut, default_r_buff)
+                self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
                 print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
                 raise RuntimeError("Error creating neighbor list");

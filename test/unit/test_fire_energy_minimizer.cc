@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "AllPairPotentials.h"
-#include "BinnedNeighborList.h"
+#include "NeighborList.h"
 
 #include <math.h>
 

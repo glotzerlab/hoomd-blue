@@ -163,7 +163,10 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     
     // access the neighbor list, particle data, and system box
-    const vector< vector< unsigned int > >& full_list = this->m_nlist->getList();
+    ArrayHandle<unsigned int> h_n_neigh(this->m_nlist->getNNeighArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(this->m_nlist->getNListArray(), access_location::host, access_mode::read);
+    Index2D nli = this->m_nlist->getNListIndexer();
+
     const ParticleDataArraysConst& arrays = this->m_pdata->acquireReadOnly();
     const BoxDim& box = this->m_pdata->getBox();
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
@@ -212,12 +215,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
         Scalar viriali = 0.0;
         
         // loop over all of the neighbors of this particle
-        const vector< unsigned int >& list = full_list[i];
-        const unsigned int size = (unsigned int)list.size();
+        const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-            unsigned int j = list[k];
+            unsigned int j = h_nlist.data[nli(i, k)];
             assert(j < this->m_pdata->getN());
             
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)

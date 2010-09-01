@@ -138,6 +138,32 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
     return retval;
     }
 
+//! Stuff an integer inside a Scalar
+inline Scalar __int_as_scalar(int a)
+    {
+    volatile union
+        {
+        int a; Scalar b;
+        } u;
+
+    u.a = a;
+
+    return u.b;
+    }
+
+//! Extract an integer from a Scalar stuffed by __int_as_scalar()
+inline int __scalar_as_int(Scalar b)
+    {
+    volatile union
+        {
+        int a; Scalar b;
+        } u;
+
+    u.b = b;
+
+    return u.a;
+    }
+
 //! Export relevant hoomd math functions to python
 void export_hoomd_math_functions();
 

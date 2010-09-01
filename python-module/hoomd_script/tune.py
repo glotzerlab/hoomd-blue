@@ -73,7 +73,7 @@ _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.lj': 64, 'dihedr
                                  'pair.cgcmm': 64, 'pair.table': 64, 'pair.slj': 128, 'pair.morse': 320, 'pair.dpd': 64,
                                  'pair.dpd_conservative': 320,
                                  'bond.harmonic': 320, 'bond.fene': 96, 'pair.yukawa': 64, 'pair.ewald': 64, 'angle.harmonic': 192,
-                                 'pair.gauss': 320, 'nlist': 288}
+                                 'pair.gauss': 320, 'nlist': 288, 'nlist.filter': 128}
 
 # no longer independently tuning 1.0 devices, they are very old
 _default_block_size_db['1.0'] = _default_block_size_db['1.1'];
@@ -82,15 +82,18 @@ _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihed
                                  'pair.cgcmm': 416, 'pair.table': 96, 'pair.slj': 352, 'pair.morse': 352, 'pair.dpd': 224,
                                  'pair.dpd_conservative': 352,
                                  'bond.harmonic': 352, 'bond.fene': 224, 'pair.yukawa': 352, 'pair.ewald': 352, 'angle.harmonic': 192,
-                                 'pair.gauss': 352, 'nlist': 288}
+                                 'pair.gauss': 352, 'nlist': 416, 'nlist.filter': 160}
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
 
 _default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihedral.harmonic': 64, 'angle.cgcmm': 96,
                                  'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'pair.dpd': 224, 'pair.dpd_conservative': 320, 
-                                 'nlist': 128,
+                                 'nlist': 96,
                                  'bond.harmonic': 416, 'pair.gauss': 320, 'bond.fene': 160, 'angle.harmonic': 96,
-                                 'pair.yukawa': 256, 'pair.ewald': 256, 'pair.morse': 160}
+                                 'pair.yukawa': 256, 'pair.ewald': 256, 'pair.morse': 160, 'nlist.filter': 224}
+
+# no 2.1 devices to tune on. Assume the same as 2.0
+_default_block_size_db['2.1'] = _default_block_size_db['2.0'];
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -258,7 +261,6 @@ def _find_optimal_block_size_fc(fc, n):
 #
 def _find_optimal_block_size_nl(nl, n):
     timings = [];
-    hoomd.set_gpu_error_checking(True)
     
     # run the benchmark
     try:
@@ -275,6 +277,36 @@ def _find_optimal_block_size_nl(nl, n):
     print 'fastest:', fastest[1]
     print '---------------'
     nl.cpp_nlist.setBlockSize(fastest[1]);
+    
+    return fastest[1];
+
+## \internal
+# \brief Finds the optimal block size for the neighbor list filter step
+# 
+# \param nl Neighbor list compute to find the optimal block size of
+# \param n Number of benchmark iterations to perform
+# \return Fastest block size
+#
+# \note This function prints out status as it runs
+#
+def _find_optimal_block_size_nl_filter(nl, n):
+    timings = [];
+    
+    # run the benchmark
+    try:
+        for block_size in xrange(64,1024+32,32):
+            nl.cpp_nlist.setBlockSizeFilter(block_size);
+            t = nl.cpp_nlist.benchmarkFilter(n);
+            print block_size, t
+            timings.append( (t, block_size) );
+    except RuntimeError:
+        print "Note: Too many resources requested for launch is a normal message when finding optimal block sizes"
+    
+    
+    fastest = min(timings);
+    print 'fastest:', fastest[1]
+    print '---------------'
+    nl.cpp_nlist.setBlockSizeFilter(fastest[1]);
     
     return fastest[1];
 
@@ -421,6 +453,15 @@ def find_optimal_block_sizes(save = True, only=None):
             lj = pair_lj_setup();
             optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
             optimal_db['nlist'] = optimal;
+            del lj;
+        
+        # and the neighbor list filtering
+        if (only is None) or (only == 'nlist.filter'):
+            print 'Benchmarking nlist.filter'
+            lj = pair_lj_setup();
+            globals.neighbor_list.reset_exclusions(exclusions = ['bond', 'angle'])
+            optimal = _find_optimal_block_size_nl_filter(globals.neighbor_list, 200)
+            optimal_db['nlist.filter'] = optimal;
             del lj;
         
         # add it to the list
