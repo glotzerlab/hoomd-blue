@@ -62,6 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDBinaryInitializer.h"
 #include "RandomGenerator.h"
 #include "Compute.h"
+#include "CellList.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
@@ -78,7 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ComputeThermo.h"
 #include "ComputeThermoGPU.h"
 #include "NeighborList.h"
-#include "BinnedNeighborList.h"
+#include "NeighborListBinned.h"
 #include "Analyzer.h"
 #include "IMDInterface.h"
 #include "HOOMDDumpWriter.h"
@@ -113,12 +114,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // include GPU classes
 #ifdef ENABLE_CUDA
+#include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTGPU.h"
-#include "BinnedNeighborListGPU.h"
-#include "NeighborListNsqGPU.h"
+#include "NeighborListGPU.h"
+#include "NeighborListGPUBinned.h"
 #include "CGCMMForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
@@ -382,6 +384,7 @@ BOOST_PYTHON_MODULE(hoomd)
     
     // computes
     export_Compute();
+    export_CellList();
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
@@ -404,11 +407,12 @@ BOOST_PYTHON_MODULE(hoomd)
     export_LJWallForceCompute();
     export_ComputeThermo();
     export_NeighborList();
-    export_BinnedNeighborList();
+    export_NeighborListBinned();
     export_ConstraintSphere();
 #ifdef ENABLE_CUDA
-    export_BinnedNeighborListGPU();
-    export_NeighborListNsqGPU();
+    export_CellListGPU();
+    export_NeighborListGPU();
+    export_NeighborListGPUBinned();
     export_CGCMMForceComputeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");

@@ -81,12 +81,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template< class evaluator, cudaError_t gpu_cgpf(const gpu_force_data_arrays& force_data,
                                                 const gpu_pdata_arrays &pdata,
                                                 const gpu_boxsize &box,
-                                                const gpu_nlist_array &nlist,
-                                                typename evaluator::param_type *d_params,
-                                                float *d_rcutsq,
-                                                float *d_ronsq,
-                                                int ntypes,
-                                                const pair_args& args) >
+                                                const unsigned int *d_n_neigh,
+                                                const unsigned int *d_nlist,
+                                                const Index2D& nli,
+                                                const typename evaluator::param_type *d_params,
+                                                const float *d_rcutsq,
+                                                const float *d_ronsq,
+                                                const unsigned int ntypes,
+                                                const unsigned int block_size,
+                                                const unsigned int shift_mode) >
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
     public:
@@ -116,12 +119,15 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 template< class evaluator, cudaError_t gpu_cgpf(const gpu_force_data_arrays& force_data,
                                                 const gpu_pdata_arrays &pdata,
                                                 const gpu_boxsize &box,
-                                                const gpu_nlist_array &nlist,
-                                                typename evaluator::param_type *d_params,
-                                                float *d_rcutsq,
-                                                float *d_ronsq,
-                                                int ntypes,
-                                                const pair_args& args) >
+                                                const unsigned int *d_n_neigh,
+                                                const unsigned int *d_nlist,
+                                                const Index2D& nli,
+                                                const typename evaluator::param_type *d_params,
+                                                const float *d_rcutsq,
+                                                const float *d_ronsq,
+                                                const unsigned int ntypes,
+                                                const unsigned int block_size,
+                                                const unsigned int shift_mode) >
 PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
@@ -145,12 +151,15 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
 template< class evaluator, cudaError_t gpu_cgpf(const gpu_force_data_arrays& force_data,
                                                 const gpu_pdata_arrays &pdata,
                                                 const gpu_boxsize &box,
-                                                const gpu_nlist_array &nlist,
-                                                typename evaluator::param_type *d_params,
-                                                float *d_rcutsq,
-                                                float *d_ronsq,
-                                                int ntypes,
-                                                const pair_args& args) >
+                                                const unsigned int *d_n_neigh,
+                                                const unsigned int *d_nlist,
+                                                const Index2D& nli,
+                                                const typename evaluator::param_type *d_params,
+                                                const float *d_rcutsq,
+                                                const float *d_ronsq,
+                                                const unsigned int ntypes,
+                                                const unsigned int block_size,
+                                                const unsigned int shift_mode) >
 void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
@@ -168,9 +177,10 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
         throw std::runtime_error("Error computing forces in PotentialPairGPU");
         }
         
-    // access the neighbor list, which just selects the neighborlist into the device's memory, copying
-    // it there if needed
-    gpu_nlist_array& nlist = this->m_nlist->getListGPU();
+    // access the neighbor list
+    ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
+    Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
     gpu_pdata_arrays& pdata = this->m_pdata->acquireReadOnlyGPU();
@@ -181,20 +191,18 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
     
-    // run the kernel on all GPUs in parallel
-    pair_args opt;
-    opt.block_size = m_block_size;
-    opt.shift_mode = this->m_shift_mode;
-    
     gpu_cgpf(this->m_gpu_forces.d_data,
              pdata,
              box,
-             nlist,
+             d_n_neigh.data,
+             d_nlist.data,
+             nli,
              d_params.data,
              d_rcutsq.data,
              d_ronsq.data,
              this->m_pdata->getNTypes(),
-             opt);
+             m_block_size,
+             this->m_shift_mode);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
