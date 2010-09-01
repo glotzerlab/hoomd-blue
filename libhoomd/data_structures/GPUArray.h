@@ -448,7 +448,7 @@ template<class T> void GPUArray<T>::allocate()
     // allocate memory
 #ifdef ENABLE_CUDA
     assert(d_data == NULL);
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         cudaHostAlloc(&h_data, m_num_elements*sizeof(T), cudaHostAllocDefault);
         cudaMalloc(&d_data, m_num_elements*sizeof(T));
@@ -478,7 +478,7 @@ template<class T> void GPUArray<T>::deallocate()
     
     // free memory
 #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
         cudaFreeHost(h_data);
@@ -514,7 +514,7 @@ template<class T> void GPUArray<T>::memclear()
     // clear memory
     memset(h_data, 0, sizeof(T)*m_num_elements);
 #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
         cudaMemset(d_data, 0, m_num_elements*sizeof(T));
@@ -565,6 +565,10 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
     // sanity check
     assert(!m_acquired);
     m_acquired = true;
+    
+    // base case - handle acquiring a NULL GPUArray by simply returning NULL to prevent any memcpys from being attempted
+    if (isNull())
+        return NULL;
     
     // first, break down based on where the data is to be acquired
     if (location == access_location::host)
@@ -636,7 +640,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
     else if (location == access_location::device)
         {
         // check that a GPU is actually specified
-        if (!m_exec_conf->isCUDAEnabled())
+        if (!m_exec_conf || !m_exec_conf->isCUDAEnabled())
             {
             std::cerr << std::endl << "Reqesting device aquire, but no GPU in the Execution Configuration" << std::endl << std::endl;
             throw std::runtime_error("Error acquiring data");

@@ -28,16 +28,6 @@ if (ENABLE_STATIC)
 endif(ENABLE_STATIC)
 
 #################################
-## Optional build with double size exclusion list
-## LARGE_EXCLUSION_LIST is an option to control whether HOOMD will have extra
-## exclusion lists to handle more complex molecules. Has some speed impact and
-## thus is not on by default.
-OPTION(LARGE_EXCLUSION_LIST "Increase the number of allowed exclusions from 4 to 16 per atom. Only needed for branched molecules with angles and dihedrals." OFF)
-if (LARGE_EXCLUSION_LIST)
-    add_definitions(-DLARGE_EXCLUSION_LIST)
-endif(LARGE_EXCLUSION_LIST)
-
-#################################
 ## Optional single/double precision build
 option(SINGLE_PRECISION "Use single precision math" ON)
 if (SINGLE_PRECISION)

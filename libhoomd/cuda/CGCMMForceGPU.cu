@@ -63,7 +63,9 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
     \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_n_neigh Device memory array listing the number of neighbors for each particle
+    \param d_nlist Device memory array containing the neighbor list contents
+    \param nli Indexer for indexing \a d_nlist
     \param d_coeffs Coefficients to the lennard jones force (lj12, lj9, lj6, lj4).
     \param coeff_width Width of the coefficient matrix
     \param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
@@ -81,12 +83,14 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
 __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data,
-                                               gpu_pdata_arrays pdata,
-                                               gpu_boxsize box,
-                                               gpu_nlist_array nlist,
-                                               float4 *d_coeffs,
-                                               int coeff_width,
-                                               float r_cutsq)
+                                               const gpu_pdata_arrays pdata,
+                                               const gpu_boxsize box,
+                                               const unsigned int *d_n_neigh,
+                                               const unsigned int *d_nlist,
+                                               const Index2D nli,
+                                               const float4 *d_coeffs,
+                                               const int coeff_width,
+                                               const float r_cutsq)
     {
     // read in the coefficients
     extern __shared__ float4 s_coeffs[];
@@ -104,7 +108,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
         return;
     
     // load in the length of the list (MEM_TRANSFER: 4 bytes)
-    unsigned int n_neigh = nlist.n_neigh[idx];
+    unsigned int n_neigh = d_n_neigh[idx];
     
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
@@ -116,14 +120,14 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
     
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
-    unsigned int next_neigh = nlist.list[idx];
+    unsigned int next_neigh = d_nlist[nli(idx, 0)];
     
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
     // inside the loop
     #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+    for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
     #else
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
     #endif
@@ -135,8 +139,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
             // prefetch the next value and set the current one
             cur_neigh = next_neigh;
-            if (neigh_idx+1 < nlist.height)
-                next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
+            next_neigh = d_nlist[nli(idx, neigh_idx+1)];
                 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -197,7 +200,9 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
 /*! \param force_data Force data on GPU to write forces to
     \param pdata Particle data on the GPU to perform the calculation on
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param nlist Neighbor list stored on the gpu
+    \param d_n_neigh Device memory array listing the number of neighbors for each particle
+    \param d_nlist Device memory array containing the neighbor list contents
+    \param nli Indexer for indexing \a d_nlist
     \param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
         pair i,j. The x-component is the lj12 coefficient and the y-, z-, and w-components
                 are the lj9, lj6, and lj4 coefficients, respectively.
@@ -213,11 +218,13 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
 cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
-                                     const gpu_nlist_array &nlist,
-                                     float4 *d_coeffs,
-                                     int coeff_width,
-                                     float r_cutsq,
-                                     int block_size)
+                                     const unsigned int *d_n_neigh,
+                                     const unsigned int *d_nlist,
+                                     const Index2D& nli,
+                                     const float4 *d_coeffs,
+                                     const unsigned int coeff_width,
+                                     const float r_cutsq,
+                                     const unsigned int block_size)
     {
     assert(d_coeffs);
     assert(coeff_width > 0);
@@ -234,7 +241,8 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
         return error;
         
     // run the kernel
-    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
+    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>
+         (force_data, pdata, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
         
     return cudaSuccess;
     }

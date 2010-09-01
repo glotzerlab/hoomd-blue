@@ -43,59 +43,46 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-#include "NeighborList.h"
+#include "NeighborListGPU.h"
+#include "CellList.h"
 
-/*! \file BinnedNeighborList.h
-    \brief Declares the BinnedNeighborList class
+/*! \file NeighborListGPUBinned.h
+    \brief Declares the NeighborListGPUBinned class
 */
 
-#ifndef __BINNED_NEIGHBORLIST_H__
-#define __BINNED_NEIGHBORLIST_H__
+#ifndef __NEIGHBORLISTBINNED_H__
+#define __NEIGHBORLISTBINNED_H__
 
-//! Efficient neighbor list construction for large N
-/*! See NeighborList for a definition of what a neighbor list is and how it is computed.
-    This class calculates the same result using a more efficient algorithm.
-
-    Particles are put into cubic "bins" with side length r_max. Then each
-    particle can only have neighbors from it's bin and neighboring bins. Thus as long as the
-    density is mostly uniform: the N^2 algorithm is transformed into an O(N) algorithm.
-
+//! Efficient neighbor list build on the CPU
+/*! Implements the O(N) neighbor list build on the CPU using a cell list.
+    
     \ingroup computes
 */
-class BinnedNeighborList : public NeighborList
+class NeighborListBinned : public NeighborList
     {
     public:
-        //! Constructor
-        BinnedNeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
+        //! Constructs the compute
+        NeighborListBinned(boost::shared_ptr<SystemDefinition> sysdef,
+                           Scalar r_cut,
+                           Scalar r_buff,
+                           boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
         
-        //! Print statistics on the neighborlist
-        virtual void printStats();
+        //! Destructor
+        virtual ~NeighborListBinned();
         
+        //! Change the cuttoff radius
+        virtual void setRCut(Scalar r_cut, Scalar r_buff);
+    
     protected:
-        std::vector< std::vector<unsigned int> > m_bins;        //!< Bins of particle indices
-        std::vector < std::vector<Scalar> > m_binned_x;         //!< coordinates of the particles in the bins
-        std::vector < std::vector<Scalar> > m_binned_y;         //!< coordinates of the particles in the bins
-        std::vector < std::vector<Scalar> > m_binned_z;         //!< coordinates of the particles in the bins
-        std::vector < std::vector<unsigned int> > m_binned_tag; //!< tags of the particles in the bins
-        
-        unsigned int m_Mx;  //!< Number of bins in x direction
-        unsigned int m_My;  //!< Number of bins in y direction
-        unsigned int m_Mz;  //!< Number of bins in z direction
-        
-        //! Puts the particles into their bins
-        void updateBins();
-        
-        //! Updates the neighborlist using the binned data
-        void updateListFromBins();
-        
+        boost::shared_ptr<CellList> m_cl;   //!< The cell list
+
         //! Builds the neighbor list
-        virtual void buildNlist();
+        virtual void buildNlist(unsigned int timestep);
         
     };
 
-//! Exports the BinnedNeighborList class to python
-void export_BinnedNeighborList();
+//! Exports NeighborListBinned to python
+void export_NeighborListBinned();
 
 #endif
 

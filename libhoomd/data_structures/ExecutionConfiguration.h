@@ -121,7 +121,10 @@ struct ExecutionConfiguration : boost::noncopyable
     cudaDeviceProp dev_prop;    //!< Cached device properties
     
     //! Get the compute capability of the GPU that we are running on
-    std::string getComputeCapability();
+    std::string getComputeCapabilityAsString() const;
+    
+    //! Get thie compute capability of the GPU
+    unsigned int getComputeCapability() const;
 
     //! Handle cuda error message
     static void handleCUDAError(cudaError_t err, const char *file, unsigned int line);

@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdater.h"
 #include "AllPairPotentials.h"
 #include "HOOMDInitializer.h"
-#include "BinnedNeighborList.h"
+#include "NeighborListBinned.h"
 #include "TwoStepNVT.h"
 #include "ComputeThermo.h"
 
@@ -127,7 +127,7 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nvt);
     
-    shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
+    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.3)));
     nlist->setStorageMode(NeighborList::half);
 
     shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));

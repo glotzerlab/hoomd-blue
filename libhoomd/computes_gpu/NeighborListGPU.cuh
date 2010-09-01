@@ -43,46 +43,45 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NeighborListNsqGPU.h
-    \brief Declares the NeighborListNsqGPU class
+#ifndef __NEIGHBORLISTGPU_CUH__
+#define __NEIGHBORLISTGPU_CUH__
+
+/*! \file NeighborListGPU.cuh
+    \brief Declares GPU kernel code for cell list generation on the GPU
 */
 
-#include <vector>
-#include "NeighborList.h"
-#include "NeighborListNsqGPU.cuh"
+#include <cuda_runtime.h>
 
-#include <boost/shared_ptr.hpp>
+#include "Index1D.h"
 
-#ifndef __NEIGHBORLIST_NSQ_GPU_H__
-#define __NEIGHBORLIST_NSQ_GPU_H__
+//! Kernel driver for gpu_nlist_needs_update_check_new_kernel()
+cudaError_t gpu_nlist_needs_update_check_new(unsigned int * d_result,
+                                             const float4 *d_last_pos,
+                                             const float4 *d_pos,
+                                             const unsigned int N,
+                                             const gpu_boxsize& box,
+                                             const float maxshiftsq);
 
-//! Computes a Neibhorlist from the particles
-/*! Calculates the same neighbor list that NeighborList does, but on the GPU.
+//! Kernel driver for gpu_nlist_filter_kernel()
+cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
+                             unsigned int *d_nlist,
+                             const Index2D& nli,
+                             const unsigned int *d_n_ex,
+                             const unsigned int *d_ex_list,
+                             const Index2D& exli,
+                             const unsigned int N,
+                             const unsigned int block_size);
 
-    This class implements the same O(N^2) algorithm as the base class.
-
-    The GPU kernel that does the calculations can be found in nlist_nsq_kernel.cu.
-    \ingroup computes
-*/
-class NeighborListNsqGPU : public NeighborList
-    {
-    public:
-        //! Constructs the compute
-        NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
-        
-        //! Destructor
-        virtual ~NeighborListNsqGPU();
-        
-    private:
-        //! Builds the neighbor list
-        virtual void buildNlist();
-        
-        //! Attempts to builds the neighbor list
-        virtual void buildNlistAttempt();
-    };
-
-//! Exports the NeighborListNsqGPU class to python
-void export_NeighborListNsqGPU();
+//! Kernel driver for gpu_compute_nlist_nsq_kernel()
+cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
+                                  unsigned int *d_n_neigh,
+                                  float4 *d_last_updated_pos,
+                                  unsigned int *d_conditions,
+                                  const Index2D& nli,
+                                  const float4 *d_pos,
+                                  const unsigned int N,
+                                  const gpu_boxsize& box,
+                                  const float r_maxsq);
 
 #endif
 

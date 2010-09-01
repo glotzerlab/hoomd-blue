@@ -144,7 +144,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
 /*! \returns Compute capability of GPU 0 as a string
     \note Silently returns an emtpy string if no GPUs are specified
 */
-std::string ExecutionConfiguration::getComputeCapability()
+std::string ExecutionConfiguration::getComputeCapabilityAsString() const
     {
     ostringstream s;
     
@@ -154,6 +154,21 @@ std::string ExecutionConfiguration::getComputeCapability()
         }
         
     return s.str();
+    }
+
+/*! \returns Compute capability of the GPU formated as 210 (for compute 2.1 as an example)
+    \note Silently returns 0 if no GPU is being used
+*/
+unsigned int ExecutionConfiguration::getComputeCapability() const
+    {
+    unsigned int result = 0;
+    
+    if (exec_mode == GPU)
+        {
+        result = dev_prop.major * 100 + dev_prop.minor * 10;
+        }
+        
+    return result;
     }
     
 void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line)
@@ -230,10 +245,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         throw runtime_error("Error initializing execution configuration");
         }
     
-    #if (CUDA_VERSION >= 2020)
     cudaSetDeviceFlags(flags);
     cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
-    #endif
    
     if (gpu_id != -1)
         {
@@ -277,10 +290,8 @@ void ExecutionConfiguration::printGPUStats()
     s << ", " << setw(4) << mib << " MiB DRAM";
         
     // follow up with some flags to signify device features
-#if CUDART_VERSION > 2010
     if (dev_prop.kernelExecTimeoutEnabled)
         s << ", DIS";
-#endif
             
     cout << s.str() << endl;
     }
@@ -314,14 +325,10 @@ bool operator<(const gpu_elem& a, const gpu_elem& b)
 */
 void ExecutionConfiguration::scanGPUs(bool ignore_display)
     {
-#if CUDART_VERSION >= 2020
     // check the CUDA driver version
     int driverVersion = 0;
     cudaDriverGetVersion(&driverVersion);
-    
-#ifndef _DEVICEEMU
-    // device emulation mode doesn't need a driver
-    
+
     // first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
     if (driverVersion == 0)
         {
@@ -343,9 +350,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         cout << "            Ignoring any GPUs in the system." << endl;
         return;
         }
-#endif
-#endif
-        
+
     // determine the number of GPUs that CUDA thinks there is
     int dev_count;
     cudaError_t error = cudaGetDeviceCount(&dev_count);
@@ -399,7 +404,6 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
                  << min_minor << " but the GPU is only " << prop.major << "." << prop.minor << endl;
             }
             
-#if CUDART_VERSION > 2010
         // ignore the display gpu if that was requested
         if (m_gpu_available[dev] && ignore_display && prop.kernelExecTimeoutEnabled)
             {
@@ -407,15 +411,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             cout << "Notice: GPU id " << dev << " is not available for computation because "
                  << "it appears to be attached to a display" << endl;
             }
-#else
-        if (ignore_display)
-            {
-            cout << endl << "***Warning! --ignore-dispaly-gpu is innefective because this build of HOOMD was compiled"
-                 << " against a CUDA version older than 2.1" << endl << endl;
-            }
-#endif
             
-#if CUDART_VERSION >= 2020
         // exclude a gpu if it is compute-prohibited
         if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeProhibited)
             {
@@ -427,7 +423,6 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         // count the number of compute-exclusive gpus
         if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeExclusive)
             n_exclusive_gpus++;
-#endif
         }
         
     std::vector<gpu_elem> gpu_priorities;
@@ -450,11 +445,9 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             if (prop.major == 2)
                 priority *= 4.0f;
 
-#if CUDART_VERSION > 2010
             if (prop.kernelExecTimeoutEnabled)
                 priority -= 0.1f;
-#endif
-                
+            
             gpu_priorities.push_back(gpu_elem(priority, dev));
             }
         }
@@ -554,7 +547,7 @@ void export_ExecutionConfiguration()
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
 #ifdef ENABLE_CUDA
-                         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
+                         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
                          ;
                          
