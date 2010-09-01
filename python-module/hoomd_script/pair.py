@@ -302,7 +302,7 @@ class nlist:
             raise RuntimeError('Error creating neighbor list');
         
         # decide wether to create an all-to-all neighbor list or a binned one based on box size:
-        default_r_buff = 0.8;
+        default_r_buff = 0.4;
         
         mode = "binned";
         
