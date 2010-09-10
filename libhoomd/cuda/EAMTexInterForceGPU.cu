@@ -3,7 +3,6 @@ powered by:
 Moscow group.
 */
 
-#include "gpu_settings.h"
 #include "EAMTexInterForceGPU.cuh"
 
 #ifdef WIN32
@@ -39,17 +38,19 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	gpu_force_data_arrays force_data,
 	gpu_pdata_arrays pdata,
 	gpu_boxsize box,
-	gpu_nlist_array nlist,
+    const unsigned int *d_n_neigh,
+    const unsigned int *d_nlist,
+    const Index2D nli,
 	float* atomDerivativeEmbeddingFunction)
 	{
 	// start by identifying which particle we are to handle
 	volatile int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (idx >= pdata.local_num)
+	if (idx >= pdata.N)
 		return;
 
 	// load in the length of the list (MEM_TRANSFER: 4 bytes)
-	int n_neigh = nlist.n_neigh[idx];
+    int n_neigh = d_n_neigh[idx];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
@@ -61,7 +62,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
 	// prefetch neighbor index
 	int cur_neigh = 0;
-	int next_neigh = nlist.list[idx];
+    int next_neigh = d_nlist[nli(idx, 0)];
 	int typei  = __float_as_int(pos.w);
 	// loop over neighbors
 
@@ -75,7 +76,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
 		// prefetch the next value and set the current one
 		cur_neigh = next_neigh;
-		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
+		next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -114,17 +115,19 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	gpu_force_data_arrays force_data,
 	gpu_pdata_arrays pdata,
 	gpu_boxsize box,
-	gpu_nlist_array nlist,
+    const unsigned int *d_n_neigh,
+    const unsigned int *d_nlist,
+    const Index2D nli,
 	float* atomDerivativeEmbeddingFunction)
 	{
 	// start by identifying which particle we are to handle
 	volatile  int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (idx >= pdata.local_num)
+	if (idx >= pdata.N)
 		return;
 
 	// loadj in the length of the list (MEM_TRANSFER: 4 bytes)
-	int n_neigh = nlist.n_neigh[idx];
+    int n_neigh = d_n_neigh[idx];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
@@ -133,7 +136,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	// prefetch neighbor index
 	float position;
 	int cur_neigh = 0;
-	int next_neigh = nlist.list[idx];
+    int next_neigh = d_nlist[nli(idx, 0)];
 	//float4 force = force_data.force[idx];
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	//force.w = force_data.force[idx].w;
@@ -151,7 +154,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
 		cur_neigh = next_neigh;
-		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
+        next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -223,13 +226,15 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 	const gpu_force_data_arrays& force_data,
 	const gpu_pdata_arrays &pdata,
 	const gpu_boxsize &box,
-	const gpu_nlist_array &nlist,
+    const unsigned int *d_n_neigh,
+    const unsigned int *d_nlist,
+    const Index2D& nli,
 	const EAMtex& eam_tex,
 	const EAMTexInterArrays& eam_arrays,
 	const EAMTexInterData& eam_data)
 	{
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)eam_data.block_size), 1, 1);
+    dim3 grid( (int)ceil((double)pdata.N / (double)eam_data.block_size), 1, 1);
     dim3 threads(eam_data.block_size, 1, 1);
 
 	// bind the texture
@@ -280,23 +285,20 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     gpu_compute_eam_tex_inter_forces_kernel<<< grid, threads>>>(force_data,
 	pdata,
 	box,
-	nlist,
+	d_n_neigh,
+	d_nlist,
+	nli,
 	eam_arrays.atomDerivativeEmbeddingFunction);
 
 	gpu_compute_eam_tex_inter_forces_kernel_2<<< grid, threads>>>(force_data,
 	pdata,
 	box,
-	nlist,
+	d_n_neigh,
+	d_nlist,
+	nli,
 	eam_arrays.atomDerivativeEmbeddingFunction);
-	if (!g_gpu_error_checking)
-		{
-		return cudaSuccess;
-		}
-	else
-		{
-		cudaThreadSynchronize();
-		return cudaGetLastError();
-		}
+
+    return cudaSuccess;
 	}
 
 // vim:syntax=cpp

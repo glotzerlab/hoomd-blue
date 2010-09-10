@@ -36,10 +36,9 @@ class EAMTexInterForceComputeGPU : public EAMForceCompute
 
 	protected:
 		EAMTexInterData eam_data;
-		vector<EAMtex> eam_tex_data;
-		vector<Scalar *> d_atomDerivativeEmbeddingFunction; //!<array F'(rho) for each particle
+		EAMtex eam_tex_data;
+		Scalar * d_atomDerivativeEmbeddingFunction; //!<array F'(rho) for each particle
 		int m_block_size;				//!< The block size to run on the GPU
-		bool m_ulf_workaround;			//!< Stores decision made by the constructor whether to enable the ULF workaround
 
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);

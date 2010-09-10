@@ -2,7 +2,6 @@
 powered by:
 Moscow group.
 */
-#include "gpu_settings.h"
 #include "EAMForceGPU.cuh"
 
 #ifdef WIN32
@@ -32,7 +31,9 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel(
 	gpu_force_data_arrays force_data,
 	gpu_pdata_arrays pdata,
 	gpu_boxsize box,
-	gpu_nlist_array nlist,
+    const unsigned int *d_n_neigh,
+    const unsigned int *d_nlist,
+    const Index2D nli,
 	float2 *d_coeffs)
 	{
 	// read in the coefficients
@@ -40,26 +41,24 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel(
 
 
 	// start by identifying which particle we are to handle
-	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (idx_local >= pdata.local_num)
+	if (idx >= pdata.N)
 		return;
 
-	int idx_global = idx_local + pdata.local_beg;
-
 	// load in the length of the list (MEM_TRANSFER: 4 bytes)
-	int n_neigh = nlist.n_neigh[idx_global];
+	int n_neigh = d_n_neigh[idx];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
-	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+	float4 pos = tex1Dfetch(pdata_pos_tex, idx);
 
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// prefetch neighbor index
 	int cur_neigh = 0;
-	int next_neigh = nlist.list[idx_global];
+	int next_neigh = d_nlist[nli(idx, 0)];
 	int typei  = __float_as_int(pos.w);
 
 	// loop over neighbors
@@ -81,8 +80,8 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel(
 			// read the current neighbor index (MEM TRANSFER: 4 bytes)
 			// prefetch the next value and set the current one
 			cur_neigh = next_neigh;
-			if (neigh_idx+1 < nlist.height)
-				next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+			if (neigh_idx+1 < nli.getH())
+				next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
 			// get the neighbor's position (MEM TRANSFER: 16 bytes)
 			float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -114,10 +113,10 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel(
 	float position = atomElectronDensity * eam_data.rdrho;
 	unsigned int r_index = (unsigned int)position;
 	position -= (float)r_index;
-	atomDerivativeEmbeddingFunction[idx_global] = derivativeEmbeddingFunction[r_index + typei * eam_data.nrho];
+	atomDerivativeEmbeddingFunction[idx] = derivativeEmbeddingFunction[r_index + typei * eam_data.nrho];
 
 	force.w += embeddingFunction[r_index + typei * nrho] + derivativeEmbeddingFunction[r_index + typei * nrho] * position * eam_data.drho;
-	force_data.force[idx_local] = force;
+	force_data.force[idx] = force;
 	}
 //!Second kernel need to calculate a second part of pair potential and to calculate
 /*!  force  by using Derivative Embedding Function for each atom.
@@ -126,27 +125,26 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel_2(
 	gpu_force_data_arrays force_data,
 	gpu_pdata_arrays pdata,
 	gpu_boxsize box,
-	gpu_nlist_array nlist,
+    const unsigned int *d_n_neigh,
+    const unsigned int *d_nlist,
+    const Index2D nli,
 	float2 *d_coeffs)
 	{
 		// read in the coefficients
 	extern __shared__ float2 s_coeffs[];
 
-
 	// start by identifying which particle we are to handle
-	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (idx_local >= pdata.local_num)
+	if (idx >= pdata.N)
 		return;
 
-	int idx_global = idx_local + pdata.local_beg;
-
 	// loadj in the length of the list (MEM_TRANSFER: 4 bytes)
-	int n_neigh = nlist.n_neigh[idx_global];
+	int n_neigh = d_n_neigh[idx];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
-	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+	float4 pos = tex1Dfetch(pdata_pos_tex, idx);
 	// prefetch neighbor index
 	float position;
 	unsigned int r_index;
@@ -154,15 +152,15 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel_2(
 	int typei = __float_as_int(pos.w);
 
 	int cur_neigh = 0;
-	int next_neigh = nlist.list[idx_global];
+	int next_neigh = d_nlist[nli(idx, 0)];
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	float fxi = 0.0;
-	float fyi = 0.0;
-	float fzi = 0.0;
+	float fxi = 0.0f;
+	float fyi = 0.0f;
+	float fzi = 0.0f;
 	float m_pe = 0.0f;
 	float pairForce = 0.0f;
 	float virial = 0.0f;
-	force.w = force_data.force[idx_local].w;
+	force.w = force_data.force[idx].w;
 	int nr = eam_data.nr;
 	int nrho = eam_data.nrho;
 	int ntypes = eam_data.ntypes;
@@ -171,8 +169,8 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel_2(
 		if (neigh_idx < n_neigh)
 			{
 			cur_neigh = next_neigh;
-			if (neigh_idx+1 < nlist.height)
-				next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+			if (neigh_idx+1 < nli.getH())
+				next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
 			// get the neighbor's position (MEM TRANSFER: 16 bytes)
 			float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -193,17 +191,17 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel_2(
 			if (rsq <= eam_data.r_cutsq)
 				{
 				float r = sqrt(rsq);
-				float inverseR = 1.0 / r;
+				float inverseR = 1.0f / r;
 				position = r * eam_data.rdr;
 				r_index = (unsigned int)position;
 				position -= r_index;
-				int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
+				int shift = (typei>=typej)?(int)(0.5f * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5f * (2 * ntypes - typei -1)*typei + typej) * nr;
 				float pair_eng = (pairPotential[r_index + shift] +
 					derivativePairPotential[r_index + shift] * position * eam_data.dr) * inverseR;
 				float derivativePhi = (derivativePairPotential[r_index + shift] - pair_eng) * inverseR;
 				float derivativeRhoI = derivativeElectronDensity[r_index + typei * nr];
 				float derivativeRhoJ = derivativeElectronDensity[r_index + typej * nr];
-				float fullDerivativePhi = atomDerivativeEmbeddingFunction[idx_global] * derivativeRhoJ +
+				float fullDerivativePhi = atomDerivativeEmbeddingFunction[idx] * derivativeRhoJ +
 					atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
 				pairForce = - fullDerivativePhi * inverseR;
 
@@ -212,7 +210,7 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel_2(
 				fzi += dz * pairForce ;
 				m_pe += pair_eng * 0.5f;
 				//virial += float(1.0/6.0) * ( pos.x * fxi + pos.y * fyi + pos.z * fzi);
-				virial += float(1.0/6.0) * (rsq) * pairForce;
+				virial += float(1.0f/6.0f) * (rsq) * pairForce;
 				}
 			}
 		}
@@ -221,9 +219,8 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel_2(
 		force.z = fzi;
 		force.w += m_pe;
 		// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-		force_data.force[idx_local] = force;
-		force_data.virial[idx_local] = virial;
-
+		force_data.force[idx] = force;
+		force_data.virial[idx] = virial;
 	}
 
 
@@ -231,7 +228,9 @@ cudaError_t gpu_compute_eam_forces(
 	const gpu_force_data_arrays& force_data,
 	const gpu_pdata_arrays &pdata,
 	const gpu_boxsize &box,
-	const gpu_nlist_array &nlist,
+    const unsigned int *d_n_neigh,
+    const unsigned int *d_nlist,
+    const Index2D& nli,
 	float2 *d_coeffs,
 	int coeff_width,
 	const EAMArrays& eam_arrays,
@@ -241,7 +240,7 @@ cudaError_t gpu_compute_eam_forces(
 	assert(coeff_width > 0);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)eam_data.block_size), 1, 1);
+    dim3 grid( (int)ceil((double)pdata.N / (double)eam_data.block_size), 1, 1);
     dim3 threads(eam_data.block_size, 1, 1);
 
 	// bind the texture
@@ -262,25 +261,20 @@ cudaError_t gpu_compute_eam_forces(
     gpu_compute_eam_forces_kernel<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data,
 	pdata,
 	box,
-	nlist,
+	d_n_neigh,
+	d_nlist,
+	nli,
 	d_coeffs);
-
-	cudaThreadSynchronize();
 
 	gpu_compute_eam_forces_kernel_2<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data,
 	pdata,
 	box,
-	nlist,
+	d_n_neigh,
+	d_nlist,
+	nli,
 	d_coeffs);
-	if (!g_gpu_error_checking)
-		{
-		return cudaSuccess;
-		}
-	else
-		{
-		cudaThreadSynchronize();
-		return cudaGetLastError();
-		}
+    
+    return cudaSuccess;
 	}
 
 // vim:syntax=cpp

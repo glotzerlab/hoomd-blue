@@ -35,7 +35,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
 	{
 		printf("Init Potential EAMForceComputeGPU\n");
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
-	if (exec_conf.gpu.size() == 0)
+	if (!exec_conf->isCUDAEnabled())
 		{
 		cerr << endl << "***Error! Creating a EAMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing EAMForceComputeGPU");
@@ -49,41 +49,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
 
 	// default block size is the highest performance in testing on different hardware
 	// choose based on compute capability of the device
-	cudaDeviceProp deviceProp;
-	int dev;
-	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
-	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 320;
-	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 256;
-	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 352;
-	else
-		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for EAMForceComputeGPU" << endl;
-		m_block_size = 64;
-		}
-
-	// ulf workaround setup
-	#ifndef DISABLE_ULF_WORKAROUND
-	// the ULF workaround is needed on GTX280 and older GPUS
-	// it is not needed on C1060, S1070, GTX285, GTX295, and (hopefully) newer ones
-	m_ulf_workaround = true;
-
-	if (deviceProp.major == 1 && deviceProp.minor >= 3)
-		m_ulf_workaround = false;
-	if (string(deviceProp.name) == "GTX 280")
-		m_ulf_workaround = true;
-	if (string(deviceProp.name) == "GeForce GTX 280")
-		m_ulf_workaround = true;
-
-
-	if (m_ulf_workaround)
-		cout << "Notice: ULF bug workaround enabled for EAMForceComputeGPU" << endl;
-	#else
-	m_ulf_workaround = false;
-	#endif
+    m_block_size = 64;
 /*
 	if (m_slj) cout << "Notice: Using Diameter-Shifted EAM Pair Potential for EAMForceComputeGPU" << endl;
 	else cout << "Diameter-Shifted EAM Pair Potential is NOT set for EAMForceComputeGPU" << endl;
@@ -91,14 +57,6 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
 	// allocate the coeff data on the GPU
 	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
 
-	d_coeffs.resize(exec_conf.gpu.size());
-	d_atomDerivativeEmbeddingFunction.resize(exec_conf.gpu.size());
-	d_pairPotential.resize(exec_conf.gpu.size());
-	d_electronDensity.resize(exec_conf.gpu.size());
-	d_embeddingFunction.resize(exec_conf.gpu.size());
-	d_derivativePairPotential.resize(exec_conf.gpu.size());
-	d_derivativeElectronDensity.resize(exec_conf.gpu.size());
-	d_derivativeEmbeddingFunction.resize(exec_conf.gpu.size());
 	//Load file with data for potential
 	loadFile(filename, type_of_file);
 	// Set potential parameters
@@ -113,46 +71,44 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
 	eam_data.r_cutsq = m_r_cut * m_r_cut;
 	eam_data.block_size = m_block_size;
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
-		assert(d_coeffs[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_coeffs[cur_gpu], 0, nbytes));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_atomDerivativeEmbeddingFunction[cur_gpu]), arrays.nparticles * sizeof(float)));
-		assert(d_atomDerivativeEmbeddingFunction[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_atomDerivativeEmbeddingFunction[cur_gpu], 0, arrays.nparticles * sizeof(float)));
-		//Allocate mem on GPU for tables for EAM
 
-		#define copy_table(gpuname, cpuname, count) \
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&gpuname[cur_gpu]), sizeof(Scalar) * count));\
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,  (gpuname)[cur_gpu], &(cpuname)[0], sizeof(Scalar) * count, cudaMemcpyHostToDevice));
 
-		copy_table(d_pairPotential, pairPotential, (int)(0.5 * nr * (m_ntypes + 1) * m_ntypes));
-		copy_table(d_electronDensity, electronDensity, nr * m_ntypes * m_ntypes);
-		copy_table(d_embeddingFunction, embeddingFunction, m_ntypes * nrho);
-		copy_table(d_derivativePairPotential, derivativePairPotential, (int)(0.5 * nr * (m_ntypes + 1) * m_ntypes));
-		copy_table(d_derivativeElectronDensity, derivativeElectronDensity, nr * m_ntypes * m_ntypes);
-		copy_table(d_derivativeEmbeddingFunction, derivativeEmbeddingFunction, m_ntypes * nrho);
+    cudaMalloc(&d_coeffs, nbytes);
+	cudaMemset(d_coeffs, 0, nbytes);
+	cudaMalloc(&d_atomDerivativeEmbeddingFunction, arrays.nparticles * sizeof(float));
+	cudaMemset(d_atomDerivativeEmbeddingFunction, 0, arrays.nparticles * sizeof(float));
 
-		#undef copy_table
+    #define copy_table(gpuname, cpuname, count) \
+    cudaMalloc(&(gpuname), sizeof(Scalar) * count);\
+    cudaMemcpy((gpuname), &(cpuname), sizeof(Scalar) * count, cudaMemcpyHostToDevice);
 
-		}
-	// allocate the coeff data on the CPU
+    copy_table(d_pairPotential, pairPotential, (int)(0.5 * nr * (m_ntypes + 1) * m_ntypes));
+    copy_table(d_electronDensity, electronDensity, nr * m_ntypes * m_ntypes);
+    copy_table(d_embeddingFunction, embeddingFunction, m_ntypes * nrho);
+    copy_table(d_derivativePairPotential, derivativePairPotential, (int)(0.5 * nr * (m_ntypes + 1) * m_ntypes));
+    copy_table(d_derivativeElectronDensity, derivativeElectronDensity, nr * m_ntypes * m_ntypes);
+    copy_table(d_derivativeEmbeddingFunction, derivativeEmbeddingFunction, m_ntypes * nrho);
+    
+    CHECK_CUDA_ERROR();
+    
+    #undef copy_table
+
+    // allocate the coeff data on the CPU
 	h_coeffs = new float2[m_pdata->getNTypes()*m_pdata->getNTypes()];
-
 	}
 
 
 EAMForceComputeGPU::~EAMForceComputeGPU()
 	{
 	// free the coefficients on the GPU
-	exec_conf.tagAll(__FILE__, __LINE__);
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		assert(d_coeffs[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_coeffs[cur_gpu]));
-		}
+	cudaFree(d_coeffs);
+	cudaFree(d_atomDerivativeEmbeddingFunction);
+	cudaFree(d_pairPotential);
+	cudaFree(d_electronDensity);
+	cudaFree(d_embeddingFunction);
+	cudaFree(d_derivativePairPotential);
+	cudaFree(d_derivativeElectronDensity);
+	cudaFree(d_derivativeEmbeddingFunction);
 	delete[] h_coeffs;
 	}
 
@@ -164,6 +120,7 @@ void EAMForceComputeGPU::setBlockSize(int block_size)
 	{
 	m_block_size = block_size;
 	}
+
 void EAMForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start by updating the neighborlist
@@ -182,48 +139,42 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
 
 	// access the neighbor list, which just selects the neighborlist into the device's memory, copying
 	// it there if needed
-	vector<gpu_nlist_array>& nlist = m_nlist->getListGPU();
+    ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
+    Index2D nli = this->m_nlist->getNListIndexer();
 
 	// access the particle data
-	vector<gpu_pdata_arrays>& sysdef = m_pdata->acquireReadOnlyGPU();
+	gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 
-	// run the kernel on all GPUs in parallel
-	exec_conf.tagAll(__FILE__, __LINE__);
-
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		EAMArrays eam_arrays;
-		eam_arrays.electronDensity = (float *)d_electronDensity[cur_gpu];
-		eam_arrays.pairPotential = (float *)d_pairPotential[cur_gpu];
-		eam_arrays.embeddingFunction = (float *)d_embeddingFunction[cur_gpu];
-		eam_arrays.derivativeElectronDensity = (float *)d_derivativeElectronDensity[cur_gpu];
-		eam_arrays.derivativePairPotential = (float *)d_derivativePairPotential[cur_gpu];
-		eam_arrays.derivativeEmbeddingFunction = (float *)d_derivativeEmbeddingFunction[cur_gpu];
-		eam_arrays.atomDerivativeEmbeddingFunction = (float *)d_atomDerivativeEmbeddingFunction[cur_gpu];
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_eam_forces,
-			m_gpu_forces[cur_gpu].d_data,
-			sysdef[cur_gpu],
-			box,
-			nlist[cur_gpu],
-			(float2 *)d_coeffs[cur_gpu],
-			m_pdata->getNTypes(),
-			eam_arrays,
-			eam_data));
-		}
-
-	exec_conf.syncAll();
+    EAMArrays eam_arrays;
+    eam_arrays.electronDensity = (float *)d_electronDensity;
+    eam_arrays.pairPotential = (float *)d_pairPotential;
+    eam_arrays.embeddingFunction = (float *)d_embeddingFunction;
+    eam_arrays.derivativeElectronDensity = (float *)d_derivativeElectronDensity;
+    eam_arrays.derivativePairPotential = (float *)d_derivativePairPotential;
+    eam_arrays.derivativeEmbeddingFunction = (float *)d_derivativeEmbeddingFunction;
+    eam_arrays.atomDerivativeEmbeddingFunction = (float *)d_atomDerivativeEmbeddingFunction;
+    gpu_compute_eam_forces(m_gpu_forces.d_data,
+                           d_pdata,
+                           box,
+                           d_n_neigh.data,
+                           d_nlist.data,
+                           nli,
+                           (float2*)d_coeffs,
+                           m_pdata->getNTypes(),
+                           eam_arrays,
+                           eam_data);
+    
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
 	m_pdata->release();
 
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
 
-	Scalar avg_neigh = m_nlist->estimateNNeigh();
-	int64_t n_calc = int64_t(avg_neigh * m_pdata->getN());
-	int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);
-	int64_t flops = n_calc * (3+12+5+2+2+6+3+2+7);
-	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
+	if (m_prof) m_prof->pop(exec_conf);
 	}
 
 void export_EAMForceComputeGPU()
@@ -237,4 +188,3 @@ void export_EAMForceComputeGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

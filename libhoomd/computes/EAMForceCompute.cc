@@ -283,7 +283,9 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 	bool third_law = m_nlist->getStorageMode() == NeighborList::half;
 
 	// access the neighbor list
-	const vector< vector< unsigned int > >& full_list = m_nlist->getList();
+    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
+    Index2D nli = m_nlist->getNListIndexer();
 
 	// access the particle data
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
@@ -344,8 +346,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 		Scalar viriali = 0.0;
 
 		// loop over all of the neighbors of this particle
-		const vector< unsigned int >& list = full_list[i];
-		const unsigned int size = (unsigned int)list.size();
+		const unsigned int size = (unsigned int)h_n_neigh.data[i];
 
 		for (unsigned int j = 0; j < size; j++)
 			{
@@ -353,7 +354,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			n_calc++;
 
 			// access the index of this neighbor (MEM TRANSFER: 1 scalar)
-			unsigned int k = list[j];
+			unsigned int k = h_nlist.data[nli(i, k)];
 			// sanity check
 			assert(k < m_pdata->getN());
 
@@ -440,15 +441,14 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 		Scalar viriali = 0.0;
 
 		// loop over all of the neighbors of this particle
-		const vector< unsigned int >& list = full_list[i];
-		const unsigned int size = (unsigned int)list.size();
+		const unsigned int size = (unsigned int)h_n_neigh.data[i];
 		for (unsigned int j = 0; j < size; j++)
 			{
 			// increment our calculation counter
 			n_calc++;
 
 			// access the index of this neighbor (MEM TRANSFER: 1 scalar)
-			unsigned int k = list[j];
+			unsigned int k = h_nlist.data[nli(i, k)];
 			// sanity check
 			assert(k < m_pdata->getN());
 

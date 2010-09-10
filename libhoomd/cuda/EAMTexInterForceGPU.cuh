@@ -4,8 +4,8 @@ Moscow group.
 */
 
 #include "ForceCompute.cuh"
-#include "NeighborList.cuh"
 #include "ParticleData.cuh"
+#include "Index1D.h"
 
 /*! \file EAMTexInterForceGPU.cuh
 	\brief Declares GPU kernel code for calculating the eam forces. Used by EAMTexInterForceComputeGPU.
@@ -43,7 +43,9 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 	const gpu_force_data_arrays& force_data,
 	const gpu_pdata_arrays &pdata,
 	const gpu_boxsize &box,
-	const gpu_nlist_array &nlist,
+    const unsigned int *d_n_neigh,
+    const unsigned int *d_nlist,
+    const Index2D& nli,
 	const EAMtex& eam_tex,
 	const EAMTexInterArrays& eam_arrays,
 	const EAMTexInterData& eam_data);
