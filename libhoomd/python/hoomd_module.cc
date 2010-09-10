@@ -132,8 +132,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "EAMForceComputeGPU.h"
-#include "EAMTexInterForceComputeGPU.h"
-//#include "EAMTexForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
 #endif
@@ -422,8 +420,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_TablePotentialGPU();
-	export_EAMTexInterForceComputeGPU();
-	//export_EAMTexForceComputeGPU();
 	export_EAMForceComputeGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
