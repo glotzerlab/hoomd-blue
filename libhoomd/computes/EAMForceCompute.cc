@@ -354,7 +354,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			n_calc++;
 
 			// access the index of this neighbor (MEM TRANSFER: 1 scalar)
-			unsigned int k = h_nlist.data[nli(i, k)];
+			unsigned int k = h_nlist.data[nli(i, j)];
 			// sanity check
 			assert(k < m_pdata->getN());
 
@@ -448,7 +448,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			n_calc++;
 
 			// access the index of this neighbor (MEM TRANSFER: 1 scalar)
-			unsigned int k = h_nlist.data[nli(i, k)];
+			unsigned int k = h_nlist.data[nli(i, j)];
 			// sanity check
 			assert(k < m_pdata->getN());
 
