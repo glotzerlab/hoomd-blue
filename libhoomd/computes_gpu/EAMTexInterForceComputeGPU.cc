@@ -63,9 +63,9 @@ EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemD
 	eam_data.r_cut = m_r_cut;
 	eam_data.r_cutsq = m_r_cut * m_r_cut;
 	eam_data.block_size = m_block_size;
-	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-	cudaMalloc(&d_atomDerivativeEmbeddingFunction, arrays.nparticles * sizeof(float));
-	cudaMemset(d_atomDerivativeEmbeddingFunction, 0, arrays.nparticles * sizeof(float));
+
+	cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(float));
+	cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(float));
     
     //Allocate mem on GPU for tables for EAM in cudaArray
 	cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc< float >();

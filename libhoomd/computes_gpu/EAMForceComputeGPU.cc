@@ -70,13 +70,12 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
 	eam_data.r_cut = m_r_cut;
 	eam_data.r_cutsq = m_r_cut * m_r_cut;
 	eam_data.block_size = m_block_size;
-	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
 
 
     cudaMalloc(&d_coeffs, nbytes);
 	cudaMemset(d_coeffs, 0, nbytes);
-	cudaMalloc(&d_atomDerivativeEmbeddingFunction, arrays.nparticles * sizeof(float));
-	cudaMemset(d_atomDerivativeEmbeddingFunction, 0, arrays.nparticles * sizeof(float));
+	cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(float));
+	cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(float));
 
     #define copy_table(gpuname, cpuname, count) \
     cudaMalloc(&(gpuname), sizeof(Scalar) * count);\
