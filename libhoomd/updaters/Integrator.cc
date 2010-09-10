@@ -143,28 +143,18 @@ unsigned int Integrator::getNDOFRemoved()
     return n;
     }
 
-/*! The base class Integrator provides all of the common logged quantities. This is the most convenient and
+/*! The base class Integrator provides a few of the common logged quantities. This is the most convenient and
     sensible place to put it because most of the common quantities are computed by the various integrators.
-    That, and there must be an integrator in any sensible simulation.
-
-    \b ALL common quantities that are logged are specified in this getProvidedLogQuantities(). They are computed
-    explicitly when requested by getLogValue(). Derived integrators may compute quantities like temperature or
-    pressure for their own purposes. They are free (and encouraged) to provide an overridden call that returns
-    the already computed value in that case.
+    That, and there must be an integrator in any sensible simulation.ComputeThermo handles the computation of
+    thermodynamic quantities.
 
     Derived integrators may also want to add additional quantities. They can do this in
     getProvidedLogQuantities() by calling Integrator::getProvidedLogQuantities() and adding their own custom
     provided quantities before returning.
 
     Integrator provides:
-        - num_particles
         - volume
-        - temperature
-        - pressure
-        - kinetic_energy
-        - potential_energy
         - momentum
-        - conserved_quantity
 
     See Logger for more information on what this is about.
 */
@@ -173,7 +163,6 @@ std::vector< std::string > Integrator::getProvidedLogQuantities()
     vector<string> result;
     result.push_back("volume");
     result.push_back("momentum");
-    result.push_back("conserved_quantity");
     return result;
     }
 
@@ -204,12 +193,6 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
         }
     else if (quantity == "momentum")
         return computeTotalMomentum(timestep);
-    else if (quantity == "conserved_quantity")
-        {
-        cout << "***Warning! The integrator you are using doesn't report conserved_quantitiy, logging a value of 0.0"
-             << endl;
-        return Scalar(0.0);
-        }
     else
         {
         cerr << endl << "***Error! " << quantity << " is not a valid log quantity for Integrator" << endl;
