@@ -3,7 +3,7 @@ powered by:
 Moscow group.
 */
 
-#include "EAMTexInterForceGPU.cuh"
+#include "EAMForceGPU.cuh"
 
 #ifdef WIN32
 #include <cassert>
@@ -11,8 +11,8 @@ Moscow group.
 #include <assert.h>
 #endif
 
-/*! \file EAMTexInterForceGPU.cu
-	\brief Defines GPU kernel code for calculating the eam forces. Used by EAMTexInterForceComputeGPU.
+/*! \file EAMForceGPU.cu
+	\brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
 //! Texture for reading particle positions

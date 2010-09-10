@@ -1779,7 +1779,7 @@ class eam_tex(force._force):
             #Load neighbor list to compute.
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
         else:
-            self.cpp_force = hoomd.EAMTexInterForceComputeGPU(globals.system_definition, file, type_of_file);
+            self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, file, type_of_file);
             self.cpp_force.setBlockSize(64);
             #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
             r_cut_new = self.cpp_force.get_r_cut();

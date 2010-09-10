@@ -7,8 +7,8 @@ Moscow group.
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
-/*! \file EAMTexInterForceGPU.cuh
-	\brief Declares GPU kernel code for calculating the eam forces. Used by EAMTexInterForceComputeGPU.
+/*! \file EAMForceGPU.cuh
+	\brief Declares GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
 #ifndef __EAMTexInterForceGPU_CUH__

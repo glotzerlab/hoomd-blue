@@ -7,28 +7,28 @@ Moscow group.
 
 #include "EAMForceCompute.h"
 #include "NeighborList.h"
-#include "EAMTexInterForceGPU.cuh"
+#include "EAMForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
 
-/*! \file EAMTexInterForceComputeGPU.h
-	\brief Declares the class EAMTexInterForceComputeGPU
+/*! \file EAMForceComputeGPU.h
+	\brief Declares the class EAMForceComputeGPU
 */
 
-#ifndef __EAMTexInterForceComputeGPU_H__
-#define __EAMTexInterForceComputeGPU_H__
+#ifndef __EAMForceComputeGPU_H__
+#define __EAMForceComputeGPU_H__
 
 //! Computes Lennard-Jones forces on each particle using the GPU
 /*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture memory(cudaArray) with hardware interpolation.
 */
-class EAMTexInterForceComputeGPU : public EAMForceCompute
+class EAMForceComputeGPU : public EAMForceCompute
 	{
 	public:
 		//! Constructs the compute
-		EAMTexInterForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
+		EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
 
 		//! Destructor
-		virtual ~EAMTexInterForceComputeGPU();
+		virtual ~EAMForceComputeGPU();
 
 
 		//! Sets the block size to run at
@@ -44,7 +44,7 @@ class EAMTexInterForceComputeGPU : public EAMForceCompute
 		virtual void computeForces(unsigned int timestep);
 	};
 
-//! Exports the EAMTexInterForceComputeGPU class to python
-void export_EAMTexInterForceComputeGPU();
+//! Exports the EAMForceComputeGPU class to python
+void export_EAMForceComputeGPU();
 
 #endif

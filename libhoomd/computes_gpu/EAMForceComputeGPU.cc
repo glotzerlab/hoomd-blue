@@ -3,8 +3,8 @@ powered by:
 Moscow group.
 */
 
-/*! \file EAMTexInterForceComputeGPU.cc
-	\brief Defines the EAMTexInterForceComputeGPU class
+/*! \file EAMForceComputeGPU.cc
+	\brief Defines the EAMForceComputeGPU class
 */
 
 #ifdef WIN32
@@ -12,7 +12,7 @@ Moscow group.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include "EAMTexInterForceComputeGPU.h"
+#include "EAMForceComputeGPU.h"
 #include <cuda_runtime.h>
 
 #include <stdexcept>
@@ -30,27 +30,27 @@ using namespace std;
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\param filename	 Name of potential`s file.
 */
-EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
+EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
 	: EAMForceCompute(sysdef, filename, type_of_file)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (!exec_conf->isCUDAEnabled())
 		{
-		cerr << endl << "***Error! Creating a EAMTexInterForceComputeGPU with no GPU in the execution configuration" << endl << endl;
-		throw std::runtime_error("Error initializing EAMTexInterForceComputeGPU");
+		cerr << endl << "***Error! Creating a EAMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+		throw std::runtime_error("Error initializing EAMForceComputeGPU");
 		}
 
 	if (m_ntypes > 44)
 		{
-		cerr << endl << "***Error! EAMTexInterForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
-		throw runtime_error("Error initializing EAMTexInterForceComputeGPU");
+		cerr << endl << "***Error! EAMForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
+		throw runtime_error("Error initializing EAMForceComputeGPU");
 		}
 
     m_block_size = 64;
 
 /*
-	if (m_slj) cout << "Notice: Using Diameter-Shifted EAM Pair Potential for EAMTexInterForceComputeGPU" << endl;
-	else cout << "Diameter-Shifted EAM Pair Potential is NOT set for EAMTexInterForceComputeGPU" << endl;
+	if (m_slj) cout << "Notice: Using Diameter-Shifted EAM Pair Potential for EAMForceComputeGPU" << endl;
+	else cout << "Diameter-Shifted EAM Pair Potential is NOT set for EAMForceComputeGPU" << endl;
 */
 	// allocate the coeff data on the GPU
 	loadFile(filename, type_of_file);
@@ -87,7 +87,7 @@ EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemD
 	}
 
 
-EAMTexInterForceComputeGPU::~EAMTexInterForceComputeGPU()
+EAMForceComputeGPU::~EAMForceComputeGPU()
 	{
 	// free the coefficients on the GPU
 	cudaFree(d_atomDerivativeEmbeddingFunction);
@@ -102,13 +102,13 @@ EAMTexInterForceComputeGPU::~EAMTexInterForceComputeGPU()
 	Performance of the code may be dependant on the block size run
 	on the GPU. \a block_size should be set to be a multiple of 32.
 */
-void EAMTexInterForceComputeGPU::setBlockSize(int block_size)
+void EAMForceComputeGPU::setBlockSize(int block_size)
 	{
 	m_block_size = block_size;
 	}
 
 
-void EAMTexInterForceComputeGPU::computeForces(unsigned int timestep)
+void EAMForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start by updating the neighborlist
 	m_nlist->compute(timestep);
@@ -120,8 +120,8 @@ void EAMTexInterForceComputeGPU::computeForces(unsigned int timestep)
 	bool third_law = m_nlist->getStorageMode() == NeighborList::half;
 	if (third_law)
 		{
-		cerr << endl << "***Error! EAMTexInterForceComputeGPU cannot handle a half neighborlist" << endl << endl;
-		throw runtime_error("Error computing forces in EAMTexInterForceComputeGPU");
+		cerr << endl << "***Error! EAMForceComputeGPU cannot handle a half neighborlist" << endl << endl;
+		throw runtime_error("Error computing forces in EAMForceComputeGPU");
 		}
 
 	// access the neighbor list, which just selects the neighborlist into the device's memory, copying
@@ -157,11 +157,11 @@ void EAMTexInterForceComputeGPU::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop(exec_conf);
 	}
 
-void export_EAMTexInterForceComputeGPU()
+void export_EAMForceComputeGPU()
 	{
-	class_<EAMTexInterForceComputeGPU, boost::shared_ptr<EAMTexInterForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
-		("EAMTexInterForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
-		.def("setBlockSize", &EAMTexInterForceComputeGPU::setBlockSize)
+	class_<EAMForceComputeGPU, boost::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
+		("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
+		.def("setBlockSize", &EAMForceComputeGPU::setBlockSize)
 		;
 	}
 
