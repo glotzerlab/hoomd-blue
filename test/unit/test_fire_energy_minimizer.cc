@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 #include "NeighborList.h"
+#include "ComputeThermo.h"
 
 #include <math.h>
 
@@ -461,8 +462,10 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
         fire->update(i);
         if (fire->hasConverged())  {break;}
         }
-              
-    MY_BOOST_CHECK_CLOSE(fire->computePotentialEnergy(max_step)/Scalar(N), -7.75, (0.01/7.75)*100);
+    
+    ComputeThermo ct(sysdef, group_all);
+    ct.compute(max_step);
+    MY_BOOST_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
     
     fire->reset();
 
@@ -477,8 +480,9 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
 
     for (int i = max_step+1; i<=2*max_step; i++)
         fire->update(i);
-
-    MY_BOOST_CHECK_CLOSE(fire->computePotentialEnergy(max_step)/Scalar(N), -7.75, (0.01/7.75)*100);
+    
+    ct.compute(max_step+1);
+    MY_BOOST_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
 
     //cerr << fire->computePotentialEnergy(max_step)/Scalar(N) << endl;
     
