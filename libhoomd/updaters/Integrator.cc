@@ -239,23 +239,6 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 
 /*! \param timestep Current time step of the simulation
 
-    computePotentialEnergy()  accesses the virial data of all attached force computes and calculates the
-    total on the CPU
-*/
-Scalar Integrator::computePotentialEnergy(unsigned int timestep)
-    {
-    // total up the potential energy from the various force computes
-    double pe_total = 0.0;
-    for (unsigned int i=0; i < m_forces.size(); i++)
-        {
-        m_forces[i]->compute(timestep);
-        pe_total += m_forces[i]->calcEnergySum();
-        }
-    return pe_total;
-    }
-
-/*! \param timestep Current time step of the simulation
-
     computeTotalMomentum()  accesses the particle data on the CPU, loops through it and calculates the magnitude of the total
     system momentum
 */
