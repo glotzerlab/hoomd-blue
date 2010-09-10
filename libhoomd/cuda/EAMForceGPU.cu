@@ -249,13 +249,13 @@ cudaError_t gpu_compute_eam_forces(
 	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
-    cudaMemcpyToSymbol("electronDensity", &eam_arrays.electronDensity[0], sizeof(float*));
-    cudaMemcpyToSymbol("pairPotential", &eam_arrays.pairPotential[0], sizeof(float*));
-    cudaMemcpyToSymbol("embeddingFunction", &eam_arrays.embeddingFunction[0], sizeof(float*));
-    cudaMemcpyToSymbol("derivativeElectronDensity", &eam_arrays.derivativeElectronDensity[0], sizeof(float*));
-    cudaMemcpyToSymbol("derivativePairPotential", &eam_arrays.derivativePairPotential[0], sizeof(float*));
-    cudaMemcpyToSymbol("derivativeEmbeddingFunction", &eam_arrays.derivativeEmbeddingFunction[0], sizeof(float*));
-    cudaMemcpyToSymbol("atomDerivativeEmbeddingFunction", &eam_arrays.atomDerivativeEmbeddingFunction[0], sizeof(float*));
+    cudaMemcpyToSymbol("electronDensity", &eam_arrays.electronDensity, sizeof(float*));
+    cudaMemcpyToSymbol("pairPotential", &eam_arrays.pairPotential, sizeof(float*));
+    cudaMemcpyToSymbol("embeddingFunction", &eam_arrays.embeddingFunction, sizeof(float*));
+    cudaMemcpyToSymbol("derivativeElectronDensity", &eam_arrays.derivativeElectronDensity, sizeof(float*));
+    cudaMemcpyToSymbol("derivativePairPotential", &eam_arrays.derivativePairPotential, sizeof(float*));
+    cudaMemcpyToSymbol("derivativeEmbeddingFunction", &eam_arrays.derivativeEmbeddingFunction, sizeof(float*));
+    cudaMemcpyToSymbol("atomDerivativeEmbeddingFunction", &eam_arrays.atomDerivativeEmbeddingFunction, sizeof(float*));
     cudaMemcpyToSymbol("eam_data", &eam_data, sizeof(eam_data));
 
     gpu_compute_eam_forces_kernel<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data,
