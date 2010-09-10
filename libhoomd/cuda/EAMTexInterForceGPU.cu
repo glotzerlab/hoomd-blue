@@ -32,7 +32,7 @@ texture<float, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
 //texture<float, 1, cudaReadModeElementType> derivativePairPotential_tex;
 texture<float, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
 texture<float, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
-__constant__ EAMTexInterData eam_data;
+__constant__ EAMTexInterData eam_data_ti;
 
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	gpu_force_data_arrays force_data,
@@ -67,9 +67,9 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	// loop over neighbors
 
 	float atomElectronDensity  = 0.0f;
-	int nr = eam_data.nr;
-	int nrho = eam_data.nrho;
-	int ntypes = eam_data.ntypes;
+	int nr = eam_data_ti.nr;
+	int nrho = eam_data_ti.nrho;
+	int ntypes = eam_data_ti.ntypes;
 	float m_pe = 0.0f;
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
@@ -93,22 +93,22 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
 		// calculate r squard (FLOPS: 5)
 		float rsq = dx*dx + dy*dy + dz*dz;
-		if (rsq < eam_data.r_cutsq)
+		if (rsq < eam_data_ti.r_cutsq)
 			{
 			//Определяем индекс в таблице.
-			 float position_float = sqrtf(rsq) * eam_data.rdr;
-			 atomElectronDensity += tex1D(electronDensity_tex, position_float + nr * (typei * ntypes + typej) + 0.5f ); //electronDensity[r_index + eam_data.nr * typej] + derivativeElectronDensity[r_index + eam_data.nr * typej] * position * eam_data.dr;
+			 float position_float = sqrtf(rsq) * eam_data_ti.rdr;
+			 atomElectronDensity += tex1D(electronDensity_tex, position_float + nr * (typei * ntypes + typej) + 0.5f ); //electronDensity[r_index + eam_data_ti.nr * typej] + derivativeElectronDensity[r_index + eam_data_ti.nr * typej] * position * eam_data_ti.dr;
 			}
 		}
 
 	//Определяем индекс в таблице.
-	float position = atomElectronDensity * eam_data.rdrho;
+	float position = atomElectronDensity * eam_data_ti.rdrho;
 	/*unsigned int r_index = (unsigned int)position;
 	position -= (float)r_index;*/
 	//Извлекаем элементы.Производим интерполяцию.
-	atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data.nrho + 0.5f);//derivativeEmbeddingFunction[r_index + typei * eam_data.nrho];
+	atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
 
-	force.w += tex1D(embeddingFunction_tex, position + typei * eam_data.nrho + 0.5f);//embeddingFunction[r_index + typei * eam_data.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data.nrho] * position * eam_data.drho;
+	force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
 	force_data.force[idx] = force;
 	}
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
@@ -147,9 +147,9 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	float pairForce = 0.0f;
 	float virial = 0.0f;
 	force.w = force_data.force[idx].w;
-	int nr = eam_data.nr;
-	int nrho = eam_data.nrho;
-	int ntypes = eam_data.ntypes;
+	int nr = eam_data_ti.nr;
+	int nrho = eam_data_ti.nrho;
+	int ntypes = eam_data_ti.ntypes;
 	float adef = atomDerivativeEmbeddingFunction[idx];
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
@@ -172,20 +172,20 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 		// calculate r squard (FLOPS: 5)
 		float rsq = dx*dx + dy*dy + dz*dz;
 
-		if (rsq > eam_data.r_cutsq) continue;
+		if (rsq > eam_data_ti.r_cutsq) continue;
 
 		float inverseR = rsqrtf(rsq);
         float r = 1.0f / inverseR;
-		position = r * eam_data.rdr;
+		position = r * eam_data_ti.rdr;
 		int shift = (typei>=typej)?(int)((2 * ntypes - typej -1)*typej/2 + typei) * nr:(int)((2 * ntypes - typei -1)*typei/2 + typej) * nr;
         float2 pair_potential = tex1D(pairPotential_tex, position + shift + 0.5f);
 		float pair_eng =  pair_potential.x * inverseR;
 
 		float derivativePhi = (pair_potential.y - pair_eng) * inverseR;
 
-		float derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data.nr + 0.5f);
+		float derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data_ti.nr + 0.5f);
 
-		float derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data.nr + 0.5f);
+		float derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data_ti.nr + 0.5f);
 
 		float fullDerivativePhi = adef * derivativeRhoJ +
 				atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
@@ -280,7 +280,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 	if (error != cudaSuccess)
 		return error;
     // run the kernel
-    cudaMemcpyToSymbol("eam_data", &eam_data, sizeof(EAMTexInterData));
+    cudaMemcpyToSymbol("eam_data_ti", &eam_data, sizeof(EAMTexInterData));
 
     gpu_compute_eam_tex_inter_forces_kernel<<< grid, threads>>>(force_data,
 	pdata,
