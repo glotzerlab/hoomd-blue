@@ -42,13 +42,14 @@
 
 // computes
 #include "ForceCompute.h"
+#include "CellList.h"
 #include "NeighborList.h"
-#include "BinnedNeighborList.h"
+#include "NeighborListBinned.h"
 #include "ConstForceCompute.h"
 
 #ifdef ENABLE_CUDA
-#include "BinnedNeighborListGPU.h"
-#include "NeighborListNsqGPU.h"
+#include "CellListGPU.h"
+#include "NeighborListGPUBinned.h"
 #endif
 
 // pair potentials
@@ -100,8 +101,10 @@
 #include "SFCPackUpdater.h"
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
+#include "FIREEnergyMinimizer.h"
 #ifdef ENABLE_CUDA
 #include "Enforce2DUpdaterGPU.h"
+#include "FIREEnergyMinimizerGPU.h"
 #endif
 
 // integrators

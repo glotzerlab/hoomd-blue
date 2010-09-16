@@ -121,18 +121,24 @@ void FIREEnergyMinimizerGPU::reset()
     m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getIndexArray().getNumElements();    
-    gpu_fire_zero_v(d_pdata,
+    
+    {
+        gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        unsigned int group_size = m_group->getIndexArray().getNumElements();    
+        gpu_fire_zero_v(d_pdata,
                     d_index_array.data,
                     group_size);
-
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
     
-    m_pdata->release();
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+    
+        m_pdata->release();
+    }
+
     setDeltaT(m_deltaT_set);
+    m_pdata->notifyParticleSort();
     }
 
 /*! \param timesteps is the iteration number

@@ -92,8 +92,10 @@ _default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihed
                                  'bond.harmonic': 416, 'pair.gauss': 320, 'bond.fene': 160, 'angle.harmonic': 96,
                                  'pair.yukawa': 256, 'pair.ewald': 256, 'pair.morse': 160, 'nlist.filter': 224}
 
-# no 2.1 devices to tune on. Assume the same as 2.0
-_default_block_size_db['2.1'] = _default_block_size_db['2.0'];
+_default_block_size_db['2.1'] = {'improper.harmonic': 64, 'pair.lj': 256, 'dihedral.harmonic': 128, 'pair.dpd': 192, 'angle.cgcmm': 96,
+                                 'nlist.filter': 256, 'pair.dpd_conservative': 160, 'pair.table': 128, 'pair.cgcmm': 160, 'pair.slj': 128,
+                                 'pair.morse': 192, 'nlist': 544, 'bond.harmonic': 416, 'pair.yukawa': 160, 'bond.fene': 160,
+                                 'angle.harmonic': 160, 'pair.gauss': 192}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -392,7 +394,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('angle.cgcmm', 'angle.cgcmm', 2000),
                 ('dihedral.harmonic', 'dihedral.harmonic', 1000),
                 ('improper.harmonic', 'improper.harmonic', 1000),
-                ('bond.fene', 'bond.fene', 2000)
+                ('bond.fene', 'bond_fene_setup', 2000)
                 ];
     
     # setup the particle system to benchmark
@@ -426,7 +428,7 @@ def find_optimal_block_sizes(save = True, only=None):
     
     # list of optimal databases
     optimal_dbs = [];
-    num_repeats = 4;
+    num_repeats = 3;
     for i in xrange(0,num_repeats):
         
         # initialize an empty database of optimal sizes
@@ -591,5 +593,15 @@ def pair_dpd_conservative_setup():
     
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup bond.fene for benchmarking
+def bond_fene_setup():
+    fc = bond.fene();
+    fc.set_coeff('polymer', k=30.0, r0=3.0, sigma=1.0, epsilon=2.0);
+    
+    # no valid run() occurs, so we need to manually update the bond coeff
+    fc.update_coeffs();
     return fc;
 

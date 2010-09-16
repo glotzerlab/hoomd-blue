@@ -142,9 +142,6 @@ class Integrator : public Updater
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
-        //! helper function to compute potential energy
-        virtual Scalar computePotentialEnergy(unsigned int timestep);
-        
         //! helper function to compute total momentum
         virtual Scalar computeTotalMomentum(unsigned int timestep);
                 
