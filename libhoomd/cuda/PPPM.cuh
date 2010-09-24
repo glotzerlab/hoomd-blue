@@ -2,7 +2,6 @@
 
 #include "HOOMDMath.h"
 #include "ForceCompute.cuh"
-#include "NeighborList.cuh"
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
@@ -43,7 +42,7 @@ struct electrostatics_data
 int get_virial_flag_value();
 void print_bool_value();
 float3 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxsize &box);
-void electrostatics_calculation(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float3 *d_params, float *d_rcutsq);
+void electrostatics_calculation(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const float3 *d_params, const float *d_rcutsq);
 
 // void charge_density_assignment(const gpu_pdata_arrays &pdata, const gpu_boxsize &box);
 

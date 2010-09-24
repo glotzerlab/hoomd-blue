@@ -1130,11 +1130,11 @@ class yukawa(pair):
 
 ## Ewald %pair %force
 #
-# The command pair.ewald specifies that an Ewald %pair %force should be added to every
+# The command pair.yukawa specifies that a Yukawa %pair %force should be added to every
 # non-bonded particle %pair in the simulation.
 #
 # \f{eqnarray*}
-#  V_{\mathrm{ewald}}(r)  = & \frac {q_i q_j { \text{erfc}(-\kappa r) }{r} & r < r_{\mathrm{cut}} \\
+#  V_{\mathrm{yukawa}}(r)  = & \varepsilon \frac{ \exp \left( -\kappa r \right) }{r} & r < r_{\mathrm{cut}} \\
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 #
@@ -1142,24 +1142,26 @@ class yukawa(pair):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon
 # - \f$ \kappa \f$ - \c kappa
-# - \f$ \grid \f$ - \c grid
-# - \f$ \order \f$ - \c order
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
+# pair.yukawa is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# description of the various options.
+#
 # \b Example:
 # \code
-# ewald.pair_coeff.set('A', 'A', kappa=1.0, grid=64, order=5)
+# yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
+# yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
 # \endcode
 #
 # The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
-#
 class ewald(pair):
     ## Specify the Ewald %pair %force
     #
@@ -1168,8 +1170,9 @@ class ewald(pair):
     #
     # \b Example:
     # \code
-    # ewald = pair.ewald(r_cut=3.0)
-    # ewald.pair_coeff.set('A', 'A', kappa=1.0, order=5, grid=64)
+    # yukawa = pair.lj(r_cut=3.0)
+    # yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
+    # yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
     # \endcode
     #
     # \note %Pair coefficients for all type pairs in the simulation must be

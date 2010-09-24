@@ -791,7 +791,7 @@ float3 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxs
 }
 
 
-void electrostatics_calculation(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float3 *d_params, float *d_rcutsq)
+void electrostatics_calculation(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const float3 *d_params, const float *d_rcutsq)
 {
   //first time allocation of memory-------------------------------------
   int blocksize = 512;
