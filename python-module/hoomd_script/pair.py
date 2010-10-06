@@ -1720,7 +1720,9 @@ class eam(force._force):
         force._force.__init__(self);
         # Translate type 
         if(type == 'Alloy'): type_of_file = 0;
-        if(type == 'FS'): type_of_file = 1;
+        elif(type == 'FS'): type_of_file = 1;
+        else: raise RuntimeError('Unknown EAM input file type');
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, file, type_of_file);

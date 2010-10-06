@@ -55,6 +55,9 @@ using namespace boost::python;
 #include <stdexcept>
 #define min(a, b)  (((a) < (b)) ? (a) : (b))
 #define max(a, b)  (((a) > (b)) ? (a) : (b))
+#define MAX_TYPE_NUMBER 10
+#define MAX_POINT_NUMBER 1000000
+
 /*! \file EAMForceCompute.cc
 	\brief Defines the EAMForceCompute class
 */
@@ -104,8 +107,13 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 		throw runtime_error("Error loading file");
     	}
 	for(i = 0; i < 3; i++) while(fgetc(fp) != '\n');
+	m_ntypes = 0;
 	fscanf(fp, "%d", &m_ntypes);
-
+	if(m_ntypes < 1 || m_ntypes > MAX_TYPE_NUMBER ) 
+		{
+		cerr << endl << "***Error! Invalid EAM file format: Type number is greater than " << MAX_TYPE_NUMBER << endl << endl;
+		throw runtime_error("Error loading file");
+    	}
     // temporary array to count used types
     boost::dynamic_bitset<> types_set(m_pdata->getNTypes()); 
 	//Load names of types.
@@ -121,7 +129,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     //Check that all types of atopms in xml file have description in potential file
     if(m_pdata->getNTypes() != types_set.count())
         {
-		cerr << endl << "***Error! There are not full description of types of atoms in potential file!!!" << endl << endl;
+		cerr << endl << "***Error! not all atom types are defined in EAM potential file!!!" << endl << endl;
 		throw runtime_error("Error loading file");
     	}
 /*	for(i = 0; i < m_ntypes; i++){
@@ -139,8 +147,11 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 	rdr = (Scalar)(1.0 / dr);
 	fscanf(fp,"%lg", &tmp);
 	m_r_cut = tmp;
-
-
+	if (nrho < 1 || nr < 1 || nrho > MAX_POINT_NUMBER || nr > MAX_POINT_NUMBER)
+		{
+		cerr << endl << "***Error! Invalid EAM file format: Point number is greater than " << MAX_POINT_NUMBER << endl << endl;
+		throw runtime_error("Error loading file");
+    	}
 	//Resize arrays for tables
 	embeddingFunction.resize(nrho * m_ntypes);
 	electronDensity.resize( nr * m_ntypes * m_ntypes);
@@ -148,6 +159,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 	derivativeEmbeddingFunction.resize(nrho * m_ntypes);
 	derivativeElectronDensity.resize(nr * m_ntypes * m_ntypes);
 	derivativePairPotential.resize((int)(0.5 * nr * (m_ntypes + 1) * m_ntypes));
+	int res;
 	for(type = 0 ; type < m_ntypes; type++)
 		{
 		fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, &tmp_str);
@@ -157,7 +169,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 
 		for(i = 0 ; i < nrho; i++)
 			{
-			fscanf(fp, "%lg", &tmp);
+			res = fscanf(fp, "%lg", &tmp);
 			embeddingFunction[types[type] * nrho + i] = (Scalar)tmp;
 			}
 		//Read Rho's arrays
@@ -170,7 +182,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 			{
 			for(i = 0 ; i < nr; i++)
 				{
-				fscanf(fp, "%lg", &tmp);
+				res = fscanf(fp, "%lg", &tmp);
 				electronDensity[types[type] * m_ntypes * nr + j * nr + i] = (Scalar)tmp;
 				}
 			}
@@ -185,6 +197,12 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 
 			}
 		}
+	
+	if(res == EOF || res == 0)
+		{
+		cerr << endl << "***Error! EAM file is truncated " << endl << endl;
+		throw runtime_error("Error loading file");		
+		}
 	//Read V(r)'s arrays
 	for (k = 0; k < m_ntypes; k++)
 		{
@@ -192,13 +210,14 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 			{
 			for(i = 0 ; i < nr; i++)
 				{
-				fscanf(fp, "%lg", &tmp);
+				res = fscanf(fp, "%lg", &tmp);
 				pairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k] + types[j]) * nr + i].x = (Scalar)tmp;
 
 				}
 			}
 
 		}
+	
 	fclose(fp);
 
 
