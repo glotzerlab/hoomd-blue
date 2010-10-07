@@ -401,7 +401,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
-	export_EAMForceCompute();
+    export_EAMForceCompute();
     export_LJWallForceCompute();
     export_ComputeThermo();
     export_NeighborList();
@@ -420,7 +420,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_TablePotentialGPU();
-	export_EAMForceComputeGPU();
+    export_EAMForceComputeGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();

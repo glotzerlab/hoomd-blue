@@ -4,7 +4,7 @@ Moscow group.
 */
 
 /*! \file EAMForceComputeGPU.cc
-	\brief Defines the EAMForceComputeGPU class
+    \brief Defines the EAMForceComputeGPU class
 */
 
 #ifdef WIN32
@@ -26,52 +26,52 @@ using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute forces on
- 	\param nlist Neighborlist to use for computing the forces
-	\param r_cut Cuttoff radius beyond which the force is 0
-	\param filename	 Name of potential`s file.
+     \param nlist Neighborlist to use for computing the forces
+    \param r_cut Cuttoff radius beyond which the force is 0
+    \param filename     Name of potential`s file.
 */
 EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
-	: EAMForceCompute(sysdef, filename, type_of_file)
-	{
-	// can't run on the GPU if there aren't any GPUs in the execution configuration
-	if (!exec_conf->isCUDAEnabled())
-		{
-		cerr << endl << "***Error! Creating a EAMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
-		throw std::runtime_error("Error initializing EAMForceComputeGPU");
-		}
+    : EAMForceCompute(sysdef, filename, type_of_file)
+    {
+    // can't run on the GPU if there aren't any GPUs in the execution configuration
+    if (!exec_conf->isCUDAEnabled())
+        {
+        cerr << endl << "***Error! Creating a EAMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        throw std::runtime_error("Error initializing EAMForceComputeGPU");
+        }
 
-	if (m_ntypes > 44)
-		{
-		cerr << endl << "***Error! EAMForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
-		throw runtime_error("Error initializing EAMForceComputeGPU");
-		}
+    if (m_ntypes > 44)
+        {
+        cerr << endl << "***Error! EAMForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
+        throw runtime_error("Error initializing EAMForceComputeGPU");
+        }
 
     m_block_size = 64;
 
 /*
-	if (m_slj) cout << "Notice: Using Diameter-Shifted EAM Pair Potential for EAMForceComputeGPU" << endl;
-	else cout << "Diameter-Shifted EAM Pair Potential is NOT set for EAMForceComputeGPU" << endl;
+    if (m_slj) cout << "Notice: Using Diameter-Shifted EAM Pair Potential for EAMForceComputeGPU" << endl;
+    else cout << "Diameter-Shifted EAM Pair Potential is NOT set for EAMForceComputeGPU" << endl;
 */
-	// allocate the coeff data on the GPU
-	loadFile(filename, type_of_file);
-	eam_data.nr = nr;
-	eam_data.nrho = nrho;
-	eam_data.dr = dr;
-	eam_data.rdr = 1.0/dr;
-	eam_data.drho = drho;
-	eam_data.rdrho = 1.0/drho;
-	eam_data.r_cut = m_r_cut;
-	eam_data.r_cutsq = m_r_cut * m_r_cut;
-	eam_data.block_size = m_block_size;
+    // allocate the coeff data on the GPU
+    loadFile(filename, type_of_file);
+    eam_data.nr = nr;
+    eam_data.nrho = nrho;
+    eam_data.dr = dr;
+    eam_data.rdr = 1.0/dr;
+    eam_data.drho = drho;
+    eam_data.rdrho = 1.0/drho;
+    eam_data.r_cut = m_r_cut;
+    eam_data.r_cutsq = m_r_cut * m_r_cut;
+    eam_data.block_size = m_block_size;
 
-	cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(float));
-	cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(float));
+    cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(float));
+    cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(float));
     
     //Allocate mem on GPU for tables for EAM in cudaArray
-	cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc< float >();
-	#define copy_table(gpuname, cpuname, count) \
-	cudaMallocArray(&eam_tex_data.gpuname, &eam_desc,  count, 1);\
-	cudaMemcpyToArray(eam_tex_data.gpuname, 0, 0, &cpuname[0], count * sizeof(float), cudaMemcpyHostToDevice);
+    cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc< float >();
+    #define copy_table(gpuname, cpuname, count) \
+    cudaMallocArray(&eam_tex_data.gpuname, &eam_desc,  count, 1);\
+    cudaMemcpyToArray(eam_tex_data.gpuname, 0, 0, &cpuname[0], count * sizeof(float), cudaMemcpyHostToDevice);
 
     copy_table(electronDensity, electronDensity, m_ntypes * nr);
     copy_table(embeddingFunction, embeddingFunction, m_ntypes * nrho);
@@ -84,55 +84,55 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
     cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0], ((m_ntypes * m_ntypes / 2) + 1) * nr *sizeof(float2), cudaMemcpyHostToDevice);
     
     CHECK_CUDA_ERROR();
-	}
+    }
 
 
 EAMForceComputeGPU::~EAMForceComputeGPU()
-	{
-	// free the coefficients on the GPU
-	cudaFree(d_atomDerivativeEmbeddingFunction);
-	cudaFreeArray(eam_tex_data.pairPotential);
-	cudaFreeArray(eam_tex_data.electronDensity);
-	cudaFreeArray(eam_tex_data.embeddingFunction);
-	cudaFreeArray(eam_tex_data.derivativeElectronDensity);
-	cudaFreeArray(eam_tex_data.derivativeEmbeddingFunction);
-	}
+    {
+    // free the coefficients on the GPU
+    cudaFree(d_atomDerivativeEmbeddingFunction);
+    cudaFreeArray(eam_tex_data.pairPotential);
+    cudaFreeArray(eam_tex_data.electronDensity);
+    cudaFreeArray(eam_tex_data.embeddingFunction);
+    cudaFreeArray(eam_tex_data.derivativeElectronDensity);
+    cudaFreeArray(eam_tex_data.derivativeEmbeddingFunction);
+    }
 
 /*! \param block_size Size of the block to run on the device
-	Performance of the code may be dependant on the block size run
-	on the GPU. \a block_size should be set to be a multiple of 32.
+    Performance of the code may be dependant on the block size run
+    on the GPU. \a block_size should be set to be a multiple of 32.
 */
 void EAMForceComputeGPU::setBlockSize(int block_size)
-	{
-	m_block_size = block_size;
-	}
+    {
+    m_block_size = block_size;
+    }
 
 
 void EAMForceComputeGPU::computeForces(unsigned int timestep)
-	{
-	// start by updating the neighborlist
-	m_nlist->compute(timestep);
+    {
+    // start by updating the neighborlist
+    m_nlist->compute(timestep);
 
-	// start the profile
-	if (m_prof) m_prof->push(exec_conf, "EAM pair");
+    // start the profile
+    if (m_prof) m_prof->push(exec_conf, "EAM pair");
 
-	// The GPU implementation CANNOT handle a half neighborlist, error out now
-	bool third_law = m_nlist->getStorageMode() == NeighborList::half;
-	if (third_law)
-		{
-		cerr << endl << "***Error! EAMForceComputeGPU cannot handle a half neighborlist" << endl << endl;
-		throw runtime_error("Error computing forces in EAMForceComputeGPU");
-		}
+    // The GPU implementation CANNOT handle a half neighborlist, error out now
+    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    if (third_law)
+        {
+        cerr << endl << "***Error! EAMForceComputeGPU cannot handle a half neighborlist" << endl << endl;
+        throw runtime_error("Error computing forces in EAMForceComputeGPU");
+        }
 
-	// access the neighbor list, which just selects the neighborlist into the device's memory, copying
-	// it there if needed
+    // access the neighbor list, which just selects the neighborlist into the device's memory, copying
+    // it there if needed
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
 
-	// access the particle data
-	gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
-	gpu_boxsize box = m_pdata->getBoxGPU();
+    // access the particle data
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_boxsize box = m_pdata->getBoxGPU();
 
     EAMTexInterArrays eam_arrays;
     eam_arrays.atomDerivativeEmbeddingFunction = (float *)d_atomDerivativeEmbeddingFunction;
@@ -149,21 +149,21 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-	m_pdata->release();
+    m_pdata->release();
 
-	// the force data is now only up to date on the gpu
-	m_data_location = gpu;
+    // the force data is now only up to date on the gpu
+    m_data_location = gpu;
 
-	if (m_prof) m_prof->pop(exec_conf);
-	}
+    if (m_prof) m_prof->pop(exec_conf);
+    }
 
 void export_EAMForceComputeGPU()
-	{
-	class_<EAMForceComputeGPU, boost::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
-		("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
-		.def("setBlockSize", &EAMForceComputeGPU::setBlockSize)
-		;
-	}
+    {
+    class_<EAMForceComputeGPU, boost::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
+        ("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
+        .def("setBlockSize", &EAMForceComputeGPU::setBlockSize)
+        ;
+    }
 
 #ifdef WIN32
 #pragma warning( pop )
