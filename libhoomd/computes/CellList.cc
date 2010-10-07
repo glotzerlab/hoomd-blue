@@ -260,7 +260,7 @@ void CellList::initializeMemory()
     else
         {
         // otherwise, round up to the nearest multiple of 8 if we are not already on one
-        if (m_Nmax & 7 != 0)
+        if ((m_Nmax & 7) != 0)
             m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
         }
     
