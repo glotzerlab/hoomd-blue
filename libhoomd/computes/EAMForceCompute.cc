@@ -210,7 +210,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
             for(i = 0 ; i < nr; i++)
                 {
                 res = fscanf(fp, "%lg", &tmp);
-                pairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k] + types[j]) * nr + i].x = (Scalar)tmp;
+                pairPotential[(unsigned int)ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k] + types[j]) * nr + i].x = (Scalar)tmp;
 
                 }
             }
@@ -253,8 +253,8 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
             for(i = 0 ; i < nr; i++)
                 {
                 if((i + 1)%nr == 0) continue;
-                pairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k])  + types[j] * nr + i].y =
-                (pairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k]) + types[j] * nr + i + 1].x - pairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k]) + types[j] * nr + i].x) / dr;
+                pairPotential[(unsigned int)ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k])  + types[j] * nr + i].y =
+                (pairPotential[(unsigned int)ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k]) + types[j] * nr + i + 1].x - pairPotential[(unsigned int)ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k]) + types[j] * nr + i].x) / dr;
 
                 }
             }
