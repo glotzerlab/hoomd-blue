@@ -70,15 +70,14 @@ class EAMForceComputeGPU : public EAMForceCompute
         //! Destructor
         virtual ~EAMForceComputeGPU();
 
-
         //! Sets the block size to run at
         void setBlockSize(int block_size);
 
     protected:
-        EAMTexInterData eam_data;
-        EAMtex eam_tex_data;
-        Scalar * d_atomDerivativeEmbeddingFunction; //!<array F'(rho) for each particle
-        int m_block_size;                //!< The block size to run on the GPU
+        EAMTexInterData eam_data;                   //!< Undocumented parameter
+        EAMtex eam_tex_data;                        //!< Undocumented parameter
+        Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
+        int m_block_size;                           //!< The block size to run on the GPU
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

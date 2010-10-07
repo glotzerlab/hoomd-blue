@@ -55,28 +55,34 @@ Moscow group.
 
 #ifndef __EAMTexInterForceGPU_CUH__
 #define __EAMTexInterForceGPU_CUH__
+
+//! Collection of parameters for EAM force GPU kernels
 struct EAMTexInterData{
-    int ntypes;
-    int nr;
-    int nrho;
-    int block_size;
-    float dr;
-    float rdr;
-    float drho;
-    float rdrho;
-    float r_cutsq;
-    float r_cut;
+    int ntypes;             //!< Undocumented parameter
+    int nr;                 //!< Undocumented parameter
+    int nrho;               //!< Undocumented parameter
+    int block_size;         //!< Undocumented parameter
+    float dr;               //!< Undocumented parameter
+    float rdr;              //!< Undocumented parameter
+    float drho;             //!< Undocumented parameter
+    float rdrho;            //!< Undocumented parameter
+    float r_cutsq;          //!< Undocumented parameter
+    float r_cut;            //!< Undocumented parameter
 };
+
+//! Collection of pointers for EAM force GPU kernels
 struct EAMTexInterArrays{
-    float* atomDerivativeEmbeddingFunction;
+    float* atomDerivativeEmbeddingFunction;    //!< Undocumented parameter
 };
+
+//! Collection of cuda Arrays for EAM force GPU kernels
 struct EAMtex{
-    cudaArray* electronDensity;
-    cudaArray* pairPotential;
-    cudaArray* embeddingFunction;
-    cudaArray* derivativeElectronDensity;
-    cudaArray* derivativePairPotential;
-    cudaArray* derivativeEmbeddingFunction;
+    cudaArray* electronDensity;             //!< Undocumented parameter
+    cudaArray* pairPotential;               //!< Undocumented parameter
+    cudaArray* embeddingFunction;           //!< Undocumented parameter
+    cudaArray* derivativeElectronDensity;   //!< Undocumented parameter
+    cudaArray* derivativePairPotential;     //!< Undocumented parameter
+    cudaArray* derivativeEmbeddingFunction; //!< Undocumented parameter
 
 };
 

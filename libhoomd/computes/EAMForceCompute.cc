@@ -53,10 +53,6 @@ using namespace boost::python;
 #include "HOOMDInitializer.h"
 #include "EAMForceCompute.h"
 #include <stdexcept>
-#define min(a, b)  (((a) < (b)) ? (a) : (b))
-#define max(a, b)  (((a) > (b)) ? (a) : (b))
-#define MAX_TYPE_NUMBER 10
-#define MAX_POINT_NUMBER 1000000
 
 /*! \file EAMForceCompute.cc
     \brief Defines the EAMForceCompute class
@@ -64,10 +60,9 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata System to compute forces on
-     \param nlist Neighborlist to use for computing the forces
-    \param r_cut Cuttoff radius beyond which the force is 0
-    \post memory is allocated and all parameters lj1 and lj2 are set to 0.0
+/*! \param sysdef System to compute forces on
+    \param filename Name of EAM potential file to load
+    \param type_of_file Undocumented parameter
 */
 EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
     : ForceCompute(sysdef)
@@ -98,6 +93,10 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     unsigned int tmp_int, type, i, j, k;
     double  tmp_mass, tmp;
     char tmp_str[5];
+
+    const unsigned int MAX_TYPE_NUMBER = 10;
+    const unsigned int MAX_POINT_NUMBER = 1000000;
+    
     // Open potential file
     FILE *fp;
     fp = fopen(filename,"r");

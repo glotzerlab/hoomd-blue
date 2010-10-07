@@ -57,15 +57,25 @@ Moscow group.
     \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
+//!< Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+//! Texture for reading electron density
 texture<float, 1, cudaReadModeElementType> electronDensity_tex;
+//! Texture for reading EAM pair potential
 texture<float2, 1, cudaReadModeElementType> pairPotential_tex;
+//! Texture for reading the embedding function
 texture<float, 1, cudaReadModeElementType> embeddingFunction_tex;
+//! Texture for reading the derivative of the electron density
 texture<float, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
+//! Texture for reading the derivative of the embedding function
 texture<float, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
+//! Texture for reading the derivative of the atom embedding function
 texture<float, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
+
+//! Storage space for EAM parameters on the GPU
 __constant__ EAMTexInterData eam_data_ti;
 
+//! Kernel for computing EAM forces on the GPU
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     gpu_force_data_arrays force_data,
     gpu_pdata_arrays pdata,
@@ -137,6 +147,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
     force_data.force[idx] = force;
     }
+
+//! Second stage kernel for computing EAM forces on the GPU
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     gpu_force_data_arrays force_data,
     gpu_pdata_arrays pdata,
@@ -232,21 +244,6 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     force_data.virial[idx] = virial;
     }
 
-/*! \param force_data Force data on GPU to write forces to
-    \param pdata Particle data on the GPU to perform the calculation on
-    \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param nlist Neighbor list stored on the gpu
-    \param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
-        pair i,j. The x-component is lj1 and the y-component is lj2.
-    \param coeff_width Width of the \a d_coeffs matrix.
-    \param eam_data.r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the
-        force is set to 0
-    \param block_size Block size to execute
-
-    \returns Any error code resulting from the kernel launch
-
-    This is just a driver for calcEAMForces_kernel, see the documentation for it for more information.
-*/
 cudaError_t gpu_compute_eam_tex_inter_forces(
     const gpu_force_data_arrays& force_data,
     const gpu_pdata_arrays &pdata,

@@ -71,7 +71,11 @@ class EAMForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,  char *filename, int type_of_file);
+        
+        //! Sets the neighbor list to be used for the EAM force
         virtual void set_neighbor_list(boost::shared_ptr<NeighborList> nlist);
+        
+        //! Get the r cut value read from the EAM potential file
         virtual Scalar get_r_cut();
         //! Destructor
         virtual ~EAMForceCompute();
@@ -87,28 +91,29 @@ class EAMForceCompute : public ForceCompute
 
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        boost::shared_ptr<NeighborList> m_nlist;       //!< The neighborlist to use for the computation
         Scalar m_r_cut;                                //!< Cuttoff radius beyond which the force is set to 0
-        unsigned int m_ntypes;                        //!< Store the width and height of lj1 and lj2 here
+        unsigned int m_ntypes;                         //!< Store the width and height of lj1 and lj2 here
 
-        Scalar drho;
-        Scalar dr;
-        Scalar rdrho;
-        Scalar rdr;
-        vector<Scalar> mass;
-        vector<int> types;
-        vector<string> names;
-        unsigned int nr;
-        unsigned int nrho;
+        Scalar drho;                                   //!< Undocumented parameter
+        Scalar dr;                                     //!< Undocumented parameter
+        Scalar rdrho;                                  //!< Undocumented parameter
+        Scalar rdr;                                    //!< Undocumented parameter
+        vector<Scalar> mass;                           //!< Undocumented parameter
+        vector<int> types;                             //!< Undocumented parameter
+        vector<string> names;                          //!< Undocumented parameter
+        unsigned int nr;                               //!< Undocumented parameter
+        unsigned int nrho;                             //!< Undocumented parameter
 
 
-        vector<Scalar> electronDensity; //array rho(r)
-        vector<float2> pairPotential; //array Z(r)
-        vector<Scalar> embeddingFunction; //array F(rho)
+        vector<Scalar> electronDensity;                //!< array rho(r)
+        vector<float2> pairPotential;                  //!< array Z(r)
+        vector<Scalar> embeddingFunction;              //!< array F(rho)
 
-        vector<Scalar> derivativeElectronDensity; //array rho'(r)
-        vector<Scalar> derivativePairPotential; //array Z'(r)
-        vector<Scalar> derivativeEmbeddingFunction; //array F'(rho)
+        vector<Scalar> derivativeElectronDensity;      //!< array rho'(r)
+        vector<Scalar> derivativePairPotential;        //!< array Z'(r)
+        vector<Scalar> derivativeEmbeddingFunction;    //!< array F'(rho)
+        
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };

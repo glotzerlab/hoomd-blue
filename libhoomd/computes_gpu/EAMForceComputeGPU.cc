@@ -68,9 +68,8 @@ using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute forces on
-     \param nlist Neighborlist to use for computing the forces
-    \param r_cut Cuttoff radius beyond which the force is 0
-    \param filename     Name of potential`s file.
+    \param filename Name of EAM potential file to load
+    \param type_of_file Undocumented parameter
 */
 EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
     : EAMForceCompute(sysdef, filename, type_of_file)
@@ -111,16 +110,19 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
     
     //Allocate mem on GPU for tables for EAM in cudaArray
     cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc< float >();
-    #define copy_table(gpuname, cpuname, count) \
-    cudaMallocArray(&eam_tex_data.gpuname, &eam_desc,  count, 1);\
-    cudaMemcpyToArray(eam_tex_data.gpuname, 0, 0, &cpuname[0], count * sizeof(float), cudaMemcpyHostToDevice);
 
-    copy_table(electronDensity, electronDensity, m_ntypes * nr);
-    copy_table(embeddingFunction, embeddingFunction, m_ntypes * nrho);
-    copy_table(derivativeElectronDensity, derivativeElectronDensity, m_ntypes * nr);
-    copy_table(derivativeEmbeddingFunction, derivativeEmbeddingFunction, m_ntypes * nrho);
+    cudaMallocArray(&eam_tex_data.electronDensity, &eam_desc, m_ntypes * nr, 1);
+    cudaMemcpyToArray(eam_tex_data.electronDensity, 0, 0, &electronDensity[0], m_ntypes * nr * sizeof(float), cudaMemcpyHostToDevice);
+    
+    cudaMallocArray(&eam_tex_data.embeddingFunction, &eam_desc, m_ntypes * nrho, 1);
+    cudaMemcpyToArray(eam_tex_data.embeddingFunction, 0, 0, &embeddingFunction[0], m_ntypes * nrho * sizeof(float), cudaMemcpyHostToDevice);
 
-    #undef copy_table
+    cudaMallocArray(&eam_tex_data.derivativeElectronDensity, &eam_desc, m_ntypes * nr, 1);
+    cudaMemcpyToArray(eam_tex_data.derivativeElectronDensity, 0, 0, &derivativeElectronDensity[0], m_ntypes * nr * sizeof(float), cudaMemcpyHostToDevice);
+    
+    cudaMallocArray(&eam_tex_data.derivativeEmbeddingFunction, &eam_desc, m_ntypes * nrho, 1);
+    cudaMemcpyToArray(eam_tex_data.derivativeEmbeddingFunction, 0, 0, &derivativeEmbeddingFunction[0], m_ntypes * nrho * sizeof(float), cudaMemcpyHostToDevice);
+
     eam_desc = cudaCreateChannelDesc< float2 >();
     cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc,  ((m_ntypes * m_ntypes / 2) + 1) * nr, 1);
     cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0], ((m_ntypes * m_ntypes / 2) + 1) * nr *sizeof(float2), cudaMemcpyHostToDevice);
