@@ -1704,3 +1704,65 @@ class dpd_conservative(pair):
         raise RuntimeError('Not implemented for DPD Conservative');
         return;
 
+## EAM %pair %force
+#
+# The command pair.eam specifies that the EAM (embedded atom method) %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# No coefficients need to be set for pair.eam. All specifications, including the cutoff radius, form of the potential,
+# etc. are read in from the specified file. 
+#
+# Particle type names must match those referenced in the EAM potential file.
+#
+# Two file formats are supported: \em Alloy and \em FS. They are described in LAMMPS documentation 
+# (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
+# and are also described here: http://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
+#
+class eam(force._force):
+    ## Specify the EAM %pair %force
+    #
+    # \param file Filename with potential tables in Alloy or FS format
+    # \param type Type of file potential ('Alloy', 'FS')
+    # \b Example:
+    # \code
+    # eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
+    # \endcode
+    def __init__(self, file, type):
+        util.print_status_line();
+        
+        # initialize the base class
+        force._force.__init__(self);
+        # Translate type 
+        if(type == 'Alloy'): type_of_file = 0;
+        elif(type == 'FS'): type_of_file = 1;
+        else: raise RuntimeError('Unknown EAM input file type');
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, file, type_of_file);
+            #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list. 
+            r_cut_new = self.cpp_force.get_r_cut();
+            neighbor_list = _update_global_nlist(r_cut_new);
+            neighbor_list.subscribe(lambda: r_cut_new);
+            #Load neighbor list to compute.
+            self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
+        else:
+            self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, file, type_of_file);
+            self.cpp_force.setBlockSize(64);
+            #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
+            r_cut_new = self.cpp_force.get_r_cut();
+            neighbor_list = _update_global_nlist(r_cut_new);
+            neighbor_list.subscribe(lambda: r_cut_new);
+            #Load neighbor list to compute.
+            self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+
+        print "Set r_cut = ",r_cut_new, " from potential`s file '", file , "'.\n";
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        self.pair_coeff = coeff();
+        
+    def update_coeffs(self):
+        # check that the pair coefficents are valid
+        pass;
+
