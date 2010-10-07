@@ -98,8 +98,8 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     unsigned int tmp_int, type, i, j, k;
     double  tmp_mass, tmp;
     char tmp_str[5];
-      // Open potential file
-      FILE *fp;
+    // Open potential file
+    FILE *fp;
     fp = fopen(filename,"r");
     if (fp == NULL)
         {
@@ -162,7 +162,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     int res;
     for(type = 0 ; type < m_ntypes; type++)
         {
-        fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, &tmp_str);
+        fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, tmp_str);
         mass.push_back(tmp_mass);
 
         //Read F's array
@@ -175,7 +175,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         //Read Rho's arrays
         //If FS we need read N arrays
         //If Alloy we ned read 1 array, and then duplicate N-1 times.
-        int count = 1;
+        unsigned int count = 1;
         if(type_of_file == 1) count = m_ntypes;
         //Read
         for(j = 0; j < count; j++)
@@ -302,6 +302,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
 
     // access the neighbor list
+    assert(m_nlist);
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
     Index2D nli = m_nlist->getNListIndexer();
@@ -336,7 +337,6 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
 
     // for each particle
-    Scalar rho;
     vector<Scalar> atomElectronDensity;
     atomElectronDensity.resize(arrays.nparticles);
     vector<Scalar> atomDerivativeEmbeddingFunction;
@@ -354,15 +354,6 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 
         // sanity check
         assert(typei < m_pdata->getNTypes());
-
-
-
-        // initialize current particle force, potential energy, and virial to 0
-        Scalar fxi = 0.0;
-        Scalar fyi = 0.0;
-        Scalar fzi = 0.0;
-        Scalar pei = 0.0;
-        Scalar viriali = 0.0;
 
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
@@ -559,7 +550,7 @@ void EAMForceCompute::set_neighbor_list(boost::shared_ptr<NeighborList> nlist)
     }
 Scalar EAMForceCompute::get_r_cut()
     {
-        return m_r_cut;
+    return m_r_cut;
     }
 void export_EAMForceCompute()
     {

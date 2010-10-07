@@ -57,21 +57,11 @@ Moscow group.
     \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-    /*
-        cudaArray* electronDensity;
-    cudaArray* pairPotential;
-    cudaArray* embeddingFunction;
-    cudaArray* derivativeElectronDensity;
-    cudaArray* derivativePairPotential;
-    cudaArray* derivativeEmbeddingFunction;
-    */
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 texture<float, 1, cudaReadModeElementType> electronDensity_tex;
 texture<float2, 1, cudaReadModeElementType> pairPotential_tex;
 texture<float, 1, cudaReadModeElementType> embeddingFunction_tex;
 texture<float, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
-//texture<float, 1, cudaReadModeElementType> derivativePairPotential_tex;
 texture<float, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
 texture<float, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
 __constant__ EAMTexInterData eam_data_ti;
@@ -100,7 +90,6 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float virial = 0.0f;
 
     // prefetch neighbor index
     int cur_neigh = 0;
@@ -110,9 +99,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
     float atomElectronDensity  = 0.0f;
     int nr = eam_data_ti.nr;
-    int nrho = eam_data_ti.nrho;
     int ntypes = eam_data_ti.ntypes;
-    float m_pe = 0.0f;
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
         {
         // read the current neighbor index (MEM TRANSFER: 4 bytes)
@@ -137,17 +124,14 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         float rsq = dx*dx + dy*dy + dz*dz;
         if (rsq < eam_data_ti.r_cutsq)
             {
-            //Определяем индекс в таблице.
-             float position_float = sqrtf(rsq) * eam_data_ti.rdr;
-             atomElectronDensity += tex1D(electronDensity_tex, position_float + nr * (typei * ntypes + typej) + 0.5f ); //electronDensity[r_index + eam_data_ti.nr * typej] + derivativeElectronDensity[r_index + eam_data_ti.nr * typej] * position * eam_data_ti.dr;
+            float position_float = sqrtf(rsq) * eam_data_ti.rdr;
+            atomElectronDensity += tex1D(electronDensity_tex, position_float + nr * (typei * ntypes + typej) + 0.5f ); //electronDensity[r_index + eam_data_ti.nr * typej] + derivativeElectronDensity[r_index + eam_data_ti.nr * typej] * position * eam_data_ti.dr;
             }
         }
 
-    //Определяем индекс в таблице.
     float position = atomElectronDensity * eam_data_ti.rdrho;
     /*unsigned int r_index = (unsigned int)position;
     position -= (float)r_index;*/
-    //Извлекаем элементы.Производим интерполяцию.
     atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
 
     force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
@@ -190,7 +174,6 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     float virial = 0.0f;
     force.w = force_data.force[idx].w;
     int nr = eam_data_ti.nr;
-    int nrho = eam_data_ti.nrho;
     int ntypes = eam_data_ti.ntypes;
     float adef = atomDerivativeEmbeddingFunction[idx];
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
@@ -309,13 +292,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     error = cudaBindTextureToArray(derivativeElectronDensity_tex, eam_tex.derivativeElectronDensity);
     if (error != cudaSuccess)
         return error;
-/*
-    derivativePairPotential_tex.normalized = false;
-    derivativePairPotential_tex.filterMode = cudaFilterModeLinear ;
-    error = cudaBindTextureToArray(derivativePairPotential_tex, eam_tex.derivativePairPotential);
-    if (error != cudaSuccess)
-        return error;
-*/
+
     derivativeEmbeddingFunction_tex.normalized = false;
     derivativeEmbeddingFunction_tex.filterMode = cudaFilterModeLinear ;
     error = cudaBindTextureToArray(derivativeEmbeddingFunction_tex, eam_tex.derivativeEmbeddingFunction);
