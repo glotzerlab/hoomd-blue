@@ -1704,6 +1704,20 @@ class dpd_conservative(pair):
         raise RuntimeError('Not implemented for DPD Conservative');
         return;
 
+## EAM %pair %force
+#
+# The command pair.eam specifies that the EAM (embedded atom method) %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# No coefficients need to be set for pair.eam. All specifications, including the cutoff radius, form of the potential,
+# etc. are read in from the specified file. 
+#
+# Particle type names must match those referenced in the EAM potential file.
+#
+# Two file formats are supported: \em Alloy and \em FS. They are described in LAMMPS documentation 
+# (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
+# and are also described here: http://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
+#
 class eam(force._force):
     ## Specify the EAM %pair %force
     #
