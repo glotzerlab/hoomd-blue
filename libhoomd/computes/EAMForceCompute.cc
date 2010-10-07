@@ -38,7 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
+// Maintainer: morozov
 
 #ifdef WIN32
 #pragma warning( push )
