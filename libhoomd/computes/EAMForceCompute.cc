@@ -158,7 +158,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     derivativeEmbeddingFunction.resize(nrho * m_ntypes);
     derivativeElectronDensity.resize(nr * m_ntypes * m_ntypes);
     derivativePairPotential.resize((int)(0.5 * nr * (m_ntypes + 1) * m_ntypes));
-    int res;
+    int res = 0;
     for(type = 0 ; type < m_ntypes; type++)
         {
         fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, tmp_str);
