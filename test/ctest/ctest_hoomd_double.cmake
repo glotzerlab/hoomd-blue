@@ -19,10 +19,6 @@ SET (IGNORE_TESTS "-E \"test_bdnvt_integrator|test_npt_integrator\"")
 SET (MEMORYCHECK_COMMAND "")
 #SET (MEMORYCHECK_COMMAND "/usr/bin/valgrind")
 
-# (change to emulation if you want to compile and test a GPU emulation build)
-SET (CUDA_BUILD_EMULATION "OFF")
-#SET (CUDA_BUILD_EMULATION "ON")
-
 # (architecture to compile CUDA for 10=compute 1.0 11=compute 1.1, ...)
 SET (CUDA_ARCH "11")
 

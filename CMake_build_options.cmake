@@ -86,10 +86,10 @@ if (ENABLE_CUDA)
         list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
     endif (CUDA_VERSION VERSION_GREATER 2.99) 
     
-    if (CUDA_VERSION VERSION_EQUAL 3.1) 
-        message(STATUS "Enabling reg usage workaround for CUDA 3.1") 
+    if (CUDA_VERSION VERSION_EQUAL 3.1 OR CUDA_VERSION VERSION_EQUAL 3.2) 
+        message(STATUS "Enabling reg usage workaround for CUDA 3.1/3.2") 
         list(APPEND CUDA_NVCC_FLAGS "-Xptxas;-abi=no")
-    endif (CUDA_VERSION VERSION_EQUAL 3.1)
+    endif (CUDA_VERSION VERSION_EQUAL 3.1 OR CUDA_VERSION VERSION_EQUAL 3.2) 
     
     endif (ENABLE_OCELOT)
     
