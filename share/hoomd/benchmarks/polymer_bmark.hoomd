@@ -36,7 +36,7 @@ run(4000)
 
 # the system is thermally equilibrated, we can now bump up the 
 # check period for a slight boost in performance
-nlist.set_params(check_period=10)
+nlist.set_params(check_period=5)
 
 # quick benchmark
 run(2000, profile=True)
