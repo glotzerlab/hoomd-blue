@@ -58,7 +58,7 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
     
-    m_cl->setNominalWidth(r_cut + r_buff);
+    m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
@@ -72,7 +72,15 @@ void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborList::setRCut(r_cut, r_buff);
     
-    m_cl->setNominalWidth(r_cut + r_buff);
+    m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
+    }
+
+void NeighborListBinned::setMaximumDiameter(Scalar d_max)
+    {
+    NeighborList::setMaximumDiameter(d_max);
+    
+    // need to update the cell list settings appropriately
+    m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
     }
 
 void NeighborListBinned::buildNlist(unsigned int timestep)
@@ -102,6 +110,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
+    // add d_max - 1.0, if diameter filtering is not already taking care of it
+    if (!m_filter_diameter)
+        rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
 
     // precalculate box lenghts
