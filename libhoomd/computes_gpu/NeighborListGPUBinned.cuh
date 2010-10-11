@@ -63,9 +63,12 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_conditions,
                                      const Index2D& nli,
                                      const float4 *d_pos,
+                                     const unsigned int *d_body,
+                                     const float *d_diameter,
                                      const unsigned int N,
                                      const unsigned int *d_cell_size,
                                      const float4 *d_cell_xyzf,
+                                     const float4 *d_cell_tdb,
                                      const unsigned int *d_cell_adj,
                                      const Index3D& ci,
                                      const Index2D& cli,
@@ -74,7 +77,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const uint3& cell_dim,
                                      const gpu_boxsize& box,
                                      const float r_maxsq,
-                                     const unsigned int block_size);
+                                     const unsigned int block_size,
+                                     bool filter_body,
+                                     bool filter_diameter);
 
 //! Kernel driver for gpu_compute_nlist_binned_1x_kernel()
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,

@@ -100,6 +100,28 @@ void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
     m_cl->setNominalWidth(r_cut + r_buff);
     }
 
+void NeighborListGPUBinned::setFilterBody(bool filter_body)
+    {
+    NeighborListGPU::setFilterBody(filter_body);
+    
+    // need to update the cell list settings appropriately
+    if (m_filter_body || m_filter_diameter)
+        m_cl->setComputeTDB(true);
+    else
+        m_cl->setComputeTDB(false);
+    }
+
+void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
+    {
+    NeighborListGPU::setFilterDiameter(filter_diameter);
+    
+    // need to update the cell list settings appropriately
+    if (m_filter_body || m_filter_diameter)
+        m_cl->setComputeTDB(true);
+    else
+        m_cl->setComputeTDB(false);
+    }
+
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
@@ -134,6 +156,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
 
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
@@ -150,9 +173,12 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  d_conditions.data,
                                  m_nlist_indexer,
                                  d_pdata.pos,
+                                 d_pdata.body,
+                                 d_pdata.diameter,
                                  m_pdata->getN(),
                                  d_cell_size.data,
                                  d_cell_xyzf.data,
+                                 d_cell_tdb.data,
                                  d_cell_adj.data,
                                  m_cl->getCellIndexer(),
                                  m_cl->getCellListIndexer(),
@@ -161,7 +187,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getDim(),
                                  box,
                                  (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
-                                 m_block_size);
+                                 m_block_size,
+                                 m_filter_body,
+                                 m_filter_diameter);
         }
     else
         {

@@ -80,7 +80,13 @@ class NeighborListGPUBinned : public NeighborListGPU
             {
             m_block_size = block_size;
             }
-    
+
+        //! Enable/disable body filtering
+        virtual void setFilterBody(bool filter_body);
+        
+        //! Enable/disable diameter filtering
+        virtual void setFilterDiameter(bool filter_diameter);
+
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list
         cudaArray *dca_cell_adj;            //!< CUDA array for tex2D access to d_cell_adj
