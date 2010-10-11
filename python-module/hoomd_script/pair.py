@@ -415,8 +415,14 @@ class nlist:
     # \b build is counted and printed in the neighbor list statistics at the end of a run().
     #
     # When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
-    # during the following run() commands (see pair.slj for more information). When <i>not</i> using pair.slj, \a d_max
-    # \b MUST be left at the default value of 1.0 or the simulation will be incorrect.
+    # during the following run() commands (see pair.slj for more information). When using in conjunction with pair.slj, 
+    # pair.slj will 
+    # automatically set \a d_max for the nlist.  This can be overidden (e.g. if multiple potentials using diameters are used) 
+    # by using nlist.set_params() after the 
+    # pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
+    # \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower 
+    # than necessary if 
+    # d_max is greater than 1.0.   
     #
     # A single global neighbor list is created for the entire simulation. Change parameters by using
     # the built-in variable \b %nlist.
@@ -946,7 +952,7 @@ class gauss(pair):
 #    \f}
 #    where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
 #
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see hoomd_script.pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
@@ -972,12 +978,15 @@ class gauss(pair):
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials. 
 #
-# pair.slj requires an extra term to determine the maximum r_cut, determined by the maximum diameter among all particles
-# in the simulation, \a d_max. This value is set by the user and can be modified during a run with the
+# The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine 
+# the maximum possible actual r_cut in simulation
+# pair.slj must know the maximum diameter of all the particles over the entire run, or \a d_max .
+# This value is either determined automatically from the initialization or can be set by the user and can be modified between runs with the
 # command nlist.set_params(). In most cases, the correct value can be identified automatically (see __init__()).
 #
-# When using pair.slj, you may obtain better performance when diameter exclusions are enabled for the neighbor list:
-# nlist.reset_exclusions(['diameter', ...your other exclusions...]);
+# When using pair.slj, you may obtain considerably better performance when diameter exclusions are enabled for the neighbor list:
+# nlist.reset_exclusions(['diameter', ...your other exclusions...])
+# See nlist.reset_exclusions() for more details.
 #
 class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
