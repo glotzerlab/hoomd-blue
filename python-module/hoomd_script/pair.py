@@ -451,6 +451,8 @@ class nlist:
     # - \b %bond - Exclude particles that are directly bonded together
     # - \b %angle - Exclude the two outside particles in all defined angles.
     # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
+    # - \b %body - Exclude particles that belong to the same body
+    # - \b %diameter - Exclude particles, using their diameters to modify r_cut the same way that pair.slj does.
     #
     # The following types are determined solely by the bond topology. Every chain of particles in the simulation 
     # connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
@@ -481,6 +483,8 @@ class nlist:
         
         # clear all of the existing exclusions
         self.cpp_nlist.clearExclusions();
+        self.cpp_nlist.setFilterBody(False);
+        self.cpp_nlist.setFilterDiameter(False);
         
         if exclusions is None:
             # confirm that no exclusions are left.
@@ -499,6 +503,14 @@ class nlist:
         if 'dihedral' in exclusions:
             self.cpp_nlist.addExclusionsFromDihedrals();
             exclusions.remove('dihedral');
+        
+        if 'body' in exclusions:
+            self.cpp_nlist.setFilterBody(True);
+            exclusions.remove('body');
+        
+        if 'diameter' in exclusions:
+            self.cpp_nlist.setFilterDiameter(True);
+            exclusions.remove('diameter');
         
         # exclusions given in 1-2/1-3/1-4 notation.
         if '1-2' in exclusions:
