@@ -59,7 +59,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
     
-    m_cl->setNominalWidth(r_cut + r_buff);
+    m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
@@ -97,7 +97,15 @@ void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
     
-    m_cl->setNominalWidth(r_cut + r_buff);
+    m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
+    }
+
+void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
+    {
+    NeighborListGPU::setMaximumDiameter(d_max);
+    
+    // need to update the cell list settings appropriately
+    m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
     }
 
 void NeighborListGPUBinned::setFilterBody(bool filter_body)
@@ -164,6 +172,13 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
+    // start by creating a temporary copy of r_cut sqaured
+    Scalar rmax = m_r_cut + m_r_buff;
+    // add d_max - 1.0, if diameter filtering is not already taking care of it
+    if (!m_filter_diameter)
+        rmax += m_d_max - Scalar(1.0);
+    Scalar rmaxsq = rmax*rmax;
+
     // take optimized code paths for different GPU generations
     if (exec_conf->getComputeCapability() >= 200)
         {
@@ -186,7 +201,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  scale,
                                  m_cl->getDim(),
                                  box,
-                                 (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
+                                 rmaxsq,
                                  m_block_size,
                                  m_filter_body,
                                  m_filter_diameter);
@@ -224,7 +239,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     scale,
                                     m_cl->getDim(),
                                     box,
-                                    (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
+                                    rmaxsq,
                                     m_block_size);
         }
 

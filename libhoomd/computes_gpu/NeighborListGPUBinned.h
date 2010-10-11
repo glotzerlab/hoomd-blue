@@ -80,6 +80,9 @@ class NeighborListGPUBinned : public NeighborListGPU
             {
             m_block_size = block_size;
             }
+        
+        //! Set the maximum diameter to use in computing neighbor lists
+        virtual void setMaximumDiameter(Scalar d_max);
 
         //! Enable/disable body filtering
         virtual void setFilterBody(bool filter_body);
