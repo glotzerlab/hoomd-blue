@@ -380,13 +380,14 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     
     ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0.0; arrays.diameter[0] = 1.00001;
-    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = 2.5; arrays.diameter[1] = 2.00001;
-    arrays.x[2] = 0; arrays.y[2] = 0; arrays.z[2] = -3.0; arrays.diameter[2] = 3.00001;
+    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0.0; arrays.diameter[0] = 3.0;
+    arrays.x[2] = 0; arrays.y[2] = 0; arrays.z[2] = 2.5; arrays.diameter[2] = 2.0;
+    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = -3.0; arrays.diameter[1] = 1.0;
+    arrays.x[3] = 0; arrays.y[3] = 2.51; arrays.z[3] = 0; arrays.diameter[3] = 0;
     pdata_3->release();
     
     // test construction of the neighborlist
@@ -403,9 +404,55 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 0);
         }
     
-    // enable diameter filtering
-    nlist_2->setFilterDiameter(true);
+    // set a test maximum diameter of 2.0
+    nlist_2->setMaximumDiameter(2.0);
     nlist_2->compute(2);
+    
+    // 0 and 1 should be neighbors now, as well as 0 and 2
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
+        Index2D nli = nlist_2->getNListIndexer();
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,2)], 3);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
+        }
+    
+    // bump it up to 3.0
+    nlist_2->setMaximumDiameter(3.0);
+    nlist_2->compute(3);
+    
+    // should be the same as above
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
+        Index2D nli = nlist_2->getNListIndexer();
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,2)], 3);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,1)], 3);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,1)], 3);
+        }
+    
+    // enable diameter filtering and verify the result is still correct
+    nlist_2->setFilterDiameter(true);
+    nlist_2->compute(4);
 
     // the particle 0 should now be neighbors with 1 and 2
         {
