@@ -391,6 +391,8 @@ class nlist:
     # \param r_buff (if set) changes the buffer radius around the cutoff
     # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list 
     #        needs updating
+    # \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
+    #        run() commands.
     # 
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
     # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -412,6 +414,10 @@ class nlist:
     # moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
     # \b build is counted and printed in the neighbor list statistics at the end of a run().
     #
+    # When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
+    # during the following run() commands (see pair.slj for more information). When <i>not</i> using pair.slj, \a d_max
+    # \b MUST be left at the default value of 1.0 or the simulation will be incorrect.
+    #
     # A single global neighbor list is created for the entire simulation. Change parameters by using
     # the built-in variable \b %nlist.
     #
@@ -420,8 +426,9 @@ class nlist:
     # nlist.set_params(r_buff = 0.9)
     # nlist.set_params(check_period = 11)
     # nlist.set_params(r_buff = 0.7, check_period = 4)
+    # nlist.set_params(d_max = 3.0)
     # \endcode
-    def set_params(self, r_buff=None, check_period=None):
+    def set_params(self, r_buff=None, check_period=None, d_max=None):
         util.print_status_line();
         
         if self.cpp_nlist is None:
@@ -435,6 +442,9 @@ class nlist:
             
         if check_period is not None:
             self.cpp_nlist.setEvery(check_period);
+        
+        if d_max is not None:
+            self.cpp_nlist.setMaximumDiameter(d_max);
 
     ## Resets all exclusions in the neighborlist
     #
@@ -452,7 +462,13 @@ class nlist:
     # - \b %angle - Exclude the two outside particles in all defined angles.
     # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
     # - \b %body - Exclude particles that belong to the same body
-    # - \b %diameter - Exclude particles, using their diameters to modify r_cut the same way that pair.slj does.
+    # - \b %diameter - Exclude particles using their diameters to modify r_cut per pair, as pair.slj does. Enabling the
+    #                  \b diameter exclusion does not change which particles interact, but rather offers a potential
+    #                  performance boost by removing uneeded neighbors from the list.
+    #
+    # \note Enabling the \b diameter exclusion is intended for use only with the pair.slj potential. With sufficient
+    #       care in the choice of particle diameters, it may be possible to use it in other situations (such as with
+    #       pair.slj with another pair potential added on), but this is only recommended for advanced users.
     #
     # The following types are determined solely by the bond topology. Every chain of particles in the simulation 
     # connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
@@ -460,10 +476,6 @@ class nlist:
     # - \b 1-2  - Same as bond
     # - \b 1-3  - Exclude particles connected with a sequence of two bonds.
     # - \b 1-4  - Exclude particles connected with a sequence of three bonds.
-    #
-    # \b WARNING: 
-    # 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
-    # atom and even 1-3 exclusions can reach that limit in branched molecules.
     #
     # \b Examples:
     # \code 
@@ -946,7 +958,7 @@ class gauss(pair):
 #
 # pair.slj is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
 # description of the various options.
-#\note Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of xplor is not supported.
+# \note Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of xplor is not supported.
 #
 # \b Example:
 # \code
@@ -958,8 +970,14 @@ class gauss(pair):
 # The cutoff radius \a r_cut passed into the initial pair.slj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials. pair.slj adds an extra term to the maximum r_cut, determined by the 
-# maximum diameter set by the user in \a d_max.
+# %pair parameters among all %pair potentials. 
+#
+# pair.slj requires an extra term to determine the maximum r_cut, determined by the maximum diameter among all particles
+# in the simulation, \a d_max. This value is set by the user and can be modified during a run with the
+# command nlist.set_params(). In most cases, the correct value can be identified automatically (see __init__()).
+#
+# When using pair.slj, you may obtain better performance when diameter exclusions are enabled for the neighbor list:
+# nlist.reset_exclusions(['diameter', ...your other exclusions...]);
 #
 class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
@@ -969,11 +987,12 @@ class slj(pair):
     # \param d_max Maximum diameter particles in the simulation will have
     #
     # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
-    # run() commands. If not specified, slj will set d_max to the largest diameter in particle data at the time it is initialized
+    # run() commands. If not specified, slj will set d_max to the largest diameter in particle data at the time it is initialized.
+    #
     # If particle diameters change after initialization, it is \b imperative that \a d_max be the largest
-    # diameter that any particle will attain at any time during the following run() command. If \a d_max is smaller
+    # diameter that any particle will attain at any time during the following run() commands. If \a d_max is smaller
     # than it should be, some particles will effectively have a smaller value of \a r_cut then was set and the
-    # simulation will be incorrect. \a d_max can be changed between runs by calling set_params().
+    # simulation will be incorrect. \a d_max can be changed between runs by calling nlist.set_params().
     #
     # \b Example:
     # \code
@@ -996,13 +1015,12 @@ class slj(pair):
         # update the neighbor list
         if d_max is None :
             sysdef = globals.system_definition;
-            self.d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
-            print "slj internally setting d_max to", self.d_max
-        else:    
-            self.d_max = d_max;
+            d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
+            print "Notice: slj set d_max=", d_max
                         
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*(self.get_max_rcut() + self.d_max - 1.0))
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut());
+        neighbor_list.cpp_nlist.setMaximumDiameter(d_max);
         
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -1030,7 +1048,6 @@ class slj(pair):
     ## Set parameters controlling the way forces are computed
     #
     # \param mode (if set) Set the mode with which potentials are handled at the cutoff
-    # \param d_max (if set) Set the new maximum particle diameter in the system
     #
     # valid values for \a mode are: "none" (the default), "shift", and "xplor"
     #  - \b none - No shifting is performed and potentials are abruptly cut off
@@ -1042,10 +1059,9 @@ class slj(pair):
     # \code
     # slj.set_params(mode="shift")
     # slj.set_params(mode="no_shift")
-    # slj.set_params(d_max = 3.0)
     # \endcode
     # 
-    def set_params(self, mode=None, d_max=None):
+    def set_params(self, mode=None):
         util.print_status_line();
         
         if mode == "xplor":
@@ -1053,9 +1069,6 @@ class slj(pair):
             raise RuntimeError("Error changing parameters in pair force");
         
         pair.set_params(self, mode=mode);
-        
-        if d_max is not None:
-            self.d_max = d_max;
 
 ## Yukawa %pair %force
 #
