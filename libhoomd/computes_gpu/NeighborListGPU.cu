@@ -319,12 +319,12 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
                 float dx = px - sdata[cur_offset];
                 dx = dx - box.Lx * rintf(dx * box.Lxinv);
                 
-                if (dx*dx < r_maxsq)
+                if (dx*dx <= r_maxsq)
                     {
                     float dy = py - sdata[cur_offset + NLIST_BLOCK_SIZE];
                     dy = dy - box.Ly * rintf(dy * box.Lyinv);
                     
-                    if (dy*dy < r_maxsq)
+                    if (dy*dy <= r_maxsq)
                         {
                         float dz = pz - sdata[cur_offset + 2*NLIST_BLOCK_SIZE];
                         dz = dz - box.Lz * rintf(dz * box.Lzinv);
@@ -332,7 +332,7 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
                         float drsq = dx*dx + dy*dy + dz*dz;
                         
                         // we don't add if we are comparing to ourselves, and we don't add if we are above the cut
-                        if ((drsq < r_maxsq) && ((start + cur_offset) != pidx))
+                        if ((drsq <= r_maxsq) && ((start + cur_offset) != pidx))
                             {
                             if (n_neigh < nli.getH())
                                 d_nlist[nli(pidx, n_neigh)] = start+cur_offset;
