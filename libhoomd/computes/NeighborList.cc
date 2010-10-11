@@ -75,7 +75,7 @@ using namespace std;
     \post The storage mode defaults to half
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
-    : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_filter_body(false), m_filter_diameter(false),
+    : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true)
     {
     // check for two sensless errors the user could make
@@ -812,7 +812,14 @@ void NeighborList::buildNlist(unsigned int timestep)
     // sanity check
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
     
-    if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff) * 2.0 || (box.yhi - box.ylo) <= (m_r_cut+m_r_buff) * 2.0 || (box.zhi - box.zlo) <= (m_r_cut+m_r_buff) * 2.0)
+    // start by creating a temporary copy of r_cut sqaured
+    Scalar rmax = m_r_cut + m_r_buff;
+    // add d_max - 1.0, if diameter filtering is not already taking care of it
+    if (!m_filter_diameter)
+        rmax += m_d_max - Scalar(1.0);
+    Scalar rmaxsq = rmax*rmax;
+    
+    if ((box.xhi - box.xlo) <= (rmax) * 2.0 || (box.yhi - box.ylo) <= (rmax) * 2.0 || (box.zhi - box.zlo) <= (rmax) * 2.0)
         {
         cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
         throw runtime_error("Error updating neighborlist bins");
@@ -824,10 +831,6 @@ void NeighborList::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
     
     // simple algorithm follows:
-    
-    // start by creating a temporary copy of r_cut sqaured
-    Scalar rmax = m_r_cut + m_r_buff;
-    Scalar rmaxsq = rmax*rmax;
     
     // precalculate box lenghts
     Scalar Lx = box.xhi - box.xlo;
@@ -1129,6 +1132,7 @@ void export_NeighborList()
                      .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
                      .def("setFilterBody", &NeighborList::setFilterBody)
                      .def("setFilterDiameter", &NeighborList::setFilterDiameter)
+                     .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)
                      ;

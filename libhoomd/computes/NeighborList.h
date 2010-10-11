@@ -260,12 +260,21 @@ class NeighborList : public Compute
         virtual void setFilterBody(bool filter_body)
             {
             m_filter_body = filter_body;
+            forceUpdate();
             }
         
         //! Enable/disable diameter filtering
         virtual void setFilterDiameter(bool filter_diameter)
             {
             m_filter_diameter = filter_diameter;
+            forceUpdate();
+            }
+        
+        //! Set the maximum diameter to use in computing neighbor lists
+        virtual void setMaximumDiameter(Scalar d_max)
+            {
+            m_d_max = d_max;
+            forceUpdate();
             }
         
         // @}
@@ -285,6 +294,7 @@ class NeighborList : public Compute
     protected:
         Scalar m_r_cut;             //!< The cuttoff radius
         Scalar m_r_buff;            //!< The buffer around the cuttoff
+        Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
         bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
         storageMode m_storage_mode; //!< The storage mode
