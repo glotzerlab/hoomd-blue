@@ -101,7 +101,8 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
 
     // start by creating a temporary copy of r_cut sqaured
-    Scalar rmaxsq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
+    Scalar rmax = m_r_cut + m_r_buff;
+    Scalar rmaxsq = rmax*rmax;
 
     // precalculate box lenghts
     Scalar Lx = box.xhi - box.xlo;
@@ -129,6 +130,8 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         unsigned int cur_n_neigh = 0;
         
         Scalar3 my_pos = make_scalar3(arrays.x[i], arrays.y[i], arrays.z[i]);
+        unsigned int bodyi = arrays.body[i];
+        Scalar di = arrays.diameter[i];
         
         // find the bin each particle belongs in
         unsigned int ib = (unsigned int)((my_pos.x-box.xlo)*scale.x);
@@ -177,10 +180,25 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     dz -= Lz;
                 if (dz <= -Lz/2.0)
                     dz += Lz;
-                    
-                float dr_sq = dx*dx + dy*dy + dz*dz;
+
+                bool excluded = (i == (int)cur_neigh);
                 
-                if (dr_sq <= rmaxsq && i != (int)cur_neigh)
+                if (m_filter_body && bodyi != NO_BODY)
+                    excluded = excluded | (bodyi == arrays.body[cur_neigh]);
+                
+                Scalar sqshift = Scalar(0.0);
+                if (m_filter_diameter)
+                    {
+                    // compute the shift in radius to accept neighbors based on their diameters
+                    float delta = (di + arrays.diameter[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
+                    // r^2 < (r_max + delta)^2
+                    // r^2 < r_maxsq + delta^2 + 2*r_max*delta
+                    sqshift = (delta + Scalar(2.0) * rmax) * delta;
+                    }
+
+                Scalar dr_sq = dx*dx + dy*dy + dz*dz;
+                
+                if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)
                         {

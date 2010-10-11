@@ -826,7 +826,8 @@ void NeighborList::buildNlist(unsigned int timestep)
     // simple algorithm follows:
     
     // start by creating a temporary copy of r_cut sqaured
-    Scalar rmaxsq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
+    Scalar rmax = m_r_cut + m_r_buff;
+    Scalar rmaxsq = rmax*rmax;
     
     // precalculate box lenghts
     Scalar Lx = box.xhi - box.xlo;
@@ -847,6 +848,8 @@ void NeighborList::buildNlist(unsigned int timestep)
         Scalar xi = arrays.x[i];
         Scalar yi = arrays.y[i];
         Scalar zi = arrays.z[i];
+        Scalar di = arrays.diameter[i];
+        unsigned int bodyi = arrays.body[i];
         
         // for each other particle with i < j
         for (unsigned int j = i + 1; j < arrays.nparticles; j++)
@@ -876,10 +879,25 @@ void NeighborList::buildNlist(unsigned int timestep)
             assert(dx >= box.xlo && dx <= box.xhi);
             assert(dy >= box.ylo && dy <= box.yhi);
             assert(dz >= box.zlo && dz <= box.zhi);
+
+            bool excluded = false;
             
+            if (m_filter_body && bodyi != NO_BODY)
+                excluded = (bodyi == arrays.body[j]);
+            
+            Scalar sqshift = Scalar(0.0);
+            if (m_filter_diameter)
+                {
+                // compute the shift in radius to accept neighbors based on their diameters
+                float delta = (di + arrays.diameter[j]) * Scalar(0.5) - Scalar(1.0);
+                // r^2 < (r_max + delta)^2
+                // r^2 < r_maxsq + delta^2 + 2*r_max*delta
+                sqshift = (delta + Scalar(2.0) * rmax) * delta;
+                }
+
             // now compare rsq to rmaxsq and add to the list if it meets the criteria
             Scalar rsq = dx*dx + dy*dy + dz*dz;
-            if (rsq < rmaxsq)
+            if (rsq <= (rmaxsq + sqshift) && !excluded)
                 {
                 if (m_storage_mode == full)
                     {
