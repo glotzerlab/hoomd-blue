@@ -256,6 +256,18 @@ class NeighborList : public Compute
         //! Add an exclusion for every 1,4 pair
         void addOneFourExclusionsFromTopology();
         
+        //! Enable/disable body filtering
+        virtual void setFilterBody(bool filter_body)
+            {
+            m_filter_body = filter_body;
+            }
+        
+        //! Enable/disable diameter filtering
+        virtual void setFilterDiameter(bool filter_diameter)
+            {
+            m_filter_diameter = filter_diameter;
+            }
+        
         // @}
         
         //! Computes the NeighborList if it needs updating
@@ -271,9 +283,10 @@ class NeighborList : public Compute
             }
             
     protected:
-        Scalar m_r_cut; //!< The cuttoff radius
-        Scalar m_r_buff; //!< The buffer around the cuttoff
-        
+        Scalar m_r_cut;             //!< The cuttoff radius
+        Scalar m_r_buff;            //!< The buffer around the cuttoff
+        bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
+        bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
         storageMode m_storage_mode; //!< The storage mode
         
         Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list
