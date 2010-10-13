@@ -75,8 +75,8 @@ using namespace std;
     \post The storage mode defaults to half
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
-    : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_updates(0), m_forced_updates(0), 
-      m_dangerous_updates(0), m_force_update(true)
+    : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
+      m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true)
     {
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)
@@ -812,7 +812,14 @@ void NeighborList::buildNlist(unsigned int timestep)
     // sanity check
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
     
-    if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff) * 2.0 || (box.yhi - box.ylo) <= (m_r_cut+m_r_buff) * 2.0 || (box.zhi - box.zlo) <= (m_r_cut+m_r_buff) * 2.0)
+    // start by creating a temporary copy of r_cut sqaured
+    Scalar rmax = m_r_cut + m_r_buff;
+    // add d_max - 1.0, if diameter filtering is not already taking care of it
+    if (!m_filter_diameter)
+        rmax += m_d_max - Scalar(1.0);
+    Scalar rmaxsq = rmax*rmax;
+    
+    if ((box.xhi - box.xlo) <= (rmax) * 2.0 || (box.yhi - box.ylo) <= (rmax) * 2.0 || (box.zhi - box.zlo) <= (rmax) * 2.0)
         {
         cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
         throw runtime_error("Error updating neighborlist bins");
@@ -824,9 +831,6 @@ void NeighborList::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
     
     // simple algorithm follows:
-    
-    // start by creating a temporary copy of r_cut sqaured
-    Scalar rmaxsq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
     
     // precalculate box lenghts
     Scalar Lx = box.xhi - box.xlo;
@@ -847,6 +851,8 @@ void NeighborList::buildNlist(unsigned int timestep)
         Scalar xi = arrays.x[i];
         Scalar yi = arrays.y[i];
         Scalar zi = arrays.z[i];
+        Scalar di = arrays.diameter[i];
+        unsigned int bodyi = arrays.body[i];
         
         // for each other particle with i < j
         for (unsigned int j = i + 1; j < arrays.nparticles; j++)
@@ -876,10 +882,25 @@ void NeighborList::buildNlist(unsigned int timestep)
             assert(dx >= box.xlo && dx <= box.xhi);
             assert(dy >= box.ylo && dy <= box.yhi);
             assert(dz >= box.zlo && dz <= box.zhi);
+
+            bool excluded = false;
             
+            if (m_filter_body && bodyi != NO_BODY)
+                excluded = (bodyi == arrays.body[j]);
+            
+            Scalar sqshift = Scalar(0.0);
+            if (m_filter_diameter)
+                {
+                // compute the shift in radius to accept neighbors based on their diameters
+                float delta = (di + arrays.diameter[j]) * Scalar(0.5) - Scalar(1.0);
+                // r^2 < (r_max + delta)^2
+                // r^2 < r_maxsq + delta^2 + 2*r_max*delta
+                sqshift = (delta + Scalar(2.0) * rmax) * delta;
+                }
+
             // now compare rsq to rmaxsq and add to the list if it meets the criteria
             Scalar rsq = dx*dx + dy*dy + dz*dz;
-            if (rsq < rmaxsq)
+            if (rsq <= (rmaxsq + sqshift) && !excluded)
                 {
                 if (m_storage_mode == full)
                     {
@@ -1109,6 +1130,9 @@ void export_NeighborList()
                      .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
                      .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
                      .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
+                     .def("setFilterBody", &NeighborList::setFilterBody)
+                     .def("setFilterDiameter", &NeighborList::setFilterDiameter)
+                     .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)
                      ;
