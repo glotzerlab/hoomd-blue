@@ -43,9 +43,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include <limits.h>
-#include <boost/bind.hpp>
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 #include <algorithm>
 
 #include "CellList.h"

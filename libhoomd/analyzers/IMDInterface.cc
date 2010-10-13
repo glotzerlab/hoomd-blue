@@ -52,8 +52,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include <boost/shared_array.hpp>
 #include <boost/python.hpp>
+#include <boost/shared_array.hpp>
 using namespace boost::python;
 using namespace boost;
 
