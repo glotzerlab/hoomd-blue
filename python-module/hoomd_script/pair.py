@@ -391,6 +391,8 @@ class nlist:
     # \param r_buff (if set) changes the buffer radius around the cutoff
     # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list 
     #        needs updating
+    # \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
+    #        run() commands.
     # 
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
     # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -412,6 +414,16 @@ class nlist:
     # moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
     # \b build is counted and printed in the neighbor list statistics at the end of a run().
     #
+    # When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
+    # during the following run() commands (see pair.slj for more information). When using in conjunction with pair.slj, 
+    # pair.slj will 
+    # automatically set \a d_max for the nlist.  This can be overidden (e.g. if multiple potentials using diameters are used) 
+    # by using nlist.set_params() after the 
+    # pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
+    # \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower 
+    # than necessary if 
+    # d_max is greater than 1.0.   
+    #
     # A single global neighbor list is created for the entire simulation. Change parameters by using
     # the built-in variable \b %nlist.
     #
@@ -420,8 +432,9 @@ class nlist:
     # nlist.set_params(r_buff = 0.9)
     # nlist.set_params(check_period = 11)
     # nlist.set_params(r_buff = 0.7, check_period = 4)
+    # nlist.set_params(d_max = 3.0)
     # \endcode
-    def set_params(self, r_buff=None, check_period=None):
+    def set_params(self, r_buff=None, check_period=None, d_max=None):
         util.print_status_line();
         
         if self.cpp_nlist is None:
@@ -435,6 +448,9 @@ class nlist:
             
         if check_period is not None:
             self.cpp_nlist.setEvery(check_period);
+        
+        if d_max is not None:
+            self.cpp_nlist.setMaximumDiameter(d_max);
 
     ## Resets all exclusions in the neighborlist
     #
@@ -451,7 +467,14 @@ class nlist:
     # - \b %bond - Exclude particles that are directly bonded together
     # - \b %angle - Exclude the two outside particles in all defined angles.
     # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
-    # - \b %body - Exclude particles that would be neighbors with others in the same rigid body
+    # - \b %body - Exclude particles that belong to the same body
+    # - \b %diameter - Exclude particles using their diameters to modify r_cut per pair, as pair.slj does. Enabling the
+    #                  \b diameter exclusion does not change which particles interact, but rather offers a potential
+    #                  performance boost by removing uneeded neighbors from the list.
+    #
+    # \note Enabling the \b diameter exclusion is intended for use only with the pair.slj potential. With sufficient
+    #       care in the choice of particle diameters, it may be possible to use it in other situations (such as with
+    #       pair.slj with another pair potential added on), but this is only recommended for advanced users.
     #
     # The following types are determined solely by the bond topology. Every chain of particles in the simulation 
     # connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
@@ -459,10 +482,6 @@ class nlist:
     # - \b 1-2  - Same as bond
     # - \b 1-3  - Exclude particles connected with a sequence of two bonds.
     # - \b 1-4  - Exclude particles connected with a sequence of three bonds.
-    #
-    # \b WARNING: 
-    # 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
-    # atom and even 1-3 exclusions can reach that limit in branched molecules.
     #
     # \b Examples:
     # \code 
@@ -482,6 +501,8 @@ class nlist:
         
         # clear all of the existing exclusions
         self.cpp_nlist.clearExclusions();
+        self.cpp_nlist.setFilterBody(False);
+        self.cpp_nlist.setFilterDiameter(False);
         
         if exclusions is None:
             # confirm that no exclusions are left.
@@ -501,6 +522,14 @@ class nlist:
             self.cpp_nlist.addExclusionsFromDihedrals();
             exclusions.remove('dihedral');
         
+        if 'body' in exclusions:
+            self.cpp_nlist.setFilterBody(True);
+            exclusions.remove('body');
+        
+        if 'diameter' in exclusions:
+            self.cpp_nlist.setFilterDiameter(True);
+            exclusions.remove('diameter');
+        
         # exclusions given in 1-2/1-3/1-4 notation.
         if '1-2' in exclusions:
             self.cpp_nlist.addExclusionsFromBonds();
@@ -513,12 +542,6 @@ class nlist:
         if '1-4' in exclusions:
             self.cpp_nlist.addOneFourExclusionsFromTopology();
             exclusions.remove('1-4');
-        
-        if 'body' in exclusions:
-            self.cpp_nlist.setExcludeSameBody(True);
-            exclusions.remove('body');
-        else:
-            self.cpp_nlist.setExcludeSameBody(False);
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:
@@ -929,7 +952,7 @@ class gauss(pair):
 #    \f}
 #    where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
 #
-# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see hoomd_script.pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
@@ -941,7 +964,7 @@ class gauss(pair):
 #
 # pair.slj is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
 # description of the various options.
-#\note Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of xplor is not supported.
+# \note Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of xplor is not supported.
 #
 # \b Example:
 # \code
@@ -953,8 +976,17 @@ class gauss(pair):
 # The cutoff radius \a r_cut passed into the initial pair.slj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials. pair.slj adds an extra term to the maximum r_cut, determined by the 
-# maximum diameter set by the user in \a d_max.
+# %pair parameters among all %pair potentials. 
+#
+# The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine 
+# the maximum possible actual r_cut in simulation
+# pair.slj must know the maximum diameter of all the particles over the entire run, or \a d_max .
+# This value is either determined automatically from the initialization or can be set by the user and can be modified between runs with the
+# command nlist.set_params(). In most cases, the correct value can be identified automatically (see __init__()).
+#
+# When using pair.slj, you may obtain considerably better performance when diameter exclusions are enabled for the neighbor list:
+# nlist.reset_exclusions(['diameter', ...your other exclusions...])
+# See nlist.reset_exclusions() for more details.
 #
 class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
@@ -964,11 +996,12 @@ class slj(pair):
     # \param d_max Maximum diameter particles in the simulation will have
     #
     # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
-    # run() commands. If not specified, slj will set d_max to the largest diameter in particle data at the time it is initialized
+    # run() commands. If not specified, slj will set d_max to the largest diameter in particle data at the time it is initialized.
+    #
     # If particle diameters change after initialization, it is \b imperative that \a d_max be the largest
-    # diameter that any particle will attain at any time during the following run() command. If \a d_max is smaller
+    # diameter that any particle will attain at any time during the following run() commands. If \a d_max is smaller
     # than it should be, some particles will effectively have a smaller value of \a r_cut then was set and the
-    # simulation will be incorrect. \a d_max can be changed between runs by calling set_params().
+    # simulation will be incorrect. \a d_max can be changed between runs by calling nlist.set_params().
     #
     # \b Example:
     # \code
@@ -991,13 +1024,12 @@ class slj(pair):
         # update the neighbor list
         if d_max is None :
             sysdef = globals.system_definition;
-            self.d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
-            print "slj internally setting d_max to", self.d_max
-        else:    
-            self.d_max = d_max;
+            d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
+            print "Notice: slj set d_max=", d_max
                         
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*(self.get_max_rcut() + self.d_max - 1.0))
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut());
+        neighbor_list.cpp_nlist.setMaximumDiameter(d_max);
         
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -1025,7 +1057,6 @@ class slj(pair):
     ## Set parameters controlling the way forces are computed
     #
     # \param mode (if set) Set the mode with which potentials are handled at the cutoff
-    # \param d_max (if set) Set the new maximum particle diameter in the system
     #
     # valid values for \a mode are: "none" (the default), "shift", and "xplor"
     #  - \b none - No shifting is performed and potentials are abruptly cut off
@@ -1037,10 +1068,9 @@ class slj(pair):
     # \code
     # slj.set_params(mode="shift")
     # slj.set_params(mode="no_shift")
-    # slj.set_params(d_max = 3.0)
     # \endcode
     # 
-    def set_params(self, mode=None, d_max=None):
+    def set_params(self, mode=None):
         util.print_status_line();
         
         if mode == "xplor":
@@ -1048,9 +1078,6 @@ class slj(pair):
             raise RuntimeError("Error changing parameters in pair force");
         
         pair.set_params(self, mode=mode);
-        
-        if d_max is not None:
-            self.d_max = d_max;
 
 ## Yukawa %pair %force
 #
@@ -1710,4 +1737,66 @@ class dpd_conservative(pair):
     def set_params(self, coeff):
         raise RuntimeError('Not implemented for DPD Conservative');
         return;
+
+## EAM %pair %force
+#
+# The command pair.eam specifies that the EAM (embedded atom method) %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# No coefficients need to be set for pair.eam. All specifications, including the cutoff radius, form of the potential,
+# etc. are read in from the specified file. 
+#
+# Particle type names must match those referenced in the EAM potential file.
+#
+# Two file formats are supported: \em Alloy and \em FS. They are described in LAMMPS documentation 
+# (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
+# and are also described here: http://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
+#
+class eam(force._force):
+    ## Specify the EAM %pair %force
+    #
+    # \param file Filename with potential tables in Alloy or FS format
+    # \param type Type of file potential ('Alloy', 'FS')
+    # \b Example:
+    # \code
+    # eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
+    # \endcode
+    def __init__(self, file, type):
+        util.print_status_line();
+        
+        # initialize the base class
+        force._force.__init__(self);
+        # Translate type 
+        if(type == 'Alloy'): type_of_file = 0;
+        elif(type == 'FS'): type_of_file = 1;
+        else: raise RuntimeError('Unknown EAM input file type');
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, file, type_of_file);
+            #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list. 
+            r_cut_new = self.cpp_force.get_r_cut();
+            neighbor_list = _update_global_nlist(r_cut_new);
+            neighbor_list.subscribe(lambda: r_cut_new);
+            #Load neighbor list to compute.
+            self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
+        else:
+            self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, file, type_of_file);
+            self.cpp_force.setBlockSize(64);
+            #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
+            r_cut_new = self.cpp_force.get_r_cut();
+            neighbor_list = _update_global_nlist(r_cut_new);
+            neighbor_list.subscribe(lambda: r_cut_new);
+            #Load neighbor list to compute.
+            self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+
+        print "Set r_cut = ",r_cut_new, " from potential`s file '", file , "'.\n";
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        self.pair_coeff = coeff();
+        
+    def update_coeffs(self):
+        # check that the pair coefficents are valid
+        pass;
 

@@ -80,11 +80,21 @@ class NeighborListGPUBinned : public NeighborListGPU
             {
             m_block_size = block_size;
             }
-    
+        
+        //! Set the maximum diameter to use in computing neighbor lists
+        virtual void setMaximumDiameter(Scalar d_max);
+
+        //! Enable/disable body filtering
+        virtual void setFilterBody(bool filter_body);
+        
+        //! Enable/disable diameter filtering
+        virtual void setFilterDiameter(bool filter_diameter);
+
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list
         cudaArray *dca_cell_adj;            //!< CUDA array for tex2D access to d_cell_adj
         cudaArray *dca_cell_xyzf;           //!< CUDA array for tex2D access to d_cell_xyzf
+        cudaArray *dca_cell_tdb;            //!< CUDA array for tex2D access to d_cell_tdb
         uint3 m_last_dim;                   //!< The last dimensions allocated for the cell list tex2D arrays
         unsigned int m_last_cell_Nmax;      //!< The last Nmax allocated for the cell list tex2D arrays
         unsigned int m_block_size;          //!< Block size to execute on the GPU

@@ -84,7 +84,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #define SARU(ix,iy,iz) SaruGPU saru( (ix) , (iy) , (iz) )
 #else
-#define SARU(ix, iy, iz) Saru saru( (ix) , (iy) , (iz))
+#define SARU(ix, iy, iz) Saru saru( (ix) , (iy) , (iz) )
 #endif
 
 // use different Saru PRNG returns on the host / device
@@ -246,28 +246,21 @@ class EvaluatorPairDPDThermo
 
                 // force calculation
                 
+                unsigned int m_oi, m_oj;
                 // initialize the RNG
-                
-                // Mix the two indices to generate a third indice using the Cantor Pairing Function, a primitive 
-                // recursive bijection that maps two natural numbers to a third unique natural number.  This method will
-                // start to overflow the 32-bit integer around i, j ~ 46,000.  Note, that given
-                // the limited size of integer that can be held in a GPU/CPU, how the GPU/CPU handles overflow is important.
-                // Per the ANSI.C spec.  "A computation involving unsigned operands can never overflow, because a result
-                // that cannot be represented by the resulting unsigned integer type is reduced modulo the number that is
-                // one greater than the largest value that can be represented by the resulting unsigned integer type"
-                // We also assess the the possibility of collision  (e.g. i1, j1 map to same as i2 j2, assuming the unsigned
-                // integers wrap) on any given timestep is slim for systems where the number of particles contained in
-                // a sphere of r_cut is a small percent of the entire system.  Also, the larger the number of particles 
-                // within r_cut, the less the impact of a "collision". 
-                
-                unsigned int mixij = ((m_i + m_j)*(m_i + m_j + 1))/2;  //needs final term
-
                 if (m_i > m_j)
-                    mixij += m_j;
-                else    
-                    mixij += m_i;
+                   {
+                   m_oi = m_j;
+                   m_oj = m_i;
+                   }    
+                else
+                   {
+                   m_oi = m_i;
+                   m_oj = m_j;
+                   }                  
+                    
+                SARU(m_oi, m_oj, m_seed + m_timestep);
                 
-                SARU(mixij, m_seed, m_timestep);
                 
                 // Generate a single random number
                 Scalar alpha = CALL_SARU(-1,1) ;
