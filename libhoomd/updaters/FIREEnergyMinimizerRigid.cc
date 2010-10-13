@@ -157,7 +157,9 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     Scalar fnorm(0.0), tnorm(0.0);
     
     // The energy minimized is currently the system potential energy
-    Scalar energy = computePotentialEnergy(timestep) / m_nparticles;
+    throw std::runtime_error("Error: FIRE rigid needs to be fixed");
+    //Scalar energy = computePotentialEnergy(timestep) / m_nparticles;
+    Scalar energy = 0.0;
 
     if (m_was_reset)
         {
