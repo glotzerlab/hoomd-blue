@@ -140,6 +140,10 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     if (m_converged)
         return;
     
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+        
     IntegratorTwoStep::update(timestep);
     
     if (timestep % m_nevery != 0)
@@ -156,11 +160,23 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     Scalar vnorm(0.0), wnorm(0.0);
     Scalar fnorm(0.0), tnorm(0.0);
     
-    // The energy minimized is currently the system potential energy
-    throw std::runtime_error("Error: FIRE rigid needs to be fixed");
-    //Scalar energy = computePotentialEnergy(timestep) / m_nparticles;
+    // Calculate the per-particle potential energy over particles in the group
     Scalar energy = 0.0;
+    
+    {
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
+    // total potential energy 
+    double pe_total = 0.0;
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        pe_total += (double)h_net_force.data[j].w;
+        }
+    energy = pe_total/Scalar(group_size);    
+    }
+    
     if (m_was_reset)
         {
         m_was_reset = false;
