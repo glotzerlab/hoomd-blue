@@ -288,7 +288,7 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     akin_t = akin_r = 0.0;
     
     // now we can get on with the velocity verlet: initial integration
-    
+    {
     // rigid data handles
     ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
@@ -416,7 +416,8 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
                   
         }
-
+    }
+    
     // update thermostat chain
     update_nhcp(akin_t, akin_r, timestep);    
     

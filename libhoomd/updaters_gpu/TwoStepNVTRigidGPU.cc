@@ -189,7 +189,6 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_nvt_rdata.n_bodies = d_rdata.n_bodies;
     d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
     d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
-    
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
@@ -258,7 +257,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
         
     Scalar Ksum_t = Ksum_t_handle.data[0];
     Scalar Ksum_r = Ksum_r_handle.data[0];
-    update_nhcp(Ksum_t, Ksum_r, m_deltaT);
+    update_nhcp(Ksum_t, Ksum_r, timestep);
     }
 
     // profile this step
