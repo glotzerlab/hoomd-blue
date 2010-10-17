@@ -78,7 +78,7 @@ TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P,
                        bool skip_restart)
-    : TwoStepNVERigid(sysdef, group, skip_restart), m_thermo_group(thermo_group), m_thermo_all(thermo_all), m_partial_scale(false), m_temperature(T), m_pressure(P)
+    : TwoStepNVERigid(sysdef, group, true), m_thermo_group(thermo_group), m_thermo_all(thermo_all), m_partial_scale(false), m_temperature(T), m_pressure(P)
     {
     if (tau <= 0.0)
         cout << "***Warning! tau set less than or equal 0.0 in TwoStepNPTRigid" << endl;
@@ -326,6 +326,7 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     akin_t = akin_r = 0.0;
 
     // rigid data handles
+    {
     ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
@@ -492,6 +493,7 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
 
         }
+    }
     
     // remap coordinates and box using dilation
 
@@ -503,7 +505,6 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
 
     // set positions and velocities of particles in rigid bodies
     set_xv(timestep);
-    
     
     if (m_prof)
         m_prof->pop();
@@ -532,7 +533,8 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     
     dt_half = 0.5 * m_deltaT;
     
-    // rigid data handes
+    // rigid data handles
+    {
     ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
@@ -602,6 +604,7 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
                   + angmom_handle.data[body].y * angvel_handle.data[body].y
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
         }
+    }
         
     // set velocities of particles in rigid bodies
     set_v(timestep);

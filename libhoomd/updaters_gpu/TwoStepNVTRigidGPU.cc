@@ -70,8 +70,9 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
                              boost::shared_ptr<ParticleGroup> group,
                              boost::shared_ptr<ComputeThermo> thermo,  
                              boost::shared_ptr<Variant> T,
-                             Scalar tau)
-    : TwoStepNVTRigid(sysdef, group, thermo, T, tau)
+                             Scalar tau,
+                             bool skip_restart)
+    : TwoStepNVTRigid(sysdef, group, thermo, T, tau, skip_restart)
     {
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
@@ -114,9 +115,6 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
     
-    // access to the force and virial
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVT rigid step 1");
@@ -124,6 +122,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
@@ -221,10 +220,6 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
         
-    // access to the force and virial
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
-    
     // phase 1, reduce to find the final Ksum_t and Ksum_r
     {
     if (m_prof)
@@ -266,6 +261,8 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
+    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);

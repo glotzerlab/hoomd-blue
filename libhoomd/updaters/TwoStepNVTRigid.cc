@@ -69,7 +69,7 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<Variant> T,
                                  Scalar tau,
                                  bool skip_restart) 
-: TwoStepNVERigid(sysdef, group, skip_restart), m_thermo(thermo), m_temperature(T)
+: TwoStepNVERigid(sysdef, group, true), m_thermo(thermo), m_temperature(T)
     {
     if (tau <= 0.0)
         cout << "***Warning! tau set less than or equal to 0.0 in TwoStepNVTRigid." << endl;
@@ -287,9 +287,8 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     
     akin_t = akin_r = 0.0;
     
-    // now we can get on with the velocity verlet: initial integration
-    {
     // rigid data handles
+    {
     ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
@@ -447,7 +446,8 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
     
     dt_half = 0.5 * m_deltaT;
     
-    // rigid data handes
+    // rigid data handles
+    {
     ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
@@ -503,7 +503,8 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
         
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body], ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
         }
-               
+    }
+    
     // set velocities of particles in rigid bodies
     set_v(timestep);
     
@@ -520,8 +521,6 @@ void TwoStepNVTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int tim
     kt = boltz * m_temperature->getValue(timestep);
     gfkt_t = nf_t * kt;
     gfkt_r = nf_r * kt;
-    
-    {
     
     ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
@@ -629,13 +628,12 @@ void TwoStepNVTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int tim
             }
         }
         
-        IntegratorVariables v = getIntegratorVariables();
-        v.variable[0] = eta_t_handle.data[0];
-        v.variable[1] = eta_r_handle.data[0];
-        v.variable[2] = eta_dot_r_handle.data[0];
-        v.variable[3] = eta_dot_t_handle.data[0];
-        setIntegratorVariables(v);
-    } // end of scope for handles
+    IntegratorVariables v = getIntegratorVariables();
+    v.variable[0] = eta_t_handle.data[0];
+    v.variable[1] = eta_r_handle.data[0];
+    v.variable[2] = eta_dot_r_handle.data[0];
+    v.variable[3] = eta_dot_t_handle.data[0];
+    setIntegratorVariables(v);
         
     }
 
