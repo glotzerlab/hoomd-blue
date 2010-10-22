@@ -70,7 +70,7 @@ endif (ENABLE_STATIC)
 
 # install the library
 install(TARGETS libhoomd
-        LIBRARY DESTINATION ${LIB_INSTALL_DIR}/python-module
+        LIBRARY DESTINATION ${HOOMD_PYTHON_MODULE_DIR}
         ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR}
         )
 
