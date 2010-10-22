@@ -148,4 +148,4 @@ if (PYTHON_SITEDIR)
 else (PYTHON_SITEDIR)
     set(HOOMD_PYTHON_MODULE_DIR ${LIB_INSTALL_DIR}/python-module)
 endif (PYTHON_SITEDIR)
-
+mark_as_advanced(PYTHON_SITEDIR)
