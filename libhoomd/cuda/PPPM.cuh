@@ -29,8 +29,10 @@ struct electrostatics_data
 	float kappa;
 	float* CPU_rho_coeff;
 	float3* cuda_thermo_quantities;
+        float *gf_b;
 	float3* vg; //for k-space virials
 	float CPU_energy_virial_factor;
+        float q2;
 	int show_virial_flag;
 	
 // 	//just for CPU charge assignment:
