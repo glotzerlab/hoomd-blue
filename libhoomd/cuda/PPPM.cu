@@ -941,7 +941,7 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
     int new_blocksize = 256;
     int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
     
-    if(fabs(CPU_box.Lx - CPU_box_old.Lx) > 0.00001 || fabs(CPU_box.Ly - CPU_box_old.Ly) > 0.00001 || fabs(CPU_box.Lz - CPU_box_old.Lz) > 0.00001 || 1) {
+    if(fabs(CPU_box.Lx - CPU_box_old.Lx) > 0.00001 || fabs(CPU_box.Ly - CPU_box_old.Ly) > 0.00001 || fabs(CPU_box.Lz - CPU_box_old.Lz) > 0.00001) {
       	
 	float temp = floor(((es_data.kappa*CPU_box.Lx/(M_PI*es_data.Nx)) *  pow(-log(EPS_HOC),0.25)));
 	int nbx = (int)temp;
