@@ -145,13 +145,14 @@ class xml(analyze._analyzer):
                    angle=None,
                    dihedral=None,
                    improper=None,
-                   acceleration=None):
+                   acceleration=None,
+                   charge=None):
         util.print_status_line();
         self.check_initialization();
         
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
-            acceleration = True;
+            acceleration = charge = True;
 
         if position is not None:
             self.cpp_analyzer.setOutputPosition(position);
@@ -189,7 +190,9 @@ class xml(analyze._analyzer):
         if acceleration is not None:
             self.cpp_analyzer.setOutputAccel(acceleration);
             
-    ## Write a file at the current time step
+        if charge is not None:
+            self.cpp_analyzer.setOutputCharge(charge);
+   ## Write a file at the current time step
     #
     # \param filename File name to write to
     #
