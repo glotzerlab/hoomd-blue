@@ -367,8 +367,9 @@ __global__ void reset_kvec_green_hat(gpu_boxsize box, int Nx, int Ny, int Nz, in
 	int yn = (tid - xn*N2)/Nz;
 	int zn = (tid - xn*N2 - yn*Nz);
 
-	float invdet = 2.0f*M_PI/(box.Lx*box.Lz*box.Lz);
+	float invdet = 6.28318531f/(box.Lx*box.Lz*box.Lz);
 	float3 inverse_lattice_vector, j;
+	float kappa2 = kappa*kappa;
 
 	inverse_lattice_vector.x = invdet*box.Ly*box.Lz;
 	inverse_lattice_vector.y = invdet*box.Lx*box.Lz;
@@ -388,15 +389,15 @@ __global__ void reset_kvec_green_hat(gpu_boxsize box, int Nx, int Ny, int Nz, in
 	    vg[tid].z = 0.0f;
 	}
 	else {
-	    float vterm = -2.0f * (1.0f/sqk + 0.25f/(kappa*kappa));
+	    float vterm = (-2.0f/sqk - 0.5f/kappa2);
 	    vg[tid].x = 1.0+vterm*kvec_array[tid].x*kvec_array[tid].x;
 	    vg[tid].y = 1.0+vterm*kvec_array[tid].y*kvec_array[tid].y;
 	    vg[tid].z = 1.0+vterm*kvec_array[tid].z*kvec_array[tid].z;
 	}
 
-	float unitkx = (2.0*M_PI/box.Lx);
-	float unitky = (2.0*M_PI/box.Ly);
-	float unitkz = (2.0*M_PI/box.Lz);
+	float unitkx = (6.28318531f/box.Lx);
+	float unitky = (6.28318531f/box.Ly);
+	float unitkz = (6.28318531f/box.Lz);
 	int ix, iy, iz, kper, lper, mper;
 	float snx, sny, snz, snx2, sny2, snz2;
 	float argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
@@ -404,17 +405,17 @@ __global__ void reset_kvec_green_hat(gpu_boxsize box, int Nx, int Ny, int Nz, in
 	float numerator, denominator;
 
 	mper = zn - Nz*(2*zn/Nz);
-	snz = sin(0.5*unitkz*mper*box.Lz/Nz);
+	snz = sinf(0.5*unitkz*mper*box.Lz/Nz);
 	snz2 = snz*snz;
 
 	lper = yn - Ny*(2*yn/Ny);
-	sny = sin(0.5*unitky*lper*box.Ly/Ny);
+	sny = sinf(0.5*unitky*lper*box.Ly/Ny);
 	sny2 = sny*sny;
 
 	kper = xn - Nx*(2*xn/Nx);
-	snx = sin(0.5*unitkx*kper*box.Lx/Nx);
+	snx = sinf(0.5*unitkx*kper*box.Lx/Nx);
 	snx2 = snx*snx;
-	sqk = pow(unitkx*kper,2.0f) + pow(unitky*lper,2.0f) +  pow(unitkz*mper,2.0f);
+	sqk = unitkx*kper*unitkx*kper + unitky*lper*unitky*lper + unitkz*mper*unitkz*mper;
 
 
 	int l;
@@ -427,31 +428,33 @@ __global__ void reset_kvec_green_hat(gpu_boxsize box, int Nx, int Ny, int Nz, in
 	denominator = sx*sy*sz;
 	denominator *= denominator;
 
+	float W;
 	if (sqk != 0.0) {
 	    numerator = 12.5663706f/sqk;
 	    sum1 = 0.0;
 	    for (ix = -nbx; ix <= nbx; ix++) {
 		qx = unitkx*(kper+(float)(Nx*ix));
-		sx = exp(-.25f*pow(qx/kappa,2.0f));
+		sx = expf(-.25f*qx*qx/kappa2);
 		wx = 1.0f;
 		argx = 0.5f*qx*box.Lx/(float)Nx;
-		if (argx != 0.0) wx = pow(sin(argx)/argx,order);
+		if (argx != 0.0) wx = powf(sinf(argx)/argx,order);
 		for (iy = -nby; iy <= nby; iy++) {
 		    qy = unitky*(lper+(float)(Ny*iy));
-		    sy = exp(-.25f*pow(qy/kappa,2.0f));
+		    sy = expf(-.25f*qy*qy/kappa2);
 		    wy = 1.0f;
 		    argy = 0.5f*qy*box.Ly/(float)Ny;
-		    if (argy != 0.0) wy = pow(sin(argy)/argy,order);
+		    if (argy != 0.0) wy = powf(sinf(argy)/argy,order);
 		    for (iz = -nbz; iz <= nbz; iz++) {
 			qz = unitkz*(mper+(float)(Nz*iz));
-			sz = exp(-.25f*pow(qz/kappa,2.0f));
+			sz = expf(-.25f*qz*qz/kappa2);
 			wz = 1.0f;
 			argz = 0.5f*qz*box.Lz/(float)Nz;
-			if (argz != 0.0) wz = pow(sin(argz)/argz,order);
+			if (argz != 0.0) wz = powf(sinf(argz)/argz,order);
 
 			dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
 			dot2 = qx*qx+qy*qy+qz*qz;
-			sum1 += (dot1/dot2) * sx*sy*sz * pow(wx*wy*wz,2.0f);
+			W = wx*wy*wz;
+			sum1 += (dot1/dot2) * sx*sy*sz * W*W;
 		    }
 		}
 	    }
@@ -765,11 +768,11 @@ float3 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxs
     if(es_data.electrostatics_allocation_bool)
     {
 	//kernel calling parameters for all grid dependent kernels
-	int new_blockzise = 512;
-	int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blockzise + 1;
+	int new_blocksize = 256;
+	int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
       
 	// setup the grid to run the kernel
-	int blocksize = 512;
+	int blocksize = 256;
 	dim3 grid( pdata.N / blocksize + 1, 1, 1);
 	dim3 threads(blocksize, 1, 1);
 
@@ -818,7 +821,7 @@ float3 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxs
 	
 	CPU_virial_energy.y -= CPU_virial_energy.z * es_data.kappa / sqrt(M_PI);
 
-	set_to_zero <<< new_gridsize , new_blockzise >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
+	set_to_zero <<< new_gridsize , new_blocksize >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
 	cudaThreadSynchronize();  
 	return CPU_virial_energy;
 	
@@ -832,7 +835,7 @@ float3 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxs
 void electrostatics_calculation(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const float3 *d_params, const float *d_rcutsq)
 {
     //first time allocation of memory-------------------------------------
-    int blocksize = 512;
+    int blocksize = 256;
     dim3 grid( pdata.N / blocksize + 1, 1, 1);
     dim3 threads(blocksize, 1, 1);
 
@@ -926,19 +929,19 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
      
       
 	printf("allocation for electrostatics done... \n");
-	int new_blockzise = 512;
-	int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blockzise + 1;
+	int new_blocksize = 256;
+	int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
 	//only for the first time needed, next time it is done in function new_combined_green_e_kernel
-	set_to_zero <<< new_gridsize , new_blockzise >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
+	set_to_zero <<< new_gridsize , new_blocksize >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
 	cudaThreadSynchronize();  
      
     }
 
     //kernel calling parameters for all grid dependent kernels
-    int new_blockzise = 512;
-    int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blockzise + 1;
+    int new_blocksize = 256;
+    int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
     
-    if(fabs(CPU_box.Lx - CPU_box_old.Lx) > 0.00001 || fabs(CPU_box.Ly - CPU_box_old.Ly) > 0.00001 || fabs(CPU_box.Lz - CPU_box_old.Lz) > 0.00001) {
+    if(fabs(CPU_box.Lx - CPU_box_old.Lx) > 0.00001 || fabs(CPU_box.Ly - CPU_box_old.Ly) > 0.00001 || fabs(CPU_box.Lz - CPU_box_old.Lz) > 0.00001 || 1) {
       	
 	float temp = floor(((es_data.kappa*CPU_box.Lx/(M_PI*es_data.Nx)) *  pow(-log(EPS_HOC),0.25)));
 	int nbx = (int)temp;
@@ -947,7 +950,7 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
 	temp =  floor(((es_data.kappa*CPU_box.Lz/(M_PI*es_data.Nz)) *  pow(-log(EPS_HOC),0.25)));
 	int nbz = (int)temp;
 
-	reset_kvec_green_hat <<< new_gridsize, new_blockzise >>>(box, es_data.Nx, es_data.Ny, es_data.Nz, es_data.interpolation_order, es_data.kappa, es_data.GPU_k_vec, es_data.GPU_green_hat, es_data.vg, nbx, nby, nbz, es_data.gf_b);
+	reset_kvec_green_hat <<< new_gridsize, new_blocksize >>>(box, es_data.Nx, es_data.Ny, es_data.Nz, es_data.interpolation_order, es_data.kappa, es_data.GPU_k_vec, es_data.GPU_green_hat, es_data.vg, nbx, nby, nbz, es_data.gf_b);
 	cudaThreadSynchronize();
 	CPU_box_old.Lx = CPU_box.Lx;
 	CPU_box_old.Ly = CPU_box.Ly;
@@ -955,6 +958,7 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
 	float scale = 1.0f/((float)(es_data.Nx * es_data.Ny * es_data.Nz));
 	es_data.CPU_energy_virial_factor = 0.5 * CPU_box.Lx * CPU_box.Ly * CPU_box.Lz * scale * scale;
     }
+
     // setup the grid to run the particle kernel 
     
     
@@ -976,7 +980,7 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
     cufftExecC2C(es_data.plan, es_data.GPU_rho_real_space, es_data.GPU_rho_real_space, CUFFT_FORWARD);
     cudaThreadSynchronize();
     
-    combined_green_e_kernel <<< new_gridsize, new_blockzise >>> (es_data.GPU_E_x, es_data.GPU_E_y, es_data.GPU_E_z, es_data.GPU_k_vec, es_data.GPU_rho_real_space,  es_data.Nx, es_data.Ny, es_data.Nz, es_data.GPU_green_hat);
+    combined_green_e_kernel <<< new_gridsize, new_blocksize >>> (es_data.GPU_E_x, es_data.GPU_E_y, es_data.GPU_E_z, es_data.GPU_k_vec, es_data.GPU_rho_real_space,  es_data.Nx, es_data.Ny, es_data.Nz, es_data.GPU_green_hat);
        
 
     //backtransform field:
@@ -985,7 +989,7 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
     cufftExecC2C(es_data.plan, es_data.GPU_E_z, es_data.GPU_E_z, CUFFT_INVERSE);
     
     //put field into float3 array
-    set_gpu_field_kernel <<< new_gridsize, new_blockzise >>> (es_data.GPU_E_x, es_data.GPU_E_y, es_data.GPU_E_z, es_data.GPU_field, es_data.Nx, es_data.Ny, es_data.Nz);
+    set_gpu_field_kernel <<< new_gridsize, new_blocksize >>> (es_data.GPU_E_x, es_data.GPU_E_y, es_data.GPU_E_z, es_data.GPU_field, es_data.Nx, es_data.Ny, es_data.Nz);
     cudaThreadSynchronize();
     //calculate forces on particles:
     calculate_forces_kernel <<< grid, threads >>>(force_data, pdata, box, es_data.GPU_field, es_data.Nx, es_data.Ny, es_data.Nz, es_data.interpolation_order);
