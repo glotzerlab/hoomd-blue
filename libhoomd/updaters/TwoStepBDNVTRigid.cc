@@ -213,7 +213,12 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         vel_handle.data[body].x += dtfm * force_handle.data[body].x;
         vel_handle.data[body].y += dtfm * force_handle.data[body].y;
         vel_handle.data[body].z += dtfm * force_handle.data[body].z;
-        
+
+        angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
+        angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
+        angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
+
+        /*
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
         quat_multiply(orientation_handle.data[body], tbody, fquat);
         
@@ -227,7 +232,7 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         
         angmom_handle.data[body].x *= 0.5;
         angmom_handle.data[body].y *= 0.5;
-        angmom_handle.data[body].z *= 0.5;
+        angmom_handle.data[body].z *= 0.5;*/
         
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
                                ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
