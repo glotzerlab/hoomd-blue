@@ -606,19 +606,45 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
 */
 unsigned int TwoStepNVERigid::getNDOF(boost::shared_ptr<ParticleGroup> query_group)
     {
-    ArrayHandle<unsigned int> body_dof_handle(m_rigid_data->getBodyDOF(), access_location::host, access_mode::read);
-       
+     ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+     
     // count the number of particles both in query_group and m_group
     boost::shared_ptr<ParticleGroup> intersect_particles = ParticleGroup::groupIntersection(m_group, query_group);
     
     RigidBodyGroup intersect_bodies(m_sysdef, intersect_particles);
     
+    // Counting body DOF: 
+    // 3D systems: a body has 6 DOF by default, subtracted by the number of zero moments of inertia
+    // 2D systems: a body has 3 DOF by default
     unsigned int query_group_dof = 0;
+    unsigned int dimension = m_sysdef->getNDimensions();
+    unsigned int dof_one;
     for (unsigned int group_idx = 0; group_idx < intersect_bodies.getNumMembers(); group_idx++)
         {
         unsigned int body = intersect_bodies.getMemberIndex(group_idx);
         if (m_body_group->isMember(body))
-            query_group_dof += body_dof_handle.data[body];
+            {
+            if (dimension == 3)
+                {
+                dof_one = 6;
+                if (moment_inertia_handle.data[body].x == 0.0)
+                    dof_one--;
+                
+                if (moment_inertia_handle.data[body].y == 0.0)
+                    dof_one--;
+                
+                if (moment_inertia_handle.data[body].z == 0.0)
+                    dof_one--;
+                }
+            else 
+                {
+                dof_one = 3;
+                if (moment_inertia_handle.data[body].z == 0.0)
+                    dof_one--;
+                }
+            
+            query_group_dof += dof_one;
+            }
         }
     
     return query_group_dof;  

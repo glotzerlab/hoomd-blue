@@ -698,13 +698,16 @@ void TwoStepNPTRigid::remap()
     box.yhi = (oldhi - ctr) * dilation + ctr;
     Ly = box.yhi - box.ylo;
     
-    oldlo = box.zlo;
-    oldhi = box.zhi;
-    ctr = 0.5 * (oldlo + oldhi);
-    box.zlo = (oldlo - ctr) * dilation + ctr;
-    box.zhi = (oldhi - ctr) * dilation + ctr;
-    Lz = box.zhi - box.zlo;
-    
+    if (dimension == 3)
+        {
+        oldlo = box.zlo;
+        oldhi = box.zhi;
+        ctr = 0.5 * (oldlo + oldhi);
+        box.zlo = (oldlo - ctr) * dilation + ctr;
+        box.zhi = (oldhi - ctr) * dilation + ctr;
+        Lz = box.zhi - box.zlo;
+        }
+        
     m_pdata->setBox(BoxDim(Lx, Ly, Lz));
     
     // convert rigid body COMs back to box coords

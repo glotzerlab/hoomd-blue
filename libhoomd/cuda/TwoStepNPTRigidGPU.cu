@@ -178,6 +178,7 @@ extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
             yhi = box.Ly/2.0f;
             zlo = -box.Lz/2.0f;
             zhi = box.Lz/2.0f;
+            Lz = zhi - zlo;
             
             float4 com = tex1Dfetch(rigid_data_com_tex, idx_body);
             
@@ -204,12 +205,15 @@ extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
             yhi = (oldhi - ctr) * dilation + ctr;
             Ly = yhi - ylo;
             
-            oldlo = zlo;
-            oldhi = zhi;
-            ctr = 0.5f * (oldlo + oldhi);
-            zlo = (oldlo - ctr) * dilation + ctr;
-            zhi = (oldhi - ctr) * dilation + ctr;
-            Lz = zhi - zlo;
+            if (npt_rdata.dimension == 3)
+                {
+                oldlo = zlo;
+                oldhi = zhi;
+                ctr = 0.5f * (oldlo + oldhi);
+                zlo = (oldlo - ctr) * dilation + ctr;
+                zhi = (oldhi - ctr) * dilation + ctr;
+                Lz = zhi - zlo;
+                }
             
             // convert rigid body COMs back to box coords
             float4 newboxlo;
