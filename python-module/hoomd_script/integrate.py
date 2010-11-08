@@ -814,7 +814,7 @@ class mode_minimize_fire(_integrator):
     # \param falpha Factor to decrease \f$ \alpha t \f$ by 
     #   - <i>optional</i>: defaults to 0.99
     # \param ftol force convergence criteria 
-    #   - <i>optional</i>: defaults to 1e-5
+    #   - <i>optional</i>: defaults to 1e-1
     # \param Etol energy convergence criteria 
     #   - <i>optional</i>: defaults to 1e-5
     # \param min_steps A minimum number of attempts before convergence criteria are considered 
