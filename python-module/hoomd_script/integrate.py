@@ -1080,18 +1080,18 @@ class npt_rigid(_integration_method):
 # \f$\Delta t \f$ is increased by \f$ \Delta t \rightarrow max(\Delta t * f_{inc}, \Delta t_{max}) \f$.
 # If the energy of the system increases (or stays the same), the velocity of the particles is set to 0,
 # \f$ \alpha \rightarrow \alpha_{start}\f$ and
-# \f$ \Delta t \rightarrow \Delta t * f_{dec} \f$.  Convergence is determined by either the force per particle or the 
-# change in energy per particle dropping below \a ftol or \a Etol, respectively or,
+# \f$ \Delta t \rightarrow \Delta t * f_{dec} \f$.  Convergence is determined by both the force per particle or the 
+# change in energy per particle dropping below \a ftol and \a Etol, respectively or,
 # 
-# \f[ \frac{\sum |F|}{N*\sqrt{N_{dof}}} <ftol \;\; or \;\; \Delta \frac{\sum |E|}{N} < Etol  \f]
-# where N is the number of particles the minimization is acting over (i.e. the group size).
+# \f[ \frac{\sum |F|}{N*\sqrt{N_{dof}}} <ftol \;\; and \;\; \Delta \frac{\sum |E|}{N} < Etol  \f]
+# where N is the number of particles the minimization is acting over (i.e. the group size).  Either of the two criterion can be effectively turned off by setting the tolerance to a large number.
 #
 # If the minimization is acted over a subset of all the particles in the system, the "other" particles will be kept
 # frozen but will still interact with the particles being moved.
 #
 # \b Example:
 # \code
-# fire=integrate.mode_minimize_fire( group=group.all(), dt=0.05, ftol=1e-7, Etol=1e-7)
+# fire=integrate.mode_minimize_fire( group=group.all(), dt=0.05, ftol=1e-2, Etol=1e-7)
 # while not(fire.has_converged()):
 #    xml = dump.xml(filename="dump",period=1)
 #    run(100)
