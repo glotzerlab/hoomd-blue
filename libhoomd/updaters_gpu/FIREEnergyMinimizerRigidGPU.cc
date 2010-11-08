@@ -257,7 +257,8 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     }
     
     // Check if convergent
-    if ((fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    //printf("f = %g (%g); e = %g (%g); min_steps: %d (%d) \n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol, m_n_since_start, m_run_minsteps);
+    if ((fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         printf("Converged: f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
         m_converged = true;

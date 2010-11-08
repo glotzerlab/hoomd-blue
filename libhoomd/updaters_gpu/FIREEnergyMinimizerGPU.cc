@@ -233,7 +233,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->pop(exec_conf);            
     
     
-    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         m_pdata->release();
