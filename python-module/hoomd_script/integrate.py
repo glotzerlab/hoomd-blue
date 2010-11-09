@@ -1119,7 +1119,7 @@ class mode_minimize_fire(_integrator):
     # \param falpha Factor to decrease \f$ \alpha t \f$ by 
     #   - <i>optional</i>: defaults to 0.99
     # \param ftol force convergence criteria 
-    #   - <i>optional</i>: defaults to 1e-5
+    #   - <i>optional</i>: defaults to 1e-1
     # \param Etol energy convergence criteria 
     #   - <i>optional</i>: defaults to 1e-5
     # \param min_steps A minimum number of attempts before convergence criteria are considered 
@@ -1187,10 +1187,12 @@ class mode_minimize_rigid_fire(_integrator):
     # \param falpha Factor to decrease \f$ \alpha t \f$ by 
     #   - <i>optional</i>: defaults to 0.99
     # \param ftol force convergence criteria 
-    #   - <i>optional</i>: defaults to 1e-5
+    #   - <i>optional</i>: defaults to 1e-1
+    # \param wtol torque convergence criteria 
+    #   - <i>optional</i>: defaults to 1e-1    
     # \param Etol energy convergence criteria 
     #   - <i>optional</i>: defaults to 1e-5
-    def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, alpha_final=None, ftol = None, Etol= None):
+    def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, alpha_final=None, ftol = None, wtol=None, Etol= None):
         util.print_status_line();
         
         # initialize base class
@@ -1219,6 +1221,8 @@ class mode_minimize_rigid_fire(_integrator):
             self.cpp_integrator.setFalpha(alpha_final);
         if not(ftol is None):
             self.cpp_integrator.setFtol(ftol);
+        if not(wtol is None):
+            self.cpp_integrator.setWtol(wtol);            
         if not(Etol is None):
             self.cpp_integrator.setEtol(Etol);
             

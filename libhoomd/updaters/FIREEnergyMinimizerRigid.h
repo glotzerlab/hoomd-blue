@@ -74,7 +74,12 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
         virtual void update(unsigned int);
         
         //! Access the group
-        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }       
+        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }   
+        
+        //! Set the stopping criterion based on the total torque on all particles in the system  
+        /*! \param wtol is the new torque tolerance to set
+        */
+        void setWtol(Scalar wtol) {m_ftol = wtol;}        
         
         //! Get the period of minimization
         unsigned int getEvery() 
@@ -96,6 +101,7 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
         unsigned int m_n_bodies;                    //!< Number of rigid bodies
         unsigned int m_nparticles;                  //!< Total number of particles 
         unsigned int m_nevery;                      //!< Period of minimization
+        Scalar m_wtol;                          //!< stopping tolerance based on total torque        
     private:
     
     };

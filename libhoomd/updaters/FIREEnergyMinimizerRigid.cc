@@ -68,8 +68,9 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
                                                     boost::shared_ptr<ParticleGroup> group,
                                                     Scalar dt, 
                                                     bool reset_and_create_integrator)
-    :   FIREEnergyMinimizer(sysdef, group, dt, false) // using false for the parent class
+    :   FIREEnergyMinimizer(sysdef, group, dt, false), m_wtol(Scalar(1e-1)) // using false for the parent class
     {
+
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
     m_nparticles = arrays.nparticles;
     m_pdata->release();
@@ -218,11 +219,11 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     tnorm = sqrt(tnorm);
     wnorm = sqrt(wnorm);
     
-    //printf("f = %g (%g); e = %g (%g); min_steps: %d (%d) \n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol, m_n_since_start, m_run_minsteps);
+    printf("f = %g (%g); w = %g (%g); e = %g (%g); min_steps: %d (%d) \n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, wnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_wtol, fabs(energy-m_old_energy), m_etol, m_n_since_start, m_run_minsteps);
 
-    if ((fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    if ((fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_ftol && wnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
-        printf("Converged: f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+        printf("Converged: f = %g (ftol = %g); w= %g (wtol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_wtol,wnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_wtol, fabs(energy-m_old_energy), m_etol);
         m_converged = true;
         return;
         }
