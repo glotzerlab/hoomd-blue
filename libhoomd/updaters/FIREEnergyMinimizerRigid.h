@@ -79,7 +79,7 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
         //! Set the stopping criterion based on the total torque on all particles in the system  
         /*! \param wtol is the new torque tolerance to set
         */
-        void setWtol(Scalar wtol) {m_ftol = wtol;}        
+        void setWtol(Scalar wtol) {m_wtol = wtol;}        
         
         //! Get the period of minimization
         unsigned int getEvery() 

@@ -260,7 +260,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
 
     if ((fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_ftol && wnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
-        printf("Converged: f = %g (ftol = %g); w= %g (wtol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_wtol,wnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_wtol, fabs(energy-m_old_energy), m_etol);
+        printf("Converged: f = %g (ftol = %g); w= %g (wtol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol,wnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_wtol, fabs(energy-m_old_energy), m_etol);
         m_converged = true;
         return;
         }
@@ -364,7 +364,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
 
 void export_FIREEnergyMinimizerRigidGPU()
     {
-    class_<FIREEnergyMinimizerRigidGPU, boost::shared_ptr<FIREEnergyMinimizerRigidGPU>, bases<FIREEnergyMinimizer>, boost::noncopyable>
+    class_<FIREEnergyMinimizerRigidGPU, boost::shared_ptr<FIREEnergyMinimizerRigidGPU>, bases<FIREEnergyMinimizerRigid>, boost::noncopyable>
         ("FIREEnergyMinimizerRigidGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
         ;
     }
