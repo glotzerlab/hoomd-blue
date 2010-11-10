@@ -15,35 +15,29 @@ struct electrostatics_data
 	int electrostatics_allocation_bool; 
 	cufftHandle plan; 
 	cufftComplex *GPU_rho_real_space; 	//also used for transformed rho values
-// 	cufftComplex *GPU_rho_k_space; 
 	float* GPU_green_hat;
 	float3* GPU_k_vec;
 	cufftComplex* GPU_E_x; 
 	cufftComplex* GPU_E_y;
 	cufftComplex* GPU_E_z;
 	float3* GPU_field; 			//put field components in one array after back-transform
-// 	float4* Particle_forces; 		
-// 	cufftComplex *CPU_rho_real_space;
 	int Nx, Ny, Nz, interpolation_order;
 	float r_cutoff;
 	float kappa;
 	float* CPU_rho_coeff;
-	float3* cuda_thermo_quantities;
+	float2* cuda_thermo_quantities;
         float *gf_b;
 	float3* vg; //for k-space virials
 	float CPU_energy_virial_factor;
         float q2;
 	int show_virial_flag;
-	
-// 	//just for CPU charge assignment:
-// 	float4* CPU_particles;
-// 	float* CPU_charges;
-// 	cufftComplex* CPU_rho;
+	float2* o_data;
+	float2* i_data;
 };
 
 int get_virial_flag_value();
 void print_bool_value();
-float3 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxsize &box);
+float2 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxsize &box);
 void electrostatics_calculation(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const float3 *d_params, const float *d_rcutsq);
 
 // void charge_density_assignment(const gpu_pdata_arrays &pdata, const gpu_boxsize &box);

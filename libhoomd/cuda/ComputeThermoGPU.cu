@@ -299,7 +299,7 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                    args.n_blocks);
     
     // computes long-ranged electrostatic contributions to the thero quantities  
-   float3 GPU_thermos = calculate_thermo_quantities(pdata, box);
+    float2 GPU_thermos = calculate_thermo_quantities(pdata, box);
     add_ewald_values <<< 1,1 >>> (d_properties, GPU_thermos.x, GPU_thermos.y);
 
     return cudaSuccess;

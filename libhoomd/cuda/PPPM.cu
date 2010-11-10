@@ -9,6 +9,12 @@ extern struct electrostatics_data es_data;
 #define SMALL 0.00001
 #define LARGE 10000.0
 #define EPS_HOC 1.0e-7
+#ifdef __DEVICE_EMULATION__
+#define EMUSYNC __syncthreads()
+#else
+#define EMUSYNC
+#endif
+#define MAX_BLOCK_DIM_SIZE 65535
 
 //! Texture for reading particle positions	
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;		
@@ -155,6 +161,158 @@ void compute_rho_coeff(int assignment_order, float* rho_coeff)
     free(a);
 }
 
+bool isPow2(unsigned int x)
+{
+    return ((x&(x-1))==0);
+}
+
+template<class T>
+struct SharedMemory
+{
+    __device__ inline operator       T*()
+    {
+        extern __shared__ T __smem[];
+        return (T*)__smem;
+    }
+
+    __device__ inline operator const T() const
+    {
+        extern __shared__ T __smem[];
+        return (T*)__smem;
+    }
+};
+
+template <class T, unsigned int blockSize, bool nIsPow2>
+__global__ void
+reduce6(T *g_idata, T *g_odata, unsigned int n)
+{
+    T *sdata = SharedMemory<T>();
+
+    // perform first level of reduction,
+    // reading from global memory, writing to shared memory
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x*blockSize*2 + threadIdx.x;
+    unsigned int gridSize = blockSize*2*gridDim.x;
+    
+    T mySum;
+    mySum.x = 0.0f;
+    mySum.y = 0.0f;
+
+    // we reduce multiple elements per thread.  The number is determined by the 
+    // number of active thread blocks (via gridDim).  More blocks will result
+    // in a larger gridSize and therefore fewer elements per thread
+    while (i < n)
+    {         
+        mySum.x += g_idata[i].x;
+        mySum.y += g_idata[i].y;
+        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
+        if (nIsPow2 || i + blockSize < n) {
+            mySum.x += g_idata[i+blockSize].x;  
+	    mySum.y += g_idata[i+blockSize].y; 
+	}
+        i += gridSize;
+
+    } 
+
+    // each thread puts its local sum into shared memory 
+    sdata[tid].x = mySum.x;
+    sdata[tid].y = mySum.y;
+    __syncthreads();
+
+
+    // do reduction in shared mem
+    if (blockSize >= 512) { if (tid < 256) { sdata[tid].x = mySum.x = mySum.x + sdata[tid + 256].x; sdata[tid].y = mySum.y = mySum.y + sdata[tid + 256].y; } __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { sdata[tid].x = mySum.x = mySum.x + sdata[tid + 128].x; sdata[tid].y = mySum.y = mySum.y + sdata[tid + 128].y; } __syncthreads(); }
+    if (blockSize >= 128) { if (tid <  64) { sdata[tid].x = mySum.x = mySum.x + sdata[tid +  64].x; sdata[tid].y = mySum.y = mySum.y + sdata[tid +  64].y; } __syncthreads(); }
+    
+#ifndef __DEVICE_EMULATION__
+    if (tid < 32)
+#endif
+    {
+        // now that we are using warp-synchronous programming (below)
+        // we need to declare our shared memory volatile so that the compiler
+        // doesn't reorder stores to it and induce incorrect behavior.
+        volatile T* smem = sdata;
+        if (blockSize >=  64) { smem[tid].x = mySum.x = mySum.x + smem[tid + 32].x; smem[tid].y = mySum.y = mySum.y + smem[tid + 32].y; EMUSYNC; }
+        if (blockSize >=  32) { smem[tid].x = mySum.x = mySum.x + smem[tid + 16].x; smem[tid].y = mySum.y = mySum.y + smem[tid + 16].y; EMUSYNC; }
+        if (blockSize >=  16) { smem[tid].x = mySum.x = mySum.x + smem[tid +  8].x; smem[tid].y = mySum.y = mySum.y + smem[tid +  8].y; EMUSYNC; }
+        if (blockSize >=   8) { smem[tid].x = mySum.x = mySum.x + smem[tid +  4].x; smem[tid].y = mySum.y = mySum.y + smem[tid +  4].y; EMUSYNC; }
+        if (blockSize >=   4) { smem[tid].x = mySum.x = mySum.x + smem[tid +  2].x; smem[tid].y = mySum.y = mySum.y + smem[tid +  2].y; EMUSYNC; }
+        if (blockSize >=   2) { smem[tid].x = mySum.x = mySum.x + smem[tid +  1].x; smem[tid].y = mySum.y = mySum.y + smem[tid +  1].y; EMUSYNC; }
+     }
+    
+    // write result for this block to global mem 
+    if (tid == 0) {
+        g_odata[blockIdx.x].x = sdata[0].x;
+        g_odata[blockIdx.x].y = sdata[0].y;
+    }
+}
+
+
+template <class T>
+void 
+reduce(int size, int threads, int blocks, T *d_idata, T *d_odata)
+{
+  dim3 dimBlock(threads, 1, 1);
+  dim3 dimGrid(blocks, 1, 1);
+
+  // when there is only one warp per block, we need to allocate two warps 
+  // worth of shared memory so that we don't index shared memory out of bounds
+  int smemSize = (threads <= 32) ? 2 * threads * sizeof(T) : threads * sizeof(T);
+
+  if (isPow2(size))
+    {
+      switch (threads)
+	{
+	case 512:
+	  reduce6<T, 512, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 256:
+	  reduce6<T, 256, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 128:
+	  reduce6<T, 128, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 64:
+	  reduce6<T,  64, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 32:
+	  reduce6<T,  32, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 16:
+	  reduce6<T,  16, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case  8:
+	  reduce6<T,   8, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case  4:
+	  reduce6<T,   4, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case  2:
+	  reduce6<T,   2, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case  1:
+	  reduce6<T,   1, true><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	}
+    }
+  else
+    {
+      switch (threads)
+	{
+	case 512:
+	  reduce6<T, 512, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 256:
+	  reduce6<T, 256, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 128:
+	  reduce6<T, 128, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 64:
+	  reduce6<T,  64, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 32:
+	  reduce6<T,  32, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case 16:
+	  reduce6<T,  16, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case  8:
+	  reduce6<T,   8, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case  4:
+	  reduce6<T,   4, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case  2:
+	  reduce6<T,   2, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	case  1:
+	  reduce6<T,   1, false><<< dimGrid, dimBlock, smemSize >>>(d_idata, d_odata, size); break;
+	}
+    }
+}
 
 __global__ void copy_data_kernel(gpu_boxsize box_old, gpu_boxsize *box_new)
 {
@@ -174,8 +332,10 @@ void electrostatics_allocation(const gpu_pdata_arrays &pdata, const gpu_boxsize 
     cudaMalloc((void**)&(es_data.GPU_E_z), sizeof(cufftComplex)*Nx*Ny*Nz);
     cudaMalloc((void**)&(es_data.GPU_field), sizeof(float3)*Nx*Ny*Nz); 
     cudaMalloc((void**)&(es_data.vg), sizeof(float3)*Nx*Ny*Nz);
-    cudaMalloc((void**)&(es_data.cuda_thermo_quantities), sizeof(float3));
+    cudaMalloc((void**)&(es_data.cuda_thermo_quantities), sizeof(float2));
     cudaMalloc((void**)&(es_data.gf_b), sizeof(float)*order);
+    cudaMalloc((void**)&(es_data.o_data), sizeof(float2)*Nx*Ny*Nz); 
+    cudaMalloc((void**)&(es_data.i_data), sizeof(float2)*Nx*Ny*Nz); 
  
     es_data.CPU_rho_coeff = (float*)malloc(order * (2*order+1) * sizeof(float));
     compute_rho_coeff(order, es_data.CPU_rho_coeff);
@@ -183,19 +343,7 @@ void electrostatics_allocation(const gpu_pdata_arrays &pdata, const gpu_boxsize 
   
     cufftPlan3d(&es_data.plan, Nx, Ny, Nz, CUFFT_C2C);
   
-  
-    //copy information to CPU here (stupid way, but works);
-    struct gpu_boxsize CPU_box;
-    struct gpu_boxsize *GPU_COPY_BOX;
-    cudaMalloc((void**)&GPU_COPY_BOX, sizeof(struct gpu_boxsize));
-
-    copy_data_kernel <<< 1,1 >>> (box, GPU_COPY_BOX);
-      
-    cudaMemcpy(&CPU_box, GPU_COPY_BOX, sizeof(struct gpu_boxsize), cudaMemcpyDeviceToHost);
-      
-    cudaFree(GPU_COPY_BOX);
-
-    /* set up for a rectangular box */
+     /* set up for a rectangular box */
    
     float3 inverse_lattice_vector;
     float invdet = 2.0f*M_PI/(box.Lx*box.Lz*box.Lz);
@@ -259,14 +407,14 @@ void electrostatics_allocation(const gpu_pdata_arrays &pdata, const gpu_boxsize 
     float sum1, dot1, dot2;
     float numerator, denominator, sqk;
 
-    float unitkx = (2.0*M_PI/CPU_box.Lx);
-    float unitky = (2.0*M_PI/CPU_box.Ly);
-    float unitkz = (2.0*M_PI/CPU_box.Lz);
+    float unitkx = (2.0*M_PI/box.Lx);
+    float unitky = (2.0*M_PI/box.Ly);
+    float unitkz = (2.0*M_PI/box.Lz);
    
     
-    float xprd = CPU_box.Lx; 
-    float yprd = CPU_box.Ly; 
-    float zprd_slab = CPU_box.Lz; 
+    float xprd = box.Lx; 
+    float yprd = box.Ly; 
+    float zprd_slab = box.Lz; 
     
     float form = 1.0;
 	
@@ -351,7 +499,7 @@ void electrostatics_allocation(const gpu_pdata_arrays &pdata, const gpu_boxsize 
     free(kvec_array);
   
     float scale = 1.0f/((float)(Nx * Ny * Nz));
-    es_data.CPU_energy_virial_factor = 0.5 * CPU_box.Lx * CPU_box.Ly * CPU_box.Lz * scale * scale;
+    es_data.CPU_energy_virial_factor = 0.5 * box.Lx * box.Ly * box.Lz * scale * scale;
 }
 
 
@@ -491,7 +639,7 @@ __global__ void combined_green_e_kernel(cufftComplex* E_x, cufftComplex* E_y, cu
 	float scale_times_green = green_function[tid] / ((float)(Nx*Ny*Nz));
 	cufftComplex rho_local = rho[tid];
     
-	rho[tid] = make_float2(0.0f,0.0f);
+//	rho[tid] = make_float2(0.0f,0.0f);
     
 	rho_local.x *= scale_times_green;
 	rho_local.y *= scale_times_green;
@@ -716,35 +864,21 @@ __global__ void calculate_forces_kernel(gpu_force_data_arrays force_data, gpu_pd
     }
 } 
 
-__global__ void calculate_thermo_quantities_kernel(cufftComplex* rho, float* green_function, float3* GPU_virial_energy, float3* vg, int Nx, int Ny, int Nz)
+__global__ void calculate_thermo_quantities_kernel(cufftComplex* rho, float* green_function, float2* GPU_virial_energy, float3* vg, int Nx, int Ny, int Nz)
 {
-    int threadx = blockIdx.x * blockDim.x + threadIdx.x;
-    int thready = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if((threadx < Nx) && (thready < Ny))
-    {
-	float2 local_GPU_virial_energy = make_float2(0.0f,0.0f);
-	float3 local_vg;
-	float local_green, green_times_rho_square;
-	cufftComplex rho_local;
-	for(int z = 0; z < Nz; z++)
-	{
-	    local_vg = vg[z + Nz * (thready + Ny * threadx)];
-	    local_green = green_function[z + Nz * (thready + Ny * threadx)];
-	    rho_local = rho[z + Nz * (thready + Ny * threadx)];
-	
-	    green_times_rho_square = local_green * (rho_local.x * rho_local.x + rho_local.y * rho_local.y);
-	    local_GPU_virial_energy.x += green_times_rho_square * (local_vg.x + local_vg.y + local_vg.z);
-	    local_GPU_virial_energy.y += green_times_rho_square ;
-	}
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
   
-	atomicFloatAdd(&GPU_virial_energy[0].x, local_GPU_virial_energy.x);
-	atomicFloatAdd(&GPU_virial_energy[0].y, local_GPU_virial_energy.y);
+    if(tid < Nx * Ny * Nz)
+    {
 
+	float energy = green_function[tid]*(rho[tid].x*rho[tid].x + rho[tid].y*rho[tid].y);
+        float pressure = energy*(vg[tid].x + vg[tid].y + vg[tid].z);	
+	GPU_virial_energy[tid].x = pressure;
+	GPU_virial_energy[tid].y = energy;
     }
 }
 
-__global__ void get_charge(gpu_pdata_arrays pdata, float3 *GPU_virial_energy)
+__global__ void get_charge(gpu_pdata_arrays pdata, float2 *GPU_virial_energy)
 {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if(idx < pdata.N) {
@@ -753,82 +887,106 @@ __global__ void get_charge(gpu_pdata_arrays pdata, float3 *GPU_virial_energy)
     }
 }
 
-__global__ void get_charge_squared(gpu_pdata_arrays pdata, float3 *GPU_virial_energy)
+__global__ void get_charge_squared(gpu_pdata_arrays pdata, float2 *GPU_virial_energy)
 {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if(idx < pdata.N) {
 	float qi = tex1Dfetch(pdata_charge_tex, idx);
-	atomicFloatAdd(&GPU_virial_energy[0].z, qi*qi);
+	atomicFloatAdd(&GPU_virial_energy[0].y, qi*qi);
     }
 
 }
 
-float3 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxsize &box)
+unsigned int nextPow2( unsigned int x ) {
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return ++x;
+}
+
+
+float2 calculate_thermo_quantities(const gpu_pdata_arrays &pdata, const gpu_boxsize &box)
 {
-    if(es_data.electrostatics_allocation_bool)
+   if(es_data.electrostatics_allocation_bool)
     {
-	//kernel calling parameters for all grid dependent kernels
-	int new_blocksize = 256;
-	int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
-      
-	// setup the grid to run the kernel
 	int blocksize = 256;
-	dim3 grid( pdata.N / blocksize + 1, 1, 1);
-	dim3 threads(blocksize, 1, 1);
+	int gridsize = es_data.Nx*es_data.Ny*es_data.Nz / blocksize + 1;
+	int n = es_data.Nx*es_data.Ny*es_data.Nz;     
+	float2 gpu_result = make_float2(0.0f, 0.0f);	  
+	float2 CPU_virial_energy = make_float2(0.0f, 0.0f);
+	//	float2 slow_answer = make_float2(0.0f, 0.0f);
 
-	// bind the position texture
-	pdata_pos_tex.normalized = false;
-	pdata_pos_tex.filterMode = cudaFilterModePoint;
-	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-
-	// bind the charge texture
-	pdata_charge_tex.normalized = false;
-	pdata_charge_tex.filterMode = cudaFilterModePoint;
-	error = cudaBindTexture(0, pdata_charge_tex, pdata.charge, sizeof(float) * pdata.N);
-	  
-	//assign the charge density to the gridpoints
-	assign_charges_to_grid_kernel <<< grid, threads >>> (pdata, box, es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz, es_data.interpolation_order);
-	cudaThreadSynchronize();    
-    
-	//call the forward FFT for the charge density
-	cufftExecC2C(es_data.plan, es_data.GPU_rho_real_space, es_data.GPU_rho_real_space, CUFFT_FORWARD);
-	cudaThreadSynchronize();
-	  
-	//calculate the virial and energy:  
-	float3 CPU_virial_energy = make_float3(0.0f, 0.0f, 0.0f);
-	cudaMemcpy(es_data.cuda_thermo_quantities, &CPU_virial_energy, sizeof(float3), cudaMemcpyHostToDevice);  
-	get_charge_squared <<< grid, threads >>> (pdata, es_data.cuda_thermo_quantities);
-     
-	dim3 thermo_block(8,8,1);
-	dim3 thermo_grid(es_data.Nx/thermo_block.x, es_data.Ny/thermo_block.y, 1);
-	calculate_thermo_quantities_kernel <<< thermo_grid, thermo_block >>> (es_data.GPU_rho_real_space, es_data.GPU_green_hat, es_data.cuda_thermo_quantities, es_data.vg, es_data.Nx, es_data.Ny, es_data.Nz);
+	calculate_thermo_quantities_kernel <<< gridsize, blocksize >>> (es_data.GPU_rho_real_space, es_data.GPU_green_hat, es_data.i_data, es_data.vg, es_data.Nx, es_data.Ny, es_data.Nz);
+        cudaThreadSynchronize();
 	
+	int threads, blocks, maxBlocks = 64, maxThreads = 256, cpuFinalThreshold = 1;
+	bool needReadBack = true;
+	threads = (n < maxThreads*2) ? nextPow2((n + 1)/ 2) : maxThreads;
+        blocks = (n + (threads * 2 - 1)) / (threads * 2);
+	blocks = MIN(maxBlocks, blocks);
+        if (blocks == 1) cpuFinalThreshold = 1;
+
+	int maxNumBlocks = MIN( n / maxThreads, MAX_BLOCK_DIM_SIZE);
+
+	reduce<float2>(n, threads, blocks, es_data.i_data, es_data.o_data);
+
+	// sum partial block sums on GPU
+	int s=blocks;
+	while(s > cpuFinalThreshold) 
+	{
+	    threads = 0;
+	    blocks = 0;
+	    threads = (s < maxThreads*2) ? nextPow2((s + 1)/ 2) : maxThreads;
+	    blocks = (s + (threads * 2 - 1)) / (threads * 2);
+	    blocks = MIN(maxBlocks, blocks);
+	    reduce<float2>(s, threads, blocks, es_data.o_data, es_data.o_data);
+	    cudaThreadSynchronize();
+	    s = (s + (threads*2-1)) / (threads*2);
+	}
+            
+	if (s > 1)
+	{
+	    // copy result from device to host
+	    float2* h_odata = (float2 *) malloc(maxNumBlocks*sizeof(float2));
+	    cudaMemcpy( h_odata, es_data.o_data, s * sizeof(float2), cudaMemcpyDeviceToHost);
+
+
+	    for(int i=0; i < s; i++) 
+	    {
+		gpu_result.x += h_odata[i].x;
+		gpu_result.y += h_odata[i].y;
+	    }
+	    needReadBack = false;
+	    free(h_odata);
+	}
+
 	//copy to CPU:
-	cudaMemcpy(&CPU_virial_energy, es_data.cuda_thermo_quantities, sizeof(float3), cudaMemcpyDeviceToHost);
+	if (needReadBack) cudaMemcpy( &gpu_result,  es_data.o_data, sizeof(float2), cudaMemcpyDeviceToHost);
 
-	struct gpu_boxsize CPU_box;
-	struct gpu_boxsize *GPU_COPY_BOX;
-	cudaMalloc((void**)&GPU_COPY_BOX, sizeof(struct gpu_boxsize));
+	/*
+	float2* slow_way = (float2 *) malloc(n*sizeof(float2));
+	cudaMemcpy(slow_way, es_data.i_data, n*sizeof(float2), cudaMemcpyDeviceToHost);
+	int i;
+	for(i = 0; i < n; i++) {
+	    slow_answer.x += slow_way[i].x;
+    	    slow_answer.y += slow_way[i].y;
+	}
+	printf("SLOW %f %f\nFAST %f %f\n", slow_answer.x, slow_answer.y, gpu_result.x, gpu_result.y);
+	*/
 
-	copy_data_kernel <<< 1,1 >>> (box, GPU_COPY_BOX);
-      
-	cudaMemcpy(&CPU_box, GPU_COPY_BOX, sizeof(struct gpu_boxsize), cudaMemcpyDeviceToHost);
-      
-	cudaFree(GPU_COPY_BOX);
-      
-	CPU_virial_energy.x *= es_data.CPU_energy_virial_factor / (3.0f * CPU_box.Lx * CPU_box.Ly * CPU_box.Lz);
-	CPU_virial_energy.y *= es_data.CPU_energy_virial_factor;
+	CPU_virial_energy.x = gpu_result.x*es_data.CPU_energy_virial_factor / (3.0f * box.Lx * box.Ly * box.Lz);
+	CPU_virial_energy.y = gpu_result.y*es_data.CPU_energy_virial_factor;
 	
-	CPU_virial_energy.y -= CPU_virial_energy.z * es_data.kappa / sqrt(M_PI);
+	CPU_virial_energy.y -= es_data.q2 * es_data.kappa / 1.772453850905516027298168f;
 
-	set_to_zero <<< new_gridsize , new_blocksize >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
-	cudaThreadSynchronize();  
 	return CPU_virial_energy;
-	
 	
     }
     else 
-	return make_float3(0.0f, 0.0f, 0.0f);
+	return make_float2(0.0f, 0.0f);
 }
 
 
@@ -839,18 +997,13 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
     dim3 grid( pdata.N / blocksize + 1, 1, 1);
     dim3 threads(blocksize, 1, 1);
 
-	static gpu_boxsize CPU_box_old;
-	struct gpu_boxsize CPU_box;
-	struct gpu_boxsize *GPU_COPY_BOX;
+    static gpu_boxsize box_old;
 
-	cudaMalloc((void**)&GPU_COPY_BOX, sizeof(struct gpu_boxsize));
-
-	copy_data_kernel <<< 1,1 >>> (box, GPU_COPY_BOX);
-	cudaMemcpy(&CPU_box, GPU_COPY_BOX, sizeof(struct gpu_boxsize), cudaMemcpyDeviceToHost);
-
+    int new_blocksize = 256;
+    int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
     if(!es_data.electrostatics_allocation_bool)
     {
-	float3 *GPU_charge;
+	float2 *GPU_charge;
 
 
 	cudaMalloc((void**)&(GPU_charge), sizeof(float3));
@@ -871,12 +1024,12 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
 	pdata_charge_tex.filterMode = cudaFilterModePoint;
 	cudaError_t error = cudaBindTexture(0, pdata_charge_tex, pdata.charge, sizeof(float) * pdata.N);
 
-	float3 CPU_charge = make_float3(0.0f, 0.0f, 0.0f);
-	cudaMemcpy(GPU_charge, &CPU_charge, sizeof(float3), cudaMemcpyHostToDevice);  
+	float2 CPU_charge = make_float2(0.0f, 0.0f);
+	cudaMemcpy(GPU_charge, &CPU_charge, sizeof(float2), cudaMemcpyHostToDevice);  
 	get_charge <<< grid, threads >>> (pdata, GPU_charge);
 	get_charge_squared <<< grid, threads >>> (pdata, GPU_charge);
-	cudaMemcpy(&CPU_charge, GPU_charge, sizeof(float3), cudaMemcpyDeviceToHost);
-	es_data.q2 = CPU_charge.z;
+	cudaMemcpy(&CPU_charge, GPU_charge, sizeof(float2), cudaMemcpyDeviceToHost);
+	es_data.q2 = CPU_charge.y;
 
 	float cpu_rcutsq;
 	cudaMemcpy(&cpu_rcutsq, d_rcutsq, sizeof(float), cudaMemcpyDeviceToHost);
@@ -905,16 +1058,16 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
       
 	electrostatics_allocation(pdata, box, es_data.Nx, es_data.Ny, es_data.Nz, es_data.interpolation_order, es_data.kappa, es_data.r_cutoff);
 
-	CPU_box_old = CPU_box; 
-	float hx =  CPU_box.Lx/es_data.Nx;
-	float hy =  CPU_box.Ly/es_data.Ny;
-	float hz =  CPU_box.Lz/es_data.Nz;
+	box_old = box; 
+	float hx =  box.Lx/es_data.Nx;
+	float hy =  box.Ly/es_data.Ny;
+	float hz =  box.Lz/es_data.Nz;
 
-	float lprx = rms(hx, CPU_box.Lx, pdata.N); 
-	float lpry = rms(hy, CPU_box.Lz, pdata.N);
-	float lprz = rms(hz, CPU_box.Lz, pdata.N);
+	float lprx = rms(hx, box.Lx, pdata.N); 
+	float lpry = rms(hy, box.Lz, pdata.N);
+	float lprz = rms(hz, box.Lz, pdata.N);
 	float lpr = sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0);
-	float spr = 2.0*CPU_charge.z*exp(-es_data.kappa*es_data.kappa*cpu_rcutsq) / sqrt(pdata.N*sqrt(cpu_rcutsq)*CPU_box.Lx*CPU_box.Ly*CPU_box.Lz);
+	float spr = 2.0*CPU_charge.y*exp(-es_data.kappa*es_data.kappa*cpu_rcutsq) / sqrt(pdata.N*sqrt(cpu_rcutsq)*box.Lx*box.Ly*box.Lz);
 
      
 	double RMS_error = MAX(lpr,spr);
@@ -929,39 +1082,44 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
      
       
 	printf("allocation for electrostatics done... \n");
-	int new_blocksize = 256;
-	int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
+	new_blocksize = 256;
+	new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
 	//only for the first time needed, next time it is done in function new_combined_green_e_kernel
-	set_to_zero <<< new_gridsize , new_blocksize >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
-	cudaThreadSynchronize();  
-     
+	//	set_to_zero <<< new_gridsize , new_blocksize >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
+	//	cudaThreadSynchronize();  
+	cudaMemset(es_data.GPU_rho_real_space, 0.0f, sizeof(cufftComplex)*es_data.Nx*es_data.Ny*es_data.Nz);
+
     }
 
     //kernel calling parameters for all grid dependent kernels
-    int new_blocksize = 256;
-    int new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
     
-    if(fabs(CPU_box.Lx - CPU_box_old.Lx) > 0.00001 || fabs(CPU_box.Ly - CPU_box_old.Ly) > 0.00001 || fabs(CPU_box.Lz - CPU_box_old.Lz) > 0.00001) {
+    new_blocksize = 256;
+    new_gridsize = es_data.Nx*es_data.Ny*es_data.Nz / new_blocksize + 1;
+
+    if(fabs(box.Lx - box_old.Lx) > 0.00001 || fabs(box.Ly - box_old.Ly) > 0.00001 || fabs(box.Lz - box_old.Lz) > 0.00001) {
       	
-	float temp = floor(((es_data.kappa*CPU_box.Lx/(M_PI*es_data.Nx)) *  pow(-log(EPS_HOC),0.25)));
+	float temp = floor(((es_data.kappa*box.Lx/(M_PI*es_data.Nx)) *  pow(-log(EPS_HOC),0.25)));
 	int nbx = (int)temp;
-	temp = floor(((es_data.kappa*CPU_box.Ly/(M_PI*es_data.Ny)) * pow(-log(EPS_HOC),0.25)));
+	temp = floor(((es_data.kappa*box.Ly/(M_PI*es_data.Ny)) * pow(-log(EPS_HOC),0.25)));
 	int nby = (int)temp;
-	temp =  floor(((es_data.kappa*CPU_box.Lz/(M_PI*es_data.Nz)) *  pow(-log(EPS_HOC),0.25)));
+	temp =  floor(((es_data.kappa*box.Lz/(M_PI*es_data.Nz)) *  pow(-log(EPS_HOC),0.25)));
 	int nbz = (int)temp;
 
 	reset_kvec_green_hat <<< new_gridsize, new_blocksize >>>(box, es_data.Nx, es_data.Ny, es_data.Nz, es_data.interpolation_order, es_data.kappa, es_data.GPU_k_vec, es_data.GPU_green_hat, es_data.vg, nbx, nby, nbz, es_data.gf_b);
 	cudaThreadSynchronize();
-	CPU_box_old.Lx = CPU_box.Lx;
-	CPU_box_old.Ly = CPU_box.Ly;
-	CPU_box_old.Lz = CPU_box.Lz;
+	box_old.Lx = box.Lx;
+	box_old.Ly = box.Ly;
+	box_old.Lz = box.Lz;
 	float scale = 1.0f/((float)(es_data.Nx * es_data.Ny * es_data.Nz));
-	es_data.CPU_energy_virial_factor = 0.5 * CPU_box.Lx * CPU_box.Ly * CPU_box.Lz * scale * scale;
+	es_data.CPU_energy_virial_factor = 0.5 * box.Lx * box.Ly * box.Lz * scale * scale;
     }
 
     // setup the grid to run the particle kernel 
     
-    
+    //    set_to_zero <<< new_gridsize , new_blocksize >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
+    //    cudaThreadSynchronize();  
+    cudaMemset(es_data.GPU_rho_real_space, 0.0f, sizeof(cufftComplex)*es_data.Nx*es_data.Ny*es_data.Nz);
+   
     // bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
@@ -973,6 +1131,8 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
     error = cudaBindTexture(0, pdata_charge_tex, pdata.charge, sizeof(float) * pdata.N);
      
     //assign the charge density to the gridpoints
+//    set_to_zero <<< new_gridsize, new_blocksize >>> (es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz);
+    cudaThreadSynchronize();    
     assign_charges_to_grid_kernel <<< grid, threads >>> (pdata, box, es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz, es_data.interpolation_order);
     cudaThreadSynchronize();    
      
@@ -980,7 +1140,7 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
     cufftExecC2C(es_data.plan, es_data.GPU_rho_real_space, es_data.GPU_rho_real_space, CUFFT_FORWARD);
     cudaThreadSynchronize();
     
-    combined_green_e_kernel <<< new_gridsize, new_blocksize >>> (es_data.GPU_E_x, es_data.GPU_E_y, es_data.GPU_E_z, es_data.GPU_k_vec, es_data.GPU_rho_real_space,  es_data.Nx, es_data.Ny, es_data.Nz, es_data.GPU_green_hat);
+    combined_green_e_kernel <<< new_gridsize, new_blocksize >>> (es_data.GPU_E_x, es_data.GPU_E_y, es_data.GPU_E_z, es_data.GPU_k_vec, es_data.GPU_rho_real_space, es_data.Nx, es_data.Ny, es_data.Nz, es_data.GPU_green_hat);
        
 
     //backtransform field:
@@ -993,6 +1153,4 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
     cudaThreadSynchronize();
     //calculate forces on particles:
     calculate_forces_kernel <<< grid, threads >>>(force_data, pdata, box, es_data.GPU_field, es_data.Nx, es_data.Ny, es_data.Nz, es_data.interpolation_order);
-
-    cudaFree(GPU_COPY_BOX);
 }
