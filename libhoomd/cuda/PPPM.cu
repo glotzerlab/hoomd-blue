@@ -167,15 +167,15 @@ bool isPow2(unsigned int x)
 }
 
 template<class T>
-struct SharedMemory
+struct SharedMemory  //!< Used to speed up the sum over grid points, in this case "T" is a placeholder for the data type
 {
-    __device__ inline operator       T*()
+    __device__ inline operator       T*()  //!< used to get shared memory for data type T
     {
         extern __shared__ T __smem[];
         return (T*)__smem;
     }
 
-    __device__ inline operator const T() const
+    __device__ inline operator const T() const //!< used to get shared memory for data type T
     {
         extern __shared__ T __smem[];
         return (T*)__smem;
@@ -1035,8 +1035,6 @@ void electrostatics_calculation(const gpu_force_data_arrays& force_data, const g
 	cudaMemcpy(&cpu_rcutsq, d_rcutsq, sizeof(float), cudaMemcpyDeviceToHost);
       
 	es_data.r_cutoff = cpu_rcutsq;
-
-	es_data.show_virial_flag = 0;
 
 	es_data.electrostatics_allocation_bool = 1;
 	if(!(es_data.Nx == 2)&& !(es_data.Nx == 4)&& !(es_data.Nx == 8)&& !(es_data.Nx == 16)&& !(es_data.Nx == 32)&& !(es_data.Nx == 64)&& !(es_data.Nx == 128)&& !(es_data.Nx == 256)&& !(es_data.Nx == 512)&& !(es_data.Nx == 1024))
