@@ -32,11 +32,8 @@ run_python("from distutils import sysconfig\; print sysconfig.get_config_var('LD
 run_python("from distutils import sysconfig\; print sysconfig.get_python_version()" _python_version)
 string(REPLACE "." "" _python_version_no_dots ${_python_version})
 
-if (ENABLE_STATIC)
-    get_filename_component(_python_lib_first ${_python_static_lib_name} NAME)
-else (ENABLE_STATIC)
-    get_filename_component(_python_lib_first ${_python_dynamic_lib_name} NAME)
-endif (ENABLE_STATIC)
+# always link the dynamic python library
+get_filename_component(_python_lib_first ${_python_dynamic_lib_name} NAME)
 
 # add a blank suffix to the beginning to find the Python framework
 set(_old_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
