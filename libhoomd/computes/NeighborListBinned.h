@@ -72,7 +72,10 @@ class NeighborListBinned : public NeighborList
         
         //! Change the cuttoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
-    
+        
+        //! Set the maximum diameter to use in computing neighbor lists
+        virtual void setMaximumDiameter(Scalar d_max);
+
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list
 

@@ -169,7 +169,7 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         float3 bd_force = make_float3(0.0f, 0.0f, 0.0f);
         
         //Initialize the Random Number Generator and generate the 3 random numbers
-        SaruGPU s(ptag, timestep, seed); // 3 dimensional seeding
+        SaruGPU s(ptag, timestep + seed); // 2 dimensional seeding
     
         float randomx=s.f(-1.0, 1.0);
         float randomy=s.f(-1.0, 1.0);

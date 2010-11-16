@@ -110,6 +110,7 @@ Table of contents:
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>\copybrief hoomd_script::pair::cgcmm </i>
  - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>\copybrief hoomd_script::pair::dpd </i> 
  - \link hoomd_script.pair.dpd_conservative pair.dpd_conservative\endlink - <i>\copybrief hoomd_script::pair::dpd_conservative </i>
+ - \link hoomd_script.pair.eam pair.eam\endlink - <i>\copybrief hoomd_script::pair::eam </i> 
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>\copybrief hoomd_script::pair::gauss </i>
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
  - \link hoomd_script.pair.morse pair.morse\endlink - <i>\copybrief hoomd_script::pair::morse </i>

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ "$#" -eq 0 ]; then
+        # This shell is an interactive launch with no arguments
+        echo "Launching intractive python shell now.... run \"from hoomd_script import *\" to load the HOOMD-blue python module"
+		echo ""
+fi
+
+if [ -n "$HOOMD_PLUGINS_DIR" ]
+then
+    export PYTHONPATH="${HOOMD_PLUGINS_DIR}:${PYTHONPATH}"
+fi
+
+python $*

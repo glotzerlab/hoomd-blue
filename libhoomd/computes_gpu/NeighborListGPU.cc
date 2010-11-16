@@ -100,6 +100,14 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
         throw runtime_error("Error computing neighbor list");
         }
+
+    if (m_filter_body || m_filter_diameter)
+        {
+        cerr << endl << "***Error! NeighborListGPU does not currently support body or diameter exclusions." << endl;
+        cerr << "Please contact the developers and notify them that you need this functionality" << endl << endl;
+        
+        throw runtime_error("Error computing neighbor list");
+        }
     
     // check that the simulation box is big enough
     const BoxDim& box = m_pdata->getBox();
@@ -126,6 +134,13 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
+    // start by creating a temporary copy of r_cut sqaured
+    Scalar rmax = m_r_cut + m_r_buff;
+    // add d_max - 1.0, if diameter filtering is not already taking care of it
+    if (!m_filter_diameter)
+        rmax += m_d_max - Scalar(1.0);
+    Scalar rmaxsq = rmax*rmax;
+
     gpu_compute_nlist_nsq(d_nlist.data,
                           d_n_neigh.data,
                           d_last_pos.data,
@@ -134,7 +149,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
                           d_pdata.pos,
                           m_pdata->getN(),
                           gpubox,
-                          (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff));
+                          rmaxsq);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

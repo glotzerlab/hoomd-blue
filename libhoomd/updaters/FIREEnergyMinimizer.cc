@@ -83,7 +83,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         m_fdec(Scalar(0.5)),
         m_alpha_start(Scalar(0.1)),
         m_falpha(Scalar(0.99)),
-        m_ftol(Scalar(1e-4)), 
+        m_ftol(Scalar(1e-1)), 
         m_etol(Scalar(1e-3)),
         m_deltaT_max(dt),
         m_deltaT_set(dt/Scalar(10.0)),
@@ -253,7 +253,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
     
-    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         m_pdata->release();

@@ -11,13 +11,15 @@ Joshua Anderson, University of Michigan - <b>Lead developer</b>
 Alex Travesset, Iowa State University and Ames Laboratory
 
 Rastko Sknepnek, Northwestern
- - integrate.npt implementation
- - pair.morse implementation
+ - integrate.npt
+ - pair.morse
 
 Carolyn Phillips, University of Michigan
- - integrate.bdnvt implementation
- - bond.fene implementation
- - Shifted LJ forces
+ - pair.dpd
+ - pair.dpd_conservative
+ - integrate.bdnvt
+ - bond.fene
+ - pair.slj
  - Initial testing and debugging of HOOMD on Mac OS X systems
  
 Aaron Keys, University of Michigan
@@ -26,12 +28,15 @@ Aaron Keys, University of Michigan
   - binary restart files
   
 Axel Kohlmeyer, David LeBard, Ben Levine, all from the ICMS group at Temple University
-  - pair.cgcmm implementation
-  - angle.harmonic implementation
-  - angle.cgcmm implementation
-  - dihedral.harmonic implementation
-  - improper.harmonic implementation
+  - pair.cgcmm
+  - angle.harmonic
+  - angle.cgcmm
+  - dihedral.harmonic
+  - improper.harmonic
   - numerous other small contributions enhancing the usability of HOOMD
+
+Igor Morozov, Andrey Kazennov, Roman Bystryi, Joint Institute for High Temperatures of RAS (Moscow, Russia)
+  - pair.eam
 
 While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is 
 responsible for numerous performance tweaks to the neighbor list and pair force code.

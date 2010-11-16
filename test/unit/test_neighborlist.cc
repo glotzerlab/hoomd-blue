@@ -305,6 +305,173 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
         }
     }
 
+//! Tests the ability of the neighbor list to exclude particles from the same body
+template <class NL>
+void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    
+    // lets make this test simple: put all 6 particles on top of each other and
+    // see if the exclusion code can ignore 4 of the particles
+    ParticleDataArrays arrays = pdata_6->acquireReadWrite();
+    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0; arrays.body[0] = NO_BODY;
+    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = 0; arrays.body[1] = 0;
+    arrays.x[2] = 0; arrays.y[2] = 0; arrays.z[2] = 0; arrays.body[2] = 1;
+    arrays.x[3] = 0; arrays.y[3] = 0; arrays.z[3] = 0; arrays.body[3] = 0;
+    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = 0; arrays.body[4] = 1;
+    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] = 0; arrays.body[5] = NO_BODY;
+    pdata_6->release();
+    
+    shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    nlist_6->setFilterBody(true);
+    nlist_6->setStorageMode(NeighborList::full);
+    
+    nlist_6->compute(0);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
+        Index2D nli = nlist_6->getNListIndexer();
+        
+        BOOST_REQUIRE(nli.getW() >= 6);
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 5);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,2)], 3);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,3)], 4);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,4)], 5);
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 4);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,1)], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,2)], 4);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,3)], 5);
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 4);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,1)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,2)], 3);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,3)], 5);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[3], 4);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,1)], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,2)], 4);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,3)], 5);
+    
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 4);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,1)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,2)], 3);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,3)], 5);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[5], 5);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(5,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(5,1)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(5,2)], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(5,3)], 3);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(5,4)], 4);
+        }
+    }
+
+//! Tests the ability of the neighbor list to filter by diameter
+template <class NL>
+void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    /////////////////////////////////////////////////////////
+    // start with the simplest possible test: 3 particles in a huge box
+    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    
+    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
+    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0.0; arrays.diameter[0] = 3.0;
+    arrays.x[2] = 0; arrays.y[2] = 0; arrays.z[2] = 2.5; arrays.diameter[2] = 2.0;
+    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = -3.0; arrays.diameter[1] = 1.0;
+    arrays.x[3] = 0; arrays.y[3] = 2.51; arrays.z[3] = 0; arrays.diameter[3] = 0;
+    pdata_3->release();
+    
+    // test construction of the neighborlist
+    shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
+    nlist_2->compute(1);
+    nlist_2->setStorageMode(NeighborList::full);
+
+    // with the given settings, there should be no neighbors: check that
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
+        
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 0);
+        }
+    
+    // set a test maximum diameter of 2.0
+    nlist_2->setMaximumDiameter(2.0);
+    nlist_2->compute(2);
+    
+    // 0 and 1 should be neighbors now, as well as 0 and 2
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
+        Index2D nli = nlist_2->getNListIndexer();
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,2)], 3);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
+        }
+    
+    // bump it up to 3.0
+    nlist_2->setMaximumDiameter(3.0);
+    nlist_2->compute(3);
+    
+    // should be the same as above
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
+        Index2D nli = nlist_2->getNListIndexer();
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,2)], 3);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,1)], 3);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,1)], 3);
+        }
+    
+    // enable diameter filtering and verify the result is still correct
+    nlist_2->setFilterDiameter(true);
+    nlist_2->compute(4);
+
+    // the particle 0 should now be neighbors with 1 and 2
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
+        Index2D nli = nlist_2->getNListIndexer();
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 2);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
+        }
+    }
+
 //! Test two implementations of NeighborList and verify that the output is identical
 template <class NLA, class NLB>
 void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -428,6 +595,16 @@ BOOST_AUTO_TEST_CASE( NeighborList_large_ex )
     {
     neighborlist_large_ex_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+//! body filter test case for base class
+BOOST_AUTO_TEST_CASE( NeighborList_body_filter)
+    {
+    neighborlist_body_filter_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! diameter filter test case for base class
+BOOST_AUTO_TEST_CASE( NeighborList_diameter_filter )
+    {
+    neighborlist_diameter_filter_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
 
 //! basic test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_basic )
@@ -443,6 +620,16 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_exclusion )
 BOOST_AUTO_TEST_CASE( NeighborListBinned_large_ex )
     {
     neighborlist_large_ex_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! body filter test case for binned class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_body_filter)
+    {
+    neighborlist_body_filter_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! diameter filter test case for binned class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_diameter_filter )
+    {
+    neighborlist_diameter_filter_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! comparison test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_comparison )
@@ -467,6 +654,20 @@ BOOST_AUTO_TEST_CASE( NeighborListGPU_large_ex )
     {
     neighborlist_large_ex_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
+
+// disabled as NeighborListGPU doesn't support these filters yet
+/*
+//! body filter test case for GPU class
+BOOST_AUTO_TEST_CASE( NeighborListGPU_body_filter)
+    {
+    neighborlist_body_filter_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! diameter filter test case for GPU class
+BOOST_AUTO_TEST_CASE( NeighborListGPU_diameter_filter )
+    {
+    neighborlist_diameter_filter_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+*/
 //! comparison test case for GPU class
 BOOST_AUTO_TEST_CASE( NeighborListGPU_comparison )
     {
@@ -487,6 +688,16 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_exclusion )
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_large_ex )
     {
     neighborlist_large_ex_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! body filter test case for GPUBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_body_filter)
+    {
+    neighborlist_body_filter_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! diameter filter test case for GPUBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_diameter_filter )
+    {
+    neighborlist_diameter_filter_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )

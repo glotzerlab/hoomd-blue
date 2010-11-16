@@ -4,7 +4,7 @@
 
 # install the hoomd_script python module
 install(DIRECTORY hoomd_plugins hoomd_script
-    DESTINATION ${LIB_INSTALL_DIR}/python-module
+    DESTINATION ${HOOMD_PYTHON_MODULE_DIR}
     PATTERN ".svn" EXCLUDE
     PATTERN "*.pyc" EXCLUDE
     PATTERN "*.pyo" EXCLUDE
