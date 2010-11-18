@@ -441,7 +441,15 @@ void RigidData::initializeData()
     m_particle_pos.swap(particle_pos);
     ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite);
     unsigned int particle_pos_pitch = m_particle_pos.getPitch();
-     
+    
+    GPUArray<Scalar4> particle_oldpos(m_nmax, m_n_bodies, m_pdata->getExecConf());
+    m_particle_oldpos.swap(particle_oldpos);
+    ArrayHandle<Scalar4> particle_oldpos_handle(m_particle_oldpos, access_location::host, access_mode::readwrite);
+    
+    GPUArray<Scalar4> particle_oldvel(m_nmax, m_n_bodies, m_pdata->getExecConf());
+    m_particle_oldvel.swap(particle_oldvel);
+    ArrayHandle<Scalar4> particle_oldvel_handle(m_particle_oldvel, access_location::host, access_mode::readwrite);
+    
     GPUArray<unsigned int> local_indices(m_n_bodies, m_pdata->getExecConf());
     ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite);
     for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -482,6 +490,14 @@ void RigidData::initializeData()
                 dz * ey_space_handle.data[body].z;
         particle_pos_handle.data[idx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
                 dz * ez_space_handle.data[body].z;
+        
+        particle_oldpos_handle.data[idx].x = unwrappedx;
+        particle_oldpos_handle.data[idx].y = unwrappedy;
+        particle_oldpos_handle.data[idx].z = unwrappedz;
+        
+        particle_oldvel_handle.data[idx].x = arrays.vx[j];
+        particle_oldvel_handle.data[idx].y = arrays.vy[j];
+        particle_oldvel_handle.data[idx].z = arrays.vz[j];
         
         // increment the current index by one
         local_indices_handle.data[body]++;

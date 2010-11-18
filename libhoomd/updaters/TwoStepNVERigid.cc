@@ -279,7 +279,7 @@ void TwoStepNVERigid::setup()
     // Set the velocities of particles in rigid bodies
     set_v(0);
 
-//#define __DEBUG
+#define __DEBUG
 #ifdef __DEBUG
     {
     ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
@@ -776,6 +776,8 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
     ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
     unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
+    ArrayHandle<Scalar4> particle_oldpos_handle(m_rigid_data->getParticleOldPos(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> particle_oldvel_handle(m_rigid_data->getParticleOldVel(), access_location::host, access_mode::readwrite);
     
     // access the particle data arrays
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
@@ -808,12 +810,13 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                         + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
                         + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
                         
-            // x_particle = x_com + xr           
+            // read the position from the previous step           
             Scalar4 old_pos;
-            old_pos.x = arrays.x[pidx] + Lx * arrays.ix[pidx];
-            old_pos.y = arrays.y[pidx] + Ly * arrays.iy[pidx];
-            old_pos.z = arrays.z[pidx] + Lz * arrays.iz[pidx];
+            old_pos.x = particle_oldpos_handle.data[localidx].x;
+            old_pos.y = particle_oldpos_handle.data[localidx].y;
+            old_pos.z = particle_oldpos_handle.data[localidx].z;
             
+            // x_particle = x_com + xr
             arrays.x[pidx] = com.data[body].x + xr;
             arrays.y[pidx] = com.data[body].y + yr;
             arrays.z[pidx] = com.data[body].z + zr;
@@ -856,16 +859,23 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                 arrays.iz[pidx]--;
                 }
             
+            // store the current position for the next step
+            particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];
+            particle_oldpos_handle.data[localidx].y = arrays.y[pidx] + Ly * arrays.iy[pidx];
+            particle_oldpos_handle.data[localidx].z = arrays.z[pidx] + Lz * arrays.iz[pidx];
+            
+            // read the velocity from the previous step
             Scalar4 old_vel;
-            old_vel.x = arrays.vx[pidx];
-            old_vel.y = arrays.vy[pidx];
-            old_vel.z = arrays.vz[pidx];
+            old_vel.x = particle_oldvel_handle.data[localidx].x;
+            old_vel.y = particle_oldvel_handle.data[localidx].y;
+            old_vel.z = particle_oldvel_handle.data[localidx].z;
             
             // v_particle = v_com + angvel x xr
             arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
             arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
             arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
             
+            // calculate the virial from the position and velocity from the previous step
             Scalar massone = arrays.mass[pidx];
             Scalar4 fc;
             fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
@@ -873,6 +883,11 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
             
             h_virial.data[pidx] = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            
+            // store the current velocity for the next step
+            particle_oldvel_handle.data[localidx].x = arrays.vx[pidx];
+            particle_oldvel_handle.data[localidx].y = arrays.vy[pidx];
+            particle_oldvel_handle.data[localidx].z = arrays.vz[pidx];
             }
         }
         
@@ -887,15 +902,6 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
 
 void TwoStepNVERigid::set_v(unsigned int timestep)
     {
-    // get box
-    const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    
     Scalar dt_half = 0.5 * m_deltaT;
     
     // access to the force
@@ -921,7 +927,9 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
     unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
     ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
     unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
-    
+    ArrayHandle<Scalar4> particle_oldpos_handle(m_rigid_data->getParticleOldPos(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> particle_oldvel_handle(m_rigid_data->getParticleOldVel(), access_location::host, access_mode::readwrite);
+
     // access the particle data arrays
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
     assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
@@ -951,15 +959,16 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
                         + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
                         + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
             
+            // read the position from the previous step           
             Scalar4 old_pos;
-            old_pos.x = arrays.x[pidx] + Lx * arrays.ix[pidx];
-            old_pos.y = arrays.y[pidx] + Ly * arrays.iy[pidx];
-            old_pos.z = arrays.z[pidx] + Lz * arrays.iz[pidx];
+            old_pos.x = particle_oldpos_handle.data[localidx].x;
+            old_pos.y = particle_oldpos_handle.data[localidx].y;
+            old_pos.z = particle_oldpos_handle.data[localidx].z;
             
             Scalar4 old_vel;
-            old_vel.x = arrays.vx[pidx];
-            old_vel.y = arrays.vy[pidx];
-            old_vel.z = arrays.vz[pidx];
+            old_vel.x = particle_oldvel_handle.data[localidx].x;
+            old_vel.y = particle_oldvel_handle.data[localidx].y;
+            old_vel.z = particle_oldvel_handle.data[localidx].z;
 
             // v_particle = v_com + angvel x xr
             arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
@@ -976,6 +985,11 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
             h_net_virial.data[pidx] += h_virial.data[pidx];
             // and this part
             h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            
+            // store the current velocity for the next step
+            particle_oldvel_handle.data[localidx].x = arrays.vx[pidx];
+            particle_oldvel_handle.data[localidx].y = arrays.vy[pidx];
+            particle_oldvel_handle.data[localidx].z = arrays.vz[pidx];
             }
         }
         

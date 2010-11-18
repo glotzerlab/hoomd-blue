@@ -814,11 +814,7 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
         if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
             {
             // calculate body force and torques
-            ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
-            ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
-            ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
             float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
-            
             fi = tex1Dfetch(net_force_tex, idx_particle_index);
             
             body_force[threadIdx.x].x = fi.x;
@@ -1049,7 +1045,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     unsigned int nmax = rigid_data.nmax;
     
     // bind the textures for ALL rigid bodies
-    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(float) * n_group_bodies);
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(unsigned int) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
         
