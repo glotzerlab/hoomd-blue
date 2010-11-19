@@ -128,6 +128,8 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -156,6 +158,8 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.torque = torque_handle.data;
     d_rdata.virial = d_virial.data;
     d_rdata.conjqm = conjqm_handle.data;
+    d_rdata.particle_oldpos = particle_oldpos_handle.data;
+    d_rdata.particle_oldvel = particle_oldvel_handle.data;
     
     // perform the update on the GPU
     gpu_nve_rigid_step_one(d_pdata,
@@ -220,6 +224,8 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -245,6 +251,8 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.torque = torque_handle.data;
     d_rdata.virial = d_virial.data;
     d_rdata.conjqm = conjqm_handle.data;
+    d_rdata.particle_oldpos = particle_oldpos_handle.data;
+    d_rdata.particle_oldvel = particle_oldvel_handle.data;
     
     gpu_rigid_force(d_pdata,
                     d_rdata, 

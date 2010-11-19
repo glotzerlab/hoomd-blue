@@ -82,6 +82,8 @@ struct gpu_rigid_data_arrays
     float4 *conjqm;         //!< Conjugate quaternion momentum 
     
     float4 *particle_pos;           //!< Particle relative position to the body frame
+    float4 *particle_oldpos;        //!< Particle position from the previous step
+    float4 *particle_oldvel;        //!< Particle velocity from the previous step
     unsigned int *particle_indices; //!< Particle indices: actual particle index in the particle data arrays
     unsigned int *particle_tags;    //!< Particle tags
     };
