@@ -395,14 +395,14 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
             pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
             pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
             pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-            pvel.w = 0.0;
+            pvel.w = 0.0f;
             
             float4 fc;
             fc.x = massone * (pvel.x - particle_oldvel.x) / dt_half - pforce.x;
             fc.y = massone * (pvel.y - particle_oldvel.y) / dt_half - pforce.y;
             fc.z = massone * (pvel.z - particle_oldvel.z) / dt_half - pforce.z; 
             
-            float pvirial = 0.5 * (particle_oldpos.x * fc.x + particle_oldpos.y * fc.y + particle_oldpos.z * fc.z) / 3.0;
+            float pvirial = 0.5f * (particle_oldpos.x * fc.x + particle_oldpos.y * fc.y + particle_oldpos.z * fc.z) / 3.0f;
             
             // write out the results (MEM_TRANSFER: ? bytes)
             pdata_pos[idx_particle_index] = ppos;
@@ -534,14 +534,14 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
                     pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
                     pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
                     pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-                    pvel.w = 0.0;
+                    pvel.w = 0.0f;
                     
                     float4 fc;
                     fc.x = massone * (pvel.x - particle_oldvel.x) / dt_half - pforce.x;
                     fc.y = massone * (pvel.y - particle_oldvel.y) / dt_half - pforce.y;
                     fc.z = massone * (pvel.z - particle_oldvel.z) / dt_half - pforce.z; 
                     
-                    float pvirial = 0.5 * (particle_oldpos.x * fc.x + particle_oldpos.y * fc.y + particle_oldpos.z * fc.z) / 3.0;
+                    float pvirial = 0.5f * (particle_oldpos.x * fc.x + particle_oldpos.y * fc.y + particle_oldpos.z * fc.z) / 3.0f;
                     
                     // write out the results (MEM_TRANSFER: ? bytes)
                     pdata_pos[idx_particle_index] = ppos;
@@ -1317,7 +1317,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
             fc.y = massone * (pvel.y - particle_oldvel.y) / dt_half - pforce.y;
             fc.z = massone * (pvel.z - particle_oldvel.z) / dt_half - pforce.z; 
         
-            float pvirial = 0.5 * (particle_oldpos.x * fc.x + particle_oldpos.y * fc.y + particle_oldpos.z * fc.z) / 3.0;
+            float pvirial = 0.5f * (particle_oldpos.x * fc.x + particle_oldpos.y * fc.y + particle_oldpos.z * fc.z) / 3.0f;
             
             // accumulate the virial contribution from the first part into the net particle virial
             pvirial += virial;
@@ -1417,7 +1417,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4
                     fc.y = massone * (pvel.y - particle_oldvel.y) / dt_half - pforce.y;
                     fc.z = massone * (pvel.z - particle_oldvel.z) / dt_half - pforce.z; 
                     
-                    float pvirial = 0.5 * (particle_oldpos.x * fc.x + particle_oldpos.y * fc.y + particle_oldpos.z * fc.z) / 3.0;
+                    float pvirial = 0.5f * (particle_oldpos.x * fc.x + particle_oldpos.y * fc.y + particle_oldpos.z * fc.z) / 3.0f;
                 
                     // accumulate the virial contribution from the first part into the net particle virial
                     pvirial += virial;
