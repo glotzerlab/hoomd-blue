@@ -1044,14 +1044,16 @@ class slj(pair):
         globals.system.addCompute(self.cpp_force, self.force_name);
         
         # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'sigma'];
+        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
         
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
+        alpha = coeff['alpha'];
         
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = 4.0 * epsilon * math.pow(sigma, 6.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_scalar2(lj1, lj2);
 
     ## Set parameters controlling the way forces are computed
