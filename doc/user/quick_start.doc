@@ -193,8 +193,9 @@ lj = pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 \endcode
     The example script only has a single particle type in the simulation so one line is sufficient. In more complicated 
-    simulations with more than one particle type every unique pair must be specified (i.e. 'A'-'A', 'A'-'B', and 'B'-B').
-    Use one line like that above for each pair.<br><br>
+    simulations with more than one particle type every unique pair must be specified (i.e. 'A','A', 'A','B', and 'B',B').
+    Use one line like that above for each pair, or specify a list of types to assign the given parameters
+    (see \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink for examples).<br><br>
  -# After that, we choose the integrator to move particles forward in time. As with forces, more than one integration
     method can be applied, as long as they are set on different groups. However, only one integration \b mode can be
     active at a time (specifying another will overwrite the first). Also, there \b must be an integration mode set. If
