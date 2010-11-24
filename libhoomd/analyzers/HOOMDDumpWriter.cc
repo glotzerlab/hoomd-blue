@@ -448,12 +448,18 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 */
 void HOOMDDumpWriter::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("Dump XML");
+        
     ostringstream full_fname;
     string filetype = ".xml";
     
     // Generate a filename with the timestep padded to ten zeros
     full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
     writeFile(full_fname.str(), timestep);
+
+    if (m_prof)
+        m_prof->pop();
     }
 
 void export_HOOMDDumpWriter()

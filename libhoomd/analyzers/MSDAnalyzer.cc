@@ -132,6 +132,9 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
 */
 void MSDAnalyzer::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("Analyze MSD");
+    
     // error check
     if (m_columns.size() == 0)
         {
@@ -155,6 +158,9 @@ void MSDAnalyzer::analyze(unsigned int timestep)
         
     // write out the row every time
     writeRow(timestep);
+
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param delimiter New delimiter to set

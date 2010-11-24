@@ -78,13 +78,18 @@ MOL2DumpWriter::MOL2DumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::
 */
 void MOL2DumpWriter::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("Dump MOL2");
+    
     ostringstream full_fname;
     string filetype = ".mol2";
     
     // Generate a filename with the timestep padded to ten zeros
     full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
     writeFile(full_fname.str());
-    
+
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param fname File name to write

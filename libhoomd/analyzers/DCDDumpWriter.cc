@@ -155,6 +155,9 @@ DCDDumpWriter::~DCDDumpWriter()
 */
 void DCDDumpWriter::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("Dump DCD");
+    
     // the file object
     fstream file;
     
@@ -192,6 +195,9 @@ void DCDDumpWriter::analyze(unsigned int timestep)
     m_num_frames_written++;
     write_updated_header(file, timestep);
     file.close();
+    
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param file File to write to
