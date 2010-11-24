@@ -1,11 +1,11 @@
 #PBS -N hoomd_stability_test
-#PBS -l nodes=1,walltime=03:00:00,software=graphics,pmem=1gb,qos=glotzergpu
+#PBS -l nodes=1,walltime=24:00:00,software=graphics,pmem=2gb,qos=glotzergpu
 #PBS -V
 #PBS -j oe
 #PBS -q route
 #PBS -t 1-15
 
-HOOMD_ARGS=
+HOOMD_ARGS=endurance
 
 cd ${PBS_O_WORKDIR}
 
