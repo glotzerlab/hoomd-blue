@@ -176,6 +176,9 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         if (m_appending && timestep <= m_last_written_step)
             {
             cout << "***Warning! DCDDumpWriter is not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
+            
+            if (m_prof)
+                m_prof->pop();
             return;
             }
             
