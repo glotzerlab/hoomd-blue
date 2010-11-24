@@ -99,6 +99,11 @@ import globals
 # >>> print system.particles
 # Particle Data for 64000 particles of 1 type(s)
 # \endcode
+# - The list of all particle types in the simulation can be accessed
+# \code
+# >>> print system.particles.types
+# ['A']
+# \endcode
 # - Individual particles can be accessed at random.
 # \code
 # >>> i = 4
@@ -273,6 +278,11 @@ class particle_data:
     # \param pdata ParticleData to connect
     def __init__(self, pdata):
         self.pdata = pdata;
+        
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        self.types = [];
+        for i in xrange(0,ntypes):
+            self.types.append(globals.system_definition.getParticleData().getNameByType(i));
     
     ## \var pdata
     # \internal
