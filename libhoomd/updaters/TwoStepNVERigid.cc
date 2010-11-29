@@ -90,9 +90,6 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
         {
         cout << "***Warning! Empty group for rigid body integration." << endl;
         }
-        
-    GPUArray<Scalar> virial(m_pdata->getN(), m_pdata->getExecConf());
-    m_virial.swap(virial);
     }
 
 void TwoStepNVERigid::setRestartIntegratorVariables()
@@ -130,6 +127,9 @@ void TwoStepNVERigid::setup()
     
     GPUArray<Scalar4> conjqm_alloc(m_n_bodies, m_pdata->getExecConf());
     m_conjqm.swap(conjqm_alloc);
+    
+    GPUArray<Scalar> virial(m_rigid_data->getNmax(), m_n_bodies, m_pdata->getExecConf());
+    m_virial.swap(virial);
     
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
@@ -753,7 +753,7 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
             fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
             
-            h_virial.data[pidx] = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            h_virial.data[localidx] = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             
             // store the current velocity for the next step
             particle_oldvel_handle.data[localidx].x = arrays.vx[pidx];
@@ -853,7 +853,7 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
             
             // accumulate the virial from the first part
-            h_net_virial.data[pidx] += h_virial.data[pidx];
+            h_net_virial.data[pidx] += h_virial.data[localidx];
             // and this part
             h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             
