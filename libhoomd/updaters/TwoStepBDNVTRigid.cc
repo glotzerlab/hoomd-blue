@@ -199,9 +199,6 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
     
-    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::host, access_mode::readwrite);
-            
-    Scalar4 mbody, tbody, fquat;
     Scalar dt_half = 0.5 * m_deltaT;
     
     // 2nd step: final integration
@@ -217,22 +214,6 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
         angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
         angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
-
-        /*
-        matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
-        quat_multiply(orientation_handle.data[body], tbody, fquat);
-        
-        conjqm_handle.data[body].x += m_deltaT * fquat.x;
-        conjqm_handle.data[body].y += m_deltaT * fquat.y;
-        conjqm_handle.data[body].z += m_deltaT * fquat.z;
-        conjqm_handle.data[body].w += m_deltaT * fquat.w;
-        
-        inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
-        transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
-        
-        angmom_handle.data[body].x *= 0.5;
-        angmom_handle.data[body].y *= 0.5;
-        angmom_handle.data[body].z *= 0.5;*/
         
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
                                ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);

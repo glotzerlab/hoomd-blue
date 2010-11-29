@@ -165,7 +165,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     if (group_idx < n_group_bodies)
         {
         float body_mass;
-        float4 moment_inertia, com, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
+        float4 moment_inertia, com, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
         int body_imagex, body_imagey, body_imagez;
         float dt_half = 0.5 * deltaT;
         
@@ -178,16 +178,14 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
             angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
             orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
-            ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
-            ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
-            ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
             body_imagex = tex1Dfetch(rigid_data_body_imagex_tex, idx_body);
             body_imagey = tex1Dfetch(rigid_data_body_imagey_tex, idx_body);
             body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);
             force = tex1Dfetch(rigid_data_force_tex, idx_body);
             torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
-            conjqm = tex1Dfetch(rigid_data_conjqm_tex, idx_body);
-            
+         
+            exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
+               
             // update velocity
             float dtfm = dt_half / body_mass;
             
@@ -217,8 +215,8 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             float z_shift = rintf(pos2.z * box.Lzinv);
             pos2.z -= box.Lz * z_shift;
             body_imagez += (int)z_shift;
-
-            // update the angular momentum
+       
+            // update the angular momentum and angular velocity
             float4 angmom2;
             angmom2.x = angmom.x + dt_half * torque.x;
             angmom2.y = angmom.y + dt_half * torque.y;
@@ -227,45 +225,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             
             float4 angvel2;
             advanceQuaternion(angmom2, moment_inertia, angvel2, ex_space, ey_space, ez_space, deltaT, orientation);
-            
-       //   Unresolved issue: Sympletic quaternion scheme shows energy dissipation on GPU
-       /*
-            float4 mbody, tbody, fquat;
-            
-            matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
-            quat_multiply(orientation, tbody, fquat);
-
-            float4 conjqm2;
-            conjqm2.x = conjqm.x + deltaT * fquat.x;
-            conjqm2.y = conjqm.y + deltaT * fquat.y;
-            conjqm2.z = conjqm.z + deltaT * fquat.z;
-            conjqm2.w = conjqm.w + deltaT * fquat.w;
-            
-            // use no_squish rotate to update p and q
-            
-            no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
-            no_squish_rotate(2, conjqm2, orientation, moment_inertia, dt_half);
-            no_squish_rotate(1, conjqm2, orientation, moment_inertia, deltaT);
-            no_squish_rotate(2, conjqm2, orientation, moment_inertia, dt_half);
-            no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
-            
-            // update the exyz_space
-            // transform p back to angmom
-            // update angular velocity
-            float4 angmom2;
-            exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
-            inv_quat_multiply(orientation, conjqm2, mbody);
-            transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
-            
-            angmom2.x *= 0.5;
-            angmom2.y *= 0.5;
-            angmom2.z *= 0.5;
-            angmom2.w = 0.0;
-            
-            float4 angvel2;
-            computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel2);
-        */
-            
+       
             // write out the results (MEM_TRANSFER: ? bytes)
             rdata_com[idx_body] = pos2;
             rdata_vel[idx_body] = vel2;
@@ -278,7 +238,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             rdata_body_imagex[idx_body] = body_imagex;
             rdata_body_imagey[idx_body] = body_imagey;
             rdata_body_imagez[idx_body] = body_imagez;
-        //  rdata_conjqm[idx_body] = conjqm2;
             }
         }
     }
@@ -650,10 +609,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         return error;
         
     error = cudaBindTexture(0, rigid_data_torque_tex, rigid_data.torque, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, rigid_data_conjqm_tex, rigid_data.conjqm, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
     
@@ -1169,7 +1124,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
     if (group_idx < n_group_bodies)
         {
         float body_mass;
-        float4 moment_inertia, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
+        float4 moment_inertia, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
         float dt_half = 0.5 * deltaT;
         
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
@@ -1185,12 +1140,9 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
             torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
             moment_inertia = tex1Dfetch(rigid_data_moment_inertia_tex, idx_body);
             orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
-            ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
-            ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
-            ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
-            orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
-            conjqm = tex1Dfetch(rigid_data_conjqm_tex, idx_body);
             
+            exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
+              
             float dtfm = dt_half / body_mass;
             float4 vel2;
             vel2.x = vel.x + dtfm * force.x;
@@ -1198,28 +1150,6 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
             vel2.z = vel.z + dtfm * force.z;
             vel2.w = 0.0;
 
-         // Unresolved issue: Sympletic quaternion scheme shows energy dissipation on GPU  
-         /*
-            float4 mbody, tbody, fquat;
-            
-            // update angular momentum
-            matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
-            quat_multiply(orientation, tbody, fquat);
-            
-            float4  conjqm2, angmom2;
-            conjqm2.x = conjqm.x + deltaT * fquat.x;
-            conjqm2.y = conjqm.y + deltaT * fquat.y;
-            conjqm2.z = conjqm.z + deltaT * fquat.z;
-            conjqm2.w = conjqm.w + deltaT * fquat.w;
-            
-            inv_quat_multiply(orientation, conjqm2, mbody);
-            transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
-            
-            angmom2.x *= 0.5;
-            angmom2.y *= 0.5;
-            angmom2.z *= 0.5;
-            angmom2.w = 0.0;
-        */
             // update angular momentum
             float4 angmom2;
             angmom2.x = angmom.x + dt_half * torque.x;
@@ -1235,7 +1165,6 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
             rdata_vel[idx_body] = vel2;
             rdata_angmom[idx_body] = angmom2;
             rdata_angvel[idx_body] = angvel2;
-        //  rdata_conjqm[idx_body] = conjqm2;
             }
         }
     }
@@ -1517,10 +1446,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
         return error;
         
     error = cudaBindTexture(0, rigid_data_torque_tex, rigid_data.torque, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, rigid_data_conjqm_tex, rigid_data.conjqm, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
     

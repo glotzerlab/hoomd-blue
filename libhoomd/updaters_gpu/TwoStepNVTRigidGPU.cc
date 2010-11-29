@@ -65,6 +65,7 @@ using namespace boost;
     \param thermo compute for thermodynamic quantities
     \param T Controlled temperature
     \param tau Time constant
+    \param skip_restart Skip initialization of the restart information
 */
 TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,

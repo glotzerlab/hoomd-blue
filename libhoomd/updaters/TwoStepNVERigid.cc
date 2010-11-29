@@ -278,53 +278,6 @@ void TwoStepNVERigid::setup()
     
     // Set the velocities of particles in rigid bodies
     set_v(0);
-
-#define __DEBUG
-#ifdef __DEBUG
-    {
-    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
-    unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
-    ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
-    
-    
-    std::ofstream ofs("bodies.txt");
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
-        
-        ofs << "body " << body << "\n";
-        ofs << "angvel = " << angvel_handle.data[body].x << "\t" << angvel_handle.data[body].y << "\t" << angvel_handle.data[body].z << "\n";
-        ofs << "force = " << force_handle.data[body].x << "\t" << force_handle.data[body].y << "\t" << force_handle.data[body].z << "\n";
-        ofs << "torque = " << torque_handle.data[body].x << "\t" << torque_handle.data[body].y << "\t" << torque_handle.data[body].z << "\n";
-        ofs << "angmom = " << angmom_handle.data[body].x << "\t" << angmom_handle.data[body].y << "\t" << angmom_handle.data[body].z << "\n";
-        ofs << "moment = " << moment_inertia_handle.data[body].x << "\t" << moment_inertia_handle.data[body].y << "\t" << moment_inertia_handle.data[body].z << "\n";
-        
-        unsigned int len = body_size_handle.data[body];
-        for (unsigned int j = 0; j < len; j++)
-            {
-            unsigned int localidx = body * particle_pos_pitch + j;
-            ofs << localidx << "\t" << particle_pos_handle.data[localidx].x;
-            ofs << "\t" << particle_pos_handle.data[localidx].y;
-            ofs << "\t" << particle_pos_handle.data[localidx].z << endl;
-            }
-        
-        }
-    
-    ofs.close();
-    }
-#endif
-#undef __DEBUG
-
     
     if (m_prof)
         m_prof->pop();
@@ -380,9 +333,6 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
     
-    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::host, access_mode::readwrite);
-    
-    Scalar4 mbody, tbody, fquat;
     Scalar dt_half = 0.5 * m_deltaT;
     Scalar dtfm;
     
@@ -433,7 +383,7 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
             com_handle.data[body].z += Lz;
             body_imagez_handle.data[body]--;
             }
-           
+        
         // update the angular momentum
         angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
         angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
@@ -448,38 +398,7 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
                           ez_space_handle.data[body],
                           m_deltaT,
                           orientation_handle.data[body]);
-/*
-        matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
-        quat_multiply(orientation_handle.data[body], tbody, fquat);
-        
-        conjqm_handle.data[body].x += m_deltaT * fquat.x;
-        conjqm_handle.data[body].y += m_deltaT * fquat.y;
-        conjqm_handle.data[body].z += m_deltaT * fquat.z;
-        conjqm_handle.data[body].w += m_deltaT * fquat.w;
-        
-        // step 1.4 to 1.13 - use no_squish rotate to update p and q
-        
-        no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-        no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-        no_squish_rotate(1, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], m_deltaT);
-        no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-        no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-        
-        // update the exyz_space
-        // transform p back to angmom
-        // update angular velocity
-        
-        exyzFromQuaternion(orientation_handle.data[body], ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body]);
-        inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
-        transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
-        
-        angmom_handle.data[body].x *= 0.5;
-        angmom_handle.data[body].y *= 0.5;
-        angmom_handle.data[body].z *= 0.5;
-        
-        computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
-                               ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
-*/
+
         }
     } // out of scope for handles
         
@@ -503,35 +422,6 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque(timestep);
 
-//#define __DEBUG
-#ifdef __DEBUG
-    {
-    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-                
-    std::ofstream ofs("bodies1.txt");
-    for (unsigned int body = 0; body < m_n_bodies; body++)
-    {
-        ofs << "body " << body << "\n";
-        ofs << "angvel = " << angvel_handle.data[body].x << "\t" << angvel_handle.data[body].y << "\t" << angvel_handle.data[body].z << "\n";
-        ofs << "force = " << force_handle.data[body].x << "\t" << force_handle.data[body].y << "\t" << force_handle.data[body].z << "\n";
-        ofs << "torque = " << torque_handle.data[body].x << "\t" << torque_handle.data[body].y << "\t" << torque_handle.data[body].z << "\n";
-        ofs << "angmom = " << angmom_handle.data[body].x << "\t" << angmom_handle.data[body].y << "\t" << angmom_handle.data[body].z << "\n";
-        
-        
-    }
-    ofs.close();
-    }
-#endif
-#undef __DEBUG
-
     if (m_prof)
         m_prof->push("NVE rigid step 2");
     
@@ -551,17 +441,15 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
     
-    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::host, access_mode::readwrite);
-    
-    Scalar4 mbody, tbody, fquat;
     Scalar dt_half = 0.5 * m_deltaT;
+    Scalar dtfm;
     
     // 2nd step: final integration
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
         
-        Scalar dtfm = dt_half / body_mass_handle.data[body];
+        dtfm = dt_half / body_mass_handle.data[body];
         vel_handle.data[body].x += dtfm * force_handle.data[body].x;
         vel_handle.data[body].y += dtfm * force_handle.data[body].y;
         vel_handle.data[body].z += dtfm * force_handle.data[body].z;
@@ -569,24 +457,7 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
         angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
         angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
         angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
-            
-        // update conjqm, then transform to angmom, set velocity
-   /* 
-        matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
-        quat_multiply(orientation_handle.data[body], tbody, fquat);
         
-        conjqm_handle.data[body].x += m_deltaT * fquat.x;
-        conjqm_handle.data[body].y += m_deltaT * fquat.y;
-        conjqm_handle.data[body].z += m_deltaT * fquat.z;
-        conjqm_handle.data[body].w += m_deltaT * fquat.w;
-        
-        inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
-        transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
-        
-        angmom_handle.data[body].x *= 0.5;
-        angmom_handle.data[body].y *= 0.5;
-        angmom_handle.data[body].z *= 0.5;
-   */     
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
                                ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
         }
