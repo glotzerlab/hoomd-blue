@@ -189,15 +189,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     Ly=Scalar(box.yhi-box.ylo);
     Lz=Scalar(box.zhi-box.zlo);
     
-    f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" <<endl;
-    f << "<hoomd_xml version=\"1.3\">" << endl;
-    f << "<configuration time_step=\"" << timestep << "\" dimensions=\"" << m_sysdef->getNDimensions() << "\">" << endl;
-    f << "<box units=\"sigma\" " << " lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << endl;
+    f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
+    f << "<hoomd_xml version=\"1.3\">" << "\n";
+    f << "<configuration time_step=\"" << timestep << "\" dimensions=\"" << m_sysdef->getNDimensions() << "\">" << "\n";
+    f << "<box units=\"sigma\" " << " lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << "\n";
 
     // If the position flag is true output the position of all particles to the file
     if (m_output_position)
         {
-        f << "<position units=\"sigma\" num=\"" << m_pdata->getN() << "\">" << endl;
+        f << "<position units=\"sigma\" num=\"" << m_pdata->getN() << "\">" << "\n";
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
             // use the rtag data to output the particles in the order they were read in
@@ -208,7 +208,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             Scalar y = (arrays.y[i]);
             Scalar z = (arrays.z[i]);
             
-            f << x << " " << y << " "<< z << endl;
+            f << x << " " << y << " "<< z << "\n";
             
             if (!f.good())
                 {
@@ -216,13 +216,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
-        f <<"</position>"<<endl;
+        f <<"</position>" << "\n";
         }
         
     // If the image flag is true, output the image of each particle to the file
     if (m_output_image)
         {
-        f << "<image num=\"" << m_pdata->getN() << "\">" << endl;
+        f << "<image num=\"" << m_pdata->getN() << "\">" << "\n";
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
             // use the rtag data to output the particles in the order they were read in
@@ -233,7 +233,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             int y = (arrays.iy[i]);
             int z = (arrays.iz[i]);
             
-            f << x << " " << y << " "<< z << endl;
+            f << x << " " << y << " "<< z << "\n";
             
             if (!f.good())
                 {
@@ -241,13 +241,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
-        f <<"</image>"<<endl;
+        f <<"</image>" << "\n";
         }
         
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_velocity)
         {
-        f <<"<velocity units=\"sigma/tau\" num=\"" << m_pdata->getN() << "\">" << endl;
+        f <<"<velocity units=\"sigma/tau\" num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
@@ -258,7 +258,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             Scalar vx = arrays.vx[i];
             Scalar vy = arrays.vy[i];
             Scalar vz = arrays.vz[i];
-            f << vx << " " << vy << " " << vz << endl;
+            f << vx << " " << vy << " " << vz << "\n";
             if (!f.good())
                 {
                 cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
@@ -266,13 +266,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 }
             }
             
-        f <<"</velocity>" <<endl;
+        f <<"</velocity>" << "\n";
         }
 
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_accel)
         {
-        f <<"<acceleration units=\"sigma/tau^2\" num=\"" << m_pdata->getN() << "\">" << endl;
+        f <<"<acceleration units=\"sigma/tau^2\" num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
@@ -283,7 +283,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             Scalar ax = arrays.ax[i];
             Scalar ay = arrays.ay[i];
             Scalar az = arrays.az[i];
-            f << ax << " " << ay << " " << az << endl;
+            f << ax << " " << ay << " " << az << "\n";
             if (!f.good())
                 {
                 cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
@@ -291,13 +291,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 }
             }
             
-        f <<"</acceleration>" <<endl;
+        f <<"</acceleration>" << "\n";
         }
         
     // If the mass flag is true output the mass of all particles to the file
     if (m_output_mass)
         {
-        f <<"<mass num=\"" << m_pdata->getN() << "\">" << endl;
+        f <<"<mass num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
@@ -306,7 +306,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             i= arrays.rtag[j];
             
             Scalar mass = arrays.mass[i];
-            f << mass << endl;
+            f << mass << "\n";
             if (!f.good())
                 {
                 cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
@@ -314,13 +314,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 }
             }
             
-        f <<"</mass>" <<endl;
+        f <<"</mass>" << "\n";
         }
         
     // If the diameter flag is true output the mass of all particles to the file
     if (m_output_diameter)
         {
-        f <<"<diameter units=\"sigma\" num=\"" << m_pdata->getN() << "\">" << endl;
+        f <<"<diameter units=\"sigma\" num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
@@ -329,7 +329,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             i= arrays.rtag[j];
             
             Scalar diameter = arrays.diameter[i];
-            f << diameter << endl;
+            f << diameter << "\n";
             if (!f.good())
                 {
                 cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
@@ -337,20 +337,20 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 }
             }
             
-        f <<"</diameter>" <<endl;
+        f <<"</diameter>" << "\n";
         }
         
     // If the Type flag is true output the types of all particles to an xml file
     if  (m_output_type)
         {
-        f <<"<type num=\"" << m_pdata->getN() << "\">" <<endl;
+        f <<"<type num=\"" << m_pdata->getN() << "\">" << "\n";
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
             int i;
             i= arrays.rtag[j];
-            f << m_pdata->getNameByType(arrays.type[i]) << endl;
+            f << m_pdata->getNameByType(arrays.type[i]) << "\n";
             }
-        f <<"</type>" <<endl;
+        f <<"</type>" << "\n";
         }
     
     // If the body flag is true output the bodies of all particles to an xml file
@@ -378,39 +378,39 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the bond flag is true, output the bonds to the xml file
     if (m_output_bond)
         {
-        f << "<bond num=\"" << m_sysdef->getBondData()->getNumBonds() << "\">" << endl;
+        f << "<bond num=\"" << m_sysdef->getBondData()->getNumBonds() << "\">" << "\n";
         shared_ptr<BondData> bond_data = m_sysdef->getBondData();
         
         // loop over all bonds and write them out
         for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
             {
             Bond bond = bond_data->getBond(i);
-            f << bond_data->getNameByType(bond.type) << " " << bond.a << " " << bond.b << endl;
+            f << bond_data->getNameByType(bond.type) << " " << bond.a << " " << bond.b << "\n";
             }
             
-        f << "</bond>" << endl;
+        f << "</bond>" << "\n";
         }
         
     // if the angle flag is true, output the angles to the xml file
     if (m_output_angle)
         {
-        f << "<angle num=\"" << m_sysdef->getAngleData()->getNumAngles() << "\">" << endl;
+        f << "<angle num=\"" << m_sysdef->getAngleData()->getNumAngles() << "\">" << "\n";
         shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
         
         // loop over all angles and write them out
         for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
             {
             Angle angle = angle_data->getAngle(i);
-            f << angle_data->getNameByType(angle.type) << " " << angle.a  << " " << angle.b << " " << angle.c << endl;
+            f << angle_data->getNameByType(angle.type) << " " << angle.a  << " " << angle.b << " " << angle.c << "\n";
             }
             
-        f << "</angle>" << endl;
+        f << "</angle>" << "\n";
         }
         
     // if dihedral is true, write out dihedrals to the xml file
     if (m_output_dihedral)
         {
-        f << "<dihedral num=\"" << m_sysdef->getDihedralData()->getNumDihedrals() << "\">" << endl;
+        f << "<dihedral num=\"" << m_sysdef->getDihedralData()->getNumDihedrals() << "\">" << "\n";
         shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
         
         // loop over all angles and write them out
@@ -418,16 +418,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             {
             Dihedral dihedral = dihedral_data->getDihedral(i);
             f << dihedral_data->getNameByType(dihedral.type) << " " << dihedral.a  << " " << dihedral.b << " "
-            << dihedral.c << " " << dihedral.d << endl;
+            << dihedral.c << " " << dihedral.d << "\n";
             }
             
-        f << "</dihedral>" << endl;
+        f << "</dihedral>" << "\n";
         }
         
     // if improper is true, write out impropers to the xml file
     if (m_output_improper)
         {
-        f << "<improper num=\"" << m_sysdef->getImproperData()->getNumDihedrals() << "\">" << endl;
+        f << "<improper num=\"" << m_sysdef->getImproperData()->getNumDihedrals() << "\">" << "\n";
         shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
         
         // loop over all angles and write them out
@@ -435,16 +435,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             {
             Dihedral dihedral = improper_data->getDihedral(i);
             f << improper_data->getNameByType(dihedral.type) << " " << dihedral.a  << " " << dihedral.b << " "
-            << dihedral.c << " " << dihedral.d << endl;
+            << dihedral.c << " " << dihedral.d << "\n";
             }
             
-        f << "</improper>" << endl;
+        f << "</improper>" << "\n";
         }
         
     // if the wall flag is true, output the walls to the xml file
     if (m_output_wall)
         {
-        f << "<wall>" << endl;
+        f << "<wall>" << "\n";
         shared_ptr<WallData> wall_data = m_sysdef->getWallData();
         
         // loop over all walls and write them out
@@ -452,13 +452,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             {
             Wall wall = wall_data->getWall(i);
             f << "<coord ox=\"" << wall.origin_x << "\" oy=\"" << wall.origin_y << "\" oz=\"" << wall.origin_z <<
-            "\" nx=\"" << wall.normal_x << "\" ny=\"" << wall.normal_y << "\" nz=\"" << wall.normal_z << "\" />" << endl;
+            "\" nx=\"" << wall.normal_x << "\" ny=\"" << wall.normal_y << "\" nz=\"" << wall.normal_z << "\" />" << "\n";
             }
-        f << "</wall>" << endl;
+        f << "</wall>" << "\n";
         }
         
-    f << "</configuration>" << endl;
-    f << "</hoomd_xml>" <<endl;
+    f << "</configuration>" << "\n";
+    f << "</hoomd_xml>" << "\n";
     
     if (!f.good())
         {
@@ -476,12 +476,18 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 */
 void HOOMDDumpWriter::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("Dump XML");
+        
     ostringstream full_fname;
     string filetype = ".xml";
     
     // Generate a filename with the timestep padded to ten zeros
     full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
     writeFile(full_fname.str(), timestep);
+
+    if (m_prof)
+        m_prof->pop();
     }
 
 void export_HOOMDDumpWriter()

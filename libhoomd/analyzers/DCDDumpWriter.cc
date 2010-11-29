@@ -155,6 +155,9 @@ DCDDumpWriter::~DCDDumpWriter()
 */
 void DCDDumpWriter::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("Dump DCD");
+    
     // the file object
     fstream file;
     
@@ -173,6 +176,9 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         if (m_appending && timestep <= m_last_written_step)
             {
             cout << "***Warning! DCDDumpWriter is not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
+            
+            if (m_prof)
+                m_prof->pop();
             return;
             }
             
@@ -192,6 +198,9 @@ void DCDDumpWriter::analyze(unsigned int timestep)
     m_num_frames_written++;
     write_updated_header(file, timestep);
     file.close();
+    
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param file File to write to

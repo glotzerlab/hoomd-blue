@@ -62,7 +62,7 @@
 # my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
 # my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
 # \endcode
-# This example set the parameters \a epsilon, \a sigma, and \a alpha 
+# This example set the parameters \a epsilon and \a sigma 
 # (which are used in pair.lj). Different %pair forces require that different
 # coefficients are set. Check the documentation of each to see the definition
 # of the coefficients.
@@ -163,11 +163,21 @@ class coeff:
     # There is no need to specify coefficients for both pairs 'A','B' and 'B','A'. Specifying
     # only one is sufficient.
     #
+    # To set the same coefficients between many particle types, provide a list of type names instead of a single
+    # one. All pairs between the two lists will be set to the same parameters. A convenient wildcard that lists
+    # all types of particles in the simulation can be gotten from a saved \c system from the init command.
+    #
     # \b Examples:
     # \code
     # coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
     # coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
     # coeff.set('A', 'B', epsilon=1.5, sigma=1.0)
+    # coeff.set(['A', 'B', 'C', 'D'], 'F', epsilon=2.0)
+    # coeff.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], epsilon=1.0)
+    #
+    # system = init.read_xml('init.xml')
+    # coeff.set(system.particles.types, system.particles.types, epsilon=2.0)
+    # coeff.set('A', system.particles.types, epsilon=1.2)
     # \endcode
     #
     # \note Single parameters can be updated. If both epsilon and sigma have already been 
@@ -175,12 +185,25 @@ class coeff:
     # the value of epsilon and leave sigma as it was previously set.
     #
     # Some %pair potentials assign default values to certain parameters. If the default setting for a given coefficient
-    # (as documented in the respective %pair command), it does not need to be listed on the coeff.set() line at all
-    # and the default value will automatically be set.
+    # (as documented in the respective %pair command), it does not need to be listed on the coeff.set() line.
+    # The default value will automatically be set.
     #
     def set(self, a, b, **coeffs):
         util.print_status_line();
+
+        # listify the inputs
+        if isinstance(a, str):
+            a = [a];
+        if isinstance(b, str):
+            b = [b];
         
+        for ai in a:
+            for bi in b:
+                self.set_single(ai, bi, coeffs);
+
+    ## \internal
+    # \brief Sets a single parameter
+    def set_single(self, a, b, coeffs):        
         # create the pair if it hasn't been created it
         if (not (a,b) in self.values) and (not (b,a) in self.values):
             self.values[(a,b)] = {};
@@ -796,7 +819,11 @@ class pair(force._force):
 # lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 # lj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
 # lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
+# lj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # The cutoff radius \a r_cut passed into the initial pair.lj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
@@ -885,7 +912,11 @@ class lj(pair):
 # \code
 # gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 # gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
+# gauss.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=3.0, sigma=0.5)
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # The cutoff radius \a r_cut passed into the initial pair.gauss command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
@@ -968,10 +999,14 @@ class gauss(pair):
 #
 # \b Example:
 # \code
-# slj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# slj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0);
-# slj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0));
+# slj.pair_coeff.set('A', 'A', epsilon=1.0)
+# slj.pair_coeff.set('A', 'B', epsilon=2.0, r_cut=3.0);
+# slj.pair_coeff.set('B', 'B', epsilon=1.0, r_cut=2**(1.0/6.0));
+# slj.pair_coeff.set(['A', 'B'], ['C', 'D'], espilon=2.0)
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # The cutoff radius \a r_cut passed into the initial pair.slj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
@@ -1044,14 +1079,16 @@ class slj(pair):
         globals.system.addCompute(self.cpp_force, self.force_name);
         
         # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'sigma'];
+        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
         
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
+        alpha = coeff['alpha'];
         
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = 4.0 * epsilon * math.pow(sigma, 6.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_scalar2(lj1, lj2);
 
     ## Set parameters controlling the way forces are computed
@@ -1107,7 +1144,11 @@ class slj(pair):
 # \code
 # yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
 # yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
+# yukawa.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
@@ -1200,6 +1241,9 @@ class yukawa(pair):
 # cg.pair_coeff.set('W', 'W', epsilon=3.7605, sigma=1.285588, alpha=1.0, exponents='lj12_4')
 # cg.pair_coeff.set('OA', 'OA', epsilon=1.88697479, sigma=1.09205882, alpha=1.0, exponents='96')
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.cg is specified (see __init__())
 #
@@ -1310,6 +1354,9 @@ class cgcmm(force._force):
 # \code
 # table.pair_coeff.set('A', 'A', func=my_potential, rmin=0, rmax=10, coeff=dict(A=1.5, s=3.0))
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # The table \a width is set once when pair.table is specified (see __init__())
 #
@@ -1453,7 +1500,11 @@ class table(force._force):
 # \code
 # morse.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
 # morse.pair_coeff.set('A', 'B', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0);
+# morse.pair_coeff.set(['A', 'B'], ['C', 'D'], D0=1.0, alpha=3.0)
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # The cutoff radius \a r_cut passed into the initial pair.morse command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
@@ -1551,10 +1602,14 @@ class morse(pair):
 # dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
 # dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
 # dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
+# dpd.pair_coeff.set(['A', 'B'], ['C', 'D'], A=12.0, gamma = 1.2)
 # dpd.set_params(T = 1.0)
 # integrate.mode_standard(dt=0.02)
 # integrate.nve(group=group.all())
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # The cutoff radius \a r_cut passed into the initial pair.dpd command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
@@ -1673,7 +1728,11 @@ class dpd(pair):
 # dpdc.pair_coeff.set('A', 'A', A=1.0)
 # dpdc.pair_coeff.set('A', 'B', A=2.0, r_cut = 1.0)
 # dpdc.pair_coeff.set('B', 'B', A=1.0)
+# dpdc.pair_coeff.set(['A', 'B'], ['C', 'D'], A=5.0)
 # \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
 # pair.dpd_conservative does not implement and energy shift / smoothing modes due to the function of the force.
 #

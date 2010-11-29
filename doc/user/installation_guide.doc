@@ -40,7 +40,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 \b Contents:
  - \ref sec_system_req
- - \ref sec_install_hoomd_windows
  - \ref sec_install_hoomd_linux
  - \ref sec_install_hoomd_mac
  
@@ -55,11 +54,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
         - RHEL/CentOS 5.4 - 64-bit
     - Mac OS X
         - 10.5.x Leopard
-    - Windows
-        - XP
-        - Vista
-        - <i>Note:</i> Windows builds are not tested and validated for <i>long running</i> simulations, and are provided
-        only as a convenience for users to test and benchmark HOOMD-blue. Linux is the primary platform for hoomd.
  - \b CPU: Any x86_64 processor
  - \b RAM: At least as much system RAM as there is video memory total on all GPUs. For example, a host with four 4GB
            Tesla GPUs connected to it should have at least 16 GB of RAM.
@@ -90,8 +84,13 @@ GPUs.
 For GPU-ready desktops, there are many GPUs that are supported by HOOMD-blue 0.9.x.
 
 The following are consumer level GPUs marketed for gaming.
-- <a href="http://www.nvidia.com/object/product_geforce_gtx_480_us.html">GeForce GTX 480</a> - \b Recommended
+- <a href="http://www.nvidia.com/object/product-geforce-gtx-580-us.html">GeForce GTX 580</a> - \b Recommended for performance desktops
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_480_us.html">GeForce GTX 480</a>
 - <a href="http://www.nvidia.com/object/product_geforce_gtx_470_us.html">GeForce GTX 470</a>
+- <a href="http://www.nvidia.com/object/product-geforce-gtx-465-us.html">GeForce GTX 465</a>
+- <a href="http://www.nvidia.com/object/product-geforce-gtx-460-us.html">GeForce GTX 460</a> - \b Recommended for low power / quiet desktops
+- <a href="http://www.nvidia.com/object/product-geforce-gts-450-us.html">GeForce GTS 450</a>
+- <a href="http://www.nvidia.com/object/product-geforce-gt-430-us.html">GeForce GT 430</a>
 - <a href="http://www.nvidia.com/object/product_geforce_gtx_295_us.html">GeForce GTX 295</a>
 - <a href="http://www.nvidia.com/object/product_geforce_gtx_285_us.html">GeForce GTX 285</a>
 - <a href="http://www.nvidia.com/object/product_geforce_gtx_285_for_mac_us.html">GeForce GTX 285 for Mac</a>
@@ -111,6 +110,10 @@ Also, Tesla C20X0 cards are capable of four times more double precision FLOPS th
 - <a href="http://www.nvidia.com/object/product_tesla_c1060_us.html">Tesla C1060</a>
 
 Quadro GPUs are professional level graphics workstation cards.
+- <a href="http://www.nvidia.com/object/product-quadro-6000-us.html">Quadro 6000</a>
+- <a href="http://www.nvidia.com/object/product-quadro-5000-us.html">Quadro 5000</a>
+- <a href="http://www.nvidia.com/object/product-quadro-4000-us.html">Quadro 4000</a>
+- <a href="http://www.nvidia.com/object/product-quadro-4000-mac-us.html">Quadro 4000 for Mac</a>
 - <a href="http://www.nvidia.com/object/product_quadro_fx_5800_us.html">Quadro FX 5800</a>
 - <a href="http://www.nvidia.com/object/product_quadro_fx_4800_us.html">Quadro FX 4800</a>
 - <a href="http://www.nvidia.com/object/product_quadro_fx_4800_for_mac_us.html">Quadro FX 4800 for Mac</a>
@@ -130,11 +133,10 @@ NVIDIA has published a set of recommendations as a starting point: http://www.nv
 Data centers demand rack mount hardware. There are several GPU computing systems supported by HOOMD. These are 1U
 rack mount enclosures containing 4 GPUs, a power supply and cooling fans. Two PCIe interface cards connect the GPU computing
 system to one or two host nodes.
-- <a href="http://www.nvidia.com/object/product_tesla_S2050_S2070_us.html">Tesla S2070</a>
-- <a href="http://www.nvidia.com/object/product_tesla_S2050_S2070_us.html">Tesla S2050</a> - \b Recommended
+- <a href="http://www.nvidia.com/object/product-tesla-S2050-us.html">Tesla S2050</a> - \b Recommended
 - <a href="http://www.nvidia.com/object/product_tesla_s1070_us.html">Tesla S1070</a>
 
-A number of rack mount host node configurations also accept Tesla MXXX cards.
+A number of rack mount enclosures and host nodes also accept Tesla MXXX cards.
 - <a href="http://www.nvidia.com/object/product_tesla_M2050_M2070_us.html">Tesla M2070</a>
 - <a href="http://www.nvidia.com/object/product_tesla_M2050_M2070_us.html">Tesla M2050</a> - \b Recommended
 - <a href="http://www.nvidia.com/object/product_tesla_m1060_us.html">Tesla M1060</a>
@@ -149,30 +151,12 @@ See http://www.nvidia.com/object/preconfigured_clusters.html for even more data 
 <h2>Laptops</h2>
 
 There are many laptop GPUs capable of running hoomd. Due to power, heat, and stability concerns, the hoomd developers
-will not support laptops as a platform for long running hoomd simulations.
+do not support laptops as a platform for long running hoomd simulations.
 
 <h2>Future GPUs</h2>
 GPUs newer than this document may also be supported. HOOMD-blue 0.9.x is tested and supported on the Fermi (GF100)
 and Tesla (G200) generations. All GPUs from these generations, even ones not in existence at release time, are
 supported.
-
-<hr>
-
-\section sec_install_hoomd_windows Installing HOOMD-blue in Windows
-
- -# Download the HOOMD-blue installer from http://codeblue.umich.edu/hoomd-blue/download.html
- -# Install Python 2.6.x using the installer at http://www.python.org/download/
- -# Install the latest drivers for your GPU from http://www.nvidia.com (if you have an NVIDIA card)
- -# Uninstall any previous version of HOOMD/HOOMD-blue before continuing
- -# Double click on the HOOMD-blue installer and follow the on screen steps
- 
-HOOMD-blue should now show up on your <b>Start menu</b> and the \a .hoomd file type 
-is registered to execute the script when you double-click on one.
-The command \b hoomd can also be run on the <b>command line</b> to start the HOOMD-blue python interpreter.
-
-Standard benchmarks are included. They can be run by selecting them from the start menu.
-
-Check out the \ref page_quick_start to start learning how to use hoomd.
 
 <hr>
 

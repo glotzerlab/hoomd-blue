@@ -457,6 +457,7 @@ void export_ParticleGroup()
     class_<ParticleGroup, boost::shared_ptr<ParticleGroup>, boost::noncopyable>
             ("ParticleGroup", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector> >())
             .def(init<boost::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
+            .def(init<>())
             .def("getNumMembers", &ParticleGroup::getNumMembers)
             .def("getMemberTag", &ParticleGroup::getMemberTag)
             .def("getTotalMass", &ParticleGroup::getTotalMass)
