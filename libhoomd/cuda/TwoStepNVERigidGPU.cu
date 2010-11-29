@@ -286,12 +286,12 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
             com = tex1Dfetch(rigid_data_com_tex, idx_body);
             vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
             angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-            ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
-            ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
-            ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
             body_imagex = tex1Dfetch(rigid_data_body_imagex_tex, idx_body);
             body_imagey = tex1Dfetch(rigid_data_body_imagey_tex, idx_body);
             body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);
+            
+            Scalar4 orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
+            exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
             }
         }
         
@@ -422,12 +422,12 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
             com = tex1Dfetch(rigid_data_com_tex, idx_body);
             vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
             angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-            ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
-            ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
-            ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
             body_imagex = tex1Dfetch(rigid_data_body_imagex_tex, idx_body);
             body_imagey = tex1Dfetch(rigid_data_body_imagey_tex, idx_body);
             body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);
+            
+            Scalar4 orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
+            exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
             }
         }
         
@@ -572,18 +572,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
         
-    error = cudaBindTexture(0, rigid_data_exspace_tex, rigid_data.ex_space, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_eyspace_tex, rigid_data.ey_space, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_ezspace_tex, rigid_data.ez_space, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
     error = cudaBindTexture(0, rigid_data_body_imagex_tex, rigid_data.body_imagex, sizeof(int) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -657,15 +645,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
         
-    error = cudaBindTexture(0, rigid_data_exspace_tex, rigid_data.ex_space, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_eyspace_tex, rigid_data.ey_space, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_ezspace_tex, rigid_data.ez_space, sizeof(float4) * n_bodies);
+    error = cudaBindTexture(0, rigid_data_orientation_tex, rigid_data.orientation, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
     
@@ -1206,9 +1186,9 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
             {
             vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
             angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-            ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
-            ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
-            ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
+            
+            Scalar4 orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
+            exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
             }
         }
         
@@ -1299,9 +1279,9 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4
             {
             vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
             angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-            ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
-            ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
-            ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
+            
+            Scalar4 orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
+            exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
             }
         }
         
@@ -1418,18 +1398,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
         return error;
     
     error = cudaBindTexture(0, rigid_data_orientation_tex, rigid_data.orientation, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_exspace_tex, rigid_data.ex_space, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_eyspace_tex, rigid_data.ey_space, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_ezspace_tex, rigid_data.ez_space, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
         
