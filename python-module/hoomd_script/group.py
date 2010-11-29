@@ -230,6 +230,9 @@ def all():
 # Creates a particle group from particles that fall in the defined cuboid. Membership tests are performed via
 # xmin <= x < xmax (and so forth for y and z) so that directly adjacent cuboids do not have overlapping group members.
 #
+# Group membership is \b static and determined at the time the group is created. As the simulation runs, particles
+# may move outside of the defined cuboid.
+#
 # The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should be
 # operated on.
 #
@@ -379,6 +382,9 @@ def tag_list(name, tags):
 # \param type Name of the particle type to add to the group
 # \param name User-assigned name for this group. If a name is not specified, a default one will be generated.
 #
+# Group membership is \b static and determined at the time the group is created. Changing a particle type at a later
+# time will not update the group.
+# 
 # Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script 
 # commands (such as analyze.msd) to specify which particles should be operated on.
 #
@@ -398,13 +404,23 @@ def type(type, name=None):
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
 
-    # create the group
-    type_id = globals.system_definition.getParticleData().getTypeByName(type);
     if name is None:
         name = 'type ' + type;
-    selector = hoomd.ParticleSelectorType(globals.system_definition, type_id, type_id);
-    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
+    # get a list of types from the particle data
+    ntypes = globals.system_definition.getParticleData().getNTypes();
+    type_list = [];
+    for i in xrange(0,ntypes):
+        type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+    
+    if type not in type_list:
+        print "***Warning!", type, " does not exist in the system, creating an empty group";
+        cpp_group = hoomd.ParticleGroup();
+    else:
+        type_id = globals.system_definition.getParticleData().getTypeByName(type);
+        selector = hoomd.ParticleSelectorType(globals.system_definition, type_id, type_id);
+        cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+    
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 

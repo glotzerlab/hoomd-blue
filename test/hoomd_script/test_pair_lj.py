@@ -66,6 +66,12 @@ class pair_lj_tests (unittest.TestCase):
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
     
+    # test coeff list
+    def test_coeff_list(self):
+        lj = pair.lj(r_cut=3.0);
+        lj.pair_coeff.set(['A', 'B'], ['A', 'C'], epsilon=1.0, sigma=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
+        lj.update_coeffs();
+    
     def tearDown(self):
         init.reset();
 

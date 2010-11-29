@@ -92,6 +92,9 @@ PDBDumpWriter::PDBDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::st
 */
 void PDBDumpWriter::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("Dump PDB");
+    
     ostringstream full_fname;
     string filetype = ".pdb";
     
@@ -99,6 +102,9 @@ void PDBDumpWriter::analyze(unsigned int timestep)
     full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
     // then write the file
     writeFile(full_fname.str());
+
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param fname File name to write

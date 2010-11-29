@@ -20,9 +20,6 @@ if len(sys.argv) > 1 and sys.argv[1] == 'endurance':
 	endurance = True
 	del sys.argv[1]
 
-# force error checking on
-hoomd.set_gpu_error_checking(True);
-
 # read in the created initial conditions
 init.read_xml(filename="input.xml")
 

@@ -84,6 +84,10 @@ import util;
 # lj.set_coeff('A', epsilon=1.0, sigma=1.0, alpha=1.0)
 # \endcode
 #
+# This interaction is applied between every particle and every wall defined in the simulation box. Walls are specified
+# specified in file given to init.read_xml(). See the page \ref page_xml_file_format for information on creating walls,
+# specifically the section \ref sec_xml_wall.
+#
 # The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when wall.lj is specified (see __init__())
 class lj(force._force):
     ## Specify the Lennard-Jones %wall %force

@@ -358,6 +358,9 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 */
 void HOOMDBinaryDumpWriter::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("Dump BIN");
+    
     if (!m_alternating)
         {
         ostringstream full_fname;
@@ -385,6 +388,9 @@ void HOOMDBinaryDumpWriter::analyze(unsigned int timestep)
             }
         writeFile(fname, timestep);
         }
+
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param fname1 File name of the first file to write
