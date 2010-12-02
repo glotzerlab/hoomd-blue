@@ -233,7 +233,7 @@ class _analyzer:
         
     ## Changes the period between analyzer executions
     #
-    # \param period New period to set
+    # \param period New period to set (in time steps)
     #
     # \b Examples:
     # \code
@@ -328,38 +328,38 @@ class imd(_analyzer):
 #
 #
 # Quantities that can be logged at any time:
-# - \b volume - Volume of the simulation box
-# - \b momentum - Magnitude of the average momentum of all particles
-# - \b time - Wall-clock running time from the start of the log in seconds
+# - \b volume - Volume of the simulation box (in volume units)
+# - \b momentum - Magnitude of the average momentum of all particles (in momentum units)
+# - \b time - Wall-clock running time from the start of the log (in seconds)
 #
 # Thermodynamic properties
 # - The following quantities are always available and computed over all particles in the system
 #   (see compute.thermo for detailed definitions):
 #   - \b num_particles
 #   - \b ndof
-#   - \b potential_energy
-#   - \b kinetic_energy
-#   - \b temperature
-#   - \b pressure
+#   - \b potential_energy (in energy units)
+#   - \b kinetic_energy (in energy units)
+#   - \b temperature (in thermal energy units)
+#   - \b pressure (in pressure units)
 # - The above quantities, tagged with a <i>_groupname</i> suffix are automatically available for any group passed to
 #   an integrate command 
 # - Specify a compute.thermo directly to enable additional quantities for user-specified groups.
 #
 # The following quantities are only available only if the command is parentheses has been specified and is active
 # for logging. 
-# - \b pair_gauss_energy (pair.gauss) - Total Gaussian potential energy
-# - \b pair_lj_energy (pair.lj) - Total Lennard-Jones potential energy
-# - \b pair_morse_energy (pair.yukawa) - Total Morse potential energy
-# - \b pair_table_energy (pair.table) - Total potential energy from Tabulated potentials
-# - \b pair_slj_energy (pair.slj) - Total Shifted Lennard-Jones potential energy
-# - \b pair_yukawa_energy (pair.yukawa) - Total Yukawa potential energy
+# - \b pair_gauss_energy (pair.gauss) - Total Gaussian potential energy (in energy units)
+# - \b pair_lj_energy (pair.lj) - Total Lennard-Jones potential energy (in energy units)
+# - \b pair_morse_energy (pair.yukawa) - Total Morse potential energy (in energy units)
+# - \b pair_table_energy (pair.table) - Total potential energy from Tabulated potentials (in energy units)
+# - \b pair_slj_energy (pair.slj) - Total Shifted Lennard-Jones potential energy (in energy units)
+# - \b pair_yukawa_energy (pair.yukawa) - Total Yukawa potential energy (in energy units)
 #
-# - \b bond_fene_energy (bond.fene) - Total fene bond potential energy
-# - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
-# - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
+# - \b bond_fene_energy (bond.fene) - Total fene bond potential energy (in energy units)
+# - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy (in energy units)
+# - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy (in energy units)
 #
-# - <b>bdnvt_reservoir_energy<i>_groupname</i></b> (integrate.bdnvt) - Energy reservoir for the BD thermostat
-# - <b>nvt_reservoir_energy<i>_groupname</i></b> (integrate.nvt) - Energy reservoir for the NVT thermostat
+# - <b>bdnvt_reservoir_energy<i>_groupname</i></b> (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
+# - <b>nvt_reservoir_energy<i>_groupname</i></b> (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
 # 
 # Additionally, the following commands can be provided user-defined names that are appended as suffixes to the 
 # logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).
@@ -396,6 +396,7 @@ class imd(_analyzer):
 #             period=100, header_prefix='#')
 # \endcode
 #
+# \sa \ref page_units
 class log(_analyzer):
     ## Initialize the log
     #
@@ -525,6 +526,7 @@ class log(_analyzer):
 # 
 # The mean squared displacement (MSD) for each group is calculated as:
 # \f[ \langle |\vec{r} - \vec{r}_0|^2 \rangle \f]
+# and values are correspondingly written in units of distance squared.
 #
 # The file format is the same convenient delimited format used by analyze.log 
 #

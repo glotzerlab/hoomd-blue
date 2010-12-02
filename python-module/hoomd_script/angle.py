@@ -65,9 +65,14 @@ import sys;
 ## Harmonic %angle forces
 #
 # The command angle.harmonic specifies a %harmonic potential energy between every triplet of particles
-# in the simulation. 
+# with an angle specified between them.
+#
 # \f[ V(r) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2 \f]
 # where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
+#
+# Coefficients:
+# - \f$ \theta_0 \f$ - rest %angle (in radians)
+# - \f$ k \f$ - %force constant (in units of energy/radians^2)
 #
 # Coefficients \f$ k \f$ and \f$ \theta_0 \f$ must be set for each type of %angle in the simulation using
 # set_coeff().
@@ -105,8 +110,8 @@ class harmonic(force._force):
     ## Sets the %harmonic %angle coefficients for a particular %angle type
     #
     # \param angle_type Angle type to set coefficients for
-    # \param k Coefficient \f$ k \f$ in the %force
-    # \param t0 Coefficient \f$ \theta_0 \f$ in the %force
+    # \param k Coefficient \f$ k \f$ (in units of energy/radians^2)
+    # \param t0 Coefficient \f$ \theta_0 \f$ (in radians)
     #
     # Using set_coeff() requires that the specified %angle %force has been saved in a variable. i.e.
     # \code
@@ -155,19 +160,25 @@ class harmonic(force._force):
 # where \f$ \theta \f$ is the current angle between the three particles
 # and either
 # \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ 
-#     \left( \frac{\sigma}{r} \right)^{12} - \alpha \left( \frac{\sigma}{r} \right)^{6} \right] 
+#     \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right] 
 #     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}} \f],
 # or
 # \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} 
 #     V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} - 
-#     \alpha \left( \frac{\sigma}{r} \right)^{6} \right] 
+#     \left( \frac{\sigma}{r} \right)^{6} \right] 
 #     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}\f],
 # or
 # \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
 #     V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-#     \alpha \left( \frac{\sigma}{r} \right)^{4} \right] 
+#     \left( \frac{\sigma}{r} \right)^{4} \right] 
 #     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}} \f],
 #  \f$ r_{13} \f$ being the distance between the two outer particles of the angle.
+#
+# Coeffients:
+# - \f$ \theta_0 \f$ - rest %angle (in radians)
+# - \f$ k \f$ - %force constant (in units of energy/radians^2)
+# - \f$ \varepsilon \f$ - strength of potential (in energy units)
+# - \f$ \sigma \f$ - distance of interaction (in distance units)
 #
 # Coefficients \f$ k, \theta_0, \varepsilon,\f$ and \f$ \sigma \f$ and Lennard-Jones exponents pair must be set for 
 # each type of %angle in the simulation using
@@ -206,11 +217,11 @@ class cgcmm(force._force):
     ## Sets the CG-CMM %angle coefficients for a particular %angle type
     #
     # \param angle_type Angle type to set coefficients for
-    # \param k Coefficient \f$ k \f$ in the %force
-    # \param t0 Coefficient \f$ \theta_0 \f$ in the %force
+    # \param k Coefficient \f$ k \f$ (in units of energy/radians^2)
+    # \param t0 Coefficient \f$ \theta_0 \f$ (in radians)
     # \param exponents is the type of CG-angle exponents we want to use for the repulsion.
-    # \param epsilon is the 1-3 repulsion strength
-    # \param sigma is the CG particle radius
+    # \param epsilon is the 1-3 repulsion strength (in energy units)
+    # \param sigma is the CG particle radius (in distance units)
     #
     # Using set_coeff() requires that the specified CGCMM angle %force has been saved in a variable. i.e.
     # \code
