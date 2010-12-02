@@ -161,7 +161,7 @@ class harmonic(force._force):
 # where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair,
 # \f$ \Delta = (d_i + d_j)/2 - 1 \f$, \f$ d_i \f$ is the diameter of particle \f$ i \f$, and
 # \f{eqnarray*}
-#   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r-\Delta < 2^{\frac{1}{6}}\sigma \\
+#   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]  + \varepsilon & r-\Delta < 2^{\frac{1}{6}}\sigma\\
 #            = & 0          & r-\Delta \ge 2^{\frac{1}{6}}\sigma    \\
 #   \f}
 #
