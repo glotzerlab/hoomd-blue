@@ -275,6 +275,9 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
     
     // load in the particle
     int pidx = blockIdx.x * NLIST_BLOCK_SIZE + threadIdx.x;
+
+    // store the max number of neighbors needed for this thread
+    unsigned int n_neigh_needed = 0;
     
     float4 pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     if (pidx < N)
@@ -337,7 +340,7 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
                             if (n_neigh < nli.getH())
                                 d_nlist[nli(pidx, n_neigh)] = start+cur_offset;
                             else
-                                atomicMax(&d_conditions[0], n_neigh+1);
+                                n_neigh_needed = n_neigh+1;
                             
                             n_neigh++;
                             }
@@ -352,6 +355,9 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
         {
         d_n_neigh[pidx] = n_neigh;
         d_last_updated_pos[pidx] = d_pos[pidx];
+        
+        if (n_neigh_needed > 0)
+            atomicMax(&d_conditions[0], n_neigh_needed);
         }
     }
 
