@@ -26,6 +26,30 @@ position_text = position.childNodes[0].data
 xyz = position_text.split()
 print "Found", len(xyz)/3, " particles";
 
+# parse the body tags
+# non-rigid bodies will be mapped to molecule 1
+# rigid bodies will be mapped to molecules 2 to number-of-rigid-bodies +1
+body_nodes = configuration.getElementsByTagName('body');
+if len(body_nodes) == 1:
+    body_text = body_nodes[0].childNodes[0].data;
+    body_index = body_text.split();
+    if len(body_index) != len(xyz)/3:
+        print "Error! Number of body tags differes from the number of particles"
+        sys.exit(1);
+    print "Found", len(body_index), " body tags";
+
+# parse the image flags
+image_nodes = configuration.getElementsByTagName('image');
+image_xyz= [];
+if len(image_nodes) == 1:
+    image  = image_nodes[0];
+    image_text = image.childNodes[0].data;
+    image_xyz = image_text.split();
+    if len(image_xyz) != len(xyz):
+        print "Error! Number of images differes from the number of particles"
+        sys.exit(1);
+    print "Found", len(image_xyz)/3, " image tags";
+
 # parse the velocities
 velocity_nodes = configuration.getElementsByTagName('velocity')
 velocity_xyz = [];
@@ -114,8 +138,14 @@ for i in xrange(0,len(type_id_mapping)):
 f.write("\n");    
 f.write("Atoms\n");
 f.write("\n");
+
 for i in xrange(0,len(xyz)/3):
-    f.write("%d 1 %d %f %f %f\n" % (i+1, type_id[i], float(xyz[i*3]), float(xyz[i*3+1]), float(xyz[i*3+2])));
+    f.write("%d %d %d %f %f %f" % (i+1, int(body_index[i])+2,  type_id[i], float(xyz[i*3]), float(xyz[i*3+1]), float(xyz[i*3+2])));
+    if len(image_xyz) > 0:
+        f.write(" %d %d %d\n" % (int(image_xyz[i*3]), int(image_xyz[i*3+1]), int(image_xyz[i*3+2])));
+    else:
+        f.write("\n")
+    
 if len(velocity_xyz) > 0:
     f.write("\n");    
     f.write("Velocities\n");
