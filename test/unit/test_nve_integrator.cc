@@ -125,6 +125,8 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
     shared_ptr<ConstForceCompute> fc2(new ConstForceCompute(sysdef, 0.0, 2.5, 0.0));
     nve_up->addForceCompute(fc2);
     
+    nve_up->prepRun(0);
+    
     // verify proper integration compared to x = x0 + v0 t + 1/2 a t^2, v = v0 + a t
     // roundoff errors prevent this from keeping within 0.1% error for long
     for (int i = 0; i < 500; i++)
@@ -199,6 +201,8 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<E
     Scalar vy = 2.0 * limit / sqrt(14.0) / deltaT;
     Scalar vz = 3.0 * limit / sqrt(14.0) / deltaT;
     
+    nve_up->prepRun(0);
+    
     // verify proper integration compared to x = x0 + dx * i
     nve_up->update(0);
     for (int i = 1; i < 500; i++)
@@ -257,6 +261,8 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, boost::shared_pt
     // no forces on these particles
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef_6, 0, 0.0, 0.0));
     nve_up->addForceCompute(fc1);
+    
+    nve_up->prepRun(0);
     
     // move the particles across the boundary
     nve_up->update(0);
@@ -331,6 +337,9 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     
     nve1->addForceCompute(fc1);
     nve2->addForceCompute(fc2);
+    
+    nve1->prepRun(0);
+    nve2->prepRun(0);
     
     // step for only a few time steps and verify that they are the same
     // we can't do much more because these things are chaotic and diverge quickly

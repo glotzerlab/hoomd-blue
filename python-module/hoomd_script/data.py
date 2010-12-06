@@ -327,16 +327,16 @@ class particle_data:
 #
 # The following attributes are read only:
 # - \c tag          : An integer indexing the particle in the system. Tags run from 0 to N-1;
-# - \c acceleration : A 3-tuple of floats   (x, y, z) Note that acceleration is a calculated quantity and cannot be set
+# - \c acceleration : A 3-tuple of floats   (x, y, z) Note that acceleration is a calculated quantity and cannot be set. (in acceleration units)
 # - \c typeid       : An integer defining the type id
 #
 # The following attributes can be both read and set
-# - \c position     : A 3-tuple of floats   (x, y, z)
+# - \c position     : A 3-tuple of floats   (x, y, z) (in distance units)
 # - \c image        : A 3-tuple of integers (x, y, z)
-# - \c velocity     : A 3-tuple of floats   (x, y, z)
+# - \c velocity     : A 3-tuple of floats   (x, y, z) (in velocity units)
 # - \c charge       : A single float
-# - \c mass         : A single float
-# - \c diameter     : A single float
+# - \c mass         : A single float (in mass units)
+# - \c diameter     : A single float (in distance units)
 # - \c type         : A string naming the type
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 

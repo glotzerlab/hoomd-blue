@@ -217,12 +217,12 @@ def all():
 ## Groups particles in a cuboid
 #
 # \param name User-assigned name for this group
-# \param xmin (if set) Lower left x-coordinate of the cuboid
-# \param xmax (if set) Upper right x-coordinate of the cuboid
-# \param ymin (if set) Lower left y-coordinate of the cuboid
-# \param ymax (if set) Upper right y-coordinate of the cuboid
-# \param zmin (if set) Lower left z-coordinate of the cuboid
-# \param zmax (if set) Upper right z-coordinate of the cuboid
+# \param xmin (if set) Lower left x-coordinate of the cuboid (in distance units)
+# \param xmax (if set) Upper right x-coordinate of the cuboid (in distance units)
+# \param ymin (if set) Lower left y-coordinate of the cuboid (in distance units)
+# \param ymax (if set) Upper right y-coordinate of the cuboid (in distance units)
+# \param zmin (if set) Lower left z-coordinate of the cuboid (in distance units)
+# \param zmax (if set) Upper right z-coordinate of the cuboid (in distance units)
 #
 # If any of the above parameters is not set, it will automatically be placed slightly outside of the simulation box
 # dimension, allowing easy specification of slabs.

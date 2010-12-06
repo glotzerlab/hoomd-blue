@@ -482,9 +482,6 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("position"));
     
-    // units is currently unused, but will be someday: warn the user if they forget it
-    //if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <position> node" << endl;
-    
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
@@ -538,9 +535,6 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("velocity"));
     
-    // units is currently unused, but will be someday: warn the user if they forget it
-    // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
-    
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
@@ -568,9 +562,6 @@ void HOOMDInitializer::parseMassNode(const XMLNode &node)
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("mass"));
     
-    // units is currently unused, but will be someday: warn the user if they forget it
-    // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
-    
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
@@ -597,9 +588,6 @@ void HOOMDInitializer::parseDiameterNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("diameter"));
-    
-    // units is currently unused, but will be someday: warn the user if they forget it
-    // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
     
     // extract the data from the node
     string all_text;

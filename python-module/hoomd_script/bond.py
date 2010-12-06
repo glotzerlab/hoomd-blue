@@ -69,6 +69,10 @@ import sys;
 # \f[ V(r) = \frac{1}{2} k \left( r - r_0 \right)^2 \f]
 # where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
+# Coeffients:
+# - \f$ k \f$ - %force constanct (in units of energy/distance^2)
+# - \f$ r_0 \f$ - %bond rest length (in distance units)
+#
 # Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of %bond in the simulation using
 # set_coeff().
 #
@@ -108,8 +112,8 @@ class harmonic(force._force):
     ## Sets the %harmonic %bond coefficients for a particular %bond type
     #
     # \param bond_type Bond type to set coefficients for
-    # \param k Coefficient \f$ k \f$ in the %force
-    # \param r0 Coefficient \f$ r_0 \f$ in the %force
+    # \param k Coefficient \f$ k \f$ (in units of energy/distance^2)
+    # \param r0 Coefficient \f$ r_0 \f$ (in distance units)
     #
     # Using set_coeff() requires that the specified %bond %force has been saved in a variable. i.e.
     # \code
@@ -157,9 +161,15 @@ class harmonic(force._force):
 # where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair,
 # \f$ \Delta = (d_i + d_j)/2 - 1 \f$, \f$ d_i \f$ is the diameter of particle \f$ i \f$, and
 # \f{eqnarray*}
-#   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r-\Delta < 2^{\frac{1}{6}}\sigma \\
+#   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]  + \varepsilon & r-\Delta < 2^{\frac{1}{6}}\sigma\\
 #            = & 0          & r-\Delta \ge 2^{\frac{1}{6}}\sigma    \\
 #   \f}
+#
+# Coefficients:
+# - \f$ k \f$ - attractive %force strength (in units of energy/distance^2)
+# - \f$ r_0 \f$ - size parameter (in distance units)
+# - \f$ \varepsilon \f$ - repulsive %force strength (in energy units)
+# - \f$ \sigma \f$ - repulsive %force interaction distance (in distance units)
 #
 # Coefficients \f$ k \f$, \f$ r_0 \f$, \f$ \varepsilon \f$ and \f$ \sigma \f$  must be set for 
 # each type of %bond in the simulation using set_coeff().
@@ -200,10 +210,10 @@ class fene(force._force):
     ## Sets the %fene %bond coefficients for a particular %bond type
     #
     # \param bond_type Bond type to set coefficients for
-    # \param k Coefficient \f$ k \f$ in the %force
-    # \param r0 Coefficient \f$ r_0 \f$ in the %force
-    # \param sigma Coefficient \f$ \sigma \f$ in the %force
-    # \param epsilon Coefficient \f$ \epsilon \f$ in the %force
+    # \param k Coefficient \f$ k \f$ (in units of energy/distance^2)
+    # \param r0 Coefficient \f$ r_0 \f$ (in distance units)
+    # \param sigma Coefficient \f$ \sigma \f$ (in distance units)
+    # \param epsilon Coefficient \f$ \epsilon \f$ (in energy units)
     #
     # Using set_coeff() requires that the specified %bond %force has been saved in a variable. i.e.
     # \code

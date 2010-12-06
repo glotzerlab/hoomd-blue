@@ -193,12 +193,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
     f << "<hoomd_xml version=\"1.2\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" dimensions=\"" << m_sysdef->getNDimensions() << "\">" << "\n";
-    f << "<box units=\"sigma\" " << " lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << "\n";
+    f << "<box " << "lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << "\n";
 
     // If the position flag is true output the position of all particles to the file
     if (m_output_position)
         {
-        f << "<position units=\"sigma\" num=\"" << m_pdata->getN() << "\">" << "\n";
+        f << "<position num=\"" << m_pdata->getN() << "\">" << "\n";
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
             // use the rtag data to output the particles in the order they were read in
@@ -248,7 +248,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_velocity)
         {
-        f <<"<velocity units=\"sigma/tau\" num=\"" << m_pdata->getN() << "\">" << "\n";
+        f <<"<velocity num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
@@ -273,7 +273,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_accel)
         {
-        f <<"<acceleration units=\"sigma/tau^2\" num=\"" << m_pdata->getN() << "\">" << "\n";
+        f <<"<acceleration num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
@@ -321,7 +321,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the diameter flag is true output the mass of all particles to the file
     if (m_output_diameter)
         {
-        f <<"<diameter units=\"sigma\" num=\"" << m_pdata->getN() << "\">" << "\n";
+        f <<"<diameter num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {

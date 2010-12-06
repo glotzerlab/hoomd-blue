@@ -91,11 +91,9 @@ Version: 1.0 and newer
 
 \b Example:
 \code
-<box units="sigma"  lx="5.1" ly="9.6" lz="15.8"/>
+<box lx="5.1" ly="9.6" lz="15.8"/>
 \endcode
 \b Attributes:
- - \a units Currently unused. Potentially used for a future feature in HOOMD-blue supporting different units
- 	for length, energy, etc...
  - \a lx Box length in the \b x direction
  - \a ly Box length in the \b y direction
  - \a lz Box length in the \b z direction
@@ -110,15 +108,13 @@ Version: 1.0 and newer
 
 \b Example:
 \code
-<position units="sigma">
+<position>
 -1.45 2.21 1.56
 8.76 1.02 5.60
 5.67 8.30 4.67
 </position>
 \endcode
 \b Attributes:
- - \a units Currently unused. Potentially used for a future feature in HOOMD-blue supporting different units
- 	for length, energy, etc...\
  - \a num (\b optional) number of particles coming in the node content. This attribute is written by
 	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
 
@@ -179,15 +175,13 @@ When used in an input file, the velocities specified are used as the initial con
 
 \b Example:
 \code
-<velocity units="sigma/tau">
+<velocity>
 -0.5 -1.2 0.4
 0.6 2.0 0.01
 -0.4 3.0 0.0
 </velocity>
 \endcode
 \b Attributes:
- - \a units Currently unused. Potentially used for a future feature in HOOMD-blue supporting different units
- 	for length, energy, etc...
  - \a num (\b optional) number of particles coming in the node content. This attribute is written by
 	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
 
@@ -228,15 +222,13 @@ Version: 1.0 and newer
 
 \b Example:
 \code
-<diameter units="sigma">
+<diameter>
 1.0
 2.0
 1.0
 </diameter>
 \endcode
 \b Attributes:
- - \a units Currently unused. Potentially used for a future feature in HOOMD-blue supporting different units
- 	for length, energy, etc...
  - \a num (\b optional) number of particles coming in the node content. This attribute is written by
 	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
 

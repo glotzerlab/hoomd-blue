@@ -306,7 +306,7 @@ class _integration_method:
 # a hoomd script, only the most recent before a given run() will take effect.
 class mode_standard(_integrator):
     ## Specifies the standard integration mode
-    # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
+    # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt (in time units)
     #
     # \b Examples:
     # \code
@@ -326,7 +326,7 @@ class mode_standard(_integrator):
         globals.system.setIntegrator(self.cpp_integrator);
     
     ## Changes parameters of an existing integration mode
-    # \param dt New time step delta (if set)
+    # \param dt New time step delta (if set) (in time units)
     #
     # To change the parameters of an existing integration mode, you must save it in a variable when it is
     # specified, like so:
@@ -362,12 +362,12 @@ class mode_standard(_integrator):
 class nvt(_integration_method):
     ## Specifies the NVT integration method
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat.
-    # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
+    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat. (in energy units)
+    # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
     #
     # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
-    # and \f$ T_0 \f$ is the temperature set point (\a T above).
+    # and \f$ k_B T_0 \f$ is the set point (\a T above).
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
@@ -403,8 +403,8 @@ class nvt(_integration_method):
             self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
     
     ## Changes parameters of an existing integrator
-    # \param T New temperature (if set)
-    # \param tau New coupling constant (if set)
+    # \param T New temperature (if set) (in energy units)
+    # \param tau New coupling constant (if set) (in time units)
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -445,10 +445,10 @@ class nvt(_integration_method):
 class npt(_integration_method):
     ## Specifies the NPT integrator
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat
-    # \param P Pressure set point for the Anderson barostat
-    # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
-    # \param tauP Coupling constant for the barostat
+    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat (in energy units)
+    # \param P Pressure set point for the Anderson barostat (in pressure units)
+    # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
+    # \param tauP Coupling constant for the barostat (in time units)
     # \param partial_scale If False (the default), \b all particles in the box are scaled due to the box size changes
     #                      during NPT integration. If True, only those particles that belong to \a group will be scaled.
     #
@@ -456,7 +456,7 @@ class npt(_integration_method):
     #
     # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
-    # and \f$ T_0 \f$ is the temperature set point (\a T above).
+    # and \f$ k_B T_0 \f$ is the set point (\a T above).
     #
     # Internally, a compute.thermo is automatically specified and associated with \a group.
     #
@@ -488,10 +488,10 @@ class npt(_integration_method):
         self.cpp_method.setPartialScale(partial_scale);
         
     ## Changes parameters of an existing integrator
-    # \param T New temperature (if set)
-    # \param tau New coupling constant (if set)
-    # \param P New pressure (if set)
-    # \param tauP New barostat coupling constant (if set)
+    # \param T New temperature (if set) (in energy units)
+    # \param tau New coupling constant (if set) (in time units)
+    # \param P New pressure (if set) (in pressure units)
+    # \param tauP New barostat coupling constant (if set) (in time units)
     # \param partial_scale (if set) Change whether all particles in the box are scaled (False), or just those in the
     #                      group (True)
     #
@@ -645,7 +645,7 @@ class nve(_integration_method):
 class bdnvt(_integration_method):
     ## Specifies the BD NVT integrator
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature of the simulation \a T
+    # \param T Temperature of the simulation (in energy units)
     # \param seed Random seed to use for the run. Simulations that are identical, except for the seed, will follow 
     # different trajectories.
     # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
@@ -697,7 +697,7 @@ class bdnvt(_integration_method):
             self.cpp_method.setLimit(limit);
     
     ## Changes parameters of an existing integrator
-    # \param T New temperature (if set)
+    # \param T New temperature (if set) (in energy units)
     # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is
     #                         tracked. Total energy conservation can then be monitored by adding
     #                         \b bdnvt_reservoir_energy_<i>groupname</i> to the logged quantities.
@@ -728,7 +728,7 @@ class bdnvt(_integration_method):
 
     ## Sets gamma parameter for a particle type
     # \param a Particle type
-    # \param gamma \f$ \gamma \f$ for particle type (see below for examples)
+    # \param gamma \f$ \gamma \f$ for particle type \a (in units of force/velocity)
     #
     # set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
     # by name.
@@ -802,7 +802,7 @@ class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
     # \param group Group of particles on which to apply this method.
-    # \param dt This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting.
+    # \param dt This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
     # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
     #   - <i>optional</i>: defaults to 5
     # \param finc Factor to increase \f$ \Delta t \f$ by 
@@ -813,9 +813,9 @@ class mode_minimize_fire(_integrator):
     #   - <i>optional</i>: defaults to 0.1
     # \param falpha Factor to decrease \f$ \alpha t \f$ by 
     #   - <i>optional</i>: defaults to 0.99
-    # \param ftol force convergence criteria 
+    # \param ftol force convergence criteria (in force units)
     #   - <i>optional</i>: defaults to 1e-1
-    # \param Etol energy convergence criteria 
+    # \param Etol energy convergence criteria (in energy units)
     #   - <i>optional</i>: defaults to 1e-5
     # \param min_steps A minimum number of attempts before convergence criteria are considered 
     #   - <i>optional</i>: defaults to 10

@@ -396,6 +396,8 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     
     if (!m_integrator)
         cout << "***Warning! You are running without an integrator." << endl;
+    else
+        m_integrator->prepRun(m_cur_tstep);
         
     // handle time steps
     for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)

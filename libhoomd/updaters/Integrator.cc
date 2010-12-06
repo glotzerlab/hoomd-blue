@@ -201,17 +201,16 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
     }
 
 /*! \param timestep Current timestep
-    \param profiler_name Name of the profiler element to continue timing under
     \post \c arrays.ax, \c arrays.ay, and \c arrays.az are set based on the forces computed by the ForceComputes
 */
-void Integrator::computeAccelerations(unsigned int timestep, const std::string& profiler_name)
+void Integrator::computeAccelerations(unsigned int timestep)
     {
     // compute the net forces
-    computeNetForce(timestep, profiler_name);
+    computeNetForce(timestep);
     
     if (m_prof)
         {
-        m_prof->push(profiler_name);
+        m_prof->push("Integrate");
         m_prof->push("Sum accel");
         }
     
@@ -266,12 +265,11 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     }
 
 /*! \param timestep Current time step of the simulation
-    \param profile_name Name to profile the force summation under
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the CPU</b> and will result in a lot of data traffic back and forth
           if the forces and/or integrater are on the GPU. Call computeNetForcesGPU() to sum the forces on the GPU
 */
-void Integrator::computeNetForce(unsigned int timestep, const std::string& profile_name)
+void Integrator::computeNetForce(unsigned int timestep)
     {
     // compute all the forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
@@ -280,7 +278,7 @@ void Integrator::computeNetForce(unsigned int timestep, const std::string& profi
     
     if (m_prof)
         {
-        m_prof->push(profile_name);
+        m_prof->push("Integrate");
         m_prof->push("Net force");
         }
     
@@ -331,7 +329,7 @@ void Integrator::computeNetForce(unsigned int timestep, const std::string& profi
     
     if (m_prof)
         {
-        m_prof->push(profile_name);
+        m_prof->push("Integrate");
         m_prof->push("Net force");
         }
     
@@ -370,11 +368,10 @@ void Integrator::computeNetForce(unsigned int timestep, const std::string& profi
 
 #ifdef ENABLE_CUDA
 /*! \param timestep Current time step of the simulation
-    \param profile_name Name to profile the force summation under
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the GPU</b>.
 */
-void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& profile_name)
+void Integrator::computeNetForceGPU(unsigned int timestep)
     {
     if (!exec_conf->isCUDAEnabled())
         {
@@ -389,7 +386,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
     
     if (m_prof)
         {
-        m_prof->push(profile_name);
+        m_prof->push("Integrate");
         m_prof->push(exec_conf, "Net force");
         }
     
@@ -489,7 +486,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
     
     if (m_prof)
         {
-        m_prof->push(profile_name);
+        m_prof->push("Integrate");
         m_prof->push(exec_conf, "Net force");
         }
     
@@ -572,6 +569,19 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
     \param timestep Current time step of the simulation
 */
 void Integrator::update(unsigned int timestep)
+    {
+    }
+
+/*! prepRun() is to be called at the very beginning of each run, before any analyzers are called, but after the full
+    simulation is defined. It allows the integrator to perform any one-off setup tasks and update net_force and
+    net_virial, if needed. 
+    
+    Specifically, updated net_force and net_virial in this call is a must for logged quantities to properly carry
+    over in restarted jobs.
+    
+    The base class does nothing, it is up to derived classes to implement the correct behavior.
+*/
+void Integrator::prepRun(unsigned int timestep)
     {
     }
 

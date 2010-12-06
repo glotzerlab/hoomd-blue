@@ -411,11 +411,11 @@ class nlist:
     
     ## Change neighbor list parameters
     # 
-    # \param r_buff (if set) changes the buffer radius around the cutoff
+    # \param r_buff (if set) changes the buffer radius around the cutoff (in distance units)
     # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list 
     #        needs updating
     # \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
-    #        run() commands.
+    #        run() commands. (in distance units)
     # 
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
     # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -674,9 +674,9 @@ def _update_global_nlist(r_cut):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
 class pair(force._force):
@@ -802,13 +802,13 @@ class pair(force._force):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon
-# - \f$ \sigma \f$ - \c sigma
-# - \f$ \alpha \f$ - \c alpha
+# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
+# - \f$ \sigma \f$ - \c sigma (in distance units)
+# - \f$ \alpha \f$ - \c alpha (unitless)
 #   - <i>optional</i>: defaults to 1.0
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
 # pair.lj is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
@@ -833,7 +833,7 @@ class pair(force._force):
 class lj(pair):
     ## Specify the Lennard-Jones %pair %force
     #
-    # \param r_cut Default cutoff radius
+    # \param r_cut Default cutoff radius (in distance units)
     # \param name Name of the force instance 
     #
     # \b Example:
@@ -898,8 +898,8 @@ class lj(pair):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon
-# - \f$ \sigma \f$ - \c sigma
+# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
+# - \f$ \sigma \f$ - \c sigma (in distance units)
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on
@@ -926,7 +926,7 @@ class lj(pair):
 class gauss(pair):
     ## Specify the Gaussian %pair %force
     #
-    # \param r_cut Default cutoff radius
+    # \param r_cut Default cutoff radius (in distance units)
     # \param name Name of the force instance 
     #
     # \b Example:
@@ -987,8 +987,8 @@ class gauss(pair):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon
-# - \f$ \sigma \f$ - \c sigma
+# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
+# - \f$ \sigma \f$ - \c sigma (in distance units)
 #   - <i>optional</i>: defaults to 1.0
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
@@ -1026,9 +1026,9 @@ class gauss(pair):
 class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
     #
-    # \param r_cut Default cutoff radius
+    # \param r_cut Default cutoff radius (in distance units)
     # \param name Name of the force instance
-    # \param d_max Maximum diameter particles in the simulation will have
+    # \param d_max Maximum diameter particles in the simulation will have (in distance units)
     #
     # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
     # run() commands. If not specified, slj will set d_max to the largest diameter in particle data at the time it is initialized.
@@ -1130,11 +1130,11 @@ class slj(pair):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon
-# - \f$ \kappa \f$ - \c kappa
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+# - \f$ \varepsilon \f$ - \c epsilon (in units of energy*distance)
+# - \f$ \kappa \f$ - \c kappa (in units of 1/distance)
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in units of distance)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in units of distance)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
 # pair.yukawa is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
@@ -1158,7 +1158,7 @@ class slj(pair):
 class yukawa(pair):
     ## Specify the Yukawa %pair %force
     #
-    # \param r_cut Default cutoff radius
+    # \param r_cut Default cutoff radius (in units of distance)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1312,9 +1312,9 @@ class ewald(pair):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon
-# - \f$ \sigma \f$ - \c sigma
-# - \f$ \alpha \f$ - \c alpha
+# - \f$ \varepsilon \f$ - \c epsilon (in units of energy)
+# - \f$ \sigma \f$ - \c sigma (in units of distance)
+# - \f$ \alpha \f$ - \c alpha (unitless)
 # - exponents, the choice of LJ-exponents, currently supported are 12-6, 9-6, and 12-4.
 # 
 # We support three keyword variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
@@ -1334,7 +1334,7 @@ class ewald(pair):
 class cgcmm(force._force):
     ## Specify the CG-CMM Lennard-Jones %pair %force
     #
-    # \param r_cut Cuttoff radius (see documentation above)
+    # \param r_cut Cuttoff radius (see documentation above) (in distance units)
     #
     # \b Example:
     # \code
@@ -1409,13 +1409,13 @@ class cgcmm(force._force):
 # The command pair.table specifies that a tabulated  %pair %force should be added to every non-bonded particle %pair 
 # in the simulation.
 #
-# The %force \f$ \vec{F}\f$ is
+# The %force \f$ \vec{F}\f$ is (in force units)
 # \f{eqnarray*}
 #  \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
 #                       = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
 #                       = & 0                           & r \ge r_{\mathrm{max}} \\
 # \f}
-# and the potential \f$ V(r) \f$ is
+# and the potential \f$ V(r) \f$ is (in energy units)
 # \f{eqnarray*}
 # V(r)       = & 0                    & r < r_{\mathrm{min}} \\
 #            = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
@@ -1431,8 +1431,8 @@ class cgcmm(force._force):
 # the \ref page_quick_start for information on how to set coefficients.
 # - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by \c func (see example)
 # - coefficients passed to \c func - \c coeff (see example)
-# - \f$ r_{\mathrm{min}} \f$ - \c rmin
-# - \f$ r_{\mathrm{max}} \f$ - \c rmax
+# - \f$ r_{\mathrm{min}} \f$ - \c rmin (in distance units)
+# - \f$ r_{\mathrm{max}} \f$ - \c rmax (in distance units)
 # 
 # \b Example:
 # \code
@@ -1569,12 +1569,12 @@ class table(force._force):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ D_0 \f$ - \c D0, depth of the potential at its minimum
-# - \f$ \alpha \f$ - \c alpha, controls the width of the potential well
-# - \f$ r_0 \f$ - \c r0, position of the minimum
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+# - \f$ D_0 \f$ - \c D0, depth of the potential at its minimum (in energy units)
+# - \f$ \alpha \f$ - \c alpha, controls the width of the potential well (in units of 1/distance)
+# - \f$ r_0 \f$ - \c r0, position of the minimum (in distance units)
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (int distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
-# - \f$ r_{\mathrm{on}} \f$ - \c r_on
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
 # pair.morse is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
@@ -1598,7 +1598,7 @@ class table(force._force):
 class morse(pair):
     ## Specify the Morse %pair %force
     #
-    # \param r_cut Default cutoff radius
+    # \param r_cut Default cutoff radius (in distance units)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1668,9 +1668,9 @@ class morse(pair):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ A \f$ - \a A
-# - \f$ \gamma \f$ gamma
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+# - \f$ A \f$ - \a A (in force units)
+# - \f$ \gamma \f$ gamma (in units of force/velocity)
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
 # To use the dpd thermostat, an nve integrator must be applied to the system and the user must specify a temperature, which can be a %variant.
@@ -1705,8 +1705,8 @@ class morse(pair):
 class dpd(pair):
     ## Specify the DPD %pair %force and thermostat
     #
-    # \param r_cut Default cutoff radius
-    # \param T Temperature of thermostat
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param T Temperature of thermostat (in energy units)
     # \param name Name of the force instance
     # \param seed seed for the PRNG in the DPD thermostat
     #
@@ -1759,7 +1759,7 @@ class dpd(pair):
             
 
     ## Changes parameters
-    # \param T Temperature (if set)
+    # \param T Temperature (if set) (in energy units)
     #
     # To change the parameters of an existing pair force, you must save it in a variable when it is
     # specified, like so:
@@ -1803,8 +1803,8 @@ class dpd(pair):
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
-# - \f$ A \f$ - \a A
-# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+# - \f$ A \f$ - \a A (in force units)
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
 # \b Example:
@@ -1828,7 +1828,7 @@ class dpd(pair):
 class dpd_conservative(pair):
     ## Specify the DPD conservative %pair %force
     #
-    # \param r_cut Default cutoff radius
+    # \param r_cut Default cutoff radius (in distance units)
     # \param name Name of the force instance
     #
     # \b Example:
