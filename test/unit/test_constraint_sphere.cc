@@ -118,6 +118,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
     
     boost::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
     bdnvt_up->addForceConstraint(cs);
+    bdnvt_up->prepRun(0);
     
     for (int i = 0; i < 1000; i++)
         {

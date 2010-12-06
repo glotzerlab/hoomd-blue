@@ -457,6 +457,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     fire->setFtol(5.0);
     fire->addForceCompute(fc);
     fire->setMinSteps(10);
+    fire->prepRun(0);
     
     int max_step = 1000;
     for (int i = 1; i<=max_step; i++) {
@@ -534,6 +535,7 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     fire->setFtol(Scalar(5.0));
     fire->setEtol(Scalar(1e-7));
     fire->setMinSteps(10);
+    fire->prepRun(0);
     
     int max_step = 100;
     Scalar diff = Scalar(0.0);

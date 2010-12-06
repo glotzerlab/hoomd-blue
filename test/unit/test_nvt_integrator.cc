@@ -1157,6 +1157,8 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));
     nvt_up->addForceCompute(fc1);
     
+    nvt_up->prepRun(0);
+    
     // integrate through time and compare to the reference
     for (int i = 0; i < 2000; i++)
         {
@@ -1223,6 +1225,9 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     
     nvt1->addForceCompute(fc1);
     nvt2->addForceCompute(fc2);
+    
+    nvt1->prepRun(0);
+    nvt2->prepRun(0);
     
     // step for 3 time steps and verify that they are the same
     // we can't do much more because these things are chaotic and diverge quickly

@@ -144,7 +144,10 @@ class Integrator : public Updater
         
         //! helper function to compute total momentum
         virtual Scalar computeTotalMomentum(unsigned int timestep);
-                
+        
+        //! Prepare for the run
+        virtual void prepRun(unsigned int timestep);
+        
     protected:
         Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
@@ -152,14 +155,14 @@ class Integrator : public Updater
         std::vector< boost::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
         
         //! helper function to compute initial accelerations
-        void computeAccelerations(unsigned int timestep, const std::string& profile_name);
+        void computeAccelerations(unsigned int timestep);
         
         //! helper function to compute net force/virial
-        void computeNetForce(unsigned int timestep, const std::string& profile_name);
+        void computeNetForce(unsigned int timestep);
         
 #ifdef ENABLE_CUDA
         //! helper function to compute net force/virial on the GPU
-        void computeNetForceGPU(unsigned int timestep, const std::string& profile_name);
+        void computeNetForceGPU(unsigned int timestep);
 #endif
     };
 

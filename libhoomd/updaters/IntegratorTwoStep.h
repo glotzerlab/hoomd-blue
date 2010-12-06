@@ -101,6 +101,9 @@ class IntegratorTwoStep : public Integrator
         //! Get the number of degrees of freedom granted to a given group
         virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group);
 
+        //! Prepare for the run
+        virtual void prepRun(unsigned int timestep);
+
     protected:
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();
@@ -108,6 +111,7 @@ class IntegratorTwoStep : public Integrator
         std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
         
         bool m_first_step;      //!< True before the first call to update()
+        bool m_prepared;        //!< True if preprun has been called
         bool m_gave_warning;    //!< True if a warning has been given about no methods added
     
     };

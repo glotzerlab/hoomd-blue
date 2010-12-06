@@ -123,6 +123,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 0);
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
+    bdnvt_up->prepRun(0);
     
     int i;
     Scalar AvgT = Scalar(0);
@@ -301,6 +302,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 1);
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
+    bdnvt_up->prepRun(0);
     
     Scalar AvgT = Scalar(0);
     int i;
@@ -426,6 +428,7 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
     shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 268, 0);
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
+    bdnvt_up->prepRun(0);
     
     int i;
     Scalar AvgT = Scalar(0);
@@ -524,6 +527,8 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     Scalar AvgT = Scalar(0);
     //Scalar VarianceE = Scalar(0);
     Scalar KE;
+    
+    bdnvt_up->prepRun(0);
     
     for (i = 0; i < 50000; i++)
         {
