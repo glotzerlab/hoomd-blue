@@ -239,9 +239,9 @@ _force.cur_id = 0;
 class constant(_force):
     ## Specify the %constant %force
     #
-    # \param fx x-component of the %force
-    # \param fy y-component of the %force
-    # \param fz z-component of the %force
+    # \param fx x-component of the %force (in force units)
+    # \param fy y-component of the %force (in force units)
+    # \param fz z-component of the %force (in force units)
     #
     # \b Examples:
     # \code
@@ -261,9 +261,9 @@ class constant(_force):
         
     ## Change the value of the force
     #
-    # \param fx New x-component of the %force
-    # \param fy New y-component of the %force
-    # \param fz New z-component of the %force
+    # \param fx New x-component of the %force (in force units)
+    # \param fy New y-component of the %force (in force units)
+    # \param fz New z-component of the %force (in force units)
     #
     # Using set_force() requires that you saved the created %constant %force in a variable. i.e.
     # \code

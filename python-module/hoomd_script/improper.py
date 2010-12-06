@@ -69,8 +69,12 @@ import sys;
 #
 # The command improper.harmonic specifies a %harmonic improper potential energy between every quadruplet of particles
 # in the simulation. 
-# \f[ V(r) = \frac{1}{2}k \left( \chi - \chi_{0}(r)  \right )^2 \f]
+# \f[ V(r) = \frac{1}{2}k \left( \chi - \chi_{0}  \right )^2 \f]
 # where \f$ \chi \f$ is angle between two sides of the improper
+#
+# Coefficients:
+# - \f$ k \f$ - strength of %force (in energy units)
+# - \f$ \chi_{0} \f$ - equilibrium angle (in radians)
 #
 # Coefficients \f$ k \f$ and \f$ \chi_0 \f$ must be set for each type of %improper in the simulation using
 # set_coeff().

@@ -223,8 +223,8 @@ class sphere(_constraint_force):
     ## Specify the %sphere constraint %force
     #
     # \param group Group on which to apply the constraint
-    # \param P (x,y,z) tuple indicating the position of the center of the sphere
-    # \param r Radius of the sphere
+    # \param P (x,y,z) tuple indicating the position of the center of the sphere (in distance units)
+    # \param r Radius of the sphere (in distance units)
     #
     # \b Examples:
     # \code

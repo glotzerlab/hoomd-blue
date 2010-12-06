@@ -302,7 +302,7 @@ class sort(_updater):
 class rescale_temp(_updater):
     ## Initialize the rescaler
     #
-    # \param T Temperature set point
+    # \param T Temperature set point (in energy units)
     # \param period Velocities will be rescaled every \a period time steps
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
@@ -334,7 +334,7 @@ class rescale_temp(_updater):
 
     ## Change rescale_temp parameters
     #
-    # \param T New temperature set point
+    # \param T New temperature set point (in energy units)
     # 
     # To change the parameters of an existing updater, you must have saved it when it was specified.
     # \code
@@ -426,9 +426,9 @@ class enforce2d(_updater):
 class box_resize(_updater):
     ## Initialize box size resizer
     #
-    # \param Lx the value of the box length in the x direction as a function of time
-    # \param Ly (if set) the value of the box length in the y direction as a function of time
-    # \param Lz (if set) the value of the box length in the z direction as a function of time
+    # \param Lx the value of the box length in the x direction as a function of time (in distance units)
+    # \param Ly (if set) the value of the box length in the y direction as a function of time (in distance units)
+    # \param Lz (if set) the value of the box length in the z direction as a function of time (in distance units)
     # \param period The box size will be updated every \a period time steps
     # 
     # \a Lx, \a Ly, \a Lz can either be set to a constant number or a variant may be provided.

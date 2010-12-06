@@ -15,8 +15,8 @@ class init_read_xml_tests (unittest.TestCase):
         f.write('''<?xml version="1.0" encoding="UTF-8"?>
 <hoomd_xml version="1.0">
 <configuration time_step="0">
-<box units="sigma"  lx="8" ly="8" lz="8"/>
-<position units="sigma">
+<box lx="8" ly="8" lz="8"/>
+<position>
 -1 2 3
 2 1 -3
 3 -2 1

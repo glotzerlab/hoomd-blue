@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  lx=\"2.5\" ly=\"4.5\" lz=\"12.1\"/>");
+        BOOST_CHECK_EQUAL(line,  "<box lx=\"2.5\" ly=\"4.5\" lz=\"12.1\"/>");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -260,7 +260,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<position units=\"sigma\" num=\"4\">");
+        BOOST_CHECK_EQUAL(line, "<position num=\"4\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -308,7 +308,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\" num=\"4\">");
+        BOOST_CHECK_EQUAL(line, "<velocity num=\"4\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -603,7 +603,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<diameter units=\"sigma\" num=\"4\">");
+        BOOST_CHECK_EQUAL(line, "<diameter num=\"4\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -828,11 +828,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  lx=\"100.5\" ly=\"120.5\" lz=\"130.5\"/>");
+        BOOST_CHECK_EQUAL(line,  "<box lx=\"100.5\" ly=\"120.5\" lz=\"130.5\"/>");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<position units=\"sigma\" num=\"6\">");
+        BOOST_CHECK_EQUAL(line, "<position num=\"6\">");
         BOOST_REQUIRE(!f.bad());
         
         // check all the positions
@@ -899,7 +899,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         
         // check all velocities
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\" num=\"6\">");
+        BOOST_CHECK_EQUAL(line, "<velocity num=\"6\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -981,8 +981,8 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 <hoomd_xml version=\"1.2\">\n\
 <configuration time_step=\"150000000\" dimensions=\"2\">\n\
-<box units =\"sigma\"  lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" />\n\
-<position units =\"sigma\" >\n\
+<box lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" />\n\
+<position >\n\
 1.4 2.567890 3.45\n\
 2.4 3.567890 4.45\n\
 3.4 4.567890 5.45\n\
@@ -998,7 +998,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 14 24 34\n\
 15 25 35\n\
 </image>\n\
-<velocity units =\"sigma/tau\">\n\
+<velocity>\n\
 10.12 12.1567 1.056\n\
 20.12 22.1567 2.056\n\
 30.12 32.1567 3.056\n\

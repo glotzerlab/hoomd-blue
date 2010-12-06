@@ -4,6 +4,7 @@ Welcome to the \b user documentation for HOOMD-blue!
 
 -# \subpage page_install_guide
 -# \subpage page_quick_start
+-# \subpage page_units
 -# \subpage page_example_scripts
 -# \subpage page_command_list
 -# \subpage page_xml_file_format

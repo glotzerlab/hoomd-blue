@@ -103,6 +103,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     
     // each thread is going to compute the neighbor list for a single particle
     int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    // track the number of neighbors needed
+    unsigned int n_neigh_needed = 0;
     
     // quit early if we are past the end of the array
     if (my_pidx >= N)
@@ -187,7 +190,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                 if (n_neigh < nli.getH())
                     d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
                 else
-                    atomicMax(&d_conditions[0], n_neigh+1);
+                    n_neigh_needed = n_neigh+1;
                 
                 n_neigh++;
                 }
@@ -196,6 +199,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     
     d_n_neigh[my_pidx] = n_neigh;
     d_last_updated_pos[my_pidx] = my_pos;
+    
+    if (n_neigh_needed > 0)
+        atomicMax(&d_conditions[0], n_neigh_needed);
     }
 
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
@@ -374,6 +380,9 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
     
     // each thread is going to compute the neighbor list for a single particle
     int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    // count the number of neighbors needed
+    unsigned int n_neigh_needed = 0;
     
     // quit early if we are past the end of the array
     if (my_pidx >= N)
@@ -461,7 +470,7 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
                 if (n_neigh < nli.getH())
                     d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
                 else
-                    atomicMax(&d_conditions[0], n_neigh+1);
+                    n_neigh_needed = n_neigh+1;
                 
                 n_neigh++;
                 }
@@ -470,6 +479,9 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
     
     d_n_neigh[my_pidx] = n_neigh;
     d_last_updated_pos[my_pidx] = my_pos;
+        
+    if (n_neigh_needed > 0)
+        atomicMax(&d_conditions[0], n_neigh_needed);
     }
 
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,

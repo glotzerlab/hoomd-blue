@@ -124,6 +124,7 @@ void npt_updater_test(twostepnpt_creator npt_creator, boost::shared_ptr<Executio
     shared_ptr<IntegratorTwoStep> npt(new IntegratorTwoStep(sysdef, Scalar(0.001)));
     npt->addIntegrationMethod(two_step_npt);
     npt->addForceCompute(fc);
+    npt->prepRun(0);
     
     // step for a 10,000 timesteps to relax pessure and tempreratue
     // before computing averages

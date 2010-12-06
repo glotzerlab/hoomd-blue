@@ -128,7 +128,7 @@ def reset():
 ## Create an empty system
 #
 # \param N Number of particles to create
-# \param box A 3-tuple of floats specifying the box lengths (Lx, Ly, Lz)
+# \param box A 3-tuple of floats specifying the box lengths (Lx, Ly, Lz) (in distance units)
 # \param n_particle_types Number of particle types to create
 # \param n_bond_types Number of bond types to create
 # \param n_angle_types Number of angle types to create
@@ -215,6 +215,8 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
 # other commands in hoomd_script to be run. For more details
 # on the file format read by this command, see \ref page_xml_file_format.
 #
+# All values are read in native units, see \ref page_units for more information.
+#
 # If \a time_step is specified, its value will be used as the initial time 
 # step of the simulation instead of the one read from the XML file.
 #
@@ -299,9 +301,9 @@ def read_bin(filename):
 ## Generates N randomly positioned particles of the same type
 #
 # \param N Number of particles to create
-# \param phi_p Packing fraction of particles in the simulation box
+# \param phi_p Packing fraction of particles in the simulation box (unitless)
 # \param name Name of the particle type to create
-# \param min_dist Minimum distance particles will be separated by
+# \param min_dist Minimum distance particles will be separated by (in distance units)
 #
 # \b Examples:
 # \code

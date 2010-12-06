@@ -61,7 +61,7 @@ using namespace boost::python;
 using namespace boost;
 
 IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_first_step(true), m_gave_warning(false)
+    : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false)
     {
     }
 
@@ -133,14 +133,8 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_gave_warning = true;
         }
     
-    // if we haven't been called before, then the accelerations have not been set and we need to calculate them
-    if (m_first_step)
-        {
-        m_first_step = false;
-        // but they only need to be calculated if the restart is not valid
-        if (!isValidRestart())
-            computeAccelerations(timestep, "Integrate");
-        }
+    // ensure that prepRun() has been called
+    assert(m_prepared);
     
     if (m_prof)
         m_prof->push("Integrate");
@@ -155,10 +149,10 @@ void IntegratorTwoStep::update(unsigned int timestep)
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (exec_conf->exec_mode == ExecutionConfiguration::GPU)
-        computeNetForceGPU(timestep+1, "Integrate");
+        computeNetForceGPU(timestep+1);
     else
 #endif
-        computeNetForce(timestep+1, "Integrate");
+        computeNetForce(timestep+1);
     
     if (m_prof)
         m_prof->push("Integrate");
@@ -260,6 +254,26 @@ unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
     return res - m_sysdef->getNDimensions() - getNDOFRemoved();
     }
 
+/*! Compute accelerations if needed for the first step.
+    If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
+    are available for the logger. This solves ticket #393
+*/
+void IntegratorTwoStep::prepRun(unsigned int timestep)
+    {
+    // if we haven't been called before, then the net force and accelerations have not been set and we need to calculate them
+    if (m_first_step)
+        {
+        m_first_step = false;
+        m_prepared = true;
+        
+        // net force is always needed (ticket #393)
+        computeNetForce(timestep);
+        
+        // but the accelerations only need to be calculated if the restart is not valid
+        if (!isValidRestart())
+            computeAccelerations(timestep);
+        }
+    }
 
 void export_IntegratorTwoStep()
     {

@@ -145,6 +145,7 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
     fc->setShiftMode(PotentialPairLJ::shift);
 
     nve_up->addForceCompute(fc);
+    nve_up->prepRun(0);
 
     // verify that the atoms leave the xy plane if no contstraints are present
     // and random forces are added (due to roundoff error in a long simulation)s
