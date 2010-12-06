@@ -66,8 +66,13 @@ import sys;
 #
 # The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every defined 
 # quadruplet of particles in the simulation. 
-# \f[ V(r) = \frac{1}{2}k \left( 1 + d cos\left(n * \phi(r) \right) \right) \f]
+# \f[ V(r) = \frac{1}{2}k \left( 1 + d \cos\left(n * \phi(r) \right) \right) \f]
 # where \f$ \phi \f$ is angle between two sides of the dihedral
+#
+# Coefficients:
+# - \f$ k \f$ - strength of %force (in energy units)
+# - \f$ d \f$ - sign factor (unitless)
+# - \f$ n \f$ - angle scaling factor (unitless)
 #
 # Coefficients \f$ k \f$, \f$ d \f$, \f$ n \f$ and  must be set for each type of %dihedral in the simulation using
 # set_coeff().
@@ -105,7 +110,7 @@ class harmonic(force._force):
     ## Sets the %harmonic %dihedral coefficients for a particular %dihedral type
     #
     # \param dihedral_type Dihedral type to set coefficients for
-    # \param k Coefficient \f$ k \f$ in the %force
+    # \param k Coefficient \f$ k \f$ in the %force (in energy units)
     # \param d Coefficient \f$ d \f$ in the %force, and must be either -1 or 1
     # \param n Coefficient \f$ n \f$ in the %force
         #

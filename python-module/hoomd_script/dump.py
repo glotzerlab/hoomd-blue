@@ -60,6 +60,7 @@ import group as hs_group;
 #
 # Every \a period time steps, a new file will be created. The state of the 
 # particles at that time step is written to the file in the HOOMD XML format.
+# All values are written in native HOOMD-blue units, see \ref page_units for more information.
 #
 # \sa \ref page_xml_file_format
 class xml(analyze._analyzer):
@@ -323,6 +324,8 @@ class bin(analyze._analyzer):
 # Every \a period time steps, a new file will be created. The state of the 
 # particles at that time step is written to the file in the MOL2 format.
 #
+# Particle positions are written directly in distance units, see \ref page_units for more information.
+#
 # The intended usage is to use write() to generate a single structure file that 
 # can be used by VMD for reading in particle names and %bond topology Use in 
 # conjunction with dump.dcd for reading the full simulation trajectory into VMD.
@@ -391,6 +394,8 @@ class mol2(analyze._analyzer):
 # specified file in the DCD file format. DCD only stores particle positions
 # but is decently space efficient and extremely fast to read and write. VMD
 # can load 100's of MiB of trajectory data in mere seconds.
+#
+# Particle positions are written directly in distance units, see \ref page_units for more information.
 #
 # Use in conjunction with dump.mol2 so that VMD has information on the
 # particle names and %bond topology.
@@ -461,6 +466,8 @@ class dcd(analyze._analyzer):
 #
 # Every \a period time steps, a new file will be created. The state of the 
 # particles at that time step is written to the file in the PDB format.
+#
+# Particle positions are written directly in distance units, see \ref page_units for more information.
 #
 class pdb(analyze._analyzer):
     ## Initialize the pdb writer

@@ -5,7 +5,7 @@
 HOOMD-blue stores and computes all values in a system of generic, but fully self-consistent set of units. In this
 manner, no conversion factors need to be maintained and applied to values at every step. For example, a value with units
 of force just naturally arises from dividing an energy by a distance. You may be familiar with this system of units
-as being referred to as reduced "Lennard-Jones" units. However, those will be more formally generalized here for
+as being referred to as reduced "Lennard-Jones" units. However, these will be more formally generalized here for
 application to all types of potentials in HOOMD-blue.
 
 <hr>
@@ -20,7 +20,7 @@ All other units that appear in HOOMD-blue are derived from these. Values can be 
 of units by assiging the desired units to \f$D_u\f$, \f$E_u\f$, and \f$M_u\f$ and then multiplying by the resulting
 conversion factors.
 
-<i>A note on numerics</i>: Floating point calculations perform best when values are close to unity. Thus, it is
+<i>A note on numerics</i>: Floating point calculations are most precise when values are close to unity. Thus, it is
 generally best to choose a scale where energy well depths and particle masses are near 1. Similarly, it is also best
 for typical particle diameters to also be chosen near 1.
 

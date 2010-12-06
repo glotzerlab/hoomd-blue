@@ -176,14 +176,14 @@ _compute.cur_id = 0;
 #  - <b>ndof</b><i>_groupname</i>  - \f$ N_{\mathrm{dof}} \f$ - number of degrees of freedom given to the group by
 #    integrate commands
 #  - <b>potential_energy</b><i>_groupname</i> - \f$ U \f$ - potential energy that the group contributes to the entire
-#    system
-#  - <b>kinetic_energy</b><i>_groupname</i> - \f$ K \f$ - total kinetic energy of all particles in the group
-#  - <b>temperature</b><i>_groupname</i> - \f$ T \f$ - instantaneous thermal energy of the group. Calculated as
+#    system (in energy units)
+#  - <b>kinetic_energy</b><i>_groupname</i> - \f$ K \f$ - total kinetic energy of all particles in the group (in energy units)
+#  - <b>temperature</b><i>_groupname</i> - \f$ T \f$ - instantaneous thermal energy of the group (in energy units). Calculated as
 #    \f$ T = 2 \cdot \frac{K}{N_{\mathrm{dof}}} \f$
-#  - <b>pressure</b><i>_groupname</i> - \f$ P \f$ - instantaneous pressure of the group. Calculated as
-#    \f$ P = (N \cdot T + \frac{1}{3}\cdot W)/V \f$ in 3D, where \f$ V \f$ is the volume of the simulation box and 
+#  - <b>pressure</b><i>_groupname</i> - \f$ P \f$ - instantaneous pressure of the group (in pressure units). Calculated as
+#    \f$ P = (\frac{2}{3} \cdot K + \frac{1}{3}\cdot W)/V \f$ in 3D, where \f$ V \f$ is the volume of the simulation box and 
 #    \f$ W = \frac{1}{2} \sum_{i}\sum_{j \ne i} \vec{F}_{ij} \cdot \vec{r_{ij}} \f$. In 2D simulations,
-#    \f$ P = (N \cdot T + \frac{1}{2}\cdot W)/A \f$ where \f$ A \f$ is the area
+#    \f$ P = (K + \frac{1}{2}\cdot W)/A \f$ where \f$ A \f$ is the area
 #    of the simulation box.
 #
 # \sa analyze.log

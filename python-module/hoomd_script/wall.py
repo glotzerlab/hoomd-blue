@@ -75,9 +75,9 @@ import util;
 # and \f$ \vec{r} \f$ is the vector pointing from the %wall to the particle parallel to the wall's normal.
 #
 # The following coefficients must be set for each particle type using set_coeff(). 
-# - \f$ \varepsilon \f$ - \c epsilon
-# - \f$ \sigma \f$ - \c sigma
-# - \f$ \alpha \f$ - \c alpha
+# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
+# - \f$ \sigma \f$ - \c sigma (in distance units)
+# - \f$ \alpha \f$ - \c alpha (unitless)
 #
 # \b Example:
 # \code
@@ -92,7 +92,7 @@ import util;
 class lj(force._force):
     ## Specify the Lennard-Jones %wall %force
     #
-    # \param r_cut Cutoff radius
+    # \param r_cut Cutoff radius (in distance units)
     #
     # \b Example:
     # \code
@@ -117,9 +117,9 @@ class lj(force._force):
     ## Sets the particle-wall interaction coefficients for a particular particle type
     #
     # \param particle_type Particle type to set coefficients for
-    # \param epsilon Coefficient \f$ \varepsilon \f$ in the %force
-    # \param sigma Coefficient \f$ \sigma \f$ in the %force
-    # \param alpha Coefficient \f$ \alpha \f$ in the %force
+    # \param epsilon Coefficient \f$ \varepsilon \f$ in the %force (in energy units)
+    # \param sigma Coefficient \f$ \sigma \f$ in the %force (in distance units)
+    # \param alpha Coefficient \f$ \alpha \f$ in the %force (unitless)
     #
     # Using set_coeff() requires that the specified %wall %force has been saved in a variable. i.e.
     # \code
