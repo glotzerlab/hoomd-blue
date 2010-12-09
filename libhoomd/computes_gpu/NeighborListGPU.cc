@@ -112,9 +112,9 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     // check that the simulation box is big enough
     const BoxDim& box = m_pdata->getBox();
     
-    if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff) * 2.0 ||
-        (box.yhi - box.ylo) <= (m_r_cut+m_r_buff) * 2.0 ||
-        (box.zhi - box.zlo) <= (m_r_cut+m_r_buff) * 2.0)
+    if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
+        (box.yhi - box.ylo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
+        (box.zhi - box.zlo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0)
         {
         cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves."
              << endl << endl;
