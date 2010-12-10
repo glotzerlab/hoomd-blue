@@ -26,10 +26,10 @@ Install g++, boost, python headers, zlib headers, and subversion.
 Ubuntu 9.04 only offers CMake 2.6.2, which is too old to build hoomd. Download the latest
 cmake-?.?.?-Linux-i386.sh from http://www.cmake.org/ .
 Replace ?.?.? with the most current version. The following terminal command is an example
-that downloads verison 2.8.1
+that downloads verison 2.8.3
 
 \code
- $ wget http://www.cmake.org/files/v2.8/cmake-2.8.1-Linux-i386.sh
+ $ wget http://www.cmake.org/files/v2.8/cmake-2.8.3-Linux-i386.sh
 \endcode
 
 Install CMake by executing
@@ -73,10 +73,10 @@ fi
 You will need to logout and back in for the path setting to take effect.
 
 Download the latest drivers for your GPU from http://www.nvidia.com The following terminal command
-is an example that downloads version 195.36.24 for linux x86_64. If you do not have an NVIDIA GPU,
-proceed to the section \ref software_req_install_fedora_build.
+is an example that downloads version 260.19.21 for linux x86_64. If you do not have an NVIDIA GPU,
+proceed to the section \ref software_req_install_centos_build.
 \code
- $ wget http://us.download.nvidia.com/XFree86/Linux-x86_64/195.36.24/NVIDIA-Linux-x86_64-195.36.24-pkg2.run
+ $ wget http://us.download.nvidia.com/XFree86/Linux-x86_64/260.19.21/NVIDIA-Linux-x86_64-260.19.21.run
 \endcode
 
 To install the driver, you must exit first logout of your X-windows session. At the login screen,
