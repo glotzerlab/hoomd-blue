@@ -632,35 +632,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                            box, 
                                                            deltaT);
     
-    // get the body information after the above update
-    error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_vel_tex, rigid_data.vel, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_angvel_tex, rigid_data.angvel, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_orientation_tex, rigid_data.orientation, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, rigid_data_body_imagex_tex, rigid_data.body_imagex, sizeof(int) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_body_imagey_tex, rigid_data.body_imagey, sizeof(int) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_body_imagez_tex, rigid_data.body_imagez, sizeof(int) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-
     // bind the textures for particles: pos, vel and image of ALL particles (remember pos.w is the partice type needed to for new positions)
     error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
