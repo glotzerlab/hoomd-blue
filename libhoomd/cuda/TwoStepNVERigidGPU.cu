@@ -386,7 +386,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
     \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
-    \param block_size Block size
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Time step
 */
@@ -400,7 +399,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
                                                         unsigned int nmax,
-                                                        unsigned int block_size,
                                                         gpu_boxsize box,
                                                         float deltaT)
     {
@@ -433,13 +431,13 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
         
     __syncthreads();
         
-    unsigned int n_windows = nmax / block_size + 1;
+    unsigned int n_windows = nmax / blockDim.x + 1;
     for (unsigned int start = 0; start < n_windows; start++)
         {
         if (idx_body >= 0 && idx_body < n_bodies)
             {
-            int localidx = idx_body * nmax + start * block_size + threadIdx.x;
-            if (localidx < nmax * n_bodies && start * block_size + threadIdx.x < nmax)
+            int localidx = idx_body * nmax + start * blockDim.x + threadIdx.x;
+            if (localidx < nmax * n_bodies && start * blockDim.x + threadIdx.x < nmax)
                 {
                 unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, localidx);  
                 if (idx_particle_index != INVALID_INDEX)
@@ -683,7 +681,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                      n_bodies, 
                                                                      local_beg,
                                                                      nmax,
-                                                                     block_size,
                                                                      box, 
                                                                      deltaT);
         }
