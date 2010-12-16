@@ -669,7 +669,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         }
     else
         {
-        block_size = 32; 	// chosen to be divisible by nmax
+        block_size = 128; 	// chosen to be divisible by nmax
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);
         
@@ -1026,7 +1026,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
 		}
 	else	// large rigid bodies
 		{
-		unsigned int window_size = 16;			// some fixed value divisble by nmax
+		unsigned int window_size = 128;			// some fixed value divisble by nmax
 		unsigned int block_size = window_size;
 		dim3 force_grid(n_bodies, 1, 1);
 		dim3 force_threads(block_size, 1, 1); 
@@ -1467,7 +1467,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
         }
     else
         {
-        block_size = 32; 
+        block_size = 128; 
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
         gpu_nve_rigid_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
