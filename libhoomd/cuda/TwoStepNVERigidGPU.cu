@@ -135,7 +135,6 @@ texture<float, 1, cudaReadModeElementType> virial_tex;
     \param rdata_conjqm Conjugate quaternion momentum
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param local_beg Starting body index in this card
     \param deltaT Timestep 
     \param box Box dimensions for periodic boundary condition handling
 */
@@ -153,11 +152,10 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
                                                         float4* rdata_conjqm,  
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
-                                                        unsigned int local_beg,
                                                         gpu_boxsize box, 
                                                         float deltaT)
     {
-    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x + local_beg;
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     // do velocity verlet update
     // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
@@ -251,7 +249,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     \param d_virial Virial contribution from the first part
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param local_beg Starting body index in this card
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Time step
 */
@@ -263,12 +260,11 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
                                                         float *d_virial,
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
-                                                        unsigned int local_beg,
                                                         gpu_boxsize box,
                                                         float deltaT)
     {
     
-    unsigned int group_idx = blockIdx.x + local_beg;
+    unsigned int group_idx = blockIdx.x;
 
     __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
     __shared__ int body_imagex, body_imagey, body_imagez;
@@ -384,7 +380,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
     \param d_virial Virial contribution from the first part
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Time step
@@ -397,12 +392,11 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
                                                         float *d_virial,
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
-                                                        unsigned int local_beg,
                                                         unsigned int nmax,
                                                         gpu_boxsize box,
                                                         float deltaT)
     {
-    unsigned int group_idx = blockIdx.x + local_beg;
+    unsigned int group_idx = blockIdx.x;
         
     __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
     __shared__ int body_imagex, body_imagey, body_imagez;
@@ -532,7 +526,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
-    unsigned int local_beg = rigid_data.local_beg;
     unsigned int nmax = rigid_data.nmax;
     
     // bind the textures for rigid bodies:
@@ -626,7 +619,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                            rigid_data.conjqm,
                                                            n_group_bodies, 
                                                            n_bodies, 
-                                                           local_beg,
                                                            box, 
                                                            deltaT);
     
@@ -661,7 +653,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                      rigid_data.virial,
                                                                      n_group_bodies,
                                                                      n_bodies, 
-                                                                     local_beg,
                                                                      box, 
                                                                      deltaT);
         }
@@ -679,7 +670,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                      rigid_data.virial,
                                                                      n_group_bodies,
                                                                      n_bodies, 
-                                                                     local_beg,
                                                                      nmax,
                                                                      box, 
                                                                      deltaT);
@@ -699,7 +689,6 @@ extern __shared__ float4 sum[];
     \param rdata_torque Body torques
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param box Box dimensions for periodic boundary condition handling
 */
@@ -707,11 +696,10 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
                                                  float4* rdata_torque, 
                                                  unsigned int n_group_bodies,
                                                  unsigned int n_bodies, 
-                                                 unsigned int local_beg,
                                                  unsigned int nmax,
                                                  gpu_boxsize box)
     {
-    unsigned int group_idx = blockIdx.x + local_beg;
+    unsigned int group_idx = blockIdx.x;
     
     __shared__ float4 ex_space, ey_space, ez_space;
     float4 *body_force = sum;
@@ -817,7 +805,6 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
     \param rdata_torque Body torques
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param window_size Window size for reduction
     \param box Box dimensions for periodic boundary condition handling
@@ -826,12 +813,11 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                                                  float4* rdata_torque,
                                                  unsigned int n_group_bodies, 
                                                  unsigned int n_bodies, 
-                                                 unsigned int local_beg,
                                                  unsigned int nmax,
                                                  unsigned int window_size,
                                                  gpu_boxsize box)
     {
-    int group_idx = blockIdx.x + local_beg;
+    int group_idx = blockIdx.x;
     
     float4 *body_force = sum;
     float4 *body_torque = &sum[window_size];
@@ -972,7 +958,6 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
-    unsigned int local_beg = rigid_data.local_beg;
     unsigned int nmax = rigid_data.nmax;
     
     // bind the textures for ALL rigid bodies
@@ -1017,7 +1002,6 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                                                                              rigid_data.torque,
                                                                                              n_group_bodies, 
                                                                                              n_bodies, 
-                                                                                             local_beg,
                                                                                              nmax,
                                                                                              box);
 		}
@@ -1032,7 +1016,6 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                                                                              rigid_data.torque,
                                                                                              n_group_bodies, 
                                                                                              n_bodies, 
-                                                                                             local_beg,
                                                                                              nmax,
                                                                                              window_size,
                                                                                              box);       
@@ -1051,7 +1034,6 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     \param rdata_conjqm Conjugate quaternion momentum
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param deltaT Timestep 
     \param box Box dimensions for periodic boundary condition handling
@@ -1062,12 +1044,11 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
                                                          float4* rdata_conjqm, 
                                                          unsigned int n_group_bodies,
                                                          unsigned int n_bodies, 
-                                                         unsigned int local_beg,
                                                          unsigned int nmax,
                                                          gpu_boxsize box, 
                                                          float deltaT)
     {
-    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x + local_beg;
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (group_idx < n_group_bodies)
         {
@@ -1123,7 +1104,6 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
     \param d_net_virial Particle virial
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
-    \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Time step
@@ -1133,12 +1113,11 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
                                                          float *d_net_virial,
                                                          unsigned int n_group_bodies,
                                                          unsigned int n_bodies, 
-                                                         unsigned int local_beg,
                                                          unsigned int nmax,
                                                          gpu_boxsize box,
                                                          float deltaT)
     {
-    unsigned int group_idx = blockIdx.x + local_beg;
+    unsigned int group_idx = blockIdx.x;
     
     __shared__ float4 vel, angvel, ex_space, ey_space, ez_space;
     
@@ -1214,7 +1193,6 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
     \param d_net_virial Particle virial
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param block_size Block size
     \param box Box dimensions for periodic boundary condition handling
@@ -1225,13 +1203,12 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4
                                                          float *d_net_virial,
                                                          unsigned int n_group_bodies,   
                                                          unsigned int n_bodies, 
-                                                         unsigned int local_beg,
                                                          unsigned int nmax,
                                                          unsigned int block_size,
                                                          gpu_boxsize box,
                                                          float deltaT)
     {
-    unsigned int group_idx = blockIdx.x + local_beg;
+    unsigned int group_idx = blockIdx.x;
     
     __shared__ float4 vel, angvel, ex_space, ey_space, ez_space;
 
@@ -1333,7 +1310,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
-    unsigned int local_beg = rigid_data.local_beg;
     unsigned int nmax = rigid_data.nmax;
     
     // bind the textures for ALL rigid bodies
@@ -1408,7 +1384,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                       rigid_data.conjqm,
                                                                       n_group_bodies,
                                                                       n_bodies, 
-                                                                      local_beg,
                                                                       nmax, 
                                                                       box, 
                                                                       deltaT);
@@ -1457,7 +1432,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                         d_net_virial,
                                                         n_group_bodies,
                                                         n_bodies, 
-                                                        local_beg,
                                                         nmax, 
                                                         box,
                                                         deltaT);
@@ -1472,7 +1446,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                         d_net_virial, 
                                                         n_group_bodies,
                                                         n_bodies, 
-                                                        local_beg,
                                                         nmax,
                                                         block_size, 
                                                         box,
