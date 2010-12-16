@@ -387,6 +387,18 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
 extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
+                                                        float* d_particle_mass,
+                                                        float4* d_net_force,
+                                                        unsigned int *d_rigid_group,
+                                                        float4* d_rigid_orientation,
+                                                        float4* d_rigid_com,
+                                                        float4* d_rigid_vel,
+                                                        float4* d_rigid_angvel,
+                                                        int* d_rigid_imagex,
+                                                        int* d_rigid_imagey,
+                                                        int* d_rigid_imagez,
+                                                        unsigned int* d_rigid_particle_idx,
+                                                        float4* d_rigid_particle_dis,
                                                         float4* rdata_oldpos,
                                                         float4* rdata_oldvel,
                                                         float *d_virial,
@@ -401,25 +413,29 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
     __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
     __shared__ int body_imagex, body_imagey, body_imagez;
     
-    int idx_body = -1;
+    __shared__ int idx_body;
     
     float dt_half = 0.5 * deltaT; 
     
-    if (group_idx < n_group_bodies)
+    if (threadIdx.x == 0)
         {
-        idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
-       
-        if (idx_body < n_bodies && threadIdx.x == 0)
+        if (group_idx < n_group_bodies && threadIdx.x == 0)
             {
-            com = tex1Dfetch(rigid_data_com_tex, idx_body);
-            vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
-            angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-            body_imagex = tex1Dfetch(rigid_data_body_imagex_tex, idx_body);
-            body_imagey = tex1Dfetch(rigid_data_body_imagey_tex, idx_body);
-            body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);
-            
-            Scalar4 orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
+            idx_body = d_rigid_group[group_idx];
+           
+            float4 orientation = d_rigid_orientation[idx_body];
+            com = d_rigid_com[idx_body];
+            vel = d_rigid_vel[idx_body];
+            angvel = d_rigid_angvel[idx_body];
+            body_imagex = d_rigid_imagex[idx_body];
+            body_imagey = d_rigid_imagey[idx_body];
+            body_imagez = d_rigid_imagez[idx_body];
+                
             exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
+            }
+        else
+            {
+            idx_body = -1;
             }
         }
         
@@ -433,16 +449,16 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
             int localidx = idx_body * nmax + start * blockDim.x + threadIdx.x;
             if (localidx < nmax * n_bodies && start * blockDim.x + threadIdx.x < nmax)
                 {
-                unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, localidx);  
+                unsigned int idx_particle_index = d_rigid_particle_idx[localidx];
                 if (idx_particle_index != INVALID_INDEX)
                     {
-                    float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, localidx);
-                    float4 particle_oldpos = tex1Dfetch(rigid_data_particle_oldpos_tex, localidx);
-                    float4 particle_oldvel = tex1Dfetch(rigid_data_particle_oldvel_tex, localidx);
+                    float4 particle_pos = d_rigid_particle_dis[localidx];
+                    float4 particle_oldpos = rdata_oldpos[localidx];
+                    float4 particle_oldvel = rdata_oldvel[localidx];
                     
-                    float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
-                    float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
-                    float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
+                    float4 pos = pdata_pos[idx_particle_index];
+                    float massone = d_particle_mass[idx_particle_index];
+                    float4 pforce = d_net_force[idx_particle_index];
                     
                     // compute ri with new orientation
                     float4 ri;
@@ -663,8 +679,20 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         dim3 particle_threads(block_size, 1, 1);
         
         gpu_nve_rigid_step_one_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
-                                                                     pdata.vel, 
+                                                                     pdata.vel,
                                                                      pdata.image,
+                                                                     pdata.mass,
+                                                                     d_net_force,
+                                                                     rigid_data.body_indices,
+                                                                     rigid_data.orientation,
+                                                                     rigid_data.com,
+                                                                     rigid_data.vel,
+                                                                     rigid_data.angvel,
+                                                                     rigid_data.body_imagex,
+                                                                     rigid_data.body_imagey,
+                                                                     rigid_data.body_imagez,
+                                                                     rigid_data.particle_indices,
+                                                                     rigid_data.particle_pos,
                                                                      rigid_data.particle_oldpos,
                                                                      rigid_data.particle_oldvel,
                                                                      rigid_data.virial,
@@ -673,6 +701,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                      nmax,
                                                                      box, 
                                                                      deltaT);
+                                                        
         }
     
     return cudaSuccess;
