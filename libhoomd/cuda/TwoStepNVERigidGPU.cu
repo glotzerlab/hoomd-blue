@@ -733,23 +733,33 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                                                  unsigned int n_bodies, 
                                                  unsigned int nmax,
                                                  unsigned int window_size,
+                                                 unsigned int thread_mask,
+                                                 unsigned int n_bodies_per_block,
                                                  gpu_boxsize box)
     {
-    int group_idx = blockIdx.x;
+    unsigned int m = threadIdx.x / (blockDim.x / n_bodies_per_block);
     
     float3 *body_force = sum;
-    float3 *body_torque = &sum[window_size];
+    float3 *body_torque = &sum[blockDim.x];
         
-    __shared__ float4 ex_space, ey_space, ez_space;
+    __shared__ float4 ex_space[8], ey_space[8], ez_space[8];
     float3 sum_force = make_float3(0.0f, 0.0f, 0.0f);
     float3 sum_torque = make_float3(0.0f, 0.0f, 0.0f);
+    __shared__ int idx_body[8];
     
-    int idx_body = d_rigid_group[group_idx];
-
-    if (threadIdx.x == 0)
+    if ((threadIdx.x & thread_mask) == 0)
         {
-        float4 orientation = d_rigid_orientation[idx_body];
-        exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
+        int group_idx = blockIdx.x*n_bodies_per_block + m;
+        if (group_idx < n_group_bodies)
+            {
+            idx_body[m] = d_rigid_group[group_idx];
+            float4 orientation = d_rigid_orientation[idx_body[m]];
+            exyzFromQuaternion(orientation, ex_space[m], ey_space[m], ez_space[m]);
+            }
+        else
+            {
+            idx_body[m] =-1;
+            }
         }
     
     __syncthreads();
@@ -763,11 +773,11 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
         {
         float4 fi = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         
-        unsigned int k = start * window_size + threadIdx.x;
+        unsigned int k = start * window_size + (threadIdx.x & thread_mask);
         
-        if (k < nmax)
+        if (k < nmax && idx_body[m] != -1)
             {
-            int localidx = idx_body * nmax + k;
+            int localidx = idx_body[m] * nmax + k;
             unsigned int pidx = d_rigid_particle_idx[localidx];
                         
             if (pidx != INVALID_INDEX)
@@ -783,12 +793,12 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                 // This might require more calculations but more stable
                 // particularly when rigid bodies are bigger than half the box
                 float3 ri;
-                ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y 
-                        + ez_space.x * particle_pos.z;
-                ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y 
-                        + ez_space.y * particle_pos.z;
-                ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y 
-                        + ez_space.z * particle_pos.z;
+                ri.x = ex_space[m].x * particle_pos.x + ey_space[m].x * particle_pos.y 
+                        + ez_space[m].x * particle_pos.z;
+                ri.y = ex_space[m].y * particle_pos.x + ey_space[m].y * particle_pos.y 
+                        + ez_space[m].y * particle_pos.z;
+                ri.z = ex_space[m].z * particle_pos.x + ey_space[m].z * particle_pos.y 
+                        + ez_space[m].z * particle_pos.z;
     
                 sum_torque.x += ri.y * fi.z - ri.z * fi.y;
                 sum_torque.y += ri.z * fi.x - ri.x * fi.z;
@@ -806,7 +816,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     unsigned int offset = min(window_size, nmax) >> 1;
     while (offset > 0)
         {
-        if (threadIdx.x < offset)
+        if ((threadIdx.x & thread_mask) < offset)
             {
             body_force[threadIdx.x].x += body_force[threadIdx.x + offset].x;
             body_force[threadIdx.x].y += body_force[threadIdx.x + offset].y;
@@ -822,10 +832,10 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
         __syncthreads();
         }
     
-    if (threadIdx.x == 0)
+    if ((threadIdx.x & thread_mask) == 0 && idx_body[m] != -1)
         {
-        rdata_force[idx_body] = make_float4(body_force[0].x, body_force[0].y, body_force[0].z, 0.0f);
-        rdata_torque[idx_body] = make_float4(body_torque[0].x, body_torque[0].y, body_torque[0].z, 0.0f);
+        rdata_force[idx_body[m]] = make_float4(body_force[threadIdx.x].x, body_force[threadIdx.x].y, body_force[threadIdx.x].z, 0.0f);
+        rdata_torque[idx_body[m]] = make_float4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, 0.0f);
         }
     }
 
@@ -850,18 +860,27 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
     unsigned int nmax = rigid_data.nmax;
     
-    // run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
-    unsigned int window_size;
-    if (nmax < 64)
-        window_size = 32;          // some fixed value divisble by nmax
+    unsigned int n_bodies_per_block;
+    unsigned int target_num_blocks = 60;
+    if (n_group_bodies / 8 >= target_num_blocks)
+        n_bodies_per_block = 8;
     else
-        window_size = 64;
+    if (n_group_bodies / 4 >= target_num_blocks)
+        n_bodies_per_block = 4;
+    else
+    if (n_group_bodies / 2 >= target_num_blocks)
+        n_bodies_per_block = 2;
+    else
+        n_bodies_per_block = 1;
+
+    unsigned int block_size = 64;
+    unsigned int window_size = block_size / n_bodies_per_block;
+    unsigned int thread_mask = window_size - 1;
     
-    unsigned int block_size = window_size;
-    dim3 force_grid(n_group_bodies, 1, 1);
+    dim3 force_grid(n_group_bodies / n_bodies_per_block + 1, 1, 1);
     dim3 force_threads(block_size, 1, 1);
 
-    gpu_rigid_force_sliding_kernel<<< force_grid, force_threads, 2 * window_size * sizeof(float3) >>>(rigid_data.force, 
+    gpu_rigid_force_sliding_kernel<<< force_grid, force_threads, 2 * block_size * sizeof(float3) >>>(rigid_data.force, 
                                                                                             rigid_data.torque,
                                                                                             rigid_data.body_indices,
                                                                                             rigid_data.orientation,
@@ -872,6 +891,8 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                                                                             n_bodies,
                                                                                             nmax,
                                                                                             window_size,
+                                                                                            thread_mask,
+                                                                                            n_bodies_per_block,
                                                                                             box);
 
     return cudaSuccess;
