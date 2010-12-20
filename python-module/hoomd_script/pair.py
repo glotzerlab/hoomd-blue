@@ -1984,8 +1984,8 @@ class pppm(force._force):
     ## Sets the PPPM coefficients
     #
     # \param Nx - Number of grid points in x direction
-    # \param Ny - Number of grid points in x direction
-    # \param Nz - Number of grid points in x direction
+    # \param Ny - Number of grid points in y direction
+    # \param Nz - Number of grid points in z direction
     # \param order - Number of grid points in each direction to assign charges to
     # \param kappa -  Screening parameter in erfc
     # \param rcut  -  Cutoff for the short-ranged part of the electrostatics calculation
