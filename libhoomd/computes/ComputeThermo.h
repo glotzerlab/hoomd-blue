@@ -44,6 +44,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include <boost/shared_ptr.hpp>
+								       //#include "PPPMForceCompute.h"
+#include "PPPMForceCompute.h"
 
 #include "Compute.h"
 #include "GPUArray.h"
@@ -90,7 +92,7 @@ class ComputeThermo : public Compute
         //! Constructs the compute
         ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<ParticleGroup> group,
-                      const std::string& suffix = std::string(""));
+            const std::string& suffix = std::string(""));
         
         //! Compute the temperature
         virtual void compute(unsigned int timestep);
@@ -151,9 +153,9 @@ class ComputeThermo : public Compute
 
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-
     protected:
         boost::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
+//	boost::shared_ptr<PPPMData> m_pppm;     //!< Group to compute properties for
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
         unsigned int m_ndof;            //!< Stores the number of degrees of freedom in the system
         vector<string> m_logname_list;  //!< Cache all generated logged quantities names

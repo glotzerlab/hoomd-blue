@@ -110,6 +110,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "PotentialPair.h"
+#include "PPPMForceCompute.h"
 
 
 // include GPU classes
@@ -134,6 +135,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
+#include "PPPMForceComputeGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -408,6 +410,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborList();
     export_NeighborListBinned();
     export_ConstraintSphere();
+    export_PPPMForceCompute();
 #ifdef ENABLE_CUDA
     export_CellListGPU();
     export_NeighborListGPU();
@@ -431,6 +434,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_FENEBondForceComputeGPU();
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
+    export_PPPMForceComputeGPU();
 #endif
     
     // analyzers

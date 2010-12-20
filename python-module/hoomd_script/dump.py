@@ -117,6 +117,7 @@ class xml(analyze._analyzer):
     # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
     # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
     # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml 
+    # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml 
     # file
     #
     # Using set_params() requires that the %dump was saved in a variable when it was specified.

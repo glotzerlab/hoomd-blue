@@ -213,6 +213,18 @@ class NeighborList : public Compute
             return m_nlist;
             }
         
+        //! Get the number of exclusions array
+        const GPUArray<unsigned int>& getNExArray()
+            {
+            return m_n_ex_idx;
+            }
+        
+         //! Get the exclusion list
+         const GPUArray<unsigned int>& getExListArray()
+            {
+	    return m_ex_list_idx;
+	    }
+
         //! Get the neighbor list indexer
         /*! \note Do not save indexers across calls. Get a new indexer after every call to compute() - they will
             change.
@@ -222,6 +234,16 @@ class NeighborList : public Compute
             return m_nlist_indexer;
             }
         
+        const Index2D& getExListIndexer()
+            {
+            return m_ex_list_indexer;
+            }
+
+        bool getExclusionsSet()
+            {
+	    return m_exclusions_set;
+	    }
+
         //! Gives an estimate of the number of nearest neighbors per particle
         virtual Scalar estimateNNeigh();
         

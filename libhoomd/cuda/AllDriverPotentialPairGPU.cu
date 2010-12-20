@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDThermo.h"
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairEwald.h"
-#include "PPPM.cuh"
 
 cudaError_t gpu_compute_ljtemp_forces(const gpu_force_data_arrays& force_data,
                                       const gpu_pdata_arrays &pdata,
@@ -245,44 +244,31 @@ cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data
                                                            shift_mode);
     }   
 
-/*! This is just a driver function for gpu_compute_forces<EvaluatorPairDPDThermo>(). See it for details.
 
-    \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param args Additional arguments
-*/
 cudaError_t gpu_compute_ewald_forces(const gpu_force_data_arrays& force_data,
-                                      const gpu_pdata_arrays &pdata,
-                                      const gpu_boxsize &box,
-                                      const unsigned int *d_n_neigh,
-                                      const unsigned int *d_nlist,
-                                      const Index2D& nli,
-                                      const float3 *d_params,
-                                      const float *d_rcutsq,
-                                      const float *d_ronsq,
-                                      const unsigned int ntypes,
-                                      const unsigned int block_size,
-                                      const unsigned int shift_mode)
-   {
-   cudaError_t error = gpu_compute_pair_forces<EvaluatorPairEwald>(force_data,
-								   pdata,
-								   box,
-								   d_n_neigh,
-								   d_nlist,
-								   nli,
-								   d_params,
-								   d_rcutsq,
-								   d_ronsq,
-								   ntypes,
-								   block_size,
-								   shift_mode);
-   electrostatics_calculation(force_data, pdata, box, d_params, d_rcutsq);
-   return error;
-   }
+				     const gpu_pdata_arrays &pdata,
+				     const gpu_boxsize &box,
+				     const unsigned int *d_n_neigh,
+				     const unsigned int *d_nlist,
+				     const Index2D& nli,
+				     const float *d_params,
+				     const float *d_rcutsq,
+				     const float *d_ronsq,
+				     const unsigned int ntypes,
+				     const unsigned int block_size,
+				     const unsigned int shift_mode)
+    {
+    return  gpu_compute_pair_forces<EvaluatorPairEwald>(force_data,
+							 pdata,
+							 box,
+							 d_n_neigh,
+							 d_nlist,
+							 nli,
+							 d_params,
+							 d_rcutsq,
+							 d_ronsq,
+							 ntypes,
+							 block_size,
+							 shift_mode);
+    }
 

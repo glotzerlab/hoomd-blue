@@ -374,15 +374,11 @@ boost::shared_ptr<Integrator> System::getIntegrator()
     run() can be called as many times as the user wishes:
     each time, it will continue at the time step where it left off.
 */
-#include "PPPM.cuh"
-struct electrostatics_data es_data;
 
 void System::run(unsigned int nsteps, unsigned int cb_frequency,
                  boost::python::object callback, double limit_hours,
                  unsigned int limit_multiple)
     {
-    // set electrostatics flag to 0 so that it will be set up the first time it's called
-    es_data.electrostatics_allocation_bool = 0;
 
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;

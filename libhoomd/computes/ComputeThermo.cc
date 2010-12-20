@@ -53,7 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ComputeThermo.h"
-
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -66,7 +65,7 @@ using namespace std;
 */
 ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
-                             const std::string& suffix)
+                            const std::string& suffix)
     : Compute(sysdef), m_group(group), m_ndof(1)
     {
     assert(m_pdata);

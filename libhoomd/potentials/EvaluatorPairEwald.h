@@ -80,6 +80,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RSQRT(x) Scalar(1.0) / sqrt( (x) )
 #endif
 
+#ifdef NVCC
+//! ERFC is the complimentary error function
+#define ERFC erfc
+#else
+#define ERFC erfcf
+#endif
+
 //! Class for evaluating the Ewald pair potential
 /*! <b>General Overview</b>
 
@@ -91,21 +98,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     \f[ V_{\mathrm{Ewald}}(r) = q_i q_j erfc(\kappa r)/r \f]
 
-    The Ewald potential does not need diameter. Three parameters are specified and stored in a Scalar3. 
-    \a kappa is placed in \a params.x \a grid size is in \a params.y and \a order is place in \a params.z      
+    The Ewald potential does not need diameter. One parameters is specified and stored in a Scalar. 
+    \a kappa is placed in \a params    
 */
-
-#ifdef NVCC
-#define ERFC erfc
-#else
-#define ERFC erfcf
-#endif
-
 class EvaluatorPairEwald
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar3 param_type;
+        typedef Scalar param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
@@ -113,7 +113,7 @@ class EvaluatorPairEwald
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairEwald(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-	  : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.x), grid(_params.y), order(_params.z)
+	  : rsq(_rsq), rcutsq(_rcutsq), kappa(_params)
             {
             }
         

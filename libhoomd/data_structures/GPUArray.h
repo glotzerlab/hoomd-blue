@@ -56,10 +56,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ExecutionConfiguration.h"
-
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+#include <cufft.h>
 #include <boost/bind.hpp>
 
 //! Specifies where to acquire the data
