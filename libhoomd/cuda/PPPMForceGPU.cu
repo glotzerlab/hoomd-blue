@@ -335,6 +335,7 @@ void calculate_forces_kernel(gpu_force_data_arrays force_data,
 		}
 	    }
 	}
+	force_data.force[idx].w = 0.0f;
 	force_data.force[idx] = local_force;
     }
 } 
@@ -888,7 +889,7 @@ __global__ void gpu_fix_exclusions_kernel(gpu_force_data_arrays force_data,
     force_data.force[idx].x -= force.x;
     force_data.force[idx].y -= force.y;
     force_data.force[idx].z -= force.z;
-    force_data.force[idx].w = -force.w;
+    force_data.force[idx].w -= force.w;
     force_data.virial[idx] = -virial;
     }
 }

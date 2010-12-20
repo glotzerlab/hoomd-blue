@@ -149,6 +149,7 @@ void ComputeThermoGPU::computeProperties()
 	ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::readwrite);
 	h_properties.data[thermo_index::pressure] += pppm_thermo.x;
 	h_properties.data[thermo_index::potential_energy] += pppm_thermo.y;
+	PPPMData::pppm_energy = pppm_thermo.y;
     }
 
     if (m_prof) m_prof->pop();
@@ -179,6 +180,7 @@ Scalar2 ComputeThermoGPU::PPPM_thermo_compute()
     pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * box.Lx * box.Ly * box.Lz);
     pppm_virial_energy.y *= PPPMData::energy_virial_factor;
     pppm_virial_energy.y -= PPPMData::q2 * PPPMData::kappa / 1.772453850905516027298168f;
+    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* box.Lx * box.Ly * box.Lz);
 
     return pppm_virial_energy;
 

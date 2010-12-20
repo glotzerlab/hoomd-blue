@@ -81,8 +81,10 @@ Scalar PPPMData::Nx;
 Scalar PPPMData::Ny;                               
 Scalar PPPMData::Nz;                               
 Scalar PPPMData::q2;                               
+Scalar PPPMData::q;                               
 Scalar PPPMData::kappa;                            
-Scalar PPPMData::energy_virial_factor;             
+Scalar PPPMData::energy_virial_factor;
+Scalar PPPMData::pppm_energy;
 GPUArray<cufftComplex> PPPMData::m_rho_real_space; 
 GPUArray<Scalar> PPPMData::m_green_hat;           
 GPUArray<Scalar3> PPPMData::m_vg;                  
@@ -180,6 +182,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 	    m_q += arrays.charge[i];
 	    m_q2 += arrays.charge[i]*arrays.charge[i];
 	}
+	PPPMData::q = m_q;
 	if(fabs(m_q) > 0.0) printf("WARNING system in not neutral, the net charge is %g\n", m_q);
 
         // compute RMS force error
@@ -354,13 +357,12 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 	m_data_location = cpu;
 
 	m_pdata->release();
-	cout << "PPPM Constructor END" << endl;
     }
 
 std::vector< std::string > PPPMForceCompute::getProvidedLogQuantities()
     {
     vector<string> list;
-    list.push_back(m_log_name);
+    list.push_back("pppm_energy");
     return list;
     }
 
@@ -369,14 +371,16 @@ std::vector< std::string > PPPMForceCompute::getProvidedLogQuantities()
 */
 Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if (quantity == m_log_name)
+      if (quantity == string("pppm_energy"))
         {
         compute(timestep);
-        return calcEnergySum();
+	Scalar energy = calcEnergySum();
+	energy += PPPMData::pppm_energy;
+        return energy;
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for BondForceCompute" << endl << endl;
+        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for PPPMForceCompute" << endl << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -386,9 +390,8 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
  */
 void PPPMForceCompute::computeForces(unsigned int timestep)
     {
-	cout << "How about this far?" << endl;
 
-    if (m_prof) m_prof->push("Harmonic");
+    if (m_prof) m_prof->push("PPPM");
     
     if(m_box_changed) {
 	const BoxDim& box = m_pdata->getBox();
@@ -460,7 +463,7 @@ Scalar PPPMForceCompute::rms(Scalar h, Scalar prd, Scalar natoms)
     acons[7][6] = 4887769399.0 / 37838389248.0;
 
     for (m = 0; m < m_order; m++) 
-	sum += acons[m_order][m] * pow(h*m_kappa,2.0*(Scalar)m);
+	sum += acons[m_order][m] * pow(h*m_kappa,2.0f*(Scalar)m);
     Scalar value = m_q2 * pow(h*m_kappa,(Scalar)m_order) *
 	sqrt(m_kappa*prd*sqrt(2.0*M_PI)*sum/natoms) / (prd*prd);
     return value;
@@ -832,6 +835,13 @@ void PPPMForceCompute::calculate_forces()
     Scalar Lz = box.zhi - box.zlo;
 
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+
+    memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
+    memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
+    memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
+    memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
+    memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
+
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
     ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
     ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);

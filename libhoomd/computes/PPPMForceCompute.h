@@ -158,8 +158,10 @@ public:
 	static Scalar Ny;                               //!< Number of grid points in y direction
 	static Scalar Nz;                               //!< Number of grid points in z direction
 	static Scalar q2;                               //!< Sum(q_i*q_i), where q_i is the charge of each particle
-  	static Scalar kappa;                            //!< screening parameter for erfc(kappa*r)
+ 	static Scalar q;                                //!< Sum(q_i*q_i), where q_i is the charge of each particle
+ 	static Scalar kappa;                            //!< screening parameter for erfc(kappa*r)
 	static Scalar energy_virial_factor;             //!< Multiplication factor for energy and virial
+        static Scalar pppm_energy;                      //!< Used for logging the energy
 	static GPUArray<cufftComplex> m_rho_real_space; //!< x component of the grid based electric field
 	static GPUArray<Scalar> m_green_hat;            //!< Modified Hockney-Eastwood Green's function
 	static GPUArray<Scalar3> m_vg;                  //!< Coefficients for Fourier space virial calculation

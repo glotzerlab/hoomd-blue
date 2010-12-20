@@ -179,8 +179,6 @@ class EvaluatorPairEwald
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
 	Scalar kappa;   //!< kappa parameter extracted from the params passed to the constructor
-	Scalar grid;    //!< grid parameter extracted from the params passed to the constructor
-	Scalar order;   //!< order parameter extracted from the params passed to the constructor
 	Scalar qiqj;	//!< product of qi and qj
     };
 
