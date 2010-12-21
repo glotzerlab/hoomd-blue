@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: HarmonicBondForceGPU.cuh 2587 2010-01-08 17:02:54Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/cuda/HarmonicBondForceGPU.cuh $
+// $Id: PPPMForceGPU.cuh 2587 2010-01-08 17:02:54Z joaander $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/cuda/PPPMForceGPU.cuh $
 // Maintainer: joaander
 
 #include <cufft.h>
@@ -57,55 +57,56 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __PPPMFORCEGPU_CUH__
 
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
-				    const gpu_pdata_arrays &pdata,
-				    const gpu_boxsize &box,
-				    int Nx,
-				    int Ny,
-				    int Nz,
-				    int order,
-				    float *GPU_rho_coeff,
-				    cufftComplex *GPU_rho_real_space,
-				    cufftHandle plan,
-				    cufftComplex *GPU_E_x,
-				    cufftComplex *GPU_E_y,
-				    cufftComplex *GPU_E_z,
-				    float3 *GPU_k_vec,
-				    float *GPU_green_hat,
-				    int block_size);
+    cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
+                                        const gpu_pdata_arrays &pdata,
+                                        const gpu_boxsize &box,
+                                        int Nx,
+                                        int Ny,
+                                        int Nz,
+                                        int order,
+                                        float *GPU_rho_coeff,
+                                        cufftComplex *GPU_rho_real_space,
+                                        cufftHandle plan,
+                                        cufftComplex *GPU_E_x,
+                                        cufftComplex *GPU_E_y,
+                                        cufftComplex *GPU_E_z,
+                                        float3 *GPU_k_vec,
+                                        float *GPU_green_hat,
+                                        float3 *E_field,
+                                        int block_size);
 
 float2 gpu_compute_pppm_thermo(int Nx,
-			       int Ny,
-			       int Nz,
-			       cufftComplex *GPU_rho_real_space,
-			       float3 *GPU_vg,
-			       float *GPU_green_hat,
-			       float2 *o_data,
-			       float2 *i_data,
-			       int block_size);
+                               int Ny,
+                               int Nz,
+                               cufftComplex *GPU_rho_real_space,
+                               float3 *GPU_vg,
+                               float *GPU_green_hat,
+                               float2 *o_data,
+                               float2 *i_data,
+                               int block_size);
 
 cudaError_t reset_kvec_green_hat(const gpu_boxsize &box,
-				 int Nx,
-				 int Ny,
-				 int Nz,
-				 int nbx,
-				 int nby,
-				 int nbz,
-				 int order,
-				 float m_kappa,
-				 float3 *kvec,
-				 float *green_hat,
-				 float3 *vg,
-				 float *gf_b,
-				 int block_size);
+                                 int Nx,
+                                 int Ny,
+                                 int Nz,
+                                 int nbx,
+                                 int nby,
+                                 int nbz,
+                                 int order,
+                                 float m_kappa,
+                                 float3 *kvec,
+                                 float *green_hat,
+                                 float3 *vg,
+                                 float *gf_b,
+                                 int block_size);
 
 cudaError_t fix_exclusions(const gpu_force_data_arrays& force_data,
-			   const gpu_pdata_arrays &pdata,
-			   const gpu_boxsize &box,
-			   const unsigned int *d_n_ex,
-			   const unsigned int *d_exlist,
-			   const Index2D nex,
-			   float m_kappa,
-			   int block_size);
+                           const gpu_pdata_arrays &pdata,
+                           const gpu_boxsize &box,
+                           const unsigned int *d_n_ex,
+                           const unsigned int *d_exlist,
+                           const Index2D nex,
+                           float m_kappa,
+                           int block_size);
 #endif
 

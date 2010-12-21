@@ -91,7 +91,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
 
 /*! Computes all thermodynamic properties of the system in one fell swoop, on the GPU.
-*/
+ */
 void ComputeThermoGPU::computeProperties()
     {
     unsigned int group_size = m_group->getNumMembers();
@@ -145,19 +145,19 @@ void ComputeThermoGPU::computeProperties()
     m_pdata->release();
 
     if(PPPMData::compute_pppm_flag) {
-	Scalar2 pppm_thermo = ComputeThermoGPU::PPPM_thermo_compute();
-	ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::readwrite);
-	h_properties.data[thermo_index::pressure] += pppm_thermo.x;
-	h_properties.data[thermo_index::potential_energy] += pppm_thermo.y;
-	PPPMData::pppm_energy = pppm_thermo.y;
-    }
+        Scalar2 pppm_thermo = ComputeThermoGPU::PPPM_thermo_compute();
+        ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::readwrite);
+        h_properties.data[thermo_index::pressure] += pppm_thermo.x;
+        h_properties.data[thermo_index::potential_energy] += pppm_thermo.y;
+        PPPMData::pppm_energy = pppm_thermo.y;
+        }
 
     if (m_prof) m_prof->pop();
     }
 
 
 Scalar2 ComputeThermoGPU::PPPM_thermo_compute()
-{
+    {
 
     gpu_boxsize box = m_pdata->getBoxGPU();
 
@@ -168,14 +168,14 @@ Scalar2 ComputeThermoGPU::PPPM_thermo_compute()
     ArrayHandle<Scalar2> d_o_data(PPPMData::o_data, access_location::device, access_mode::readwrite);
 
     Scalar2 pppm_virial_energy =  gpu_compute_pppm_thermo(PPPMData::Nx,
-							  PPPMData::Ny,
-							  PPPMData::Nz,
-							  d_rho_real_space.data,
-							  d_vg.data,
-							  d_green_hat.data,
-							  d_o_data.data,
-							  d_i_data.data,
-							  256);
+                                                          PPPMData::Ny,
+                                                          PPPMData::Nz,
+                                                          d_rho_real_space.data,
+                                                          d_vg.data,
+                                                          d_green_hat.data,
+                                                          d_o_data.data,
+                                                          d_i_data.data,
+                                                          256);
 
     pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * box.Lx * box.Ly * box.Lz);
     pppm_virial_energy.y *= PPPMData::energy_virial_factor;
@@ -184,15 +184,15 @@ Scalar2 ComputeThermoGPU::PPPM_thermo_compute()
 
     return pppm_virial_energy;
 
-}
+    }
 
 void export_ComputeThermoGPU()
     {
     class_<ComputeThermoGPU, boost::shared_ptr<ComputeThermoGPU>, bases<ComputeThermo>, boost::noncopyable >
-    ("ComputeThermoGPU", init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<ParticleGroup>,
-                         const std::string& >())
-    ;
+        ("ComputeThermoGPU", init< boost::shared_ptr<SystemDefinition>,
+         boost::shared_ptr<ParticleGroup>,
+         const std::string& >())
+        ;
     }
 
 #ifdef WIN32

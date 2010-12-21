@@ -80,13 +80,13 @@ class PPPMForceComputeGPU : public PPPMForceCompute
     public:
         //! Constructs the compute
         PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-			    boost::shared_ptr<NeighborList> nlist);
+                            boost::shared_ptr<NeighborList> nlist);
         //! Destructor
         ~PPPMForceComputeGPU();
         
         //! Sets the block size to run on the device
         /*! \param block_size Block size to set
-        */
+         */
         void setBlockSize(int block_size)
             {
             m_block_size = block_size;

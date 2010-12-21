@@ -79,7 +79,7 @@ class PPPMForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-			 boost::shared_ptr<NeighborList> nlist);
+                         boost::shared_ptr<NeighborList> nlist);
         
         //! Destructor
         ~PPPMForceCompute();
@@ -100,41 +100,42 @@ class PPPMForceCompute : public ForceCompute
             }
 
         //! root mean square error in force calculation
-	Scalar rms(Scalar h, Scalar prd, Scalar natoms);
+        Scalar rms(Scalar h, Scalar prd, Scalar natoms);
         //! computes coefficients for assigning charges to grid points
-	void compute_rho_coeff();
+        void compute_rho_coeff();
         //! computes coefficients for the Green's function
-	void compute_gf_denom();
+        void compute_gf_denom();
         //! computes coefficients for the Green's function
         Scalar gf_denom(Scalar x, Scalar y, Scalar z);
         //! resets kvec, Green's function and virial coefficients if the box size changes
-	void reset_kvec_green_hat_cpu();
+        void reset_kvec_green_hat_cpu();
         //! assigns charges to grid points
-	void assign_charges_to_grid();
+        void assign_charges_to_grid();
         //! multiply Green's function by charge density to get electric field
-	void combined_green_e();
+        void combined_green_e();
         //! Do the final force calculation
         void calculate_forces();
 
     protected:
-	int m_Nx;                                //!< Number of grid points in x direction
+        int m_Nx;                                //!< Number of grid points in x direction
         int m_Ny;                                //!< Number of grid points in y direction
         int m_Nz;                                //!< Number of grid points in z direction
-	int m_order;                             //!< Interpolation order
-  	Scalar m_kappa;                          //!< screening parameter for erfc(kappa*r)
+        int m_order;                             //!< Interpolation order
+        Scalar m_kappa;                          //!< screening parameter for erfc(kappa*r)
      	cufftHandle plan;                        //!< Used for the Fast Fourier Transformations performed on the GPU                   
-	Scalar m_rcut;                           //!< Real space cutoff
-	Scalar2 thermo_quantites;                //!< Store the Fourier space contribution to the pressure and energy 
-	Scalar m_q;                              //!< Total system charge
-	Scalar m_q2;                             //!< Sum(q_i*q_i), where q_i is the charge of each particle
-	Scalar m_energy_virial_factor;           //!< Multiplication factor for energy and virial
+        Scalar m_rcut;                           //!< Real space cutoff
+        Scalar2 thermo_quantites;                //!< Store the Fourier space contribution to the pressure and energy 
+        Scalar m_q;                              //!< Total system charge
+        Scalar m_q2;                             //!< Sum(q_i*q_i), where q_i is the charge of each particle
+        Scalar m_energy_virial_factor;           //!< Multiplication factor for energy and virial
         bool m_box_changed;                      //!< Set to ttrue when the box size has changed
-	GPUArray<Scalar3> m_kvec;                //!< k-vectors for each grid point
-	GPUArray<cufftComplex> m_Ex;             //!< x component of the grid based electric field
-	GPUArray<cufftComplex> m_Ey;             //!< y component of the grid based electric field
-	GPUArray<cufftComplex> m_Ez;             //!< z component of the grid based electric field
-	GPUArray<Scalar> m_rho_coeff;            //!< Coefficients for computing the grid based charge density
-	GPUArray<Scalar> m_gf_b;                 //!< Used to compute the grid based Green's function
+        GPUArray<Scalar3> m_kvec;                //!< k-vectors for each grid point
+        GPUArray<cufftComplex> m_Ex;             //!< x component of the grid based electric field
+        GPUArray<cufftComplex> m_Ey;             //!< y component of the grid based electric field
+        GPUArray<cufftComplex> m_Ez;             //!< z component of the grid based electric field
+        GPUArray<Scalar3>m_field;                //!< grid based Electric field, combined
+        GPUArray<Scalar> m_rho_coeff;            //!< Coefficients for computing the grid based charge density
+        GPUArray<Scalar> m_gf_b;                 //!< Used to compute the grid based Green's function
         boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
 
@@ -151,23 +152,23 @@ void export_PPPMForceCompute();
 
 //! Holds some data for computing the thermodynamic output
 class PPPMData
-{
-public:
+    {
+    public:
         static int compute_pppm_flag;                   //!< Flag to see if we should compute the PPPM thermodynamic properties
-	static Scalar Nx;                               //!< Number of grid points in x direction
-	static Scalar Ny;                               //!< Number of grid points in y direction
-	static Scalar Nz;                               //!< Number of grid points in z direction
-	static Scalar q2;                               //!< Sum(q_i*q_i), where q_i is the charge of each particle
- 	static Scalar q;                                //!< Sum(q_i*q_i), where q_i is the charge of each particle
- 	static Scalar kappa;                            //!< screening parameter for erfc(kappa*r)
-	static Scalar energy_virial_factor;             //!< Multiplication factor for energy and virial
+        static Scalar Nx;                               //!< Number of grid points in x direction
+        static Scalar Ny;                               //!< Number of grid points in y direction
+        static Scalar Nz;                               //!< Number of grid points in z direction
+        static Scalar q2;                               //!< Sum(q_i*q_i), where q_i is the charge of each particle
+        static Scalar q;                                //!< Sum(q_i*q_i), where q_i is the charge of each particle
+        static Scalar kappa;                            //!< screening parameter for erfc(kappa*r)
+        static Scalar energy_virial_factor;             //!< Multiplication factor for energy and virial
         static Scalar pppm_energy;                      //!< Used for logging the energy
-	static GPUArray<cufftComplex> m_rho_real_space; //!< x component of the grid based electric field
-	static GPUArray<Scalar> m_green_hat;            //!< Modified Hockney-Eastwood Green's function
-	static GPUArray<Scalar3> m_vg;                  //!< Coefficients for Fourier space virial calculation
-	static GPUArray<Scalar2> o_data;                //!< Used to quickly sum grid points for pressure and energy calcuation (output)
-	static GPUArray<Scalar2> i_data;                //!< Used to quickly sum grid points for pressure and energy calcuation (input)
-};
+        static GPUArray<cufftComplex> m_rho_real_space; //!< x component of the grid based electric field
+        static GPUArray<Scalar> m_green_hat;            //!< Modified Hockney-Eastwood Green's function
+        static GPUArray<Scalar3> m_vg;                  //!< Coefficients for Fourier space virial calculation
+        static GPUArray<Scalar2> o_data;                //!< Used to quickly sum grid points for pressure and energy calcuation (output)
+        static GPUArray<Scalar2> i_data;                //!< Used to quickly sum grid points for pressure and energy calcuation (input)
+    };
 
 
 #endif
