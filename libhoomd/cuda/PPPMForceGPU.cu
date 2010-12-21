@@ -275,6 +275,21 @@ __global__ void set_gpu_field_kernel(cufftComplex* E_x,
         }
     }
 
+__global__
+void zero_forces(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata)
+    {  
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < pdata.N)
+        {
+        force_data.force[idx].x = 0.0f;
+        force_data.force[idx].y = 0.0f;
+        force_data.force[idx].z = 0.0f;
+        force_data.force[idx].w = 0.0f;
+        force_data.virial[idx] = 0.0f;
+        }
+    }
+
 extern "C" __global__ 
 void calculate_forces_kernel(gpu_force_data_arrays force_data,
                              gpu_pdata_arrays pdata,
@@ -409,6 +424,10 @@ cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
     cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(float));
 
     // setup the grid to run the kernel with one thread per particle in the group
+    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    // setup the grid to run the kernel with one thread per particle in the group
     dim3 P_grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 P_threads(block_size, 1, 1);
     
@@ -425,8 +444,14 @@ cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
     if (error != cudaSuccess)
         return error;
         
-    // set the grid charge to zer
+    // set the grid charge to zero
     cudaMemset(GPU_rho_real_space, 0.0f, sizeof(cufftComplex)*Nx*Ny*Nz);
+
+    // zero the force arrays for all particles
+//    zero_forces <<< grid, threads >>> (force_data, pdata);
+    cudaMemset(force_data.force, 0.0f, sizeof(float4)*pdata.N);
+    cudaMemset(force_data.virial, 0.0f, sizeof(float)*pdata.N);
+
 
     // run the kernels
     // assign charges to the grid points, one thread per particles
