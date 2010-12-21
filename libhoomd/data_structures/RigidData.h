@@ -154,6 +154,11 @@ class RigidData
             {
             return m_particle_oldvel;
             }
+        //! Get m_particle_offset
+        const GPUArray<unsigned int>& getParticleOffset()
+            {
+            return m_particle_offset;
+            }
         //@}
         
         //! \name getter methods (integrated data)
@@ -250,6 +255,8 @@ class RigidData
         GPUArray<unsigned int> m_particle_indices;  //!< n_max by n_bodies 2D array listing particle indices belonging to bodies (updated when particles are resorted)
         GPUArray<Scalar4> m_particle_oldpos;        //!< n_max by n_bodies 2D array listing particle positions from the previous step (w/regards to sorting and virial calculation)
         GPUArray<Scalar4> m_particle_oldvel;        //!< n_max by n_bodies 2D array listing particle velocities from the previous step (w/regards to sorting and virial calculation)
+        
+        GPUArray<unsigned int> m_particle_offset;   //!< n_particles by 1 array listing the offset of each particle in its body
         //@}
         
         //! \name dynamic data members (updated via integration)

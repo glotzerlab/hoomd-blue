@@ -119,6 +119,7 @@ void RigidData::recalcIndices()
     unsigned int indices_pitch = m_particle_indices.getPitch();
     
     ArrayHandle<unsigned int> body_size(m_body_size, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_particle_offset(m_particle_offset, access_location::host, access_mode::readwrite);
     
     // for each body
     for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -127,13 +128,22 @@ void RigidData::recalcIndices()
         unsigned int len = body_size.data[body];
         assert(body <= m_particle_tags.getHeight() && body <= m_particle_indices.getHeight());
         assert(len <= tags_pitch && len <= indices_pitch);
+        
+//         if (body == 0)
+//             cout << "Body " << body << ": ";
+        
         for (unsigned int i = 0; i < len; i++)
             {
             // translate the tag to the current index
             unsigned int tag = tags.data[body*tags_pitch + i];
             unsigned int pidx = arrays.rtag[tag];
             indices.data[body*indices_pitch + i] = pidx;
+            h_particle_offset.data[pidx] = i;
+//             if (body == 0)
+//                 cout << pidx << " ";
             }
+//         if (body == 0)
+//             cout << endl;
         }
         
     m_pdata->release();
@@ -198,6 +208,8 @@ void RigidData::initializeData()
     
     GPUArray<bool> angmom_init(m_n_bodies, m_pdata->getExecConf());
     
+    GPUArray<unsigned int> particle_offset(m_pdata->getN(), m_pdata->getExecConf());
+    
     m_body_dof.swap(body_dof);
     m_body_mass.swap(body_mass);
     m_body_size.swap(body_size);
@@ -218,6 +230,8 @@ void RigidData::initializeData()
     m_torque.swap(torque);
     
     m_angmom_init.swap(angmom_init);
+    
+    m_particle_offset.swap(particle_offset);
     
     {
     // determine the largest size of rigid bodies (nmax)

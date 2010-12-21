@@ -139,6 +139,8 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     
+    ArrayHandle<unsigned int> d_particle_offset(m_rigid_data->getParticleOffset(), access_location::device, access_mode::read);
+    
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -168,6 +170,7 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
+    d_rdata.particle_offset = d_particle_offset.data;
     
     // perform the update on the GPU
     gpu_nve_rigid_step_one(d_pdata,
@@ -237,6 +240,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_particle_offset(m_rigid_data->getParticleOffset(), access_location::device, access_mode::read);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -264,6 +268,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
+    d_rdata.particle_offset = d_particle_offset.data;
     
     // compute the Langevin forces on the GPU
     bdnvt_step_two_args args;

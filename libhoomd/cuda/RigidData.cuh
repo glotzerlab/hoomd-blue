@@ -80,6 +80,7 @@ struct gpu_rigid_data_arrays
     float4 *torque;         //!< Body torque in \c x, \c y, \c z, nothing in \c w
     float *virial;          //!< Virial contribution from the first integration part
     float4 *conjqm;         //!< Conjugate quaternion momentum 
+    unsigned int *particle_offset; //!< Per particle array listing the index offset in its body
     
     float4 *particle_pos;           //!< Particle relative position to the body frame
     float4 *particle_oldpos;        //!< Particle position from the previous step
