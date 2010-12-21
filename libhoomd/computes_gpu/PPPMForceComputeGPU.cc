@@ -64,11 +64,13 @@ using namespace std;
 
 /*! \param sysdef System to compute bond forces on
     \param nlist Neighbor list
+    \param group Particle group
 
 */
 PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                         boost::shared_ptr<NeighborList> nlist)
-    : PPPMForceCompute(sysdef, nlist), m_block_size(256)
+                                         boost::shared_ptr<NeighborList> nlist,
+                                         boost::shared_ptr<ParticleGroup> group)
+    : PPPMForceCompute(sysdef, nlist, group), m_block_size(256)
     {
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -77,7 +79,6 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
         cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing BondForceComputeGPU");
         }
-        
     CHECK_CUDA_ERROR();
     }
 
@@ -125,8 +126,13 @@ void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar ka
 */
 void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    // just drop out if the group is an empty group
+    if (group_size == 0)
+        return;
+
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "Harmonic");
+    if (m_prof) m_prof->push(exec_conf, "PPPM");
     
     assert(m_pdata);
 
@@ -141,6 +147,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> d_field(m_field, access_location::device, access_mode::readwrite);
 
+    // access the group
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     if(m_box_changed) {
 
@@ -193,6 +201,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                             d_kvec.data,
                             d_green_hat.data,
                             d_field.data,		    
+                            d_index_array.data,
+                            group_size,
                             m_block_size);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
@@ -218,6 +228,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                        d_exlist.data,
                        nex,
                        m_kappa,
+                       d_index_array.data,
+                       group_size,
                        m_block_size);
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -239,7 +251,9 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 void export_PPPMForceComputeGPU()
     {
     class_<PPPMForceComputeGPU, boost::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute>, boost::noncopyable >
-        ("PPPMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList> >())
+        ("PPPMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, 
+         boost::shared_ptr<NeighborList>,
+         boost::shared_ptr<ParticleGroup> >())
         .def("setBlockSize", &PPPMForceComputeGPU::setBlockSize)
         ;
     }

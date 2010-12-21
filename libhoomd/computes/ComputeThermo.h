@@ -44,7 +44,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include <boost/shared_ptr.hpp>
-								       //#include "PPPMForceCompute.h"
+
 #include "PPPMForceCompute.h"
 
 #include "Compute.h"
@@ -91,8 +91,8 @@ class ComputeThermo : public Compute
     public:
         //! Constructs the compute
         ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<ParticleGroup> group,
-            const std::string& suffix = std::string(""));
+		      boost::shared_ptr<ParticleGroup> group,
+		      const std::string& suffix = std::string(""));
         
         //! Compute the temperature
         virtual void compute(unsigned int timestep);

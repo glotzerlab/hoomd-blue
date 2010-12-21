@@ -73,6 +73,7 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighbor list
+    \param group Particle group
     \post Memory is allocated, and forces are zeroed.
 */
 
@@ -92,8 +93,9 @@ GPUArray<Scalar2> PPPMData::o_data;
 GPUArray<Scalar2> PPPMData::i_data;                
 
 PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, 
-                                   boost::shared_ptr<NeighborList> nlist)
-    : ForceCompute(sysdef), m_nlist(nlist)
+                                   boost::shared_ptr<NeighborList> nlist,
+                                   boost::shared_ptr<ParticleGroup> group)
+    : ForceCompute(sysdef), m_nlist(nlist), m_group(group)
     {
     assert(m_pdata);
     assert(m_nlist);
@@ -942,7 +944,9 @@ void PPPMForceCompute::calculate_forces()
 void export_PPPMForceCompute()
     {
     class_<PPPMForceCompute, boost::shared_ptr<PPPMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-        ("PPPMForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList> >())
+        ("PPPMForceCompute", init< boost::shared_ptr<SystemDefinition>, 
+         boost::shared_ptr<NeighborList>,
+         boost::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)
         ;
     }

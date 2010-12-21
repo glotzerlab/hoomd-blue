@@ -69,7 +69,6 @@ class ComputeThermoGPU : public ComputeThermo
         GPUArray<float4> m_scratch;  //!< Scratch space for partial sums
         unsigned int m_num_blocks;   //!< Number of blocks participating in the reduction
         unsigned int m_block_size;   //!< Block size executed
-        int first_run;                //!< Ugly Flag
         //! Does the actual computation
         virtual void computeProperties();
     };

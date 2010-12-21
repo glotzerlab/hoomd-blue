@@ -122,11 +122,15 @@ void assign_charges_to_grid_kernel(gpu_pdata_arrays pdata,
                                    int Nx, 
                                    int Ny, 
                                    int Nz, 
-                                   int order)
+                                   int order,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size)
     {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if(idx < pdata.N)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (group_idx < group_size)
         {
+        unsigned int idx = d_group_members[group_idx];
         //get particle information
         float qi = tex1Dfetch(pdata_charge_tex, idx);
         if(fabs(qi) > 0.0f) {
@@ -279,11 +283,15 @@ void calculate_forces_kernel(gpu_force_data_arrays force_data,
                              int Nx,
                              int Ny,
                              int Nz,
-                             int order)
+                             int order,
+                             unsigned int *d_group_members,
+                             unsigned int group_size)
     {  
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if(idx < pdata.N)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (group_idx < group_size)
         {
+        unsigned int idx = d_group_members[group_idx];
         //get particle information
         float qi = tex1Dfetch(pdata_charge_tex, idx);
         if(fabs(qi) > 0.0f) {
@@ -393,13 +401,15 @@ cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
                                     float3 *GPU_k_vec,
                                     float *GPU_green_hat,
                                     float3 *E_field,
+                                    unsigned int *d_group_members,
+                                    unsigned int group_size,
                                     int block_size)
     {
     
     cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(float));
 
-    // setup the grid to run the kernel with one thread per particle
-    dim3 P_grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
+    // setup the grid to run the kernel with one thread per particle in the group
+    dim3 P_grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 P_threads(block_size, 1, 1);
     
     // setup the grid to run the kernel with one thread per grid point
@@ -420,7 +430,15 @@ cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
 
     // run the kernels
     // assign charges to the grid points, one thread per particles
-    assign_charges_to_grid_kernel <<< P_grid, P_threads >>> (pdata, box, GPU_rho_real_space, Nx, Ny, Nz, order);
+    assign_charges_to_grid_kernel <<< P_grid, P_threads >>> (pdata, 
+                                                             box, 
+                                                             GPU_rho_real_space, 
+                                                             Nx, 
+                                                             Ny, 
+                                                             Nz, 
+                                                             order, 
+                                                             d_group_members,
+                                                             group_size);
     cudaThreadSynchronize();    
 
     // FFT
@@ -449,7 +467,16 @@ cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
     cudaThreadSynchronize();
 
     //calculate forces on particles, one thread per particles
-    calculate_forces_kernel <<< P_grid, P_threads >>>(force_data, pdata, box, E_field, Nx, Ny, Nz, order);
+    calculate_forces_kernel <<< P_grid, P_threads >>>(force_data, 
+                                                      pdata, 
+                                                      box, 
+                                                      E_field, 
+                                                      Nx, 
+                                                      Ny, 
+                                                      Nz, 
+                                                      order,
+                                                      d_group_members,
+                                                      group_size);
 
     return cudaSuccess;
         }
@@ -855,12 +882,15 @@ __global__ void gpu_fix_exclusions_kernel(gpu_force_data_arrays force_data,
                                           const unsigned int *d_n_neigh,
                                           const unsigned int *d_nlist,
                                           const Index2D nli,
-                                          float kappa)
+                                          float kappa,  
+                                          unsigned int *d_group_members,
+                                          unsigned int group_size)
     {
     // start by identifying which particle we are to handle
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < pdata.N) {
-
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
         const float sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
         float4 posi = tex1Dfetch(pdata_pos_tex, idx);
@@ -942,9 +972,11 @@ cudaError_t fix_exclusions(const gpu_force_data_arrays& force_data,
                            const unsigned int *d_exlist,
                            const Index2D nex,
                            float kappa,
+                           unsigned int *d_group_members,
+                           unsigned int group_size,
                            int block_size)
     {
-    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
 
@@ -963,6 +995,8 @@ cudaError_t fix_exclusions(const gpu_force_data_arrays& force_data,
                                                       d_n_ex,
                                                       d_exlist,
                                                       nex,
-                                                      kappa);
+                                                      kappa, 
+                                                      d_group_members,
+                                                      group_size);
     return cudaSuccess;
     }

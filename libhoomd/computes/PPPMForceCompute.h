@@ -48,6 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ForceCompute.h"
 #include "NeighborList.h"
+#include "ParticleGroup.h"
 
 #include <vector>
 #include <cufft.h>
@@ -77,11 +78,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class PPPMForceCompute : public ForceCompute
     {
     public:
-        //! Constructs the compute
-        PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<NeighborList> nlist);
-        
-        //! Destructor
+      //! Constructs the compute
+      PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+		       boost::shared_ptr<NeighborList> nlist,
+		       boost::shared_ptr<ParticleGroup> group);
+       
+      //! Destructor
         ~PPPMForceCompute();
         
         //! Set the parameters
@@ -137,7 +139,8 @@ class PPPMForceCompute : public ForceCompute
         GPUArray<Scalar> m_rho_coeff;            //!< Coefficients for computing the grid based charge density
         GPUArray<Scalar> m_gf_b;                 //!< Used to compute the grid based Green's function
         boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        boost::shared_ptr<NeighborList> m_nlist;  //!< The neighborlist to use for the computation
+        boost::shared_ptr<ParticleGroup> m_group; //!< Group to compute properties for
 
 
         std::string m_log_name;                     //!< Cached log name

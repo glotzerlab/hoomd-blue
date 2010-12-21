@@ -1960,9 +1960,9 @@ class pppm(force._force):
     ## Specify the long-ranged part of the electrostatic calculation
     # \b Example:
     # \code
-    # pppm = pair.pppm()
+    # pppm = pair.pppm(group=charged)
     # \endcode
-    def __init__(self):
+    def __init__(self, group):
         util.print_status_line();
        
         # initialize the base class
@@ -1973,10 +1973,10 @@ class pppm(force._force):
         neighbor_list = _update_global_nlist(0.01);
         neighbor_list.subscribe(lambda: self.log*0.01)
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
 #            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.pppm'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);

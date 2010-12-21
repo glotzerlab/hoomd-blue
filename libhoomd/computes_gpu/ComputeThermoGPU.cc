@@ -80,7 +80,6 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing ComputeThermoGPU");
         }
 
-    first_run = 0;
     m_block_size = 512;
     m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     

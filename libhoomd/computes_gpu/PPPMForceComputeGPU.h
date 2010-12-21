@@ -80,7 +80,8 @@ class PPPMForceComputeGPU : public PPPMForceCompute
     public:
         //! Constructs the compute
         PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<NeighborList> nlist);
+                            boost::shared_ptr<NeighborList> nlist,
+			    boost::shared_ptr<ParticleGroup> group);
         //! Destructor
         ~PPPMForceComputeGPU();
         

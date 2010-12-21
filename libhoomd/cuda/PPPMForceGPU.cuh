@@ -73,6 +73,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                         float3 *GPU_k_vec,
                                         float *GPU_green_hat,
                                         float3 *E_field,
+                                        unsigned int *d_group_members,
+                                        unsigned int group_size,    
                                         int block_size);
 
 float2 gpu_compute_pppm_thermo(int Nx,
@@ -107,6 +109,8 @@ cudaError_t fix_exclusions(const gpu_force_data_arrays& force_data,
                            const unsigned int *d_exlist,
                            const Index2D nex,
                            float m_kappa,
+                           unsigned int *d_group_members,
+                           unsigned int group_size,
                            int block_size);
 #endif
 
