@@ -531,15 +531,34 @@ void SFCPackUpdater::getSortedOrder3D()
     assert(m_particle_bins.size() == m_pdata->getN());
     assert(m_traversal_order.size() == m_grid*m_grid*m_grid);
     
+    ArrayHandle<Scalar4> h_rigid_com(m_sysdef->getRigidData()->getCOM(), access_location::host, access_mode::read);
+    
     // put the particles in the bins
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
     // for each particle
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
+        Scalar x, y, z;
+        if (true /*m_shuffle_bodies || */ /*arrays.body[n] == NO_BODY*/)
+            {
+            // bin them by particle position if they are in no body
+            x = (arrays.x[n]-box.xlo)*scalex;
+            y = (arrays.y[n]-box.ylo)*scaley;
+            z = (arrays.z[n]-box.zlo)*scalez;
+            }
+        else
+            {
+            // or by the center of mass of the body if they are
+            unsigned int b = arrays.body[n];
+            x = (h_rigid_com.data[b].x-box.xlo)*scalex;
+            y = (h_rigid_com.data[b].y-box.ylo)*scaley;
+            z = (h_rigid_com.data[b].z-box.zlo)*scalez;
+            }
+        
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % m_grid;
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % m_grid;
-        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez) % m_grid;
+        unsigned int ib = (unsigned int)(x) % m_grid;
+        unsigned int jb = (unsigned int)(y) % m_grid;
+        unsigned int kb = (unsigned int)(z) % m_grid;
         
         // record its bin
         unsigned int bin = ib*(m_grid*m_grid) + jb * m_grid + kb;
