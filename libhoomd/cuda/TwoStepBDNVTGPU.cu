@@ -57,19 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
 */
 
-//! The texture for reading the pdata vel array
-texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
-//! The texture for reading the net force array
-texture<float4, 1, cudaReadModeElementType> net_force_tex;
-//! The texture for reading the particle mass array
-texture<float, 1, cudaReadModeElementType> pdata_mass_tex;
-//! The texture for raeding particle types
-texture<unsigned int, 1, cudaReadModeElementType> pdata_type_tex;
-//! Texture for reading particle diameters
-texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
-//! Texture for reading particle tags
-texture<unsigned int, 1, cudaReadModeElementType> pdata_tag_tex;
-
 //! Shared memory array for gpu_bdnvt_step_two_kernel()
 extern __shared__ float s_gammas[];
 
@@ -144,10 +131,10 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         
         // ******** first, calculate the additional BD force
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
+        float4 vel = pdata.vel[idx];
         // read in the tag of our particle.
         // (MEM TRANSFER: 4 bytes)
-        unsigned int ptag = tex1Dfetch(pdata_tag_tex, idx);
+        unsigned int ptag = pdata.tag[idx];
         
         // calculate the magintude of the random force
         float gamma;
@@ -155,13 +142,13 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
             {
             // read in the tag of our particle.
             // (MEM TRANSFER: 4 bytes)
-            gamma = tex1Dfetch(pdata_diam_tex, idx);
+            gamma = pdata.diameter[idx];
             }
         else
             {
             // read in the type of our particle. A texture read of only the fourth part of the position float4
             // (where type is stored) is used.
-            unsigned int typ = tex1Dfetch(pdata_type_tex, idx*4 + 3);
+            unsigned int typ = __float_as_int(pdata.pos[idx].w);
             gamma = s_gammas[typ];
             }
         
@@ -181,9 +168,9 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
             bd_force.z = randomz*coeff - gamma*vel.z;
         
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
-        float4 accel = tex1Dfetch(net_force_tex, idx);
+        float4 accel = d_net_force[idx];
         // MEM TRANSFER: 4 bytes   FLOPS: 3
-        float mass = tex1Dfetch(pdata_mass_tex, idx);
+        float mass = pdata.mass[idx];
         float minv = 1.0f / mass;
         accel.x = (accel.x + bd_force.x) * minv;
         accel.y = (accel.y + bd_force.y) * minv;
@@ -234,9 +221,8 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         if (threadIdx.x == 0)
             {
             d_partial_sum_bdenergy[blockIdx.x] = bdtally_sdata[0];
-            } 
+            }
         }
-        
     }
 
 
@@ -312,31 +298,6 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
     dim3 threads(bdnvt_args.block_size, 1, 1);
     dim3 threads1(256, 1, 1);
 
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_type_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_diam_tex, pdata.diameter, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_tag_tex, pdata.tag, sizeof(unsigned int) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
     // run the kernel
     gpu_bdnvt_step_two_kernel<<< grid, threads, sizeof(float)*bdnvt_args.n_types + bdnvt_args.block_size*sizeof(float) >>>
                                                   (pdata,
