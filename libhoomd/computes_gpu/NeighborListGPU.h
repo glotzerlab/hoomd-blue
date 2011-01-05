@@ -67,12 +67,13 @@ class NeighborListGPU : public NeighborList
         NeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
             : NeighborList(sysdef, r_cut, r_buff)
             {
-            GPUArray<unsigned int> flags(1, exec_conf);
+            GPUArray<unsigned int> flags(1, exec_conf, true);
             m_flags.swap(flags);
             
             // default to full mode
             m_storage_mode = full;
             m_block_size_filter = 192;
+            m_checkn = 1;
             }
         
         //! Destructor
@@ -105,6 +106,7 @@ class NeighborListGPU : public NeighborList
     
     private:
         unsigned int m_block_size_filter;   //!< Block size for the filter kernel
+        unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
     };
 
 //! Exports NeighborListGPU to python

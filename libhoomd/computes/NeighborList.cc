@@ -104,7 +104,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
     
     // allocate conditions array
-    GPUArray<unsigned int> conditions(1, exec_conf);
+    GPUArray<unsigned int> conditions(1, exec_conf, true);
     m_conditions.swap(conditions);
     
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)

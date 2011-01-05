@@ -175,7 +175,13 @@ bool NeighborListGPU::distanceCheck()
         // create a temporary copy of r_buff/2 sqaured
         Scalar maxshiftsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));
     
-        gpu_nlist_needs_update_check_new(d_flags.data, d_last_pos.data, pdata.pos, m_pdata->getN(), box, maxshiftsq);
+        gpu_nlist_needs_update_check_new(d_flags.data,
+                                         d_last_pos.data,
+                                         pdata.pos,
+                                         m_pdata->getN(),
+                                         box,
+                                         maxshiftsq,
+                                         m_checkn);
     
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -187,7 +193,9 @@ bool NeighborListGPU::distanceCheck()
 
         {
         ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
-        return h_flags.data[0];
+        bool result = (h_flags.data[0] == m_checkn);
+        m_checkn++;
+        return result;
         }
     }
 
