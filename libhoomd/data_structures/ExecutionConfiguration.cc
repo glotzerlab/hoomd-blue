@@ -246,7 +246,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         throw runtime_error("Error initializing execution configuration");
         }
     
-    cudaSetDeviceFlags(flags);
+    cudaSetDeviceFlags(flags | cudaDeviceMapHost);
     cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
    
     if (gpu_id != -1)

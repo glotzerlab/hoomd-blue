@@ -55,15 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
 */
 
-//! The texture for reading the pdata pos array
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-//! The texture for reading the pdata vel array
-texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
-//! The texture for reading the pdata accel array
-texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
-//! The texture for reading in the pdata image array
-texture<int4, 1, cudaReadModeElementType> pdata_image_tex;
-
 //! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param pdata Particle data to step forward 1/2 step
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
@@ -106,7 +97,7 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
         // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 
         // read the particle's posision (MEM TRANSFER: 16 bytes)
-        float4 pos = tex1Dfetch(pdata_pos_tex, idx);
+        float4 pos = pdata.pos[idx];
         
         float px = pos.x;
         float py = pos.y;
@@ -114,10 +105,10 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
         float pw = pos.w;
         
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
+        float4 vel = pdata.vel[idx];
         float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         if (!zero_force)
-            accel = tex1Dfetch(pdata_accel_tex, idx);
+            accel = pdata.accel[idx];
         
         // update the position (FLOPS: 15)
         float dx = vel.x * deltaT + (1.0f/2.0f) * accel.x * deltaT * deltaT;
@@ -147,7 +138,7 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
         vel.z += (1.0f/2.0f) * accel.z * deltaT;
         
         // read in the particle's image (MEM TRANSFER: 16 bytes)
-        int4 image = tex1Dfetch(pdata_image_tex, idx);
+        int4 image = pdata.image[idx];
         
         // fix the periodic boundary conditions (FLOPS: 15)
         float x_shift = rintf(px * box.Lxinv);
@@ -201,33 +192,11 @@ cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_image_tex, pdata.image, sizeof(int4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
     // run the kernel
     gpu_nve_step_one_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
     
     return cudaSuccess;
     }
-
-//! The texture for reading the net force array
-texture<float4, 1, cudaReadModeElementType> net_force_tex;
-//! The texture for reading the particle mass array
-texture<float, 1, cudaReadModeElementType> pdata_mass_tex;
 
 //! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param pdata Particle data to step forward in time
@@ -263,9 +232,9 @@ void gpu_nve_step_two_kernel(gpu_pdata_arrays pdata,
         float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         if (!zero_force)
             {
-            accel = tex1Dfetch(net_force_tex, idx);
+            accel = d_net_force[idx];
             // MEM TRANSFER: 4 bytes   FLOPS: 3
-            float mass = tex1Dfetch(pdata_mass_tex, idx);
+            float mass = pdata.mass[idx];
             accel.x /= mass;
             accel.y /= mass;
             accel.z /= mass;
@@ -273,7 +242,7 @@ void gpu_nve_step_two_kernel(gpu_pdata_arrays pdata,
         
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
+        float4 vel = pdata.vel[idx];
         
         // update the velocity (FLOPS: 6)
         vel.x += (1.0f/2.0f) * accel.x * deltaT;
@@ -325,19 +294,6 @@ cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
     // run the kernel
     gpu_nve_step_two_kernel<<< grid, threads >>>(pdata,
                                                  d_group_members,

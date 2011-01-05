@@ -58,17 +58,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param N Number of particles
     \param box Box dimensions
     \param maxshiftsq The maximum drsq a particle can have before an update is needed
+    \param checkn
     
     gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
     compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
-    is set to 1. Consequently, d_result must be set to 0 prior to launching this kernel.
+    is set to \a ncheck.
 */
 __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const float4 *d_last_pos,
                                                         const float4 *d_pos,
                                                         const unsigned int N,
                                                         const gpu_boxsize box,
-                                                        const float maxshiftsq)
+                                                        const float maxshiftsq,
+                                                        const unsigned int checkn)
     {
     // each thread will compare vs it's old position to see if the list needs updating
     // if that is true, write a 1 to nlist_needs_updating
@@ -91,7 +93,7 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
         
         if (drsq >= maxshiftsq)
             {
-            *d_result = 1;
+            *d_result = checkn;
             }
         }
     }
@@ -101,11 +103,9 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const float4 *d_pos,
                                              const unsigned int N,
                                              const gpu_boxsize& box,
-                                             const float maxshiftsq)
+                                             const float maxshiftsq,
+                                             const unsigned int checkn)
     {
-    int zero = 0;
-    cudaMemcpy(d_result, &zero, sizeof(unsigned int), cudaMemcpyHostToDevice);
-    
     unsigned int block_size = 128;
     int n_blocks = (int)ceil(float(N)/(float)block_size);
     gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size>>>(d_result,
@@ -113,7 +113,8 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                                                       d_pos,
                                                                       N,
                                                                       box,
-                                                                      maxshiftsq);
+                                                                      maxshiftsq,
+                                                                      checkn);
     
     return cudaSuccess;
     }
