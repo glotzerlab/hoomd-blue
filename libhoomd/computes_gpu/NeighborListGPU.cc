@@ -189,14 +189,16 @@ bool NeighborListGPU::distanceCheck()
         m_pdata->release();
         }
 
-    if (m_prof) m_prof->pop(exec_conf);
-
+    bool result;
+        
         {
         ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
-        bool result = (h_flags.data[0] == m_checkn);
+        result = (h_flags.data[0] == m_checkn);
         m_checkn++;
-        return result;
         }
+
+    if (m_prof) m_prof->pop(exec_conf);
+    return result;
     }
 
 /*! Calls gpu_nlsit_filter() to filter the neighbor list on the GPU
