@@ -77,7 +77,7 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
                                          gpu_pdata_arrays pdata,
                                          gpu_boxsize box,
                                          gpu_bondtable_array blist,
-                                         int *d_checkr)
+                                         unsigned int *d_checkr)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -200,10 +200,9 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param btable List of bonds stored on the GPU
     \param d_params K, r_0, lj1, and lj2 params packed as float4 variables
-    \param d_checkr Flag allocated on the device for use in checking for bonds that are too long
     \param n_bond_types Number of bond types in d_params
     \param block_size Block size to use when performing calculations
-    \param exceedsR0 output parameter set to true if any bond exceeds the length of r_0
+    \param d_flags flags on the device - a 1 will be written if the r > R0
 
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
@@ -216,10 +215,9 @@ cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data
                                          const gpu_boxsize &box,
                                          const gpu_bondtable_array &btable,
                                          float4 *d_params,
-                                         int *d_checkr,
                                          unsigned int n_bond_types,
                                          int block_size,
-                                         unsigned int& exceedsR0)
+                                         unsigned int *d_flags)
     {
     assert(d_params);
     // check that block_size is valid
@@ -242,19 +240,9 @@ cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data
     if (error != cudaSuccess)
         return error;
         
-    // start by zeroing check value on the device
-    exceedsR0 = 0;
-    error = cudaMemcpy(d_checkr, &exceedsR0, sizeof(int), cudaMemcpyHostToDevice);
-    if (error != cudaSuccess)
-        return error;
-        
     // run the kernel
-    gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(force_data, pdata, box, btable, d_checkr);
+    gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(force_data, pdata, box, btable, d_flags);
     
-    error = cudaMemcpy(&exceedsR0, d_checkr, sizeof(int), cudaMemcpyDeviceToHost);
-    if (error != cudaSuccess)
-        return error;
-        
     return cudaSuccess;
     }
 
