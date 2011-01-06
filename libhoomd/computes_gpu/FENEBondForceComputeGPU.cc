@@ -86,10 +86,9 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
     m_host_params = new float4[m_bond_data->getNBondTypes()];
     memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
     
-    // allocate device memory for the radius error check parameters
-    cudaMalloc(&m_checkr, sizeof(int));
-    cudaMemset(m_checkr, 0, sizeof(int));
-    CHECK_CUDA_ERROR();
+    // allocate flags storage on the GPU
+    GPUArray<unsigned int> flags(1, exec_conf);
+    m_flags.swap(flags);
     }
 
 FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
@@ -98,10 +97,6 @@ FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
     cudaFree(m_gpu_params);
     m_gpu_params = NULL;
         
-    cudaFree(m_checkr);
-    m_checkr = NULL;
-    CHECK_CUDA_ERROR();
-    
     // free memory on the CPU
     delete[] m_host_params;
     m_host_params = NULL;
@@ -146,27 +141,33 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
-    // hackish method for tracking exceedsR0 over multiple GPUs
-    unsigned int exceedsR0;
-        
-    // run the kernel
-    exceedsR0 = 0;
-    gpu_compute_fene_bond_forces(m_gpu_forces.d_data,
-                                 pdata,
-                                 box,
-                                 gpu_bondtable,
-                                 m_gpu_params,
-                                 m_checkr,
-                                 m_bond_data->getNBondTypes(),
-                                 m_block_size,
-                                 exceedsR0);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    
-    if (exceedsR0)
         {
-        cerr << endl << "***Error! FENE bond length exceeds maximum permitted" << endl << endl;
-        throw std::runtime_error("Error in fene bond calculation");
+        // access the flags array for overwriting
+        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
+        
+        // run the kernel
+        gpu_compute_fene_bond_forces(m_gpu_forces.d_data,
+                                     pdata,
+                                     box,
+                                     gpu_bondtable,
+                                     m_gpu_params,
+                                     m_bond_data->getNBondTypes(),
+                                     m_block_size,
+                                     d_flags.data);
+        }
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        {
+        CHECK_CUDA_ERROR();
+        
+        // check the flags for any errors
+        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
+
+        if (h_flags.data[0])
+            {
+            cerr << endl << "***Error! FENE bond length exceeds maximum permitted" << endl << endl;
+            throw std::runtime_error("Error in fene bond calculation");
+            }
         }
         
     // the force data is now only up to date on the gpu
