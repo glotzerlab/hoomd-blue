@@ -78,19 +78,18 @@ _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.lj': 64, 'dihedr
 # no longer independently tuning 1.0 devices, they are very old
 _default_block_size_db['1.0'] = _default_block_size_db['1.1'];
 
-_default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihedral.harmonic': 256, 'angle.cgcmm': 320,
-                                 'pair.cgcmm': 416, 'pair.table': 96, 'pair.slj': 352, 'pair.morse': 352, 'pair.dpd': 224,
-                                 'pair.dpd_conservative': 352,
-                                 'bond.harmonic': 352, 'bond.fene': 224, 'pair.yukawa': 352, 'angle.harmonic': 192,
-                                 'pair.gauss': 352, 'nlist': 416, 'nlist.filter': 160}
+_default_block_size_db['1.3'] = {'improper.harmonic': 320, 'pair.lj': 352, 'dihedral.harmonic': 256, 'pair.dpd': 224, 'angle.cgcmm': 64,
+                                 'nlist.filter': 160, 'pair.dpd_conservative': 352, 'pair.table': 96, 'pair.cgcmm': 352, 'pair.slj': 352,
+                                 'pair.morse': 352, 'nlist': 416, 'bond.harmonic': 416, 'pair.yukawa': 352, 'bond.fene': 96,
+                                 'angle.harmonic': 192, 'pair.gauss': 352}
+
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
 
-_default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihedral.harmonic': 64, 'angle.cgcmm': 96,
-                                 'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'pair.dpd': 224, 'pair.dpd_conservative': 320, 
-                                 'nlist': 96,
-                                 'bond.harmonic': 416, 'pair.gauss': 320, 'bond.fene': 160, 'angle.harmonic': 96,
-                                 'pair.yukawa': 256, 'pair.morse': 160, 'nlist.filter': 224}
+_default_block_size_db['2.0'] = {'improper.harmonic': 64, 'pair.lj': 256, 'dihedral.harmonic': 64, 'pair.dpd': 128, 'angle.cgcmm': 96,
+                                 'nlist.filter': 256, 'pair.dpd_conservative': 192, 'pair.table': 128, 'pair.cgcmm': 128, 'pair.slj': 128,
+                                 'pair.morse': 256, 'nlist': 1024, 'bond.harmonic': 416, 'pair.yukawa': 192, 'bond.fene': 96,
+                                 'angle.harmonic': 128, 'pair.gauss': 256}
 
 _default_block_size_db['2.1'] = {'improper.harmonic': 64, 'pair.lj': 256, 'dihedral.harmonic': 128, 'pair.dpd': 192, 'angle.cgcmm': 96,
                                  'nlist.filter': 256, 'pair.dpd_conservative': 160, 'pair.table': 128, 'pair.cgcmm': 160, 'pair.slj': 128,
