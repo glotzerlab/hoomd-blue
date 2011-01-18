@@ -196,6 +196,9 @@ class NeighborList : public Compute
         
         //! Clear the count of updates the neighborlist has performed
         virtual void resetStats();
+
+        //! Gets the shortest rebuild period this nlist has experienced since a call to resetStats
+        unsigned int getSmallestRebuild();
         
         // @}
         //! \name Get data
@@ -338,6 +341,7 @@ class NeighborList : public Compute
         
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
+        vector<unsigned int> m_update_periods;    //!< Steps between updates
         
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
