@@ -104,7 +104,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
     
     // allocate conditions array
-    GPUArray<unsigned int> conditions(1, exec_conf, true);
+    GPUArray<unsigned int> conditions(1, exec_conf);
     m_conditions.swap(conditions);
     
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
@@ -122,6 +122,11 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     allocateNlist();
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
+
+    // allocate m_update_periods tracking info
+    m_update_periods.resize(100);
+    for (unsigned int i = 0; i < m_update_periods.size(); i++)
+        m_update_periods[i] = 0;
     }
 
 NeighborList::~NeighborList()
@@ -735,6 +740,15 @@ bool NeighborList::needsUpdating(unsigned int timestep)
         
         if (result)
             {
+            // record update histogram - but only if the period is positive
+            if (timestep > m_last_updated_tstep)
+                {
+                unsigned int period = timestep - m_last_updated_tstep;
+                if (period >= m_update_periods.size())
+                    period = m_update_periods.size()-1;
+                m_update_periods[period]++;
+                }
+
             m_last_updated_tstep = timestep;
             m_updates += 1;
             }
@@ -782,11 +796,29 @@ void NeighborList::printStats()
     n_neigh_avg /= Scalar(m_pdata->getN());
     
     cout << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
+    /*cout << "update period counts: ";
+    for (unsigned int i = 0; i < m_update_periods.size(); i++)
+        cout << m_update_periods[i] << " ";
+    cout << endl;*/
+   
+    cout << "shortest rebuild period: " << getSmallestRebuild() << endl;
     }
 
 void NeighborList::resetStats()
     {
     m_updates = m_forced_updates = m_dangerous_updates = 0;
+    for (unsigned int i = 0; i < m_update_periods.size(); i++)
+        m_update_periods[i] = 0;
+    }
+    
+unsigned int NeighborList::getSmallestRebuild()
+    {
+    for (unsigned int i = 0; i < m_update_periods.size(); i++)
+        {
+        if (m_update_periods[i] != 0)
+            return i;
+        }
+    return m_update_periods.size();
     }
 
 /*! Loops through the particles and finds all of the particles \c j who's distance is less than
@@ -1135,6 +1167,7 @@ void export_NeighborList()
                      .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)
+                     .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
                      ;
                      
     enum_<NeighborList::storageMode>("storageMode")

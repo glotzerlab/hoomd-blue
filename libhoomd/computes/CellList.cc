@@ -66,7 +66,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_params_changed = true;
     m_particles_sorted = false;
     m_box_changed = false;
-    GPUArray<unsigned int> conditions(3, exec_conf, true);
+    GPUArray<unsigned int> conditions(3, exec_conf);
     m_conditions.swap(conditions);
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));

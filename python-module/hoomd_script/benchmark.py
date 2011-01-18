@@ -38,46 +38,50 @@
 #OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 #ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-# $URL$
-# Maintainer: joaander
+# $Id:$
+# $URL:$
+# Maintainer: joaander / All Developers are free to add commands for new features
 
-import sys;
-import traceback;
-import os.path
+import globals
+import init
+import hoomd_script
+import hoomd
 
-## \internal
-# \package hoomd_script.util
-# \brief Internal utility functions used by hoomd_script
+try:
+    import numpy;
+except ImportError:
+    numpy = None;
 
-## \internal
-# \brief Internal flag tracking if 
-_disable_status_lines = False;
+##
+# \package hoomd_script.benchmark
+# \brief Commands for benchmarking the performance of HOOMD
 
-## Prints a status line tracking the execution of the current hoomd script
-def print_status_line():
-    if _disable_status_lines:
-        return;
+
+## Perform a series of short runs to benchmark overall simulation performance
+# \param warmup Number of time steps to run() to warm up the benchmark
+# \param repeat Number of times to repeat the benchmark \a steps
+# \param steps Number of time steps to run() at each benchmark point
+#
+# series_run() executes \a warmup time steps. After that, it simply
+# calls run(steps), \a repeat times and returns a list containing the average TPS for each of those runs.
+#
+# If numpy is available, a brief summary of the benchmark results will be printed to the screen 
+def series(warmup=100000, repeat=20, steps=10000):
+    # check if initialization has occurred
+    if not init.is_initialized():
+        print >> sys.stderr, "\n***Error! Cannot tune r_buff before initialization\n";
+
+    tps_list = [];
     
-    # get the traceback info first
-    stack = traceback.extract_stack();
-    if len(stack) < 3:
-        print "hoomd_script executing unknown command";
-    file_name, line, module, code = stack[-3];
+    hoomd_script.run(warmup);
+    for i in xrange(0,repeat):
+        hoomd_script.run(steps);
+        tps_list.append(globals.system.getLastTPS());
     
-    # if we are in interactive mode, there is no need to print anything: the
-    # interpreter loop does it for us. We can make that check by testing if
-    # sys.ps1 is defined (this is not a hack, the python documentation states 
-    # that ps1 is _only_ defined in interactive mode
-    if 'ps1' in sys.__dict__:
-        return
-
-    # piped input from stdin doesn't provide a code line, handle the situation 
-    # gracefully
-    if not code:
-        code = "<unknown code>";
+    if numpy is not None:
+        print
+        print "**Notice: Series average TPS: %4.2f" % numpy.average(tps_list);
+        print "          Series median TPS : %4.2f" % numpy.median(tps_list);
+        print "          Series TPS std dev: %4.2f" % numpy.std(tps_list);
     
-    # build and print the message line
-    message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  " + code;
-    print message;
-
+    return tps_list;

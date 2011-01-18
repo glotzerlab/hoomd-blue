@@ -223,7 +223,11 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
             cout << endl << "***Warning! --minimize-cpu-usage will have no effect because this hoomd was built "
                  << "against a version of CUDA prior to 2.2" << endl << endl;
                  
-        flags = cudaDeviceBlockingSync;
+        flags |= cudaDeviceBlockingSync;
+        }
+    else
+        {
+        flags |= cudaDeviceScheduleSpin;
         }
         
     if (gpu_id < -1)

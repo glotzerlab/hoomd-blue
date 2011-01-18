@@ -65,7 +65,7 @@ import sys;
 # specify an improper force (i.e. improper.harmonic), are forces actually calculated between the 
 # listed particles.
 
-## Harmonic %improper forces
+## Harmonic %improper force
 #
 # The command improper.harmonic specifies a %harmonic improper potential energy between every quadruplet of particles
 # in the simulation. 

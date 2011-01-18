@@ -57,6 +57,7 @@ import util;
 # \brief Internal python variable 
 __all__ = [ "analyze", 
             "bond", 
+            "benchmark",
             "angle", 
             "dihedral", 
             "improper", 
