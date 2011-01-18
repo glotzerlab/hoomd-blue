@@ -44,6 +44,7 @@
 
 import sys;
 import traceback;
+import os.path
 
 ## \internal
 # \package hoomd_script.util
@@ -77,6 +78,6 @@ def print_status_line():
         code = "<unknown code>";
     
     # build and print the message line
-    message = file_name + ":" + str(line).zfill(3) + "  |  " + code;
+    message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  " + code;
     print message;
 
