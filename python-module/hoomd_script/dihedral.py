@@ -62,7 +62,7 @@ import sys;
 # specify an dihedral force (i.e. dihedral.harmonic), are forces actually calculated between the 
 # listed particles.
 
-## Harmonic %dihedral forces
+## Harmonic %dihedral force
 #
 # The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every defined 
 # quadruplet of particles in the simulation. 

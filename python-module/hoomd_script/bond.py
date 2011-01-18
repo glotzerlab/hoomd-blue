@@ -62,7 +62,7 @@ import sys;
 # specify a bond force (i.e. bond.harmonic), are forces actually calculated between the 
 # listed particles.
 
-## Harmonic %bond forces
+## Harmonic %bond force
 #
 # The command bond.harmonic specifies a %harmonic potential energy between every bonded %pair of particles
 # in the simulation. 
@@ -153,7 +153,7 @@ class harmonic(force._force):
 
 
 
-## FENE %bond forces
+## FENE %bond force
 #
 # The command bond.fene specifies a %fene potential energy between every bonded %pair of particles
 # in the simulation. 

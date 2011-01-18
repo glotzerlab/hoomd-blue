@@ -52,7 +52,12 @@ try:
 except ImportError:
     numpy = None;
 
-## Make a medium length runs to benchmark overall simulation performance
+##
+# \package hoomd_script.benchmark
+# \brief Commands for benchmarking the performance of HOOMD
+
+
+## Perform a series of short runs to benchmark overall simulation performance
 # \param warmup Number of time steps to run() to warm up the benchmark
 # \param repeat Number of times to repeat the benchmark \a steps
 # \param steps Number of time steps to run() at each benchmark point
