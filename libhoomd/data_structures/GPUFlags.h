@@ -107,11 +107,13 @@ template<class T> class GPUFlags
         //! Reset the flags on the host
         inline void resetFlags(const T flags);
 
+#ifdef ENABLE_CUDA
         //! Get the flags on the device
         T* getDeviceFlags()
             {
             return d_data;
             }
+#endif
     
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
@@ -334,6 +336,7 @@ template<class T> void GPUFlags<T>::memclear()
 */
 template<class T> const T GPUFlags<T>::readFlags()
     {
+#ifdef ENABLE_CUDA
     if (m_mapped)
         {
         // synch to wait for kernels
@@ -344,7 +347,8 @@ template<class T> const T GPUFlags<T>::readFlags()
         // memcpy the results to the host
         cudaMemcpy(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost);
         }
-    
+#endif    
+
     // return value of flags
     return *h_data;
     }
@@ -358,8 +362,10 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
     {
     if (m_mapped)
         {
+#ifdef ENABLE_CUDA
         // synch to wait for kernels
         cudaThreadSynchronize();
+#endif
         // set the flags
         *h_data = flags;
         }
@@ -367,8 +373,10 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         {
         // set the flags
         *h_data = flags;
+#ifdef ENABLE_CUDA
         // copy to the device
         cudaMemcpy(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice);
+#endif
         }
     }
 
