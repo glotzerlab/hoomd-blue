@@ -603,7 +603,24 @@ class nlist:
         
         # run the benchmark
         return self.cpp_nlist.benchmark(int(n))
-            
+    
+    ## Query the maximum possible check_period
+    # query_update_period examines the counts of nlist rebuilds during the previous run() command.
+    # It returns \c s-1, where s is the smallest update period experienced during that time.
+    # Use it after a medium-length warm up run with check_period=1 to determine what check_period to set
+    # for production runs. 
+    #
+    # \note If the previous run() was short, insufficient sampling may cause the queried update period
+    # to be large enough to result in dangerous builds during longer runs. Unless you use a really long
+    # warm up run, subtract an additional 1 from this when you set check_period for additional safety.
+    #
+    def query_update_period(self):
+        if self.cpp_nlist is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error setting neighbor list parameters');
+        
+        return self.cpp_nlist.getSmallestRebuild()-1;
+
 ## \internal
 # \brief Creates the global neighbor list
 # \details

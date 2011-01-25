@@ -44,6 +44,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "NeighborList.h"
+#include "GPUFlags.h"
 
 /*! \file NeighborListGPU.h
     \brief Declares the NeighborListGPU class
@@ -67,12 +68,14 @@ class NeighborListGPU : public NeighborList
         NeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
             : NeighborList(sysdef, r_cut, r_buff)
             {
-            GPUArray<unsigned int> flags(1, exec_conf);
+            GPUFlags<unsigned int> flags(exec_conf);
             m_flags.swap(flags);
+            m_flags.resetFlags(0);
             
             // default to full mode
             m_storage_mode = full;
             m_block_size_filter = 192;
+            m_checkn = 1;
             }
         
         //! Destructor
@@ -89,7 +92,7 @@ class NeighborListGPU : public NeighborList
         //! Benchmark the filter kernel
         double benchmarkFilter(unsigned int num_iters);
     protected:
-        GPUArray<unsigned int> m_flags;     //!< Storage for device flags on the GPU
+        GPUFlags<unsigned int> m_flags;     //!< Storage for device flags on the GPU
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
@@ -105,6 +108,7 @@ class NeighborListGPU : public NeighborList
     
     private:
         unsigned int m_block_size_filter;   //!< Block size for the filter kernel
+        unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
     };
 
 //! Exports NeighborListGPU to python

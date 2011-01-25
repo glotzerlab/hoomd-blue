@@ -112,9 +112,9 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     // check that the simulation box is big enough
     const BoxDim& box = m_pdata->getBox();
     
-    if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff) * 2.0 ||
-        (box.yhi - box.ylo) <= (m_r_cut+m_r_buff) * 2.0 ||
-        (box.zhi - box.zlo) <= (m_r_cut+m_r_buff) * 2.0)
+    if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
+        (box.yhi - box.ylo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
+        (box.zhi - box.zlo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0)
         {
         cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves."
              << endl << endl;
@@ -165,30 +165,33 @@ bool NeighborListGPU::distanceCheck()
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(exec_conf, "dist-check");
     
-        {
-        // access data
-        gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
-        gpu_boxsize box = m_pdata->getBoxGPU();
-        ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
+    // access data
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_boxsize box = m_pdata->getBoxGPU();
+    ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::read);
     
-        // create a temporary copy of r_buff/2 sqaured
-        Scalar maxshiftsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));
+    // create a temporary copy of r_buff/2 sqaured
+    Scalar maxshiftsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));
     
-        gpu_nlist_needs_update_check_new(d_flags.data, d_last_pos.data, pdata.pos, m_pdata->getN(), box, maxshiftsq);
+    gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
+                                     d_last_pos.data,
+                                     pdata.pos,
+                                     m_pdata->getN(),
+                                     box,
+                                     maxshiftsq,
+                                     m_checkn);
     
-        if (exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
-        m_pdata->release();
-        }
+    m_pdata->release();
+    
+    bool result;
+    result = (m_flags.readFlags() == m_checkn);
+    m_checkn++;
 
     if (m_prof) m_prof->pop(exec_conf);
-
-        {
-        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
-        return h_flags.data[0];
-        }
+    return result;
     }
 
 /*! Calls gpu_nlsit_filter() to filter the neighbor list on the GPU

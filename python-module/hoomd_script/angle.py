@@ -62,7 +62,7 @@ import sys;
 # specify an angle force (i.e. angle.harmonic), are forces actually calculated between the 
 # listed particles.
 
-## Harmonic %angle forces
+## Harmonic %angle force
 #
 # The command angle.harmonic specifies a %harmonic potential energy between every triplet of particles
 # with an angle specified between them.
@@ -149,7 +149,7 @@ class harmonic(force._force):
                 print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in angle.harmonic\n";
                 raise RuntimeError("Error updating coefficients");
 
-## CGCMM %angle forces
+## CGCMM %angle force
 #
 # The command angle.cgcmm defines a regular %harmonic potential energy between every defined triplet
 # of particles in the simulation, but in addition in adds the repulsive part of a CGCMM pair potential

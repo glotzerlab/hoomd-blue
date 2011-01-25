@@ -104,7 +104,7 @@ struct ExecutionConfiguration : boost::noncopyable
     //! Returns true if CUDA error checking is enabled
     bool isCUDAErrorCheckingEnabled() const
         {
-        #ifdef NDEBUG
+        #ifndef NDEBUG
         return true;
         #else
         return m_cuda_error_checking;

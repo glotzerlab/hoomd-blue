@@ -265,15 +265,19 @@ Now run
 to test your build
 
 <b>Step 3: Setup your PATH</b>
-\code
- open ~/.bash_profile
-\endcode
-and add the following line to the end
+
+Open \c ~/.bash_profile and add the following line to the end
 \code
  export PATH=$PATH:${HOME}/hoomd-install/bin
 \endcode
 assuming that you set CMAKE_INSTALL_PREFIX to ~/hoomd-install above. If you prefer to install hoomd to a different
 location, simply set CMAKE_INSTALL_PREFIX to the desired directory in the cmake command in step 2.
+
+Either open a new terminal or
+\code
+ source ~/.bash_profile
+\endcode
+for the path setting to take effect.
 
 <hr>
 */
