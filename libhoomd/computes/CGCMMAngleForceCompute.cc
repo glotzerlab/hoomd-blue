@@ -85,12 +85,12 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
         }
         
     // allocate the parameters
-    m_K = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes());
-    m_t_0 = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes());
-    m_eps = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes());
-    m_sigma = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes());
-    m_rcut = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes());
-    m_cg_type = GPUArray<unsigned int>(m_CGCMMAngle_data->getNAngleTypes());
+    m_K = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_t_0 = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_eps = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_sigma = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_rcut = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_cg_type = GPUArray<unsigned int>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
     
     // zero parameters
     memset(m_K, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());

@@ -83,11 +83,11 @@ FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<SystemDefinition> s
         }
         
     // allocate the parameters
-    m_K = GPUArray<Scalar>(m_bond_data->getNBondTypes());
-    m_r_0 = GPUArray<Scalar>(m_bond_data->getNBondTypes());
-    m_lj1 = GPUArray<Scalar>(m_bond_data->getNBondTypes());
-    m_lj2 = GPUArray<Scalar>(m_bond_data->getNBondTypes());
-    m_epsilon = GPUArray<Scalar>(m_bond_data->getNBondTypes());
+    m_K = GPUArray<Scalar>(m_bond_data->getNBondTypes(),exec_conf);
+    m_r_0 = GPUArray<Scalar>(m_bond_data->getNBondTypes(),exec_conf);
+    m_lj1 = GPUArray<Scalar>(m_bond_data->getNBondTypes(),exec_conf);
+    m_lj2 = GPUArray<Scalar>(m_bond_data->getNBondTypes(),exec_conf);
+    m_epsilon = GPUArray<Scalar>(m_bond_data->getNBondTypes(),exec_conf);
     
     
     // initialize parameters

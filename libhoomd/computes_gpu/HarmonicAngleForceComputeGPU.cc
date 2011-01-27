@@ -77,7 +77,7 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
     cudaMemset(m_gpu_params, 0, m_angle_data->getNAngleTypes()*sizeof(float2));
     CHECK_CUDA_ERROR();
         
-    m_host_params = GPUArray<float2>(m_angle_data->getNAngleTypes());
+    m_host_params = GPUArray<float2>(m_angle_data->getNAngleTypes(),exec_conf);
     memset(m_host_params, 0, m_angle_data->getNAngleTypes()*sizeof(float2));
     }
 

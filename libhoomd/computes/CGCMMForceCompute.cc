@@ -84,10 +84,10 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     assert(m_ntypes > 0);
     
     // allocate storage for lj12, lj9, lj6, and lj4 parameters
-    m_lj12 = GPUArray<Scalar>(m_ntypes*m_ntypes);
-    m_lj9 = GPUArray<Scalar>(m_ntypes*m_ntypes);
-    m_lj6 = GPUArray<Scalar>(m_ntypes*m_ntypes);
-    m_lj4 = GPUArray<Scalar>(m_ntypes*m_ntypes);
+    m_lj12 = GPUArray<Scalar>(m_ntypes*m_ntypes,exec_conf);
+    m_lj9 = GPUArray<Scalar>(m_ntypes*m_ntypes,exec_conf);
+    m_lj6 = GPUArray<Scalar>(m_ntypes*m_ntypes,exec_conf);
+    m_lj4 = GPUArray<Scalar>(m_ntypes*m_ntypes,exec_conf);
     
     // sanity check
     assert(m_lj12 != NULL && m_lj9 != NULL && m_lj6 != NULL && m_lj4 != NULL);
