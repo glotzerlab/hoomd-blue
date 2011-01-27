@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
+// Maintainer: joaander, grva, baschult
 
 /*! \file ForceCompute.cc
     \brief Defines the ForceCompute class
@@ -65,159 +65,9 @@ using namespace boost;
 
 /*! \post \c fx, \c fy, \c fz, \c pe, and \c virial are all set to NULL
 */
-ForceDataArrays::ForceDataArrays() : fx(NULL), fy(NULL), fz(NULL), pe(NULL), virial(NULL)
+ForceDataArrays::ForceDataArrays()
     {
     }
-
-#ifdef ENABLE_CUDA
-/*! \post \a d_data.force, \a d_data.virial and \a h_staging are all set to NULL
-    \post \a m_num_local and \a m_local_start are set to 0
-*/
-ForceDataArraysGPU::ForceDataArraysGPU()
-    {
-    // zero pointers
-    d_data.force = NULL;
-    d_data.virial = NULL;
-    h_staging = NULL;
-    // zero flags
-    m_num = 0;
-    }
-
-/*! \param num Number of particles in the system
-
-    \pre allocate() has not previously been called
-    \post Memory is allocated on the GPU for the force data
-*/
-cudaError_t ForceDataArraysGPU::allocate(unsigned int num)
-    {
-    // sanity checks
-    assert(h_staging == NULL);
-    
-    // allocate GPU data and check for errors
-    cudaError_t error = d_data.allocate(num);
-    if (error != cudaSuccess)
-        return error;
-        
-    // allocate host staging memory and check for errors
-    error = cudaMallocHost((void **)((void *)&h_staging), num*sizeof(float4));
-    if (error != cudaSuccess)
-        return error;
-        
-    // fill out variables
-    m_num = num;
-    
-    // all done, return success
-    return cudaSuccess;
-    }
-
-/*! \pre allocate() has previously been called
-    \post All allocated memory is freed
-    \note deallocate() \b must be called on the same GPU as allocate()
-*/
-cudaError_t ForceDataArraysGPU::deallocate()
-    {
-    // sanity checks
-    assert(h_staging != NULL);
-    
-    // free the memory on the GPU and check for errors
-    cudaError_t error = d_data.deallocate();
-    if (error != cudaSuccess)
-        return error;
-        
-    // free the staging memory and check for errors
-    error = cudaFreeHost((void*)h_staging);
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
-    return cudaSuccess;
-    }
-
-/*! \pre All data has been allocated and initialized
-    \post Data from \a h_data is copied to the GPU data in \a d_data
-    \param fx source of fx
-    \param fy source of fy
-    \param fz source of fz
-    \param pe source of pe
-    \param virial source of virial
-*/
-cudaError_t ForceDataArraysGPU::hostToDeviceCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial)
-    {
-    // sanity checks
-    assert(fx != NULL);
-    assert(fy != NULL);
-    assert(fz != NULL);
-    assert(pe != NULL);
-    assert(virial != NULL);
-    assert(d_data.force != NULL);
-    assert(d_data.virial != NULL);
-    assert(m_num != 0);
-    
-    // start by filling out the staging array with interleaved forces
-    for (unsigned int i = 0; i < m_num; i++)
-        {
-        h_staging[i] = make_float4(fx[i], fy[i], fz[i], pe[i]);
-        }
-        
-    // copy it to the device and check for errors
-    cudaError_t error = cudaMemcpy(d_data.force, h_staging, sizeof(float4)*m_num, cudaMemcpyHostToDevice);
-    if (error != cudaSuccess)
-        return error;
-        
-    // copy virial to the device and check for errors
-    error = cudaMemcpy(d_data.virial, virial, sizeof(float)*m_num, cudaMemcpyHostToDevice);
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
-    return cudaSuccess;
-    }
-
-/*! \pre All data has been allocated and initialized
-    \post Data from the GPU \a d_data is copied to the host in \a h_data
-    \param fx desitnation for the fx
-    \param fy desitnation for the fy
-    \param fz desitnation for the fz
-    \param pe desitnation for the pe
-    \param virial desitnation for the virial
-*/
-cudaError_t ForceDataArraysGPU::deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial)
-    {
-    // sanity checks
-    assert(fx != NULL);
-    assert(fy != NULL);
-    assert(fz != NULL);
-    assert(pe != NULL);
-    assert(virial != NULL);
-    assert(d_data.force != NULL);
-    assert(d_data.virial != NULL);
-    assert(m_num != 0);
-    
-    // copy from the device to the staging area
-    cudaError_t error = cudaMemcpy(h_staging, d_data.force, sizeof(float4)*m_num, cudaMemcpyDeviceToHost);
-    if (error != cudaSuccess)
-        return error;
-        
-    // start by filling out the staging array with interleaved forces
-    for (unsigned int i = 0; i < m_num; i++)
-        {
-        float4 f = h_staging[i];
-        fx[i] = f.x;
-        fy[i] = f.y;
-        fz[i] = f.z;
-        pe[i] = f.w;
-        }
-        
-    // copy virial to the device and check for errors
-    error = cudaMemcpy(virial, d_data.virial, sizeof(float)*m_num, cudaMemcpyDeviceToHost);
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
-    return cudaSuccess;
-    }
-
-#endif
 
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
@@ -232,9 +82,18 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     
     // allocate data on the host
     unsigned int num_particles = m_pdata->getN();
+<<<<<<< .mine
+		GPUArray<Scalar4> forces(num_particles,exec_conf);
+		GPUArray<Scalar>  virial(num_particles,exec_conf);
+		m_force.swap(force);
+		m_virial.swap(virial);
+
+		m_fdata_partial = NULL;
+=======
     m_arrays.f = m_f = GPUArray<Scalar4>(num_particles,exec_conf);
     m_arrays.virial = m_virial = GPUArray<Scalar>(num_particles,exec_conf);
     m_fdata_partial = NULL;
+>>>>>>> .r3651
     m_virial_partial = NULL;
     
 #ifdef ENABLE_CUDA
@@ -327,46 +186,7 @@ Scalar ForceCompute::calcEnergySum()
  */
 const ForceDataArrays& ForceCompute::acquire()
     {
-#ifdef ENABLE_CUDA
-    
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is solely on the cpu, life is easy, return the data arrays
-            // and stay in the same state
-            return m_arrays;
-            break;
-        case cpugpu:
-            // if the data is up to date on both the cpu and gpu, life is easy, return
-            // the data arrays and stay in the same state
-            return m_arrays;
-            break;
-        case gpu:
-            // if the data resides on the gpu, it needs to be copied back to the cpu
-            // this changes to the cpugpu state since the data is now fully up to date on
-            // both
-            deviceToHostCopy();
-            m_data_location = cpugpu;
-            return m_arrays;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_arrays;
-            break;
-        }
-        
-    // the apple compiler thinks we could get to here, make it happy
-    // anything other than the above is an undefined state!
-    assert(false);
     return m_arrays;
-    
-#else
-    
-    return m_arrays;
-#endif
     }
 
 #ifdef ENABLE_CUDA
