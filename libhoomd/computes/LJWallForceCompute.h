@@ -87,8 +87,8 @@ class LJWallForceCompute :  public ForceCompute
         
         Scalar m_r_cut;         //!< Cuttoff distance beyond which the force is set to 0
         
-        Scalar * __restrict__ m_lj1;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
-        Scalar * __restrict__ m_lj2;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        GPUArray<Scalar>  __restrict__ m_lj1;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        GPUArray<Scalar>  __restrict__ m_lj2;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
     };
 
 //! Exports the LJWallForceCompute class to python

@@ -89,14 +89,6 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     m_lj6 = GPUArray<Scalar>(m_ntypes*m_ntypes,exec_conf);
     m_lj4 = GPUArray<Scalar>(m_ntypes*m_ntypes,exec_conf);
     
-    // sanity check
-    assert(m_lj12 != NULL && m_lj9 != NULL && m_lj6 != NULL && m_lj4 != NULL);
-    
-    // initialize the parameters to 0;
-    memset((void*)m_lj12, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
-    memset((void*)m_lj9,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
-    memset((void*)m_lj6,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
-    memset((void*)m_lj4,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
     }
 
 

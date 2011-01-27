@@ -98,8 +98,8 @@ class FENEBondForceComputeGPU : public FENEBondForceCompute
         
     protected:
         int m_block_size;                   //!< Block size to run calculation on
-        float4 * m_gpu_params;              //!< Parameters stored on the GPU
-        float4 *m_host_params;              //!< Host parameters
+        GPUArray<float4>  m_gpu_params;              //!< Parameters stored on the GPU
+        GPUArray<float4> m_host_params;              //!< Host parameters
         GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel launch
         
         //! Actually compute the forces

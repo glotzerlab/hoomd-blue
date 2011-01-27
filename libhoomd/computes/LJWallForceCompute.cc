@@ -81,12 +81,6 @@ LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysde
     m_lj1 = GPUArray<Scalar>(ntypes,exec_conf);
     m_lj2 = GPUArray<Scalar>(ntypes,exec_conf);
     
-    // sanity check
-    assert(m_lj1 != NULL && m_lj2 != NULL);
-    
-    // initialize the parameters to 0;
-    memset((void*)m_lj1, 0, sizeof(Scalar)*ntypes);
-    memset((void*)m_lj2, 0, sizeof(Scalar)*ntypes);
     }
 
 /*! Frees used memory

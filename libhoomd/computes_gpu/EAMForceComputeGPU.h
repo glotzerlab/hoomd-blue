@@ -76,7 +76,7 @@ class EAMForceComputeGPU : public EAMForceCompute
     protected:
         EAMTexInterData eam_data;                   //!< Undocumented parameter
         EAMtex eam_tex_data;                        //!< Undocumented parameter
-        Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
+        GPUArray<Scalar>  d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
         int m_block_size;                           //!< The block size to run on the GPU
 
         //! Actually compute the forces

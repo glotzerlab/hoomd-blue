@@ -92,13 +92,6 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
     m_rcut = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
     m_cg_type = GPUArray<unsigned int>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
     
-    // zero parameters
-    memset(m_K, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_t_0, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_eps, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_sigma, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_rcut, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_cg_type, 0, sizeof(unsigned int) * m_CGCMMAngle_data->getNAngleTypes());
     
     prefact[0] = Scalar(0.0);
     prefact[1] = Scalar(6.75);

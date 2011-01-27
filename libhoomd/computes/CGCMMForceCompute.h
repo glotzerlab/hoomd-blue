@@ -97,10 +97,10 @@ class CGCMMForceCompute : public ForceCompute
         // This is a low level force summing class, it ONLY sums forces, and doesn't do high
         // level concepts like mixing. That is for the caller to handle. So, I only store
         // lj12, lj9, lj6, and lj4 here
-        Scalar * __restrict__ m_lj12;   //!< Parameter for computing forces (m_ntypes by m_ntypes array)
-        Scalar * __restrict__ m_lj9;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
-        Scalar * __restrict__ m_lj6;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
-        Scalar * __restrict__ m_lj4;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        GPUArray<Scalar>  __restrict__ m_lj12;   //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        GPUArray<Scalar>  __restrict__ m_lj9;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        GPUArray<Scalar>  __restrict__ m_lj6;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        GPUArray<Scalar>  __restrict__ m_lj4;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

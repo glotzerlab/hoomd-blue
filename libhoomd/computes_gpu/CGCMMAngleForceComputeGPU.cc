@@ -86,24 +86,9 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
     cgPow2[3]  = Scalar(6.0);
     
     // allocate and zero device memory
-    cudaMalloc(&m_gpu_params, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
-    cudaMemset(m_gpu_params, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
-        
-    cudaMalloc(&m_gpu_CGCMMsr, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
-    cudaMemset(m_gpu_CGCMMsr, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
-        
-    cudaMalloc(&m_gpu_CGCMMepow, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
-    cudaMemset(m_gpu_CGCMMepow, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
-    CHECK_CUDA_ERROR();
-        
     m_host_params = GPUArray<float2>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    memset(m_host_params, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
-    
     m_host_CGCMMsr = GPUArray<float2>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    memset(m_host_CGCMMsr, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
-    
     m_host_CGCMMepow = GPUArray<float4>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    memset(m_host_CGCMMepow, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
     }
 
 CGCMMAngleForceComputeGPU::~CGCMMAngleForceComputeGPU()

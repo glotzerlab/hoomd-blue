@@ -77,12 +77,7 @@ HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<Syste
         }
         
     // allocate and zero device memory
-    cudaMalloc(&m_gpu_params, m_bond_data->getNBondTypes()*sizeof(float2));
-    cudaMemset(m_gpu_params, 0, m_bond_data->getNBondTypes()*sizeof(float2));
-    CHECK_CUDA_ERROR();
-        
     m_host_params = GPUArray<float2>(m_bond_data->getNBondTypes(),exec_conf);
-    memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float2));
     }
 
 HarmonicBondForceComputeGPU::~HarmonicBondForceComputeGPU()

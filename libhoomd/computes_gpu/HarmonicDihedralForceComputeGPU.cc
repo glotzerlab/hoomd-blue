@@ -71,12 +71,7 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_p
         }
         
     // allocate and zero device memory
-    cudaMalloc(&m_gpu_params, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
-    cudaMemset(m_gpu_params, 0, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
-    CHECK_CUDA_ERROR();
-        
     m_host_params = GPUArray<float4>(m_dihedral_data->getNDihedralTypes(),exec_conf);
-    memset(m_host_params, 0, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
     }
 
 HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()

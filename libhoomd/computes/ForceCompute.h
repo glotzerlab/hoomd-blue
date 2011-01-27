@@ -120,7 +120,7 @@ private:
     cudaError_t deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial);
     
     unsigned int m_num;                 //!< Number of particles in the simulation
-    float4 *h_staging;                  //!< Host memory array for staging interleaved data
+    GPUArray<float4> h_staging;                  //!< Host memory array for staging interleaved data
     
     friend class ForceCompute;
     };
@@ -214,7 +214,7 @@ class ForceCompute : public Compute
             It is used to flag \c m_particles_sorted so that a second call to compute
             with the same timestep can properly recaculate the forces, which are stored
             by index.
-        */
+       GPUArray<> /
         void setParticlesSorted()
             {
             m_particles_sorted = true;
@@ -225,15 +225,15 @@ class ForceCompute : public Compute
         
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
             
-        Scalar * __restrict__ m_fx;     //!< x-component of the force
-        Scalar * __restrict__ m_fy;     //!< y-component of the force
-        Scalar * __restrict__ m_fz;     //!< z-component of the force
-        Scalar * __restrict__ m_pe;     //!< per-particle potential energy (see ForceDataArrays for definition)
-        Scalar * __restrict__ m_virial; //!< per-particle virial (see ForceDataArrays for definition)
+        GPUArray<Scalar>  __restrict__ m_fx;     //!< x-component of the force
+        GPUArray<Scalar>  __restrict__ m_fy;     //!< y-component of the force
+        GPUArray<Scalar>  __restrict__ m_fz;     //!< z-component of the force
+        GPUArray<Scalar>  __restrict__ m_pe;     //!< per-particle potential energy (see ForceDataArrays for definition)
+        GPUArray<Scalar>  __restrict__ m_virial; //!< per-particle virial (see ForceDataArrays for definition)
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
 
-        Scalar4 * __restrict__ m_fdata_partial; //!< Stores partial force/pe for each CPU thread
-        Scalar * __restrict__ m_virial_partial; //!< Stores partial virial data summed for each CPU thread
+        GPUArray<Scalar4>  __restrict__ m_fdata_partial; //!< Stores partial force/pe for each CPU thread
+        GPUArray<Scalar>  __restrict__ m_virial_partial; //!< Stores partial virial data summed for each CPU thread
         Index2D m_index_thread_partial;         //!< Indexer to index the above 2 arrays by (particle, thread)
 
         //! Connection to the signal notifying when particles are resorted
@@ -264,7 +264,7 @@ class ForceCompute : public Compute
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.
             \param timestep Current time step
-         */
+        GPUArray<> /
         virtual void computeForces(unsigned int timestep)=0;
     };
 

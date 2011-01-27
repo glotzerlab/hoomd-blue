@@ -329,11 +329,11 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 
     // need to start from a zero force, energy and virial
     // (MEM TRANSFER: 5*N scalars)
-    memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
+    m_fx.memclear();
+    m_fy.memclear();
+    m_fz.memclear();
+    m_pe.memclear();
+    m_virial.memclear();
 
     // for each particle
     vector<Scalar> atomElectronDensity;

@@ -87,9 +87,6 @@ HarmonicAngleForceCompute::HarmonicAngleForceCompute(boost::shared_ptr<SystemDef
     m_K = GPUArray<Scalar>(m_angle_data->getNAngleTypes(),exec_conf);
     m_t_0 = GPUArray<Scalar>(m_angle_data->getNAngleTypes(),exec_conf);
     
-    // zero parameters
-    memset(m_K, 0, sizeof(Scalar) * m_angle_data->getNAngleTypes());
-    memset(m_t_0, 0, sizeof(Scalar) * m_angle_data->getNAngleTypes());
     }
 
 HarmonicAngleForceCompute::~HarmonicAngleForceCompute()

@@ -86,9 +86,6 @@ HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefin
     m_K = GPUArray<Scalar>(m_bond_data->getNBondTypes(),exec_conf);
     m_r_0 = GPUArray<Scalar>(m_bond_data->getNBondTypes(),exec_conf);
     
-    // zero parameters
-    memset(m_K, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
-    memset(m_r_0, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
     }
 
 HarmonicBondForceCompute::~HarmonicBondForceCompute()
@@ -183,11 +180,11 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
     
     // need to start from a zero force
     // MEM TRANSFER: 5*N Scalars
-    memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
+    m_fx.memclear();
+    m_fy.memclear();
+    m_fz.memclear();
+    m_pe.memclear();
+    m_virial.memclear();
     
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();

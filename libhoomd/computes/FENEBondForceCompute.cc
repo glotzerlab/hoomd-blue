@@ -90,12 +90,8 @@ FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<SystemDefinition> s
     m_epsilon = GPUArray<Scalar>(m_bond_data->getNBondTypes(),exec_conf);
     
     
-    // initialize parameters
-    memset(m_K, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
-    memset(m_r_0, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
     for (unsigned int i = 0; i < m_bond_data->getNBondTypes(); i++) m_lj1[i]=Scalar(1.0);
     for (unsigned int i = 0; i < m_bond_data->getNBondTypes(); i++) m_lj2[i]=Scalar(1.0);
-    memset(m_epsilon, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
     }
 
 FENEBondForceCompute::~FENEBondForceCompute()
@@ -205,11 +201,11 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
     
     // need to start from a zero force, potential energy and virial
     // (MEM TRANSFER: 5 Scalars)
-    memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
+    m_fx.memclear();
+    m_fy.memclear();
+    m_fz.memclear();
+    m_pe.memclear();
+    m_virial.memclear();
     
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();

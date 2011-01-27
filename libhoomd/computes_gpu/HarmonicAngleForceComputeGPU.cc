@@ -73,12 +73,7 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
         }
         
     // allocate and zero device memory
-    cudaMalloc(&m_gpu_params, m_angle_data->getNAngleTypes()*sizeof(float2));
-    cudaMemset(m_gpu_params, 0, m_angle_data->getNAngleTypes()*sizeof(float2));
-    CHECK_CUDA_ERROR();
-        
     m_host_params = GPUArray<float2>(m_angle_data->getNAngleTypes(),exec_conf);
-    memset(m_host_params, 0, m_angle_data->getNAngleTypes()*sizeof(float2));
     }
 
 HarmonicAngleForceComputeGPU::~HarmonicAngleForceComputeGPU()

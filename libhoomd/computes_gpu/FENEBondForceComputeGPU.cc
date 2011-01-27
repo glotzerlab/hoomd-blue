@@ -77,14 +77,8 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
         throw std::runtime_error("Error initializing FENEBondForceComputeGPU");
         }
         
-    // allocate and zero device memory for K, R0 parameters
-    cudaMalloc(&m_gpu_params, m_bond_data->getNBondTypes()*sizeof(float4));
-    cudaMemset(m_gpu_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
-    CHECK_CUDA_ERROR();
-    
     // allocate host memory for GPU parameters
     m_host_params = GPUArray<float4>(m_bond_data->getNBondTypes(),exec_conf);
-    memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
     
     // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, exec_conf);
