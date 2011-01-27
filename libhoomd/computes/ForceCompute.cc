@@ -232,18 +232,11 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     
     // allocate data on the host
     unsigned int num_particles = m_pdata->getN();
-    m_arrays.fx = m_fx = GPUArray<Scalar>(num_particles,exec_conf);
-    m_arrays.fy = m_fy = GPUArray<Scalar>(num_particles,exec_conf);
-    m_arrays.fz = m_fz = GPUArray<Scalar>(num_particles,exec_conf);
-    m_arrays.pe = m_pe = GPUArray<Scalar>(num_particles,exec_conf);
+    m_arrays.f = m_f = GPUArray<Scalar4>(num_particles,exec_conf);
     m_arrays.virial = m_virial = GPUArray<Scalar>(num_particles,exec_conf);
     m_fdata_partial = NULL;
     m_virial_partial = NULL;
     
-    // zero host data
-    for (unsigned int i = 0; i < num_particles; i++)
-        m_fx[i] = m_fy[i] = m_fz[i] = m_pe[i] = m_virial[i] = Scalar(0.0);
-        
 #ifdef ENABLE_CUDA
     // setup ForceDataArrays the GPU
     if (exec_conf->isCUDAEnabled())
