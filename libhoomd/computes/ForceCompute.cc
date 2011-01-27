@@ -63,7 +63,7 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-/*! \post \c fx, \c fy, \c fz, \c pe, and \c virial are all set to NULL
+/*! \post \c force, and \c virial are all initialized as empty arrays
 */
 ForceDataArrays::ForceDataArrays()
     {
@@ -71,7 +71,7 @@ ForceDataArrays::ForceDataArrays()
 
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
-    \post \c fx, \c fy, \c fz pointers in m_arrays are set
+    \post \c force and \c virial GPUarrays are initialized
     \post All forces are initialized to 0
 */
 ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false),
@@ -82,34 +82,16 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     
     // allocate data on the host
     unsigned int num_particles = m_pdata->getN();
-<<<<<<< .mine
-		GPUArray<Scalar4> forces(num_particles,exec_conf);
+		GPUArray<Scalar4>  force(num_particles,exec_conf);
 		GPUArray<Scalar>  virial(num_particles,exec_conf);
 		m_force.swap(force);
 		m_virial.swap(virial);
+		m_force.memclear();
+		m_virial.memclear();
 
 		m_fdata_partial = NULL;
-=======
-    m_arrays.f = m_f = GPUArray<Scalar4>(num_particles,exec_conf);
-    m_arrays.virial = m_virial = GPUArray<Scalar>(num_particles,exec_conf);
-    m_fdata_partial = NULL;
->>>>>>> .r3651
-    m_virial_partial = NULL;
-    
-#ifdef ENABLE_CUDA
-    // setup ForceDataArrays the GPU
-    if (exec_conf->isCUDAEnabled())
-        {
-        m_gpu_forces.allocate(m_pdata->getN());
-        CHECK_CUDA_ERROR();
-        
-        hostToDeviceCopy();
-        m_data_location = cpugpu;
-        }
-    else
-        m_data_location = cpu;
-#endif
-        
+		m_virial_partial = NULL;
+      
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
     }
@@ -118,36 +100,17 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 */
 void ForceCompute::allocateThreadPartial()
     {
-    assert(exec_conf->n_cpu >= 1);
-    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
-    m_fdata_partial = GPUArray<Scalar4>(m_index_thread_partial.getNumElements(),exec_conf);
-    m_virial_partial = GPUArray<Scalar>(m_index_thread_partial.getNumElements(),exec_conf);
-    }
+		assert(exec_conf->n_cpu >= 1);
+		m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
+		//Don't use GPU arrays here, *_partial's only used on CPU
+		m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
+		m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
+   }
 
 /*! Frees allocated memory
 */
 ForceCompute::~ForceCompute()
     {
-    // free the host data
-    delete[] m_fx;
-    m_arrays.fx = m_fx = NULL;
-    delete[] m_fy;
-    m_arrays.fy = m_fy = NULL;
-    delete[] m_fz;
-    m_arrays.fz = m_fz = NULL;
-    delete[] m_pe;
-    m_arrays.pe = m_pe = NULL;
-    delete[] m_virial;
-    m_arrays.virial = m_virial = NULL;
-    
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        {
-        m_gpu_forces.deallocate();
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
     if (m_fdata_partial)
         {
         delete[] m_fdata_partial;
@@ -155,7 +118,6 @@ ForceCompute::~ForceCompute()
         delete[] m_virial_partial;
         m_virial_partial = NULL;
         }
-
     m_sort_connection.disconnect();
     }
 
@@ -188,89 +150,13 @@ const ForceDataArrays& ForceCompute::acquire()
     {
     return m_arrays;
     }
-
-#ifdef ENABLE_CUDA
-/*! Access computed forces on the GPU. This may require copying data from the CPU if the forces
-    were computed there.
-    \returns Data pointer to the forces on the GPU
-
-    \note For performance reasons, the returned pointers will \b not change
-    from call to call. The call still must be made, however, to ensure that
-    the data has been copied to the GPU.
-*/
-ForceDataArraysGPU& ForceCompute::acquireGPU()
-    {
-    if (!exec_conf->isCUDAEnabled())
-        {
-        cerr << endl << "***Error! Acquiring forces on GPU, but hoomd is running on the CPU" << endl << endl;
-        throw runtime_error("Error acquiring GPU forces");
-        }
-        
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is on the cpu, we need to copy it over to the gpu
-            hostToDeviceCopy();
-            // now we are in the cpugpu state
-            m_data_location = cpugpu;
-            return m_gpu_forces;
-            break;
-        case cpugpu:
-            // if the data is up to date on both the cpu and gpu, life is easy
-            // state remains the same, and return it
-            return m_gpu_forces;
-            break;
-        case gpu:
-            // if the data resides on the gpu, life is easy
-            // state remains the same, and return it
-            return m_gpu_forces;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_gpu_forces;
-            break;
-        }
-    }
-
-/*! Force data from the host is copied to each GPU in the execution configuration.
-*/
-void ForceCompute::hostToDeviceCopy()
-    {
-    // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-    // if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
-    
-    m_gpu_forces.hostToDeviceCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
-    }
-
-/*! \sa hostToDeviceCopy()
-*/
-void ForceCompute::deviceToHostCopy()
-    {
-    // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-    // if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
-    
-    m_gpu_forces.deviceToHostCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    
-    //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
-    }
-
-#endif
-
 /*! Performs the force computation.
     \param timestep Current Timestep
     \note If compute() has previously been called with a value of timestep equal to
         the current value, the forces are assumed to already have been computed and nothing will
         be done
 */
+
 void ForceCompute::compute(unsigned int timestep)
     {
     // skip if we shouldn't compute this step
@@ -286,6 +172,7 @@ void ForceCompute::compute(unsigned int timestep)
 
     Calls computeForces repeatedly to benchmark the force compute.
 */
+
 double ForceCompute::benchmark(unsigned int num_iters)
     {
     ClockSource t;
