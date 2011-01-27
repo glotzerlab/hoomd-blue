@@ -96,13 +96,13 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
     cudaMemset(m_gpu_CGCMMepow, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
     CHECK_CUDA_ERROR();
         
-    m_host_params = new float2[m_CGCMMAngle_data->getNAngleTypes()];
+    m_host_params = GPUArray<float2>(m_CGCMMAngle_data->getNAngleTypes());
     memset(m_host_params, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
     
-    m_host_CGCMMsr = new float2[m_CGCMMAngle_data->getNAngleTypes()];
+    m_host_CGCMMsr = GPUArray<float2>(m_CGCMMAngle_data->getNAngleTypes());
     memset(m_host_CGCMMsr, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
     
-    m_host_CGCMMepow = new float4[m_CGCMMAngle_data->getNAngleTypes()];
+    m_host_CGCMMepow = GPUArray<float4>(m_CGCMMAngle_data->getNAngleTypes());
     memset(m_host_CGCMMepow, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
     }
 

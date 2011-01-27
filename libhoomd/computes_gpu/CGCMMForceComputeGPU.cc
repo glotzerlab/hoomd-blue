@@ -100,7 +100,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
     CHECK_CUDA_ERROR();
 
     // allocate the coeff data on the CPU
-    h_coeffs = new float4[m_pdata->getNTypes()*m_pdata->getNTypes()];
+    h_coeffs = GPUArray<float4>(m_pdata->getNTypes()*m_pdata->getNTypes());
     }
 
 

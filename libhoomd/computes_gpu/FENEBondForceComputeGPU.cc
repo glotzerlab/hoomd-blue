@@ -83,7 +83,7 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
     CHECK_CUDA_ERROR();
     
     // allocate host memory for GPU parameters
-    m_host_params = new float4[m_bond_data->getNBondTypes()];
+    m_host_params = GPUArray<float4>(m_bond_data->getNBondTypes());
     memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
     
     // allocate flags storage on the GPU

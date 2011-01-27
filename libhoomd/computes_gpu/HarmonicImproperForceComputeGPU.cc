@@ -77,7 +77,7 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
     cudaMemset(m_gpu_params, 0, m_improper_data->getNDihedralTypes()*sizeof(float2));
     CHECK_CUDA_ERROR();
         
-    m_host_params = new float2[m_improper_data->getNDihedralTypes()];
+    m_host_params = GPUArray<float2>(m_improper_data->getNDihedralTypes());
     memset(m_host_params, 0, m_improper_data->getNDihedralTypes()*sizeof(float2));
     }
 
