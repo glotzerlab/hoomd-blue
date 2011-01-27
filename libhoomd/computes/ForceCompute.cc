@@ -232,11 +232,11 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     
     // allocate data on the host
     unsigned int num_particles = m_pdata->getN();
-    m_arrays.fx = m_fx = new Scalar[num_particles];
-    m_arrays.fy = m_fy = new Scalar[num_particles];
-    m_arrays.fz = m_fz = new Scalar[num_particles];
-    m_arrays.pe = m_pe = new Scalar[num_particles];
-    m_arrays.virial = m_virial = new Scalar[num_particles];
+    m_arrays.fx = m_fx = GPUArray<Scalar>(num_particles);
+    m_arrays.fy = m_fy = GPUArray<Scalar>(num_particles);
+    m_arrays.fz = m_fz = GPUArray<Scalar>(num_particles);
+    m_arrays.pe = m_pe = GPUArray<Scalar>(num_particles);
+    m_arrays.virial = m_virial = GPUArray<Scalar>(num_particles);
     m_fdata_partial = NULL;
     m_virial_partial = NULL;
     
@@ -268,8 +268,8 @@ void ForceCompute::allocateThreadPartial()
     {
     assert(exec_conf->n_cpu >= 1);
     m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
-    m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
-    m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
+    m_fdata_partial = GPUArray<Scalar4>(m_index_thread_partial.getNumElements());
+    m_virial_partial = GPUArray<Scalar>(m_index_thread_partial.getNumElements());
     }
 
 /*! Frees allocated memory

@@ -83,8 +83,8 @@ HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefin
         }
         
     // allocate the parameters
-    m_K = new Scalar[m_bond_data->getNBondTypes()];
-    m_r_0 = new Scalar[m_bond_data->getNBondTypes()];
+    m_K = GPUArray<Scalar>(m_bond_data->getNBondTypes());
+    m_r_0 = GPUArray<Scalar>(m_bond_data->getNBondTypes());
     
     // zero parameters
     memset(m_K, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());

@@ -84,8 +84,8 @@ HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<Sys
         }
         
     // allocate the parameters
-    m_K = new Scalar[m_improper_data->getNDihedralTypes()];
-    m_chi = new Scalar[m_improper_data->getNDihedralTypes()];
+    m_K = GPUArray<Scalar>(m_improper_data->getNDihedralTypes());
+    m_chi = GPUArray<Scalar>(m_improper_data->getNDihedralTypes());
     
     // zero parameters
     memset(m_K, 0, sizeof(Scalar) * m_improper_data->getNDihedralTypes());

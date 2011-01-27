@@ -78,8 +78,8 @@ LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysde
     assert(ntypes > 0);
     
     // allocate data for lj1 and lj2
-    m_lj1 = new Scalar[ntypes];
-    m_lj2 = new Scalar[ntypes];
+    m_lj1 = GPUArray<Scalar>(ntypes);
+    m_lj2 = GPUArray<Scalar>(ntypes);
     
     // sanity check
     assert(m_lj1 != NULL && m_lj2 != NULL);
