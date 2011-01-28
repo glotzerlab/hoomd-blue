@@ -55,100 +55,32 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDThermo.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
-cudaError_t gpu_compute_ljtemp_forces(const gpu_force_data_arrays& force_data,
-                                      const gpu_pdata_arrays &pdata,
-                                      const gpu_boxsize &box,
-                                      const unsigned int *d_n_neigh,
-                                      const unsigned int *d_nlist,
-                                      const Index2D& nli,
-                                      const float2 *d_params,
-                                      const float *d_rcutsq,
-                                      const float *d_ronsq,
-                                      const unsigned int ntypes,
-                                      const unsigned int block_size,
-                                      const unsigned int shift_mode);
+cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
+                                      const float2 *d_params);
 
 //! Compute gauss pair forces on the GPU with PairEvaluatorGauss
-cudaError_t gpu_compute_gauss_forces(const gpu_force_data_arrays& force_data,
-                                     const gpu_pdata_arrays &pdata,
-                                     const gpu_boxsize &box,
-                                     const unsigned int *d_n_neigh,
-                                     const unsigned int *d_nlist,
-                                     const Index2D& nli,
-                                     const float2 *d_params,
-                                     const float *d_rcutsq,
-                                     const float *d_ronsq,
-                                     const unsigned int ntypes,
-                                     const unsigned int block_size,
-                                     const unsigned int shift_mode);
+cudaError_t gpu_compute_gauss_forces(const pair_args_t& pair_args,
+                                     const float2 *d_params);
 
 //! Compute slj pair forces on the GPU with PairEvaluatorGauss
-cudaError_t gpu_compute_slj_forces(const gpu_force_data_arrays& force_data,
-                                   const gpu_pdata_arrays &pdata,
-                                   const gpu_boxsize &box,
-                                   const unsigned int *d_n_neigh,
-                                   const unsigned int *d_nlist,
-                                   const Index2D& nli,
-                                   const float2 *d_params,
-                                   const float *d_rcutsq,
-                                   const float *d_ronsq,
-                                   const unsigned int ntypes,
-                                   const unsigned int block_size,
-                                   const unsigned int shift_mode);
+cudaError_t gpu_compute_slj_forces(const pair_args_t& pair_args,
+                                   const float2 *d_params);
 
 //! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
-cudaError_t gpu_compute_yukawa_forces(const gpu_force_data_arrays& force_data,
-                                      const gpu_pdata_arrays &pdata,
-                                      const gpu_boxsize &box,
-                                      const unsigned int *d_n_neigh,
-                                      const unsigned int *d_nlist,
-                                      const Index2D& nli,
-                                      const float2 *d_params,
-                                      const float *d_rcutsq,
-                                      const float *d_ronsq,
-                                      const unsigned int ntypes,
-                                      const unsigned int block_size,
-                                      const unsigned int shift_mode);
+cudaError_t gpu_compute_yukawa_forces(const pair_args_t& pair_args,
+                                      const float2 *d_params);
 
 //! Compute morse pair forces on the GPU with PairEvaluatorMorse
-cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
-                                      const gpu_pdata_arrays &pdata,
-                                      const gpu_boxsize &box,
-                                      const unsigned int *d_n_neigh,
-                                      const unsigned int *d_nlist,
-                                      const Index2D& nli,
-                                      const float4 *d_params,
-                                      const float *d_rcutsq,
-                                      const float *d_ronsq,
-                                      const unsigned int ntypes,
-                                      const unsigned int block_size,
-                                      const unsigned int shift_mode);
+cudaError_t gpu_compute_morse_forces(const pair_args_t& pair_args,
+                                      const float4 *d_params);
 
 //! Compute dpd thermostat on GPU with PairEvaluatorDPDThermo 
-cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_data,
-                                      const gpu_pdata_arrays &pdata,
-                                      const gpu_boxsize &box,
-                                      const unsigned int *d_n_neigh,
-                                      const unsigned int *d_nlist,
-                                      const Index2D& nli,
-                                      const float2 *d_params,
-                                      const float *d_rcutsq,
-                                      const int ntypes,
-                                      const dpd_pair_args& args);
+cudaError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
+                                            const float2 *d_params);
 
 //! Compute dpd conservative force on GPU with PairEvaluatorDPDThermo
-cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data,
-                                         const gpu_pdata_arrays &pdata,
-                                         const gpu_boxsize &box,
-                                         const unsigned int *d_n_neigh,
-                                         const unsigned int *d_nlist,
-                                         const Index2D& nli,
-                                         const float2 *d_params,
-                                         const float *d_rcutsq,
-                                         const float *d_ronsq,
-                                         const unsigned int ntypes,
-                                         const unsigned int block_size,
-                                         const unsigned int shift_mode);
+cudaError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
+                                         const float2 *d_params);
 
 #endif
 

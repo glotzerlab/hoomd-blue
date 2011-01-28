@@ -11,13 +11,53 @@
 #include <cassert>
 
 //! args struct for passing additional options to gpu_compute_dpd_forces
-struct dpd_pair_args
+struct dpd_pair_args_t
     {
-    int block_size;         //!< block size to execute on
-    unsigned int seed;      //!< user provided seed for PRNG
-    unsigned int timestep;  //!< timestep of simulation
-    float deltaT;           //!< timestep size
-    float T;                //!< temperature 
+    dpd_pair_args_t(float4 *_d_force,
+                    float *_d_virial,
+                    const gpu_pdata_arrays& _pdata,
+                    const gpu_boxsize &_box,
+                    const unsigned int *_d_n_neigh,
+                    const unsigned int *_d_nlist,
+                    const Index2D& _nli,
+                    const float *_d_rcutsq,
+                    const unsigned int _ntypes,
+                    const unsigned int _block_size,
+                    const unsigned int _seed,
+                    const unsigned int _timestep,
+                    const float _deltaT,
+                    const float _T)
+                        : d_force(_d_force),
+                        d_virial(_d_virial),
+                        pdata(_pdata),
+                        box(_box),
+                        d_n_neigh(_d_n_neigh),
+                        d_nlist(_d_nlist),
+                        nli(_nli),
+                        d_rcutsq(_d_rcutsq),
+                        ntypes(_ntypes),
+                        block_size(_block_size),
+                        seed(_seed),
+                        timestep(_timestep),
+                        deltaT(_deltaT),
+                        T(_T)
+        {
+        };
+    
+    float4 *d_force;                //!< Force to write out
+    float *d_virial;                //!< Virial to write out
+    const gpu_pdata_arrays& pdata;  //!< Particle data to compute forces over
+    const gpu_boxsize &box;         //!< Simulation box in GPU format
+    const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
+    const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
+    const Index2D& nli;             //!< Indexer for accessing d_nlist
+    const float *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
+    const unsigned int ntypes;      //!< Number of particle types in the simulation
+    const unsigned int block_size;  //!< Block size to execute
+    const unsigned int seed;        //!< user provided seed for PRNG
+    const unsigned int timestep;    //!< timestep of simulation
+    const float deltaT;             //!< timestep size
+    const float T;                  //!< temperature 
     };
 
 #ifdef NVCC
@@ -31,7 +71,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
     forces for each pair is handled via the template class \a evaluator.
 
-    \param force_data Device memory array to write calculated forces to
+    \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -61,19 +102,20 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
 template< class evaluator >
-__global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
-                                               gpu_pdata_arrays pdata,
-                                               gpu_boxsize box,
-                                               const unsigned int *d_n_neigh,
-                                               const unsigned int *d_nlist,
-                                               const Index2D nli,
-                                               const typename evaluator::param_type *d_params,
-                                               const float *d_rcutsq,
-                                               const unsigned int d_seed,
-                                               const unsigned int d_timestep,
-                                               const float d_deltaT,
-                                               const float d_T,
-                                               const int ntypes)
+__global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
+                                              float *d_virial,
+                                              gpu_pdata_arrays pdata,
+                                              gpu_boxsize box,
+                                              const unsigned int *d_n_neigh,
+                                              const unsigned int *d_nlist,
+                                              const Index2D nli,
+                                              const typename evaluator::param_type *d_params,
+                                              const float *d_rcutsq,
+                                              const unsigned int d_seed,
+                                              const unsigned int d_timestep,
+                                              const float d_deltaT,
+                                              const float d_T,
+                                              const int ntypes)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -207,8 +249,8 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
     // potential energy per particle must be halved
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    force_data.force[idx] = force;
-    force_data.virial[idx] = virial;
+    d_force[idx] = force;
+    d_virial[idx] = virial;
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
@@ -226,60 +268,53 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
     This is just a driver function for gpu_compute_dpd_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_dpd_forces(const gpu_force_data_arrays& force_data,
-                                    const gpu_pdata_arrays &pdata,
-                                    const gpu_boxsize &box,
-                                    const unsigned int *d_n_neigh,
-                                    const unsigned int *d_nlist,
-                                    const Index2D& nli,
-                                    const typename evaluator::param_type *d_params,
-                                    const float *d_rcutsq,
-                                    const unsigned int ntypes,
-                                    const dpd_pair_args& args)
+cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
+                                   const typename evaluator::param_type *d_params)
     {
     assert(d_params);
-    assert(d_rcutsq);
-    assert(ntypes > 0);
+    assert(args.d_rcutsq);
+    assert(args.ntypes > 0);
     
     // setup the grid to run the kernel
-    dim3 grid( pdata.N / args.block_size + 1, 1, 1);
+    dim3 grid( args.pdata.N / args.block_size + 1, 1, 1);
     dim3 threads(args.block_size, 1, 1);
     
     // bind the position texture
     pdata_dpd_pos_tex.normalized = false;
     pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
+    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, args.pdata.pos, sizeof(float4) * args.pdata.N);
     if (error != cudaSuccess)
         return error;
 
     // bind the velocity texture
     pdata_dpd_vel_tex.normalized = false;
     pdata_dpd_vel_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_dpd_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
+    error = cudaBindTexture(0, pdata_dpd_vel_tex, args.pdata.vel, sizeof(float4) * args.pdata.N);
     if (error != cudaSuccess)
         return error;
 
     
-    Index2D typpair_idx(ntypes);
+    Index2D typpair_idx(args.ntypes);
     unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
                                 * typpair_idx.getNumElements();
     
     // run the kernel
     gpu_compute_dpd_forces_kernel<evaluator>
                                  <<<grid, threads, shared_bytes>>>
-                                 (force_data,
-                                  pdata,
-                                  box,
-                                  d_n_neigh,
-                                  d_nlist,
-                                  nli,
+                                 (args.d_force,
+                                  args.d_virial,
+                                  args.pdata,
+                                  args.box,
+                                  args.d_n_neigh,
+                                  args.d_nlist,
+                                  args.nli,
                                   d_params,
-                                  d_rcutsq,
+                                  args.d_rcutsq,
                                   args.seed,
                                   args.timestep,
                                   args.deltaT,
                                   args.T,
-                                  ntypes);
+                                  args.ntypes);
 
         
     return cudaSuccess;
