@@ -77,7 +77,8 @@ __constant__ EAMTexInterData eam_data_ti;
 
 //! Kernel for computing EAM forces on the GPU
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
-    gpu_force_data_arrays force_data,
+    float4* d_force,
+    float* d_virial,
     gpu_pdata_arrays pdata,
     gpu_boxsize box,
     const unsigned int *d_n_neigh,
@@ -145,12 +146,13 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
 
     force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
-    force_data.force[idx] = force;
+    d_force[idx] = force;
     }
 
 //! Second stage kernel for computing EAM forces on the GPU
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
-    gpu_force_data_arrays force_data,
+    float4* d_force,
+    float* d_virial,
     gpu_pdata_arrays pdata,
     gpu_boxsize box,
     const unsigned int *d_n_neigh,
@@ -240,12 +242,13 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     force.z = fzi;
     force.w += m_pe;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    force_data.force[idx] = force;
-    force_data.virial[idx] = virial;
+    d_force[idx] = force;
+    d_virial[idx] = virial;
     }
 
 cudaError_t gpu_compute_eam_tex_inter_forces(
-    const gpu_force_data_arrays& force_data,
+    float4* d_force,
+    float* d_virial,
     const gpu_pdata_arrays &pdata,
     const gpu_boxsize &box,
     const unsigned int *d_n_neigh,
@@ -298,21 +301,23 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     // run the kernel
     cudaMemcpyToSymbol("eam_data_ti", &eam_data, sizeof(EAMTexInterData));
 
-    gpu_compute_eam_tex_inter_forces_kernel<<< grid, threads>>>(force_data,
-    pdata,
-    box,
-    d_n_neigh,
-    d_nlist,
-    nli,
-    eam_arrays.atomDerivativeEmbeddingFunction);
+    gpu_compute_eam_tex_inter_forces_kernel<<< grid, threads>>>(d_force,
+                                                                d_virial,
+                                                                pdata,
+                                                                box,
+                                                                d_n_neigh,
+                                                                d_nlist,
+                                                                nli,
+                                                                eam_arrays.atomDerivativeEmbeddingFunction);
 
-    gpu_compute_eam_tex_inter_forces_kernel_2<<< grid, threads>>>(force_data,
-    pdata,
-    box,
-    d_n_neigh,
-    d_nlist,
-    nli,
-    eam_arrays.atomDerivativeEmbeddingFunction);
+    gpu_compute_eam_tex_inter_forces_kernel_2<<< grid, threads>>>(d_force,
+                                                                  d_virial,
+                                                                  pdata,
+                                                                  box,
+                                                                  d_n_neigh,
+                                                                  d_nlist,
+                                                                  nli,
+                                                                  eam_arrays.atomDerivativeEmbeddingFunction);
 
     return cudaSuccess;
     }
