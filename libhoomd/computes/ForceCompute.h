@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
-#include "ForceCompute.cuh"
 #endif
 
 /*! \file ForceCompute.h

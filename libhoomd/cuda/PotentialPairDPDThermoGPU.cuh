@@ -5,7 +5,6 @@
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_CUH__
 #define __POTENTIAL_PAIR_DPDTHERMO_CUH__
 
-#include "ForceCompute.cuh"
 #include "ParticleData.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "Index1D.h"
