@@ -160,10 +160,26 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
     
     // access the particle data
     const ParticleDataArraysConst &particles=  m_pdata->acquireReadOnly();
+
+		// need to start from a zero force
+    // MEM TRANSFER: 5*N Scalars
+		m_force.memclear();
+		m_virial.memclear();
+		
+		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite)
+		ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite)
+
+		// there are enough other checks on the input data: but it doesn't hurt to be safe
+		assert(h_force.data);
+		assert(h_virial.data);
+		assert(arrays.x);
+		assert(arrays.y);
+		assert(arrays.z);
     
+   
     // here we go, main calc loop
     // loop over every particle in the sim,
-    // calculate forces and store them int m_fx,y,z
+    // calculate forces and store them in  m_force
     for (unsigned int i = 0; i < numParticles; i++)
         {
         // Initialize some force variables to be used as temporary
@@ -233,15 +249,12 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
                 }
             }
             
-        m_fx[i] = fx;
-        m_fy[i] = fy;
-        m_fz[i] = fz;
-        m_pe[i] = pe;
+        h_force.data[i].x = fx;
+        h_force.data[i].y = fy;
+        h_force.data[i].z = fz;
+        h_force.data[i].w = pe;
         }
-        
-#ifdef ENABLE_CUDA
-    m_data_location = cpu;
-#endif
+     
     m_pdata->release();
     
     if (m_prof) m_prof->pop();

@@ -421,9 +421,9 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         h_virial.data[idx_b] += angle_virial;
         
         h_force.data[idx_c].x += fcb[0] - fac*dxac;
-        h_force.data[idx_c]m_fy[idx_c] += fcb[1] - fac*dyac;
-        h_force.data[idx_c]m_fz[idx_c] += fcb[2] - fac*dzac;
-        h_force.data[idx_c]m_pe[idx_c] += angle_eng;
+        h_force.data[idx_c].y += fcb[1] - fac*dyac;
+        h_force.data[idx_c].z += fcb[2] - fac*dzac;
+        h_force.data[idx_c].w += angle_eng;
         h_virial.data[idx_c] += angle_virial;
         }
         
