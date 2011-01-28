@@ -78,21 +78,16 @@ ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
     {
     assert(m_fx != NULL && m_fy != NULL && m_fz != NULL && m_pdata != NULL);
-    
+		ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
     // setting the force is simple, just fill out every element of the force array
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        m_fx[i] = fx;
-        m_fy[i] = fy;
-        m_fz[i] = fz;
-        m_pe[i] = 0;
-        }
-        
-#ifdef ENABLE_CUDA
-    // data now only exists on the CPU
-    m_data_location = cpu;
-#endif
-    }
+        h_force.data[i].x = fx;
+        h_force.data[i].y = fy;
+        h_force.data[i].z = fz;
+        h_force.data[i].w = 0;
+				} 
+   }
 
 /*! \param i Index of the particle to set
     \param fx x-component of the force
@@ -101,20 +96,15 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
 */
 void ConstForceCompute::setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz)
     {
+		
     assert(m_fx != NULL && m_fy != NULL && m_fz != NULL && m_pdata != NULL);
     assert(i < m_pdata->getN());
     
-    m_fx[i] = fx;
-    m_fy[i] = fy;
-    m_fz[i] = fz;
-    m_pe[i] = 0;
-        
-#ifdef ENABLE_CUDA
-    // data now only exists on the CPU
-    m_data_location = cpu;
-#endif
-    }
-
+		h_force.data[i].x = fx;
+		h_force.data[i].y = fy;
+		h_force.data[i].z = fz;
+		h_force.data[i].w = 0;
+		}
 /*! Actually, this function does nothing. Since the data arrays were already filled out by setForce(),
     we don't need to do a thing here :)
     \param timestep Current timestep
