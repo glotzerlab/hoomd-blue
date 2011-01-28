@@ -200,7 +200,18 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     
     // start the profile for this compute
     if (m_prof) m_prof->push("CGCMM pair");
-    
+
+		//zero the forces
+		m_force.memclear();
+		m_virial.memclear();
+		
+		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite)
+		ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite)
+
+   // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+    assert(h_virial.data);
+       
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
@@ -231,9 +242,6 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     // tally up the number of forces calculated
     int64_t n_calc = 0;
     
-    // need to start from a zero force, energy and virial
-    // (MEM TRANSFER: 5*N scalars)
-		m_forces.mem
     // for each particle
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
@@ -327,11 +335,11 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 if (third_law)
                     {
-                    m_fx[k] -= dx*forcemag_divr;
-                    m_fy[k] -= dy*forcemag_divr;
-                    m_fz[k] -= dz*forcemag_divr;
-                    m_pe[k] += pair_eng;
-                    m_virial[k] += pair_virial;
+                    h_force.data[k].x -= dx*forcemag_divr;
+                    h_force.data[k].y -= dy*forcemag_divr;
+                    h_force.data[k].z -= dz*forcemag_divr;
+                    h_force.data[k].w += pair_eng;
+                    h_virial.data[k] += pair_virial;
                     }
                 }
                 
@@ -339,20 +347,15 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             
         // finally, increment the force, potential energy and virial for particle i
         // (MEM TRANSFER: 10 scalars / FLOPS: 5)
-        m_fx[i] += fxi;
-        m_fy[i] += fyi;
-        m_fz[i] += fzi;
-        m_pe[i] += pei;
-        m_virial[i] += viriali;
+				h_force.data[i].x	 += fxi;
+        h_force.data[i].y  += fyi;
+        h_force.data[i].z  += fzi;
+        h_force.data[i].w  += pei;
+        h_virial.data[i] += viriali;
         }
         
     m_pdata->release();
-    
-#ifdef ENABLE_CUDA
-    // the force data is now only up to date on the cpu
-    m_data_location = cpu;
-#endif
-    
+       
     int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+14+6+8);
     if (third_law) flops += n_calc * 8;
     int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);
