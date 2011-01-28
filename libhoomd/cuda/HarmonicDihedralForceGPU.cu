@@ -72,7 +72,8 @@ texture<float4, 1, cudaReadModeElementType> dihedral_params_tex;
     \param tlist Dihedral data to use in calculating the forces
 */
 extern "C" __global__ 
-void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force_data_arrays force_data,
+void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
+                                                 float* d_virial,
                                                  gpu_pdata_arrays pdata,
                                                  gpu_boxsize box,
                                                  gpu_dihedraltable_array tlist)
@@ -329,11 +330,12 @@ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force_data_arrays force_dat
         }
         
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    force_data.force[idx] = force_idx;
-    force_data.virial[idx] = virial_idx;
+    d_force[idx] = force_idx;
+    d_virial[idx] = virial_idx;
     }
 
-/*! \param force_data Force data on GPU to write forces to
+/*! \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param pdata Particle data on the GPU to perform the calculation on
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param ttable List of dihedrals stored on the GPU
@@ -347,7 +349,14 @@ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force_data_arrays force_dat
     \a d_params should include one float4 element per dihedral type. The x component contains K the spring constant
     and the y component contains sign, and the z component the multiplicity.
 */
-cudaError_t gpu_compute_harmonic_dihedral_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_dihedraltable_array &ttable, float4 *d_params, unsigned int n_dihedral_types, int block_size)
+cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
+                                                 float* d_virial,
+                                                 const gpu_pdata_arrays &pdata,
+                                                 const gpu_boxsize &box,
+                                                 const gpu_dihedraltable_array &ttable,
+                                                 float4 *d_params,
+                                                 unsigned int n_dihedral_types,
+                                                 int block_size)
     {
     assert(d_params);
     
@@ -365,7 +374,7 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(const gpu_force_data_arrays& fo
         return error;
         
     // run the kernel
-    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(force_data, pdata, box, ttable);
+    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, pdata, box, ttable);
     
     return cudaSuccess;
     }
