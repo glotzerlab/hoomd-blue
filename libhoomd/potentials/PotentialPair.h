@@ -322,8 +322,8 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
 		
 		//force arrays
-		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite)
-		ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite)
+		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+		ArrayHandle<Scalar>  h_virial(m_virial,access_location::host, access_mode::overwrite);
 
 	
     const BoxDim& box = m_pdata->getBox();
