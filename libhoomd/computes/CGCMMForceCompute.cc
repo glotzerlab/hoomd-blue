@@ -233,12 +233,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     
     // need to start from a zero force, energy and virial
     // (MEM TRANSFER: 5*N scalars)
-    memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
-    
+		m_forces.mem
     // for each particle
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
