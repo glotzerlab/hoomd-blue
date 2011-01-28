@@ -201,12 +201,12 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     // start the profile for this compute
     if (m_prof) m_prof->push("CGCMM pair");
 
-		//zero the forces
-		m_force.memclear();
-		m_virial.memclear();
-		
-		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-		ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    //zero the forces
+    m_force.memclear();
+    m_virial.memclear();
+    
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -347,7 +347,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             
         // finally, increment the force, potential energy and virial for particle i
         // (MEM TRANSFER: 10 scalars / FLOPS: 5)
-				h_force.data[i].x	 += fxi;
+        h_force.data[i].x     += fxi;
         h_force.data[i].y  += fyi;
         h_force.data[i].z  += fzi;
         h_force.data[i].w  += pei;

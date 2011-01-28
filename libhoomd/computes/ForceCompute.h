@@ -82,9 +82,9 @@ struct ForceDataArrays
     //! Zeroes pointers
     ForceDataArrays();
     
-		GPUArray<Scalar4> force;
-		GPUArray<Scalar> virial;
-		};
+    GPUArray<Scalar4> force;
+    GPUArray<Scalar> virial;
+    };
 
 //! Defines an interface for computing forces on each particle
 /*! Derived classes actually provide the implementation that computes the forces.
@@ -133,22 +133,22 @@ class ForceCompute : public Compute
         //! Easy access to the force on a single particle
         Scalar3 getForce(unsigned int tag)
             {
-						ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-						unsigned int i = m_pdata->getRTag(tag);
+            ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
+            unsigned int i = m_pdata->getRTag(tag);
             return make_scalar3(h_force.data[i].x,h_force.data[i].y,h_force.data[i].z);
             }
         //! Easy access to the virial on a single particle
         Scalar getVirial(unsigned int tag)
             {
-						ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
-						unsigned int i = m_pdata->getRTag(tag);
+            ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
+            unsigned int i = m_pdata->getRTag(tag);
             return h_virial.data[i];
             }
         //! Easy access to the energy on a single particle
         Scalar getEnergy(unsigned int tag)
             {
-						ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-						unsigned int i = m_pdata->getRTag(tag);
+            ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
+            unsigned int i = m_pdata->getRTag(tag);
             return h_force.data[i].w;
             }
         
@@ -170,11 +170,11 @@ class ForceCompute : public Compute
         void allocateThreadPartial();
         
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
-				            
-				GPUArray<Scalar4> m_force;			//!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
-				GPUArray<Scalar>  m_virial;			//!< per-particle virial (see ForceDataArrays for definition)
+                            
+        GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
+        GPUArray<Scalar>  m_virial;            //!< per-particle virial (see ForceDataArrays for definition)
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
-				
+                
         Scalar4*  m_fdata_partial; //!< Stores partial force/pe for each CPU thread
         Scalar*  m_virial_partial; //!< Stores partial virial data summed for each CPU thread
         Index2D m_index_thread_partial;         //!< Indexer to index the above 2 arrays by (particle, thread)

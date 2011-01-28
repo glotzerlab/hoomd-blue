@@ -162,13 +162,13 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
     // access the particle data arrays
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 
-		// need to start from a zero force
+    // need to start from a zero force
     // MEM TRANSFER: 5*N Scalars
-		m_force.memclear();
-		m_virial.memclear();
-		
-		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-		ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    m_force.memclear();
+    m_virial.memclear();
+    
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -382,30 +382,30 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         
         
         // accumulate the forces
-				h_force.data[idx_a].x + =ffax; 
-				h_force.data[idx_a].y += ffay; 
-				h_force.data[idx_a].z += ffaz; 
-				h_force.data[idx_a].w += improper_eng; 
-				h_virial.data[idx_a]  += improper_virial; 
+        h_force.data[idx_a].x + =ffax; 
+        h_force.data[idx_a].y += ffay; 
+        h_force.data[idx_a].z += ffaz; 
+        h_force.data[idx_a].w += improper_eng; 
+        h_virial.data[idx_a]  += improper_virial; 
 
-				h_force.data[idx_b].x + =ffbx; 
-				h_force.data[idx_b].y += ffby; 
-				h_force.data[idx_b].z += ffbz; 
-				h_force.data[idx_b].w += improper_eng; 
-				h_virial.data[idx_b]  += improper_virial; 
+        h_force.data[idx_b].x + =ffbx; 
+        h_force.data[idx_b].y += ffby; 
+        h_force.data[idx_b].z += ffbz; 
+        h_force.data[idx_b].w += improper_eng; 
+        h_virial.data[idx_b]  += improper_virial; 
 
-				h_force.data[idx_c].x + =ffcx; 
-				h_force.data[idx_c].y += ffcy; 
-				h_force.data[idx_c].z += ffcz; 
-				h_force.data[idx_c].w += improper_eng; 
-				h_virial.data[idx_c]  += improper_virial; 
+        h_force.data[idx_c].x + =ffcx; 
+        h_force.data[idx_c].y += ffcy; 
+        h_force.data[idx_c].z += ffcz; 
+        h_force.data[idx_c].w += improper_eng; 
+        h_virial.data[idx_c]  += improper_virial; 
 
-				h_force.data[idx_d].x + =ffdx; 
-				h_force.data[idx_d].y += ffdy; 
-				h_force.data[idx_d].z += ffdz; 
-				h_force.data[idx_d].w += improper_eng; 
-				h_virial.data[idx_d]  += improper_virial; 
-				}
+        h_force.data[idx_d].x + =ffdx; 
+        h_force.data[idx_d].y += ffdy; 
+        h_force.data[idx_d].z += ffdz; 
+        h_force.data[idx_d].w += improper_eng; 
+        h_virial.data[idx_d]  += improper_virial; 
+        }
         
     m_pdata->release();
    

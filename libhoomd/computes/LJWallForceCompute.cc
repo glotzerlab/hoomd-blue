@@ -161,20 +161,20 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
     // access the particle data
     const ParticleDataArraysConst &particles=  m_pdata->acquireReadOnly();
 
-		// need to start from a zero force
+    // need to start from a zero force
     // MEM TRANSFER: 5*N Scalars
-		m_force.memclear();
-		m_virial.memclear();
-		
-		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-		ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    m_force.memclear();
+    m_virial.memclear();
+    
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
-		// there are enough other checks on the input data: but it doesn't hurt to be safe
-		assert(h_force.data);
-		assert(h_virial.data);
-		assert(arrays.x);
-		assert(arrays.y);
-		assert(arrays.z);
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+    assert(h_virial.data);
+    assert(arrays.x);
+    assert(arrays.y);
+    assert(arrays.z);
     
    
     // here we go, main calc loop

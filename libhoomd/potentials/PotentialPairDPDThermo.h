@@ -173,11 +173,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 
     const ParticleDataArraysConst& arrays = this->m_pdata->acquireReadOnly();
  
-		//force arrays
-		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-		ArrayHandle<Scalar>  h_virial(m_virial,access_location::host, access_mode::overwrite);
+    //force arrays
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar>  h_virial(m_virial,access_location::host, access_mode::overwrite);
 
-		const BoxDim& box = this->m_pdata->getBox();
+    const BoxDim& box = this->m_pdata->getBox();
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(this->m_params, access_location::host, access_mode::read);
     
@@ -342,11 +342,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
         for (int thread = 1; thread < nthreads; thread++)
             {
             unsigned int mem_idx = this->m_index_thread_partial(i,thread);
-						this->h_force.data[i].x = this->m_fdata_partial[mem_idx].x;
-						this->h_force.data[i].y = this->m_fdata_partial[mem_idx].y;
-						this->h_force.data[i].z = this->m_fdata_partial[mem_idx].z;
-						this->h_force.data[i].w = this->m_fdata_partial[mem_idx].w;
-						this->h_virial.data[i]  = this->m_virial_partial[mem_idx];
+            this->h_force.data[i].x = this->m_fdata_partial[mem_idx].x;
+            this->h_force.data[i].y = this->m_fdata_partial[mem_idx].y;
+            this->h_force.data[i].z = this->m_fdata_partial[mem_idx].z;
+            this->h_force.data[i].w = this->m_fdata_partial[mem_idx].w;
+            this->h_virial.data[i]  = this->m_virial_partial[mem_idx];
             }
         #endif
         }

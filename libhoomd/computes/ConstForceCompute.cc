@@ -78,9 +78,9 @@ ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
     {
     assert(m_pdata != NULL);
-		m_force.memclear();
-		ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
-		assert(h_force.data);
+        m_force.memclear();
+        ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
+        assert(h_force.data);
 
     // setting the force is simple, just fill out every element of the force array
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -89,7 +89,7 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
         h_force.data[i].y = fy;
         h_force.data[i].z = fz;
         h_force.data[i].w = 0;
-				} 
+                } 
    }
 
 /*! \param i Index of the particle to set
@@ -99,19 +99,19 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
 */
 void ConstForceCompute::setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz)
     {
-		
+        
     assert(m_pdata != NULL);
     assert(i < m_pdata->getN());
 
     m_force.memclear();
-		ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
-		assert(h_force.data);
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
+    assert(h_force.data);
 
-		h_force.data[i].x = fx;
-		h_force.data[i].y = fy;
-		h_force.data[i].z = fz;
-		h_force.data[i].w = 0;
-		}
+    h_force.data[i].x = fx;
+    h_force.data[i].y = fy;
+    h_force.data[i].z = fz;
+    h_force.data[i].w = 0;
+    }
 /*! Actually, this function does nothing. Since the data arrays were already filled out by setForce(),
     we don't need to do a thing here :)
     \param timestep Current timestep

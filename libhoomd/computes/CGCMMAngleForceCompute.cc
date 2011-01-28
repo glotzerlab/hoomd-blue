@@ -208,11 +208,11 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
      
     // need to start from a zero force
     // MEM TRANSFER: 5*N Scalars
-		m_force.memclear();
-		m_virial.memclear();
-		
-		ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-		ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    m_force.memclear();
+    m_virial.memclear();
+    
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -407,10 +407,10 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         Scalar angle_virial = Scalar(1.0/6.0)*(vx + vy + vz);
         
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
-			
+            
         h_force.data[idx_a].x += fab[0] + fac*dxac;
         h_force.data[idx_a].y += fab[1] + fac*dyac;
-				h_force.data[idx_a].z += fab[2] + fac*dzac;
+        h_force.data[idx_a].z += fab[2] + fac*dzac;
         h_force.data[idx_a].w += angle_eng;
         h_virial.data[idx_a] += angle_virial;
         

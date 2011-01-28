@@ -82,16 +82,16 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     
     // allocate data on the host
     unsigned int num_particles = m_pdata->getN();
-		GPUArray<Scalar4>  force(num_particles,exec_conf);
-		GPUArray<Scalar>  virial(num_particles,exec_conf);
-		m_force.swap(force);
-		m_virial.swap(virial);
-		m_force.memclear();
-		m_virial.memclear();
+    GPUArray<Scalar4>  force(num_particles,exec_conf);
+    GPUArray<Scalar>  virial(num_particles,exec_conf);
+    m_force.swap(force);
+    m_virial.swap(virial);
+    m_force.memclear();
+    m_virial.memclear();
 
-		m_fdata_partial = NULL;
-		m_virial_partial = NULL;
-      
+    m_fdata_partial = NULL;
+    m_virial_partial = NULL;
+  
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
     }
@@ -100,11 +100,11 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 */
 void ForceCompute::allocateThreadPartial()
     {
-		assert(exec_conf->n_cpu >= 1);
-		m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
-		//Don't use GPU arrays here, *_partial's only used on CPU
-		m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
-		m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
+    assert(exec_conf->n_cpu >= 1);
+    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
+    //Don't use GPU arrays here, *_partial's only used on CPU
+    m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
+    m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
    }
 
 /*! Frees allocated memory
