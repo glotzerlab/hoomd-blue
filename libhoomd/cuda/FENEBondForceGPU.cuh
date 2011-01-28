@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: phillicl
 
-#include "ForceCompute.cuh"
 #include "BondData.cuh"
 #include "ParticleData.cuh"
 
@@ -55,7 +54,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __FENEBONDFORCEGPU_CUH__
 
 //! Kernel driver that computes FENE bond forces for FENEBondForceComputeGPU
-cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data,
+cudaError_t gpu_compute_fene_bond_forces(float4* d_force,
+                                         float* d_virial,
                                          const gpu_pdata_arrays &pdata,
                                          const gpu_boxsize &box,
                                          const gpu_bondtable_array &btable,
