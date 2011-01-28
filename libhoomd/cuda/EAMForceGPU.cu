@@ -186,7 +186,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     float m_pe = 0.0f;
     float pairForce = 0.0f;
     float virial = 0.0f;
-    force.w = force_data.force[idx].w;
+    force.w = d_force[idx].w;
     int nr = eam_data_ti.nr;
     int ntypes = eam_data_ti.ntypes;
     float adef = atomDerivativeEmbeddingFunction[idx];
