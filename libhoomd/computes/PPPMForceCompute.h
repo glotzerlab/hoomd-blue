@@ -49,6 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 #include "ParticleGroup.h"
+#include "kiss_fftnd.h"
 
 #include <vector>
 #include <cufft.h>
@@ -117,14 +118,14 @@ class PPPMForceCompute : public ForceCompute
         void combined_green_e();
         //! Do the final force calculation
         void calculate_forces();
-
+        //! fix the force due to excluded particles
+        void fix_exclusions_cpu();
     protected:
         int m_Nx;                                //!< Number of grid points in x direction
         int m_Ny;                                //!< Number of grid points in y direction
         int m_Nz;                                //!< Number of grid points in z direction
         int m_order;                             //!< Interpolation order
         Scalar m_kappa;                          //!< screening parameter for erfc(kappa*r)
-     	cufftHandle plan;                        //!< Used for the Fast Fourier Transformations performed on the GPU                   
         Scalar m_rcut;                           //!< Real space cutoff
         Scalar2 thermo_quantites;                //!< Store the Fourier space contribution to the pressure and energy 
         Scalar m_q;                              //!< Total system charge
@@ -142,8 +143,15 @@ class PPPMForceCompute : public ForceCompute
         boost::shared_ptr<NeighborList> m_nlist;  //!< The neighborlist to use for the computation
         boost::shared_ptr<ParticleGroup> m_group; //!< Group to compute properties for
 
+      kiss_fft_cpx *fft_in;                     //!< For FFTs on CPU rho_real_space
+      kiss_fft_cpx *fft_ex;                     //!< For FFTs on CPU E-field x component
+      kiss_fft_cpx *fft_ey;                     //!< For FFTs on CPU E-field y component
+      kiss_fft_cpx *fft_ez;                     //!< For FFTs on CPU E-field z component
+      kiss_fftnd_cfg fft_forward;               //!< Forward FFT on CPU
+      kiss_fftnd_cfg fft_inverse;               //!< Inverse FFT on CPU
 
-        std::string m_log_name;                     //!< Cached log name
+      int first_run;                            //!< flag for allocating arrays
+        std::string m_log_name;                   //!< Cached log name
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

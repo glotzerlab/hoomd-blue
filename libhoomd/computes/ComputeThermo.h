@@ -153,6 +153,11 @@ class ComputeThermo : public Compute
 
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        
+        //! Calculates the pppm contribution to the pressure and potential energy
+        Scalar2 PPPM_thermo_compute_cpu();
+
+
     protected:
         boost::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
 //	boost::shared_ptr<PPPMData> m_pppm;     //!< Group to compute properties for

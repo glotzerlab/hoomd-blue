@@ -58,9 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include <math.h>
 
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
 
 using namespace boost;
 using namespace boost::python;
@@ -126,6 +123,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 	m_order = order;
 	m_kappa = kappa;
 	m_rcut = rcut;
+    first_run = 0;
 
 	PPPMData::compute_pppm_flag = 1;
 	if(!(m_Nx == 2)&& !(m_Nx == 4)&& !(m_Nx == 8)&& !(m_Nx == 16)&& !(m_Nx == 32)&& !(m_Nx == 64)&& !(m_Nx == 128)&& !(m_Nx == 256)&& !(m_Nx == 512)&& !(m_Nx == 1024))
@@ -358,14 +356,18 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 	PPPMData::kappa = m_kappa;
 	PPPMData::energy_virial_factor = m_energy_virial_factor;
 
-	m_data_location = cpu;
-
 	m_pdata->release();
+
+#ifdef ENABLE_CUDA
+    // the data is now only up to date on the CPU
+    m_data_location = cpu;
+#endif
+
         }
 
 std::vector< std::string > PPPMForceCompute::getProvidedLogQuantities()
     {
-    vector<string> list;
+   vector<string> list;
     list.push_back("pppm_energy");
     return list;
     }
@@ -392,8 +394,32 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
 /*! Actually perform the force computation
   \param timestep Current time step
 */
+
 void PPPMForceCompute::computeForces(unsigned int timestep)
     {
+
+
+    // start by updating the neighborlist
+    m_nlist->compute(timestep);
+
+    // start the profile for this compute
+    if (m_prof) m_prof->push("PPPM force");
+    int dim[3];
+    dim[0] = m_Nx;
+    dim[1] = m_Ny;
+    dim[2] = m_Nz;
+
+    if(first_run == 0) 
+        {
+        first_run = 1;
+        fft_in = (kiss_fft_cpx *)malloc(m_Nx*m_Ny*m_Nz*sizeof(kiss_fft_cpx));
+        fft_ex = (kiss_fft_cpx *)malloc(m_Nx*m_Ny*m_Nz*sizeof(kiss_fft_cpx));
+        fft_ey = (kiss_fft_cpx *)malloc(m_Nx*m_Ny*m_Nz*sizeof(kiss_fft_cpx));
+        fft_ez = (kiss_fft_cpx *)malloc(m_Nx*m_Ny*m_Nz*sizeof(kiss_fft_cpx));
+
+        fft_forward = kiss_fftnd_alloc(dim, 3, 0, NULL, NULL);
+        fft_inverse = kiss_fftnd_alloc(dim, 3, 1, NULL, NULL);
+        }
 
     if (m_prof) m_prof->push("PPPM");
     
@@ -412,14 +438,75 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 
 //FFTs go next
 
+    ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
+    for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+        fft_in[i].r = (float) h_rho_real_space.data[i].x;
+        fft_in[i].i = (float)0.0;
+        }
+
+    kiss_fftnd(fft_forward, &fft_in[0], &fft_in[0]);
+
+    for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+        h_rho_real_space.data[i].x = fft_in[i].r;
+        h_rho_real_space.data[i].y = fft_in[i].i;
+ 
+        }
+
 	PPPMForceCompute::combined_green_e();
+
 //More FFTs
+
+    ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
+    ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
+    ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
+
+    for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+        fft_ex[i].r = (float) h_Ex.data[i].x;
+        fft_ex[i].i = (float) h_Ex.data[i].y;
+
+        fft_ey[i].r = (float) h_Ey.data[i].x;
+        fft_ey[i].i = (float) h_Ey.data[i].y;
+
+        fft_ez[i].r = (float) h_Ez.data[i].x;
+        fft_ez[i].i = (float) h_Ez.data[i].y;
+        }
+
+
+    kiss_fftnd(fft_inverse, &fft_ex[0], &fft_ex[0]);
+    kiss_fftnd(fft_inverse, &fft_ey[0], &fft_ey[0]);
+    kiss_fftnd(fft_inverse, &fft_ez[0], &fft_ez[0]);
+
+    for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+        h_Ex.data[i].x = fft_ex[i].r;
+        h_Ex.data[i].y = fft_ex[i].i;
+
+        h_Ey.data[i].x = fft_ey[i].r;
+        h_Ey.data[i].y = fft_ey[i].i;
+
+        h_Ez.data[i].x = fft_ez[i].r;
+        h_Ez.data[i].y = fft_ez[i].i;
+        }
+
+   
 
 	PPPMForceCompute::calculate_forces();
 
+    // If there are exclusions, correct for the long-range part of the potential
+    if( m_nlist->getExclusionsSet()) 
+        {
+        PPPMForceCompute::fix_exclusions_cpu();
+        }
+
     m_pdata->release();
   
-
+/*
+    free(fft_in);
+    free(fft_ex);
+    free(fft_ey);
+    free(fft_ez);
+    free(fft_forward);
+    free(fft_inverse);
+*/
 
 #ifdef ENABLE_CUDA
     // the data is now only up to date on the CPU
@@ -427,8 +514,9 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 #endif
     
 //    int64_t flops = size*(3 + 9 + 14 + 2 + 16)1;
-//   int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
+//    int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
     if (m_prof) m_prof->pop(1, 1);
+
     }
 
 Scalar PPPMForceCompute::rms(Scalar h, Scalar prd, Scalar natoms)
@@ -478,7 +566,7 @@ void PPPMForceCompute::compute_rho_coeff()
     {
     int j, k, l, m;
     Scalar s;
-    Scalar *a = (Scalar*)malloc(m_order * (2*m_order+1) * sizeof(Scalar)); 
+    Scalar a[136]; 
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
 
     //    usage: a[x][y] = a[y + x*(2*m_order+1)]
@@ -515,7 +603,7 @@ void PPPMForceCompute::compute_rho_coeff()
             }
         m++;
         }
-    free(a);
+//    free(a);
     }
 
 void PPPMForceCompute::compute_gf_denom()
@@ -816,18 +904,19 @@ void PPPMForceCompute::combined_green_e()
     for(unsigned int i = 0; i < NNN; i++)
         {
 
+        cufftComplex rho_local = h_rho_real_space.data[i];
         Scalar scale_times_green = h_green_hat.data[i] / ((Scalar)(NNN));
-        h_rho_real_space.data[i].x *= scale_times_green;
-        h_rho_real_space.data[i].y *= scale_times_green;
+        rho_local.x *= scale_times_green;
+        rho_local.y *= scale_times_green;
 
-        h_Ex.data[i].x = h_kvec.data[i].x * h_rho_real_space.data[i].y;
-        h_Ex.data[i].y = -h_kvec.data[i].x * h_rho_real_space.data[i].x;
+        h_Ex.data[i].x = h_kvec.data[i].x * rho_local.y;
+        h_Ex.data[i].y = -h_kvec.data[i].x * rho_local.x;
     
-        h_Ey.data[i].x = h_kvec.data[i].y * h_rho_real_space.data[i].y;
-        h_Ey.data[i].y = -h_kvec.data[i].y * h_rho_real_space.data[i].x;
+        h_Ey.data[i].x = h_kvec.data[i].y * rho_local.y;
+        h_Ey.data[i].y = -h_kvec.data[i].y * rho_local.x;
     
-        h_Ez.data[i].x = h_kvec.data[i].z * h_rho_real_space.data[i].y;
-        h_Ez.data[i].y = -h_kvec.data[i].z * h_rho_real_space.data[i].x;
+        h_Ez.data[i].x = h_kvec.data[i].z * rho_local.y;
+        h_Ez.data[i].y = -h_kvec.data[i].z * rho_local.x;
         }
     }
 
@@ -940,6 +1029,83 @@ void PPPMForceCompute::calculate_forces()
             }
         }
     }
+
+void PPPMForceCompute::fix_exclusions_cpu()
+    {
+    unsigned int group_size = m_group->getNumMembers();
+    // just drop out if the group is an empty group
+    if (group_size == 0)
+        return;
+
+    ArrayHandle< unsigned int > d_group_members(m_group->getIndexArray(), access_location::host, access_mode::read);
+    const BoxDim& box = m_pdata->getBox();
+    ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::host, access_mode::read);
+    Index2D nex = m_nlist->getExListIndexer();
+
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+
+    Scalar Lxinv = 1.0/Lx;
+    Scalar Lyinv = 1.0/Ly;
+    Scalar Lzinv = 1.0/Lz;
+
+    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+
+    for(unsigned int i = 0; i < group_size; i++)
+        {
+        Scalar4 force = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
+        Scalar virial = 0.0f;
+        unsigned int idx = d_group_members.data[i];
+        Scalar4 posi;
+        posi.x = arrays.x[idx];
+        posi.y = arrays.y[idx];
+        posi.z = arrays.z[idx];
+        Scalar qi = arrays.charge[idx];
+
+        unsigned int n_neigh = d_n_ex.data[idx];
+        const Scalar sqrtpi = sqrtf(M_PI);
+        unsigned int cur_j = 0;
+
+        for (unsigned int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+            {
+
+            cur_j = d_exlist.data[nex(idx, neigh_idx)];
+           // get the neighbor's position
+            Scalar4 posj;
+            posj.x = arrays.x[cur_j];
+            posj.y = arrays.y[cur_j];
+            posj.z = arrays.z[cur_j];
+            Scalar qj = arrays.charge[cur_j];
+            Scalar dx = posi.x - posj.x;
+            Scalar dy = posi.y - posj.y;
+            Scalar dz = posi.z - posj.z;
+            
+            // apply periodic boundary conditions: (FLOPS 12)
+            dx -= Lx * rintf(dx * Lxinv);
+            dy -= Ly * rintf(dy * Lyinv);
+            dz -= Lz * rintf(dz * Lzinv);
+            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar r = sqrtf(rsq);
+            Scalar qiqj = qi * qj;
+            Scalar erffac = erf(m_kappa * r) / r;
+            Scalar force_divr = qiqj * (-2.0f * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
+            Scalar pair_eng = qiqj * erffac; 
+            virial += Scalar(1.0/6.0) * rsq * force_divr;
+            force.x += dx * force_divr;
+            force.y += dy * force_divr;
+            force.z += dz * force_divr;
+            force.w += pair_eng;
+           }
+        force.w *= 0.5f;
+        m_fx[idx] -= force.x;
+        m_fy[idx] -= force.y;
+        m_fz[idx] -= force.z;
+        m_pe[idx] = -force.w;
+        m_virial[idx] = -virial;
+            }
+        }
 
 void export_PPPMForceCompute()
     {
