@@ -97,13 +97,11 @@ class pppm(force._force):
         # create the c++ mirror class
 
         # update the neighbor list
-        neighbor_list = pair._update_global_nlist(0.01);
-        neighbor_list.subscribe(lambda: self.log*0.01)
+        neighbor_list = pair._update_global_nlist(0.0)
+        neighbor_list.subscribe(lambda: self.log*0.0)
         if not globals.exec_conf.isCUDAEnabled():
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
         else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
