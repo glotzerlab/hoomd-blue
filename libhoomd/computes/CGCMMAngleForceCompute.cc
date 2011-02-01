@@ -85,14 +85,27 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
         }
         
     // allocate the parameters
-    m_K = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    m_t_0 = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    m_eps = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    m_sigma = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    m_rcut = GPUArray<Scalar>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    m_cg_type = GPUArray<unsigned int>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_K = new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
+    m_t_0 = new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
+    m_eps =  new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
+    m_sigma = new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
+    m_rcut =  new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
+    m_cg_type = new unsigned int[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
     
+    assert(m_K);
+    assert(m_t_0);
+    assert(m_eps);
+    assert(m_sigma);
+    assert(m_rcut);
+    assert(m_cg_type);
     
+    memset((void*)m_K,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_t_0,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_eps,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_sigma,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_rcut,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_cg_type,0,sizeof(unsigned int)*m_CGCMMAngle_data->getNAngleTypes());
+
     prefact[0] = Scalar(0.0);
     prefact[1] = Scalar(6.75);
     prefact[2] = Scalar(2.59807621135332);

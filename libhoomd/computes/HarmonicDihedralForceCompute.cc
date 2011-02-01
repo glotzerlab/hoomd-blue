@@ -84,9 +84,9 @@ HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<Sys
         }
         
     // allocate the parameters
-    m_K = GPUArray<Scalar>(m_dihedral_data->getNDihedralTypes(),exec_conf);
-    m_sign = GPUArray<Scalar>(m_dihedral_data->getNDihedralTypes(),exec_conf);
-    m_multi = GPUArray<Scalar>(m_dihedral_data->getNDihedralTypes(),exec_conf);
+    m_K = new Scalar[m_dihedral_data->getNDihedralTypes()];
+    m_sign = new Scalar[m_dihedral_data->getNDihedralTypes()];
+    m_multi = new Scalar[m_dihedral_data->getNDihedralTypes()];
     
     }
 
