@@ -82,13 +82,13 @@ class CGCMMAngleForceCompute : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
     protected:
-        GPUArray<Scalar> m_K;    //!< K parameter for multiple angle tyes
-        GPUArray<Scalar> m_t_0;  //!< t_0 parameter for multiple angle types
+        Scalar *m_K;    //!< K parameter for multiple angle tyes
+        Scalar *m_t_0;  //!< t_0 parameter for multiple angle types
         
         // THESE ARE NEW FOR GC ANGLES
-        GPUArray<Scalar> m_eps;  //!< epsilon parameter for 1-3 repulsion of multiple angle tyes
-        GPUArray<Scalar> m_sigma;//!< sigma parameter for 1-3 repulsion of multiple angle types
-        GPUArray<Scalar> m_rcut;//!< cutoff parameter for 1-3 repulsion of multiple angle types
+        Scalar *m_eps;  //!< epsilon parameter for 1-3 repulsion of multiple angle tyes
+        Scalar *m_sigma;//!< sigma parameter for 1-3 repulsion of multiple angle types
+        Scalar *m_rcut;//!< cutoff parameter for 1-3 repulsion of multiple angle types
         unsigned int *m_cg_type; //!< coarse grain angle type index (0-3)
         
         Scalar prefact[4]; //!< prefact precomputed prefactors for CG-CMM angles

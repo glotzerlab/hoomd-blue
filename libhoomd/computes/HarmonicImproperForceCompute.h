@@ -82,8 +82,8 @@ class HarmonicImproperForceCompute : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
     protected:
-        GPUArray<Scalar> m_K;    //!< K parameter for multiple improper tyes
-        GPUArray<Scalar> m_chi;  //!< Chi parameter for multiple impropers
+        Scalar *m_K;    //!< K parameter for multiple improper tyes
+        Scalar *m_chi;  //!< Chi parameter for multiple impropers
         
         boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data to use in computing impropers
         
