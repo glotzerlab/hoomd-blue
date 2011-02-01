@@ -146,10 +146,12 @@ Scalar ForceCompute::calcEnergySum()
     
     \note These are const pointers so the caller cannot muss with the data
  */
+ /*
 const ForceDataArrays& ForceCompute::acquire()
     {
     return m_arrays;
     }
+*/
 /*! Performs the force computation.
     \param timestep Current Timestep
     \note If compute() has previously been called with a value of timestep equal to

@@ -77,32 +77,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     \ingroup data_structs
 */
-struct ForceDataArrays
-    {
-    //! Zeroes pointers
-    ForceDataArrays();
-    
-    GPUArray<Scalar4> force;
-    GPUArray<Scalar> virial;
-    };
 
-//! Defines an interface for computing forces on each particle
-/*! Derived classes actually provide the implementation that computes the forces.
-    This base class exists so that some other part of the code can have a list of
-    ForceComputes without needing to know what types of forces are being calculated.
-    The base class also implements the data structures both on the CPU and GPU
-    and handles the CPU <-> GPU copies of the force data.
-
-    Like with ParticleData forces are stored with contiguous x,y,z components on the CPU
-    and interleaved ones on the GPU.
-
-    \b OpenMP <br>
-    To aid in OpenMP force computations, the base class ForceCompute will optionally allocate a memory area to hold
-    partial force sums for the forces computed by each CPU thread. The partial arrays will be indexed by the 
-    Index2D m_index_thread_partial created in the allocateThreadPartial() function. 
-
-    \ingroup computes
-*/
 class ForceCompute : public Compute
     {
     public:
@@ -112,9 +87,9 @@ class ForceCompute : public Compute
         //! Destructor
         virtual ~ForceCompute();
         
-        //! Access the computed force data
+        /*//! Access the computed force data
         const ForceDataArrays& acquire();
-
+        */
         //! Store the timestep size
         virtual void setDeltaT(Scalar dt)
             {
@@ -152,6 +127,16 @@ class ForceCompute : public Compute
             return h_force.data[i].w;
             }
         
+        GPUArray<Scalar4>& getForce()
+            {
+            return m_force;
+            }
+        GPUArray<Scalar>& getVirial()
+            {
+            return m_virial;
+            }
+        
+        
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory
         
@@ -172,7 +157,7 @@ class ForceCompute : public Compute
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
                             
         GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
-        GPUArray<Scalar>  m_virial;            //!< per-particle virial (see ForceDataArrays for definition)
+        GPUArray<Scalar>  m_virial;           //!< per-particle virial (see ForceDataArrays for definition)
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
                 
         Scalar4*  m_fdata_partial; //!< Stores partial force/pe for each CPU thread

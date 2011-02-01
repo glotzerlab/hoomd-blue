@@ -538,39 +538,57 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             {
             // grab the device pointers for the current set
             gpu_force_list force_list;
-            const ForceDataArraysGPU& force0 = m_constraint_forces[cur_force]->acquireGPU();
-            force_list.f0 = force0.d_data.force;
-            force_list.v0 = force0.d_data.virial;
+            GPUArray<Scalar4>& d_force_array0 = m_constraint_forces[cur_force]->getForce();
+            ArrayHandle<Scalar4> d_force0(d_force_array0,access_location::device,access_mode::read);
+            GPUArray<Scalar>& d_virial_array0 = m_constraint_forces[cur_force]->getVirial();
+            ArrayHandle<Scalar> d_virial0(d_virial_array0,access_location::device,access_mode::read);;
+            force_list.f0 = d_force0.data;
+            force_list.v0 = d_virial0.data;
             
             if (cur_force+1 < m_constraint_forces.size())
                 {
-                const ForceDataArraysGPU& force1 = m_constraint_forces[cur_force+1]->acquireGPU();
-                force_list.f1 = force1.d_data.force;
-                force_list.v1 = force1.d_data.virial;
+                GPUArray<Scalar4>& d_force_array1 = m_constraint_forces[cur_force+1]->getForce();
+                ArrayHandle<Scalar4> d_force1(d_force_array1,access_location::device,access_mode::read);
+                GPUArray<Scalar>& d_virial_array1 = m_constraint_forces[cur_force+1]->getVirial();
+                ArrayHandle<Scalar> d_virial1(d_virial_array1,access_location::device,access_mode::read);;
+                force_list.f1 = d_force1.data;
+                force_list.v1 = d_virial1.data;
                 }
             if (cur_force+2 < m_constraint_forces.size())
                 {
-                const ForceDataArraysGPU& force2 = m_constraint_forces[cur_force+2]->acquireGPU();
-                force_list.f2 = force2.d_data.force;
-                force_list.v2 = force2.d_data.virial;
+                GPUArray<Scalar4>& d_force_array2 = m_constraint_forces[cur_force+2]->getForce();
+                ArrayHandle<Scalar4> d_force2(d_force_array2,access_location::device,access_mode::read);
+                GPUArray<Scalar>& d_virial_array2 = m_constraint_forces[cur_force+2]->getVirial();
+                ArrayHandle<Scalar> d_virial2(d_virial_array2,access_location::device,access_mode::read);;
+                force_list.f2 = d_force2.data;
+                force_list.v2 = d_virial2.data;
                 }
             if (cur_force+3 < m_constraint_forces.size())
                 {
-                const ForceDataArraysGPU& force3 = m_constraint_forces[cur_force+3]->acquireGPU();
-                force_list.f3 = force3.d_data.force;
-                force_list.v3 = force3.d_data.virial;
+                GPUArray<Scalar4>& d_force_array3 = m_constraint_forces[cur_force+3]->getForce();
+                ArrayHandle<Scalar4> d_force3(d_force_array3,access_location::device,access_mode::read);
+                GPUArray<Scalar>& d_virial_array3 = m_constraint_forces[cur_force+3]->getVirial();
+                ArrayHandle<Scalar> d_virial3(d_virial_array3,access_location::device,access_mode::read);;
+                force_list.f3 = d_force3.data;
+                force_list.v3 = d_virial3.data;
                 }
             if (cur_force+4 < m_constraint_forces.size())
                 {
-                const ForceDataArraysGPU& force4 = m_constraint_forces[cur_force+4]->acquireGPU();
-                force_list.f4 = force4.d_data.force;
-                force_list.v4 = force4.d_data.virial;
+                GPUArray<Scalar4>& d_force_array4 = m_constraint_forces[cur_force+4]->getForce();
+                ArrayHandle<Scalar4> d_force4(d_force_array4,access_location::device,access_mode::read);
+                GPUArray<Scalar>& d_virial_array4 = m_constraint_forces[cur_force+4]->getVirial();
+                ArrayHandle<Scalar> d_virial4(d_virial_array4,access_location::device,access_mode::read);;
+                force_list.f4 = d_force4.data;
+                force_list.v4 = d_virial4.data;
                 }
             if (cur_force+5 < m_constraint_forces.size())
                 {
-                const ForceDataArraysGPU& force5 = m_constraint_forces[cur_force+5]->acquireGPU();
-                force_list.f5 = force5.d_data.force;
-                force_list.v5 = force5.d_data.virial;
+                GPUArray<Scalar4>& d_force_array5 = m_constraint_forces[cur_force+5]->getForce();
+                ArrayHandle<Scalar4> d_force5(d_force_array5,access_location::device,access_mode::read);
+                GPUArray<Scalar>& d_virial_array5 = m_constraint_forces[cur_force+5]->getVirial();
+                ArrayHandle<Scalar> d_virial5(d_virial_array5,access_location::device,access_mode::read);;
+                force_list.f5 = d_force5.data;
+                force_list.v5 = d_virial5.data;
                 }
             
             // clear only on the first iteration AND if there are zero forces
