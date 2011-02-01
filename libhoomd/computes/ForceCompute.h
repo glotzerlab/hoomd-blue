@@ -167,8 +167,6 @@ class ForceCompute : public Compute
         //! Connection to the signal notifying when particles are resorted
         boost::signals::connection m_sort_connection;   
         
-        ForceDataArrays m_arrays;       //!< Structure-of-arrays for quick returning via acquire
-       
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.
