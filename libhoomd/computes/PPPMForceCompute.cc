@@ -362,8 +362,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     // the data is now only up to date on the CPU
     m_data_location = cpu;
 #endif
-
-        }
+    }
 
 std::vector< std::string > PPPMForceCompute::getProvidedLogQuantities()
     {
@@ -397,8 +396,6 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
 
 void PPPMForceCompute::computeForces(unsigned int timestep)
     {
-
-
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
@@ -434,62 +431,64 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         PPPMData::energy_virial_factor = m_energy_virial_factor;
         }
 
-	PPPMForceCompute::assign_charges_to_grid();
+    PPPMForceCompute::assign_charges_to_grid();
 
 //FFTs go next
+    
+        { // scoping array handles
+        ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
+        for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+            fft_in[i].r = (float) h_rho_real_space.data[i].x;
+            fft_in[i].i = (float)0.0;
+            }
 
-    ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
-    for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
-        fft_in[i].r = (float) h_rho_real_space.data[i].x;
-        fft_in[i].i = (float)0.0;
+        kiss_fftnd(fft_forward, &fft_in[0], &fft_in[0]);
+
+        for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+            h_rho_real_space.data[i].x = fft_in[i].r;
+            h_rho_real_space.data[i].y = fft_in[i].i;
+    
+            }
         }
 
-    kiss_fftnd(fft_forward, &fft_in[0], &fft_in[0]);
-
-    for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
-        h_rho_real_space.data[i].x = fft_in[i].r;
-        h_rho_real_space.data[i].y = fft_in[i].i;
- 
-        }
-
-	PPPMForceCompute::combined_green_e();
+    PPPMForceCompute::combined_green_e();
 
 //More FFTs
 
-    ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
+        { // scoping array handles
+        ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
+        ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
+        ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
 
-    for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
-        fft_ex[i].r = (float) h_Ex.data[i].x;
-        fft_ex[i].i = (float) h_Ex.data[i].y;
+        for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+            fft_ex[i].r = (float) h_Ex.data[i].x;
+            fft_ex[i].i = (float) h_Ex.data[i].y;
 
-        fft_ey[i].r = (float) h_Ey.data[i].x;
-        fft_ey[i].i = (float) h_Ey.data[i].y;
+            fft_ey[i].r = (float) h_Ey.data[i].x;
+            fft_ey[i].i = (float) h_Ey.data[i].y;
 
-        fft_ez[i].r = (float) h_Ez.data[i].x;
-        fft_ez[i].i = (float) h_Ez.data[i].y;
+            fft_ez[i].r = (float) h_Ez.data[i].x;
+            fft_ez[i].i = (float) h_Ez.data[i].y;
+            }
+
+
+        kiss_fftnd(fft_inverse, &fft_ex[0], &fft_ex[0]);
+        kiss_fftnd(fft_inverse, &fft_ey[0], &fft_ey[0]);
+        kiss_fftnd(fft_inverse, &fft_ez[0], &fft_ez[0]);
+
+        for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+            h_Ex.data[i].x = fft_ex[i].r;
+            h_Ex.data[i].y = fft_ex[i].i;
+
+            h_Ey.data[i].x = fft_ey[i].r;
+            h_Ey.data[i].y = fft_ey[i].i;
+
+            h_Ez.data[i].x = fft_ez[i].r;
+            h_Ez.data[i].y = fft_ez[i].i;
+            }
         }
 
-
-    kiss_fftnd(fft_inverse, &fft_ex[0], &fft_ex[0]);
-    kiss_fftnd(fft_inverse, &fft_ey[0], &fft_ey[0]);
-    kiss_fftnd(fft_inverse, &fft_ez[0], &fft_ez[0]);
-
-    for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
-        h_Ex.data[i].x = fft_ex[i].r;
-        h_Ex.data[i].y = fft_ex[i].i;
-
-        h_Ey.data[i].x = fft_ey[i].r;
-        h_Ey.data[i].y = fft_ey[i].i;
-
-        h_Ez.data[i].x = fft_ez[i].r;
-        h_Ez.data[i].y = fft_ez[i].i;
-        }
-
-   
-
-	PPPMForceCompute::calculate_forces();
+    PPPMForceCompute::calculate_forces();
 
     // If there are exclusions, correct for the long-range part of the potential
     if( m_nlist->getExclusionsSet()) 
@@ -497,8 +496,6 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         PPPMForceCompute::fix_exclusions_cpu();
         }
 
-    m_pdata->release();
-  
 /*
     free(fft_in);
     free(fft_ex);
@@ -888,6 +885,8 @@ void PPPMForceCompute::assign_charges_to_grid()
                 }
             }
         }
+    
+    m_pdata->release();
     }
 
 void PPPMForceCompute::combined_green_e()
@@ -1028,6 +1027,8 @@ void PPPMForceCompute::calculate_forces()
                 }
             }
         }
+    
+    m_pdata->release();
     }
 
 void PPPMForceCompute::fix_exclusions_cpu()
@@ -1070,7 +1071,6 @@ void PPPMForceCompute::fix_exclusions_cpu()
 
         for (unsigned int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
             {
-
             cur_j = d_exlist.data[nex(idx, neigh_idx)];
            // get the neighbor's position
             Scalar4 posj;
@@ -1097,15 +1097,17 @@ void PPPMForceCompute::fix_exclusions_cpu()
             force.y += dy * force_divr;
             force.z += dz * force_divr;
             force.w += pair_eng;
-           }
+            }
         force.w *= 0.5f;
         m_fx[idx] -= force.x;
         m_fy[idx] -= force.y;
         m_fz[idx] -= force.z;
         m_pe[idx] = -force.w;
         m_virial[idx] = -virial;
-            }
         }
+    
+    m_pdata->release();
+    }
 
 void export_PPPMForceCompute()
     {
