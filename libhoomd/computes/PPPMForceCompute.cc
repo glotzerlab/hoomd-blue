@@ -166,7 +166,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 	m_Ez.swap(n_Ez);
 	GPUArray<Scalar> n_gf_b(order, exec_conf);
 	m_gf_b.swap(n_gf_b);
-	GPUArray<Scalar> n_rho_coeff(order, exec_conf);
+	GPUArray<Scalar> n_rho_coeff(order*(2*order+1), exec_conf);
 	m_rho_coeff.swap(n_rho_coeff);
 	GPUArray<Scalar3> n_field(Nx*Ny*Nz, exec_conf);
 	m_field.swap(n_field);
@@ -572,7 +572,7 @@ void PPPMForceCompute::compute_rho_coeff()
         {
         for(m=0; m<(2*m_order+1); m++)
             {
-            h_rho_coeff.data[m + l*(2*m_order +1)] = 0.0f;
+            a[m + l*(2*m_order +1)] = 0.0f;
             }
         }
 
@@ -600,7 +600,6 @@ void PPPMForceCompute::compute_rho_coeff()
             }
         m++;
         }
-//    free(a);
     }
 
 void PPPMForceCompute::compute_gf_denom()
