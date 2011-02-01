@@ -110,13 +110,14 @@ void ConstraintSphere::computeForces(unsigned int timestep)
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    // need to start from a zero force
-    // MEM TRANSFER: 5*N Scalars
-    m_force.memclear();
-    m_virial.memclear();
     
+   
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+
+    // Zero data for force calculation.
+    memset((void*)h_force,0,sizeof(Scalar4)*m_force.getNumElements);
+    memset((void*)h_virial,0,sizeof(Scalar)*m_virial.getNumElements);
 
    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);

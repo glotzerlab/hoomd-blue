@@ -78,8 +78,10 @@ ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
     {
     assert(m_pdata != NULL);
-        m_force.memclear();
+
         ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
+        //Don't need to zero data for force calculation.
+
         assert(h_force.data);
 
     // setting the force is simple, just fill out every element of the force array
@@ -103,7 +105,6 @@ void ConstForceCompute::setParticleForce(unsigned int i, Scalar fx, Scalar fy, S
     assert(m_pdata != NULL);
     assert(i < m_pdata->getN());
 
-    m_force.memclear();
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
     assert(h_force.data);
 

@@ -86,9 +86,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     GPUArray<Scalar>  virial(num_particles,exec_conf);
     m_force.swap(force);
     m_virial.swap(virial);
-    m_force.memclear();
-    m_virial.memclear();
-
+    
     m_fdata_partial = NULL;
     m_virial_partial = NULL;
   
@@ -125,8 +123,7 @@ ForceCompute::~ForceCompute()
 */
 Scalar ForceCompute::calcEnergySum()
     {
-    const ForceDataArrays& arrays = acquire();
-    
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);   
     // always perform the sum in double precision for better accuracy
     // this is cheating and is really just a temporary hack to get logging up and running
     // the potential accuracy loss in simulations needs to be evaluated here and a proper
@@ -134,7 +131,7 @@ Scalar ForceCompute::calcEnergySum()
     double pe_total = 0.0;
     for (unsigned int i=0; i < m_pdata->getN(); i++)
         {
-        pe_total += (double)arrays.pe[i];
+        pe_total += (double)h_force.data[i].w;
         }
         
     return Scalar(pe_total);
