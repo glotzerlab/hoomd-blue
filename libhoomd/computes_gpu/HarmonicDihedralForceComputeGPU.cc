@@ -123,20 +123,23 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     // the dihedral table is up to date: we are good to go. Call the kernel
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
-    
+      
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+
     // run the kernel in parallel on all GPUs
-    gpu_compute_harmonic_dihedral_forces(m_gpu_forces.d_data,
+    gpu_compute_harmonic_dihedral_forces(d_force.data,
+                                         d_virial.data,
                                          pdata,
                                          box,
                                          gpu_dihedraltable,
                                          m_gpu_params,
                                          m_dihedral_data->getNDihedralTypes(),
                                          m_block_size);
-    CHECK_CUDA_ERROR();
-    
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
-    
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+     
+        
     m_pdata->release();
     
     if (m_prof) m_prof->pop(exec_conf);

@@ -103,8 +103,12 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
 
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+
     // run the kernel in parallel on all GPUs
-    gpu_compute_constraint_sphere_forces(m_gpu_forces.d_data,
+    gpu_compute_constraint_sphere_forces(d_force.data,
+								         d_virial.data,
                                          d_group_members.data,
                                          m_group->getNumMembers(),
                                          pdata,
@@ -116,10 +120,7 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
-    
+   
     m_pdata->release();
     
     if (m_prof)

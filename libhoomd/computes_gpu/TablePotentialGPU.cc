@@ -123,9 +123,13 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     // access the table data
     ArrayHandle<float2> d_tables(m_tables, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
-    
+     
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+ 
     // run the kernel on all GPUs in parallel
-    gpu_compute_table_forces(m_gpu_forces.d_data,
+    gpu_compute_table_forces(d_force.data,
+	                         d_virial.data,
                              pdata,
                              box,
                              d_n_neigh.data,
@@ -141,10 +145,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
         CHECK_CUDA_ERROR();
     
     m_pdata->release();
-    
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
-    
+   
     if (m_prof) m_prof->pop(exec_conf);
     }
 
