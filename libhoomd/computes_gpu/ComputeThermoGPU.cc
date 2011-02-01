@@ -103,12 +103,11 @@ void ComputeThermoGPU::computeProperties()
     assert(m_pdata);
     assert(m_ndof != 0);
     
-    assert(m_pppm);
-
     // access the particle data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
-   
+    
+    { // scope these array handles so they are released before the additional terms are added
     // access the net force, pe, and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
@@ -142,6 +141,7 @@ void ComputeThermoGPU::computeProperties()
         CHECK_CUDA_ERROR();
     
     m_pdata->release();
+    }
 
     if(PPPMData::compute_pppm_flag) {
         Scalar2 pppm_thermo = ComputeThermoGPU::PPPM_thermo_compute();

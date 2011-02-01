@@ -211,9 +211,6 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     // the force data is now only up to date on the gpu
     m_data_location = gpu;
 
-    m_pdata->release();
-
-
     // If there are exclusions, correct for the long-range part of the potential
     if( m_nlist->getExclusionsSet()) 
         {
@@ -236,11 +233,11 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 
         // the force data is now only up to date on the gpu
         m_data_location = gpu;
-
-        m_pdata->release();
         }
 
 
+
+    m_pdata->release();
  
     //   int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
     //    int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+3+7);
