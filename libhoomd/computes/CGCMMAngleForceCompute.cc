@@ -85,12 +85,12 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
         }
         
     // allocate the parameters
-    m_K = new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
-    m_t_0 = new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
-    m_eps =  new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
-    m_sigma = new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
-    m_rcut =  new Scalar[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
-    m_cg_type = new unsigned int[m_CGCMMAngle_data->getNAngleTypes(),exec_conf];
+    m_K = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+    m_t_0 = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+    m_eps =  new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+    m_sigma = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+    m_rcut =  new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+    m_cg_type = new unsigned int[m_CGCMMAngle_data->getNAngleTypes()];
     
     assert(m_K);
     assert(m_t_0);
@@ -224,8 +224,8 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
     // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements);
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements);
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);

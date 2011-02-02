@@ -313,8 +313,8 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
  
     // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements);
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements);
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe

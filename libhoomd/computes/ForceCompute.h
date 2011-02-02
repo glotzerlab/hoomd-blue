@@ -127,11 +127,11 @@ class ForceCompute : public Compute
             return h_force.data[i].w;
             }
         
-        GPUArray<Scalar4>& getForce()
+        GPUArray<Scalar4>& getForceArray()
             {
             return m_force;
             }
-        GPUArray<Scalar>& getVirial()
+        GPUArray<Scalar>& getVirialArray()
             {
             return m_virial;
             }

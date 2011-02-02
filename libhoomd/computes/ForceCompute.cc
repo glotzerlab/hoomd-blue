@@ -63,12 +63,6 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-/*! \post \c force, and \c virial are all initialized as empty arrays
-*/
-ForceDataArrays::ForceDataArrays()
-    {
-    }
-
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
     \post \c force and \c virial GPUarrays are initialized
@@ -137,18 +131,6 @@ Scalar ForceCompute::calcEnergySum()
     return Scalar(pe_total);
     }
 
-/*! Access the computed forces on the CPU, this may require copying data from the GPU
-    \returns Structure of arrays of the x,y,and z components of the forces on each particle
-    calculated by the last call to compute()
-    
-    \note These are const pointers so the caller cannot muss with the data
- */
- /*
-const ForceDataArrays& ForceCompute::acquire()
-    {
-    return m_arrays;
-    }
-*/
 /*! Performs the force computation.
     \param timestep Current Timestep
     \note If compute() has previously been called with a value of timestep equal to
@@ -221,7 +203,8 @@ void export_ForceCompute()
     {
     class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
     ("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
-    .def("acquire", &ForceCompute::acquire, return_value_policy<copy_const_reference>())
+    .def("getForceArray", &ForceCompute::getForceArray, return_value_policy<copy_const_reference>())
+    .def("getVirialArray", &ForceCompute::getVirialArray, return_value_policy<copy_const_reference>())
     .def("getForce", &ForceCompute::getForce)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)

@@ -84,10 +84,10 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     assert(m_ntypes > 0);
     
     // allocate storage for lj12, lj9, lj6, and lj4 parameters
-    m_lj12 = new Scalar[m_ntypes*m_ntypes,exec_conf];
-    m_lj9 = new Scalar[m_ntypes*m_ntypes,exec_conf];
-    m_lj6 = new Scalar[m_ntypes*m_ntypes,exec_conf];
-    m_lj4 = new Scalar[m_ntypes*m_ntypes,exec_conf];
+    m_lj12 = new Scalar[m_ntypes*m_ntypes];
+    m_lj9 = new Scalar[m_ntypes*m_ntypes];
+    m_lj6 = new Scalar[m_ntypes*m_ntypes];
+    m_lj4 = new Scalar[m_ntypes*m_ntypes];
     
     assert(m_lj12);
     assert(m_lj9);
@@ -215,8 +215,8 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
     // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements);
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements);
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);

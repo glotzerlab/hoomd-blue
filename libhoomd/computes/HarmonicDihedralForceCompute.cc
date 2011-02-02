@@ -171,8 +171,8 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
     // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements);
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements);
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -415,25 +415,25 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
         Scalar dihedral_virial = Scalar(1.0/12.0)*(vx + vy + vz);
        
-        h_force.data[idx_a].x + =ffax; 
+        h_force.data[idx_a].x += ffax; 
         h_force.data[idx_a].y += ffay; 
         h_force.data[idx_a].z += ffaz; 
         h_force.data[idx_a].w += dihedral_eng; 
         h_virial.data[idx_a]  += dihedral_virial; 
 
-        h_force.data[idx_b].x + =ffbx; 
+        h_force.data[idx_b].x += ffbx; 
         h_force.data[idx_b].y += ffby; 
         h_force.data[idx_b].z += ffbz; 
         h_force.data[idx_b].w += dihedral_eng; 
         h_virial.data[idx_b]  += dihedral_virial; 
 
-        h_force.data[idx_c].x + =ffcx; 
+        h_force.data[idx_c].x += ffcx; 
         h_force.data[idx_c].y += ffcy; 
         h_force.data[idx_c].z += ffcz; 
         h_force.data[idx_c].w += dihedral_eng; 
         h_virial.data[idx_c]  += dihedral_virial; 
 
-        h_force.data[idx_d].x + =ffdx; 
+        h_force.data[idx_d].x += ffdx; 
         h_force.data[idx_d].y += ffdy; 
         h_force.data[idx_d].z += ffdz; 
         h_force.data[idx_d].w += dihedral_eng; 
