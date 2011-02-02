@@ -38,32 +38,29 @@
 #OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 #ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# $Id: pair.py 3644 2011-01-25 13:52:25Z joaander $
-# $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/electrostatics/python-module/hoomd_script/pair.py $
+# $Id: charge.py 3644 2011-01-25 13:52:25Z joaander $
+# $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/electrostatics/python-module/hoomd_script/charge.py $
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 ## \package hoomd_script.charge
 # \brief Commands that create forces between pairs of particles
 #
-# Generally, %pair forces are short range and are summed over all non-bonded particles
-# within a certain cutoff radius of each particle. Any number of %pair forces
-# can be defined in a single simulation. The net %force on each particle due to
-# all types of %pair forces is summed.
+# Charged interactions are usually long ranged, and for computational efficiency this is split
+# into two parts, one part computed in real space and on in Fourier space. Only one method of
+# computing charged interactions should be used.
 #
-# Pair forces require that parameters be set for each unique type %pair. Coefficients
+# Charged interactions require that only one set of parameters be set. Coefficients
 # are set through the aid of the coeff class. To set this coefficients, specify 
-# a %pair %force and save it in a variable
+# a %charge %force and save it in a variable
 # \code
-# my_force = pair.some_pair_force(arguments...)
+# my_force = charge.some_charge_force(arguments...)
 # \endcode
 # Then the coefficients can be set using the saved variable.
 # \code
-# my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
-# my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
+# my_force.pair_coeff.set(Nx=64, Ny=64, Nz=64, order=5, rcut=3.0)
 # \endcode
-# This example set the parameters \a epsilon and \a sigma 
-# (which are used in pair.lj). Different %pair forces require that different
+# This example set the parameters Nx, Ny, Nz, order, and rcut
+# (which are used in charge.pppm). Different %charge forces require that different
 # coefficients are set. Check the documentation of each to see the definition
 # of the coefficients.
 #
@@ -82,12 +79,27 @@ import pair;
 import math;
 import sys;
 
+from math import sqrt
 
+## Long-range part of the PPPM force
+#
+# The command charge.pppm specifies that the long-ranged part of the PPPM force is computed between all charged particles
+# in the simulation. 
+# Coeffients:
+# - Nx - Number of grid points in x direction
+# - Ny - Number of grid points in y direction
+# - Nz - Number of grid points in z direction
+# - order - Number of grid points in each direction to assign charges to
+# - \f$ r_{\mathrm{cut}} \f$ - Cutoff for the short-ranged part of the electrostatics calculation
+#
+# Coefficients Nx, Ny, Nz, order, \f$ r_{\mathrm{cut}} \f$ must be set using
+# set_coeff().
+#
 class pppm(force._force):
     ## Specify the long-ranged part of the electrostatic calculation
     # \b Example:
     # \code
-    # pppm = pair.pppm(group=charged)
+    # pppm = charge.pppm(group=group.all())
     # \endcode
     def __init__(self, group):
         util.print_status_line();
@@ -112,24 +124,69 @@ class pppm(force._force):
     # \param Ny - Number of grid points in y direction
     # \param Nz - Number of grid points in z direction
     # \param order - Number of grid points in each direction to assign charges to
-    # \param kappa -  Screening parameter in erfc
     # \param rcut  -  Cutoff for the short-ranged part of the electrostatics calculation
     #
     # Using set_coeff() requires that the specified PPPM force has been saved in a variable. i.e.
     # \code
-    # pppm = pair.pppm()
+    # pppm = charge.pppm()
     # \endcode
     #
     # \b Examples:
     # \code
-    # pppm.set_coeff(Nx=64, Ny=64, Nz=64, order=6, kappa=1.5, rcut=2.0)
+    # pppm.set_coeff(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
     # \endcode
-    #
+    # Note that the Fourier transforms are much faster for number of grid points of the form 2^N
     # The coefficients for PPPM  must be set 
     # before the run() can be started.
-    def set_coeff(self, Nx, Ny, Nz, order, kappa, rcut):
+    def set_coeff(self, Nx, Ny, Nz, order, rcut):
         util.print_status_line();
 
+        q2 = 0
+        N = globals.system_definition.getParticleData().getN()
+        for i in xrange(0,N):
+            q = globals.system_definition.getParticleData().getCharge(i)
+            q2 += q*q
+        box = globals.system_definition.getParticleData().getBox()
+        Lx = box.xhi - box.xlo
+        Ly = box.yhi - box.ylo
+        Lz = box.zhi - box.zlo
+
+        hx = Lx/Nx
+        hy = Ly/Ny
+        hz = Lz/Nz
+
+        gew1 = 0.0
+        kappa = gew1
+        f = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
+        hmin = min(hx, hy, hz)
+        gew2 = 10.0/hmin
+        kappa = gew2
+        fmid = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
+   
+        if f*fmid >= 0.0:
+            print "Cannot compute PPPM"
+            sys.exit(0)
+
+        if f < 0.0:
+            dgew=gew2-gew1
+            rtb = gew1
+        else:
+            dgew=gew1-gew2
+            rtb = gew2
+
+        ncount = 0
+
+        while math.fabs(dgew) > 0.00001 and fmid != 0.0:
+            dgew *= 0.5
+            kappa = rtb + dgew
+            fmid = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
+            if fmid <= 0.0:
+                rtb = kappa
+            ncount += 1
+            if ncount > 10000.0:
+                print "Cannot compute PPPM"
+                sys.exit(0)
+        
         ewald = pair.ewald(r_cut = rcut)
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -145,3 +202,50 @@ class pppm(force._force):
 
     def update_coeffs(self):
         pass
+
+def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
+    lprx = rms(hx, xprd, N, order, kappa, q2)
+    lpry = rms(hy, yprd, N, order, kappa, q2)
+    lprz = rms(hz, zprd, N, order, kappa, q2)
+    kspace_prec = math.sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0)
+    real_prec = 2.0*q2 * math.exp(-kappa*kappa*rcut*rcut)/sqrt(N*rcut*xprd*yprd*zprd)
+    value = kspace_prec - real_prec
+    return value
+
+def rms(h, prd, N, order, kappa, q2):
+    acons = [[0 for _ in xrange(8)] for _ in xrange(8)]
+
+    acons[1][0] = 2.0 / 3.0
+    acons[2][0] = 1.0 / 50.0
+    acons[2][1] = 5.0 / 294.0
+    acons[3][0] = 1.0 / 588.0
+    acons[3][1] = 7.0 / 1440.0
+    acons[3][2] = 21.0 / 3872.0
+    acons[4][0] = 1.0 / 4320.0
+    acons[4][1] = 3.0 / 1936.0
+    acons[4][2] = 7601.0 / 2271360.0
+    acons[4][3] = 143.0 / 28800.0
+    acons[5][0] = 1.0 / 23232.0
+    acons[5][1] = 7601.0 / 13628160.0
+    acons[5][2] = 143.0 / 69120.0
+    acons[5][3] = 517231.0 / 106536960.0
+    acons[5][4] = 106640677.0 / 11737571328.0
+    acons[6][0] = 691.0 / 68140800.0
+    acons[6][1] = 13.0 / 57600.0
+    acons[6][2] = 47021.0 / 35512320.0
+    acons[6][3] = 9694607.0 / 2095994880.0
+    acons[6][4] = 733191589.0 / 59609088000.0
+    acons[6][5] = 326190917.0 / 11700633600.0
+    acons[7][0] = 1.0 / 345600.0
+    acons[7][1] = 3617.0 / 35512320.0
+    acons[7][2] = 745739.0 / 838397952.0
+    acons[7][3] = 56399353.0 / 12773376000.0
+    acons[7][4] = 25091609.0 / 1560084480.0
+    acons[7][5] = 1755948832039.0 / 36229939200000.0
+    acons[7][6] = 4887769399.0 / 37838389248.0
+
+    sum = 0.0
+    for m in xrange(0,order):
+        sum += acons[order][m]*pow(h*kappa, 2.0*m)
+    value = q2*pow(h*kappa,order)*sqrt(kappa*prd*sqrt(2.0*math.pi)*sum/N)/prd/prd
+    return value

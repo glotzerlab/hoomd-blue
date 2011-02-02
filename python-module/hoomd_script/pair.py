@@ -1234,8 +1234,6 @@ class yukawa(pair):
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
 # - \f$ \kappa \f$ - \c kappa
-# - \f$ \mathrm{grid} \f$ - number of grid points
-# - \f$ \mathrm{order} \f$ - interpolation order
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on
@@ -1247,8 +1245,8 @@ class yukawa(pair):
 #
 # \b Example:
 # \code
-# ewald.pair_coeff.set('A', 'A', kappa=1.0, grid = 64, order = 5)
-# ewald.pair_coeff.set('A', 'B', kappa=1.0, grid = 64, order = 5, r_cut=3.0, r_on=2.0);
+# ewald.pair_coeff.set('A', 'A', kappa=1.0)
+# ewald.pair_coeff.set('A', 'B', kappa=1.0, r_cut=3.0, r_on=2.0);
 # \endcode
 #
 # The cutoff radius \a r_cut passed into the initial pair.ewald command sets the default \a r_cut for all %pair
@@ -1957,73 +1955,3 @@ class eam(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         pass;
-
-## Long-range part of the PPPM force
-#
-# The command pair.pppm specifies that the long-ranged part of the PPPM force is computed between all charged particles
-# in the simulation. 
-# Coeffients:
-# - Nx - Number of grid points in x direction
-# - Ny - Number of grid points in y direction
-# - Nz - Number of grid points in z direction
-# - order - Number of grid points in each direction to assign charges to
-# - \f$ \kappa \f$ -  Screening parameter in erfc
-# - \f$ r_{\mathrm{cut}} \f$ - Cutoff for the short-ranged part of the electrostatics calculation
-#
-# Coefficients Nx, Ny, Nz, order, \f$ \kappa \f$, \f$ r_{\mathrm{cut}} \f$ must be set using
-# set_coeff().
-#
-class pppm(force._force):
-    ## Specify the long-ranged part of the electrostatic calculation
-    # \b Example:
-    # \code
-    # pppm = pair.pppm(group=charged)
-    # \endcode
-    def __init__(self, group):
-        util.print_status_line();
-       
-        # initialize the base class
-        force._force.__init__(self);
-        # create the c++ mirror class
-
-        # update the neighbor list
-        neighbor_list = _update_global_nlist(0.01);
-        neighbor_list.subscribe(lambda: self.log*0.01)
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
-        else:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
-#            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.pppm'));
-
-        globals.system.addCompute(self.cpp_force, self.force_name);
-   
-    ## Sets the PPPM coefficients
-    #
-    # \param Nx - Number of grid points in x direction
-    # \param Ny - Number of grid points in y direction
-    # \param Nz - Number of grid points in z direction
-    # \param order - Number of grid points in each direction to assign charges to
-    # \param kappa -  Screening parameter in erfc
-    # \param rcut  -  Cutoff for the short-ranged part of the electrostatics calculation
-    #
-    # Using set_coeff() requires that the specified PPPM force has been saved in a variable. i.e.
-    # \code
-    # pppm = pair.pppm()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # pppm.set_coeff(Nx=64, Ny=64, Nz=64, order=6, kappa=1.5, rcut=2.0)
-    # \endcode
-    #
-    # The coefficients for PPPM  must be set 
-    # before the run() can be started.
-    def set_coeff(self, Nx, Ny, Nz, order, kappa, rcut):
-        util.print_status_line();
-        
-        # set the parameters for the appropriate type
-        self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);
-
-    def update_coeffs(self):
-        pass
