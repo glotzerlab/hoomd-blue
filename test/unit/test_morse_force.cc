@@ -106,21 +106,24 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     // compute the forces
     fc_3->compute(0);
     
-    ForceDataArrays force_arrays = fc_3->acquire();
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 1.1520395075261485, tol);
-    MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -0.9328248052694093/2.0, tol);
+    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
+    ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
+    MY_BOOST_CHECK_CLOSE(force_array_1[0].x, 1.1520395075261485, tol);
+    MY_BOOST_CHECK_SMALL(force_array_1[0].y, tol_small);
+    MY_BOOST_CHECK_SMALL(force_array_1[0].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(force_array_1[0].w, -0.9328248052694093/2.0, tol);
       
-    MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], -0.9328248052694093, tol);
+    MY_BOOST_CHECK_SMALL(force_array_1[1].x, tol_small);
+    MY_BOOST_CHECK_SMALL(force_array_1[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(force_array_1[1].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(force_array_1[1].w, -0.9328248052694093, tol);
       
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -1.1520395075261485, tol);
-    MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], -0.9328248052694093/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(force_array_1[2].x, -1.1520395075261485, tol);
+    MY_BOOST_CHECK_SMALL(force_array_1[2].y, tol_small);
+    MY_BOOST_CHECK_SMALL(force_array_1[2].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(force_array_1[2].w, -0.9328248052694093/2.0, tol);
       
     // swap the order of particles 0 and 2 in memory to check that the force compute handles this properly
     arrays = pdata_3->acquireReadWrite();
@@ -138,9 +141,12 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
-    force_arrays = fc_3->acquire();
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -1.1520395075261485, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 1.1520395075261485, tol);
+    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
+    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
+    ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
+    ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
+    MY_BOOST_CHECK_CLOSE(force_array_2[0].x, -1.1520395075261485, tol);
+    MY_BOOST_CHECK_CLOSE(force_array_2[2].x, 1.1520395075261485, tol);
     }
 
 //! Unit test a comparison between 2 PotentialPairMorse's on a "real" system
