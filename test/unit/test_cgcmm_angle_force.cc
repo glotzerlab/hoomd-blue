@@ -98,15 +98,30 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     
     // compute the force and check the results
     fc_3->compute(0);
-    ForceDataArrays force_arrays = fc_3->acquire();
-    
+
+    //New Force data access pattern
+    //ForceDataArrays force_arrays = fc_3->acquire();
+    GPUArray<Scalar4>& force_array = fc_3->getForceArray();    
+    GPUArray<Scalar>& virial_array = fc_3->getVirialArray();    
+    ArrayHandle<Scalar4> h_force(force_array,access_location::host,access_mode::read);
+    ArrayHandle<Scalar> h_virial(virial_array,access_location::host,access_mode::read);
+
+/*  OLD Checks
     // check that the force is correct, it should be 0 since we haven't created any angles yet
     MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
     MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
-    
+  */  
+    //new checks
+
+    MY_BOOST_CHECK_SMALL(h_force.data[0].x, tol);
+    MY_BOOST_CHECK_SMALL(h_force.data[0].y, tol);
+    MY_BOOST_CHECK_SMALL(h_force.data[0].z, tol);
+    MY_BOOST_CHECK_SMALL(h_force.data[0].w, tol);
+    MY_BOOST_CHECK_SMALL(h_virial.data[0], tol);
+
     // add an angle and check again
     sysdef_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
     fc_3->compute(1);
