@@ -110,11 +110,11 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     //ArrayHandle<Scalar> h_virial(virial_array,access_location::host,access_mode::read);
 
     // check that the force is correct, it should be 0 since we haven't created any angles yet
-    MY_BOOST_CHECK_SMALL(force_array_1[0].x, tol);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].y, tol);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].z, tol);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].w, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_1[0], tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_1.data[0], tol);
 
     //new checks
 
@@ -133,11 +133,11 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(force_array_2[0].x, -0.061684, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_2[0].y, -0.313469, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_2[0].z, -0.195460, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_2[0].w, 0.158576, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_2[0], tol);
+    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -0.061684, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].y, -0.313469, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, -0.195460, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 0.158576, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_2.data[0], tol);
     
     
     // rearrange the two particles in memory and see if they are properly updated
@@ -166,11 +166,11 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     
-    MY_BOOST_CHECK_CLOSE(force_array_3[1].x, -0.0616840, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_3[1].y, -0.3134695, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_3[1].z, -0.195460, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_3[1].w, 0.158576, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_3[1], tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -0.0616840, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, -0.3134695, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -0.195460, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.158576, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_3.data[1], tol);
     //pdata_3->release();
     
     ////////////////////////////////////////////////////////////////////
@@ -207,41 +207,41 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
     
     
-    MY_BOOST_CHECK_SMALL(force_array_4[0].x, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[0].y, -1.5510634,tol);
-    MY_BOOST_CHECK_SMALL(force_array_4[0].z, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[0].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_4[0], tol);
+    MY_BOOST_CHECK_SMALL(h_force_4.data[0].x, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].y, -1.5510634,tol);
+    MY_BOOST_CHECK_SMALL(h_force_4.data[0].z, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].w, 0.256618, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[0], tol);
     
-    MY_BOOST_CHECK_CLOSE(force_array_4[1].x, -0.0510595, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[1].y, 1.5760721,tol);
-    MY_BOOST_CHECK_SMALL(force_array_4[1].z, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[1].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_4[1], tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, -0.0510595, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 1.5760721,tol);
+    MY_BOOST_CHECK_SMALL(h_force_4.data[1].z, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].w, 0.256618, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[1], tol);
     
-    MY_BOOST_CHECK_CLOSE(force_array_4[2].x, 0.0510595,tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[2].y, -0.0250087, tol);
-    MY_BOOST_CHECK_SMALL(force_array_4[2].z, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[2].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_4[2], tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].x, 0.0510595,tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -0.0250087, tol);
+    MY_BOOST_CHECK_SMALL(h_force_4.data[2].z, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].w, 0.256618, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[2], tol);
     
-    MY_BOOST_CHECK_SMALL(force_array_4[3].x, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[3].y, 0.0515151, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[3].z, -0.03411135,tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[3].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_4[3], tol);
+    MY_BOOST_CHECK_SMALL(h_force_4.data[3].x, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 0.0515151, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].z, -0.03411135,tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].w, 0.400928, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[3], tol);
     
-    MY_BOOST_CHECK_SMALL(force_array_4[4].x, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[4].y, -2.793305,tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[4].z, 0.0341109, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[4].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_4[4], tol);
+    MY_BOOST_CHECK_SMALL(h_force_4.data[4].x, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].y, -2.793305,tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].z, 0.0341109, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].w, 0.400928, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[4], tol);
     
-    MY_BOOST_CHECK_SMALL(force_array_4[5].x, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[5].y, 2.74178982,tol);
-    MY_BOOST_CHECK_SMALL(force_array_4[5].z, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[5].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_4[5], tol);
+    MY_BOOST_CHECK_SMALL(h_force_4.data[5].x, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].y, 2.74178982,tol);
+    MY_BOOST_CHECK_SMALL(h_force_4.data[5].z, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].w, 0.400928, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[5], tol);
     
     //////////////////////////////////////////////////////////////////////
     // THE DREADED 4 PARTICLE TEST -- see CGCMMAngleForceGPU.cu //
@@ -286,31 +286,31 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
     
-    MY_BOOST_CHECK_CLOSE(force_array_5[0].x, -3.531810,tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[0].y, -3.531810, tol);
-    MY_BOOST_CHECK_SMALL(force_array_5[0].z, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[0].w, 0.676081, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_5[0], tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].x, -3.531810,tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].y, -3.531810, tol);
+    MY_BOOST_CHECK_SMALL(h_force_5.data[0].z, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].w, 0.676081, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_5.data[0], tol);
     
-    MY_BOOST_CHECK_CLOSE(force_array_5[1].x, -0.785398,tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[1].y, 7.063621,tol);
-    MY_BOOST_CHECK_SMALL(force_array_5[1].z, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[1].w, 0.778889, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_5[1], tol);
-    
-    
-    MY_BOOST_CHECK_SMALL(force_array_5[2].x, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[2].y, -0.785399,tol);
-    MY_BOOST_CHECK_SMALL(force_array_5[2].z, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[2].w, 0.102808, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_5[2], tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, -0.785398,tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].y, 7.063621,tol);
+    MY_BOOST_CHECK_SMALL(h_force_5.data[1].z, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].w, 0.778889, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_5.data[1], tol);
     
     
-    MY_BOOST_CHECK_CLOSE(force_array_5[3].x, 4.317209,tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[3].y, -2.746412,tol);
-    MY_BOOST_CHECK_SMALL(force_array_5[3].z, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[3].w, 0.778889, tol);
-    MY_BOOST_CHECK_SMALL(virial_array_5[3], tol);
+    MY_BOOST_CHECK_SMALL(h_force_5.data[2].x, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, -0.785399,tol);
+    MY_BOOST_CHECK_SMALL(h_force_5.data[2].z, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].w, 0.102808, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_5.data[2], tol);
+    
+    
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].x, 4.317209,tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, -2.746412,tol);
+    MY_BOOST_CHECK_SMALL(h_force_5.data[3].z, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].w, 0.778889, tol);
+    MY_BOOST_CHECK_SMALL(h_virial_5.data[3], tol);
     
     }
 

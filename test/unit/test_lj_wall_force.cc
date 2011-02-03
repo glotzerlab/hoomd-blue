@@ -106,20 +106,20 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].z, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol_small);
     
-    MY_BOOST_CHECK_SMALL(force_array_1[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[1].z, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[1].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].w, tol_small);
     
-    MY_BOOST_CHECK_SMALL(force_array_1[2].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[2].z, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[2].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].w, tol_small);
     
     // add the walls
     sysdef_3->getWallData()->addWall(Wall(0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
@@ -134,20 +134,20 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_SMALL(force_array_2[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[0].z, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[0].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[0].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[0].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[0].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[0].w, tol_small);
     
-    MY_BOOST_CHECK_SMALL(force_array_2[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[1].z, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[1].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[1].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[1].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[1].w, tol_small);
     
-    MY_BOOST_CHECK_SMALL(force_array_2[2].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[2].z, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_2[2].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[2].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[2].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[2].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_2.data[2].w, tol_small);
     
     // increase the cuttoff to check the actual force computation
     fc_3->setRCut(3.0);
@@ -156,20 +156,20 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_SMALL(force_array_3[0].x, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_3[0].y, -2.54344734, tol);
-    MY_BOOST_CHECK_SMALL(force_array_3[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_3[0].w, -1.0246100807205, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[0].x, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].y, -2.54344734, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[0].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].w, -1.0246100807205, tol);
     
-    MY_BOOST_CHECK_CLOSE(force_array_3[1].x, -0.108697879, tol);
-    MY_BOOST_CHECK_SMALL(force_array_3[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_3[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_3[1].w, -0.04021378505, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -0.108697879, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[1].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, -0.04021378505, tol);
     
-    MY_BOOST_CHECK_SMALL(force_array_3[2].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_3[2].y, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_3[2].z, 0.0159463169, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_3[2].w, -0.0077203876329103, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[2].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[2].y, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].z, 0.0159463169, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].w, -0.0077203876329103, tol);
     }
 
 //! LJWallForceCompute creator for unit tests

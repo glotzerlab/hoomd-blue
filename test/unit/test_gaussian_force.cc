@@ -113,23 +113,23 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(force_array_1[0].x, -0.622542302888418, tol);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_1[0].w, 0.155635575722105/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(virial_array_1[0], 0.103757050481403, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -0.622542302888418, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 0.155635575722105/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_virial_1.data[0], 0.103757050481403, tol);
     
-    MY_BOOST_CHECK_SMALL(force_array_1[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_1[1].w, 0.155635575722105, tol);
-    MY_BOOST_CHECK_CLOSE(virial_array_1[1], 0.103757050481403*2, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, 0.155635575722105, tol);
+    MY_BOOST_CHECK_CLOSE(h_virial_1.data[1], 0.103757050481403*2, tol);
     
-    MY_BOOST_CHECK_CLOSE(force_array_1[2].x, 0.622542302888418, tol);
-    MY_BOOST_CHECK_SMALL(force_array_1[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_1[2].w, 0.155635575722105/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(virial_array_1[2], 0.103757050481403, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, 0.622542302888418, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, 0.155635575722105/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_virial_1.data[2], 0.103757050481403, tol);
     
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
     arrays = pdata_3->acquireReadWrite();
@@ -151,8 +151,8 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(force_array_2[0].x, 0.622542302888418, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_2[2].x, -0.622542302888418, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, 0.622542302888418, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, -0.622542302888418, tol);
     }
 
 //! Tests the ability of a PotentialPairGauss to handle periodic boundary conditions
@@ -211,40 +211,40 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     // particle 0 should be pushed right
-    MY_BOOST_CHECK_CLOSE(force_array_3[0].x, 2.224298403625553*0.8, tol);
-    MY_BOOST_CHECK_SMALL(force_array_3[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_3[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(virial_array_3[0], 0.296573120483407*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, 2.224298403625553*0.8, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[0].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[0].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial_3.data[0], 0.296573120483407*0.8, tol);
     
     // particle 1 should be pushed left
-    MY_BOOST_CHECK_CLOSE(force_array_3[1].x, -2.224298403625553*0.8, tol);
-    MY_BOOST_CHECK_SMALL(force_array_3[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_3[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(virial_array_3[1], 0.296573120483407*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -2.224298403625553*0.8, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[1].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial_3.data[1], 0.296573120483407*0.8, tol);
     
     // particle 2 should be pushed up
-    MY_BOOST_CHECK_CLOSE(force_array_3[2].y, 3.336447605438329*0.8, tol);
-    MY_BOOST_CHECK_SMALL(force_array_3[2].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_3[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(virial_array_3[2], 0.444859680725111*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].y, 3.336447605438329*0.8, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[2].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[2].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial_3.data[2], 0.444859680725111*0.8, tol);
     
     // particle 3 should be pushed down
-    MY_BOOST_CHECK_CLOSE(force_array_3[3].y, -3.336447605438329*0.8, tol);
-    MY_BOOST_CHECK_SMALL(force_array_3[3].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_3[3].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(virial_array_3[3], 0.444859680725111*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].y, -3.336447605438329*0.8, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[3].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[3].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial_3.data[3], 0.444859680725111*0.8, tol);
     
     // particle 4 should be pushed forward
-    MY_BOOST_CHECK_CLOSE(force_array_3[4].z, 5.560746009063882*0.8, tol);
-    MY_BOOST_CHECK_SMALL(force_array_3[4].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_3[4].y, tol_small);
-    MY_BOOST_CHECK_CLOSE(virial_array_3[4], 0.741432801208518*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[4].z, 5.560746009063882*0.8, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[4].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[4].y, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial_3.data[4], 0.741432801208518*0.8, tol);
     
     // particle 3 should be pushed back
-    MY_BOOST_CHECK_CLOSE(force_array_3[5].z, -5.560746009063882*0.8, tol);
-    MY_BOOST_CHECK_SMALL(force_array_3[5].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_3[5].y, tol_small);
-    MY_BOOST_CHECK_CLOSE(virial_array_3[5], 0.741432801208518*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_3.data[5].z, -5.560746009063882*0.8, tol);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[5].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_3.data[5].y, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial_3.data[5], 0.741432801208518*0.8, tol);
     }
 
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
@@ -345,10 +345,10 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
     
-    MY_BOOST_CHECK_CLOSE(force_array_4[0].x, -0.055555065284237, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[0].w, 0.019841094744370/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[1].x, 0.055555065284237, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_4[1].w, 0.019841094744370/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].x, -0.055555065284237, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].w, 0.019841094744370/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, 0.055555065284237, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].w, 0.019841094744370/2.0, tol);
     
     GPUArray<Scalar4>& force_array_5 =  fc_shift->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_shift->getVirialArray();
@@ -356,10 +356,10 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
 
     // shifted just has pe shifted by a given amount
-    MY_BOOST_CHECK_CLOSE(force_array_5[0].x, -0.055555065284237, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[0].w, 0.008732098206128/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[1].x, 0.055555065284237, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_5[1].w, 0.008732098206128/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].x, -0.055555065284237, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].w, 0.008732098206128/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, 0.055555065284237, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].w, 0.008732098206128/2.0, tol);
     
     // check once again to verify that nothing fish happens past r_cut
     arrays = pdata_2->acquireReadWrite();
@@ -379,16 +379,16 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
     
-    MY_BOOST_CHECK_SMALL(force_array_7[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_7[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_7[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_7[1].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_7.data[0].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_7.data[0].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_7.data[1].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_7.data[1].w, tol_small);
     
     // shifted just has pe shifted by a given amount
-    MY_BOOST_CHECK_SMALL(force_array_7[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_7[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_7[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_7[1].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_7.data[0].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_7.data[0].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_7.data[1].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_7.data[1].w, tol_small);
     }
 
 //! LJForceCompute creator for unit tests

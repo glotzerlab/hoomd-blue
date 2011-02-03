@@ -113,23 +113,23 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(force_array_1[0].x, -1.009813410413, tol);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_1[0].w, 0.63113338150813/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(virial_array_1[0], 0.16830223506884, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -1.009813410413, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 0.63113338150813/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_virial_1.data[0], 0.16830223506884, tol);
     
-    MY_BOOST_CHECK_SMALL(force_array_1[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_1[1].w, 0.63113338150813, tol);
-    MY_BOOST_CHECK_CLOSE(virial_array_1[1], 0.16830223506884*2.0, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, 0.63113338150813, tol);
+    MY_BOOST_CHECK_CLOSE(h_virial_1.data[1], 0.16830223506884*2.0, tol);
     
-    MY_BOOST_CHECK_CLOSE(force_array_1[2].x, 1.009813410413, tol);
-    MY_BOOST_CHECK_SMALL(force_array_1[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(force_array_1[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_array_1[2].w, 0.63113338150813/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(virial_array_1[2], 0.16830223506884, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, 1.009813410413, tol);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, 0.63113338150813/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_virial_1.data[2], 0.16830223506884, tol);
     
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
     arrays = pdata_3->acquireReadWrite();
@@ -151,8 +151,8 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(force_array_2[0].x, 1.009813410413, tol);
-    MY_BOOST_CHECK_CLOSE(force_array_2[2].x, -1.009813410413, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, 1.009813410413, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, -1.009813410413, tol);
     }
 
 //! Unit test a comparison between 2 PotentialPairYukawa's on a "real" system

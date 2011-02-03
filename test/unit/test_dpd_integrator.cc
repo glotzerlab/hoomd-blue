@@ -119,11 +119,14 @@ void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_
     // compute the forces
     dpdc->compute(0);
     
-    ForceDataArrays force_arrays = dpdc->acquire();
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -28.5, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 13.5375, tol);
+    GPUArray<Scalar4>& force_array_1 =  dpdc->getForceArray();
+    GPUArray<Scalar>& virial_array_1 =  dpdc->getVirialArray();
+    ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
+    ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -28.5, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].y, 0, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].z, 0, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 13.5375, tol);
     }
  
 BOOST_AUTO_TEST_CASE( DPD_ForceConservative_Test )
