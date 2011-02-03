@@ -103,39 +103,37 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     
     // compute the force and check the results
     fc_3->compute(0);
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
-    ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
+    ForceDataArrays force_arrays = fc_3->acquire();
     
     // check that the force is correct, it should be 0 since we haven't created any angles yet
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
     
     // add an angle and check again
     sysdef_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
     fc_3->compute(1);
     
     // this time there should be a force
-    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
-    ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -0.061684, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].y, -0.313469, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, -0.195460, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 0.158576, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0], tol);
+    force_arrays = fc_3->acquire();
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.061684, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -0.313469, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.195460, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158576, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
     
-    //MY_BOOST_CHECK_SMALL(h_force_2.data[0].y, tol);
-    //MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, 0.564651,tol);
-    //MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 0.298813, tol);
-    //MY_BOOST_CHECK_CLOSE(h_virial_2.data[0], 0.0000001, tol);
+    //MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
+    //MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0.564651,tol);
+    //MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.298813, tol);
+    //MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 0.0000001, tol);
     
     /*
+        printf(" Particle 1: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[0], force_arrays.fy[0], force_arrays.fz[0]);
+        printf(" Particle 2: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[1], force_arrays.fy[1], force_arrays.fz[1]);
+        printf(" Particle 3: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[2], force_arrays.fy[2], force_arrays.fz[2]);
+        printf(" Energy: 1 = %f  2 = %f  3 = %f \n\n", force_arrays.pe[0], force_arrays.pe[1], force_arrays.pe[2]);
         printf("\n");
     */
     
@@ -159,16 +157,13 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     // recompute at the same timestep, the forces should still be updated
     fc_3->compute(1);
     
-    GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
-    ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
+    force_arrays = fc_3->acquire();
     
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -0.061684, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, -0.3134695, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -0.195460, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.158576, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[1], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.061684, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.3134695, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.195460, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158576, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
     
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
@@ -200,50 +195,57 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     
     fc_6->compute(0);
     // check that the forces are correctly computed
-    GPUArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
-    GPUArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
-    ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
+    force_arrays = fc_6->acquire();
     
+    //printf(" \nParticle 1: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[0], force_arrays.fy[0], force_arrays.fz[0]);
+    //printf(" Particle 2: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[1], force_arrays.fy[1], force_arrays.fz[1]);
+    //printf(" Particle 3: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[2], force_arrays.fy[2], force_arrays.fz[2]);
+    //printf(" Energy: 1 = %f  2 = %f  3 = %f \n", force_arrays.pe[0], force_arrays.pe[1], force_arrays.pe[2]);
+    //printf(" Virial: 1 = %f  2 = %f  3 = %f \n", force_arrays.virial[0], force_arrays.virial[1], force_arrays.virial[2]);
+    //printf(" \nParticle 4: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[3], force_arrays.fy[3], force_arrays.fz[3]);
+    //printf(" Particle 5: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[4], force_arrays.fy[4], force_arrays.fz[4]);
+    //printf(" Particle 6: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[5], force_arrays.fy[5], force_arrays.fz[5]);
+    //printf(" Energy: 4 = %f  5 = %f  6 = %f \n", force_arrays.pe[3], force_arrays.pe[4], force_arrays.pe[5]);
+    //printf(" Virial: 4 = %f  5 = %f  6 = %f \n", force_arrays.virial[3], force_arrays.virial[4], force_arrays.virial[5]);
     
     //printf("\n");
     
     
-    MY_BOOST_CHECK_SMALL(h_force_4.data[0].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].y, -1.55106342,tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[0].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[0].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -1.55106342,tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.256618, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
     
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, -0.0510595, loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 1.5760721,tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[1].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[1].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[1], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.0510595, loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 1.5760721,tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.256618, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
     
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].x, 0.0510595,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -0.0250087, tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[2].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[2].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[2], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 0.0510595,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -0.0250087, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 0.256618, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
     
-    MY_BOOST_CHECK_SMALL(h_force_4.data[3].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 0.05151510, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].z, -0.03411135,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[3].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[3], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[3], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0.05151510, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], -0.03411135,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.400928, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
     
-    MY_BOOST_CHECK_SMALL(h_force_4.data[4].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].y, -2.79330492,tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].z, 0.034110874, loose_tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[4].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[4], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[4], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[4], -2.79330492,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 0.034110874, loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[4], 0.400928, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[4], tol);
     
-    MY_BOOST_CHECK_SMALL(h_force_4.data[5].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].y, 2.74179,tol);
-    MY_BOOST_CHECK_SMALL(h_force_4.data[5].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_4.data[5].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[5], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[5], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[5], 2.74179,tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[5], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[5], 0.400928, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[5], tol);
     
     
     
@@ -279,39 +281,36 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     sysdef_4->getAngleData()->addAngle(Angle(0, 0,1,3));
     
     fc_4->compute(0);
-    GPUArray<Scalar4>& force_array_5 =  fc_4->getForceArray();
-    GPUArray<Scalar>& virial_array_5 =  fc_4->getVirialArray();
-    ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
+    force_arrays = fc_4->acquire();
     
     
     // the first particles shoul only have a force pulling them right
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].x, 1.446903, tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[0].y, tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[0].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[0].w, 0.465228, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 1.446903, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.465228, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
     
     // and the bottom left particle should have a force pulling up and to the right
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, 0.2688054, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].y, -1.446902,tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[1].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[1].w, 0.240643, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[1], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.2688054, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -1.446902,tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.240643, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
     
     // the bottom left particle should have a force pulling down
-    MY_BOOST_CHECK_SMALL(h_force_5.data[2].x, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, 1.715708, tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[2].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[2].w, 0.240643,tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[2], tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 1.715708, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 0.240643,tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
     
     // and the top left particle should have a force pulling up and to the left
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].x, -1.715708, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, -0.268805, tol);
-    MY_BOOST_CHECK_SMALL(h_force_5.data[3].z, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_5.data[3].w, 0.473257, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[3], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], -1.715708, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -0.268805, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[3], tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.473257, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
     }
 
 
@@ -344,19 +343,19 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     fc2->compute(0);
     
     // verify that the forces are identical (within roundoff errors)
-    ForceDataArrays arrays1 = fc1->acquire();
-    ForceDataArrays arrays2 = fc2->acquire();
+    ForceDataArrays force_force_arrays1 = fc1->acquire();
+    ForceDataArrays force_force_arrays2 = fc2->acquire();
     
     Scalar rough_tol = Scalar(3.0);
     
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], rough_tol);
-        BOOST_CHECK_SMALL(arrays1.virial[i], rough_tol);
-        BOOST_CHECK_SMALL(arrays2.virial[i], rough_tol);
+        BOOST_CHECK_CLOSE(force_force_arrays1.fx[i], force_force_arrays2.fx[i], rough_tol);
+        BOOST_CHECK_CLOSE(force_force_arrays1.fy[i], force_force_arrays2.fy[i], rough_tol);
+        BOOST_CHECK_CLOSE(force_force_arrays1.fz[i], force_force_arrays2.fz[i], rough_tol);
+        BOOST_CHECK_CLOSE(force_force_arrays1.pe[i], force_force_arrays2.pe[i], rough_tol);
+        BOOST_CHECK_SMALL(force_force_arrays1.virial[i], rough_tol);
+        BOOST_CHECK_SMALL(force_force_arrays2.virial[i], rough_tol);
         }
     }
 

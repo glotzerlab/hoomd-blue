@@ -106,24 +106,21 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     // compute the forces
     fc_3->compute(0);
     
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
-    ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, 1.1520395075261485, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, -0.9328248052694093/2.0, tol);
+    ForceDataArrays force_arrays = fc_3->acquire();
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 1.1520395075261485, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -0.9328248052694093/2.0, tol);
       
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, -0.9328248052694093, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
+    MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], -0.9328248052694093, tol);
       
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, -1.1520395075261485, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, -0.9328248052694093/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -1.1520395075261485, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol_small);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], -0.9328248052694093/2.0, tol);
       
     // swap the order of particles 0 and 2 in memory to check that the force compute handles this properly
     arrays = pdata_3->acquireReadWrite();
@@ -141,12 +138,9 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
-    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
-    ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -1.1520395075261485, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, 1.1520395075261485, tol);
+    force_arrays = fc_3->acquire();
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -1.1520395075261485, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 1.1520395075261485, tol);
     }
 
 //! Unit test a comparison between 2 PotentialPairMorse's on a "real" system
@@ -182,8 +176,8 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     fc2->compute(0);
     
     // verify that the forces are identical (within roundoff errors)
-    ForceDataArrays arrays1 = fc1->acquire();
-    ForceDataArrays arrays2 = fc2->acquire();
+    ForceDataArrays force_arrays1 = fc1->acquire();
+    ForceDataArrays force_arrays2 = fc2->acquire();
     
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
@@ -192,18 +186,18 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
         
     for (unsigned int i = 0; i < N; i++)
         {
-        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
-        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
-        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
-        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
-        deltav2 += double(arrays1.virial[i] - arrays2.virial[i]) * double(arrays1.virial[i] - arrays2.virial[i]);
+        deltaf2 += double(force_arrays1.fx[i] - force_arrays2.fx[i]) * double(force_arrays1.fx[i] - force_arrays2.fx[i]);
+        deltaf2 += double(force_arrays1.fy[i] - force_arrays2.fy[i]) * double(force_arrays1.fy[i] - force_arrays2.fy[i]);
+        deltaf2 += double(force_arrays1.fz[i] - force_arrays2.fz[i]) * double(force_arrays1.fz[i] - force_arrays2.fz[i]);
+        deltape2 += double(force_arrays1.pe[i] - force_arrays2.pe[i]) * double(force_arrays1.pe[i] - force_arrays2.pe[i]);
+        deltav2 += double(force_arrays1.virial[i] - force_arrays2.virial[i]) * double(force_arrays1.virial[i] - force_arrays2.virial[i]);
 
         // also check that each individual calculation is somewhat close
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
-        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fx[i], force_arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fy[i], force_arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fz[i], force_arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.pe[i], force_arrays2.pe[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.virial[i], force_arrays2.virial[i], loose_tol);
         }
     deltaf2 /= double(pdata->getN());
     deltape2 /= double(pdata->getN());
