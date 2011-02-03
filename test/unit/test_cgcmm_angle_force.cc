@@ -104,10 +104,6 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    //GPUArray<Scalar4>& force_array = fc_3->getForceArray();    
-    //GPUArray<Scalar>& virial_array = fc_3->getVirialArray();    
-    //ArrayHandle<Scalar4> h_force(force_array,access_location::host,access_mode::read);
-    //ArrayHandle<Scalar> h_virial(virial_array,access_location::host,access_mode::read);
 
     // check that the force is correct, it should be 0 since we haven't created any angles yet
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol);
@@ -115,14 +111,6 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
     MY_BOOST_CHECK_SMALL(h_virial_1.data[0], tol);
-
-    //new checks
-
-    //MY_BOOST_CHECK_SMALL(h_force.data[0].x, tol);
-    //MY_BOOST_CHECK_SMALL(h_force.data[0].y, tol);
-    //MY_BOOST_CHECK_SMALL(h_force.data[0].z, tol);
-    //MY_BOOST_CHECK_SMALL(h_force.data[0].w, tol);
-    //MY_BOOST_CHECK_SMALL(h_virial.data[0], tol);
 
     // add an angle and check again
     sysdef_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
