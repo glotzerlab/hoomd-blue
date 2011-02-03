@@ -380,8 +380,6 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     fc_xplor->compute(0);
     
     ForceDataArrays force_arrays_no_shift = fc_no_shift->acquire();
-    ForceDataArrays force_arrays_shift = fc_shift->acquire();
-    ForceDataArrays force_arrays_xplor = fc_xplor->acquire();
     
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[0], 0.017713272731914, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[0], -0.0041417095577326, tol);
@@ -389,12 +387,14 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[1], -0.0041417095577326, tol);
     
     // shifted just has pe shifted by a given amount
+    ForceDataArrays force_arrays_shift = fc_shift->acquire();
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[0], 0.017713272731914, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[0], -0.0014019886856134, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[1], -0.017713272731914, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[1], -0.0014019886856134, tol);
     
     // xplor has slight tweaks
+    ForceDataArrays force_arrays_xplor = fc_xplor->acquire();
     MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[0], 0.012335911924312, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[0], -0.001130667359194/2.0, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[1], -0.012335911924312, tol);
@@ -411,8 +411,6 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     fc_xplor->compute(1);
     
     force_arrays_no_shift = fc_no_shift->acquire();
-    force_arrays_shift = fc_shift->acquire();
-    force_arrays_xplor = fc_xplor->acquire();
     
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[0], 1.1580288310461, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[0], -0.16016829713928, tol);
@@ -420,12 +418,14 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[1], -0.16016829713928, tol);
     
     // shifted just has pe shifted by a given amount
+    force_arrays_shift = fc_shift->acquire();
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[0], 1.1580288310461, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[0], -0.15742857626716, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[1], -1.1580288310461, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[1], -0.15742857626716, tol);
     
     // xplor has slight tweaks
+    force_arrays_xplor = fc_xplor->acquire();
     MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[0], 1.1580288310461, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[0], -0.16016829713928, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[1], -1.1580288310461, tol);
@@ -442,8 +442,6 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     fc_xplor->compute(2);
     
     force_arrays_no_shift = fc_no_shift->acquire();
-    force_arrays_shift = fc_shift->acquire();
-    force_arrays_xplor = fc_xplor->acquire();
     
     MY_BOOST_CHECK_SMALL(force_arrays_no_shift.fx[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[0], tol_small);
@@ -451,12 +449,14 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[1], tol_small);
     
     // shifted just has pe shifted by a given amount
+    force_arrays_shift = fc_shift->acquire();
     MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[1], tol_small);
     
     // xplor has slight tweaks
+    force_arrays_xplor = fc_xplor->acquire();
     MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[1], tol_small);

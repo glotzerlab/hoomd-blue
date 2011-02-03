@@ -332,13 +332,14 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     fc_shift->compute(0);
     
     ForceDataArrays force_arrays_no_shift = fc_no_shift->acquire();
-    ForceDataArrays force_arrays_shift = fc_shift->acquire();
     
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[0], -0.055555065284237, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[0], 0.019841094744370/2.0, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[1], 0.055555065284237, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[1], 0.019841094744370/2.0, tol);
     
+    ForceDataArrays force_arrays_shift = fc_shift->acquire();
+
     // shifted just has pe shifted by a given amount
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[0], -0.055555065284237, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[0], 0.008732098206128/2.0, tol);
