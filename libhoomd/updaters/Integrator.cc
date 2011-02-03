@@ -301,8 +301,8 @@ void Integrator::computeNetForce(unsigned int timestep)
             {
             //phasing out ForceDataArrays
             //ForceDataArrays force_arrays = (*force_compute)->acquire();
-            GPUArray<Scalar4>& h_force_array =(*force_compute)->acquireForce();
-            GPUArray<Scalar>& h_virial_array =(*force_compute)->acquireVirial();
+            GPUArray<Scalar4>& h_force_array =(*force_compute)->getForceArray();
+            GPUArray<Scalar>& h_virial_array =(*force_compute)->getVirialArray();
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
 
@@ -353,8 +353,8 @@ void Integrator::computeNetForce(unsigned int timestep)
             {
             //phasing out ForceDataArrays
             //ForceDataArrays force_arrays = (*force_compute)->acquire();
-            GPUArray<Scalar4>& h_force_array =(*force_compute)->acquireForce();
-            GPUArray<Scalar>& h_virial_array =(*force_compute)->acquireVirial();
+            GPUArray<Scalar4>& h_force_array =(*force_compute)->getForceArray();
+            GPUArray<Scalar>& h_virial_array =(*force_compute)->getVirialArray();
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
 

@@ -203,8 +203,6 @@ void export_ForceCompute()
     {
     class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
     ("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
-    .def("getForceArray", &ForceCompute::getForceArray, return_value_policy<copy_const_reference>())
-    .def("getVirialArray", &ForceCompute::getVirialArray, return_value_policy<copy_const_reference>())
     .def("getForce", &ForceCompute::getForce)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)
