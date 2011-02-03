@@ -406,8 +406,8 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     fc2->compute(0);
     
     // verify that the forces are identical (within roundoff errors)
-    ForceDataArrays force_force_arrays1 = fc1->acquire();
-    ForceDataArrays force_force_arrays2 = fc2->acquire();
+    ForceDataArrays force_arrays1 = fc1->acquire();
+    ForceDataArrays force_arrays2 = fc2->acquire();
     
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
@@ -415,16 +415,16 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
         
     for (unsigned int i = 0; i < N; i++)
         {
-        deltaf2 += double(force_force_arrays1.fx[i] - force_force_arrays2.fx[i]) * double(force_force_arrays1.fx[i] - force_force_arrays2.fx[i]);
-        deltaf2 += double(force_force_arrays1.fy[i] - force_force_arrays2.fy[i]) * double(force_force_arrays1.fy[i] - force_force_arrays2.fy[i]);
-        deltaf2 += double(force_force_arrays1.fz[i] - force_force_arrays2.fz[i]) * double(force_force_arrays1.fz[i] - force_force_arrays2.fz[i]);
-        deltape2 += double(force_force_arrays1.pe[i] - force_force_arrays2.pe[i]) * double(force_force_arrays1.pe[i] - force_force_arrays2.pe[i]);
+        deltaf2 += double(force_arrays1.fx[i] - force_arrays2.fx[i]) * double(force_arrays1.fx[i] - force_arrays2.fx[i]);
+        deltaf2 += double(force_arrays1.fy[i] - force_arrays2.fy[i]) * double(force_arrays1.fy[i] - force_arrays2.fy[i]);
+        deltaf2 += double(force_arrays1.fz[i] - force_arrays2.fz[i]) * double(force_arrays1.fz[i] - force_arrays2.fz[i]);
+        deltape2 += double(force_arrays1.pe[i] - force_arrays2.pe[i]) * double(force_arrays1.pe[i] - force_arrays2.pe[i]);
 
         // also check that each individual calculation is somewhat close
-        BOOST_CHECK_CLOSE(force_force_arrays1.fx[i], force_force_arrays2.fx[i], loose_tol);
-        BOOST_CHECK_CLOSE(force_force_arrays1.fy[i], force_force_arrays2.fy[i], loose_tol);
-        BOOST_CHECK_CLOSE(force_force_arrays1.fz[i], force_force_arrays2.fz[i], loose_tol);
-        BOOST_CHECK_CLOSE(force_force_arrays1.pe[i], force_force_arrays2.pe[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fx[i], force_arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fy[i], force_arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fz[i], force_arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.pe[i], force_arrays2.pe[i], loose_tol);
         }
     deltaf2 /= double(sysdef->getParticleData()->getN());
     deltape2 /= double(sysdef->getParticleData()->getN());

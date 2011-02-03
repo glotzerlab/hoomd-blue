@@ -343,19 +343,19 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     fc2->compute(0);
     
     // verify that the forces are identical (within roundoff errors)
-    ForceDataArrays force_force_arrays1 = fc1->acquire();
-    ForceDataArrays force_force_arrays2 = fc2->acquire();
+    ForceDataArrays force_arrays1 = fc1->acquire();
+    ForceDataArrays force_arrays2 = fc2->acquire();
     
     Scalar rough_tol = Scalar(3.0);
     
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(force_force_arrays1.fx[i], force_force_arrays2.fx[i], rough_tol);
-        BOOST_CHECK_CLOSE(force_force_arrays1.fy[i], force_force_arrays2.fy[i], rough_tol);
-        BOOST_CHECK_CLOSE(force_force_arrays1.fz[i], force_force_arrays2.fz[i], rough_tol);
-        BOOST_CHECK_CLOSE(force_force_arrays1.pe[i], force_force_arrays2.pe[i], rough_tol);
-        BOOST_CHECK_SMALL(force_force_arrays1.virial[i], rough_tol);
-        BOOST_CHECK_SMALL(force_force_arrays2.virial[i], rough_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fx[i], force_arrays2.fx[i], rough_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fy[i], force_arrays2.fy[i], rough_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.fz[i], force_arrays2.fz[i], rough_tol);
+        BOOST_CHECK_CLOSE(force_arrays1.pe[i], force_arrays2.pe[i], rough_tol);
+        BOOST_CHECK_SMALL(force_arrays1.virial[i], rough_tol);
+        BOOST_CHECK_SMALL(force_arrays2.virial[i], rough_tol);
         }
     }
 
