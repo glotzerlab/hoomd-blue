@@ -94,8 +94,7 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
         
     protected:
         int m_block_size;               //!< Block size to run calculation on
-        GPUArray<float4>  m_gpu_params;          //!< Parameters stored on the GPU (k,sign,m)
-        GPUArray<float4> m_host_params;          //!< Host parameters -- padded to float4
+        GPUArray<float4> m_params;      //!< Parameters stored on the GPU (k,sign,m)
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

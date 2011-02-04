@@ -71,19 +71,12 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_p
         }
         
     // allocate and zero device memory
-    m_host_params = GPUArray<float4>(m_dihedral_data->getNDihedralTypes(),exec_conf);
+    GPUArray<float4> params(m_dihedral_data->getNDihedralTypes(),exec_conf);
+    m_params.swap(params);
     }
 
 HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()
     {
-    // free memory on the GPU
-    cudaFree(m_gpu_params);
-    m_gpu_params = NULL;
-    CHECK_CUDA_ERROR();
-        
-    // free memory on the CPU
-    delete[] m_host_params;
-    m_host_params = NULL;
     }
 
 /*! \param type Type of the dihedral to set parameters for
@@ -98,12 +91,9 @@ void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int
     {
     HarmonicDihedralForceCompute::setParams(type, K, sign, multiplicity);
     
+    ArrayHandle<float4> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    m_host_params[type] = make_float4(float(K), float(sign), float(multiplicity), 0.0f);
-    
-    // copy the parameters to the GPU
-    cudaMemcpy(m_gpu_params, m_host_params, m_dihedral_data->getNDihedralTypes()*sizeof(float4), cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
+    h_params.data[type] = make_float4(float(K), float(sign), float(multiplicity), 0.0f);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -126,6 +116,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
       
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+    ArrayHandle<float4> d_params(m_params, access_location::device, access_mode::read);
 
     // run the kernel in parallel on all GPUs
     gpu_compute_harmonic_dihedral_forces(d_force.data,
@@ -133,7 +124,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
                                          pdata,
                                          box,
                                          gpu_dihedraltable,
-                                         m_gpu_params,
+                                         d_params.data,
                                          m_dihedral_data->getNDihedralTypes(),
                                          m_block_size);
     if (exec_conf->isCUDAErrorCheckingEnabled())
