@@ -94,8 +94,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         
     protected:
         int m_block_size;               //!< Block size to run calculation on
-        GPUArray<float2>  m_gpu_params;          //!< Parameters stored on the GPU (k,chi)
-        GPUArray<float2> m_host_params;          //!< Host parameters -- padded to float4
+        GPUArray<float2>  m_params;     //!< Parameters stored on the GPU (k,chi)
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
