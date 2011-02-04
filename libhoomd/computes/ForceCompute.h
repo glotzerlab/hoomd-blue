@@ -87,9 +87,6 @@ class ForceCompute : public Compute
         //! Destructor
         virtual ~ForceCompute();
         
-        /*//! Access the computed force data
-        const ForceDataArrays& acquire();
-        */
         //! Store the timestep size
         virtual void setDeltaT(Scalar dt)
             {

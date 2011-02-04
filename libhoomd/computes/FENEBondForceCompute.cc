@@ -180,18 +180,17 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
-    // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
-
-
-   // there are enough other checks on the input data: but it doesn't hurt to be safe
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(arrays.x);
     assert(arrays.y);
     assert(arrays.z);
     assert(arrays.diameter);
+    
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();

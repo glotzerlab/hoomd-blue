@@ -214,13 +214,13 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+    assert(h_virial.data);
+    
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
-
-   // there are enough other checks on the input data: but it doesn't hurt to be safe
-    assert(h_force.data);
-    assert(h_virial.data);
        
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
