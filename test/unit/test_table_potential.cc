@@ -91,6 +91,7 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     // first check for proper initialization by seeing if the force and potential come out to be 0
     fc_2->compute(0);
     
+    {
     GPUArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
@@ -106,7 +107,8 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].w, tol_small);
     MY_BOOST_CHECK_SMALL(h_virial_1.data[1], tol_small);
-    
+    }
+
     // specify a table to interpolate
     vector<float> V, F;
     V.push_back(10.0);  F.push_back(1.0);
@@ -117,6 +119,7 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     // compute the forces again and check that they are still 0
     fc_2->compute(1);
     
+    {
     GPUArray<Scalar4>& force_array_2 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_2->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
@@ -132,7 +135,8 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].w, tol_small);
     MY_BOOST_CHECK_SMALL(h_virial_2.data[1], tol_small);
-    
+    }
+
     // now go to rmin and check for the correct force value
     arrays = pdata_2->acquireReadWrite();
     arrays.x[1] = Scalar(2.0);
@@ -140,6 +144,7 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     
     fc_2->compute(2);
     
+    {
     GPUArray<Scalar4>& force_array_3 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_2->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
@@ -155,7 +160,8 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     MY_BOOST_CHECK_SMALL(h_force_3.data[1].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 5.0, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_3.data[1], (1.0 / 6.0) * 2.0, tol);
-    
+    }
+
     // go halfway in-between two points
     arrays = pdata_2->acquireReadWrite();
     arrays.y[1] = Scalar(3.5);
@@ -164,6 +170,8 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     
     // check the forces
     fc_2->compute(3);
+    
+    {
     GPUArray<Scalar4>& force_array_4 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_2->getVirialArray();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
@@ -179,7 +187,8 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     MY_BOOST_CHECK_SMALL(h_force_4.data[1].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].w, 13.0 / 2.0, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_4.data[1], (1.0 / 6.0) * 4.0 * 3.5, tol);
-    
+    }
+
     // and now check for when r > rmax
     arrays = pdata_2->acquireReadWrite();
     arrays.z[1] = Scalar(4.0);
@@ -188,6 +197,7 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     // compute and check
     fc_2->compute(4);
     
+    {
     GPUArray<Scalar4>& force_array_5 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_2->getVirialArray();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
@@ -203,6 +213,7 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     MY_BOOST_CHECK_SMALL(h_force_5.data[1].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_5.data[1].w, tol_small);
     MY_BOOST_CHECK_SMALL(h_virial_5.data[1], tol_small);
+    }
     }
 
 //! checks to see if TablePotential correctly handles multiple types
@@ -246,6 +257,7 @@ void table_potential_type_test(table_potential_creator table_creator, boost::sha
     // compute and check
     fc->compute(0);
     
+    {
     GPUArray<Scalar4>& force_array_6 =  fc->getForceArray();
     GPUArray<Scalar>& virial_array_6 =  fc->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
@@ -274,6 +286,7 @@ void table_potential_type_test(table_potential_creator table_creator, boost::sha
     MY_BOOST_CHECK_CLOSE(h_force_6.data[3].w, 25.0/2.0 + 5.0, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_6.data[3], (8*1.5 + 3.0*1.5)*1.0/6.0, tol);
     }
+     }
 
 //! TablePotential creator for unit tests
 shared_ptr<TablePotential> base_class_table_creator(shared_ptr<SystemDefinition> sysdef,

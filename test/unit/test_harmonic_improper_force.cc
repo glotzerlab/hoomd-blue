@@ -110,6 +110,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     
     // compute the force and check the results
     fc_4->compute(0);
+    
+    {
     GPUArray<Scalar4>& force_array_1 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_4->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
@@ -121,7 +123,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
     MY_BOOST_CHECK_SMALL(h_virial_1.data[0], tol);
-    
+    }
+
     // add an impropers and check again
     sysdef_4->getImproperData()->addDihedral(Dihedral(0,0,1,2,3)); // add type 0 improper bewtween atoms 0-1-2-3
     fc_4->compute(1);
@@ -134,6 +137,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     
     */
     
+    {
     // this time there should be a force
     GPUArray<Scalar4>& force_array_2 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_4->getVirialArray();
@@ -162,7 +166,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_CLOSE(h_force_2.data[3].z, 0.5*0.029827416, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[3].w, 0.5*0.158927, tol);
     MY_BOOST_CHECK_SMALL(h_virial_2.data[3], tol);
-    
+    }
+
     // rearrange the two particles in memory and see if they are properly updated
     arrays = pdata_4->acquireReadWrite();
     
@@ -183,6 +188,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     // recompute at the same timestep, the forces should still be updated
     fc_4->compute(1);
     
+    {
     GPUArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
@@ -199,7 +205,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].z, 0.5*0.047247, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].w, 0.5*0.158927, tol);
     MY_BOOST_CHECK_SMALL(h_virial_3.data[0], tol);
-    
+    }
     
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
@@ -229,6 +235,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     sysdef_8->getImproperData()->addDihedral(Dihedral(1, 4,5,6,7));
     
     fc_8->compute(0);
+
+    {
     // check that the forces are correctly computed
     GPUArray<Scalar4>& force_array_4 =  fc_8->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_8->getVirialArray();
@@ -304,7 +312,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_CLOSE(h_force_4.data[7].z, -0.5*1.199376,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[7].w, 0.5*0.208441, tol);
     MY_BOOST_CHECK_SMALL(h_virial_4.data[7], tol);
-    
+    }
     
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
@@ -338,6 +346,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     sysdef_5->getImproperData()->addDihedral(Dihedral(0, 1,2,3,4));
     
     fc_5->compute(0);
+    
+    {
     GPUArray<Scalar4>& force_array_5 =  fc_5->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_5->getVirialArray();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
@@ -383,8 +393,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].z, 0.5*0.022509,loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].w, 0.5*0.397447, tol);
     MY_BOOST_CHECK_SMALL(h_virial_5.data[4], tol);
-    
-    
+    }
     }
 
 
@@ -420,6 +429,7 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     fc1->compute(0);
     fc2->compute(0);
     
+    {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_6 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_6 =  fc1->getVirialArray();
@@ -447,6 +457,7 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     deltape2 /= double(sysdef->getParticleData()->getN());
     BOOST_CHECK_SMALL(deltaf2, double(tol_small));
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    }
     }
 
 //! HarmonicImproperForceCompute creator for improper_force_basic_tests()

@@ -112,6 +112,7 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     // compute the forces
     fc_3->compute(0);
     
+    {
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
@@ -133,7 +134,8 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, -0.575, tol);
     MY_BOOST_CHECK_SMALL(h_virial_1.data[2], tol_small);
-    
+    }
+
     // now change sigma and alpha so we can check that it is computing the right force
     sigma = Scalar(1.2); // < bigger sigma should push particle 0 left and particle 2 right
     alpha = Scalar(0.45);
@@ -142,6 +144,7 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     fc_3->setParams(0,0,make_scalar2(lj1,lj2));
     fc_3->compute(1);
     
+    {
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
@@ -165,7 +168,8 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].w, 3.581511037746, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_2.data[2], 17.416537590989, tol);
-    
+    }
+
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
     arrays = pdata_3->acquireReadWrite();
     arrays.x[2] = arrays.y[2] = arrays.z[2] = 0.0;
@@ -182,12 +186,15 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
+    
+    {
     GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, 93.09822608552962, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[2].x, -93.09822608552962, tol);
+    }
     }
 
 //! Tests the ability of a LJForceCompute to handle periodic boundary conditions
@@ -244,7 +251,8 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     fc_6->setParams(2,2,make_scalar2(Scalar(6.0)*lj1,Scalar(6.0)*lj2));
     
     fc_6->compute(0);
-    
+   
+    {
     GPUArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
@@ -285,6 +293,7 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     MY_BOOST_CHECK_SMALL(h_force_4.data[5].y, tol_small);
     MY_BOOST_CHECK_CLOSE(h_virial_4.data[5], -0.39433325582651, tol);
     }
+    }
 
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
 void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -318,6 +327,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
     fc1->compute(0);
     fc2->compute(0);
     
+    {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_5 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc1->getVirialArray();
@@ -349,6 +359,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
     BOOST_CHECK_SMALL(deltaf2, double(tol_small));
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
     BOOST_CHECK_SMALL(deltav2, double(tol_small));
+    }
     }
 
 //! Test the ability of the lj force compute to compute forces with different shift modes
@@ -392,6 +403,7 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     fc_shift->compute(0);
     fc_xplor->compute(0);
     
+    {
     GPUArray<Scalar4>& force_array_7 =  fc_no_shift->getForceArray();
     GPUArray<Scalar>& virial_array_7 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
@@ -421,7 +433,8 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     MY_BOOST_CHECK_CLOSE(h_force_9.data[0].w, -0.001130667359194/2.0, tol);
     MY_BOOST_CHECK_CLOSE(h_force_9.data[1].x, -0.012335911924312, tol);
     MY_BOOST_CHECK_CLOSE(h_force_9.data[1].w, -0.001130667359194/2.0, tol);
-    
+    }
+
     // check again, prior to r_on to make sure xplor isn't doing something weird
     arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
@@ -432,6 +445,7 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     fc_shift->compute(1);
     fc_xplor->compute(1);
     
+    {
     GPUArray<Scalar4>& force_array_10 =  fc_no_shift->getForceArray();
     GPUArray<Scalar>& virial_array_10 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_10(force_array_10,access_location::host,access_mode::read);
@@ -461,7 +475,8 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     MY_BOOST_CHECK_CLOSE(h_force_12.data[0].w, -0.16016829713928, tol);
     MY_BOOST_CHECK_CLOSE(h_force_12.data[1].x, -1.1580288310461, tol);
     MY_BOOST_CHECK_CLOSE(h_force_12.data[1].w, -0.16016829713928, tol);
-    
+    }
+
     // check once again to verify that nothing fish happens past r_cut
     arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
@@ -472,6 +487,7 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     fc_shift->compute(2);
     fc_xplor->compute(2);
     
+    {
     GPUArray<Scalar4>& force_array_13 =  fc_no_shift->getForceArray();
     GPUArray<Scalar>& virial_array_13 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_13(force_array_13,access_location::host,access_mode::read);
@@ -501,6 +517,7 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     MY_BOOST_CHECK_SMALL(h_force_15.data[0].w, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_15.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_15.data[1].w, tol_small);
+    }
     }
 
 //! LJForceCompute creator for unit tests

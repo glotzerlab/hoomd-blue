@@ -103,6 +103,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     
     // compute the force and check the results
     fc_3->compute(0);
+    {
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
@@ -114,12 +115,14 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
     MY_BOOST_CHECK_SMALL(h_virial_1.data[0], tol);
-    
+    }
+
     // add an angle and check again
     sysdef_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
     fc_3->compute(1);
     
     // this time there should be a force
+    {
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
@@ -134,7 +137,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     //MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, 0.564651,tol);
     //MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 0.298813, tol);
     //MY_BOOST_CHECK_CLOSE(h_virial_2.data[0], 0.0000001, tol);
-    
+    }
     /*
         printf("\n");
     */
@@ -159,6 +162,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     // recompute at the same timestep, the forces should still be updated
     fc_3->compute(1);
     
+    {
     GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
@@ -169,7 +173,8 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -0.195460, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.158576, tol);
     MY_BOOST_CHECK_SMALL(h_virial_3.data[1], tol);
-    
+    }
+
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -199,6 +204,8 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     //pdata_6->getAngleData()->addAngle(Angle(2, 3,4,5));
     
     fc_6->compute(0);
+    
+    {
     // check that the forces are correctly computed
     GPUArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
@@ -244,7 +251,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     MY_BOOST_CHECK_SMALL(h_force_4.data[5].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].w, 0.400928, tol);
     MY_BOOST_CHECK_SMALL(h_virial_4.data[5], tol);
-    
+    }
     
     
     // one more test: this one will test two things:
@@ -279,6 +286,8 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     sysdef_4->getAngleData()->addAngle(Angle(0, 0,1,3));
     
     fc_4->compute(0);
+    
+    {
     GPUArray<Scalar4>& force_array_5 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_4->getVirialArray();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
@@ -313,6 +322,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].w, 0.473257, tol);
     MY_BOOST_CHECK_SMALL(h_virial_5.data[3], tol);
     }
+    }
 
 
 
@@ -343,6 +353,7 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     fc1->compute(0);
     fc2->compute(0);
     
+    {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_6 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_6 =  fc1->getVirialArray();
@@ -358,6 +369,7 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     for (unsigned int i = 0; i < N; i++)
         {
         }
+    }
     }
 
 //! HarmonicAngleForceCompute creator for angle_force_basic_tests()

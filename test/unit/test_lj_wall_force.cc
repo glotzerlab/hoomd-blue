@@ -101,6 +101,7 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     // compute the forces
     fc_3->compute(0);
     
+    {
     // there are no walls, so all forces should be zero
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
@@ -120,7 +121,8 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].w, tol_small);
-    
+    }
+
     // add the walls
     sysdef_3->getWallData()->addWall(Wall(0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
     sysdef_3->getWallData()->addWall(Wall(10.0, 0.0, 0.0, 1.0, 0.0, 0.0));
@@ -129,6 +131,7 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     // compute the forces again
     fc_3->compute(1);
     
+    {
     // they should still be zero
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
@@ -148,10 +151,13 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].w, tol_small);
-    
+    }
+
     // increase the cuttoff to check the actual force computation
     fc_3->setRCut(3.0);
     fc_3->compute(2);
+    
+    {
     GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
@@ -170,6 +176,7 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     MY_BOOST_CHECK_SMALL(h_force_3.data[2].y, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[2].z, 0.0159463169, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[2].w, -0.0077203876329103, tol);
+    }
     }
 
 //! LJWallForceCompute creator for unit tests

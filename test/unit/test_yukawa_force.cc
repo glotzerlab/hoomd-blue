@@ -109,6 +109,7 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     // compute the forces
     fc_3->compute(0);
     
+    {
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
@@ -130,7 +131,8 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, 0.63113338150813/2.0, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_1.data[2], 0.16830223506884, tol);
-    
+    }
+
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
     arrays = pdata_3->acquireReadWrite();
     arrays.x[2] = arrays.y[2] = arrays.z[2] = 0.0;
@@ -145,6 +147,7 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     // notify the particle data that we changed the order
     pdata_3->notifyParticleSort();
     
+    {
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
@@ -153,6 +156,7 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, 1.009813410413, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, -1.009813410413, tol);
+    }
     }
 
 //! Unit test a comparison between 2 PotentialPairYukawa's on a "real" system
@@ -186,6 +190,7 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     fc1->compute(0);
     fc2->compute(0);
     
+    {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_3 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc1->getVirialArray();
@@ -217,6 +222,7 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     BOOST_CHECK_SMALL(deltaf2, double(tol_small));
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
     BOOST_CHECK_SMALL(deltav2, double(tol_small));
+    }
     }
 
 //! PotentialPairYukawa creator for unit tests

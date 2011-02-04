@@ -98,6 +98,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     fc_2->compute(0);
     GPUArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
+    
+    {
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     // check that the force is correct, it should be 0 since we haven't created any bonds yet
@@ -106,11 +108,13 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol_small);
     MY_BOOST_CHECK_SMALL(h_virial_1.data[0], tol_small);
-    
+    }
+
     // add a bond and check again
     sysdef_2->getBondData()->addBond(Bond(0, 0,1));
     fc_2->compute(1);
     
+    {
     // this time there should be a force
     GPUArray<Scalar4>& force_array_2 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_2->getVirialArray();
@@ -128,7 +132,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, -h_force_2.data[1].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, h_force_2.data[1].w, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_2.data[1], -0.03375, tol);
-    
+    }
+
     // rearrange the two particles in memory and see if they are properly updated
     arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = Scalar(0.9);
@@ -144,6 +149,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // recompute at the same timestep, the forces should still be updated
     fc_2->compute(1);
     
+    {
     // this time there should be a force
     GPUArray<Scalar4>& force_array_3 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_2->getVirialArray();
@@ -151,7 +157,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, -0.225, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, 0.225, tol);
-    
+    }
+
     // check r=0 behavior
     arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
@@ -160,6 +167,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     pdata_2->release();
     
     fc_2->compute(2);
+    
+    {
     // the force should be zero
     GPUArray<Scalar4>& force_array_4 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_2->getVirialArray();
@@ -167,7 +176,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
     MY_BOOST_CHECK_SMALL(h_force_4.data[0].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_4.data[1].x, tol_small);
-    
+    }
+
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -196,6 +206,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     sysdef_6->getBondData()->addBond(Bond(2, 4,5));
     
     fc_6->compute(0);
+    
+    {
     // check that the forces are correctly computed
     GPUArray<Scalar4>& force_array_5 =  fc_6->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_6->getVirialArray();
@@ -236,7 +248,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(h_force_5.data[5].z, 0.45, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[5].w, 0.03375, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_5.data[5], -0.06, tol);
-    
+    }
+
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
@@ -269,6 +282,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     sysdef_4->getBondData()->addBond(Bond(0, 0,1));
     
     fc_4->compute(0);
+    
+    {
     GPUArray<Scalar4>& force_array_6 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_6 =  fc_4->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
@@ -300,6 +315,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(h_force_6.data[2].w, 0.421875, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_6.data[2], 0.375, tol);
     }
+    }
 
 //! Compares the output of two HarmonicBondForceComputes
 void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -328,6 +344,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     fc2->compute(0);
     
     // verify that the forces are identical (within roundoff errors)
+    {
     GPUArray<Scalar4>& force_array_7 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
@@ -359,6 +376,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
     BOOST_CHECK_SMALL(deltav2, double(tol_small));
     }
+    }
 
 //! Check ConstForceCompute to see that it operates properly
 void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -375,6 +393,7 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     
     // Create the ConstForceCompute and check that it works properly
     ConstForceCompute fc(sysdef_2, Scalar(-1.3), Scalar(2.5), Scalar(45.67));
+    {
     GPUArray<Scalar4>& force_array_9 =  fc.getForceArray();
     GPUArray<Scalar>& virial_array_9 =  fc.getVirialArray();
     ArrayHandle<Scalar4> h_force_9(force_array_9,access_location::host,access_mode::read);
@@ -390,9 +409,11 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     MY_BOOST_CHECK_CLOSE(h_force_9.data[1].z, 45.67, tol);
     MY_BOOST_CHECK_SMALL(h_force_9.data[1].w, tol_small);
     MY_BOOST_CHECK_SMALL(h_virial_9.data[1], tol_small);
-    
+    }
+
     // check the setforce method
     fc.setForce(Scalar(67.54), Scalar(22.1), Scalar(-1.4));
+    {
     GPUArray<Scalar4>& force_array_10 =  fc.getForceArray();
     GPUArray<Scalar>& virial_array_10 =  fc.getVirialArray();
     ArrayHandle<Scalar4> h_force_10(force_array_10,access_location::host,access_mode::read);
@@ -408,6 +429,7 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     MY_BOOST_CHECK_CLOSE(h_force_10.data[1].z, -1.4, tol);
     MY_BOOST_CHECK_SMALL(h_force_10.data[1].w, tol_small);
     MY_BOOST_CHECK_SMALL(h_virial_10.data[1], tol_small);
+    }
     }
 
 //! HarmonicBondForceCompute creator for bond_force_basic_tests()

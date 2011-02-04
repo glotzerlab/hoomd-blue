@@ -109,6 +109,7 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     // compute the forces
     fc_3->compute(0);
     
+    {
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
@@ -130,7 +131,8 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, 0.155635575722105/2.0, tol);
     MY_BOOST_CHECK_CLOSE(h_virial_1.data[2], 0.103757050481403, tol);
-    
+    }
+
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
     arrays = pdata_3->acquireReadWrite();
     arrays.x[2] = arrays.y[2] = arrays.z[2] = 0.0;
@@ -147,12 +149,15 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
+    
+    {
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, 0.622542302888418, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, -0.622542302888418, tol);
+    }
     }
 
 //! Tests the ability of a PotentialPairGauss to handle periodic boundary conditions
@@ -206,6 +211,7 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     
     fc_6->compute(0);
     
+    {
     GPUArray<Scalar4>& force_array_3 =  fc_6->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_6->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
@@ -246,6 +252,7 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     MY_BOOST_CHECK_SMALL(h_force_3.data[5].y, tol_small);
     MY_BOOST_CHECK_CLOSE(h_virial_3.data[5], 0.741432801208518*0.8, tol);
     }
+    }
 
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
 void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
@@ -278,6 +285,7 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     fc1->compute(0);
     fc2->compute(0);
     
+    {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_4 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc1->getVirialArray();
@@ -310,6 +318,7 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
     BOOST_CHECK_SMALL(deltav2, double(tol_small));
     }
+    }
 
 //! Test the ability of the gauss force compute to compute forces with different shift modes
 void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -341,6 +350,7 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     fc_no_shift->compute(0);
     fc_shift->compute(0);
     
+    {
     GPUArray<Scalar4>& force_array_6 =  fc_no_shift->getForceArray();
     GPUArray<Scalar>& virial_array_6 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
@@ -361,7 +371,8 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     MY_BOOST_CHECK_CLOSE(h_force_7.data[0].w, 0.008732098206128/2.0, tol);
     MY_BOOST_CHECK_CLOSE(h_force_7.data[1].x, 0.055555065284237, tol);
     MY_BOOST_CHECK_CLOSE(h_force_7.data[1].w, 0.008732098206128/2.0, tol);
-    
+    }
+
     // check once again to verify that nothing fish happens past r_cut
     arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
@@ -371,6 +382,7 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     fc_no_shift->compute(2);
     fc_shift->compute(2);
     
+    {
     GPUArray<Scalar4>& force_array_8 =  fc_no_shift->getForceArray();
     GPUArray<Scalar>& virial_array_8 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
@@ -390,6 +402,7 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     MY_BOOST_CHECK_SMALL(h_force_9.data[0].w, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_9.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_9.data[1].w, tol_small);
+    }
     }
 
 //! LJForceCompute creator for unit tests
