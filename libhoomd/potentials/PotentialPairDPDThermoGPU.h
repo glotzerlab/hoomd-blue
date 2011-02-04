@@ -165,14 +165,6 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
-    // run the kernel on all GPUs in parallel
-    dpd_pair_args opt;
-    opt.block_size = m_block_size;
-    opt.seed = this->m_seed;
-    opt.timestep = timestep;
-    opt.deltaT = this->m_deltaT;
-    opt.T = this->m_T->getValue(timestep);    
-    
     gpu_cpdf(dpd_pair_args_t(d_force.data,
                              d_virial.data,
                              pdata,
@@ -184,17 +176,15 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              this->m_pdata->getNTypes(),
                              m_block_size,
                              this->m_seed,
+                             timestep,
                              this->m_deltaT,
                              this->m_T->getValue(timestep)),
-             d_params.data,);
+             d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     this->m_pdata->release();
-    
-    // the force data is now only up to date on the gpu
-    this->m_data_location = ForceCompute::gpu;
     
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }

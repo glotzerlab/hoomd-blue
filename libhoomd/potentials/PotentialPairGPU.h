@@ -183,9 +183,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     
     this->m_pdata->release();
     
-    // the force data is now only up to date on the gpu
-    this->m_data_location = ForceCompute::gpu;
-    
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 

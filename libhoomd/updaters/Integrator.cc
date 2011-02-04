@@ -436,7 +436,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 			ArrayHandle<Scalar4> d_force0(d_force_array0,access_location::device,access_mode::read);
             const GPUArray<Scalar>& d_virial_array0 = m_forces[cur_force]->getVirialArray();
 			ArrayHandle<Scalar> d_virial0(d_virial_array0,access_location::device,access_mode::read);
-            virial_list.f0 = virial0.d_data.virial;
+            force_list.f0 = d_force0.data;
             force_list.v0 = d_virial0.data;
             
             if (cur_force+1 < m_forces.size())
@@ -445,7 +445,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 				ArrayHandle<Scalar4> d_force1(d_force_array1,access_location::device,access_mode::read);
                 const GPUArray<Scalar>& d_virial_array1 = m_forces[cur_force+1]->getVirialArray();
 				ArrayHandle<Scalar> d_virial1(d_virial_array1,access_location::device,access_mode::read);
-                force_list.f1 = d_virial1.data;
+                force_list.f1 = d_force1.data;
                 force_list.v1 = d_virial1.data;
                 }
             if (cur_force+2 < m_forces.size())
