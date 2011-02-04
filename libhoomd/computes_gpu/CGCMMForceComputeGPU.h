@@ -78,8 +78,7 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
         void setBlockSize(int block_size);
         
     protected:
-        GPUArray<float4>  d_coeffs;              //!< Pointer to the coefficients on the GPU
-        GPUArray<float4>  h_coeffs;              //!< Pointer to the coefficients on the host
+        GPUArray<float4>  m_coeffs;     //!< Coefficients for the force
         int m_block_size;               //!< The block size to run on the GPU
         
         //! Actually compute the forces
