@@ -77,19 +77,12 @@ HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<Syste
         }
         
     // allocate and zero device memory
-    m_host_params = GPUArray<float2>(m_bond_data->getNBondTypes(),exec_conf);
+    GPUArray<float2> params(m_bond_data->getNBondTypes(), exec_conf);
+    m_params.swap(params);
     }
 
 HarmonicBondForceComputeGPU::~HarmonicBondForceComputeGPU()
     {
-    // free memory on the GPU
-    cudaFree(m_gpu_params);
-    m_gpu_params = NULL;
-    CHECK_CUDA_ERROR();
-        
-    // free memory on the CPU
-    delete[] m_host_params;
-    m_host_params = NULL;
     }
 
 /*! \param type Type of the bond to set parameters for
@@ -102,13 +95,9 @@ HarmonicBondForceComputeGPU::~HarmonicBondForceComputeGPU()
 void HarmonicBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0)
     {
     HarmonicBondForceCompute::setParams(type, K, r_0);
-    
-    // update the local copy of the memory
-    m_host_params[type] = make_float2(K, r_0);
-    
-    // copy the parameters to the GPU
-    cudaMemcpy(m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float2), cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
+   
+    ArrayHandle<float2> h_params(m_params, access_location::host, access_mode::readwrite);
+    h_params.data[type] = make_float2(K, r_0);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -131,6 +120,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
       
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+    ArrayHandle<float2> d_params(m_params, access_location::device, access_mode::read);
 
     // run the kernel in parallel on all GPUs
     gpu_compute_harmonic_bond_forces(d_force.data,
@@ -138,7 +128,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
                                      pdata,
                                      box,
                                      gpu_bondtable,
-                                     m_gpu_params,
+                                     d_params.data,
                                      m_bond_data->getNBondTypes(),
                                      m_block_size);
     if (exec_conf->isCUDAErrorCheckingEnabled())
