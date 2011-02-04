@@ -86,31 +86,16 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
     cgPow2[3]  = Scalar(6.0);
     
     // allocate and zero device memory
-    m_host_params = GPUArray<float2>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    m_host_CGCMMsr = GPUArray<float2>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
-    m_host_CGCMMepow = GPUArray<float4>(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    GPUArray<float2> params (m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_params.swap(params);
+    GPUArray<float2> CGCMMsr(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_CGCMMsr.swap(CGCMMsr);
+    GPUArray<float4> CGCMMepow(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    m_CGCMMepow.swap(CGCMMepow);
     }
 
 CGCMMAngleForceComputeGPU::~CGCMMAngleForceComputeGPU()
     {
-    // free memory on the GPU
-    cudaFree(m_gpu_params);
-    m_gpu_params = NULL;
-        
-    cudaFree(m_gpu_CGCMMsr);
-    m_gpu_CGCMMsr = NULL;
-        
-    cudaFree(m_gpu_CGCMMepow);
-    m_gpu_CGCMMepow = NULL;
-    CHECK_CUDA_ERROR();
-    
-    // free memory on the CPU
-    delete[] m_host_params;
-    delete[] m_host_CGCMMsr;
-    delete[] m_host_CGCMMepow;
-    m_host_params = NULL;
-    m_host_CGCMMsr = NULL;
-    m_host_CGCMMepow = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -132,19 +117,14 @@ void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_
     const float myPref = prefact[cg_type];
     
     Scalar my_rcut = sigma*exp(1.0f/(myPow1-myPow2)*log(myPow1/myPow2));
-    
+   
+    ArrayHandle<float2> h_params(m_params, access_location::host, access_mode::readwrite);
+    ArrayHandle<float2> h_CGCMMsr(m_CGCMMsr, access_location::host, access_mode::readwrite);
+    ArrayHandle<float4> h_CGCMMepow(m_CGCMMepow, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    m_host_params[type] = make_float2(K, t_0);
-    m_host_CGCMMsr[type] = make_float2(sigma, my_rcut);
-    m_host_CGCMMepow[type] = make_float4(eps, myPow1, myPow2, myPref);
-    
-    // copy the parameters to the GPU
-    cudaMemcpy(m_gpu_params, m_host_params, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice);
-        
-    cudaMemcpy(m_gpu_CGCMMsr, m_host_CGCMMsr, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice);
-        
-    cudaMemcpy(m_gpu_CGCMMepow, m_host_CGCMMepow, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4), cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
+    h_params.data[type] = make_float2(K, t_0);
+    h_CGCMMsr.data[type] = make_float2(sigma, my_rcut);
+    h_CGCMMepow.data[type] = make_float4(eps, myPow1, myPow2, myPref);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -170,6 +150,9 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     //m_virial.memclear();
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+    ArrayHandle<float2> d_params(m_params, access_location::device, access_mode::read);
+    ArrayHandle<float2> d_CGCMMsr(m_CGCMMsr, access_location::device, access_mode::read);
+    ArrayHandle<float4> d_CGCMMepow(m_CGCMMepow, access_location::device, access_mode::read);
     
 
     // run the kernel
@@ -178,9 +161,9 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
                                    pdata,
                                    box,
                                    gpu_angletable,
-                                   m_gpu_params,
-                                   m_gpu_CGCMMsr,
-                                   m_gpu_CGCMMepow,
+                                   d_params.data,
+                                   d_CGCMMsr.data,
+                                   d_CGCMMepow.data,
                                    m_CGCMMAngle_data->getNAngleTypes(),
                                    m_block_size);
     
