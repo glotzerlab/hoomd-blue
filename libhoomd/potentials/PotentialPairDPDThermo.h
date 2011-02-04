@@ -342,11 +342,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
         for (int thread = 1; thread < nthreads; thread++)
             {
             unsigned int mem_idx = this->m_index_thread_partial(i,thread);
-            h_force.data[i].x = this->m_fdata_partial[mem_idx].x;
-            h_force.data[i].y = this->m_fdata_partial[mem_idx].y;
-            h_force.data[i].z = this->m_fdata_partial[mem_idx].z;
-            h_force.data[i].w = this->m_fdata_partial[mem_idx].w;
-            h_virial.data[i]  = this->m_virial_partial[mem_idx];
+            h_force.data[i].x += this->m_fdata_partial[mem_idx].x;
+            h_force.data[i].y += this->m_fdata_partial[mem_idx].y;
+            h_force.data[i].z += this->m_fdata_partial[mem_idx].z;
+            h_force.data[i].w += this->m_fdata_partial[mem_idx].w;
+            h_virial.data[i]  += this->m_virial_partial[mem_idx];
             }
         #endif
         }

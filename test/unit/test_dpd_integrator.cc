@@ -188,7 +188,7 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     dpd_thermo->setParams(0,0,make_scalar2(30,4.5));
     dpd_thermo->setRcut(0, 0, Scalar(1.0));
     nve_up->addForceCompute(dpd_thermo);
-
+    nve_up->prepRun(0);
 
     Scalar(AvgT) = 0.0;
     for (unsigned int i = 0; i < 600; i++)
