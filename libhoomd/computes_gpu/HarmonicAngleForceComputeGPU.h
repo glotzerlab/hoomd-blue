@@ -93,9 +93,8 @@ class HarmonicAngleForceComputeGPU : public HarmonicAngleForceCompute
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
         
     protected:
-        int m_block_size;       //!< Block size to run calculation on
-        GPUArray<float2>  m_gpu_params;  //!< Parameters stored on the GPU
-        GPUArray<float2> m_host_params;  //!< Host parameters
+        int m_block_size;            //!< Block size to run calculation on
+        GPUArray<float2>  m_params;  //!< Parameters stored on the GPU
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
