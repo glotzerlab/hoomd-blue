@@ -248,13 +248,13 @@ template<class T> void GPUFlags<T>::allocate()
         {
         if (m_mapped)
             {
-            cudaMallocHost(&h_data, sizeof(T), cudaHostAllocMapped);
+            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocMapped);
             cudaHostGetDevicePointer(&d_data, h_data, 0);
             CHECK_CUDA_ERROR();
             }
         else
             {
-            cudaMallocHost(&h_data, sizeof(T));
+            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocDefault);
             cudaMalloc(&d_data, sizeof(T));
             CHECK_CUDA_ERROR();
             }
