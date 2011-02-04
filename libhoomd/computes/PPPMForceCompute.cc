@@ -119,7 +119,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     {
 	m_Nx = Nx;
 	m_Ny = Ny;
-	m_Nz= Nz;
+	m_Nz = Nz;
 	m_order = order;
 	m_kappa = kappa;
 	m_rcut = rcut;
@@ -208,7 +208,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
  	PPPMForceCompute::compute_rho_coeff();
 
 	Scalar3 inverse_lattice_vector;
-	Scalar invdet = 2.0f*M_PI/(Lx*Lz*Lz);
+	Scalar invdet = 2.0f*M_PI/(Lx*Ly*Lz);
 	inverse_lattice_vector.x = invdet*Ly*Lz;
 	inverse_lattice_vector.y = invdet*Lx*Lz;
 	inverse_lattice_vector.z = invdet*Lx*Ly;
@@ -496,14 +496,6 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         PPPMForceCompute::fix_exclusions_cpu();
         }
 
-/*
-    free(fft_in);
-    free(fft_ex);
-    free(fft_ey);
-    free(fft_ez);
-    free(fft_forward);
-    free(fft_inverse);
-*/
 
 #ifdef ENABLE_CUDA
     // the data is now only up to date on the CPU

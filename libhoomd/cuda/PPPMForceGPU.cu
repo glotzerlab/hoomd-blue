@@ -448,7 +448,7 @@ cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
     cudaMemset(GPU_rho_real_space, 0.0f, sizeof(cufftComplex)*Nx*Ny*Nz);
 
     // zero the force arrays for all particles
-//    zero_forces <<< grid, threads >>> (force_data, pdata);
+    // zero_forces <<< grid, threads >>> (force_data, pdata);
     cudaMemset(force_data.force, 0.0f, sizeof(float4)*pdata.N);
     cudaMemset(force_data.virial, 0.0f, sizeof(float)*pdata.N);
 

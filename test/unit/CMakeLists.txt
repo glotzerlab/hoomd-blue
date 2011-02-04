@@ -47,6 +47,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/configure.ocelot ${CMAKE_CURRENT_BINA
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
+    test_ewald_force
+    test_pppm_force
     test_cell_list
     test_index1d
     test_molfile
