@@ -108,7 +108,7 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
 
     // run the kernel in parallel on all GPUs
     gpu_compute_constraint_sphere_forces(d_force.data,
-								         d_virial.data,
+                                         d_virial.data,
                                          d_group_members.data,
                                          m_group->getNumMembers(),
                                          pdata,

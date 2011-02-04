@@ -129,7 +129,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
  
     // run the kernel on all GPUs in parallel
     gpu_compute_table_forces(d_force.data,
-	                         d_virial.data,
+                             d_virial.data,
                              pdata,
                              box,
                              d_n_neigh.data,

@@ -157,7 +157,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 
     // run the kernel
     gpu_compute_CGCMM_angle_forces(d_force.data,
-								   d_virial.data,
+                                   d_virial.data,
                                    pdata,
                                    box,
                                    gpu_angletable,
