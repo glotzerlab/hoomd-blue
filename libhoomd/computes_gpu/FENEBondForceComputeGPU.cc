@@ -78,8 +78,9 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
         }
         
     // allocate host memory for GPU parameters
-    m_host_params = GPUArray<float4>(m_bond_data->getNBondTypes(),exec_conf);
-    
+    GPUArray<float4> params(m_bond_data->getNBondTypes(),exec_conf);
+    m_params.swap(params);
+
     // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, exec_conf);
     m_flags.swap(flags);
@@ -87,13 +88,6 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
 
 FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
     {
-    // free memory on the GPU
-    cudaFree(m_gpu_params);
-    m_gpu_params = NULL;
-        
-    // free memory on the CPU
-    delete[] m_host_params;
-    m_host_params = NULL;
     }
 
 /*! \param type Type of the bond to set parameters for
@@ -108,13 +102,10 @@ s
 void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon)
     {
     FENEBondForceCompute::setParams(type, K, r_0, sigma, epsilon);
-    
+   
+    ArrayHandle<float4> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    m_host_params[type] = make_float4(K, r_0, sigma, epsilon);
-    
-    // copy the parameters to the GPU
-    cudaMemcpy(m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float4), cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
+    h_params.data[type] = make_float4(K, r_0, sigma, epsilon);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -137,6 +128,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
       
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+    ArrayHandle<float4> d_params(m_params, access_location::device, access_mode::read);
 
         {
         // access the flags array for overwriting
@@ -148,7 +140,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
                                      pdata,
                                      box,
                                      gpu_bondtable,
-                                     m_gpu_params,
+                                     d_params.data,
                                      m_bond_data->getNBondTypes(),
                                      m_block_size,
                                      d_flags.data);
