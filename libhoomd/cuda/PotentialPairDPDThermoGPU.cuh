@@ -13,6 +13,7 @@
 //! args struct for passing additional options to gpu_compute_dpd_forces
 struct dpd_pair_args_t
     {
+    //! Construct a dpd_pair_args_t
     dpd_pair_args_t(float4 *_d_force,
                     float *_d_virial,
                     const gpu_pdata_arrays& _pdata,
@@ -254,16 +255,8 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-/*! \param force_data Device memory array to write calculated forces to
-    \param pdata Particle data on the GPU to calculate forces on
-    \param box Box dimensions used to implement periodic boundary conditions
-    \param d_n_neigh Device memory array listing the number of neighbors for each particle
-    \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
-    \param d_params Parameters for the potential, stored per type pair
-    \param d_rcutsq rcut squared, stored per type pair
-    \param ntypes Number of types in the simulation
-    \param args Additional options
+/*! \param args Additional options
+    \param d_params Per type-pair parameters for the evaluator
     
     This is just a driver function for gpu_compute_dpd_forces_kernel(), see it for details.
 */

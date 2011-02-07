@@ -66,7 +66,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 texture<float2, 1, cudaReadModeElementType> angle_params_tex;
 
 //! Kernel for caculating harmonic angle forces on the GPU
-/*! \param force_data Data to write the compute forces to
+/*! \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param pdata Particle data arrays to calculate forces on
     \param box Box dimensions for periodic boundary condition handling
     \param alist Angle data to use in calculating the forces

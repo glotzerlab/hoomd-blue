@@ -65,7 +65,8 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
 
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
-    \param force_data Device memory array to write calculated forces to
+    \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle

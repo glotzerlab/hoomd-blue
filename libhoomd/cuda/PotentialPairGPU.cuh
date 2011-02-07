@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Wrapps arguments to gpu_cgpf
 struct pair_args_t
     {
+    //! Construct a pair_args_t
     pair_args_t(float4 *_d_force,
               float *_d_virial,
               const gpu_pdata_arrays& _pdata,
@@ -343,7 +344,7 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-/*! 
+/*! \param pair_args Other arugments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
     
     This is just a driver function for gpu_compute_pair_forces_kernel(), see it for details.

@@ -124,10 +124,13 @@ class ForceCompute : public Compute
             return h_force.data[i].w;
             }
         
+        //! Get the array of computed forces
         GPUArray<Scalar4>& getForceArray()
             {
             return m_force;
             }
+        
+        //! Get the array of computed virials
         GPUArray<Scalar>& getVirialArray()
             {
             return m_virial;
