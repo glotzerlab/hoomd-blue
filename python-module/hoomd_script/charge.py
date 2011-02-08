@@ -90,6 +90,8 @@ pppm_used = False;
 # Coefficients Nx, Ny, Nz, order, \f$ r_{\mathrm{cut}} \f$ must be set using
 # set_coeff() before any run() can take place.
 #
+# See \ref page_units for information on the units assigned to charges in hoomd.
+#
 class pppm(force._force):
     ## Specify the long-ranged part of the electrostatic calculation
     #
