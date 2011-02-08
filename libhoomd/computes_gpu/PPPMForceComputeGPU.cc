@@ -118,6 +118,12 @@ void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar ka
 */
 void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     {
+    if (!m_params_set)
+        {
+        cerr << endl << "***Error! setParams must be called prior to computeForces()" << endl << endl;
+        throw std::runtime_error("Error computing forces in PPPMForceComputeGPU");
+        }
+    
     unsigned int group_size = m_group->getNumMembers();
     // just drop out if the group is an empty group
     if (group_size == 0)

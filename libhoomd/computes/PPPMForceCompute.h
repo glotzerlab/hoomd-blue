@@ -121,6 +121,7 @@ class PPPMForceCompute : public ForceCompute
         //! fix the force due to excluded particles
         void fix_exclusions_cpu();
     protected:
+        bool m_params_set;                       //!< Set to true when the parameters are set
         int m_Nx;                                //!< Number of grid points in x direction
         int m_Ny;                                //!< Number of grid points in y direction
         int m_Nz;                                //!< Number of grid points in z direction

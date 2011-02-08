@@ -99,8 +99,10 @@ class pppm(force._force):
             self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
         else:
             self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
-
+        
         globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        self.params_set = False;
         
     ## Sets the PPPM coefficients
     #
@@ -125,6 +127,7 @@ class pppm(force._force):
     def set_coeff(self, Nx, Ny, Nz, order, rcut):
         util.print_status_line();
 
+        self.params_set = True;
         q2 = 0
         N = globals.system_definition.getParticleData().getN()
         for i in xrange(0,N):
@@ -185,7 +188,9 @@ class pppm(force._force):
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);
 
     def update_coeffs(self):
-        pass
+        if not self.params_set:
+            print >> sys.stderr, "\n***Error: Coefficients for PPPM are not set. Call set_coeff prior to run()\n";
+            raise RuntimeError("Error initializing run");
 
 def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     lprx = rms(hx, xprd, N, order, kappa, q2)

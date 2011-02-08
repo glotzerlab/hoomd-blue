@@ -92,7 +92,7 @@ GPUArray<Scalar2> PPPMData::i_data;
 PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, 
                                    boost::shared_ptr<NeighborList> nlist,
                                    boost::shared_ptr<ParticleGroup> group)
-    : ForceCompute(sysdef), m_nlist(nlist), m_group(group)
+    : ForceCompute(sysdef), m_params_set(false), m_nlist(nlist), m_group(group)
     {
     assert(m_pdata);
     assert(m_nlist);
@@ -117,6 +117,7 @@ PPPMForceCompute::~PPPMForceCompute()
 */
 void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut)
     {
+    m_params_set = true;
     m_Nx = Nx;
     m_Ny = Ny;
     m_Nz = Nz;
@@ -141,12 +142,12 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     if (m_order * (2*m_order +1) > CONSTANT_SIZE)
         {
         cerr << endl << "***Error! interpolation order too high, doesn't fit into constant array" << endl << endl;
-        throw std::runtime_error("Error initializing PPPMComputeGPU");
+        throw std::runtime_error("Error initializing PPPMForceCompute");
         }
     if (m_order > MaxOrder)
         {
         cerr << endl << "***Error! interpolation order too high, max is " << MaxOrder << endl << endl;
-        throw std::runtime_error("Error initializing PPPMComputeGPU");
+        throw std::runtime_error("Error initializing PPPMForceCompute");
         }
 
     GPUArray<cufftComplex> n_rho_real_space(Nx*Ny*Nz, exec_conf);
@@ -397,6 +398,12 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
 
 void PPPMForceCompute::computeForces(unsigned int timestep)
     {
+    if (!m_params_set)
+        {
+        cerr << endl << "***Error! setParams must be called prior to computeForces()" << endl << endl;
+        throw std::runtime_error("Error computing forces in PPPMForceCompute");
+        }
+    
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
