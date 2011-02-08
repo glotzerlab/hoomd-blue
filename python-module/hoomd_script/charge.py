@@ -65,6 +65,8 @@ import sys;
 
 from math import sqrt
 
+pppm_used = False;
+
 ## Long-range part of the PPPM force
 #
 # The command charge.pppm specifies that the long-ranged part of the PPPM force is computed between all charged particles
@@ -87,6 +89,11 @@ class pppm(force._force):
     # \endcode
     def __init__(self, group):
         util.print_status_line();
+       
+        if pppm_used:
+            print >> sys.stderr, "\n***Error: cannot have more than one pppm in a single job\n";
+            raise RuntimeError("Error initializing PPPM");
+        pppm_used = True;
        
         # initialize the base class
         force._force.__init__(self);
