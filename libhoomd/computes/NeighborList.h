@@ -225,8 +225,8 @@ class NeighborList : public Compute
          //! Get the exclusion list
          const GPUArray<unsigned int>& getExListArray()
             {
-	    return m_ex_list_idx;
-	    }
+            return m_ex_list_idx;
+            }
 
         //! Get the neighbor list indexer
         /*! \note Do not save indexers across calls. Get a new indexer after every call to compute() - they will
@@ -244,8 +244,8 @@ class NeighborList : public Compute
 
         bool getExclusionsSet()
             {
-	    return m_exclusions_set;
-	    }
+            return m_exclusions_set;
+            }
 
         //! Gives an estimate of the number of nearest neighbors per particle
         virtual Scalar estimateNNeigh();

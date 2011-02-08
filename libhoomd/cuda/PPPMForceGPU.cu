@@ -520,7 +520,7 @@ __global__ void calculate_thermo_quantities_kernel(cufftComplex* rho,
         {
 
         float energy = green_function[idx]*(rho[idx].x*rho[idx].x + rho[idx].y*rho[idx].y);
-        float pressure = energy*(vg[idx].x + vg[idx].y + vg[idx].z);	
+        float pressure = energy*(vg[idx].x + vg[idx].y + vg[idx].z);
         GPU_virial_energy[idx].x = pressure;
         GPU_virial_energy[idx].y = energy;
         }
@@ -707,7 +707,7 @@ float2 gpu_compute_pppm_thermo(int Nx,
     dim3 N_threads(block_size, 1, 1);
 
     int n = Nx*Ny*Nz;
-    float2 gpu_result = make_float2(0.0f, 0.0f);	  
+    float2 gpu_result = make_float2(0.0f, 0.0f);
     calculate_thermo_quantities_kernel <<< N_grid, N_threads >>> (GPU_rho_real_space, GPU_green_hat, i_data, GPU_vg, Nx, Ny, Nz);
     int threads, blocks, maxBlocks = 64, maxThreads = 256, cpuFinalThreshold = 1;
     bool needReadBack = true;
@@ -1025,3 +1025,4 @@ cudaError_t fix_exclusions(const gpu_force_data_arrays& force_data,
                                                       group_size);
     return cudaSuccess;
     }
+

@@ -91,8 +91,8 @@ class ComputeThermo : public Compute
     public:
         //! Constructs the compute
         ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
-		      boost::shared_ptr<ParticleGroup> group,
-		      const std::string& suffix = std::string(""));
+                      boost::shared_ptr<ParticleGroup> group,
+                      const std::string& suffix = std::string(""));
         
         //! Compute the temperature
         virtual void compute(unsigned int timestep);
@@ -160,7 +160,6 @@ class ComputeThermo : public Compute
 
     protected:
         boost::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
-//	boost::shared_ptr<PPPMData> m_pppm;     //!< Group to compute properties for
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
         unsigned int m_ndof;            //!< Stores the number of degrees of freedom in the system
         vector<string> m_logname_list;  //!< Cache all generated logged quantities names

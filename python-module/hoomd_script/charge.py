@@ -233,3 +233,5 @@ def rms(h, prd, N, order, kappa, q2):
         sum += acons[order][m]*pow(h*kappa, 2.0*m)
     value = q2*pow(h*kappa,order)*sqrt(kappa*prd*sqrt(2.0*math.pi)*sum/N)/prd/prd
     return value
+
+

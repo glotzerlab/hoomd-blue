@@ -1954,3 +1954,4 @@ class eam(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         pass;
+

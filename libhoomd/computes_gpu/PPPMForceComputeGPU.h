@@ -81,7 +81,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         //! Constructs the compute
         PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
                             boost::shared_ptr<NeighborList> nlist,
-			    boost::shared_ptr<ParticleGroup> group);
+                            boost::shared_ptr<ParticleGroup> group);
         //! Destructor
         ~PPPMForceComputeGPU();
         
@@ -99,7 +99,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
 
     protected:
         int m_block_size;                    //!< Block size to run calculation on
-     	cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
+        cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

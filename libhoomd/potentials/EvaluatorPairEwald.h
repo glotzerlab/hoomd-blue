@@ -113,7 +113,7 @@ class EvaluatorPairEwald
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairEwald(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-	  : rsq(_rsq), rcutsq(_rcutsq), kappa(_params)
+          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params)
             {
             }
         
@@ -131,9 +131,11 @@ class EvaluatorPairEwald
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE void setCharge(Scalar qi, Scalar qj) {
-	    qiqj = qi * qj;
-	}
+        DEVICE void setCharge(Scalar qi, Scalar qj)
+            {
+            qiqj = qi * qj;
+            }
+
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
@@ -144,25 +146,23 @@ class EvaluatorPairEwald
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
-	{
-	  if (rsq < rcutsq && qiqj != 0)
-	    {
-	      Scalar rinv = RSQRT(rsq);
-	      Scalar r = Scalar(1.0) / rinv;
-	      Scalar r2inv = Scalar(1.0) / rsq;
-		   
-	      Scalar erfc_by_r_val = ERFC(kappa * r) * rinv;
-		  	  
-	      force_divr = qiqj * r2inv * (erfc_by_r_val + 2.0*kappa*RSQRT(M_PI) * EXP(-kappa*kappa* rsq));
-	      pair_eng = qiqj * erfc_by_r_val ;
+            {
+            if (rsq < rcutsq && qiqj != 0)
+                {
+                Scalar rinv = RSQRT(rsq);
+                Scalar r = Scalar(1.0) / rinv;
+                Scalar r2inv = Scalar(1.0) / rsq;
+                
+                Scalar erfc_by_r_val = ERFC(kappa * r) * rinv;
+                        
+                force_divr = qiqj * r2inv * (erfc_by_r_val + 2.0*kappa*RSQRT(M_PI) * EXP(-kappa*kappa* rsq));
+                pair_eng = qiqj * erfc_by_r_val ;
 
-	      return true;
-	    }
-	  else
-	    return false;
-	    
-	      
-	}
+                return true;
+                }
+            else
+                return false;
+            }
         
         #ifndef NVCC
         //! Get the name of this potential
@@ -178,10 +178,9 @@ class EvaluatorPairEwald
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-	Scalar kappa;   //!< kappa parameter extracted from the params passed to the constructor
-	Scalar qiqj;	//!< product of qi and qj
+        Scalar kappa;   //!< kappa parameter extracted from the params passed to the constructor
+        Scalar qiqj;    //!< product of qi and qj
     };
 
 
 #endif // __PAIR_EVALUATOR_EWALD_H__
-

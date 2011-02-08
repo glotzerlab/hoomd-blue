@@ -79,12 +79,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class PPPMForceCompute : public ForceCompute
     {
     public:
-      //! Constructs the compute
-      PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-		       boost::shared_ptr<NeighborList> nlist,
-		       boost::shared_ptr<ParticleGroup> group);
+        //! Constructs the compute
+        PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+                         boost::shared_ptr<NeighborList> nlist,
+                         boost::shared_ptr<ParticleGroup> group);
        
-      //! Destructor
+        //! Destructor
         ~PPPMForceCompute();
         
         //! Set the parameters
@@ -143,15 +143,14 @@ class PPPMForceCompute : public ForceCompute
         boost::shared_ptr<NeighborList> m_nlist;  //!< The neighborlist to use for the computation
         boost::shared_ptr<ParticleGroup> m_group; //!< Group to compute properties for
 
-      kiss_fft_cpx *fft_in;                     //!< For FFTs on CPU rho_real_space
-      kiss_fft_cpx *fft_ex;                     //!< For FFTs on CPU E-field x component
-      kiss_fft_cpx *fft_ey;                     //!< For FFTs on CPU E-field y component
-      kiss_fft_cpx *fft_ez;                     //!< For FFTs on CPU E-field z component
-      kiss_fftnd_cfg fft_forward;               //!< Forward FFT on CPU
-      kiss_fftnd_cfg fft_inverse;               //!< Inverse FFT on CPU
+        kiss_fft_cpx *fft_in;                     //!< For FFTs on CPU rho_real_space
+        kiss_fft_cpx *fft_ex;                     //!< For FFTs on CPU E-field x component
+        kiss_fft_cpx *fft_ey;                     //!< For FFTs on CPU E-field y component
+        kiss_fft_cpx *fft_ez;                     //!< For FFTs on CPU E-field z component
+        kiss_fftnd_cfg fft_forward;               //!< Forward FFT on CPU
+        kiss_fftnd_cfg fft_inverse;               //!< Inverse FFT on CPU
 
-      int first_run;                            //!< flag for allocating arrays
-        std::string m_log_name;                   //!< Cached log name
+        int first_run;                            //!< flag for allocating arrays
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

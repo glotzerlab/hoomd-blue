@@ -107,120 +107,120 @@ PPPMForceCompute::~PPPMForceCompute()
     }
 
 /*! \param Nx Number of grid points in x direction
-  \param Ny Number of grid points in y direction
-  \param Nz Number of grid points in z direction
-  \param order Number of grid points in each direction to assign charges to
-  \param kappa Screening parameter in erfc
-  \param rcut Short-ranged cutoff, used for computing the relative force error
+    \param Ny Number of grid points in y direction
+    \param Nz Number of grid points in z direction
+    \param order Number of grid points in each direction to assign charges to
+    \param kappa Screening parameter in erfc
+    \param rcut Short-ranged cutoff, used for computing the relative force error
 
-  Sets parameters for the long-ranged part of the electrostatics calculation
+    Sets parameters for the long-ranged part of the electrostatics calculation
 */
 void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut)
     {
-	m_Nx = Nx;
-	m_Ny = Ny;
-	m_Nz = Nz;
-	m_order = order;
-	m_kappa = kappa;
-	m_rcut = rcut;
+    m_Nx = Nx;
+    m_Ny = Ny;
+    m_Nz = Nz;
+    m_order = order;
+    m_kappa = kappa;
+    m_rcut = rcut;
     first_run = 0;
 
-	PPPMData::compute_pppm_flag = 1;
-	if(!(m_Nx == 2)&& !(m_Nx == 4)&& !(m_Nx == 8)&& !(m_Nx == 16)&& !(m_Nx == 32)&& !(m_Nx == 64)&& !(m_Nx == 128)&& !(m_Nx == 256)&& !(m_Nx == 512)&& !(m_Nx == 1024))
+    PPPMData::compute_pppm_flag = 1;
+    if(!(m_Nx == 2)&& !(m_Nx == 4)&& !(m_Nx == 8)&& !(m_Nx == 16)&& !(m_Nx == 32)&& !(m_Nx == 64)&& !(m_Nx == 128)&& !(m_Nx == 256)&& !(m_Nx == 512)&& !(m_Nx == 1024))
         {
-	    cout << "***Warning! PPPM X gridsize should be a power of 2 for the best performance" << endl;
+        cout << "***Warning! PPPM X gridsize should be a power of 2 for the best performance" << endl;
         }
-	if(!(m_Ny == 2)&& !(m_Ny == 4)&& !(m_Ny == 8)&& !(m_Ny == 16)&& !(m_Ny == 32)&& !(m_Ny == 64)&& !(m_Ny == 128)&& !(m_Ny == 256)&& !(m_Ny == 512)&& !(m_Ny == 1024))
+    if(!(m_Ny == 2)&& !(m_Ny == 4)&& !(m_Ny == 8)&& !(m_Ny == 16)&& !(m_Ny == 32)&& !(m_Ny == 64)&& !(m_Ny == 128)&& !(m_Ny == 256)&& !(m_Ny == 512)&& !(m_Ny == 1024))
         {
         cout << "***Warning! PPPM Y gridsize should be a power of 2 for the best performance" << endl;
         }
-	if(!(m_Nz == 2)&& !(m_Nz == 4)&& !(m_Nz == 8)&& !(m_Nz == 16)&& !(m_Nz == 32)&& !(m_Nz == 64)&& !(m_Nz == 128)&& !(m_Nz == 256)&& !(m_Nz == 512)&& !(m_Nz == 1024))
+    if(!(m_Nz == 2)&& !(m_Nz == 4)&& !(m_Nz == 8)&& !(m_Nz == 16)&& !(m_Nz == 32)&& !(m_Nz == 64)&& !(m_Nz == 128)&& !(m_Nz == 256)&& !(m_Nz == 512)&& !(m_Nz == 1024))
         {
         cout << "***Warning! PPPM Z gridsize should be a power of 2 for the best performance" << endl;
         }
-	if (m_order * (2*m_order +1) > CONSTANT_SIZE)
+    if (m_order * (2*m_order +1) > CONSTANT_SIZE)
         {
-	    cerr << endl << "***Error! interpolation order too high, doesn't fit into constant array" << endl << endl;
-	    throw std::runtime_error("Error initializing PPPMComputeGPU");
+        cerr << endl << "***Error! interpolation order too high, doesn't fit into constant array" << endl << endl;
+        throw std::runtime_error("Error initializing PPPMComputeGPU");
         }
-	if (m_order > MaxOrder)
+    if (m_order > MaxOrder)
         {
-	    cerr << endl << "***Error! interpolation order too high, max is " << MaxOrder << endl << endl;
-	    throw std::runtime_error("Error initializing PPPMComputeGPU");
+        cerr << endl << "***Error! interpolation order too high, max is " << MaxOrder << endl << endl;
+        throw std::runtime_error("Error initializing PPPMComputeGPU");
         }
 
-	GPUArray<cufftComplex> n_rho_real_space(Nx*Ny*Nz, exec_conf);
-	PPPMData::m_rho_real_space.swap(n_rho_real_space);
-	GPUArray<Scalar> n_green_hat(Nx*Ny*Nz, exec_conf);
-	PPPMData::m_green_hat.swap(n_green_hat);
-	GPUArray<Scalar3> n_vg(Nx*Ny*Nz, exec_conf);
-	PPPMData::m_vg.swap(n_vg);
+    GPUArray<cufftComplex> n_rho_real_space(Nx*Ny*Nz, exec_conf);
+    PPPMData::m_rho_real_space.swap(n_rho_real_space);
+    GPUArray<Scalar> n_green_hat(Nx*Ny*Nz, exec_conf);
+    PPPMData::m_green_hat.swap(n_green_hat);
+    GPUArray<Scalar3> n_vg(Nx*Ny*Nz, exec_conf);
+    PPPMData::m_vg.swap(n_vg);
 
-	GPUArray<Scalar3> n_kvec(Nx*Ny*Nz, exec_conf);
-	m_kvec.swap(n_kvec);
-	GPUArray<cufftComplex> n_Ex(Nx*Ny*Nz, exec_conf);
-	m_Ex.swap(n_Ex);
-	GPUArray<cufftComplex> n_Ey(Nx*Ny*Nz, exec_conf);
-	m_Ey.swap(n_Ey);
-	GPUArray<cufftComplex> n_Ez(Nx*Ny*Nz, exec_conf);
-	m_Ez.swap(n_Ez);
-	GPUArray<Scalar> n_gf_b(order, exec_conf);
-	m_gf_b.swap(n_gf_b);
-	GPUArray<Scalar> n_rho_coeff(order*(2*order+1), exec_conf);
-	m_rho_coeff.swap(n_rho_coeff);
-	GPUArray<Scalar3> n_field(Nx*Ny*Nz, exec_conf);
-	m_field.swap(n_field);
-	const BoxDim& box = m_pdata->getBox();
-	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    GPUArray<Scalar3> n_kvec(Nx*Ny*Nz, exec_conf);
+    m_kvec.swap(n_kvec);
+    GPUArray<cufftComplex> n_Ex(Nx*Ny*Nz, exec_conf);
+    m_Ex.swap(n_Ex);
+    GPUArray<cufftComplex> n_Ey(Nx*Ny*Nz, exec_conf);
+    m_Ey.swap(n_Ey);
+    GPUArray<cufftComplex> n_Ez(Nx*Ny*Nz, exec_conf);
+    m_Ez.swap(n_Ez);
+    GPUArray<Scalar> n_gf_b(order, exec_conf);
+    m_gf_b.swap(n_gf_b);
+    GPUArray<Scalar> n_rho_coeff(order*(2*order+1), exec_conf);
+    m_rho_coeff.swap(n_rho_coeff);
+    GPUArray<Scalar3> n_field(Nx*Ny*Nz, exec_conf);
+    m_field.swap(n_field);
+    const BoxDim& box = m_pdata->getBox();
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
 
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
 
     // get system charge
-	m_q = 0.f;
-	m_q2 = 0.0;
-	for(int i = 0; i < (int)arrays.nparticles; i++) {
-	    m_q += arrays.charge[i];
-	    m_q2 += arrays.charge[i]*arrays.charge[i];
+    m_q = 0.f;
+    m_q2 = 0.0;
+    for(int i = 0; i < (int)arrays.nparticles; i++) {
+        m_q += arrays.charge[i];
+        m_q2 += arrays.charge[i]*arrays.charge[i];
         }
-	PPPMData::q = m_q;
-	if(fabs(m_q) > 0.0)
+    PPPMData::q = m_q;
+    if(fabs(m_q) > 0.0)
         cout << "***Warning! system in not neutral, the net charge is " << m_q << endl;
 
     // compute RMS force error
-	Scalar hx =  Lx/(Scalar)Nx;
-	Scalar hy =  Ly/(Scalar)Ny;
-	Scalar hz =  Lz/(Scalar)Nz;
-	Scalar lprx = PPPMForceCompute::rms(hx, Lx, (int)arrays.nparticles); 
-	Scalar lpry = PPPMForceCompute::rms(hy, Ly, (int)arrays.nparticles);
-	Scalar lprz = PPPMForceCompute::rms(hz, Lz, (int)arrays.nparticles);
-	Scalar lpr = sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0);
-	Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)arrays.nparticles*m_rcut*Lx*Ly*Lz);
+    Scalar hx =  Lx/(Scalar)Nx;
+    Scalar hy =  Ly/(Scalar)Ny;
+    Scalar hz =  Lz/(Scalar)Nz;
+    Scalar lprx = PPPMForceCompute::rms(hx, Lx, (int)arrays.nparticles); 
+    Scalar lpry = PPPMForceCompute::rms(hy, Ly, (int)arrays.nparticles);
+    Scalar lprz = PPPMForceCompute::rms(hz, Lz, (int)arrays.nparticles);
+    Scalar lpr = sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0);
+    Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)arrays.nparticles*m_rcut*Lx*Ly*Lz);
 
-	double RMS_error = MAX(lpr,spr);
-	if(RMS_error > 0.1) {
-	    printf("!!!!!!!\n!!!!!!!\n!!!!!!!\nWARNING RMS error of %g is probably too high %f %f\n!!!!!!!\n!!!!!!!\n!!!!!!!\n", RMS_error, lpr, spr);
+    double RMS_error = MAX(lpr,spr);
+    if(RMS_error > 0.1) {
+        printf("!!!!!!!\n!!!!!!!\n!!!!!!!\nWARNING RMS error of %g is probably too high %f %f\n!!!!!!!\n!!!!!!!\n!!!!!!!\n", RMS_error, lpr, spr);
         }
-	else{
-	    printf("Notice: PPPM RMS error: %g\n", RMS_error);
+    else{
+        printf("Notice: PPPM RMS error: %g\n", RMS_error);
         }
 
- 	PPPMForceCompute::compute_rho_coeff();
+     PPPMForceCompute::compute_rho_coeff();
 
-	Scalar3 inverse_lattice_vector;
-	Scalar invdet = 2.0f*M_PI/(Lx*Ly*Lz);
-	inverse_lattice_vector.x = invdet*Ly*Lz;
-	inverse_lattice_vector.y = invdet*Lx*Lz;
-	inverse_lattice_vector.z = invdet*Lx*Ly;
+    Scalar3 inverse_lattice_vector;
+    Scalar invdet = 2.0f*M_PI/(Lx*Ly*Lz);
+    inverse_lattice_vector.x = invdet*Ly*Lz;
+    inverse_lattice_vector.y = invdet*Lx*Lz;
+    inverse_lattice_vector.z = invdet*Lx*Ly;
 
-	ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
-	// Set up the k-vectors
-	int ix, iy, iz, kper, lper, mper, k, l, m;
-	for (ix = 0; ix < Nx; ix++) {
-	    Scalar3 j;
-	    j.x = ix > Nx/2 ? ix - Nx : ix;
-	    for (iy = 0; iy < Ny; iy++) {
+    ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
+    // Set up the k-vectors
+    int ix, iy, iz, kper, lper, mper, k, l, m;
+    for (ix = 0; ix < Nx; ix++) {
+        Scalar3 j;
+        j.x = ix > Nx/2 ? ix - Nx : ix;
+        for (iy = 0; iy < Ny; iy++) {
             j.y = iy > Ny/2 ? iy - Ny : iy;
             for (iz = 0; iz < Nz; iz++) {
                 j.z = iz > Nz/2 ? iz - Nz : iz;
@@ -231,11 +231,11 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
             }
         }
  
-	// Set up constants for virial calculation
-	ArrayHandle<Scalar3> h_vg(PPPMData::m_vg, access_location::host, access_mode::readwrite);;
-	for(int x = 0; x < Nx; x++)
+    // Set up constants for virial calculation
+    ArrayHandle<Scalar3> h_vg(PPPMData::m_vg, access_location::host, access_mode::readwrite);;
+    for(int x = 0; x < Nx; x++)
         {
-	    for(int y = 0; y < Ny; y++)
+        for(int y = 0; y < Ny; y++)
             {
             for(int z = 0; z < Nz; z++)
                 {
@@ -243,7 +243,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
                 Scalar sqk =  kvec.x*kvec.x;
                 sqk += kvec.y*kvec.y;
                 sqk += kvec.z*kvec.z;
-	
+    
                 if (sqk == 0.0) 
                     {
                     h_vg.data[z + Nz * (y + Ny * x)].x = 0.0f;
@@ -262,45 +262,45 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         }
 
 
-	// Set up the grid based Green's function
-	ArrayHandle<Scalar> h_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
-	Scalar snx, sny, snz, snx2, sny2, snz2;
-	Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
-	Scalar sum1, dot1, dot2;
-	Scalar numerator, denominator, sqk;
+    // Set up the grid based Green's function
+    ArrayHandle<Scalar> h_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
+    Scalar snx, sny, snz, snx2, sny2, snz2;
+    Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
+    Scalar sum1, dot1, dot2;
+    Scalar numerator, denominator, sqk;
 
-	Scalar unitkx = (2.0*M_PI/Lx);
-	Scalar unitky = (2.0*M_PI/Ly);
-	Scalar unitkz = (2.0*M_PI/Lz);
+    Scalar unitkx = (2.0*M_PI/Lx);
+    Scalar unitky = (2.0*M_PI/Ly);
+    Scalar unitkz = (2.0*M_PI/Lz);
    
     
-	Scalar xprd = Lx; 
-	Scalar yprd = Ly; 
-	Scalar zprd_slab = Lz; 
+    Scalar xprd = Lx; 
+    Scalar yprd = Ly; 
+    Scalar zprd_slab = Lz; 
     
-	Scalar form = 1.0;
+    Scalar form = 1.0;
 
-	PPPMForceCompute::compute_gf_denom();
+    PPPMForceCompute::compute_gf_denom();
 
-	Scalar temp = floor(((kappa*xprd/(M_PI*Nx)) * 
+    Scalar temp = floor(((kappa*xprd/(M_PI*Nx)) * 
                          pow(-log(EPS_HOC),0.25)));
-	int nbx = (int)temp;
+    int nbx = (int)temp;
 
-	temp = floor(((kappa*yprd/(M_PI*Ny)) * 
+    temp = floor(((kappa*yprd/(M_PI*Ny)) * 
                   pow(-log(EPS_HOC),0.25)));
-	int nby = (int)temp;
+    int nby = (int)temp;
 
-	temp =  floor(((kappa*zprd_slab/(M_PI*Nz)) * 
+    temp =  floor(((kappa*zprd_slab/(M_PI*Nz)) * 
                    pow(-log(EPS_HOC),0.25)));
-	int nbz = (int)temp;
+    int nbz = (int)temp;
 
     
-	for (m = 0; m < Nz; m++) {
-	    mper = m - Nz*(2*m/Nz);
-	    snz = sin(0.5*unitkz*mper*zprd_slab/Nz);
-	    snz2 = snz*snz;
+    for (m = 0; m < Nz; m++) {
+        mper = m - Nz*(2*m/Nz);
+        snz = sin(0.5*unitkz*mper*zprd_slab/Nz);
+        snz2 = snz*snz;
 
-	    for (l = 0; l < Ny; l++) {
+        for (l = 0; l < Ny; l++) {
             lper = l - Ny*(2*l/Ny);
             sny = sin(0.5*unitky*lper*yprd/Ny);
             sny2 = sny*sny;
@@ -347,17 +347,17 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
                 }
             }
         }
-	Scalar scale = 1.0f/((Scalar)(Nx * Ny * Nz));
-	m_energy_virial_factor = 0.5 * Lx * Ly * Lz * scale * scale;
+    Scalar scale = 1.0f/((Scalar)(Nx * Ny * Nz));
+    m_energy_virial_factor = 0.5 * Lx * Ly * Lz * scale * scale;
 
-	PPPMData::Nx = m_Nx;
-	PPPMData::Ny = m_Ny;
-	PPPMData::Nz = m_Nx;
-	PPPMData::q2 = m_q2;
-	PPPMData::kappa = m_kappa;
-	PPPMData::energy_virial_factor = m_energy_virial_factor;
+    PPPMData::Nx = m_Nx;
+    PPPMData::Ny = m_Ny;
+    PPPMData::Nz = m_Nx;
+    PPPMData::q2 = m_q2;
+    PPPMData::kappa = m_kappa;
+    PPPMData::energy_virial_factor = m_energy_virial_factor;
 
-	m_pdata->release();
+    m_pdata->release();
 
 #ifdef ENABLE_CUDA
     // the data is now only up to date on the CPU
@@ -421,7 +421,8 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->push("PPPM");
     
-    if(m_box_changed) {
+    if(m_box_changed)
+        {
         const BoxDim& box = m_pdata->getBox();
         Scalar Lx = box.xhi - box.xlo;
         Scalar Ly = box.yhi - box.ylo;
@@ -462,7 +463,8 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
         ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
 
-        for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+        for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++)
+            {
             fft_ex[i].r = (float) h_Ex.data[i].x;
             fft_ex[i].i = (float) h_Ex.data[i].y;
 
@@ -478,7 +480,8 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         kiss_fftnd(fft_inverse, &fft_ey[0], &fft_ey[0]);
         kiss_fftnd(fft_inverse, &fft_ez[0], &fft_ez[0]);
 
-        for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
+        for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++)
+            {
             h_Ex.data[i].x = fft_ex[i].r;
             h_Ex.data[i].y = fft_ex[i].i;
 
@@ -598,22 +601,22 @@ void PPPMForceCompute::compute_rho_coeff()
 
 void PPPMForceCompute::compute_gf_denom()
     {
-	int k,l,m;
-  	ArrayHandle<Scalar> h_gf_b(m_gf_b, access_location::host, access_mode::readwrite);
-	for (l = 1; l < m_order; l++) h_gf_b.data[l] = 0.0;
-	h_gf_b.data[0] = 1.0;
+    int k,l,m;
+      ArrayHandle<Scalar> h_gf_b(m_gf_b, access_location::host, access_mode::readwrite);
+    for (l = 1; l < m_order; l++) h_gf_b.data[l] = 0.0;
+    h_gf_b.data[0] = 1.0;
   
-	for (m = 1; m < m_order; m++) {
-	    for (l = m; l > 0; l--) {
+    for (m = 1; m < m_order; m++) {
+        for (l = m; l > 0; l--) {
             h_gf_b.data[l] = 4.0 * (h_gf_b.data[l]*(l-m)*(l-m-0.5)-h_gf_b.data[l-1]*(l-m-1)*(l-m-1));
             }
-	    h_gf_b.data[0] = 4.0 * (h_gf_b.data[0]*(l-m)*(l-m-0.5));
+        h_gf_b.data[0] = 4.0 * (h_gf_b.data[0]*(l-m)*(l-m-0.5));
     }
 
-	int ifact = 1;
-	for (k = 1; k < 2*m_order; k++) ifact *= k;
-	Scalar gaminv = 1.0/ifact;
-	for (l = 0; l < m_order; l++) h_gf_b.data[l] *= gaminv;
+    int ifact = 1;
+    for (k = 1; k < 2*m_order; k++) ifact *= k;
+    Scalar gaminv = 1.0/ifact;
+    for (l = 0; l < m_order; l++) h_gf_b.data[l] *= gaminv;
     }
 
 Scalar PPPMForceCompute::gf_denom(Scalar x, Scalar y, Scalar z)
@@ -634,24 +637,24 @@ Scalar PPPMForceCompute::gf_denom(Scalar x, Scalar y, Scalar z)
 
 void PPPMForceCompute::reset_kvec_green_hat_cpu()
     {
-	ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
-	const BoxDim& box = m_pdata->getBox();
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
+    ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
+    const BoxDim& box = m_pdata->getBox();
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
 
-	Scalar3 inverse_lattice_vector;
-	Scalar invdet = 2.0f*M_PI/(Lx*Lz*Lz);
-	inverse_lattice_vector.x = invdet*Ly*Lz;
-	inverse_lattice_vector.y = invdet*Lx*Lz;
-	inverse_lattice_vector.z = invdet*Lx*Ly;
+    Scalar3 inverse_lattice_vector;
+    Scalar invdet = 2.0f*M_PI/(Lx*Lz*Lz);
+    inverse_lattice_vector.x = invdet*Ly*Lz;
+    inverse_lattice_vector.y = invdet*Lx*Lz;
+    inverse_lattice_vector.z = invdet*Lx*Ly;
 
-	// Set up the k-vectors
-	int ix, iy, iz, kper, lper, mper, k, l, m;
-	for (ix = 0; ix < m_Nx; ix++) {
-	    Scalar3 j;
-	    j.x = ix > m_Nx/2 ? ix - m_Nx : ix;
-	    for (iy = 0; iy < m_Ny; iy++) {
+    // Set up the k-vectors
+    int ix, iy, iz, kper, lper, mper, k, l, m;
+    for (ix = 0; ix < m_Nx; ix++) {
+        Scalar3 j;
+        j.x = ix > m_Nx/2 ? ix - m_Nx : ix;
+        for (iy = 0; iy < m_Ny; iy++) {
             j.y = iy > m_Ny/2 ? iy - m_Ny : iy;
             for (iz = 0; iz < m_Nz; iz++) {
                 j.z = iz > m_Nz/2 ? iz - m_Nz : iz;
@@ -662,11 +665,11 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
             }
         }
  
-	// Set up constants for virial calculation
-	ArrayHandle<Scalar3> h_vg(PPPMData::m_vg, access_location::host, access_mode::readwrite);;
-	for(int x = 0; x < m_Nx; x++)
+    // Set up constants for virial calculation
+    ArrayHandle<Scalar3> h_vg(PPPMData::m_vg, access_location::host, access_mode::readwrite);;
+    for(int x = 0; x < m_Nx; x++)
         {
-	    for(int y = 0; y < m_Ny; y++)
+        for(int y = 0; y < m_Ny; y++)
             {
             for(int z = 0; z < m_Nz; z++)
                 {
@@ -674,7 +677,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 Scalar sqk =  kvec.x*kvec.x;
                 sqk += kvec.y*kvec.y;
                 sqk += kvec.z*kvec.z;
-	
+    
                 if (sqk == 0.0) 
                     {
                     h_vg.data[z + m_Nz * (y + m_Ny * x)].x = 0.0f;
@@ -693,45 +696,45 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
         }
 
 
-	// Set up the grid based Green's function
-	ArrayHandle<Scalar> h_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
-	Scalar snx, sny, snz, snx2, sny2, snz2;
-	Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
-	Scalar sum1, dot1, dot2;
-	Scalar numerator, denominator, sqk;
+    // Set up the grid based Green's function
+    ArrayHandle<Scalar> h_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
+    Scalar snx, sny, snz, snx2, sny2, snz2;
+    Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
+    Scalar sum1, dot1, dot2;
+    Scalar numerator, denominator, sqk;
 
-	Scalar unitkx = (2.0*M_PI/Lx);
-	Scalar unitky = (2.0*M_PI/Ly);
-	Scalar unitkz = (2.0*M_PI/Lz);
+    Scalar unitkx = (2.0*M_PI/Lx);
+    Scalar unitky = (2.0*M_PI/Ly);
+    Scalar unitkz = (2.0*M_PI/Lz);
    
     
-	Scalar xprd = Lx; 
-	Scalar yprd = Ly; 
-	Scalar zprd_slab = Lz; 
+    Scalar xprd = Lx; 
+    Scalar yprd = Ly; 
+    Scalar zprd_slab = Lz; 
     
-	Scalar form = 1.0;
+    Scalar form = 1.0;
 
-	PPPMForceCompute::compute_gf_denom();
+    PPPMForceCompute::compute_gf_denom();
 
-	Scalar temp = floor(((m_kappa*xprd/(M_PI*m_Nx)) * 
+    Scalar temp = floor(((m_kappa*xprd/(M_PI*m_Nx)) * 
                          pow(-log(EPS_HOC),0.25)));
-	int nbx = (int)temp;
+    int nbx = (int)temp;
 
-	temp = floor(((m_kappa*yprd/(M_PI*m_Ny)) * 
+    temp = floor(((m_kappa*yprd/(M_PI*m_Ny)) * 
                   pow(-log(EPS_HOC),0.25)));
-	int nby = (int)temp;
+    int nby = (int)temp;
 
-	temp =  floor(((m_kappa*zprd_slab/(M_PI*m_Nz)) * 
+    temp =  floor(((m_kappa*zprd_slab/(M_PI*m_Nz)) * 
                    pow(-log(EPS_HOC),0.25)));
-	int nbz = (int)temp;
+    int nbz = (int)temp;
 
     
-	for (m = 0; m < m_Nz; m++) {
-	    mper = m - m_Nz*(2*m/m_Nz);
-	    snz = sin(0.5*unitkz*mper*zprd_slab/m_Nz);
-	    snz2 = snz*snz;
+    for (m = 0; m < m_Nz; m++) {
+        mper = m - m_Nz*(2*m/m_Nz);
+        snz = sin(0.5*unitkz*mper*zprd_slab/m_Nz);
+        snz2 = snz*snz;
 
-	    for (l = 0; l < m_Ny; l++) {
+        for (l = 0; l < m_Ny; l++) {
             lper = l - m_Ny*(2*l/m_Ny);
             sny = sin(0.5*unitky*lper*yprd/m_Ny);
             sny2 = sny*sny;
@@ -778,7 +781,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 }
             }
         }
-    }	
+    }    
 
 void PPPMForceCompute::assign_charges_to_grid()
     {

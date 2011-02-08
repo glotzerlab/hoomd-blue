@@ -99,12 +99,12 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
 */
 void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut)
     {
-	PPPMForceCompute::setParams(Nx, Ny, Nz, order, kappa, rcut);
-	cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_C2C);
-	GPUArray<Scalar2> n_i_data(Nx*Ny*Nz, exec_conf);
-	PPPMData::i_data.swap(n_i_data);
-	GPUArray<Scalar2> n_o_data(Nx*Ny*Nz, exec_conf);
-	PPPMData::o_data.swap(n_o_data);
+    PPPMForceCompute::setParams(Nx, Ny, Nz, order, kappa, rcut);
+    cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_C2C);
+    GPUArray<Scalar2> n_i_data(Nx*Ny*Nz, exec_conf);
+    PPPMData::i_data.swap(n_i_data);
+    GPUArray<Scalar2> n_o_data(Nx*Ny*Nz, exec_conf);
+    PPPMData::o_data.swap(n_o_data);
     }
 
 
@@ -193,7 +193,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                             d_Ez.data,
                             d_kvec.data,
                             d_green_hat.data,
-                            d_field.data,		    
+                            d_field.data,            
                             d_index_array.data,
                             group_size,
                             m_block_size);
