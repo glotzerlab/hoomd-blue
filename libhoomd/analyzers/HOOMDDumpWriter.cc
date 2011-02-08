@@ -191,7 +191,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     Lz=Scalar(box.zhi-box.zlo);
     
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    f << "<hoomd_xml version=\"1.2\">" << "\n";
+    f << "<hoomd_xml version=\"1.3\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" dimensions=\"" << m_sysdef->getNDimensions() << "\">" << "\n";
     f << "<box " << "lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << "\n";
 
