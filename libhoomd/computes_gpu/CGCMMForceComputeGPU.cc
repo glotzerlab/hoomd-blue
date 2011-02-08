@@ -92,26 +92,14 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
         throw runtime_error("Error initializing CGCMMForceComputeGPU");
         }
         
-    // allocate the coeff data on the GPU
-    int nbytes = sizeof(float4)*m_pdata->getNTypes()*m_pdata->getNTypes();
-    
-    cudaMalloc(&d_coeffs, nbytes);
-    cudaMemset(d_coeffs, 0, nbytes);
-    CHECK_CUDA_ERROR();
-
     // allocate the coeff data on the CPU
-    h_coeffs = new float4[m_pdata->getNTypes()*m_pdata->getNTypes()];
+    GPUArray<float4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
+    m_coeffs.swap(coeffs);
     }
 
 
 CGCMMForceComputeGPU::~CGCMMForceComputeGPU()
     {
-    // free the coefficients on the GPU
-    cudaFree(d_coeffs);
-    d_coeffs = NULL;
-    CHECK_CUDA_ERROR();    
-
-    delete[] h_coeffs;
     }
 
 /*! \param block_size Size of the block to run on the device
@@ -158,20 +146,16 @@ void CGCMMForceComputeGPU::setBlockSize(int block_size)
 */
 void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar lj12, Scalar lj9, Scalar lj6, Scalar lj4)
     {
-    assert(h_coeffs);
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
         cerr << endl << "***Error! Trying to set CGCMM params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
         throw runtime_error("CGCMMForceComputeGpu::setParams argument error");
         }
-        
-    // set coeffs in both symmetric positions in the matrix
-    h_coeffs[typ1*m_pdata->getNTypes() + typ2] = make_float4(lj12, lj9, lj6, lj4);
-    h_coeffs[typ2*m_pdata->getNTypes() + typ1] = make_float4(lj12, lj9, lj6, lj4);
     
-    int nbytes = sizeof(float4)*m_pdata->getNTypes()*m_pdata->getNTypes();
-    cudaMemcpy(d_coeffs, h_coeffs, nbytes, cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
+    ArrayHandle<float4> h_coeffs(m_coeffs, access_location::host, access_mode::readwrite);
+    // set coeffs in both symmetric positions in the matrix
+    h_coeffs.data[typ1*m_pdata->getNTypes() + typ2] = make_float4(lj12, lj9, lj6, lj4);
+    h_coeffs.data[typ2*m_pdata->getNTypes() + typ1] = make_float4(lj12, lj9, lj6, lj4);
     }
 
 /*! \post The CGCMM forces are computed for the given timestep on the GPU.
@@ -201,20 +185,25 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     // it there if needed
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
+    ArrayHandle<float4> d_coeffs(m_coeffs, access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+
     // run the kernel on all GPUs in parallel
-    gpu_compute_cgcmm_forces(m_gpu_forces.d_data,
+    gpu_compute_cgcmm_forces(d_force.data,
+                             d_virial.data,
                              pdata,
                              box,
                              d_n_neigh.data,
                              d_nlist.data,
                              nli,
-                             d_coeffs,
+                             d_coeffs.data,
                              m_pdata->getNTypes(),
                              m_r_cut * m_r_cut,
                              m_block_size);
@@ -223,9 +212,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     
     m_pdata->release();
     
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
-    
+   
     Scalar avg_neigh = m_nlist->estimateNNeigh();
     int64_t n_calc = int64_t(avg_neigh * m_pdata->getN());
     int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);

@@ -71,24 +71,12 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_p
         }
         
     // allocate and zero device memory
-    cudaMalloc(&m_gpu_params, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
-    cudaMemset(m_gpu_params, 0, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
-    CHECK_CUDA_ERROR();
-        
-    m_host_params = new float4[m_dihedral_data->getNDihedralTypes()];
-    memset(m_host_params, 0, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
+    GPUArray<float4> params(m_dihedral_data->getNDihedralTypes(),exec_conf);
+    m_params.swap(params);
     }
 
 HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()
     {
-    // free memory on the GPU
-    cudaFree(m_gpu_params);
-    m_gpu_params = NULL;
-    CHECK_CUDA_ERROR();
-        
-    // free memory on the CPU
-    delete[] m_host_params;
-    m_host_params = NULL;
     }
 
 /*! \param type Type of the dihedral to set parameters for
@@ -103,12 +91,9 @@ void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int
     {
     HarmonicDihedralForceCompute::setParams(type, K, sign, multiplicity);
     
+    ArrayHandle<float4> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    m_host_params[type] = make_float4(float(K), float(sign), float(multiplicity), 0.0f);
-    
-    // copy the parameters to the GPU
-    cudaMemcpy(m_gpu_params, m_host_params, m_dihedral_data->getNDihedralTypes()*sizeof(float4), cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
+    h_params.data[type] = make_float4(float(K), float(sign), float(multiplicity), 0.0f);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -128,20 +113,24 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     // the dihedral table is up to date: we are good to go. Call the kernel
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
-    
+      
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+    ArrayHandle<float4> d_params(m_params, access_location::device, access_mode::read);
+
     // run the kernel in parallel on all GPUs
-    gpu_compute_harmonic_dihedral_forces(m_gpu_forces.d_data,
+    gpu_compute_harmonic_dihedral_forces(d_force.data,
+                                         d_virial.data,
                                          pdata,
                                          box,
                                          gpu_dihedraltable,
-                                         m_gpu_params,
+                                         d_params.data,
                                          m_dihedral_data->getNDihedralTypes(),
                                          m_block_size);
-    CHECK_CUDA_ERROR();
-    
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
-    
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+     
+        
     m_pdata->release();
     
     if (m_prof) m_prof->pop(exec_conf);

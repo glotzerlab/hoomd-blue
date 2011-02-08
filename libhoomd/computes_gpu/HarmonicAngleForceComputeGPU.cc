@@ -73,24 +73,12 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
         }
         
     // allocate and zero device memory
-    cudaMalloc(&m_gpu_params, m_angle_data->getNAngleTypes()*sizeof(float2));
-    cudaMemset(m_gpu_params, 0, m_angle_data->getNAngleTypes()*sizeof(float2));
-    CHECK_CUDA_ERROR();
-        
-    m_host_params = new float2[m_angle_data->getNAngleTypes()];
-    memset(m_host_params, 0, m_angle_data->getNAngleTypes()*sizeof(float2));
+    GPUArray<float2> params(m_angle_data->getNAngleTypes(), exec_conf);
+    m_params.swap(params);
     }
 
 HarmonicAngleForceComputeGPU::~HarmonicAngleForceComputeGPU()
     {
-    // free memory on the GPU
-    cudaFree(m_gpu_params);
-    m_gpu_params = NULL;
-    CHECK_CUDA_ERROR();
-        
-    // free memory on the CPU
-    delete[] m_host_params;
-    m_host_params = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -104,12 +92,9 @@ void HarmonicAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar
     {
     HarmonicAngleForceCompute::setParams(type, K, t_0);
     
+    ArrayHandle<float2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    m_host_params[type] = make_float2(K, t_0);
-    
-    // copy the parameters to the GPU
-    cudaMemcpy(m_gpu_params, m_host_params, m_angle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
+    h_params.data[type] = make_float2(K, t_0);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -129,21 +114,23 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     // the angle table is up to date: we are good to go. Call the kernel
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
-    
+      
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+    ArrayHandle<float2> d_params(m_params, access_location::device, access_mode::read);
+
     // run the kernel on the GPU
-    gpu_compute_harmonic_angle_forces(m_gpu_forces.d_data,
+    gpu_compute_harmonic_angle_forces(d_force.data,
+                                      d_virial.data,
                                       pdata,
                                       box,
                                       gpu_angletable,
-                                      m_gpu_params,
+                                      d_params.data,
                                       m_angle_data->getNAngleTypes(),
                                       m_block_size);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
     
     m_pdata->release();
     

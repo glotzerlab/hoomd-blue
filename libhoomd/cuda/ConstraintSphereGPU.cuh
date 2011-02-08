@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "HOOMDMath.h"
-#include "ForceCompute.cuh"
 #include "ParticleData.cuh"
 
 /*! \file ConstraintSphereGPU.cuh
@@ -55,7 +54,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __CONSTRAINT_SPHERE_GPU_CUH__
 
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_constraint_sphere_forces(const gpu_force_data_arrays& force_data,
+cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
+                                                 float* d_virial,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const gpu_pdata_arrays &pdata,

@@ -79,16 +79,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     \sa export_PotentialPairDPDThermoGPU()
 */
-template< class evaluator, cudaError_t gpu_cpdf(const gpu_force_data_arrays& force_data,
-                                                const gpu_pdata_arrays &pdata,
-                                                const gpu_boxsize &box,
-                                                const unsigned int *d_n_neigh,
-                                                const unsigned int *d_nlist,
-                                                const Index2D& nli,
-                                                const typename evaluator::param_type *d_params,
-                                                const float *d_rcutsq,
-                                                const int ntypes,
-                                                const dpd_pair_args& args) >
+template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+                                                const typename evaluator::param_type *d_params) >
 class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
     public:
@@ -115,16 +107,8 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cpdf(const gpu_force_data_arrays& force_data,
-                                                const gpu_pdata_arrays &pdata,
-                                                const gpu_boxsize &box,
-                                                const unsigned int *d_n_neigh,
-                                                const unsigned int *d_nlist,
-                                                const Index2D& nli,
-                                                const typename evaluator::param_type *d_params,
-                                                const float *d_rcutsq,
-                                                const int ntypes,
-                                                const dpd_pair_args& args) >
+template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+                                                const typename evaluator::param_type *d_params) >
 PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : PotentialPairDPDThermo<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
@@ -145,16 +129,8 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boos
         }        
     }
 
-template< class evaluator, cudaError_t gpu_cpdf(const gpu_force_data_arrays& force_data,
-                                                const gpu_pdata_arrays &pdata,
-                                                const gpu_boxsize &box,
-                                                const unsigned int *d_n_neigh,
-                                                const unsigned int *d_nlist,
-                                                const Index2D& nli,
-                                                const typename evaluator::param_type *d_params,
-                                                const float *d_rcutsq,
-                                                const int ntypes,
-                                                const dpd_pair_args& args) >
+template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+                                                const typename evaluator::param_type *d_params) >
 void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
@@ -186,32 +162,29 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
     
-    // run the kernel on all GPUs in parallel
-    dpd_pair_args opt;
-    opt.block_size = m_block_size;
-    opt.seed = this->m_seed;
-    opt.timestep = timestep;
-    opt.deltaT = this->m_deltaT;
-    opt.T = this->m_T->getValue(timestep);    
-    
-    gpu_cpdf(this->m_gpu_forces.d_data,
-             pdata,
-             box,
-             d_n_neigh.data,
-             d_nlist.data,
-             nli,
-             d_params.data,
-             d_rcutsq.data,
-             this->m_pdata->getNTypes(),
-             opt);
+    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+
+    gpu_cpdf(dpd_pair_args_t(d_force.data,
+                             d_virial.data,
+                             pdata,
+                             box,
+                             d_n_neigh.data,
+                             d_nlist.data,
+                             nli,
+                             d_rcutsq.data,
+                             this->m_pdata->getNTypes(),
+                             m_block_size,
+                             this->m_seed,
+                             timestep,
+                             this->m_deltaT,
+                             this->m_T->getValue(timestep)),
+             d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     this->m_pdata->release();
-    
-    // the force data is now only up to date on the gpu
-    this->m_data_location = ForceCompute::gpu;
     
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }

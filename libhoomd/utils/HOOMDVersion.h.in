@@ -43,6 +43,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #ifndef __HOOMD_VERSION_H__
+//! Inclusion guard (why does doxygen want to document this one?)
 #define __HOOMD_VERSION_H__
 
 //! Full text HOOMD version string

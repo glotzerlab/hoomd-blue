@@ -45,7 +45,6 @@ powered by:
 Moscow group.
 */
 
-#include "ForceCompute.cuh"
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
@@ -88,7 +87,8 @@ struct EAMtex{
 
 //! Kernel driver that computes lj forces on the GPU for EAMForceComputeGPU
 cudaError_t gpu_compute_eam_tex_inter_forces(
-    const gpu_force_data_arrays& force_data,
+    float4* d_force,
+    float* d_virial,
     const gpu_pdata_arrays &pdata,
     const gpu_boxsize &box,
     const unsigned int *d_n_neigh,
