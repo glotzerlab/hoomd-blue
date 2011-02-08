@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: PPPMForceCompute.cc 2927 2010-04-14 13:31:03Z joaander $
 // $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes/PPPMForceCompute.cc $
-// Maintainer: joaander
+// Maintainer: sbarr
 
 #ifdef WIN32
 #pragma warning( push )

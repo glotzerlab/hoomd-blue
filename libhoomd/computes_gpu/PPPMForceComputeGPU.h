@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: PPPMForceComputeGPU.h 3297 2010-08-04 15:09:30Z joaander $
 // $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes_gpu/PPPMForceComputeGPU.h $
-// Maintainer: joaander
+// Maintainer: sbarr
 
 #ifdef WIN32
 #pragma warning( push )

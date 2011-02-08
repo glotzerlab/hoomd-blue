@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: PPPMForceCompute.h 2904 2010-03-23 17:10:10Z joaander $
 // $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes/HarmonicBondForceCompute.h $
-// Maintainer: joaander
+// Maintainer: sbarr
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>

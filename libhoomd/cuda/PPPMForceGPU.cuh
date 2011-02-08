@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: PPPMForceGPU.cuh 2587 2010-01-08 17:02:54Z joaander $
 // $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/cuda/PPPMForceGPU.cuh $
-// Maintainer: joaander
+// Maintainer: sbarr
 
 #include <cufft.h>
 #include "HOOMDMath.h"

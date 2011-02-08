@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: PPPMForceComputeGPU.cc 3297 2010-08-04 15:09:30Z joaander $
 // $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes_gpu/PPPMForceComputeGPU.cc $
-// Maintainer: joaander
+// Maintainer: sbarr
 
 /*! \file PPPMForceComputeGPU.cc
     \brief Defines the PPPMForceComputeGPU class
