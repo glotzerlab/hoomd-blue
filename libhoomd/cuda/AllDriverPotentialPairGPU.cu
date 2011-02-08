@@ -109,30 +109,10 @@ cudaError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
     }
 
 
-cudaError_t gpu_compute_ewald_forces(const gpu_force_data_arrays& force_data,
-                     const gpu_pdata_arrays &pdata,
-                     const gpu_boxsize &box,
-                     const unsigned int *d_n_neigh,
-                     const unsigned int *d_nlist,
-                     const Index2D& nli,
-                     const float *d_params,
-                     const float *d_rcutsq,
-                     const float *d_ronsq,
-                     const unsigned int ntypes,
-                     const unsigned int block_size,
-                     const unsigned int shift_mode)
+cudaError_t gpu_compute_ewald_forces(const pair_args_t& pair_args,
+                                     const float *d_params)
     {
-    return  gpu_compute_pair_forces<EvaluatorPairEwald>(force_data,
-                             pdata,
-                             box,
-                             d_n_neigh,
-                             d_nlist,
-                             nli,
-                             d_params,
-                             d_rcutsq,
-                             d_ronsq,
-                             ntypes,
-                             block_size,
-                             shift_mode);
+    return  gpu_compute_pair_forces<EvaluatorPairEwald>(pair_args,
+                                                        d_params);
     }
 

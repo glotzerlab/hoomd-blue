@@ -145,6 +145,9 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> d_field(m_field, access_location::device, access_mode::readwrite);
 
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -184,7 +187,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 
     // run the kernel in parallel on all GPUs
 
-    gpu_compute_pppm_forces(m_gpu_forces.d_data,
+    gpu_compute_pppm_forces(d_force.data,
+                            d_virial.data,
                             pdata,
                             box,
                             m_Nx,
@@ -207,9 +211,6 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
-
     // If there are exclusions, correct for the long-range part of the potential
     if( m_nlist->getExclusionsSet()) 
         {
@@ -217,7 +218,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::device, access_mode::read);
         Index2D nex = m_nlist->getExListIndexer();
 
-        fix_exclusions(m_gpu_forces.d_data,
+        fix_exclusions(d_force.data,
+                       d_virial.data,
                        pdata,
                        box,
                        d_n_ex.data,
@@ -229,9 +231,6 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                        m_block_size);
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-
-        // the force data is now only up to date on the gpu
-        m_data_location = gpu;
         }
 
 

@@ -125,19 +125,20 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     // compute the forces
     fc_2->compute(0);
     
-    ForceDataArrays force_arrays = fc_2->acquire();
+    ArrayHandle<float4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<float> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.151335f, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0.172246f, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0.179186f, tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[0].z, 0.179186f, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force.data[0].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_virial.data[0], tol_small);
     
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.151335f, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.172246f, tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.179186f, tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[1].x, -0.151335f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[1].y, -0.172246f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[1].z, -0.179186f, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force.data[1].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_virial.data[1], tol_small);
 
     }
 

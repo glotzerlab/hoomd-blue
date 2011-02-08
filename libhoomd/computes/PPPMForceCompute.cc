@@ -359,11 +359,6 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     PPPMData::energy_virial_factor = m_energy_virial_factor;
 
     m_pdata->release();
-
-#ifdef ENABLE_CUDA
-    // the data is now only up to date on the CPU
-    m_data_location = cpu;
-#endif
     }
 
 std::vector< std::string > PPPMForceCompute::getProvidedLogQuantities()
@@ -509,15 +504,9 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         }
 
 
-#ifdef ENABLE_CUDA
-    // the data is now only up to date on the CPU
-    m_data_location = cpu;
-#endif
-    
 //    int64_t flops = size*(3 + 9 + 14 + 2 + 16)1;
 //    int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
-    if (m_prof) m_prof->pop(1, 1);
-
+    if (m_prof) m_prof->pop();
     }
 
 Scalar PPPMForceCompute::rms(Scalar h, Scalar prd, Scalar natoms)
@@ -932,11 +921,16 @@ void PPPMForceCompute::calculate_forces()
 
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 
-    memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+    assert(h_virial.data);
+
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
     ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
@@ -1023,9 +1017,9 @@ void PPPMForceCompute::calculate_forces()
                     Scalar local_field_x = h_Ex.data[mz + m_Nz * (my + m_Ny * mx)].x;
                     Scalar local_field_y = h_Ey.data[mz + m_Nz * (my + m_Ny * mx)].x;
                     Scalar local_field_z = h_Ez.data[mz + m_Nz * (my + m_Ny * mx)].x;
-                    m_fx[i] += qi*z0*local_field_x;
-                    m_fy[i] += qi*z0*local_field_y;
-                    m_fz[i] += qi*z0*local_field_z;
+                    h_force.data[i].x += qi*z0*local_field_x;
+                    h_force.data[i].y += qi*z0*local_field_y;
+                    h_force.data[i].z += qi*z0*local_field_z;
                     }
                 }
             }
@@ -1040,6 +1034,12 @@ void PPPMForceCompute::fix_exclusions_cpu()
     // just drop out if the group is an empty group
     if (group_size == 0)
         return;
+
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
+
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
 
     ArrayHandle< unsigned int > d_group_members(m_group->getIndexArray(), access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
@@ -1102,11 +1102,11 @@ void PPPMForceCompute::fix_exclusions_cpu()
             force.w += pair_eng;
             }
         force.w *= 0.5f;
-        m_fx[idx] -= force.x;
-        m_fy[idx] -= force.y;
-        m_fz[idx] -= force.z;
-        m_pe[idx] = -force.w;
-        m_virial[idx] = -virial;
+        h_force.data[idx].x -= force.x;
+        h_force.data[idx].y -= force.y;
+        h_force.data[idx].z -= force.z;
+        h_force.data[idx].w = -force.w;
+        h_virial.data[idx] = -virial;
         }
     
     m_pdata->release();

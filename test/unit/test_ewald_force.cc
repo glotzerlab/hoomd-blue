@@ -112,24 +112,28 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     // compute the forces
     fc_3->compute(0);
     
-    ForceDataArrays force_arrays = fc_3->acquire();
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.9188914117, tol);
-    MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.4795001222/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 0.9188914117/6.0, tol);
+    {
+    ArrayHandle<float4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<float> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
     
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.9188914117*2.0, tol);
-    MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[0].x, -0.9188914117, tol);
+    MY_BOOST_CHECK_SMALL(h_force.data[0].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force.data[0].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[0].w, 0.4795001222/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_virial.data[0], 0.9188914117/6.0, tol);
     
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -0.9188914117, tol);
-    MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
-    MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], -0.4795001222/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], -0.9188914117/6.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_force.data[1].x, 0.9188914117*2.0, tol);
+    MY_BOOST_CHECK_SMALL(h_force.data[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force.data[1].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force.data[1].w, tol_small);
+    MY_BOOST_CHECK_SMALL(h_virial.data[1], tol_small);
+    
+    MY_BOOST_CHECK_CLOSE(h_force.data[2].x, -0.9188914117, tol);
+    MY_BOOST_CHECK_SMALL(h_force.data[2].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force.data[2].z, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_force.data[2].w, -0.4795001222/2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_virial.data[2], -0.9188914117/6.0, tol);
+    }
     
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
     arrays = pdata_3->acquireReadWrite();
@@ -147,9 +151,14 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
-    force_arrays = fc_3->acquire();
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.9188914117, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 0.9188914117, tol);
+    
+    {
+    ArrayHandle<float4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<float> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
+
+    MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.9188914117, tol);
+    MY_BOOST_CHECK_CLOSE(h_force.data[2].x, 0.9188914117, tol);
+    }
     }
 
 //! Unit test a comparison between 2 PotentialPairEwald's on a "real" system
@@ -183,8 +192,11 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
     fc2->compute(0);
     
     // verify that the forces are identical (within roundoff errors)
-    ForceDataArrays arrays1 = fc1->acquire();
-    ForceDataArrays arrays2 = fc2->acquire();
+    ArrayHandle<float4> h_force1(fc1->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<float> h_virial1(fc1->getVirialArray(), access_location::host, access_mode::read);
+    ArrayHandle<float4> h_force2(fc2->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<float> h_virial2(fc2->getVirialArray(), access_location::host, access_mode::read);
+
     
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
@@ -193,18 +205,18 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
         
     for (unsigned int i = 0; i < N; i++)
         {
-        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
-        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
-        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
-        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
-        deltav2 += double(arrays1.virial[i] - arrays2.virial[i]) * double(arrays1.virial[i] - arrays2.virial[i]);
+        deltaf2 += double(h_force1.data[i].x - h_force2.data[i].x) * double(h_force1.data[i].x - h_force2.data[i].x);
+        deltaf2 += double(h_force1.data[i].y - h_force2.data[i].y) * double(h_force1.data[i].y - h_force2.data[i].y);
+        deltaf2 += double(h_force1.data[i].z - h_force2.data[i].z) * double(h_force1.data[i].z - h_force2.data[i].z);
+        deltape2 += double(h_force1.data[i].w - h_force2.data[i].w) * double(h_force1.data[i].w - h_force2.data[i].w);
+        deltav2 += double(h_virial1.data[i] - h_virial2.data[i]) * double(h_virial1.data[i] - h_virial2.data[i]);
 
         // also check that each individual calculation is somewhat close
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
-        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], loose_tol);
+        BOOST_CHECK_CLOSE(h_force1.data[i].x, h_force2.data[i].x, loose_tol);
+        BOOST_CHECK_CLOSE(h_force1.data[i].y, h_force2.data[i].y, loose_tol);
+        BOOST_CHECK_CLOSE(h_force1.data[i].z, h_force2.data[i].z, loose_tol);
+        BOOST_CHECK_CLOSE(h_force1.data[i].w, h_force2.data[i].w, loose_tol);
+        BOOST_CHECK_CLOSE(h_virial1.data[i], h_virial2.data[i], loose_tol);
         }
     deltaf2 /= double(pdata->getN());
     deltape2 /= double(pdata->getN());

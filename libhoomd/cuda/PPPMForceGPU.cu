@@ -85,14 +85,6 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading charge parameters
 texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
 
-//! Kernel for caculating harmonic bond forces on the GPU
-/*! \param force_data Data to write the compute forces to
-  \param pdata Particle data arrays to calculate forces on
-  \param box Box dimensions for periodic boundary condition handling
-  \param blist Bond data to use in calculating the forces
-*/
-
-
 __device__ inline void atomicFloatAdd(float* address, float value)
     {
 #if (__CUDA_ARCH__ < 200)
@@ -276,22 +268,20 @@ __global__ void set_gpu_field_kernel(cufftComplex* E_x,
     }
 
 __global__
-void zero_forces(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata)
+void zero_forces(float4 *d_force, float *d_virial, gpu_pdata_arrays pdata)
     {  
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < pdata.N)
         {
-        force_data.force[idx].x = 0.0f;
-        force_data.force[idx].y = 0.0f;
-        force_data.force[idx].z = 0.0f;
-        force_data.force[idx].w = 0.0f;
-        force_data.virial[idx] = 0.0f;
+        d_force[idx] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        d_virial[idx] = 0.0f;
         }
     }
 
 extern "C" __global__ 
-void calculate_forces_kernel(gpu_force_data_arrays force_data,
+void calculate_forces_kernel(float4 *d_force,
+                             float *d_virial,
                              gpu_pdata_arrays pdata,
                              gpu_boxsize box,
                              float3 *E_field,
@@ -393,14 +383,14 @@ void calculate_forces_kernel(gpu_force_data_arrays force_data,
                         }
                     }
                 }
-            force_data.force[idx].w = 0.0f;
-            force_data.force[idx] = local_force;
+            d_force[idx] = local_force;
             }
         }
     } 
 
 
-cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
+cudaError_t gpu_compute_pppm_forces(float4 *d_force,
+                                    float *d_virial,
                                     const gpu_pdata_arrays &pdata,
                                     const gpu_boxsize &box,
                                     int Nx,
@@ -449,8 +439,8 @@ cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
 
     // zero the force arrays for all particles
     // zero_forces <<< grid, threads >>> (force_data, pdata);
-    cudaMemset(force_data.force, 0.0f, sizeof(float4)*pdata.N);
-    cudaMemset(force_data.virial, 0.0f, sizeof(float)*pdata.N);
+    cudaMemset(d_force, 0.0f, sizeof(float4)*pdata.N);
+    cudaMemset(d_virial, 0.0f, sizeof(float)*pdata.N);
 
 
     // run the kernels
@@ -492,7 +482,8 @@ cudaError_t gpu_compute_pppm_forces(const gpu_force_data_arrays& force_data,
     cudaThreadSynchronize();
 
     //calculate forces on particles, one thread per particles
-    calculate_forces_kernel <<< P_grid, P_threads >>>(force_data, 
+    calculate_forces_kernel <<< P_grid, P_threads >>>(d_force,
+                                                      d_virial, 
                                                       pdata, 
                                                       box, 
                                                       E_field, 
@@ -901,7 +892,8 @@ cudaError_t reset_kvec_green_hat(const gpu_boxsize &box,
     }
 
 
-__global__ void gpu_fix_exclusions_kernel(gpu_force_data_arrays force_data,
+__global__ void gpu_fix_exclusions_kernel(float4 *d_force,
+                                          float *d_virial,
                                           const gpu_pdata_arrays pdata,
                                           const gpu_boxsize box,
                                           const unsigned int *d_n_neigh,
@@ -981,16 +973,17 @@ __global__ void gpu_fix_exclusions_kernel(gpu_force_data_arrays force_data,
                     }
                 }
         force.w *= 0.5f;
-        force_data.force[idx].x -= force.x;
-        force_data.force[idx].y -= force.y;
-        force_data.force[idx].z -= force.z;
-        force_data.force[idx].w = -force.w;
-        force_data.virial[idx] = -virial;
+        d_force[idx].x -= force.x;
+        d_force[idx].y -= force.y;
+        d_force[idx].z -= force.z;
+        d_force[idx].w = -force.w;
+        d_virial[idx] = -virial;
         }
     }
 
 
-cudaError_t fix_exclusions(const gpu_force_data_arrays& force_data,
+cudaError_t fix_exclusions(float4 *d_force,
+                           float *d_virial,
                            const gpu_pdata_arrays &pdata,
                            const gpu_boxsize &box,
                            const unsigned int *d_n_ex,
@@ -1014,7 +1007,8 @@ cudaError_t fix_exclusions(const gpu_force_data_arrays& force_data,
     if (error != cudaSuccess)
         return error;
 
-    gpu_fix_exclusions_kernel <<< grid, threads >>>  (force_data,
+    gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
+                                                      d_virial,
                                                       pdata,
                                                       box,
                                                       d_n_ex,
