@@ -99,8 +99,6 @@ class PPPMForceComputeGPU : public PPPMForceCompute
 
     protected:
         int m_block_size;                    //!< Block size to run calculation on
-        float2 *m_gpu_params;                //!< Parameters stored on the GPU
-        float2 *m_host_params;               //!< Host parameters
      	cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
 
         //! Actually compute the forces

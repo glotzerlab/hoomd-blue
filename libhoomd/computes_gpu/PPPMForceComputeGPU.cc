@@ -84,14 +84,6 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
-    // free memory on the GPU
-    cudaFree(m_gpu_params);
-    m_gpu_params = NULL;
-    CHECK_CUDA_ERROR();
-        
-    // free memory on the CPU
-    delete[] m_host_params;
-    m_host_params = NULL;
     }
 
 /*! 
