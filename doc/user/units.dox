@@ -14,7 +14,7 @@ application to all types of potentials in HOOMD-blue.
 The three fundamental units are:
  - distance - \f$D_u\f$
  - energy - \f$E_u\f$
- - nass - \f$M_u\f$
+ - mass - \f$M_u\f$
 
 All other units that appear in HOOMD-blue are derived from these. Values can be converted into any other system
 of units by assiging the desired units to \f$D_u\f$, \f$E_u\f$, and \f$M_u\f$ and then multiplying by the resulting
