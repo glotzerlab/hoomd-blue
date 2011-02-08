@@ -61,7 +61,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Kernel for calculating CG-CMM Lennard-Jones forces
 /*! This kernel is called to calculate the Lennard-Jones forces on all N particles for the CG-CMM model potential.
 
-    \param force_data Device memory array to write calculated forces to
+    \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param pdata Particle data on the GPU to calculate forces on
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -82,7 +83,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-__global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data,
+__global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
+                                                float* d_virial,
                                                const gpu_pdata_arrays pdata,
                                                const gpu_boxsize box,
                                                const unsigned int *d_n_neigh,
@@ -192,12 +194,13 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
     // potential energy per particle must be halved
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    force_data.force[idx] = force;
-    force_data.virial[idx] = virial;
+    d_force[idx] = force;
+    d_virial[idx] = virial;
     }
 
 
-/*! \param force_data Force data on GPU to write forces to
+/*! \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param pdata Particle data on the GPU to perform the calculation on
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -215,7 +218,8 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
 
     This is just a driver for calcCGCMMForces_kernel, see the documentation for it for more information.
 */
-cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
+cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
+                                     float* d_virial,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,
@@ -242,7 +246,7 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
         
     // run the kernel
     gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>
-         (force_data, pdata, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
+         (d_force, d_virial, pdata, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
         
     return cudaSuccess;
     }

@@ -172,6 +172,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     Index2D nli = this->m_nlist->getNListIndexer();
 
     const ParticleDataArraysConst& arrays = this->m_pdata->acquireReadOnly();
+ 
+    //force arrays
+    ArrayHandle<Scalar4> h_force(this->m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar>  h_virial(this->m_virial,access_location::host, access_mode::overwrite);
+
     const BoxDim& box = this->m_pdata->getBox();
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(this->m_params, access_location::host, access_mode::read);
@@ -325,11 +330,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     for (int i = 0; i < (int)arrays.nparticles; i++)
         {
         // assign result from thread 0
-        this->m_fx[i] = this->m_fdata_partial[i].x;
-        this->m_fy[i] = this->m_fdata_partial[i].y;
-        this->m_fz[i] = this->m_fdata_partial[i].z;
-        this->m_pe[i] = this->m_fdata_partial[i].w;
-        this->m_virial[i] = this->m_virial_partial[i];
+        h_force.data[i].x = this->m_fdata_partial[i].x;
+        h_force.data[i].y = this->m_fdata_partial[i].y;
+        h_force.data[i].z = this->m_fdata_partial[i].z;
+        h_force.data[i].w = this->m_fdata_partial[i].w;
+        h_virial.data[i]  = this->m_virial_partial[i];
 
         #ifdef ENABLE_OPENMP
         // add results from other threads
@@ -337,22 +342,17 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
         for (int thread = 1; thread < nthreads; thread++)
             {
             unsigned int mem_idx = this->m_index_thread_partial(i,thread);
-            this->m_fx[i] += this->m_fdata_partial[mem_idx].x;
-            this->m_fy[i] += this->m_fdata_partial[mem_idx].y;
-            this->m_fz[i] += this->m_fdata_partial[mem_idx].z;
-            this->m_pe[i] += this->m_fdata_partial[mem_idx].w;
-            this->m_virial[i] += this->m_virial_partial[mem_idx];
+            h_force.data[i].x += this->m_fdata_partial[mem_idx].x;
+            h_force.data[i].y += this->m_fdata_partial[mem_idx].y;
+            h_force.data[i].z += this->m_fdata_partial[mem_idx].z;
+            h_force.data[i].w += this->m_fdata_partial[mem_idx].w;
+            h_virial.data[i]  += this->m_virial_partial[mem_idx];
             }
         #endif
         }
     } // end omp parallel
 
     this->m_pdata->release();
-    
-#ifdef ENABLE_CUDA
-    // the force data is now only up to date on the cpu
-    this->m_data_location = ForceCompute::cpu;
-#endif
     
     if (this->m_prof) this->m_prof->pop();
     }

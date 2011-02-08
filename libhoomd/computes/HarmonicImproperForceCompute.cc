@@ -87,9 +87,6 @@ HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<Sys
     m_K = new Scalar[m_improper_data->getNDihedralTypes()];
     m_chi = new Scalar[m_improper_data->getNDihedralTypes()];
     
-    // zero parameters
-    memset(m_K, 0, sizeof(Scalar) * m_improper_data->getNDihedralTypes());
-    memset(m_chi, 0, sizeof(Scalar) * m_improper_data->getNDihedralTypes());
     }
 
 HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
@@ -164,14 +161,20 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
     assert(m_pdata);
     // access the particle data arrays
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+
     // there are enough other checks on the input data: but it doesn't hurt to be safe
-    assert(m_fx);
-    assert(m_fy);
-    assert(m_fz);
-    assert(m_pe);
+    assert(h_force.data);
+    assert(h_virial.data);
     assert(arrays.x);
     assert(arrays.y);
     assert(arrays.z);
+    
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -185,14 +188,6 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
     Scalar Lx2 = Lx / Scalar(2.0);
     Scalar Ly2 = Ly / Scalar(2.0);
     Scalar Lz2 = Lz / Scalar(2.0);
-    
-    // need to start from a zero force
-    // MEM TRANSFER: 5*N Scalars
-    memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
     
     // for each of the impropers
     const unsigned int size = (unsigned int)m_improper_data->getNumDihedrals();
@@ -386,40 +381,33 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         
         
         // accumulate the forces
-        m_fx[idx_a] += ffax;
-        m_fy[idx_a] += ffay;
-        m_fz[idx_a] += ffaz;
-        m_pe[idx_a] += improper_eng;
-        m_virial[idx_a] += improper_virial;
-        
-        m_fx[idx_b] += ffbx;
-        m_fy[idx_b] += ffby;
-        m_fz[idx_b] += ffbz;
-        m_pe[idx_b] += improper_eng;
-        m_virial[idx_b] += improper_virial;
-        
-        m_fx[idx_c] += ffcx;
-        m_fy[idx_c] += ffcy;
-        m_fz[idx_c] += ffcz;
-        m_pe[idx_c] += improper_eng;
-        m_virial[idx_c] += improper_virial;
-        
-        m_fx[idx_d] += ffdx;
-        m_fy[idx_d] += ffdy;
-        m_fz[idx_d] += ffdz;
-        m_pe[idx_d] += improper_eng;
-        m_virial[idx_d] += improper_virial;
-        
-        // FLOPS: ?? / MEM TRANSFER: ?? Scalars
+        h_force.data[idx_a].x += ffax; 
+        h_force.data[idx_a].y += ffay; 
+        h_force.data[idx_a].z += ffaz; 
+        h_force.data[idx_a].w += improper_eng; 
+        h_virial.data[idx_a]  += improper_virial; 
+
+        h_force.data[idx_b].x += ffbx; 
+        h_force.data[idx_b].y += ffby; 
+        h_force.data[idx_b].z += ffbz; 
+        h_force.data[idx_b].w += improper_eng; 
+        h_virial.data[idx_b]  += improper_virial; 
+
+        h_force.data[idx_c].x += ffcx; 
+        h_force.data[idx_c].y += ffcy; 
+        h_force.data[idx_c].z += ffcz; 
+        h_force.data[idx_c].w += improper_eng; 
+        h_virial.data[idx_c]  += improper_virial; 
+
+        h_force.data[idx_d].x += ffdx; 
+        h_force.data[idx_d].y += ffdy; 
+        h_force.data[idx_d].z += ffdz; 
+        h_force.data[idx_d].w += improper_eng; 
+        h_virial.data[idx_d]  += improper_virial; 
         }
         
     m_pdata->release();
-    
-#ifdef ENABLE_CUDA
-    // the data is now only up to date on the CPU
-    m_data_location = cpu;
-#endif
-    
+   
     if (m_prof) m_prof->pop();
     }
 

@@ -47,7 +47,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
-#include "ForceCompute.cuh"
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
@@ -55,7 +54,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TABLEPOTENTIALGPU_CUH__
 
 //! Kernel driver that computes table forces on the GPU for TablePotentialGPU
-cudaError_t gpu_compute_table_forces(const gpu_force_data_arrays& force_data,
+cudaError_t gpu_compute_table_forces(float4* d_force,
+                                     float* d_virial,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,

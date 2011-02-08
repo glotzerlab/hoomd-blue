@@ -81,12 +81,13 @@ LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysde
     m_lj1 = new Scalar[ntypes];
     m_lj2 = new Scalar[ntypes];
     
-    // sanity check
-    assert(m_lj1 != NULL && m_lj2 != NULL);
+    assert(m_lj1);
+    assert(m_lj2);
     
-    // initialize the parameters to 0;
-    memset((void*)m_lj1, 0, sizeof(Scalar)*ntypes);
-    memset((void*)m_lj2, 0, sizeof(Scalar)*ntypes);
+    //initialize parameters to 0
+    memset((void*)m_lj1, 0,sizeof(Scalar)*ntypes);
+    memset((void*)m_lj2, 0,sizeof(Scalar)*ntypes);
+    
     }
 
 /*! Frees used memory
@@ -166,10 +167,22 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
     
     // access the particle data
     const ParticleDataArraysConst &particles=  m_pdata->acquireReadOnly();
+
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+    assert(h_virial.data);
     
+   
     // here we go, main calc loop
     // loop over every particle in the sim,
-    // calculate forces and store them int m_fx,y,z
+    // calculate forces and store them in  m_force
     for (unsigned int i = 0; i < numParticles; i++)
         {
         // Initialize some force variables to be used as temporary
@@ -239,15 +252,12 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
                 }
             }
             
-        m_fx[i] = fx;
-        m_fy[i] = fy;
-        m_fz[i] = fz;
-        m_pe[i] = pe;
+        h_force.data[i].x = fx;
+        h_force.data[i].y = fy;
+        h_force.data[i].z = fz;
+        h_force.data[i].w = pe;
         }
-        
-#ifdef ENABLE_CUDA
-    m_data_location = cpu;
-#endif
+     
     m_pdata->release();
     
     if (m_prof) m_prof->pop();

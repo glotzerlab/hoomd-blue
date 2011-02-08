@@ -246,6 +246,8 @@ template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T
     }
 
 //! \internal
+/*! \brief Pair a particle and its assigned bin together for sorting
+*/
 struct bin_id_pair
     {
     unsigned int bin;   //!< Cell index

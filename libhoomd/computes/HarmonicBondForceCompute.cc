@@ -86,9 +86,6 @@ HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefin
     m_K = new Scalar[m_bond_data->getNBondTypes()];
     m_r_0 = new Scalar[m_bond_data->getNBondTypes()];
     
-    // zero parameters
-    memset(m_K, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
-    memset(m_r_0, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
     }
 
 HarmonicBondForceCompute::~HarmonicBondForceCompute()
@@ -157,16 +154,24 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->push("Harmonic");
     
     assert(m_pdata);
+
+        //Accquire necessary arrays        
     // access the particle data arrays
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+        
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host,access_mode::overwrite);
+
     // there are enough other checks on the input data: but it doesn't hurt to be safe
-    assert(m_fx);
-    assert(m_fy);
-    assert(m_fz);
-    assert(m_pe);
+    assert(h_force.data);
+    assert(h_virial.data);
     assert(arrays.x);
     assert(arrays.y);
     assert(arrays.z);
+    
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -181,14 +186,7 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
     Scalar Ly2 = Ly / Scalar(2.0);
     Scalar Lz2 = Lz / Scalar(2.0);
     
-    // need to start from a zero force
-    // MEM TRANSFER: 5*N Scalars
-    memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
-    
+   
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
     for (unsigned int i = 0; i < size; i++)
@@ -246,26 +244,21 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
         Scalar bond_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
         
         // add the force to the particles (FLOPS: 16 / MEM TRANSFER: 20 Scalars)
-        m_fx[idx_b] += forcemag_divr * dx;
-        m_fy[idx_b] += forcemag_divr * dy;
-        m_fz[idx_b] += forcemag_divr * dz;
-        m_pe[idx_b] += bond_eng;
-        m_virial[idx_b] += bond_virial;
+        h_force.data[idx_b].x += forcemag_divr * dx;
+        h_force.data[idx_b].y += forcemag_divr * dy;
+        h_force.data[idx_b].z += forcemag_divr * dz;
+        h_force.data[idx_b].w += bond_eng;
+        h_virial.data[idx_b] += bond_virial;
         
-        m_fx[idx_a] -= forcemag_divr * dx;
-        m_fy[idx_a] -= forcemag_divr * dy;
-        m_fz[idx_a] -= forcemag_divr * dz;
-        m_pe[idx_a] += bond_eng;
-        m_virial[idx_a] += bond_virial;
+        h_force.data[idx_a].x -= forcemag_divr * dx;
+        h_force.data[idx_a].y -= forcemag_divr * dy;
+        h_force.data[idx_a].z -= forcemag_divr * dz;
+        h_force.data[idx_a].w += bond_eng;
+        h_virial.data[idx_a] += bond_virial;
         }
         
     m_pdata->release();
-    
-#ifdef ENABLE_CUDA
-    // the data is now only up to date on the CPU
-    m_data_location = cpu;
-#endif
-    
+       
     int64_t flops = size*(3 + 9 + 14 + 2 + 16);
     int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
     if (m_prof) m_prof->pop(flops, mem_transfer);
