@@ -128,15 +128,15 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 	PPPMData::compute_pppm_flag = 1;
 	if(!(m_Nx == 2)&& !(m_Nx == 4)&& !(m_Nx == 8)&& !(m_Nx == 16)&& !(m_Nx == 32)&& !(m_Nx == 64)&& !(m_Nx == 128)&& !(m_Nx == 256)&& !(m_Nx == 512)&& !(m_Nx == 1024))
         {
-	    cout << endl << endl <<"------ ATTENTION X gridsize should be a power of 2 ------" << endl << endl;
+	    cout << "***Warning! PPPM X gridsize should be a power of 2 for the best performance" << endl;
         }
 	if(!(m_Ny == 2)&& !(m_Ny == 4)&& !(m_Ny == 8)&& !(m_Ny == 16)&& !(m_Ny == 32)&& !(m_Ny == 64)&& !(m_Ny == 128)&& !(m_Ny == 256)&& !(m_Ny == 512)&& !(m_Ny == 1024))
         {
-	    cout << endl << endl <<"------ ATTENTION Y gridsize should be a power of 2 ------" << endl << endl;
+        cout << "***Warning! PPPM Y gridsize should be a power of 2 for the best performance" << endl;
         }
 	if(!(m_Nz == 2)&& !(m_Nz == 4)&& !(m_Nz == 8)&& !(m_Nz == 16)&& !(m_Nz == 32)&& !(m_Nz == 64)&& !(m_Nz == 128)&& !(m_Nz == 256)&& !(m_Nz == 512)&& !(m_Nz == 1024))
         {
-	    cout << endl << endl <<"------ ATTENTION Z gridsize should be a power of 2 ------" << endl << endl;
+        cout << "***Warning! PPPM Z gridsize should be a power of 2 for the best performance" << endl;
         }
 	if (m_order * (2*m_order +1) > CONSTANT_SIZE)
         {
@@ -145,7 +145,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         }
 	if (m_order > MaxOrder)
         {
-	    cerr << endl << "interpolation order too high, max is " << MaxOrder << endl << endl;
+	    cerr << endl << "***Error! interpolation order too high, max is " << MaxOrder << endl << endl;
 	    throw std::runtime_error("Error initializing PPPMComputeGPU");
         }
 
@@ -185,14 +185,15 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 	    m_q2 += arrays.charge[i]*arrays.charge[i];
         }
 	PPPMData::q = m_q;
-	if(fabs(m_q) > 0.0) printf("WARNING system in not neutral, the net charge is %g\n", m_q);
+	if(fabs(m_q) > 0.0)
+        cout << "***Warning! system in not neutral, the net charge is " << m_q << endl;
 
     // compute RMS force error
 	Scalar hx =  Lx/(Scalar)Nx;
 	Scalar hy =  Ly/(Scalar)Ny;
 	Scalar hz =  Lz/(Scalar)Nz;
 	Scalar lprx = PPPMForceCompute::rms(hx, Lx, (int)arrays.nparticles); 
-	Scalar lpry = PPPMForceCompute::rms(hy, Lz, (int)arrays.nparticles);
+	Scalar lpry = PPPMForceCompute::rms(hy, Ly, (int)arrays.nparticles);
 	Scalar lprz = PPPMForceCompute::rms(hz, Lz, (int)arrays.nparticles);
 	Scalar lpr = sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0);
 	Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)arrays.nparticles*m_rcut*Lx*Ly*Lz);
@@ -202,7 +203,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 	    printf("!!!!!!!\n!!!!!!!\n!!!!!!!\nWARNING RMS error of %g is probably too high %f %f\n!!!!!!!\n!!!!!!!\n!!!!!!!\n", RMS_error, lpr, spr);
         }
 	else{
-	    printf("RMS error: %g\n", RMS_error);
+	    printf("Notice: PPPM RMS error: %g\n", RMS_error);
         }
 
  	PPPMForceCompute::compute_rho_coeff();
@@ -366,7 +367,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 
 std::vector< std::string > PPPMForceCompute::getProvidedLogQuantities()
     {
-   vector<string> list;
+    vector<string> list;
     list.push_back("pppm_energy");
     return list;
     }

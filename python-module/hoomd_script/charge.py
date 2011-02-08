@@ -49,22 +49,6 @@
 # into two parts, one part computed in real space and on in Fourier space. Only one method of
 # computing charged interactions should be used.
 #
-# Charged interactions require that only one set of parameters be set. Coefficients
-# are set through the aid of the coeff class. To set this coefficients, specify 
-# a %charge %force and save it in a variable
-# \code
-# my_force = charge.some_charge_force(arguments...)
-# \endcode
-# Then the coefficients can be set using the saved variable.
-# \code
-# my_force.pair_coeff.set(Nx=64, Ny=64, Nz=64, order=5, rcut=3.0)
-# \endcode
-# This example set the parameters Nx, Ny, Nz, order, and rcut
-# (which are used in charge.pppm). Different %charge forces require that different
-# coefficients are set. Check the documentation of each to see the definition
-# of the coefficients.
-#
-# \sa \ref page_quick_start
 
 import globals;
 import force;
@@ -84,7 +68,7 @@ from math import sqrt
 ## Long-range part of the PPPM force
 #
 # The command charge.pppm specifies that the long-ranged part of the PPPM force is computed between all charged particles
-# in the simulation. 
+# in the simulation.
 # Coeffients:
 # - Nx - Number of grid points in x direction
 # - Ny - Number of grid points in y direction
@@ -164,8 +148,8 @@ class pppm(force._force):
         fmid = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
    
         if f*fmid >= 0.0:
-            print "Cannot compute PPPM"
-            sys.exit(0)
+            print >> sys.stderr, "\n***Error: f*fmid >= 0.0\n";
+            raise RuntimeError("Cannot compute PPPM");
 
         if f < 0.0:
             dgew=gew2-gew1
@@ -184,8 +168,8 @@ class pppm(force._force):
                 rtb = kappa
             ncount += 1
             if ncount > 10000.0:
-                print "Cannot compute PPPM"
-                sys.exit(0)
+                print >> sys.stderr, "\n***Error: kappa not converging\n";
+                raise RuntimeError("Cannot compute PPPM");
         
         ewald = pair.ewald(r_cut = rcut)
         ntypes = globals.system_definition.getParticleData().getNTypes();

@@ -1226,7 +1226,7 @@ class yukawa(pair):
 # non-bonded particle %pair in the simulation.
 #
 # \f{eqnarray*}
-#  V_{\mathrm{yukawa}}(r)  = & q_i q_j erfc(\kappa r)/r & r < r_{\mathrm{cut}} \\
+#  V_{\mathrm{ewald}}(r)  = & q_i q_j erfc(\kappa r)/r & r < r_{\mathrm{cut}} \\
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 # For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
@@ -1240,8 +1240,7 @@ class yukawa(pair):
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
 # pair.ewald is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
-# description of the various options. Note that the fast Fourier transforms on GPUs are optimized for powers of two, and
-# so choosing the number of grid points to be a power of 2 will result in the best performance
+# description of the various options.
 #
 # \b Example:
 # \code
