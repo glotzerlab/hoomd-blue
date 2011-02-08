@@ -46,8 +46,15 @@
 # \brief Commands that create forces between pairs of particles
 #
 # Charged interactions are usually long ranged, and for computational efficiency this is split
-# into two parts, one part computed in real space and on in Fourier space. Only one method of
-# computing charged interactions should be used.
+# into two parts, one part computed in real space and on in Fourier space. You don't need to worry about this
+# implementation detail, however, as charge commands in hoomd automatically initialize and configure both the long
+# and short range parts.
+# 
+# Only one method of computing charged interactions should be used at a time. Otherwise, they would add together and
+# produce incorrect results.
+#
+# The following methods are available:
+# - pppm
 #
 
 import globals;
@@ -67,10 +74,12 @@ from math import sqrt
 
 pppm_used = False;
 
-## Long-range part of the PPPM force
+## Long-range electrostatics computed with the PPPM method
 #
-# The command charge.pppm specifies that the long-ranged part of the PPPM force is computed between all charged particles
-# in the simulation.
+# The command charge.pppm specifies that the \b both the long-ranged \b and short range parts of the electrostatic
+# force is computed between all charged particles in the simulation. In other words, charge.pppm() initializes and
+# sets all parameters for its own pair.ewald, so you do not need to specify an additional one.
+#
 # Coeffients:
 # - Nx - Number of grid points in x direction
 # - Ny - Number of grid points in y direction
@@ -79,10 +88,14 @@ pppm_used = False;
 # - \f$ r_{\mathrm{cut}} \f$ - Cutoff for the short-ranged part of the electrostatics calculation
 #
 # Coefficients Nx, Ny, Nz, order, \f$ r_{\mathrm{cut}} \f$ must be set using
-# set_coeff().
+# set_coeff() before any run() can take place.
 #
 class pppm(force._force):
     ## Specify the long-ranged part of the electrostatic calculation
+    #
+    # \param group Group on which to apply long range PPPM forces. The short range part is always applied between
+    #              all particles.
+    #
     # \b Example:
     # \code
     # pppm = charge.pppm(group=group.all())
@@ -109,8 +122,31 @@ class pppm(force._force):
         
         globals.system.addCompute(self.cpp_force, self.force_name);
         
+        # error check flag - must be set to true by set_coeff in order for the run() to commence
         self.params_set = False;
         
+        # initialize the short range part of electrostatics
+        util._disable_status_lines = True;
+        self.ewald = pair.ewald(r_cut = 0.0);
+        util._disable_status_lines = False;
+    
+    # overrride disable and enable to work with both of the forces
+    def disable(self, log=False):
+        util.print_status_line();
+        
+        util._disable_status_lines = True;
+        force._force.disable(self, log);
+        self.ewald.disable(log);
+        util._disable_status_lines = False;
+    
+    def enable(self):
+        util.print_status_line();
+        
+        util._disable_status_lines = True;
+        force._force.enable(self);
+        self.ewald.enable();
+        util._disable_status_lines = False;
+    
     ## Sets the PPPM coefficients
     #
     # \param Nx - Number of grid points in x direction
@@ -181,7 +217,6 @@ class pppm(force._force):
                 print >> sys.stderr, "\n***Error: kappa not converging\n";
                 raise RuntimeError("Cannot compute PPPM");
         
-        ewald = pair.ewald(r_cut = rcut)
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in xrange(0,ntypes):
@@ -189,7 +224,7 @@ class pppm(force._force):
 
         for i in xrange(0,ntypes):
             for j in xrange(0,ntypes):
-                ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa)
+                self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, r_cut=rcut)
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);
