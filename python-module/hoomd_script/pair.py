@@ -1246,6 +1246,10 @@ class yukawa(pair):
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
+#
+# \note <b>DO NOT</b> use in conjunction with charge.pppm. charge.pppm automatically creates and configures a pair.ewald
+#       for you.
+#
 class ewald(pair):
     ## Specify the Ewald %pair %force
     #
