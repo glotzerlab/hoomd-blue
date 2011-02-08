@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
+// Maintainer: joaander, grva, baschult
 
 /*! \file ForceCompute.cc
     \brief Defines the ForceCompute class
@@ -63,165 +63,9 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-/*! \post \c fx, \c fy, \c fz, \c pe, and \c virial are all set to NULL
-*/
-ForceDataArrays::ForceDataArrays() : fx(NULL), fy(NULL), fz(NULL), pe(NULL), virial(NULL)
-    {
-    }
-
-#ifdef ENABLE_CUDA
-/*! \post \a d_data.force, \a d_data.virial and \a h_staging are all set to NULL
-    \post \a m_num_local and \a m_local_start are set to 0
-*/
-ForceDataArraysGPU::ForceDataArraysGPU()
-    {
-    // zero pointers
-    d_data.force = NULL;
-    d_data.virial = NULL;
-    h_staging = NULL;
-    // zero flags
-    m_num = 0;
-    }
-
-/*! \param num Number of particles in the system
-
-    \pre allocate() has not previously been called
-    \post Memory is allocated on the GPU for the force data
-*/
-cudaError_t ForceDataArraysGPU::allocate(unsigned int num)
-    {
-    // sanity checks
-    assert(h_staging == NULL);
-    
-    // allocate GPU data and check for errors
-    cudaError_t error = d_data.allocate(num);
-    if (error != cudaSuccess)
-        return error;
-        
-    // allocate host staging memory and check for errors
-    error = cudaMallocHost((void **)((void *)&h_staging), num*sizeof(float4));
-    if (error != cudaSuccess)
-        return error;
-        
-    // fill out variables
-    m_num = num;
-    
-    // all done, return success
-    return cudaSuccess;
-    }
-
-/*! \pre allocate() has previously been called
-    \post All allocated memory is freed
-    \note deallocate() \b must be called on the same GPU as allocate()
-*/
-cudaError_t ForceDataArraysGPU::deallocate()
-    {
-    // sanity checks
-    assert(h_staging != NULL);
-    
-    // free the memory on the GPU and check for errors
-    cudaError_t error = d_data.deallocate();
-    if (error != cudaSuccess)
-        return error;
-        
-    // free the staging memory and check for errors
-    error = cudaFreeHost((void*)h_staging);
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
-    return cudaSuccess;
-    }
-
-/*! \pre All data has been allocated and initialized
-    \post Data from \a h_data is copied to the GPU data in \a d_data
-    \param fx source of fx
-    \param fy source of fy
-    \param fz source of fz
-    \param pe source of pe
-    \param virial source of virial
-*/
-cudaError_t ForceDataArraysGPU::hostToDeviceCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial)
-    {
-    // sanity checks
-    assert(fx != NULL);
-    assert(fy != NULL);
-    assert(fz != NULL);
-    assert(pe != NULL);
-    assert(virial != NULL);
-    assert(d_data.force != NULL);
-    assert(d_data.virial != NULL);
-    assert(m_num != 0);
-    
-    // start by filling out the staging array with interleaved forces
-    for (unsigned int i = 0; i < m_num; i++)
-        {
-        h_staging[i] = make_float4(fx[i], fy[i], fz[i], pe[i]);
-        }
-        
-    // copy it to the device and check for errors
-    cudaError_t error = cudaMemcpy(d_data.force, h_staging, sizeof(float4)*m_num, cudaMemcpyHostToDevice);
-    if (error != cudaSuccess)
-        return error;
-        
-    // copy virial to the device and check for errors
-    error = cudaMemcpy(d_data.virial, virial, sizeof(float)*m_num, cudaMemcpyHostToDevice);
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
-    return cudaSuccess;
-    }
-
-/*! \pre All data has been allocated and initialized
-    \post Data from the GPU \a d_data is copied to the host in \a h_data
-    \param fx desitnation for the fx
-    \param fy desitnation for the fy
-    \param fz desitnation for the fz
-    \param pe desitnation for the pe
-    \param virial desitnation for the virial
-*/
-cudaError_t ForceDataArraysGPU::deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial)
-    {
-    // sanity checks
-    assert(fx != NULL);
-    assert(fy != NULL);
-    assert(fz != NULL);
-    assert(pe != NULL);
-    assert(virial != NULL);
-    assert(d_data.force != NULL);
-    assert(d_data.virial != NULL);
-    assert(m_num != 0);
-    
-    // copy from the device to the staging area
-    cudaError_t error = cudaMemcpy(h_staging, d_data.force, sizeof(float4)*m_num, cudaMemcpyDeviceToHost);
-    if (error != cudaSuccess)
-        return error;
-        
-    // start by filling out the staging array with interleaved forces
-    for (unsigned int i = 0; i < m_num; i++)
-        {
-        float4 f = h_staging[i];
-        fx[i] = f.x;
-        fy[i] = f.y;
-        fz[i] = f.z;
-        pe[i] = f.w;
-        }
-        
-    // copy virial to the device and check for errors
-    error = cudaMemcpy(virial, d_data.virial, sizeof(float)*m_num, cudaMemcpyDeviceToHost);
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
-    return cudaSuccess;
-    }
-
-#endif
-
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
-    \post \c fx, \c fy, \c fz pointers in m_arrays are set
+    \post \c force and \c virial GPUarrays are initialized
     \post All forces are initialized to 0
 */
 ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false),
@@ -232,32 +76,14 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     
     // allocate data on the host
     unsigned int num_particles = m_pdata->getN();
-    m_arrays.fx = m_fx = new Scalar[num_particles];
-    m_arrays.fy = m_fy = new Scalar[num_particles];
-    m_arrays.fz = m_fz = new Scalar[num_particles];
-    m_arrays.pe = m_pe = new Scalar[num_particles];
-    m_arrays.virial = m_virial = new Scalar[num_particles];
+    GPUArray<Scalar4>  force(num_particles,exec_conf);
+    GPUArray<Scalar>  virial(num_particles,exec_conf);
+    m_force.swap(force);
+    m_virial.swap(virial);
+    
     m_fdata_partial = NULL;
     m_virial_partial = NULL;
-    
-    // zero host data
-    for (unsigned int i = 0; i < num_particles; i++)
-        m_fx[i] = m_fy[i] = m_fz[i] = m_pe[i] = m_virial[i] = Scalar(0.0);
-        
-#ifdef ENABLE_CUDA
-    // setup ForceDataArrays the GPU
-    if (exec_conf->isCUDAEnabled())
-        {
-        m_gpu_forces.allocate(m_pdata->getN());
-        CHECK_CUDA_ERROR();
-        
-        hostToDeviceCopy();
-        m_data_location = cpugpu;
-        }
-    else
-        m_data_location = cpu;
-#endif
-        
+  
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
     }
@@ -268,34 +94,15 @@ void ForceCompute::allocateThreadPartial()
     {
     assert(exec_conf->n_cpu >= 1);
     m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
+    //Don't use GPU arrays here, *_partial's only used on CPU
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
-    }
+   }
 
 /*! Frees allocated memory
 */
 ForceCompute::~ForceCompute()
     {
-    // free the host data
-    delete[] m_fx;
-    m_arrays.fx = m_fx = NULL;
-    delete[] m_fy;
-    m_arrays.fy = m_fy = NULL;
-    delete[] m_fz;
-    m_arrays.fz = m_fz = NULL;
-    delete[] m_pe;
-    m_arrays.pe = m_pe = NULL;
-    delete[] m_virial;
-    m_arrays.virial = m_virial = NULL;
-    
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        {
-        m_gpu_forces.deallocate();
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
     if (m_fdata_partial)
         {
         delete[] m_fdata_partial;
@@ -303,7 +110,6 @@ ForceCompute::~ForceCompute()
         delete[] m_virial_partial;
         m_virial_partial = NULL;
         }
-
     m_sort_connection.disconnect();
     }
 
@@ -311,8 +117,7 @@ ForceCompute::~ForceCompute()
 */
 Scalar ForceCompute::calcEnergySum()
     {
-    const ForceDataArrays& arrays = acquire();
-    
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);   
     // always perform the sum in double precision for better accuracy
     // this is cheating and is really just a temporary hack to get logging up and running
     // the potential accuracy loss in simulations needs to be evaluated here and a proper
@@ -320,137 +125,11 @@ Scalar ForceCompute::calcEnergySum()
     double pe_total = 0.0;
     for (unsigned int i=0; i < m_pdata->getN(); i++)
         {
-        pe_total += (double)arrays.pe[i];
+        pe_total += (double)h_force.data[i].w;
         }
         
     return Scalar(pe_total);
     }
-
-/*! Access the computed forces on the CPU, this may require copying data from the GPU
-    \returns Structure of arrays of the x,y,and z components of the forces on each particle
-    calculated by the last call to compute()
-    
-    \note These are const pointers so the caller cannot muss with the data
- */
-const ForceDataArrays& ForceCompute::acquire()
-    {
-#ifdef ENABLE_CUDA
-    
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is solely on the cpu, life is easy, return the data arrays
-            // and stay in the same state
-            return m_arrays;
-            break;
-        case cpugpu:
-            // if the data is up to date on both the cpu and gpu, life is easy, return
-            // the data arrays and stay in the same state
-            return m_arrays;
-            break;
-        case gpu:
-            // if the data resides on the gpu, it needs to be copied back to the cpu
-            // this changes to the cpugpu state since the data is now fully up to date on
-            // both
-            deviceToHostCopy();
-            m_data_location = cpugpu;
-            return m_arrays;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_arrays;
-            break;
-        }
-        
-    // the apple compiler thinks we could get to here, make it happy
-    // anything other than the above is an undefined state!
-    assert(false);
-    return m_arrays;
-    
-#else
-    
-    return m_arrays;
-#endif
-    }
-
-#ifdef ENABLE_CUDA
-/*! Access computed forces on the GPU. This may require copying data from the CPU if the forces
-    were computed there.
-    \returns Data pointer to the forces on the GPU
-
-    \note For performance reasons, the returned pointers will \b not change
-    from call to call. The call still must be made, however, to ensure that
-    the data has been copied to the GPU.
-*/
-ForceDataArraysGPU& ForceCompute::acquireGPU()
-    {
-    if (!exec_conf->isCUDAEnabled())
-        {
-        cerr << endl << "***Error! Acquiring forces on GPU, but hoomd is running on the CPU" << endl << endl;
-        throw runtime_error("Error acquiring GPU forces");
-        }
-        
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is on the cpu, we need to copy it over to the gpu
-            hostToDeviceCopy();
-            // now we are in the cpugpu state
-            m_data_location = cpugpu;
-            return m_gpu_forces;
-            break;
-        case cpugpu:
-            // if the data is up to date on both the cpu and gpu, life is easy
-            // state remains the same, and return it
-            return m_gpu_forces;
-            break;
-        case gpu:
-            // if the data resides on the gpu, life is easy
-            // state remains the same, and return it
-            return m_gpu_forces;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_gpu_forces;
-            break;
-        }
-    }
-
-/*! Force data from the host is copied to each GPU in the execution configuration.
-*/
-void ForceCompute::hostToDeviceCopy()
-    {
-    // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-    // if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
-    
-    m_gpu_forces.hostToDeviceCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
-    }
-
-/*! \sa hostToDeviceCopy()
-*/
-void ForceCompute::deviceToHostCopy()
-    {
-    // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-    // if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
-    
-    m_gpu_forces.deviceToHostCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    
-    //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
-    }
-
-#endif
 
 /*! Performs the force computation.
     \param timestep Current Timestep
@@ -458,6 +137,7 @@ void ForceCompute::deviceToHostCopy()
         the current value, the forces are assumed to already have been computed and nothing will
         be done
 */
+
 void ForceCompute::compute(unsigned int timestep)
     {
     // skip if we shouldn't compute this step
@@ -473,6 +153,7 @@ void ForceCompute::compute(unsigned int timestep)
 
     Calls computeForces repeatedly to benchmark the force compute.
 */
+
 double ForceCompute::benchmark(unsigned int num_iters)
     {
     ClockSource t;
@@ -522,7 +203,6 @@ void export_ForceCompute()
     {
     class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
     ("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
-    .def("acquire", &ForceCompute::acquire, return_value_policy<copy_const_reference>())
     .def("getForce", &ForceCompute::getForce)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)

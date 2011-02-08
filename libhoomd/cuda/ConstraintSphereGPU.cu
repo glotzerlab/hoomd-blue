@@ -58,7 +58,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Kernel for caculating sphere constraint forces on the GPU
-/*! \param force_data Data to write the compute forces to
+/*! \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param d_group_members List of members in the group
     \param group_size number of members in the group
     \param pdata Particle data arrays to calculate forces on
@@ -68,7 +69,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param deltaT step size from the Integrator
 */
 extern "C" __global__
-void gpu_compute_constraint_sphere_forces_kernel(gpu_force_data_arrays force_data,
+void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
+                                                 float* d_virial,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  gpu_pdata_arrays pdata,
@@ -108,12 +110,13 @@ void gpu_compute_constraint_sphere_forces_kernel(gpu_force_data_arrays force_dat
     constraint.evalConstraintForce(FC, virial, C);
 
     // now that the force calculation is complete, write out the results
-    force_data.force[idx] = make_float4(FC.x, FC.y, FC.z, 0.0f);
-    force_data.virial[idx] = virial;
+    d_force[idx] = make_float4(FC.x, FC.y, FC.z, 0.0f);
+    d_virial[idx] = virial;
     }
 
 
-/*! \param force_data Data to write the compute forces to
+/*! \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param d_group_members List of members in the group
     \param group_size number of members in the group
     \param pdata Particle data arrays to calculate forces on
@@ -126,7 +129,8 @@ void gpu_compute_constraint_sphere_forces_kernel(gpu_force_data_arrays force_dat
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
-cudaError_t gpu_compute_constraint_sphere_forces(const gpu_force_data_arrays& force_data,
+cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
+                                                 float* d_virial,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const gpu_pdata_arrays &pdata,
@@ -144,9 +148,10 @@ cudaError_t gpu_compute_constraint_sphere_forces(const gpu_force_data_arrays& fo
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    cudaMemset(force_data.force, 0, sizeof(float4)*pdata.N);
-    cudaMemset(force_data.virial, 0, sizeof(float)*pdata.N);
-    gpu_compute_constraint_sphere_forces_kernel<<< grid, threads>>>(force_data,
+    cudaMemset(d_force, 0, sizeof(float4)*pdata.N);
+    cudaMemset(d_virial, 0, sizeof(float)*pdata.N);
+    gpu_compute_constraint_sphere_forces_kernel<<< grid, threads>>>(d_force,
+                                                                    d_virial,
                                                                     d_group_members,
                                                                     group_size,
                                                                     pdata,

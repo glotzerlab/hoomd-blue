@@ -74,7 +74,7 @@ class ForceConstraint : public ForceCompute
         
     protected:
     
-        //! Actually compute the forces
+        //! Compute the forces
         virtual void computeForces(unsigned int timestep);
     };
 

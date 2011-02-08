@@ -296,6 +296,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     // start the profile for this compute
     if (m_prof) m_prof->push("EAM pair");
 
+
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
@@ -308,8 +309,19 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 
     // access the particle data
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    // sanity check
-    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+ 
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+    assert(h_virial.data);
+    assert(arrays.x);
+    assert(arrays.y);
+    assert(arrays.z);
+    
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -327,13 +339,6 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     // tally up the number of forces calculated
     int64_t n_calc = 0;
 
-    // need to start from a zero force, energy and virial
-    // (MEM TRANSFER: 5*N scalars)
-    memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
 
     // for each particle
     vector<Scalar> atomElectronDensity;
@@ -427,7 +432,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
         position -= (Scalar)r_index;
         atomDerivativeEmbeddingFunction[i] = derivativeEmbeddingFunction[r_index + typei * nrho];
 
-        m_pe[i] += embeddingFunction[r_index + typei * nrho] + derivativeEmbeddingFunction[r_index + typei * nrho] * position * drho;
+        h_force.data[i].w += embeddingFunction[r_index + typei * nrho] + derivativeEmbeddingFunction[r_index + typei * nrho] * position * drho;
         }
 
     for (unsigned int i = 0; i < arrays.nparticles; i++)
@@ -519,22 +524,18 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 
             if (third_law)
                 {
-                m_fx[k] -= dx * pairForce;
-                m_fy[k] -= dy * pairForce;
-                m_fz[k] -= dz * pairForce;
+                h_force.data[k].x -= dx * pairForce;
+                h_force.data[k].y -= dy * pairForce;
+                h_force.data[k].z -= dz * pairForce;
                 }
             }
-        m_fx[i] += fxi;
-        m_fy[i] += fyi;
-        m_fz[i] += fzi;
-        m_pe[i] += pei;
-        m_virial[i] += viriali;
+        h_force.data[i].x += fxi;
+        h_force.data[i].y += fyi;
+        h_force.data[i].z += fzi;
+        h_force.data[i].w += pei;
+        h_virial.data[i] += viriali;
         }
     m_pdata->release();
-    #ifdef ENABLE_CUDA
-    // the force data is now only up to date on the cpu
-    m_data_location = cpu;
-    #endif
 
     int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+9+6+8);
     if (third_law) flops += n_calc * 8;
@@ -542,6 +543,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     if (third_law) mem_transfer += n_calc*10*sizeof(Scalar);
     if (m_prof) m_prof->pop(flops, mem_transfer);
     }
+
 void EAMForceCompute::set_neighbor_list(boost::shared_ptr<NeighborList> nlist)
     {
     m_nlist = nlist;

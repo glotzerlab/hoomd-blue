@@ -65,7 +65,8 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
 
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
-    \param force_data Device memory array to write calculated forces to
+    \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -82,7 +83,8 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     * Table entries are read from tables_tex. Note that currently this is bound to a 1D memory region. Performance tests
       at a later date may result in this changing.
 */
-__global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data,
+__global__ void gpu_compute_table_forces_kernel(float4* d_force,
+                                                float* d_virial,
                                                 const gpu_pdata_arrays pdata,
                                                 const gpu_boxsize box,
                                                 const unsigned int *d_n_neigh,
@@ -212,11 +214,12 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
     // potential energy per particle must be halved
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result
-    force_data.force[idx] = force;
-    force_data.virial[idx] = virial;
+    d_force[idx] = force;
+    d_virial[idx] = virial;
     }
 
-/*! \param force_data Device memory array to write calculated forces to
+/*! \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -230,7 +233,8 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
 
     \note This is just a kernel driver. See gpu_compute_table_forces_kernel for full documentation.
 */
-cudaError_t gpu_compute_table_forces(const gpu_force_data_arrays& force_data,
+cudaError_t gpu_compute_table_forces(float4* d_force,
+                                     float* d_virial,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,
@@ -269,7 +273,7 @@ cudaError_t gpu_compute_table_forces(const gpu_force_data_arrays& force_data,
         return error;
         
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(float4)*table_index.getNumElements() >>>
-            (force_data, pdata, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
+            (d_force, d_virial, pdata, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
     
     return cudaSuccess;
     }

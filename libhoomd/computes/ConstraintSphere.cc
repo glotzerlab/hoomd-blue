@@ -110,15 +110,19 @@ void ConstraintSphere::computeForces(unsigned int timestep)
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-
-    // need to start from a zero force
-    // MEM TRANSFER: 5*N Scalars
-    memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
     
+   
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+
+   // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+    assert(h_virial.data);
+
     // for each of the particles in the group
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
@@ -140,20 +144,14 @@ void ConstraintSphere::computeForces(unsigned int timestep)
         constraint.evalConstraintForce(FC, virial, C);
         
         // apply the constraint force
-        m_fx[j] = FC.x;
-        m_fy[j] = FC.y;
-        m_fz[j] = FC.z;
-        m_virial[j] = virial;
+        h_force.data[j].x = FC.x;
+        h_force.data[j].y = FC.y;
+        h_force.data[j].z = FC.z;
+        h_virial.data[j]  = virial;
         }
         
     m_pdata->release();
 
-    
-    #ifdef ENABLE_CUDA
-    // the data is now only up to date on the CPU
-    m_data_location = cpu;
-    #endif
-    
     if (m_prof)
         m_prof->pop();
     }

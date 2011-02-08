@@ -87,19 +87,25 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
     // allocate the parameters
     m_K = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
     m_t_0 = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
-    m_eps = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+    m_eps =  new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
     m_sigma = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
-    m_rcut = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+    m_rcut =  new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
     m_cg_type = new unsigned int[m_CGCMMAngle_data->getNAngleTypes()];
     
-    // zero parameters
-    memset(m_K, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_t_0, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_eps, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_sigma, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_rcut, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
-    memset(m_cg_type, 0, sizeof(unsigned int) * m_CGCMMAngle_data->getNAngleTypes());
+    assert(m_K);
+    assert(m_t_0);
+    assert(m_eps);
+    assert(m_sigma);
+    assert(m_rcut);
+    assert(m_cg_type);
     
+    memset((void*)m_K,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_t_0,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_eps,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_sigma,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_rcut,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_cg_type,0,sizeof(unsigned int)*m_CGCMMAngle_data->getNAngleTypes());
+
     prefact[0] = Scalar(0.0);
     prefact[1] = Scalar(6.75);
     prefact[2] = Scalar(2.59807621135332);
@@ -212,11 +218,18 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     assert(m_pdata);
     // access the particle data arrays
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+     
+   
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+
     // there are enough other checks on the input data: but it doesn't hurt to be safe
-    assert(m_fx);
-    assert(m_fy);
-    assert(m_fz);
-    assert(m_pe);
+    assert(h_force.data);
+    assert(h_virial.data);
     assert(arrays.x);
     assert(arrays.y);
     assert(arrays.z);
@@ -240,15 +253,6 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     
     Scalar eac;
     Scalar vacX,vacY,vacZ;
-    
-    // need to start from a zero force
-    // MEM TRANSFER: 5*N Scalars
-    memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
-    memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
-    
     // for each of the angles
     const unsigned int size = (unsigned int)m_CGCMMAngle_data->getNumAngles();
     for (unsigned int i = 0; i < size; i++)
@@ -416,32 +420,28 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         Scalar angle_virial = Scalar(1.0/6.0)*(vx + vy + vz);
         
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
-        m_fx[idx_a] += fab[0] + fac*dxac;
-        m_fy[idx_a] += fab[1] + fac*dyac;
-        m_fz[idx_a] += fab[2] + fac*dzac;
-        m_pe[idx_a] += angle_eng;
-        m_virial[idx_a] += angle_virial;
+            
+        h_force.data[idx_a].x += fab[0] + fac*dxac;
+        h_force.data[idx_a].y += fab[1] + fac*dyac;
+        h_force.data[idx_a].z += fab[2] + fac*dzac;
+        h_force.data[idx_a].w += angle_eng;
+        h_virial.data[idx_a] += angle_virial;
         
-        m_fx[idx_b] -= fab[0] + fcb[0];
-        m_fy[idx_b] -= fab[1] + fcb[1];
-        m_fz[idx_b] -= fab[2] + fcb[2];
-        m_pe[idx_b] += angle_eng;
-        m_virial[idx_b] += angle_virial;
+        h_force.data[idx_b].x -= fab[0] + fcb[0];
+        h_force.data[idx_b].y -= fab[1] + fcb[1];
+        h_force.data[idx_b].z -= fab[2] + fcb[2];
+        h_force.data[idx_b].w += angle_eng;
+        h_virial.data[idx_b] += angle_virial;
         
-        m_fx[idx_c] += fcb[0] - fac*dxac;
-        m_fy[idx_c] += fcb[1] - fac*dyac;
-        m_fz[idx_c] += fcb[2] - fac*dzac;
-        m_pe[idx_c] += angle_eng;
-        m_virial[idx_c] += angle_virial;
+        h_force.data[idx_c].x += fcb[0] - fac*dxac;
+        h_force.data[idx_c].y += fcb[1] - fac*dyac;
+        h_force.data[idx_c].z += fcb[2] - fac*dzac;
+        h_force.data[idx_c].w += angle_eng;
+        h_virial.data[idx_c] += angle_virial;
         }
         
     m_pdata->release();
-    
-#ifdef ENABLE_CUDA
-    // the data is now only up to date on the CPU
-    m_data_location = cpu;
-#endif
-    
+   
     if (m_prof) m_prof->pop();
     }
 

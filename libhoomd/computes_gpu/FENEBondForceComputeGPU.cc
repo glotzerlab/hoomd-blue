@@ -77,15 +77,10 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
         throw std::runtime_error("Error initializing FENEBondForceComputeGPU");
         }
         
-    // allocate and zero device memory for K, R0 parameters
-    cudaMalloc(&m_gpu_params, m_bond_data->getNBondTypes()*sizeof(float4));
-    cudaMemset(m_gpu_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
-    CHECK_CUDA_ERROR();
-    
     // allocate host memory for GPU parameters
-    m_host_params = new float4[m_bond_data->getNBondTypes()];
-    memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
-    
+    GPUArray<float4> params(m_bond_data->getNBondTypes(),exec_conf);
+    m_params.swap(params);
+
     // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, exec_conf);
     m_flags.swap(flags);
@@ -93,13 +88,6 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
 
 FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
     {
-    // free memory on the GPU
-    cudaFree(m_gpu_params);
-    m_gpu_params = NULL;
-        
-    // free memory on the CPU
-    delete[] m_host_params;
-    m_host_params = NULL;
     }
 
 /*! \param type Type of the bond to set parameters for
@@ -114,13 +102,10 @@ s
 void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon)
     {
     FENEBondForceCompute::setParams(type, K, r_0, sigma, epsilon);
-    
+   
+    ArrayHandle<float4> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    m_host_params[type] = make_float4(K, r_0, sigma, epsilon);
-    
-    // copy the parameters to the GPU
-    cudaMemcpy(m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float4), cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
+    h_params.data[type] = make_float4(K, r_0, sigma, epsilon);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -140,17 +125,22 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
     // the bond table is up to date: we are good to go. Call the kernel
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
-    
+      
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+    ArrayHandle<float4> d_params(m_params, access_location::device, access_mode::read);
+
         {
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
         
         // run the kernel
-        gpu_compute_fene_bond_forces(m_gpu_forces.d_data,
+        gpu_compute_fene_bond_forces(d_force.data,
+                                     d_virial.data,
                                      pdata,
                                      box,
                                      gpu_bondtable,
-                                     m_gpu_params,
+                                     d_params.data,
                                      m_bond_data->getNBondTypes(),
                                      m_block_size,
                                      d_flags.data);
@@ -169,10 +159,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
             throw std::runtime_error("Error in fene bond calculation");
             }
         }
-        
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
-    
+         
     m_pdata->release();
     
     int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
