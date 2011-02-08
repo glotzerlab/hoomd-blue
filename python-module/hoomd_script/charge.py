@@ -103,6 +103,8 @@ class pppm(force._force):
     # pppm = charge.pppm(group=group.all())
     # \endcode
     def __init__(self, group):
+        global pppm_used;
+        
         util.print_status_line();
        
         if pppm_used:
