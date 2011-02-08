@@ -83,6 +83,21 @@ import globals
 # \b Note: To properly initialize a 2D system, you must set dimensions=2 <b>___PRIOR TO___</b> any other hoomd call (such
 # as pair, integrate, et cetera. Otherwise, the setting may not take effect.
 # <hr>
+# <h3>Getting/setting the box</h3>
+# You can access the dimensions of the simulation box like so:
+# \code
+# >>> print system.box
+# (17.364656448364258, 17.364656448364258, 17.364656448364258)
+# \endcode
+# and can change it like so:
+# \code
+# >>> system.box = (20,25,18)
+# >>> print system.box
+# (20, 25, 18)
+# \endcode
+# \b However, all particles must \b always remain inside the box. If a box is set in this way such that a particle ends up outside of the box, expect
+# errors to be thrown or for hoomd to just crash.
+# <hr>
 # <h3>Particle properties</h3>
 # For a list of all particle properties that can be read and/or set, see the particle_data_proxy. The examples
 # here only demonstrate changing a few of them.
@@ -236,6 +251,10 @@ class system_data:
     def __setattr__(self, name, value):
         if name == "dimensions":
             self.sysdef.setNDimensions(value);
+        elif name == "box":
+            if len(value) != 3:
+                raise TypeError("box must be a 3-tuple")
+            self.sysdef.getParticleData().setBox(hoomd.BoxDim(value[0], value[1], value[2]));
  
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
@@ -245,6 +264,9 @@ class system_data:
     def __getattr__(self, name):
         if name == "dimensions":
             return self.sysdef.getNDimensions();
+        elif name == "box":
+            b = self.sysdef.getParticleData().getBox();
+            return (b.xhi - b.xlo, b.yhi - b.ylo, b.zhi - b.zlo);
         
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
