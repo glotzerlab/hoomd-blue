@@ -772,12 +772,6 @@ class pair(force._force):
                 for name in coeff_list:
                     coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
                 
-                # error check r_cut
-                if coeff_dict['r_cut'] > self.global_r_cut:
-                    print >> sys.stderr, \
-                        "\n***Error: r_cut for a given particle type pair cannot be greater than the global value\n";
-                    raise RuntimeError("Error updating pair coefficients");
-                
                 param = self.process_coeff(coeff_dict);
                 self.cpp_force.setParams(i, j, param);
                 self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
