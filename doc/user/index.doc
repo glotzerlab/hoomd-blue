@@ -42,6 +42,7 @@ Table of contents:
    - \ref sec_index_angle
    - \ref sec_index_dihedral
    - \ref sec_index_improper
+   - \ref sec_index_charge
    - \ref sec_index_wall
    - \ref sec_index_constraint
    - \ref sec_index_other
@@ -106,6 +107,7 @@ Table of contents:
  - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>NVT Integration via Dissipative Particle Dynamics %pair %force </i> 
  - \link hoomd_script.pair.dpd_conservative pair.dpd_conservative\endlink - <i>DPD Conservative %pair %force </i>
  - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM %pair %force </i> 
+ - \link hoomd_script.pair.ewald pair.ewald\endlink - <i>Short range ewald %pair %force </i> 
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>Gaussian %pair %force </i>
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>Lennard-Jones %pair %force </i>
  - \link hoomd_script.pair.morse pair.morse\endlink - <i>Morse %pair %force </i>
@@ -127,6 +129,9 @@ Table of contents:
 
 \section sec_index_improper Improper potentials
  - \link hoomd_script.improper.harmonic improper.harmonic\endlink - <i>Harmonic %improper force </i>
+
+\section sec_index_charge Electrostatic potentials
+ - \link hoomd_script.charge.pppm charge.pppm\endlink - <i>Long-range electrostatics computed with the PPPM method</i>
 
 \section sec_index_wall Wall potentials
  - \link hoomd_script.wall.lj wall.lj\endlink - <i>Lennard-Jones %wall %force </i>
