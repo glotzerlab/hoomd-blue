@@ -430,6 +430,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
         m_energy_virial_factor = 0.5 * Lx * Ly * Lz * scale * scale;
         PPPMData::energy_virial_factor = m_energy_virial_factor;
+        m_box_changed = false;
         }
 
     PPPMForceCompute::assign_charges_to_grid();
