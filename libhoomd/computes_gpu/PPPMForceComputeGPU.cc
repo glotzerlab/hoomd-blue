@@ -76,8 +76,8 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
-        throw std::runtime_error("Error initializing BondForceComputeGPU");
+        cerr << endl << "***Error! Creating a PPMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        throw std::runtime_error("Error initializing PPMForceComputeGPU");
         }
     CHECK_CUDA_ERROR();
     }
