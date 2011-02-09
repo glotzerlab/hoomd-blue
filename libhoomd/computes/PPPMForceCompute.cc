@@ -640,7 +640,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
     Scalar Lz = box.zhi - box.zlo;
 
     Scalar3 inverse_lattice_vector;
-    Scalar invdet = 2.0f*M_PI/(Lx*Lz*Lz);
+    Scalar invdet = 2.0f*M_PI/(Lx*Ly*Lz);
     inverse_lattice_vector.x = invdet*Ly*Lz;
     inverse_lattice_vector.y = invdet*Lx*Lz;
     inverse_lattice_vector.z = invdet*Lx*Ly;

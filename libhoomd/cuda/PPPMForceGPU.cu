@@ -774,7 +774,7 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
         int yn = (idx - xn*N2)/Nz;
         int zn = (idx - xn*N2 - yn*Nz);
 
-        float invdet = 6.28318531f/(box.Lx*box.Lz*box.Lz);
+        float invdet = 6.28318531f/(box.Lx*box.Ly*box.Lz);
         float3 inverse_lattice_vector, j;
         float kappa2 = kappa*kappa;
 
