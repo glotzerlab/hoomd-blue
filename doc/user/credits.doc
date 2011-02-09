@@ -27,7 +27,7 @@ Aaron Keys, University of Michigan
   - hoomd c++ compilation helper script
   - binary restart files
   
-Axel Kohlmeyer, David LeBard, Ben Levine, all from the ICMS group at Temple University
+Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple University
   - pair.cgcmm
   - angle.harmonic
   - angle.cgcmm
@@ -37,6 +37,17 @@ Axel Kohlmeyer, David LeBard, Ben Levine, all from the ICMS group at Temple Univ
 
 Igor Morozov, Andrey Kazennov, Roman Bystryi, Joint Institute for High Temperatures of RAS (Moscow, Russia)
   - pair.eam
+
+Philipp Mertmann, Ruhr University Bochum
+ - charge.pppm
+ - pair.ewald
+
+Stephen Barr, Princeton University
+ - charge.pppm
+ - pair.ewald
+
+Greg van Anders, Benjamin Schultz, University of Michigan
+ - refactoring of ForceCompute
 
 While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is 
 responsible for numerous performance tweaks to the neighbor list and pair force code.
@@ -224,6 +235,42 @@ Any use of this source code in individual and commercial software must
 include, in the user documentation and internal comments to the code,
 the above Disclaimer and U.S. Government End Users Notice.
 \endverbatim
+
+<hr>
+FFTs on the CPU reference implementation of PPPM are performed using <b>kissFFT</b> from http://sourceforge.net/projects/kissfft/,
+used under the following license
+<br>
+\verbatim
+Copyright (c) 2003-2010 Mark Borgerding
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the author nor the names of any contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+\endverbatim
+
 <hr>
 <h1>Libraries</h1>
 <hr>
@@ -231,6 +278,7 @@ HOOMD-blue links to the following libraries, possibly statically or dynamically 
  - \b boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)<br>
  - \b zlib - Used under the zlib license (http://www.zlib.net/zlib_license.html)<br>
  - \b python - Used under the Python license (http://www.python.org/psf/license/)<br>
+ - \b cuFFT - Used under the same license as the NVIDIA CUDA toolkit<br>
 
 <hr>
 */
