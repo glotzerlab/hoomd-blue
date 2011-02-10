@@ -353,7 +353,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 
     PPPMData::Nx = m_Nx;
     PPPMData::Ny = m_Ny;
-    PPPMData::Nz = m_Nx;
+    PPPMData::Nz = m_Nz;
     PPPMData::q2 = m_q2;
     PPPMData::kappa = m_kappa;
     PPPMData::energy_virial_factor = m_energy_virial_factor;
