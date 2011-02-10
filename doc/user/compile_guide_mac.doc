@@ -47,13 +47,13 @@ Finally, run macports' selfupdate command to bring your install fully up to date
 
 With macports, installing cmake, boost, and python is easy. Just run the following command in a terminal.
 \code
- $ sudo port install cmake boost +python26 python_select
+ $ sudo port install cmake boost +python27 python_select
 \endcode
 The process can take up to 4 hours, so be patient or leave it to run overnight.
 
 After macports finishes the above command, run
 \code
- $ sudo python_select python26
+ $ sudo python_select python27
 \endcode
 to select the python that macports installed. This step is crucial, or else you will get python <i>version mismatch</i>
 or <i>'NoneType'</i> errors when trying to run hoomd.

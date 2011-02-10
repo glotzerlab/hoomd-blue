@@ -157,6 +157,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     
     m_pdata->release();
     m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
+    setIntegratorVariables(v);
     }
 
 /*! \param timestep Current time step
