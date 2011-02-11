@@ -380,6 +380,34 @@ extern __shared__ float3 sum[];
     \param nmax Maximum number of particles in a rigid body
     \param window_size Window size for reduction
     \param box Box dimensions for periodic boundary condition handling
+    
+    Compute the force and torque sum on all bodies in the system from their constituent particles. n_bodies_per_block
+    bodies are handled within each block of execution on the GPU. The reason for this is to decrease
+    over-parallelism and use the GPU cores more effectively when bodies are smaller than the block size. Otherwise,
+    small bodies leave many threads in the block idle with nothing to do.
+    
+    On start, the properties common to each body are read in, computed, and stored in shared memory for all the threads
+    working on that body to access. Then, the threads loop over all particles that are part of the body with
+    a sliding window. Each loop of the window computes the force and torque for block_size/n_bodies_per_block particles
+    in as many threads in parallel. These quantities are summed over enough windows to cover the whole body.
+    
+    The block_size/n_bodies_per_block partial sums are stored in shared memory. Then n_bodies_per_block partial
+    reductions are performed in parallel using all threads to sum the total force and torque on each body. This looks
+    just like a normal reduction, except that it terminates at a certain level in the tree. To make the math
+    for the partial reduction work out, block_size must be a power of 2 as must n_bodies_per_block.
+    
+    Performance testing on GF100 with many different bodies of different sizes ranging from 4-256 particles per body
+    has found that the optimum block size for most bodies is 64 threads. Performance increases for all body sizes
+    as n_bodies_per_block is increased, but only up to 8. n_bodies_per_block=16 slows performance significantly.
+    Based on these performance results, this kernel is hardcoded to handle only 1,2,4,8 n_bodies_per_block
+    with a power of 2 block size (hardcoded to 64 in the kernel launch).
+    
+    However, there is one issue to the n_bodies_per_block parallelism reduction. If the reduction results in too few
+    blocks, performance can actually be reduced. For example, if there are only 64 bodies running at the "most optimal"
+    n_bodies_per_block=8 results in only 8 blocks on the GPU! That isn't even enough to heat up all 15 SMs on GF100.
+    Even though n_bodies_per_block=1 is not fully optimal per block, running 64 slow blocks in parallel is faster than
+    running 8 fast blocks in parallel. Testing on GF100 determines that 60 blocks is the dividing line (makes sense - 
+    that's 4 blocks active on each SM).
 */
 extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force, 
                                                  float4* rdata_torque,
@@ -396,18 +424,29 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                                                  unsigned int n_bodies_per_block,
                                                  gpu_boxsize box)
     {
+    // determine which body (0 ... n_bodies_per_block-1) this thread is working on
+    // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
     unsigned int m = threadIdx.x / (blockDim.x / n_bodies_per_block);
     
+    // body_force and body_torque are each shared memory arrays with 1 element per threads
     float3 *body_force = sum;
     float3 *body_torque = &sum[blockDim.x];
-        
+    
+    // store ex_space, ey_space, ez_space, and the body index in shared memory. Up to 8 bodies per block can
+    // be handled.
     __shared__ float4 ex_space[8], ey_space[8], ez_space[8];
+    __shared__ int idx_body[8];
+
+    // each thread makes partial sums of force and torque of all the particles that this thread loops over
     float3 sum_force = make_float3(0.0f, 0.0f, 0.0f);
     float3 sum_torque = make_float3(0.0f, 0.0f, 0.0f);
-    __shared__ int idx_body[8];
     
+    // thread_mask is a bitmask that masks out the high bits in threadIdx.x.
+    // threadIdx.x & thread_mask is an index from 0 to block_size/n_bodies_per_block-1 and determines what offset
+    // this thread is to use when accessing the particles in the body
     if ((threadIdx.x & thread_mask) == 0)
         {
+        // thread 0 for this body reads in the body id and orientation and stores them in shared memory
         int group_idx = blockIdx.x*n_bodies_per_block + m;
         if (group_idx < n_group_bodies)
             {
@@ -423,6 +462,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     
     __syncthreads();
     
+    // compute the number of windows that we need to loop over
     unsigned int n_windows = nmax / window_size;
     if (n_windows == 0)
         n_windows = 1;
@@ -432,19 +472,24 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
         {
         float4 fi = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         
+        // determine the index with this body that this particle should handle
         unsigned int k = start * window_size + (threadIdx.x & thread_mask);
         
+        // if that index is in the body we are actually handling a real body
         if (k < nmax && idx_body[m] != -1)
             {
+            // determine the particle idx of the particle
             int localidx = idx_body[m] * nmax + k;
             unsigned int pidx = d_rigid_particle_idx[localidx];
-                        
+            
+            // if this particle is actually in the body
             if (pidx != INVALID_INDEX)
                 {
                 // calculate body force and torques
                 float4 particle_pos = d_rigid_particle_dis[localidx];
                 fi = d_net_force[pidx];
                 
+                // tally the force in the per thread counter
                 sum_force.x += fi.x;
                 sum_force.y += fi.y;
                 sum_force.z += fi.z;
@@ -458,7 +503,8 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                         + ez_space[m].y * particle_pos.z;
                 ri.z = ex_space[m].z * particle_pos.x + ey_space[m].z * particle_pos.y 
                         + ez_space[m].z * particle_pos.z;
-    
+                
+                // tally the torque in the per thread counter
                 sum_torque.x += ri.y * fi.z - ri.z * fi.y;
                 sum_torque.y += ri.z * fi.x - ri.x * fi.z;
                 sum_torque.z += ri.x * fi.y - ri.y * fi.x;
@@ -468,10 +514,12 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
 
     __syncthreads();
     
+    // put the partial sums into shared memory
     body_force[threadIdx.x] = sum_force;
     body_torque[threadIdx.x] = sum_torque;
     
-    // reduction within the current window
+    // perform a set of partial reductions. Each block_size/n_bodies_per_block threads performs a sum reduction
+    // just within its own group
     unsigned int offset = min(window_size, nmax) >> 1;
     while (offset > 0)
         {
@@ -491,6 +539,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
         __syncthreads();
         }
     
+    // thread 0 within this body writes out the total force and torque for the body
     if ((threadIdx.x & thread_mask) == 0 && idx_body[m] != -1)
         {
         rdata_force[idx_body[m]] = make_float4(body_force[threadIdx.x].x, body_force[threadIdx.x].y, body_force[threadIdx.x].z, 0.0f);
