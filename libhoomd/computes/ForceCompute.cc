@@ -112,6 +112,8 @@ ForceCompute::~ForceCompute()
         m_fdata_partial = NULL;
         delete[] m_virial_partial;
         m_virial_partial = NULL;
+        delete[] m_torque_partial;
+        m_torque_partial=NULL;
         }
     m_sort_connection.disconnect();
     }
@@ -208,6 +210,7 @@ void export_ForceCompute()
     class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
     ("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
     .def("getForce", &ForceCompute::getForce)
+    .def("getTorque", &ForceCompute::getTorque)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)
     ;

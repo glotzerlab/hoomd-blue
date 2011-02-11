@@ -124,6 +124,15 @@ class ForceCompute : public Compute
             unsigned int i = m_pdata->getRTag(tag);
             return h_virial.data[i];
             }
+
+        //! Easy access to the torque on a single particle
+        Scalar getTorque(unsigned int tag)
+            {
+            ArrayHandle<Scalar> h_torque(m_torque, access_location::host, access_mode::read);
+            unsigned int i = m_pdata->getRTag(tag);
+            return h_torque.data[i];
+            }
+
         //! Easy access to the energy on a single particle
         Scalar getEnergy(unsigned int tag)
             {
@@ -171,12 +180,12 @@ class ForceCompute : public Compute
                             
         GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
         GPUArray<Scalar>  m_virial;           //!< per-particle virial (see ForceDataArrays for definition)
-	GPUArray<Scalar4> m_torque;	//!< per-particle torque
+        GPUArray<Scalar4> m_torque;	//!< per-particle torque
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
                 
-        Scalar4*  m_fdata_partial; //!< Stores partial force/pe for each CPU thread
+        Scalar4* m_fdata_partial;  //!< Stores partial force/pe for each CPU thread
         Scalar*  m_virial_partial; //!< Stores partial virial data summed for each CPU thread
-	Scalar4* m_torque_partial; //!< Stores partial torque data
+        Scalar4* m_torque_partial; //!< Stores partial torque data
 
         Index2D m_index_thread_partial;         //!< Indexer to index the above 2 arrays by (particle, thread)
 
