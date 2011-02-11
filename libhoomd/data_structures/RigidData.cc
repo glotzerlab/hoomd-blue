@@ -456,6 +456,10 @@ void RigidData::initializeData()
     ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite);
     unsigned int particle_pos_pitch = m_particle_pos.getPitch();
     
+    GPUArray<Scalar4> particle_orientation(m_nmax, m_n_bodies, m_pdata->getExecConf());
+    m_particle_orientation.swap(particle_orientation);
+    ArrayHandle<Scalar4> h_particle_orientation(m_particle_orientation, access_location::host, access_mode::readwrite);
+
     GPUArray<Scalar4> particle_oldpos(m_nmax, m_n_bodies, m_pdata->getExecConf());
     m_particle_oldpos.swap(particle_oldpos);
     ArrayHandle<Scalar4> particle_oldpos_handle(m_particle_oldpos, access_location::host, access_mode::readwrite);
@@ -505,6 +509,9 @@ void RigidData::initializeData()
         particle_pos_handle.data[idx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
                 dz * ez_space_handle.data[body].z;
         
+        // TODO - initialize h_particle_orientation.data[idx] here from the initial particle orientation. This means
+        // reading the intial particle orientation from ParticleData and translating it backwards into the body frame
+                
         particle_oldpos_handle.data[idx].x = unwrappedx;
         particle_oldpos_handle.data[idx].y = unwrappedy;
         particle_oldpos_handle.data[idx].z = unwrappedz;

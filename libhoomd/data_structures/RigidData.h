@@ -129,6 +129,11 @@ class RigidData
             {
             return m_particle_pos;
             }
+        //! Get m_particle_orientation
+        const GPUArray<Scalar4>& getParticleOrientation()
+            {
+            return m_particle_orientation;
+            }
         //! Get m_mass
         const GPUArray<Scalar>& getBodyMass()
             {
@@ -252,6 +257,7 @@ class RigidData
         GPUArray<unsigned int> m_body_size;         //!< n_bodies length 1D array listing the size of each rigid body
         GPUArray<unsigned int> m_particle_tags;     //!< n_max by n_bodies 2D array listing particle tags belonging to bodies
         GPUArray<Scalar4> m_particle_pos;           //!< n_max by n_bodies 2D array listing particle positions relative to the COM for this body in which body-fixed frame
+        GPUArray<Scalar4> m_particle_orientation;   //!< n_max by n_bodies 2D array listing native particle orientations in the body frame
         GPUArray<unsigned int> m_particle_indices;  //!< n_max by n_bodies 2D array listing particle indices belonging to bodies (updated when particles are resorted)
         GPUArray<Scalar4> m_particle_oldpos;        //!< n_max by n_bodies 2D array listing particle positions from the previous step (w/regards to sorting and virial calculation)
         GPUArray<Scalar4> m_particle_oldvel;        //!< n_max by n_bodies 2D array listing particle velocities from the previous step (w/regards to sorting and virial calculation)
