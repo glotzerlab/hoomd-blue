@@ -269,6 +269,9 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     \note The summation step is performed <b>on the CPU</b> and will result in a lot of data traffic back and forth
           if the forces and/or integrater are on the GPU. Call computeNetForcesGPU() to sum the forces on the GPU
 */
+
+
+//Need to edit this file to sum torques in addition to forces.
 void Integrator::computeNetForce(unsigned int timestep)
     {
     // compute all the forces first
@@ -284,27 +287,35 @@ void Integrator::computeNetForce(unsigned int timestep)
     
         {
         // access the net force and virial arrays
-        const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-        const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_force  = m_pdata->getNetForce();
+        const GPUArray<Scalar>&  net_virial = m_pdata->getNetVirial();
+        const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::overwrite);
         
         // start by zeroing the net force and virial arrays
         memset((void *)h_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
         memset((void *)h_net_virial.data, 0, sizeof(Scalar)*net_virial.getNumElements());
+        memset((void *)h_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
         
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles == net_force.getNumElements());
         assert(nparticles == net_virial.getNumElements());
+        assert(nparticles == net_torque.getNumElements());
+
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
             {
             //phasing out ForceDataArrays
             //ForceDataArrays force_arrays = (*force_compute)->acquire();
-            GPUArray<Scalar4>& h_force_array =(*force_compute)->getForceArray();
-            GPUArray<Scalar>& h_virial_array =(*force_compute)->getVirialArray();
+            GPUArray<Scalar4>& h_force_array = (*force_compute)->getForceArray();
+            GPUArray<Scalar>& h_virial_array = (*force_compute)->getVirialArray();
+            GPUArray<Scalar4>& h_torque_array = (*force_compute)->getTorqueArray();
+
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
+            ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
 
             for (unsigned int j = 0; j < nparticles; j++)
                 {
@@ -312,6 +323,12 @@ void Integrator::computeNetForce(unsigned int timestep)
                 h_net_force.data[j].y += h_force.data[j].y;
                 h_net_force.data[j].z += h_force.data[j].z;
                 h_net_force.data[j].w += h_force.data[j].w;
+                
+                h_net_torque.data[j].x += h_torque.data[j].x;
+                h_net_torque.data[j].y += h_torque.data[j].y;
+                h_net_torque.data[j].z += h_torque.data[j].z;
+                h_net_torque.data[j].w += h_torque.data[j].w;
+               
                 h_net_virial.data[j] += h_virial.data[j];
                 }
             }
@@ -328,6 +345,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         return;
 
     // compute all the constraint forces next
+    //Leave this section untouched for the constraint forces update -> constraint forces only apply a force, not a torque
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
@@ -375,6 +393,12 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         m_prof->pop();
         }
+
+    //rigid bodies sketch)
+    if(there are rigid bodies){
+        //compute net torque and force on rigid bodies? I forget if this is still here, check notes.
+    }
+
     }
 
 #ifdef ENABLE_CUDA
