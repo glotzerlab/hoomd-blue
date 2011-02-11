@@ -174,6 +174,10 @@ class pppm(force._force):
     def set_coeff(self, Nx, Ny, Nz, order, rcut):
         util.print_status_line();
 
+        if globals.system_definition.getNDimensions() != 3:
+            print >> sys.stderr, "\n***Error: System must be 3 dimensional\n";
+            raise RuntimeError("Cannot compute PPPM");
+
         self.params_set = True;
         q2 = 0
         N = globals.system_definition.getParticleData().getN()

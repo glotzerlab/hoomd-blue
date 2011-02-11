@@ -976,7 +976,7 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
         d_force[idx].x -= force.x;
         d_force[idx].y -= force.y;
         d_force[idx].z -= force.z;
-        d_force[idx].w = -force.w;
+        d_force[idx].w -= force.w;
         d_virial[idx] = -virial;
         }
     }
