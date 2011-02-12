@@ -56,6 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
 #define INVALID_INDEX 0xffffffff 
 
+#pragma mark RIGID_STEP_ONE_KERNEL
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
     \param rdata_com Body center of mass
     \param rdata_vel Body translational velocity
@@ -369,6 +370,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     return cudaSuccess;
     }
 
+#pragma mark RIGID_FORCE_KERNEL
 //! Shared memory for body force and torque reduction, required allocation when the kernel is called
 extern __shared__ float3 sum[];
 
@@ -606,6 +608,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     return cudaSuccess;
     }
 
+#pragma mark RIGID_STEP_TWO_KERNEL
 /*! Takes the second half-step forward for rigid bodies in the velocity-verlet NVE integration
     \param rdata_vel Body translational velocity
     \param rdata_angmom Angular momentum

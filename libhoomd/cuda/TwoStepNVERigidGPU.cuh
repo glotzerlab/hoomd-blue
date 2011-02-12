@@ -80,6 +80,30 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                              float4 *d_net_force,
                              const gpu_boxsize &box, 
                              float deltaT);
-                                                          
+                                                        
+                                                        
+template<bool set_x>
+__global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
+                                       float4* pdata_vel,
+                                       int4* pdata_image,
+                                       unsigned int *d_pgroup_idx,
+                                       unsigned int n_pgroup,
+                                       unsigned int *d_particle_offset,
+                                       unsigned int *d_particle_body,
+                                       unsigned int *d_rigid_group,
+                                       float4* d_rigid_orientation,
+                                       float4* d_rigid_com,
+                                       float4* d_rigid_vel,
+                                       float4* d_rigid_angvel,
+                                       int* d_rigid_imagex,
+                                       int* d_rigid_imagey,
+                                       int* d_rigid_imagez,
+                                       unsigned int* d_rigid_particle_idx,
+                                       float4* d_rigid_particle_dis,
+                                       unsigned int n_group_bodies,
+                                       unsigned int n_particles,
+                                       unsigned int nmax,
+                                       gpu_boxsize box);
+                                       
 #endif //__TWO_STEP_NVE_RIGID_GPU_CUH__
 
