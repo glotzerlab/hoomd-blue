@@ -81,7 +81,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                              const gpu_boxsize &box, 
                              float deltaT);
                                                         
-                                                        
+//! Kernel shared by other NVT and NPT rigid integrators
 template<bool set_x>
 __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
                                        float4* pdata_vel,

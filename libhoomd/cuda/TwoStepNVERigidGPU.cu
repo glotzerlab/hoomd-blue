@@ -70,6 +70,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \param rdata_body_imagey Body image in y-direction
     \param rdata_body_imagez Body image in z-direction
     \param rdata_conjqm Conjugate quaternion momentum
+    \param d_rigid_mass Body mass
+    \param d_rigid_mi Body inertia moments
+    \param n_group_bodies Number of rigid bodies in my group
+    \param d_rigid_force Body forces
+    \param d_rigid_torque Body torques
+    \param d_rigid_group Body indices
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param deltaT Timestep 
@@ -182,6 +188,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
     \param pdata_image Particle image
+    \param d_pgroup_idx Particle index
     \param rdata_oldpos Particel old position
     \param rdata_oldvel Particel old velocity
     \param d_virial Virial contribution from the first part
@@ -616,7 +623,6 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     \param rdata_conjqm Conjugate quaternion momentum
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param nmax Maximum number of particles in a rigid body
     \param deltaT Timestep 
     \param box Box dimensions for periodic boundary condition handling
 */
@@ -632,7 +638,6 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
                                                          unsigned int *d_rigid_group,
                                                          unsigned int n_group_bodies,
                                                          unsigned int n_bodies, 
-                                                         unsigned int nmax,
                                                          gpu_boxsize box, 
                                                          float deltaT)
     {
@@ -722,7 +727,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                       rigid_data.body_indices,
                                                                       n_group_bodies,
                                                                       n_bodies, 
-                                                                      nmax, 
                                                                       box, 
                                                                       deltaT);
     

@@ -87,6 +87,10 @@ __device__ float taylor_exp(float x)
     \param d_rigid_mass Body mass
     \param d_rigid_mi Body inertia moments
     \param n_group_bodies Number of rigid bodies in my group
+    \param d_rigid_force Body forces
+    \param d_rigid_torque Body torques
+    \param d_rigid_group Body indices
+    \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total umber of rigid bodies
     \param nvt_rdata_eta_dot_t0 Thermostat translational part 
     \param nvt_rdata_eta_dot_r0 Thermostat rotational part
@@ -153,7 +157,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
     body_imagez = rdata_body_imagez[idx_body];
     force = d_rigid_force[idx_body];
     torque = d_rigid_torque[idx_body];
-    conjqm = rdata_conjqm[idx_body];;
+    conjqm = rdata_conjqm[idx_body];
     
     exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
     
