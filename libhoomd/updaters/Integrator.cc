@@ -394,11 +394,12 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
+    /*
     //rigid bodies sketch)
     if(there are rigid bodies){
         //compute net torque and force on rigid bodies? I forget if this is still here, check notes.
     }
-
+    */
     }
 
 #ifdef ENABLE_CUDA

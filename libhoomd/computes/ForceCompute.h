@@ -125,14 +125,6 @@ class ForceCompute : public Compute
             return h_virial.data[i];
             }
 
-        //! Easy access to the torque on a single particle
-        Scalar getTorque(unsigned int tag)
-            {
-            ArrayHandle<Scalar> h_torque(m_torque, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return h_torque.data[i];
-            }
-
         //! Easy access to the energy on a single particle
         Scalar getEnergy(unsigned int tag)
             {
@@ -153,7 +145,7 @@ class ForceCompute : public Compute
             return m_virial;
             }
         
-	//! Get the array of computed torques
+	    //! Get the array of computed torques
         GPUArray<Scalar4>& getTorqueArray()
             {
             return m_torque;
