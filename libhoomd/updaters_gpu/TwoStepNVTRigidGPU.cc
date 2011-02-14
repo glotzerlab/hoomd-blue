@@ -154,6 +154,8 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     
+    ArrayHandle<unsigned int> d_particle_offset(m_rigid_data->getParticleOffset(), access_location::device, access_mode::read);
+    
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -183,6 +185,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
+    d_rdata.particle_offset = d_particle_offset.data;
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
@@ -296,6 +299,8 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     
+    ArrayHandle<unsigned int> d_particle_offset(m_rigid_data->getParticleOffset(), access_location::device, access_mode::read);
+
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -322,6 +327,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
+    d_rdata.particle_offset = d_particle_offset.data;
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);

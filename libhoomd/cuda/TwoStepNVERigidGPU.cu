@@ -56,6 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
 #define INVALID_INDEX 0xffffffff 
 
+#pragma mark RIGID_STEP_ONE_KERNEL
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
     \param rdata_com Body center of mass
     \param rdata_vel Body translational velocity
@@ -69,6 +70,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \param rdata_body_imagey Body image in y-direction
     \param rdata_body_imagez Body image in z-direction
     \param rdata_conjqm Conjugate quaternion momentum
+    \param d_rigid_mass Body mass
+    \param d_rigid_mi Body inertia moments
+    \param n_group_bodies Number of rigid bodies in my group
+    \param d_rigid_force Body forces
+    \param d_rigid_torque Body torques
+    \param d_rigid_group Body indices
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param deltaT Timestep 
@@ -177,118 +184,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     rdata_body_imagez[idx_body] = body_imagez;
     }
 
-/*!
-    \param pdata_pos Particle position
-    \param pdata_vel Particle velocity
-    \param pdata_image Particle image
-    \param rdata_oldpos Particel old position
-    \param rdata_oldvel Particel old velocity
-    \param d_virial Virial contribution from the first part
-    \param n_group_bodies Number of rigid bodies in my group
-    \param n_bodies Total number of rigid bodies
-    \param box Box dimensions for periodic boundary condition handling
-    \param deltaT Time step
-*/
-template<bool set_x>
-__global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
-                                       float4* pdata_vel,
-                                       int4* pdata_image,
-                                       unsigned int *d_pgroup_idx,
-                                       unsigned int n_pgroup,
-                                       unsigned int *d_particle_offset,
-                                       unsigned int *d_particle_body,
-                                       unsigned int *d_rigid_group,
-                                       float4* d_rigid_orientation,
-                                       float4* d_rigid_com,
-                                       float4* d_rigid_vel,
-                                       float4* d_rigid_angvel,
-                                       int* d_rigid_imagex,
-                                       int* d_rigid_imagey,
-                                       int* d_rigid_imagez,
-                                       unsigned int* d_rigid_particle_idx,
-                                       float4* d_rigid_particle_dis,
-                                       unsigned int n_group_bodies,
-                                       unsigned int n_particles,
-                                       unsigned int nmax,
-                                       gpu_boxsize box)
-    {
-    float4 com, vel, angvel, ex_space, ey_space, ez_space;
-    int body_imagex=0, body_imagey=0, body_imagez=0;
-
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    if (group_idx >= n_pgroup)
-        return;
-    
-    unsigned int pidx = d_pgroup_idx[group_idx];
-    
-    unsigned int idx_body = d_particle_body[pidx];
-    unsigned int particle_offset = d_particle_offset[pidx];
-    float4 orientation = d_rigid_orientation[idx_body];
-    com = d_rigid_com[idx_body];
-    vel = d_rigid_vel[idx_body];
-    angvel = d_rigid_angvel[idx_body];
-    if (set_x)
-        {
-        body_imagex = d_rigid_imagex[idx_body];
-        body_imagey = d_rigid_imagey[idx_body];
-        body_imagez = d_rigid_imagez[idx_body];
-        }
-    
-    exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
-    
-    int localidx = idx_body * nmax + particle_offset;
-    float4 particle_pos = d_rigid_particle_dis[localidx];
-    
-    // compute ri with new orientation
-    float4 ri;
-    ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
-    ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
-    ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
-    
-    float4 ppos;
-    int4 image;
-    if (set_x)
-        {
-        // x_particle = com + ri
-        ppos.x = com.x + ri.x;
-        ppos.y = com.y + ri.y;
-        ppos.z = com.z + ri.z;
-        ppos.w = pdata_pos[pidx].w;
-        
-        // time to fix the periodic boundary conditions
-        float x_shift = rintf(ppos.x * box.Lxinv);
-        ppos.x -= box.Lx * x_shift;
-        image.x = body_imagex;
-        image.x += (int)x_shift;
-        
-        float y_shift = rintf(ppos.y * box.Lyinv);
-        ppos.y -= box.Ly * y_shift;
-        image.y = body_imagey;
-        image.y += (int)y_shift;
-        
-        float z_shift = rintf(ppos.z * box.Lzinv);
-        ppos.z -= box.Lz * z_shift;
-        image.z = body_imagez;
-        image.z += (int)z_shift;
-        }
-    
-    // v_particle = vel + angvel x ri
-    float4 pvel;
-    pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
-    pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
-    pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-    pvel.w = 0.0f;
-    
-    // write out the results
-    if (set_x)
-        {
-        pdata_pos[pidx] = ppos;
-        pdata_image[pidx] = image;
-        }
-    pdata_vel[pidx] = pvel;
-    }
-
 // Takes the first 1/2 step forward in the NVE integration step
 /*! \param pdata Particle data to step forward 1/2 step
     \param rigid_data Rigid body data to step forward 1/2 step
@@ -369,6 +264,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     return cudaSuccess;
     }
 
+#pragma mark RIGID_FORCE_KERNEL
 //! Shared memory for body force and torque reduction, required allocation when the kernel is called
 extern __shared__ float3 sum[];
 
@@ -606,6 +502,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     return cudaSuccess;
     }
 
+#pragma mark RIGID_STEP_TWO_KERNEL
 /*! Takes the second half-step forward for rigid bodies in the velocity-verlet NVE integration
     \param rdata_vel Body translational velocity
     \param rdata_angmom Angular momentum
@@ -613,7 +510,6 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     \param rdata_conjqm Conjugate quaternion momentum
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param nmax Maximum number of particles in a rigid body
     \param deltaT Timestep 
     \param box Box dimensions for periodic boundary condition handling
 */
@@ -629,7 +525,6 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
                                                          unsigned int *d_rigid_group,
                                                          unsigned int n_group_bodies,
                                                          unsigned int n_bodies, 
-                                                         unsigned int nmax,
                                                          gpu_boxsize box, 
                                                          float deltaT)
     {
@@ -719,7 +614,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                       rigid_data.body_indices,
                                                                       n_group_bodies,
                                                                       n_bodies, 
-                                                                      nmax, 
                                                                       box, 
                                                                       deltaT);
     
