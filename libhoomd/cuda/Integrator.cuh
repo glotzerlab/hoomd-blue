@@ -93,12 +93,12 @@ struct gpu_force_list
 //! Sums up the net force and virial on the GPU for Integrator
 cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float *d_net_virial,
+                                         float4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
                                          bool clear);
-/* New gpu_integrator?
+/* old gpu_integrator
 cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
-                                         float4 *d_net_torque,
                                          float1 *d_net_virial,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
