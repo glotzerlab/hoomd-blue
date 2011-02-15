@@ -421,8 +421,6 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         fft_inverse = kiss_fftnd_alloc(dim, 3, 1, NULL, NULL);
         }
 
-    if (m_prof) m_prof->push("PPPM");
-    
     if(m_box_changed)
         {
         const BoxDim& box = m_pdata->getBox();
