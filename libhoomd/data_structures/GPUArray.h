@@ -59,7 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
-#include <cufft.h>
 #include <boost/bind.hpp>
 
 //! Specifies where to acquire the data

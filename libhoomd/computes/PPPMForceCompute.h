@@ -52,7 +52,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "kiss_fftnd.h"
 
 #include <vector>
+
+#ifdef ENABLE_CUDA
 #include <cufft.h>
+#endif
 
 /*! \file PPPMForceCompute.h
     \brief Declares a class for computing harmonic bonds
