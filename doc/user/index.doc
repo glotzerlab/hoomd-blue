@@ -148,6 +148,7 @@ Table of contents:
 \section sec_index_group Group
  - Create groups
   - \link hoomd_script.group.all() group.all\endlink - <i>Groups all particles </i>
+  - \link hoomd_script.group.charged() group.charged\endlink - <i>Groups particles that are charged</i>
   - \link hoomd_script.group.cuboid() group.cuboid\endlink - <i>Groups particles in a cuboid</i>
   - \link hoomd_script.group.tag_list() group.tag_list\endlink - <i>Groups particles by tag list </i>
   - \link hoomd_script.group.tags() group.tags\endlink - <i>Groups particles by tag </i>

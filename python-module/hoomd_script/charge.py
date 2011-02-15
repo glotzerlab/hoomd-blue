@@ -91,16 +91,20 @@ pppm_used = False;
 # set_coeff() before any run() can take place.
 #
 # See \ref page_units for information on the units assigned to charges in hoomd.
-#
+# \note charge.pppm takes a particle group as an option. This should be the group of all charged particles
+#       (group.charged). However, note that this group is static and determined at the time charge.pppm() is specified.
+#       If you are going to add charged particles at a later point in the simulation with the data access API,
+#       ensure that this group includes those particles as well.
 class pppm(force._force):
-    ## Specify the long-ranged part of the electrostatic calculation
+    ## Specify long-ranged electrostatic interactions between particles
     #
     # \param group Group on which to apply long range PPPM forces. The short range part is always applied between
     #              all particles.
     #
     # \b Example:
     # \code
-    # pppm = charge.pppm(group=group.all())
+    # charged = group.charged();
+    # pppm = charge.pppm(group=charged)
     # \endcode
     def __init__(self, group):
         global pppm_used;
@@ -151,7 +155,7 @@ class pppm(force._force):
         self.ewald.enable();
         util._disable_status_lines = False;
     
-    ## Sets the PPPM coefficients
+    ## Sets the PPPM parameters
     #
     # \param Nx - Number of grid points in x direction
     # \param Ny - Number of grid points in y direction
@@ -159,19 +163,19 @@ class pppm(force._force):
     # \param order - Number of grid points in each direction to assign charges to
     # \param rcut  -  Cutoff for the short-ranged part of the electrostatics calculation
     #
-    # Using set_coeff() requires that the specified PPPM force has been saved in a variable. i.e.
+    # Using set_params() requires that the specified PPPM force has been saved in a variable. i.e.
     # \code
     # pppm = charge.pppm()
     # \endcode
     #
     # \b Examples:
     # \code
-    # pppm.set_coeff(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
+    # pppm.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
     # \endcode
     # Note that the Fourier transforms are much faster for number of grid points of the form 2^N
     # The coefficients for PPPM  must be set 
     # before the run() can be started.
-    def set_coeff(self, Nx, Ny, Nz, order, rcut):
+    def set_params(self, Nx, Ny, Nz, order, rcut):
         util.print_status_line();
 
         if globals.system_definition.getNDimensions() != 3:
@@ -230,9 +234,11 @@ class pppm(force._force):
         for i in xrange(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
+        util._disable_status_lines = True;
         for i in xrange(0,ntypes):
             for j in xrange(0,ntypes):
                 self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, r_cut=rcut)
+        util._disable_status_lines = False;
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);

@@ -341,9 +341,6 @@ def tags(tag_min, tag_max=None, name=None):
 # \param tags List of particle tags to include in the group
 # \param name User-assigned name for this group.
 #
-# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
-# added to the group. 
-#
 # Creates a particle group from particles with the given tags. Can be used to implement advanced grouping not
 # available with existing group commands.
 #
@@ -353,7 +350,7 @@ def tags(tag_min, tag_max=None, name=None):
 # \b Examples:
 # \code
 # a = group.tag_list(name="a", tags = [0, 12, 18, 205])
-# b = group.tags(name="b", tags = range(20,400))
+# b = group.tag_list(name="b", tags = range(20,400))
 # \endcode
 def tag_list(name, tags):
     util.print_status_line();
@@ -426,6 +423,44 @@ def type(type, name=None):
 
     # return it in the wrapper class
     return group(name, cpp_group);
+
+
+## Groups particles that are charged
+#
+# \param name User-assigned name for this group.
+#
+# Creates a particle group containing all particles that have a non-zero charge.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
+# 
+# \b Examples:
+# \code
+# a = group.charged()
+# b = group.charged(name="cp")
+# \endcode
+def charged(name='charged'):
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if not init.is_initialized():
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+    
+    util._disable_status_lines = True;
+
+    # determine the group of particles that are charged
+    charged_tags = [];
+    sysdef = globals.system_definition;
+    pdata = data.particle_data(sysdef.getParticleData());
+    for i in xrange(0,len(pdata)):
+        if pdata[i].charge != 0.0:
+            charged_tags.append(i);
+    
+    retval = tag_list(name, charged_tags);
+    util._disable_status_lines = False;
+
+    return retval;
 
 # @}
 
