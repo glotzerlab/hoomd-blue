@@ -24,7 +24,7 @@ class charge_pppm_tests (unittest.TestCase):
     def test(self):
         all = group.all()
         c = charge.pppm(all);
-        c.set_coeff(Nx=16, Ny=16, Nz=16, order=4, rcut=2.0);
+        c.set_params(Nx=16, Ny=16, Nz=16, order=4, rcut=2.0);
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
         run(100);
@@ -42,7 +42,7 @@ class charge_pppm_tests (unittest.TestCase):
     #def test_enable_disable(self):
         #all = group.all()
         #c = charge.pppm(all);
-        #c.set_coeff(Nx=16, Ny=16, Nz=16, order=4, rcut=2.0);
+        #c.set_params(Nx=16, Ny=16, Nz=16, order=4, rcut=2.0);
         
         #c.disable(log=True);
         #c.enable();

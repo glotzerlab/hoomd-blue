@@ -80,15 +80,15 @@ pppm_used = False;
 # force is computed between all charged particles in the simulation. In other words, charge.pppm() initializes and
 # sets all parameters for its own pair.ewald, so you do not need to specify an additional one.
 #
-# Coeffients:
+# Parameters:
 # - Nx - Number of grid points in x direction
 # - Ny - Number of grid points in y direction
 # - Nz - Number of grid points in z direction
 # - order - Number of grid points in each direction to assign charges to
 # - \f$ r_{\mathrm{cut}} \f$ - Cutoff for the short-ranged part of the electrostatics calculation
 #
-# Coefficients Nx, Ny, Nz, order, \f$ r_{\mathrm{cut}} \f$ must be set using
-# set_coeff() before any run() can take place.
+# Parameters Nx, Ny, Nz, order, \f$ r_{\mathrm{cut}} \f$ must be set using
+# set_params() before any run() can take place.
 #
 # See \ref page_units for information on the units assigned to charges in hoomd.
 # \note charge.pppm takes a particle group as an option. This should be the group of all charged particles
@@ -130,7 +130,7 @@ class pppm(force._force):
         
         globals.system.addCompute(self.cpp_force, self.force_name);
         
-        # error check flag - must be set to true by set_coeff in order for the run() to commence
+        # error check flag - must be set to true by set_params in order for the run() to commence
         self.params_set = False;
         
         # initialize the short range part of electrostatics
@@ -173,7 +173,7 @@ class pppm(force._force):
     # pppm.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
     # \endcode
     # Note that the Fourier transforms are much faster for number of grid points of the form 2^N
-    # The coefficients for PPPM  must be set 
+    # The parameters for PPPM  must be set 
     # before the run() can be started.
     def set_params(self, Nx, Ny, Nz, order, rcut):
         util.print_status_line();
