@@ -354,7 +354,7 @@ class imd(_analyzer):
 # - \b pair_slj_energy (pair.slj) - Total Shifted Lennard-Jones potential energy (in energy units)
 # - \b pair_yukawa_energy (pair.yukawa) - Total Yukawa potential energy (in energy units)
 # - \b pair_ewald_energy (pair.ewald) - Short ranged part of the electrostatic energy (in energy units)
-# - \b pppm_energy (pair.pppm) -  Long ranged part of the electrostatic energy (in energy units)
+# - \b pppm_energy (charge.pppm) -  Long ranged part of the electrostatic energy (in energy units)
 #
 # - \b bond_fene_energy (bond.fene) - Total fene bond potential energy (in energy units)
 # - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy (in energy units)
