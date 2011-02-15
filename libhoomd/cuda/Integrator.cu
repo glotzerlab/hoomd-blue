@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! helper to add a given force/virial pointer pair
 __device__ void add_force_total(float4& net_force, float& net_virial, float4& net_torque, float4* d_f, float* d_v, float4* d_t, int idx)
     {
-    if (d_f != NULL && d_v != NULL,d_t!==NULL)
+    if (d_f != NULL && d_v != NULL && d_t != NULL)
         {
         
         float4 f = d_f[idx];
@@ -76,6 +76,7 @@ __device__ void add_force_total(float4& net_force, float& net_virial, float4& ne
         net_torque.y += t.y;
         net_torque.z += t.z;
         net_torque.w += t.w;
+
         }
     }
 
