@@ -198,7 +198,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
     body_imagez += (int)z_shift;
     
     matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
-    quat_multiply(orientation, tbody, fquat);
+    quatvec(orientation, tbody, fquat);
     
     float4 conjqm2;
     conjqm2.x = conjqm.x + deltaT * fquat.x;
@@ -224,7 +224,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
     // update angular velocity
     float4 angmom2;
     exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
-    inv_quat_multiply(orientation, conjqm2, mbody);
+    invquatvec(orientation, conjqm2, mbody);
     transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
     
     angmom2.x *= 0.5f;
@@ -332,6 +332,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                             rigid_data.body_imagex,
                                                             rigid_data.body_imagey,
                                                             rigid_data.body_imagez,
+                                                            rigid_data.particle_orientation,
                                                             rigid_data.particle_indices,
                                                             rigid_data.particle_pos,
                                                             n_group_bodies,
@@ -423,7 +424,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
     
     // update angular momentum
     matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
-    quat_multiply(orientation, tbody, fquat);
+    quatvec(orientation, tbody, fquat);
     
     float4  conjqm2, angmom2;
     conjqm2.x = scale_r * conjqm.x + deltaT * fquat.x;
@@ -431,7 +432,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
     conjqm2.z = scale_r * conjqm.z + deltaT * fquat.z;
     conjqm2.w = scale_r * conjqm.w + deltaT * fquat.w;
     
-    inv_quat_multiply(orientation, conjqm2, mbody);
+    invquatvec(orientation, conjqm2, mbody);
     transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
     
     angmom2.x *= 0.5f;
@@ -522,6 +523,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                 rigid_data.body_imagex,
                                                                 rigid_data.body_imagey,
                                                                 rigid_data.body_imagez,
+                                                                rigid_data.particle_orientation,
                                                                 rigid_data.particle_indices,
                                                                 rigid_data.particle_pos,
                                                                 n_group_bodies,

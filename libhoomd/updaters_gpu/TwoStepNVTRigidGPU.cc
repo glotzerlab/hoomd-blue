@@ -155,7 +155,8 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     
     ArrayHandle<unsigned int> d_particle_offset(m_rigid_data->getParticleOffset(), access_location::device, access_mode::read);
-    
+    ArrayHandle<Scalar4> d_particle_orientation(m_rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
+
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -186,7 +187,8 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_offset = d_particle_offset.data;
-    
+    d_rdata.particle_orientation = d_particle_orientation.data;
+
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
@@ -271,8 +273,10 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
     const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
+    const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
@@ -300,6 +304,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     
     ArrayHandle<unsigned int> d_particle_offset(m_rigid_data->getParticleOffset(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_particle_orientation(m_rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
 
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -328,7 +333,8 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_offset = d_particle_offset.data;
-    
+    d_rdata.particle_orientation = d_particle_orientation.data;
+
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
@@ -346,6 +352,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                     d_index_array.data,
                     group_size,
                     d_net_force.data,
+                    d_net_torque.data,
                     box, 
                     m_deltaT);
                                 

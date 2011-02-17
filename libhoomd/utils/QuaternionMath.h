@@ -240,7 +240,7 @@ DEVICE inline void computeAngularVelocity(Scalar4& angmom,
     \param b Quaternion
     \param c Returned quaternion
 */
-DEVICE inline void vec_multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c)
+DEVICE inline void vecquat(Scalar4 &a, Scalar4 &b, Scalar4 &c)
     {
     c.x = -(a.x * b.y + a.y * b.z + a.z * b.w);
     c.y =   b.x * a.x + a.y * b.w - a.z * b.z;
@@ -273,7 +273,7 @@ DEVICE inline void advanceQuaternion(Scalar4& angmom,
     computeAngularVelocity(angmom, moment_inertia, ex_space, ey_space, ez_space, angvel);
     
     // Compute (w q)
-    vec_multiply(angvel, quat, omegaq);
+    vecquat(angvel, quat, omegaq);
     
     // Full update q from dq/dt = 1/2 w q
     qfull.x = quat.x + dtq * omegaq.x;
@@ -296,7 +296,7 @@ DEVICE inline void advanceQuaternion(Scalar4& angmom,
     computeAngularVelocity(angmom, moment_inertia, ex_space, ey_space, ez_space, angvel);
     
     // Compute (w qhalf)
-    vec_multiply(angvel, qhalf, omegaq);
+    vecquat(angvel, qhalf, omegaq);
     
     // 2nd half update from dq/dt = 1/2 w q
     qhalf.x += Scalar(0.5) * dtq * omegaq.x;
@@ -320,7 +320,7 @@ DEVICE inline void advanceQuaternion(Scalar4& angmom,
     \param b A three component vector
     \param c Returned quaternion
 */
-DEVICE inline void quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
+DEVICE inline void quatvec(Scalar4& a, Scalar4& b, Scalar4& c)
     {
     c.x = -a.y * b.x - a.z * b.y - a.w * b.z;
     c.y =  a.x * b.x - a.w * b.y + a.z * b.z;
@@ -330,15 +330,29 @@ DEVICE inline void quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
 
 //! Inverse quaternion multiply: c = inv(a) * b 
 /*! \param a Quaternion
-    \param b A four component vector
+    \param b A three component vector
     \param c A three component vector
 */
-DEVICE inline void inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
+DEVICE inline void invquatvec(Scalar4& a, Scalar4& b, Scalar4& c)
     {
     c.x = -a.y * b.x + a.x * b.y + a.w * b.z - a.z * b.w;
     c.y = -a.z * b.x - a.w * b.y + a.x * b.z + a.y * b.w;
     c.z = -a.w * b.x + a.z * b.y - a.y * b.z + a.x * b.w;
     }
+
+
+//! Quaternion quaternion multiply: c = a * b 
+/*! \param a Quaternion
+    \param b Quaternion
+    \param c Quaternion
+*/
+DEVICE inline void quatquat(Scalar4& a, Scalar4& b, Scalar4& c)
+{
+  c.x = a.x*b.x - a.y*b.y - a.z*b.z - a.w*b.w;
+  c.y = a.x*b.y + b.x*a.y + a.z*b.w - a.w*b.z;
+  c.z = a.x*b.z + b.x*a.z + a.w*b.y - a.y*b.w;
+  c.w = a.x*b.w + b.x*a.w + a.y*b.z - a.z*b.y;
+}
 
 //! Matrix dot: c = dot(A, b) 
 /*! \param ax The first row of A

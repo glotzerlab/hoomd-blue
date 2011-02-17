@@ -264,7 +264,7 @@ void TwoStepNVERigid::setup()
         unsigned int body = m_body_group->getMemberIndex(group_idx);
     
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angmom_handle.data[body], mbody);
-        quat_multiply(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
+        quatvec(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
         
         conjqm_handle.data[body].x *= 2.0;
         conjqm_handle.data[body].y *= 2.0;
@@ -645,6 +645,7 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
@@ -658,7 +659,8 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
     ArrayHandle<Scalar4> particle_oldpos_handle(m_rigid_data->getParticleOldPos(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldvel_handle(m_rigid_data->getParticleOldVel(), access_location::host, access_mode::readwrite);
-    
+    ArrayHandle<Scalar4> particle_orientation(m_rigid_data->getParticleOrientation(), access_location::host, access_mode::read);
+
     // access the particle data arrays
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
     assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
@@ -678,6 +680,8 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
             unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
             // get the index of particle in the current rigid body in the particle_pos array
             unsigned int localidx = body * particle_pos_pitch + j;
+            // get the particle tag to access the particle orientation
+            unsigned int tag = arrays.tag[pidx];
             
             // project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
             Scalar xr = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
@@ -742,6 +746,10 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
             //need to update the particle orientation in here too
             /*n_sim = R(n_RB)*n_ai_in_RB
             */
+            Scalar4 porientation; 
+            quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
+            normalize(porientation);
+            m_pdata->setOrientation(tag, porientation);
 
             // store the current position for the next step
             particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];

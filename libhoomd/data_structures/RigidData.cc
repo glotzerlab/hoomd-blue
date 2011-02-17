@@ -518,6 +518,8 @@ void RigidData::initializeData()
         {
         if (arrays.body[j] == NO_BODY) continue;
         
+        unsigned int tag = arrays.tag[j];
+        
         // get the corresponding body
         unsigned int body = arrays.body[j];
         // get the current index in the body
@@ -547,7 +549,16 @@ void RigidData::initializeData()
         
         // TODO - initialize h_particle_orientation.data[idx] here from the initial particle orientation. This means
         // reading the intial particle orientation from ParticleData and translating it backwards into the body frame
-                
+        Scalar4 qc;
+        qc.x = orientation_handle.data[body].x;
+        qc.y = -orientation_handle.data[body].y;
+        qc.z = -orientation_handle.data[body].z;
+        qc.w = -orientation_handle.data[body].w;
+        
+        porientation = m_pdata->getOrientation(tag);
+        quatquat(qc, porientation, h_particle_orientation.data[j]);
+        normalize(h_particle_orientation.data[j]);
+        
         particle_oldpos_handle.data[idx].x = unwrappedx;
         particle_oldpos_handle.data[idx].y = unwrappedy;
         particle_oldpos_handle.data[idx].z = unwrappedz;

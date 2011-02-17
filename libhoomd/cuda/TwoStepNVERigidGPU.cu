@@ -254,6 +254,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                         rigid_data.body_imagex,
                                                                         rigid_data.body_imagey,
                                                                         rigid_data.body_imagez,
+                                                                        rigid_data.particle_orientation,
                                                                         rigid_data.particle_indices,
                                                                         rigid_data.particle_pos,
                                                                         n_group_bodies,
@@ -369,6 +370,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     for (unsigned int start = 0; start < n_windows; start++)
         {
         float4 fi = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        float4 ti = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         
         // determine the index with this body that this particle should handle
         unsigned int k = start * window_size + (threadIdx.x & thread_mask);
@@ -455,6 +457,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
+    \param d_net_torque Particle net torques
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Amount of real time to step forward in one time step
 */
@@ -463,6 +466,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                    unsigned int *d_group_members,
                                    unsigned int group_size, 
                                    float4 *d_net_force,
+                                   float4 *d_net_torque,
                                    const gpu_boxsize &box,
                                    float deltaT)
     {
@@ -494,9 +498,11 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                                                                             rigid_data.torque,
                                                                                             rigid_data.body_indices,
                                                                                             rigid_data.orientation,
+                                                                                            rigid_data.particle_orientation,
                                                                                             rigid_data.particle_indices,
                                                                                             rigid_data.particle_pos,
                                                                                             d_net_force,
+                                                                                            d_net_torque,
                                                                                             n_group_bodies,
                                                                                             n_bodies,
                                                                                             nmax,
@@ -504,6 +510,10 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                                                                             thread_mask,
                                                                                             n_bodies_per_block,
                                                                                             box);
+
+                                                
+                                                 
+                                                 
 
     return cudaSuccess;
     }
@@ -642,6 +652,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                         rigid_data.body_imagex,
                                                                         rigid_data.body_imagey,
                                                                         rigid_data.body_imagez,
+                                                                        rigid_data.particle_orientation,
                                                                         rigid_data.particle_indices,
                                                                         rigid_data.particle_pos,
                                                                         n_group_bodies,
