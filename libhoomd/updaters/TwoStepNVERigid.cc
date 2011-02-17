@@ -532,7 +532,9 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
     
     // access net force data
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::read);
     
     // rigid data handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
@@ -580,6 +582,13 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
             Scalar fy = h_net_force.data[pidx].y;
             Scalar fz = h_net_force.data[pidx].z;
 
+            /*Access Torque elements from a single particle. Right now I will am assuming that the particle 
+              and rigid body reference frames are the same. Probably have to rotate first.
+            */
+            Scalar tx = h_net_torque.data[pidx].x;
+            Scalar ty = h_net_torque.data[pidx].y;
+            Scalar tz = h_net_torque.data[pidx].z;
+
             force_handle.data[body].x += fx;
             force_handle.data[body].y += fy;
             force_handle.data[body].z += fz;
@@ -596,9 +605,9 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
                     + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
                     + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
             
-            torque_handle.data[body].x += ry * fz - rz * fy;
-            torque_handle.data[body].y += rz * fx - rx * fz;
-            torque_handle.data[body].z += rx * fy - ry * fx;
+            torque_handle.data[body].x += ry * fz - rz * fy + tx;
+            torque_handle.data[body].y += rz * fx - rx * fz + ty;
+            torque_handle.data[body].z += rx * fy - ry * fx + tz;
             }
         }
         
@@ -729,7 +738,11 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                 arrays.z[pidx] += Lz;
                 arrays.iz[pidx]--;
                 }
-            
+
+            //need to update the particle orientation in here too
+            /*n_sim = R(n_RB)*n_ai_in_RB
+            */
+
             // store the current position for the next step
             particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];
             particle_oldpos_handle.data[localidx].y = arrays.y[pidx] + Ly * arrays.iy[pidx];

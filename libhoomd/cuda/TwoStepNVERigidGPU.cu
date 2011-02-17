@@ -309,9 +309,11 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                                                  float4* rdata_torque,
                                                  unsigned int *d_rigid_group,
                                                  float4* d_rigid_orientation,
+                                                 float4* d_particle_orientation,
                                                  unsigned int* d_rigid_particle_idx,
                                                  float4* d_rigid_particle_dis,
                                                  float4* d_net_force,
+                                                 float4* d_net_torque,
                                                  unsigned int n_group_bodies, 
                                                  unsigned int n_bodies, 
                                                  unsigned int nmax,
@@ -384,7 +386,10 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                 // calculate body force and torques
                 float4 particle_pos = d_rigid_particle_dis[localidx];
                 fi = d_net_force[pidx];
-                
+
+                //will likely need to rotate these components too
+                ti = d_net_torque[pidx];
+
                 // tally the force in the per thread counter
                 sum_force.x += fi.x;
                 sum_force.y += fi.y;
@@ -399,11 +404,12 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                         + ez_space[m].y * particle_pos.z;
                 ri.z = ex_space[m].z * particle_pos.x + ey_space[m].z * particle_pos.y 
                         + ez_space[m].z * particle_pos.z;
-                
+
+                //need to update here     
                 // tally the torque in the per thread counter
-                sum_torque.x += ri.y * fi.z - ri.z * fi.y;
-                sum_torque.y += ri.z * fi.x - ri.x * fi.z;
-                sum_torque.z += ri.x * fi.y - ri.y * fi.x;
+                sum_torque.x += ri.y * fi.z - ri.z * fi.y + ti.x;
+                sum_torque.y += ri.z * fi.x - ri.x * fi.z + ti.y;
+                sum_torque.z += ri.x * fi.y - ri.y * fi.x + ti.z;
                 }
             }
         }
