@@ -115,7 +115,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
     shared_ptr<TwoStepBDNVT> two_step_bdnvt(new TwoStepBDNVT(sysdef, group_all, T_variant, 123, 0));
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
-    
+
     boost::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
     bdnvt_up->addForceConstraint(cs);
     bdnvt_up->prepRun(0);
