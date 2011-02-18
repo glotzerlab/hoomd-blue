@@ -79,21 +79,6 @@ void ConstExternalFieldDipoleForceCompute::setField(Scalar4 f)
     field = f;
     }
 
-/*! \param i Index of the particle to set
-    \param f Scalar4 with force components
-*/
-void ConstExternalFieldDipoleForceCompute::setParticleForce(unsigned int i, Scalar4 f)
-    {
-        
-    assert(m_pdata != NULL);
-    assert(i < m_pdata->getN());
-
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
-    assert(h_force.data);
-
-    h_force.data[i] = f;
-    }
-
 /*! Actually, this function does nothing. Since the data arrays were already filled out by setForce(),
     we don't need to do a thing here :)
     \param timestep Current timestep
@@ -102,7 +87,7 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
     {
     // array handles
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),access_location::host,access_mode::read);
-    ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::read_write);
+    ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::overwrite);
 
     // number of particles
     unsigned int num_particles = m_pdata->getN();
@@ -139,10 +124,10 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
 	// also field.w stores magnitude of dipole moment, so, here we go
 
 	// reuse temp to compute the torque
-        h_torque[i].x = field.w*(field.y*moment.w-field.z*moment.z);
-        h_torque[i].y = field.w*(field.z*moment.y-field.x*moment.w);
-        h_torque[i].z = field.w*(field.x*moment.z-field.y*moment.y);
-        h_torque[i].w = Scalar(0);
+        h_torque.data[i].x = field.w*(field.y*moment.w-field.z*moment.z);
+        h_torque.data[i].y = field.w*(field.z*moment.y-field.x*moment.w);
+        h_torque.data[i].z = field.w*(field.x*moment.z-field.y*moment.y);
+        h_torque.data[i].w = Scalar(0);
         }
 
     }
@@ -151,8 +136,8 @@ void export_ConstExternalFieldDipoleForceCompute()
     {
     class_< ConstExternalFieldDipoleForceCompute, boost::shared_ptr<ConstExternalFieldDipoleForceCompute>,
             bases<ForceCompute>, boost::noncopyable >
-    ("ConstExternalFieldDipoleForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar >())
-    .def("setForce", &ConstExternalFieldDipoleForceCompute::setForce)
+    ("ConstExternalFieldDipoleForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar4 >())
+    .def("setField", &ConstExternalFieldDipoleForceCompute::setField)
     ;
     }
 
