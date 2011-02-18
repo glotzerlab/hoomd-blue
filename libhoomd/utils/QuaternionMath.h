@@ -236,7 +236,7 @@ DEVICE inline void computeAngularVelocity(Scalar4& angmom,
     }
 
 //! Quaternion multiply: c = a * b where a = (0, a)
-/*  \param a Quaternion
+/*  \param a Vector
     \param b Quaternion
     \param c Returned quaternion
 */
@@ -349,9 +349,9 @@ DEVICE inline void invquatvec(Scalar4& a, Scalar4& b, Scalar4& c)
 DEVICE inline void quatquat(Scalar4& a, Scalar4& b, Scalar4& c)
 {
   c.x = a.x*b.x - a.y*b.y - a.z*b.z - a.w*b.w;
-  c.y = a.x*b.y + b.x*a.y + a.z*b.w - a.w*b.z;
-  c.z = a.x*b.z + b.x*a.z + a.w*b.y - a.y*b.w;
-  c.w = a.x*b.w + b.x*a.w + a.y*b.z - a.z*b.y;
+  c.y = a.x*b.y + a.y*b.x + a.z*b.w - a.w*b.z;
+  c.z = a.x*b.z - a.y*b.w + a.z*b.x + a.w*b.y;
+  c.w = a.x*b.w + a.y*b.z - a.z*b.y + a.w*b.x;
 }
 
 //! Matrix dot: c = dot(A, b) 
@@ -401,5 +401,13 @@ DEVICE inline void mat_multiply(Scalar a[3][3], Scalar b[3][3], Scalar c[3][3])
     c[2][1] = a[2][0] * b[0][1] + a[2][1] * b[1][1] + a[2][2] * b[2][1];
     c[2][2] = a[2][0] * b[0][2] + a[2][1] * b[1][2] + a[2][2] * b[2][2];
     }
+
+DEVICE inline void quatconj(const Scalar4& a, Scalar4& b)
+{
+  b.x = a.x;
+  b.y = -a.y;
+  b.z = -a.z;
+  b.w = -a.w;
+}
 
 #endif
