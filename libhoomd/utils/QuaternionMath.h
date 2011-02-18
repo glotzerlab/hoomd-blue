@@ -402,6 +402,10 @@ DEVICE inline void mat_multiply(Scalar a[3][3], Scalar b[3][3], Scalar c[3][3])
     c[2][2] = a[2][0] * b[0][2] + a[2][1] * b[1][2] + a[2][2] * b[2][2];
     }
 
+//! Hermitian conjugate of quaternion
+/*! \param a The quaternion to conjugate
+    \param b The Hermitian conjugate of a
+*/
 DEVICE inline void quatconj(const Scalar4& a, Scalar4& b)
 {
   b.x = a.x;
