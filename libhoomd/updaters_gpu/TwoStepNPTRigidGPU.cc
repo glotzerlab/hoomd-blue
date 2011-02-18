@@ -176,7 +176,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::overwrite);
-    gpu_pdata_arrays.orientation=d_porientation.data;
+    d_pdata.orientation=d_porientation.data;
 
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -347,7 +347,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::overwrite);
-    gpu_pdata_arrays.orientation=d_porientation.data;
+    d_pdata.orientation=d_porientation.data;
 
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();

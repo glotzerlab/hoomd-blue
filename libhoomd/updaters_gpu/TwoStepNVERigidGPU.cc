@@ -207,7 +207,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4>d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::overwrite);
 
     //eventually all elements of the gpu_pdata struct will be filled in this way.
-    gpu_pdata.orientation=d_porientaion.data;
+    d_pdata.orientation=d_porientation.data;
 
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
