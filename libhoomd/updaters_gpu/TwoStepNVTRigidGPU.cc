@@ -122,6 +122,10 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::overwrite,access_mode::overwrite);
+    gpu_pdata_arrays.orientation=d_porientation.data;
+
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
@@ -270,6 +274,9 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
         m_prof->push(exec_conf, "NVT rigid step 2");
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::overwrite,access_mode::overwrite);
+    gpu_pdata_arrays.orientation=d_porientation.data;
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
     const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();

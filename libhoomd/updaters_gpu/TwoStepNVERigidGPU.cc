@@ -168,7 +168,6 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     
     // perform the update on the GPU
     gpu_nve_rigid_step_one(d_pdata,
-                           d_porientation,
                            d_rdata, 
                            d_index_array.data,
                            group_size,
