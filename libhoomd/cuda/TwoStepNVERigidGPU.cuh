@@ -185,7 +185,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         //update particle orientation
         quatquat(d_rigid_orientation[idx_body],
                  d_rigid_particle_orientation[localidx],
-                 p_data_orientation[pidx]);
+                 pdata_orientation[pidx]);
         }
     
     // v_particle = vel + angvel x ri
@@ -200,7 +200,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         {
         pdata_pos[pidx] = ppos;
         pdata_image[pidx] = image;
-        pdata
+    
         }
     pdata_vel[pidx] = pvel;
     }
