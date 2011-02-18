@@ -100,6 +100,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
 template<bool set_x>
 __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
                                        float4* pdata_vel,
+                                       float4* pdata_orientation,
                                        int4* pdata_image,
                                        unsigned int *d_pgroup_idx,
                                        unsigned int n_pgroup,
@@ -113,9 +114,9 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
                                        int* d_rigid_imagex,
                                        int* d_rigid_imagey,
                                        int* d_rigid_imagez,
-                                       float4* d_rigid_particle_orientation,
                                        unsigned int* d_rigid_particle_idx,
                                        float4* d_rigid_particle_dis,
+                                       float4* d_rigid_particle_orientation,
                                        unsigned int n_group_bodies,
                                        unsigned int n_particles,
                                        unsigned int nmax,
@@ -180,6 +181,11 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         ppos.z -= box.Lz * z_shift;
         image.z = body_imagez;
         image.z += (int)z_shift;
+
+        //update particle orientation
+        quatquat(d_rigid_orientation[idx_body],
+                 d_rigid_particle_orientation[localidx],
+                 p_data_orientation[pidx]);
         }
     
     // v_particle = vel + angvel x ri
@@ -194,6 +200,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         {
         pdata_pos[pidx] = ppos;
         pdata_image[pidx] = image;
+        pdata
         }
     pdata_vel[pidx] = pvel;
     }

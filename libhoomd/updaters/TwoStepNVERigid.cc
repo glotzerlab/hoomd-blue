@@ -743,9 +743,7 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                 arrays.iz[pidx]--;
                 }
 
-            //need to update the particle orientation in here too
-            /*n_sim = R(n_RB)*n_ai_in_RB
-            */
+            //Update the particle orientation q_i,lab_frame = q_rb,lab_frame * q_i,rb_frame;
             Scalar4 porientation; 
             quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
             normalize(porientation);
