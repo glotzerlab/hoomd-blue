@@ -1,0 +1,161 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
+contributors may be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+// $Id$
+// $URL$
+// Maintainer: grva
+
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
+
+#include "ConstExternalFieldDipoleForceCompute.h"
+#include "QuaternionMath.h"
+
+using namespace std;
+
+/*! \file ConstExternalFieldDipoleForceCompute.cc
+    \brief Contains code for the ConstExternalFieldDipoleForceCompute class
+*/
+
+/*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
+    \param f Scalar4 of force
+    \note This class doesn't actually do anything with the particle data. It just returns a constant force
+*/
+ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar4 f)
+        : ForceCompute(sysdef)
+    {
+    setField(f);
+    }
+
+/*! \param f a Scalar4 with the field components
+ *           f.{x,y,z} are components of the field, f.w is the magnitude of the
+ *           moment in the z direction
+*/
+void ConstExternalFieldDipoleForceCompute::setField(Scalar4 f)
+    {
+    field = f;
+    }
+
+/*! \param i Index of the particle to set
+    \param f Scalar4 with force components
+*/
+void ConstExternalFieldDipoleForceCompute::setParticleForce(unsigned int i, Scalar4 f)
+    {
+        
+    assert(m_pdata != NULL);
+    assert(i < m_pdata->getN());
+
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
+    assert(h_force.data);
+
+    h_force.data[i] = f;
+    }
+
+/*! Actually, this function does nothing. Since the data arrays were already filled out by setForce(),
+    we don't need to do a thing here :)
+    \param timestep Current timestep
+*/
+void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
+    {
+    // array handles
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),access_location::host,access_mode::read);
+    ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::read_write);
+
+    // number of particles
+    unsigned int num_particles = m_pdata->getN();
+
+    // compute the torques
+    for (unsigned int i=0; i<num_particles; i++)
+        {
+	// rotation operator for this particle
+        Scalar4 rot = h_orientation.data[i];
+	// Hermitian conjugate
+        Scalar4 rot_H;
+	// compute the Hermitian conjugate
+        quatconj(rot,rot_H);
+	// base particle orientation is in z direction
+	//
+        Scalar4 base = {0,0,1,0};
+	// to be filled by the actual moment
+        Scalar4 moment;
+	// a temporary variable
+        Scalar4 temp;
+	// do half the rotation
+        quatvec(rot,base,temp);
+	// do the other half
+	quatquat(temp,rot_H,moment);
+
+	// tricky bit:
+	// the resulting vector is the last three components of moment
+	// because we got it by doing a quat * quat
+	
+	// that means recipe for cross product is
+	// [(yw-zz),(zy-xw),(xz-yy)]
+	// cf. usual [(yz-zy),(zx-xz),(xy-yx)]
+
+	// also field.w stores magnitude of dipole moment, so, here we go
+
+	// reuse temp to compute the torque
+        h_torque[i].x = field.w*(field.y*moment.w-field.z*moment.z);
+        h_torque[i].y = field.w*(field.z*moment.y-field.x*moment.w);
+        h_torque[i].z = field.w*(field.x*moment.z-field.y*moment.y);
+        h_torque[i].w = Scalar(0);
+        }
+
+    }
+
+void export_ConstExternalFieldDipoleForceCompute()
+    {
+    class_< ConstExternalFieldDipoleForceCompute, boost::shared_ptr<ConstExternalFieldDipoleForceCompute>,
+            bases<ForceCompute>, boost::noncopyable >
+    ("ConstExternalFieldDipoleForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar >())
+    .def("setForce", &ConstExternalFieldDipoleForceCompute::setForce)
+    ;
+    }
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif
