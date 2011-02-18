@@ -168,6 +168,7 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     
     // perform the update on the GPU
     gpu_nve_rigid_step_one(d_pdata,
+                           d_porientation,
                            d_rdata, 
                            d_index_array.data,
                            group_size,
@@ -204,6 +205,11 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
         m_prof->push(exec_conf, "NVE rigid step 2");
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4>d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::overwrite);
+
+    //eventually all elements of the gpu_pdata struct will be filled in this way.
+    gpu_pdata.orientation=d_porientaion.data;
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
