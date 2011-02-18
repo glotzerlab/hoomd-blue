@@ -77,6 +77,7 @@ struct gpu_pdata_arrays
     float4 *pos;        //!< Particle position in \c x,\c y,\c z, particle type as an int in \c w
     float4 *vel;        //!< Particle velocity in \c x, \c y, \c z, nothing in \c w
     float4 *accel;      //!< Particle acceleration in \c x, \c y, \c z, nothing in \c w
+    float4 *orientation //!< Particle orientation q in \c x \c y, \c z, and \c w
     float *charge;      //!< Particle charge
     float *mass;        //!< Particle mass
     float *diameter;    //!< Particle diameter
