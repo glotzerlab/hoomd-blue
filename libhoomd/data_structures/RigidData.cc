@@ -550,10 +550,7 @@ void RigidData::initializeData()
         // TODO - initialize h_particle_orientation.data[idx] here from the initial particle orientation. This means
         // reading the intial particle orientation from ParticleData and translating it backwards into the body frame
         Scalar4 qc;
-        qc.x = orientation_handle.data[body].x;
-        qc.y = -orientation_handle.data[body].y;
-        qc.z = -orientation_handle.data[body].z;
-        qc.w = -orientation_handle.data[body].w;
+        quatconj(orientation_handle.data[body], qc);
         
         porientation = m_pdata->getOrientation(tag);
         quatquat(qc, porientation, h_particle_orientation.data[j]);

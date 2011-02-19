@@ -89,6 +89,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     \param pdata_vel Particle velocity
     \param pdata_orientation Particle orientation
     \param pdata_image Particle image
+    \param pdata_tag Particle tag
     \param d_pgroup_idx Particle index
     \param n_pgroup Number of particles in the group
     \param d_particle_offset Local index of a particle in the body
@@ -114,6 +115,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
                                        float4* pdata_vel,
                                        float4* pdata_orientation,
                                        int4* pdata_image,
+                                       unsigned int *pdata_tag,
                                        unsigned int *d_pgroup_idx,
                                        unsigned int n_pgroup,
                                        unsigned int *d_particle_offset,
@@ -143,7 +145,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         return;
     
     unsigned int pidx = d_pgroup_idx[group_idx];
-    
+    unsigned int ptag = pdata_tag[pidx];
     unsigned int idx_body = d_particle_body[pidx];
     unsigned int particle_offset = d_particle_offset[pidx];
     float4 orientation = d_rigid_orientation[idx_body];
@@ -213,7 +215,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         {
         pdata_pos[pidx] = ppos;
         pdata_image[pidx] = image;
-        pdata_orientation[pidx] = porientation;
+        pdata_orientation[ptag] = porientation;
         }
     pdata_vel[pidx] = pvel;
     }
