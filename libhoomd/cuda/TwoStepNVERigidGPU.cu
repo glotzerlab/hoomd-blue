@@ -72,7 +72,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \param rdata_conjqm Conjugate quaternion momentum
     \param d_rigid_mass Body mass
     \param d_rigid_mi Body inertia moments
-    \param n_group_bodies Number of rigid bodies in my group
     \param d_rigid_force Body forces
     \param d_rigid_torque Body torques
     \param d_rigid_group Body indices
@@ -273,10 +272,19 @@ extern __shared__ float3 sum[];
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
 /*! \param rdata_force Body forces
     \param rdata_torque Body torques
+    \param d_rigid_group Body indices
+    \param d_rigid_orientation Body orientation
+    \param d_particle_orientation Particle orientation (quaternion)
+    \param d_rigid_particle_idx Particle index of a local particle in the body
+    \param d_rigid_particle_dis Position of a particle in the body frame
+    \param d_net_force Particle net forces
+    \param d_net_torque Particle net torques
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param nmax Maximum number of particles in a rigid body
     \param window_size Window size for reduction
+    \param thread_mask Block size minus 1, used for idenifying the first thread in the block
+    \param n_bodies_per_block Number of bodies per block
     \param box Box dimensions for periodic boundary condition handling
     
     Compute the force and torque sum on all bodies in the system from their constituent particles. n_bodies_per_block
@@ -524,7 +532,13 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     \param rdata_vel Body translational velocity
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
+    \param rdata_orientation Quaternion
     \param rdata_conjqm Conjugate quaternion momentum
+    \param d_rigid_mass Body mass
+    \param d_rigid_mi Body inertia moments
+    \param d_rigid_force Body forces
+    \param d_rigid_torque Body torques
+    \param d_rigid_group Body indices
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param deltaT Timestep 

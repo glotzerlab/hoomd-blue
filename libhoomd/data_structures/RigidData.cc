@@ -357,7 +357,7 @@ void RigidData::initializeData()
         rot_mat[2][2] = rot_mat_trans[2][2] = ez.z;
         
         Ibody[0][0] = pinertia_tensor.components[0];
-        Ibody[2][1] = pinertia_tensor.components[1];
+        Ibody[1][1] = pinertia_tensor.components[1];
         Ibody[2][2] = pinertia_tensor.components[2];
         Ibody[0][1] = Ibody[1][0] = pinertia_tensor.components[3];
         Ibody[1][2] = Ibody[2][1] = pinertia_tensor.components[4];

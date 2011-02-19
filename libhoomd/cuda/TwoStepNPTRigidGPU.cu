@@ -86,9 +86,9 @@ extern "C" __global__ void gpu_npt_rigid_zero_virial_rigid_kernel(float *d_viria
 
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
     \param rdata_com Body center of mass
+    \param d_rigid_group Body group
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total umber of rigid bodies
-    \param local_beg Starting body index in this card
     \param box Box dimensions for periodic boundary condition handling
     \param npt_rdata Thermostat/barostat data
 */
@@ -477,10 +477,15 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     \param rdata_vel Body velocity
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
+    \param rdata_orientation Quaternion
     \param rdata_conjqm Conjugate quaternion momentum
+    \param d_rigid_mass Body mass
+    \param d_rigid_mi Body inertia moments
+    \param d_rigid_force Body forces
+    \param d_rigid_torque Body torques
+    \param d_rigid_group Body indices
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param local_beg Starting body index in this card
     \param npt_rdata_eta_dot_t0 Thermostat translational part 
     \param npt_rdata_eta_dot_r0 Thermostat rotational part
     \param npt_rdata_epsilon_dot Barostat velocity

@@ -56,8 +56,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 struct gpu_npt_rigid_data
     {
     unsigned int n_bodies;  //!< Number of rigid bodies
-    unsigned int nf_t;      //!< Translational degrees of freedom
-    unsigned int nf_r;      //!< Rotational degrees of freedom
+    float nf_t;      //!< Translational degrees of freedom
+    float nf_r;      //!< Rotational degrees of freedom
     unsigned int dimension; //!< System dimension
     float4* new_box;        //!< New box size
     float    dilation;      //!< Box size change 

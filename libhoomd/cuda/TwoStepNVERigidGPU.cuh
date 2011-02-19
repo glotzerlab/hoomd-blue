@@ -87,15 +87,27 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
 /*!
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
+    \param pdata_orientation Particle orientation
     \param pdata_image Particle image
     \param d_pgroup_idx Particle index
-    \param rdata_oldpos Particel old position
-    \param rdata_oldvel Particel old velocity
-    \param d_virial Virial contribution from the first part
+    \param n_pgroup Number of particles in the group
+    \param d_particle_offset Local index of a particle in the body
+    \param d_particle_body Body index of a particle
+    \param d_rigid_group Body indices
+    \param d_rigid_orientation Body orientation (quaternion)
+    \param d_rigid_com Body center of mass
+    \param d_rigid_vel Body velocity
+    \param d_rigid_angvel Body angular velocity
+    \param d_rigid_imagex Body image x
+    \param d_rigid_imagey Body image y
+    \param d_rigid_imagez Body image z
+    \param d_rigid_particle_idx Particle index of a local particle in the body
+    \param d_rigid_particle_dis Position of a particle in the body frame
+    \param d_rigid_particle_orientation Orientation of a particle in the body frame
     \param n_group_bodies Number of rigid bodies in my group
-    \param n_bodies Total number of rigid bodies
+    \param n_particles Total number of particles
+    \param nmax Maximum number of particles per body
     \param box Box dimensions for periodic boundary condition handling
-    \param deltaT Time step
 */
 template<bool set_x>
 __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
@@ -158,6 +170,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
     
     float4 ppos;
     int4 image;
+    float4 porientation;
     if (set_x)
         {
         // x_particle = com + ri
@@ -182,10 +195,10 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         image.z = body_imagez;
         image.z += (int)z_shift;
 
-        //update particle orientation
+        // update particle orientation
         quatquat(d_rigid_orientation[idx_body],
                  d_rigid_particle_orientation[localidx],
-                 pdata_orientation[pidx]);
+                 porientation);
         }
     
     // v_particle = vel + angvel x ri
@@ -200,7 +213,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         {
         pdata_pos[pidx] = ppos;
         pdata_image[pidx] = image;
-    
+        pdata_orientation[pidx] = porientation;
         }
     pdata_vel[pidx] = pvel;
     }
