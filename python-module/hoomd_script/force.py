@@ -283,3 +283,49 @@ class constant(_force):
     def update_coeffs(self):
         pass
 
+class const_external_field_dipole(_force):
+    ## Specicify the %constant %field and %dipole moment
+    #
+    # \param field_x x-component of the %field (units?)
+    # \param field_y y-component of the %field (units?)
+    # \param field_z z-component of the %field (units?)
+    # \param p magnitude of the particles' dipole moment in z direction
+    # \b Examples:
+    # \code
+    # force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
+    # const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
+    # \endcode
+    def __init__(self, field_x,field_y,field_z,p):
+         util.print_status_line();
+        
+        # initialize the base class
+        _force.__init__(self);
+        
+        # create the c++ mirror class
+        self.cpp_force = hoomd.ConstExternalFieldDipoleForceCompute(globals.system_definition, field_x, field_y, field_z, p);
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        #
+
+
+    ## Change the %constant %field and %dipole moment
+    #
+    # \param field_x x-component of the %field (units?)
+    # \param field_y y-component of the %field (units?)
+    # \param field_z z-component of the %field (units?)
+    # \param p magnitude of the particles' dipole moment in z direction
+    # \b Examples:
+    # \code
+    # const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
+    # const_ext_f_dipole.setParams(field_x=0.1, field_y=0.1, field_z=0.0, p=1.0))
+    # \endcode
+    def set_params(field_x, field_y,field_z,p):
+        self.check_initialization();
+
+        self.cpp_force.setParams(field_x,field_y,field_z,p);
+    
+    # there are no coeffs to update in the constant ExternalFieldDipoleForceCompute
+    def update_coeffs(self):
+        pass
+
+

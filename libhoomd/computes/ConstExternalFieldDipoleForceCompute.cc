@@ -67,18 +67,22 @@ using namespace std;
 ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar field_x,Scalar field_y, Scalar field_z,Scalar p)
         : ForceCompute(sysdef)
     {
-    setField(make_scalar4(field_x,field_y,field_z,p));
+    setParams(make_scalar4(field_x,field_y,field_z,p));
     }
 
 /*! \param f a Scalar4 with the field components
  *           f.{x,y,z} are components of the field, f.w is the magnitude of the
  *           moment in the z direction
 */
-void ConstExternalFieldDipoleForceCompute::setField(Scalar4 f)
+void ConstExternalFieldDipoleForceCompute::setParams(Scalar4 f)
     {
     field = f;
     }
 
+void ConstExternalFieldDipoleForceCompute::setParams(Scalar field_x,Scalar field_y, Scalar field_z,Scalar p)
+    {
+    setParams(make_scalar4(field_x,field_y,field_z,p));
+    }
 /*! Actually, this function does nothing. Since the data arrays were already filled out by setForce(),
     we don't need to do a thing here :)
     \param timestep Current timestep
@@ -137,7 +141,7 @@ void export_ConstExternalFieldDipoleForceCompute()
     class_< ConstExternalFieldDipoleForceCompute, boost::shared_ptr<ConstExternalFieldDipoleForceCompute>,
             bases<ForceCompute>, boost::noncopyable >
     ("ConstExternalFieldDipoleForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar,Scalar,Scalar,Scalar >())
-    .def("setField", &ConstExternalFieldDipoleForceCompute::setField)
+    .def("setParams", &ConstExternalFieldDipoleForceCompute::setParams(Scalar,Scalar,Scalar,Scalar))
     ;
     }
 
