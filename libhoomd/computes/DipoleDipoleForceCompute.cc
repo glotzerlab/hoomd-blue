@@ -70,57 +70,28 @@ using namespace std;
     \post Memory is allocated, and forces are zeroed.
 */
 DipoleDipoleForceCompute::DipoleDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix) 
-    : ForceCompute(sysdef), m_K(NULL), m_r_0(NULL)
+    : ForceCompute(sysdef)
     {
-    // access the bond data for later use
-    m_bond_data = m_sysdef->getBondData();
-    m_log_name = std::string( "bond_harmonic_energy") + log_suffix;
-    
-    // check for some silly errors a user could make
-    if (m_bond_data->getNBondTypes() == 0)
-        {
-        cout << endl << "***Error! No bond types specified" << endl << endl;
-        throw runtime_error("Error initializing DipoleDipoleForceCompute");
-        }
-        
-    // allocate the parameters
-    m_K = new Scalar[m_bond_data->getNBondTypes()];
-    m_r_0 = new Scalar[m_bond_data->getNBondTypes()];
+
+    m_log_name = std::string( "dipole_dipole_energy") + log_suffix;
+       
+    // allocate the parameters (nothing)
     
     }
 
 DipoleDipoleForceCompute::~DipoleDipoleForceCompute()
     {
-    delete[] m_K;
-    delete[] m_r_0;
     }
 
-/*! \param type Type of the bond to set parameters for
-    \param K Stiffness parameter for the force computation
-    \param r_0 Equilibrium length for the force computation
-
-    Sets parameters for the potential of a particular bond type
+/*! \param p magnitude of the dipole moment in z direction
+    Sets parameters for the potential 
 */
-void DipoleDipoleForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0)
+void DipoleDipoleForceCompute::setParams(Scalar p)
     {
-    // make sure the type is valid
-    if (type >= m_bond_data->getNBondTypes())
-        {
-        cout << endl << "***Error! Invalid bond type specified" << endl << endl;
-        throw runtime_error("Error setting parameters in DipoleDipoleForceCompute");
-        }
-        
-    m_K[type] = K;
-    m_r_0[type] = r_0;
-    
-    // check for some silly errors a user could make
-    if (K <= 0)
-        cout << "***Warning! K <= 0 specified for harmonic bond" << endl;
-    if (r_0 < 0)
-        cout << "***Warning! r_0 <= 0 specified for harmonic bond" << endl;
+    m_p=p;
     }
 
-/*! BondForceCompute provides
+/*! DipoleDipoleForceCompute provides
     - \c harmonic_energy
 */
 std::vector< std::string > DipoleDipoleForceCompute::getProvidedLogQuantities()
@@ -142,7 +113,7 @@ Scalar DipoleDipoleForceCompute::getLogValue(const std::string& quantity, unsign
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for BondForceCompute" << endl << endl;
+        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for DipoleDipoleForceCompute" << endl << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -152,7 +123,7 @@ Scalar DipoleDipoleForceCompute::getLogValue(const std::string& quantity, unsign
  */
 void DipoleDipoleForceCompute::computeForces(unsigned int timestep)
     {
-    if (m_prof) m_prof->push("Harmonic");
+    if (m_prof) m_prof->push("DipoleDipole");
     
     assert(m_pdata);
 
@@ -192,14 +163,9 @@ void DipoleDipoleForceCompute::computeForces(unsigned int timestep)
     
    
     // for each of the bonds
-    const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
+    const unsigned int size = (unsigned int)m_bond_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
-        // lookup the tag of each of the particles participating in the bond
-        const Bond& bond = m_bond_data->getBond(i);
-        assert(bond.a < m_pdata->getN());
-        assert(bond.b < m_pdata->getN());
-        
         // transform a and b into indicies into the particle data arrays
         // MEM TRANSFER: 4 ints
         unsigned int idx_a = arrays.rtag[bond.a];
@@ -264,6 +230,9 @@ void DipoleDipoleForceCompute::computeForces(unsigned int timestep)
 	// moments
 	Scalar4 p_a;
 	Scalar4 p_b;
+    
+    //For now, let's code this as all particles having the same dipole moment, and not worry about particle types
+    p_a=p_b=m_p;
 
 	// do the rotation for a
 	quatvec(q_a,base,temp);
@@ -279,7 +248,7 @@ void DipoleDipoleForceCompute::computeForces(unsigned int timestep)
 	Scalar pdotp = p_a.y*p_b.y+p_a.z*p_b.z+p_a.w*p_b.w;
 
 	// dipole-dipole energy
-        Scalar bond_eng = (pdotp-3*p_adotr*p_bdotr)/rsq/r;
+        Scalar dipdip_eng = (pdotp-3*p_adotr*p_bdotr)/rsq/r;
         
 	// common parts of force
 	Scalar fact0 = -3.0/rsq/rsq*(pdotp-5*p_adotr*p_bdotr);
@@ -287,20 +256,20 @@ void DipoleDipoleForceCompute::computeForces(unsigned int timestep)
 	Scalar fact2 = -3.0/rsq/rsq*p_bdotr;
 
         // calculate the virial
-        Scalar bond_virial=Scalar(1.0/6.0)*(-3.0*pdotp+9*p_adotr*p_bdotr)/rsq/r;
+        Scalar dipdip_virial=Scalar(1.0/6.0)*(-3.0*pdotp+9*p_adotr*p_bdotr)/rsq/r;
 
         // add the force to the particles
         h_force.data[idx_b].x -= fact0*rhat.x + fact1 * p_b.y + fact2 * p_a.y;
         h_force.data[idx_b].y -= fact0*rhat.y + fact1 * p_b.z + fact2 * p_a.z;
         h_force.data[idx_b].z -= fact0*rhat.z + fact1 * p_b.w + fact2 * p_a.w;
-        h_force.data[idx_b].w += bond_eng;
-        h_virial.data[idx_b] += bond_virial;
+        h_force.data[idx_b].w += dipdip_eng;
+        h_virial.data[idx_b] += dipdip_virial;
         
         h_force.data[idx_a].x += fact0*rhat.x + fact1 * p_b.y + fact2 * p_a.y;
         h_force.data[idx_a].y += fact0*rhat.y + fact1 * p_b.z + fact2 * p_a.z;
         h_force.data[idx_a].z += fact0*rhat.z + fact1 * p_b.w + fact2 * p_a.w;
-        h_force.data[idx_a].w += bond_eng;
-        h_virial.data[idx_a] += bond_virial;
+        h_force.data[idx_a].w += dipdip_eng;
+        h_virial.data[idx_a] += dipdip_virial;
 
 	// compute the torques:
 	// first get field as seen by particles

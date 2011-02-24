@@ -73,7 +73,7 @@ class DipoleDipoleForceCompute : public ForceCompute
         ~DipoleDipoleForceCompute();
         
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
+        virtual void setParams(Scalar p);
         
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -82,12 +82,10 @@ class DipoleDipoleForceCompute : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
     protected:
-        Scalar*  m_K;    //!< K parameter for multiple bond tyes
-        Scalar* m_r_0;  //!< r_0 parameter for multiple bond types
-        
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         std::string m_log_name;                     //!< Cached log name
-
+        
+        Scalar m_p; //dipole moment of every particle
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
