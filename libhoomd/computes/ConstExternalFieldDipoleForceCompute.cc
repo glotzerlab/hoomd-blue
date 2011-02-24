@@ -64,10 +64,10 @@ using namespace std;
     \param f Scalar4 of force
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
-ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar4 f)
+ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar field_x,Scalar field_y, Scalar field_z,Scalar p)
         : ForceCompute(sysdef)
     {
-    setField(f);
+    setField(make_scalar4(field_x,field_y,field_z,p));
     }
 
 /*! \param f a Scalar4 with the field components
@@ -136,7 +136,7 @@ void export_ConstExternalFieldDipoleForceCompute()
     {
     class_< ConstExternalFieldDipoleForceCompute, boost::shared_ptr<ConstExternalFieldDipoleForceCompute>,
             bases<ForceCompute>, boost::noncopyable >
-    ("ConstExternalFieldDipoleForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar4 >())
+    ("ConstExternalFieldDipoleForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar,Scalar,Scalar,Scalar >())
     .def("setField", &ConstExternalFieldDipoleForceCompute::setField)
     ;
     }
