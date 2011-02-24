@@ -320,7 +320,8 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     Index2D nli = m_nlist->getNListIndexer();
     
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host,access_mode::read);
+
     //force arrays
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque,access_location::host, access_mode::overwrite);
@@ -359,6 +360,9 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
         Scalar yi = arrays.y[i];
         Scalar zi = arrays.z[i];
         unsigned int typei = arrays.type[i];
+        
+        Scalar4 quat_i=h_orientation.data[i];
+            
         // sanity check
         assert(typei < m_pdata->getNTypes());
         
@@ -393,6 +397,8 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             Scalar dy = yi - arrays.y[j];
             Scalar dz = zi - arrays.z[j];
             
+            Scalar quat_j = h_orienation.data[j];
+
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = arrays.type[j];
             assert(typej < m_pdata->getNTypes());
@@ -423,7 +429,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             else if (dz < box.zlo)
                 dz += Lz;
                 
-            // calculate r_ij squared (FLOPS: 5)
+            // calculate  r_ij squared (FLOPS: 5)
             Scalar rsq = dx*dx + dy*dy + dz*dz;
             
             // get parameters for this type pair
@@ -447,21 +453,29 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                 }
             
             // compute the force and potential energy
-            Scalar force_divr = Scalar(0.0);
+            Scalar3 force = Scalar3(0.0,0.0,0.0);
+            Scalar3 torque_i = Scalar3(0.0,0.0,0.0);
+            Scalar3 torque_j = Scalar3(0.0,0.0,0.0);
+
             Scalar pair_eng = Scalar(0.0);
-            aniso_evaluator eval(rsq, rcutsq, param);
+
+            aniso_evaluator eval(make_scalar3(dx,dy,dz),rcutsq, quat_i,quat_j,param);
+
+
             if (aniso_evaluator::needsDiameter())
                 eval.setDiameter(di, dj);
             if (aniso_evaluator::needsCharge())
                 eval.setCharge(qi, qj);
             
-            bool evaluated = eval.evalForceAndEnergy(force_divr, torque, pair_eng, energy_shift);
+            bool evaluated = eval.evalPair(force, pair_eng, energy_shift,torque_i,torque_j) ;
             
             if (evaluated)
                 {
                 // modify the potential for xplor shifting
                 if (m_shift_mode == xplor)
                     {
+                    /*
+                    This needs to be modified since F is not || to r_ij anymore
                     if (rsq >= ronsq && rsq < rcutsq)
                         {
                         // Implement XPLOR smoothing (FLOPS: 16)
@@ -483,20 +497,21 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                         // But this is verified correct via plotting
                         force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
                         }
+                    */
                     }
                     
-                // compute the virial (FLOPS: 2)
-                Scalar pair_virial = Scalar(1.0/6.0) * rsq * force_divr;
+                // compute the virial (FLOPS: 6)
+                Scalar pair_virial = -(force.x*dx+force.y*dy+force.z*dz);
                 
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)
-                fxi += dx*force_divr;
-                fyi += dy*force_divr;
-                fzi += dz*force_divr;
+                fxi += force.x;
+                fyi += force.y;
+                fzi += force.z;
 
-                txi += torque.x;
-                tyi += torque.y;
-                tzi += torque.z;
+                txi += torque_i.x;
+                tyi += torque_i.y;
+                tzi += torque_i.z;
 
                 pei += pair_eng * Scalar(0.5);
                 viriali += pair_virial;
@@ -505,9 +520,14 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                 if (third_law)
                     {
                     unsigned int mem_idx = m_index_thread_partial(j,tid);
-                    m_fdata_partial[mem_idx].x -= dx*force_divr;
-                    m_fdata_partial[mem_idx].y -= dy*force_divr;
-                    m_fdata_partial[mem_idx].z -= dz*force_divr;
+                    m_fdata_partial[mem_idx].x -= force.x;
+                    m_fdata_partial[mem_idx].y -= force.y;
+                    m_fdata_partial[mem_idx].z -= force.z;
+
+                    m_fdata_partial[mem_idx].x += torque_j.x;
+                    m_fdata_partial[mem_idx].y += torque_j.y;
+                    m_fdata_partial[mem_idx].z += torque_j.z;
+
                     m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
                     m_virial_partial[mem_idx] += pair_virial;
                     }
