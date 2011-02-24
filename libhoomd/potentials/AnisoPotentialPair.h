@@ -467,7 +467,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             if (aniso_evaluator::needsCharge())
                 eval.setCharge(qi, qj);
             
-            bool evaluated = eval.evalPair(force, pair_eng, energy_shift,torque_i,torque_j) ;
+            bool evaluated = eval.evaluate(force, pair_eng, energy_shift,torque_i,torque_j) ;
             
             if (evaluated)
                 {

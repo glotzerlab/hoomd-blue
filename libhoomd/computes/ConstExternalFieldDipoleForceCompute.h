@@ -64,7 +64,6 @@ class ConstExternalFieldDipoleForceCompute : public ForceCompute
         ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar field_x,Scalar field_y, Scalar field_z,Scalar p);
         
         //! Set the force to a new value
-        void setParams(Scalar4 f);
         void setParams(Scalar field_x,Scalar field_y, Scalar field_z,Scalar p);
         
     protected:
