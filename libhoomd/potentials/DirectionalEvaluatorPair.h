@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "HOOMDMath.h"
+#include "DirectionalEvaluatorPair.h"
 
 /*! \file DirectionalEvaluatorPair.h
     \brief Defines the pair evaluator class for Janus spheres
@@ -78,37 +79,37 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Provides class for generalized diblock Janus spheres. It uses preexisting isotropic pair evaluators to do much of
     the work.
 */
-template <typename param_type>
+template <typename DirEvStruct>
 class DirectionalEvaluatorPair
     {
     public:
-	//! Constructor, the only part of this class that isn't virtual
-        DirectionalEvaluatorPair(param_type& _params)
-        	: params(_params)
-            {
-            }
-        
+	typedef typename DirEvStruct::params param_type;
+	// needs constructor!!
+	DirectionalEvaluatorPair(Scalar3 _dr, Scalar4 _quat_i, Scalar4 _quat_j, param_type _params)
+	{
+	}
+
         //! uses diameter
         //! 
-        DEVICE virtual static bool needsDiameter() = 0;
+        DEVICE static bool needsDiameter() { return false; }
 
         //! Accept the optional diameter values
         //! This function is pure virtual
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
         */
-        DEVICE virtual void setDiameter(Scalar di, Scalar dj) = 0;
+        DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
         //! whether pair potential requires charges
         //! This function is pure virtual
-        DEVICE virtual static bool needsCharge() = 0;
+        DEVICE static bool needsCharge() { return false; }
 
         //! Accept the optional diameter values
         //! This function is pure virtual
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE virtual void setCharge(Scalar qi, Scalar qj) = 0;
+        DEVICE void setCharge(Scalar qi, Scalar qj) { }
         
         //! Evaluate the force and energy
         //! This function is pure virtual
@@ -117,12 +118,46 @@ class DirectionalEvaluatorPair
             \param torque_i The torque exterted on the i^th particle.
             \param torque_j The torque exterted on the j^th particle.
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
-                  in PotentialPair.
+                  in PotentialPairJanusSphere.
             
             \return Always true
         */
-        DEVICE virtual bool
-        	evalPair(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j) = 0;
+        DEVICE bool evalPair(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
+            {
+            // common calculations
+            Scalar modi = param.Modulatori();
+            Scalar modj = param.Modulatorj();
+	    Scalar modPi = param.ModulatorPrimei();
+	    Scalar modPj = param.ModulatorPrimej();
+
+	    // the overall modulation
+	    isoModulator = modi*modj;
+
+	    // intermediate calculations
+	    Scalar iPj = modPi*modj;
+	    Scalar jPi = modPi*modj;
+            
+	    // torque on ith
+	    torque_i.x = iPj*(param.dr.y*param.ei.z-param.dr.z*param.ei.y);
+	    torque_i.y = iPj*(param.dr.z*param.ei.x-param.dr.x*param.ei.z);
+	    torque_i.z = iPj*(param.dr.x*param.ei.y-param.dr.y*param.ei.x);
+
+	    // torque on jth - note sign is opposite ith!
+	    torque_j.x = jPi*(param.dr.z*param.ej.y-param.dr.y*param.ej.z);
+	    torque_j.y = jPi*(param.dr.x*param.ej.z-param.dr.z*param.ej.x);
+	    torque_j.z = jPi*(param.dr.y*param.ej.x-param.dr.x*param.ej.y);
+
+	    // compute force contribution
+	    force.x = (iPj*(param.ei.x/param.magdr-param.doti*param.dr.x/param.drsq)
+			    -jPi*(param.ej.x/param.magdr-param.dotj*param.dr.x/param.drsq));
+	    force.y = (iPj*(param.ei.y/param.magdr-param.doti*param.dr.y/param.drsq)
+			    -jPi*(param.ej.y/param.magdr-param.dotj*param.dr.y/param.drsq));
+	    force.z = (iPj*(param.ei.z/param.magdr-param.doti*param.dr.z/param.drsq)
+			    -jPi*(param.ej.z/param.magdr-param.dotj*param.dr.z/param.drsq));
+	    
+
+            return true;
+            }
         
         #ifndef NVCC
         //! Get the name of the potential
@@ -130,11 +165,106 @@ class DirectionalEvaluatorPair
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.
         */
-        virtual static std::string getName() = 0;
+        static std::string getName() { return std::string("depjs") }
         #endif
 
-    protected:
-	param_type params;
+    private:
+	Scalar3 dr;
+	Scalar4 quat_i;
+	Scalar4 quat_j;
+	
+
+    }
+
+//! Class for evaluating the directional part of anisotropic pair interations
+/*! <b>General Overview</b>
+
+    Provides class for generalized diblock Janus spheres. It uses preexisting isotropic pair evaluators to do much of
+    the work. This does the "non-decorated" part of the sphere.
+*/
+class DirectionalEvaluatorPairComplement
+    : public DirectionalEvaluatorPair<EvaluatorPairJanusSphereStruct>
+    {
+    public:
+        //! uses diameter
+        //! 
+        DEVICE static bool needsDiameter() { return false; }
+
+        //! Accept the optional diameter values
+        //! This function is pure virtual
+        /*! \param di Diameter of particle i
+            \param dj Diameter of particle j
+        */
+        DEVICE void setDiameter(Scalar di, Scalar dj) { }
+
+        //! whether pair potential requires charges
+        //! This function is pure virtual
+        DEVICE static bool needsCharge() { return false; }
+
+        //! Accept the optional diameter values
+        //! This function is pure virtual
+        /*! \param qi Charge of particle i
+            \param qj Charge of particle j
+        */
+        DEVICE void setCharge(Scalar qi, Scalar qj) { }
+        
+        //! Evaluate the force and energy
+        //! This function is pure virtual
+        /*! \param force Output parameter to write the computed force.
+            \param isoModulator Output parameter to write the amount of modulation of the isotropic part
+            \param torque_i The torque exterted on the i^th particle.
+            \param torque_j The torque exterted on the j^th particle.
+            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
+                  in PotentialPairJanusSphere.
+            
+            \return Always true
+        */
+        DEVICE bool evalPairJanusSphere(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
+            {
+            // common calculations
+            Scalar modi = param.Modulatori();
+            Scalar modj = param.Modulatorj();
+	    Scalar modPi = param.ModulatorPrimei();
+	    Scalar modPj = param.ModulatorPrimej();
+
+	    // the overall modulation
+	    isoModulator = Scalar(1.0)-modi*modj;
+
+	    // intermediate calculations
+	    Scalar iPj = modPi*modj;
+	    Scalar jPi = modPi*modj;
+            
+	    // torque on ith
+	    torque_i.x = iPj*(param.dr.z*param.ei.y-param.dr.y*param.ei.z);
+	    torque_i.y = iPj*(param.dr.x*param.ei.z-param.dr.z*param.ei.x);
+	    torque_i.z = iPj*(param.dr.y*param.ei.x-param.dr.x*param.ei.y);
+
+	    // torque on jth - note sign is opposite ith!
+	    torque_j.x = jPi*(param.dr.y*param.ej.z-param.dr.z*param.ej.y);
+	    torque_j.y = jPi*(param.dr.z*param.ej.x-param.dr.x*param.ej.z);
+	    torque_j.z = jPi*(param.dr.x*param.ej.y-param.dr.y*param.ej.x);
+
+	    // compute force contribution
+	    force.x = -(iPj*(param.ei.x/param.magdr-param.doti*param.dr.x/param.drsq)
+			    -jPi*(param.ej.x/param.magdr-param.dotj*param.dr.x/param.drsq));
+	    force.y = -(iPj*(param.ei.y/param.magdr-param.doti*param.dr.y/param.drsq)
+			    -jPi*(param.ej.y/param.magdr-param.dotj*param.dr.y/param.drsq));
+	    force.z = -(iPj*(param.ei.z/param.magdr-param.doti*param.dr.z/param.drsq)
+			    -jPi*(param.ej.z/param.magdr-param.dotj*param.dr.z/param.drsq));
+	    
+
+            return true;
+            }
+        
+        #ifndef NVCC
+        //! Get the name of the potential
+        //! This function is pure virtual
+        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
+            via analyze.log.
+        */
+        static std::string getName() { return std::string("depjs") }
+        #endif
+
     };
 
 

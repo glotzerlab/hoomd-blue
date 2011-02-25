@@ -220,7 +220,7 @@ class DirectionalEvaluatorPairTriblockJanusSphere
     Provides class for generalized diblock Janus spheres. It uses preexisting isotropic pair evaluators to do much of
     the work. This part does the "non-Decorated" part of the particle
 */
-class DirectionalEvaluatorPairTriblockJanusSphere
+class DirectionalEvaluatorPairTriblockJanusSphereComplement
 : public DirectionalEvaluatorPair<EvaluatorPairTriblockJanusSphereStruct>
     {
     public:

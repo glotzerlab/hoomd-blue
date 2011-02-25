@@ -160,7 +160,7 @@ class DirectionalEvaluatorPairJanusSphere : public DirectionalEvaluatorPair<Eval
             
             \return Always true
         */
-        DEVICE bool evalPairJanusSphere(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
+        DEVICE bool evalPair(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
             {
             // common calculations
             Scalar modi = param.Modulatori();
@@ -214,7 +214,8 @@ class DirectionalEvaluatorPairJanusSphere : public DirectionalEvaluatorPair<Eval
     Provides class for generalized diblock Janus spheres. It uses preexisting isotropic pair evaluators to do much of
     the work. This does the "non-decorated" part of the sphere.
 */
-class DirectionalEvaluatorPairJanusSphereNonDec : public DirectionalEvaluatorPair<EvaluatorPairJanusSphereStruct>
+class DirectionalEvaluatorPairJanusSphereComplement
+    : public DirectionalEvaluatorPair<EvaluatorPairJanusSphereStruct>
     {
     public:
         //! uses diameter

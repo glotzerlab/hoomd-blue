@@ -43,15 +43,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: grva
 
-#ifndef __EvaluatorPairAniso__
-#define __EvaluatorPairAniso__
+#ifndef __EvaluatorPairAnisoModulated__
+#define __EvaluatorPairAnisoModulated__
 
 #ifndef NVCC
 #include <string>
 #endif
 
 #include "HOOMDMath.h"
-#include "DirectionalEvaluatorPair.h"
 
 /*! \file EvaluatorPairAniso.h
     \brief Defines a mostly abstract base class for anisotropic pair potentials
@@ -73,15 +72,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RSQRT(x) Scalar(1.0) / sqrt( (x) )
 #endif
 
+template<typename isoEval, typename dirEval>
+struct EvaluatorPairAnisoModulatedParamStruct
+    {
+    typedef typename isoEval::params iParam;
+    typedef typename dirEval::params dParam;
+
+    iParam iP;
+    dParam dP;
+    }
+
 //! Class for evaluating anisotropic pair interations
 /*! <b>General Overview</b>
 
     Provides a base class for detailed anisotropic pairwise interactions
 */
-template <typename isoEval>
-class EvaluatorPairAniso
+template <typename isoEval, typename dirEval>
+class EvaluatorPairAnisoModulated
     {
     public:
+	typedef EvaluatorPairAnisoModulatedParamStruct<isoEval,dirEval> param_type;
+
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centres of mass
             \param _rcutsq Squared distance at which the potential goes to 0
@@ -89,9 +100,13 @@ class EvaluatorPairAniso
 	    \param _q_j Quaterion of j^th particle
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairAniso(isoEval _iEv, DirectionalEvaluatorPair _dEv)
-            : iEv(_iEv), dEv(_dEv)
+        DEVICE EvaluatorPairAnisoModulated(Scalar3 _dr, Scalar4 _quat_i, Scalar4 _quat_j, Scalar _rcutsq,
+			param_type _params)
+	    : dr(_dr)
             {
+	    Scalar rsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
+	    isoEval(rsq,_rcutsq,_params.iP);
+	    dirEval(_dr,_quat_i,_quat_j,_params.dP);
             }
         
         //! uses diameter
@@ -115,7 +130,7 @@ class EvaluatorPairAniso
 
         //! whether pair potential requires charges
 	//! This function is pure virtual
-        DEVICE virtual static bool needsCharge()
+        DEVICE static bool needsCharge()
             {
             return (iEv.needsCharge() || dEv.needsCharge());
             }
@@ -145,27 +160,50 @@ class EvaluatorPairAniso
             
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
-        DEVICE virtual bool
-		evalPair(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j) = 0;
-        
+        DEVICE bool
+		evalPair(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
+            {
+	    // used in computation
+	    Scalar isoModulator,
+	    Scalar force_divr;
+	    
+	    // do individual computes
+            dEv.evalPair(force,isoModulator,torque_i,torque_j);
+	    iEv.evalForceAndEnergy(force_divr,pair_eng,energy_shift);
+
+	    // correct forces
+	    force.x = pair_eng*force.x+dr.x*force_divr;
+	    force.y = pair_eng*force.y+dr.y*force_divr;
+	    force.z = pair_eng*force.z+dr.z*force_divr;
+
+	    // correct torques
+	    torque_i.x *= pair_eng;
+	    torque_i.y *= pair_eng;
+	    torque_i.z *= pair_eng;
+
+	    torque_j.x *= pair_eng;
+	    torque_j.y *= pair_eng;
+	    torque_j.z *= pair_eng;
+
+	    // correct pair energy
+	    pair_eng *= isoModulator;
+            }
+
         #ifndef NVCC
         //! Get the name of the potential
 	//! This function is pure virtual
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.
         */
-        virtual static std::string getName() = 0;
+        static std::string getName() { }
         #endif
 
     protected:
-        Scalar3 dr;     //!< Stored vector pointing between particle centres of mass
-        Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar4 q_i;     //!< Stored quaternion of i^th particle from constuctor
-        Scalar4 q_j;     //!< Stored quaternion of j^th particle from constructor
+	Scalar3 dr;
         isoEval iEv;     //!< An isotropic pair evaluator
-        DirectionalEvaluatorPair dEv;     //!< A directional pair evaluator
+        dirEval dEv;     //!< A directional pair evaluator
     };
 
 
-#endif // __EvaluatorPairAniso__
+#endif // __EvaluatorPairAnisoModulated__
 
