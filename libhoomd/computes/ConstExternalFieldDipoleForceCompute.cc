@@ -64,7 +64,7 @@ using namespace std;
     \param f Scalar4 of force
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
-ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar field_x,Scalar field_y, Scalar field_z,Scalar p)
+ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar field_x=0.0,Scalar field_y=0.0, Scalar field_z=0.0,Scalar p=0.0)
         : ForceCompute(sysdef)
     {
     setParams(field_x,field_y,field_z,p);
@@ -79,8 +79,7 @@ void ConstExternalFieldDipoleForceCompute::setParams(Scalar field_x,Scalar field
     field=make_scalar4(field_x,field_y,field_z,p);
     }
 
-/*! Actually, this function does nothing. Since the data arrays were already filled out by setForce(),
-    we don't need to do a thing here :)
+/*! \brief Compute the torque applied = Cross[p,Field]
     \param timestep Current timestep
 */
 void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
@@ -95,38 +94,39 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
     // compute the torques
     for (unsigned int i=0; i<num_particles; i++)
         {
-	// rotation operator for this particle
+	    // rotation operator for this particle
         Scalar4 rot = h_orientation.data[i];
-	// Hermitian conjugate
+    	//Hermitian conjugate
         Scalar4 rot_H;
-	// compute the Hermitian conjugate
+    	// compute the Hermitian conjugate
         quatconj(rot,rot_H);
-	// base particle orientation is in z direction
-	//
+    	// base particle orientation is in z direction
+    	//
         Scalar4 base = {0,0,1,0};
-	// to be filled by the actual moment
+    	// to be filled by the actual moment
         Scalar4 moment;
-	// a temporary variable
+    	// a temporary variable
         Scalar4 temp;
-	// do half the rotation
+	    // do half the rotation
         quatvec(rot,base,temp);
-	// do the other half
-	quatquat(temp,rot_H,moment);
+	    // do the other half
+    	quatquat(temp,rot_H,moment);
 
-	// tricky bit:
-	// the resulting vector is the last three components of moment
-	// because we got it by doing a quat * quat
-	
-	// that means recipe for cross product is
-	// [(yw-zz),(zy-xw),(xz-yy)]
-	// cf. usual [(yz-zy),(zx-xz),(xy-yx)]
+        // tricky bit:
+        // the resulting vector is the last three components of moment
+        // because we got it by doing a quat * quat
 
-	// also field.w stores magnitude of dipole moment, so, here we go
+        // Torque = moment X field
+        // that means recipe for cross product is
+        // [(zz-yw),(xw-zy),(yy-xz)]
+        // cf. usual [(yz-zy),(zx-xz),(xy-yx)]
+            
+        // also field.w stores magnitude of dipole moment, so, here we go
 
-	// reuse temp to compute the torque
-        h_torque.data[i].x = field.w*(field.y*moment.w-field.z*moment.z);
-        h_torque.data[i].y = field.w*(field.z*moment.y-field.x*moment.w);
-        h_torque.data[i].z = field.w*(field.x*moment.z-field.y*moment.y);
+        // reuse temp to compute the torque
+        h_torque.data[i].x = field.w*(field.z*moment.z-field.y*moment.w);
+        h_torque.data[i].y = field.w*(field.x*moment.w-field.z*moment.y);
+        h_torque.data[i].z = field.w*(field.y*moment.y-field.x*moment.z);
         h_torque.data[i].w = Scalar(0);
         }
 

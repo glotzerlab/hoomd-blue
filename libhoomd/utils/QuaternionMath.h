@@ -407,11 +407,44 @@ DEVICE inline void mat_multiply(Scalar a[3][3], Scalar b[3][3], Scalar c[3][3])
     \param b The Hermitian conjugate of a
 */
 DEVICE inline void quatconj(const Scalar4& a, Scalar4& b)
-{
-  b.x = a.x;
-  b.y = -a.y;
-  b.z = -a.z;
-  b.w = -a.w;
-}
+    {
+    b.x = a.x;
+    b.y = -a.y;
+    b.z = -a.z;
+    b.w = -a.w;
+    }
 
+//! Convert between quaterion and ZYX Euler angles. q is equivalent to R(z,psi)R(y,theta)R(x,phi)
+/*! \param phi Rotation angle about instrinsic x axis
+    \param theta Rotation angle about intrinsic y axis
+    \param psi Rotation angle about intinsic z axis
+    \param q Output quaterion
+*/
+DEVICE inline void eulerToQuat(const Scalar phi,const Scalar theta, const Scalar psi, Scalar4& q)
+    {
+    Scalar cosphi_2 = __COS(0.5*phi);
+    Scalar sinphi_2 = __SIN(0.5*phi);
+    Scalar costheta_2 = __COS(0.5*theta);
+    Scalar sintheta_2 = __SIN(0.5*theta);
+    Scalar cospsi_2 = __COS(0.5*psi);
+    Scalar sinpsi_2 = __SIN(0.5*psi);
+    q.x =  cosphi_2*costheta_2*cospsi_2 - sinphi_2*sintheta_2*sinpsi_2;
+    q.y = -sinphi_2*costheta_2*cospsi_2 - cosphi_2*sintheta_2*sinpsi_2;
+    q.z = -cosphi_2*sintheta_2*cospsi_2 + sinphi_2*costheta_2*sinpsi_2;
+    q.w = -cosphi_2*costheta_2*sinpsi_2 - sinphi_2*sintheta_2*cospsi_2;
+    normalize(q);
+    }
+
+//! Convert between quaterion and ZYX Euler angles. q is equivalent to R(z,psi)R(y,theta)R(x,phi)
+/*!  \param q Input quaterion
+     \param phi output rotation angle about instrinsic x axis
+    \param theta Output rotation angle about intrinsic y axis
+    \param psi Output rotation angle about intinsic z axis
+*/
+DEVICE inline void quatToEuler(const Scalar4 q, Scalar& phi, Scalar& theta, Scalar& psi)
+    {
+    phi = atan2(q.x*q.y+q.z*q.w,Scalar(0.5)-q.x*q.x-q.y*q.y);
+    theta = asin(Scalar(2.0)*(q.x*q.z-q.w*q.y));
+    psi = atan2(q.x*q.w+q.y*q.z,Scalar(0.5)-q.y*q.y-q.z*q.z);
+    }
 #endif

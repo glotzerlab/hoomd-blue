@@ -68,7 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
-#include "DipoleDipoleForceCompute.h"
 #include "HarmonicBondForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
@@ -135,7 +134,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPUBinned.h"
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
-//#include "DipoleDipoleForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
@@ -404,7 +402,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceConstraint();
     export_ConstForceCompute();
     export_ConstExternalFieldDipoleForceCompute();
-    export_DipoleDipoleForceCompute();
     export_HarmonicBondForceCompute();
     export_HarmonicAngleForceCompute();
     export_HarmonicDihedralForceCompute();
@@ -449,7 +446,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
-//    export_DipoleDipoleForceComputeGPU();
 #endif
     
     // analyzers
