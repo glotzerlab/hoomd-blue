@@ -346,7 +346,7 @@ DEVICE inline void invquatvec(Scalar4& a, Scalar4& b, Scalar4& c)
     \param b Quaternion
     \param c Quaternion
 */
-DEVICE inline void quatquat(Scalar4& a, Scalar4& b, Scalar4& c)
+DEVICE inline void quatquat(const Scalar4& a, const Scalar4& b, Scalar4& c)
 {
   c.x = a.x*b.x - a.y*b.y - a.z*b.z - a.w*b.w;
   c.y = a.x*b.y + a.y*b.x + a.z*b.w - a.w*b.z;
@@ -447,4 +447,60 @@ DEVICE inline void quatToEuler(const Scalar4 q, Scalar& phi, Scalar& theta, Scal
     theta = asin(Scalar(2.0)*(q.x*q.z-q.w*q.y));
     psi = atan2(q.x*q.w+q.y*q.z,Scalar(0.5)-q.y*q.y-q.z*q.z);
     }
+    
+//! Rotate a vector with a quaternion
+/*! \param a Three-component vector to be rotated
+    \param q Quaternion used to rotate vector a
+    \param b Resulted three-component vector 
+*/
+DEVICE inline void quatrot(const Scalar3& a, const Scalar4& q, Scalar3& b)
+    {
+    Scalar4 a4 = {0.0, a.x, a.y, a.z};
+    Scalar4 qc;
+    quatconj(q, qc);
+    
+    // b4 = q a4 qc
+    Scalar4 tmp, b4;
+    quatquat(q, a4, tmp);
+    quatquat(tmp, qc, b4);
+    
+    // get the last three components of b4
+    b.x = b4.y;
+    b.y = b4.z;
+    b.z = b4.w;
+    }
+
+//! Rotate a vector with three Euler angles: http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+/*! \param a Three-component vector to be rotated
+    \param phi (or \gamma) in radian
+    \param theta (or \beta) in radian
+    \param psi (or \alpha) in radian
+    \param b Resulted three-component vector 
+*/
+DEVICE inline void eulerrot(const Scalar3& a, 
+                            const Scalar& phi, 
+                            const Scalar& theta, 
+                            const Scalar& psi, 
+                            Scalar3& b)
+    {
+    // rotation matrix R with the columns are ex, ey and ez
+    Scalar3 ex, ey, ez;
+    ex.x = __COS(theta) * __COS(psi);
+    ex.y = __COS(theta) * __SIN(psi);
+    ex.z = Scalar(-1.0) * __SIN(theta);
+    
+    ey.x = Scalar(-1.0) * __COS(phi) * __SIN(psi) + __SIN(phi) * __SIN(theta) * __COS(psi);
+    ey.y = __COS(theta) * __COS(psi) + __SIN(phi) * __SIN(theta) * __SIN(psi);
+    ey.z = __SIN(phi) * __COS(theta);
+    
+    ez.x = __SIN(phi) * __SIN(psi) + __COS(phi) * __SIN(theta) * __COS(psi);
+    ez.y = Scalar(-1.0) * __SIN(phi) * __COS(psi) + __COS(phi) * __SIN(theta) * __SIN(psi);
+    ez.z = __COS(phi) * __COS(theta);
+    
+    // rotate b using the rotation matrix: b = R a
+    b.x = ex.x * a.x + ey.x * a.y + ez.x * a.z;
+    b.y = ex.y * a.x + ey.y * a.y + ez.y * a.z;
+    b.z = ex.z * a.x + ey.z * a.y + ez.z * a.z;
+    }
+
 #endif
