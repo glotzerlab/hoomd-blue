@@ -127,7 +127,6 @@ class EvaluatorPairAnisoModulated
                 dEv.setDiameter(di,dj);
 	    }
 
-
         //! whether pair potential requires charges
 	//! This function is pure virtual
         DEVICE static bool needsCharge()
