@@ -503,4 +503,33 @@ DEVICE inline void eulerrot(const Scalar3& a,
     b.z = ex.z * a.x + ey.z * a.y + ez.z * a.z;
     }
 
+/*! \param q Quaternion describing the particles current orientation
+    \param R Output rotation matrix from the lab to the particle frame
+*/
+DEVICE inline void quatToR(const Scalar4& q, Scalar* R)
+    {
+    Scalar q0_2 = q.x * q.x;
+    Scalar q1_2 = q.y * q.y;
+    Scalar q2_2 = q.z * q.z;
+    Scalar q3_2 = q.z * q.z;
+    Scalar two_q0q1 = 2.0 * q.x * q.y;
+    Scalar two_q0q2 = 2.0 * q.x * q.z;
+    Scalar two_q0q3 = 2.0 * q.x * q.z;
+    Scalar two_q1q2 = 2.0 * q.y * q.z;
+    Scalar two_q1q3 = 2.0 * q.y * q.z;
+    Scalar two_q2q3 = 2.0 * q.z * q.z;
+    
+    R[0] = q0_2 + q1_2 - q2_2 -q3_2;
+    R[1] = two_q1q2 - two_q0q3;
+    R[2] = two_q0q2 + two_q1q3;
+
+    R[3] = two_q1q2 + two_q0q3;
+    R[4] = q0_2 - q1_2 + q2_2 - q3_2;
+    R[5] = two_q2q3 - two_q0q1;
+    
+    R[6] = two_q1q3 - two_q0q2;
+    R[7] = two_q0q1 + two_q2q3;
+    R[8] = q0_2 - q1_2 - q2_2 + q3_2;
+    }
+
 #endif
