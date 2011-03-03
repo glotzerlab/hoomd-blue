@@ -75,44 +75,44 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct EvaluatorPairJanusSphereStruct
     {
     EvaluatorPairJanusSphereStruct(Scalar3& _dr, Scalar4& _qi, Scalar4& _qj,
-		    Scalar _rcutsq, Scalar2 _params) :
+                    Scalar _rcutsq, Scalar2 _params) :
         dr(_dr), qi(_qi), qj(_qj), params(_params)
         {
-	// compute current janus direction vectors
-	Scalar3 e = { 0 , 0 , 1 };
-	quatrot(e,qi,ei);
-	quatrot(e,qj,ej);
+        // compute current janus direction vectors
+        Scalar3 e = { 0 , 0 , 1 };
+        quatrot(e,qi,ei);
+        quatrot(e,qj,ej);
         
-	// compute distance
-	drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
-	magdr = sqrt(drsq);
+        // compute distance
+        drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
+        magdr = sqrt(drsq);
 
-	// compute dot products
-	doti =  (dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr;
-	dotj = -(dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
-	}
+        // compute dot products
+        doti =  (dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr;
+        dotj = -(dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
+        }
 
     DEVICE inline Scalar Modulatori(void)
         {
-	return Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)));
-	}
+        return Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)));
+        }
 
     DEVICE inline Scalar Modulatorj(void)
         {
-	return Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)));
-	}
+        return Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)));
+        }
 
     DEVICE Scalar ModulatorPrimei(void)
         {
-	Scalar fact = Modulatori();
-	return params.x*exp(-params.x*(doti-params.y))*fact*fact;
-	}
+        Scalar fact = Modulatori();
+        return params.x*exp(-params.x*(doti-params.y))*fact*fact;
+        }
 
     DEVICE Scalar ModulatorPrimej(void)
         {
-	Scalar fact = Modulatorj();
-	return params.x*exp(-params.x*(dotj-params.y))*fact*fact;
-	}
+        Scalar fact = Modulatorj();
+        return params.x*exp(-params.x*(dotj-params.y))*fact*fact;
+        }
 
 
     // things that get passed in to constructor

@@ -55,8 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file DirectionalEvaluatorPairSphere.h
     \brief Defines the pair evaluator class for spheres. It is templated on
            a struct that allows it to do different types of directional
-	   modulation for pair potentials. E.g. by templating in the right
-	   fashion one can make Janus spheres, triblock Janus spheres, etc.
+           modulation for pair potentials. E.g. by templating in the right
+           fashion one can make Janus spheres, triblock Janus spheres, etc.
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -85,16 +85,16 @@ template <EvaluatorPairSphereStruct>
 class DirectionalEvaluatorPairSphere
     {
     public:
-	typedef typename DirectionalEvaluatorPair.params param_type;
+        typedef typename DirectionalEvaluatorPair.params param_type;
 
-	//! Constructor
-	DirectionalEvaluatorPairSphere(Scalar3 _dr, Scalar4 _quat_i,
-			Scalar4 _quat_j, Scalar _rcutsq, param_type _params)
-	    {
-	    // call constructor for underlying struct
-	    s = DirectionalEvaluatorPairSphere(_dr,_quat_i,_quat_j,
-			    _rcutsq,_params);
-	    }
+        //! Constructor
+        DirectionalEvaluatorPairSphere(Scalar3 _dr, Scalar4 _quat_i,
+                        Scalar4 _quat_j, Scalar _rcutsq, param_type _params)
+            {
+            // call constructor for underlying struct
+            s = DirectionalEvaluatorPairSphere(_dr,_quat_i,_quat_j,
+                            _rcutsq,_params);
+            }
 
         //! uses diameter
         DEVICE static bool needsDiameter() { return false; }
@@ -132,34 +132,34 @@ class DirectionalEvaluatorPairSphere
             // common calculations
             Scalar modi = s.Modulatori();
             Scalar modj = s.Modulatorj();
-	    Scalar modPi = s.ModulatorPrimei();
-	    Scalar modPj = s.ModulatorPrimej();
+            Scalar modPi = s.ModulatorPrimei();
+            Scalar modPj = s.ModulatorPrimej();
 
-	    // the overall modulation
-	    isoModulator = modi*modj;
+            // the overall modulation
+            isoModulator = modi*modj;
 
-	    // intermediate calculations
-	    Scalar iPj = modPi*modj;
-	    Scalar jPi = modPi*modj;
+            // intermediate calculations
+            Scalar iPj = modPi*modj;
+            Scalar jPi = modPi*modj;
             
-	    // torque on ith
-	    torque_i.x = iPj*(s.dr.y*s.ei.z-s.dr.z*s.ei.y);
-	    torque_i.y = iPj*(s.dr.z*s.ei.x-s.dr.x*s.ei.z);
-	    torque_i.z = iPj*(s.dr.x*s.ei.y-s.dr.y*s.ei.x);
+            // torque on ith
+            torque_i.x = iPj*(s.dr.y*s.ei.z-s.dr.z*s.ei.y);
+            torque_i.y = iPj*(s.dr.z*s.ei.x-s.dr.x*s.ei.z);
+            torque_i.z = iPj*(s.dr.x*s.ei.y-s.dr.y*s.ei.x);
 
-	    // torque on jth - note sign is opposite ith!
-	    torque_j.x = jPi*(s.dr.z*s.ej.y-s.dr.y*s.ej.z);
-	    torque_j.y = jPi*(s.dr.x*s.ej.z-s.dr.z*s.ej.x);
-	    torque_j.z = jPi*(s.dr.y*s.ej.x-s.dr.x*s.ej.y);
+            // torque on jth - note sign is opposite ith!
+            torque_j.x = jPi*(s.dr.z*s.ej.y-s.dr.y*s.ej.z);
+            torque_j.y = jPi*(s.dr.x*s.ej.z-s.dr.z*s.ej.x);
+            torque_j.z = jPi*(s.dr.y*s.ej.x-s.dr.x*s.ej.y);
 
-	    // compute force contribution
-	    force.x = (iPj*(s.ei.x/s.magdr-s.doti*s.dr.x/s.drsq)
-			    -jPi*(s.ej.x/s.magdr-s.dotj*s.dr.x/s.drsq));
-	    force.y = (iPj*(s.ei.y/s.magdr-s.doti*s.dr.y/s.drsq)
-			    -jPi*(s.ej.y/s.magdr-s.dotj*s.dr.y/s.drsq));
-	    force.z = (iPj*(s.ei.z/s.magdr-s.doti*s.dr.z/s.drsq)
-			    -jPi*(s.ej.z/s.magdr-s.dotj*s.dr.z/s.drsq));
-	    
+            // compute force contribution
+            force.x = (iPj*(s.ei.x/s.magdr-s.doti*s.dr.x/s.drsq)
+                            -jPi*(s.ej.x/s.magdr-s.dotj*s.dr.x/s.drsq));
+            force.y = (iPj*(s.ei.y/s.magdr-s.doti*s.dr.y/s.drsq)
+                            -jPi*(s.ej.y/s.magdr-s.dotj*s.dr.y/s.drsq));
+            force.z = (iPj*(s.ei.z/s.magdr-s.doti*s.dr.z/s.drsq)
+                            -jPi*(s.ej.z/s.magdr-s.dotj*s.dr.z/s.drsq));
+            
 
             return true;
             }
@@ -174,7 +174,7 @@ class DirectionalEvaluatorPairSphere
         #endif
 
     private:
-	EvaluatorPairSphereStruct s;
+        EvaluatorPairSphereStruct s;
 
     };
 
@@ -188,16 +188,16 @@ template <typename EvaluatorPairSphereStruct>
 class DirectionalEvaluatorPairJanusSphereComplement
     {
     public:
-	typedef typename DirectionalEvaluatorPair.params param_type;
+        typedef typename DirectionalEvaluatorPair.params param_type;
 
-	//! Constructor
-	DirectionalEvaluatorPairSphere(Scalar3 _dr, Scalar4 _quat_i,
-			Scalar4 _quat_j, Scalar _rcutsq, param_type _params)
-	    {
-	    // call constructor for underlying struct
-	    s = DirectionalEvaluatorPairSphere(_dr,_quat_i,_quat_j,
-			    _rcutsq,_params);
-	    }
+        //! Constructor
+        DirectionalEvaluatorPairSphere(Scalar3 _dr, Scalar4 _quat_i,
+                        Scalar4 _quat_j, Scalar _rcutsq, param_type _params)
+            {
+            // call constructor for underlying struct
+            s = DirectionalEvaluatorPairSphere(_dr,_quat_i,_quat_j,
+                            _rcutsq,_params);
+            }
 
         //! uses diameter
         //! 
@@ -234,34 +234,34 @@ class DirectionalEvaluatorPairJanusSphereComplement
             // common calculations
             Scalar modi = s.Modulatori();
             Scalar modj = s.Modulatorj();
-	    Scalar modPi = s.ModulatorPrimei();
-	    Scalar modPj = s.ModulatorPrimej();
+            Scalar modPi = s.ModulatorPrimei();
+            Scalar modPj = s.ModulatorPrimej();
 
-	    // the overall modulation
-	    isoModulator = Scalar(1.0)-modi*modj;
+            // the overall modulation
+            isoModulator = Scalar(1.0)-modi*modj;
 
-	    // intermediate calculations
-	    Scalar iPj = modPi*modj;
-	    Scalar jPi = modPi*modj;
+            // intermediate calculations
+            Scalar iPj = modPi*modj;
+            Scalar jPi = modPi*modj;
             
-	    // torque on ith
-	    torque_i.x = iPj*(s.dr.z*s.ei.y-s.dr.y*s.ei.z);
-	    torque_i.y = iPj*(s.dr.x*s.ei.z-s.dr.z*s.ei.x);
-	    torque_i.z = iPj*(s.dr.y*s.ei.x-s.dr.x*s.ei.y);
+            // torque on ith
+            torque_i.x = iPj*(s.dr.z*s.ei.y-s.dr.y*s.ei.z);
+            torque_i.y = iPj*(s.dr.x*s.ei.z-s.dr.z*s.ei.x);
+            torque_i.z = iPj*(s.dr.y*s.ei.x-s.dr.x*s.ei.y);
 
-	    // torque on jth - note sign is opposite ith!
-	    torque_j.x = jPi*(s.dr.y*s.ej.z-s.dr.z*s.ej.y);
-	    torque_j.y = jPi*(s.dr.z*s.ej.x-s.dr.x*s.ej.z);
-	    torque_j.z = jPi*(s.dr.x*s.ej.y-s.dr.y*s.ej.x);
+            // torque on jth - note sign is opposite ith!
+            torque_j.x = jPi*(s.dr.y*s.ej.z-s.dr.z*s.ej.y);
+            torque_j.y = jPi*(s.dr.z*s.ej.x-s.dr.x*s.ej.z);
+            torque_j.z = jPi*(s.dr.x*s.ej.y-s.dr.y*s.ej.x);
 
-	    // compute force contribution
-	    force.x = -(iPj*(s.ei.x/s.magdr-s.doti*s.dr.x/s.drsq)
-			    -jPi*(s.ej.x/s.magdr-s.dotj*s.dr.x/s.drsq));
-	    force.y = -(iPj*(s.ei.y/s.magdr-s.doti*s.dr.y/s.drsq)
-			    -jPi*(s.ej.y/s.magdr-s.dotj*s.dr.y/s.drsq));
-	    force.z = -(iPj*(s.ei.z/s.magdr-s.doti*s.dr.z/s.drsq)
-			    -jPi*(s.ej.z/s.magdr-s.dotj*s.dr.z/s.drsq));
-	    
+            // compute force contribution
+            force.x = -(iPj*(s.ei.x/s.magdr-s.doti*s.dr.x/s.drsq)
+                            -jPi*(s.ej.x/s.magdr-s.dotj*s.dr.x/s.drsq));
+            force.y = -(iPj*(s.ei.y/s.magdr-s.doti*s.dr.y/s.drsq)
+                            -jPi*(s.ej.y/s.magdr-s.dotj*s.dr.y/s.drsq));
+            force.z = -(iPj*(s.ei.z/s.magdr-s.doti*s.dr.z/s.drsq)
+                            -jPi*(s.ej.z/s.magdr-s.dotj*s.dr.z/s.drsq));
+            
 
             return true;
             }
@@ -276,7 +276,7 @@ class DirectionalEvaluatorPairJanusSphereComplement
         #endif
 
     private:
-	EvaluatorPairSphereStruct s;
+        EvaluatorPairSphereStruct s;
 
     };
 

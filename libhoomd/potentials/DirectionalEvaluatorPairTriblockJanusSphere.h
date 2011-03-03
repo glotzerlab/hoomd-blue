@@ -75,48 +75,48 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct EvaluatorPairTriblockJanusSphereStruct
     {
     EvaluatorPairTriblockJanusSphereStruct(Scalar3& _dr, Scalar4& _qi,
-		    Scalar4& _qj, Scalar2 _params) :
+                    Scalar4& _qj, Scalar2 _params) :
         dr(_dr), qi(_qi), qj(_qj), params(_params)
         {
-	// compute current janus direction vectors
+        // compute current janus direction vectors
         Scalar3 e = { 0 , 0 , 1 };
-	quatrot(e,qi,ei);
-	quatrot(e,qj,ej);
+        quatrot(e,qi,ei);
+        quatrot(e,qj,ej);
 
-	// compute distance
-	drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
-	magdr = sqrt(drsq);
+        // compute distance
+        drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
+        magdr = sqrt(drsq);
 
-	// compute dot products
-	doti =  (dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr;
-	dotj = -(dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
-	}
+        // compute dot products
+        doti =  (dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr;
+        dotj = -(dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
+        }
 
     DEVICE inline Scalar Modulatori(void)
         {
-	return Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)))+
-	       Scalar(1.0)/(1.0+exp(params.x*(doti+params.y)));
-	}
+        return Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)))+
+               Scalar(1.0)/(1.0+exp(params.x*(doti+params.y)));
+        }
 
     DEVICE inline Scalar Modulatorj(void)
         {
-	return Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)))+
-	       Scalar(1.0)/(1.0+exp(params.x*(dotj+params.y)));
-	}
+        return Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)))+
+               Scalar(1.0)/(1.0+exp(params.x*(dotj+params.y)));
+        }
 
     DEVICE Scalar ModulatorPrimei(void)
         {
-	Scalar fact1 = Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)));
-	Scalar fact2 = Scalar(1.0)/(1.0+exp(params.x*(doti+params.y)));
-	return params.x*(exp(-params.x*(doti-params.y))*fact1*fact1-exp(params.x*(doti+params.y))*fact2*fact2);
-	}
+        Scalar fact1 = Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)));
+        Scalar fact2 = Scalar(1.0)/(1.0+exp(params.x*(doti+params.y)));
+        return params.x*(exp(-params.x*(doti-params.y))*fact1*fact1-exp(params.x*(doti+params.y))*fact2*fact2);
+        }
 
     DEVICE Scalar ModulatorPrimej(void)
         {
-	Scalar fact1 = Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)));
-	Scalar fact2 = Scalar(1.0)/(1.0+exp(params.x*(dotj+params.y)));
-	return params.x*(exp(-params.x*(dotj-params.y))*fact1*fact1-exp(params.x*(dotj+params.y))*fact2*fact2);
-	}
+        Scalar fact1 = Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)));
+        Scalar fact2 = Scalar(1.0)/(1.0+exp(params.x*(dotj+params.y)));
+        return params.x*(exp(-params.x*(dotj-params.y))*fact1*fact1-exp(params.x*(dotj+params.y))*fact2*fact2);
+        }
 
     // things that get passed in to constructor
     Scalar3 dr;
