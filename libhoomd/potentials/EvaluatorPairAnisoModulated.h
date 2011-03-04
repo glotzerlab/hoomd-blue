@@ -91,22 +91,22 @@ template <typename isoEval, typename dirEval>
 class EvaluatorPairAnisoModulated
     {
     public:
-	typedef EvaluatorPairAnisoModulatedParamStruct<isoEval,dirEval> param_type;
+    typedef EvaluatorPairAnisoModulatedParamStruct<isoEval,dirEval> param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centres of mass
             \param _rcutsq Squared distance at which the potential goes to 0
-	    \param _q_i Quaterion of i^th particle
-	    \param _q_j Quaterion of j^th particle
+        \param _q_i Quaterion of i^th particle
+        \param _q_j Quaterion of j^th particle
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairAnisoModulated(Scalar3 _dr, Scalar4 _quat_i, Scalar4 _quat_j, Scalar _rcutsq,
-			param_type _params)
-	    : dr(_dr)
+            param_type _params)
+            : dr(_dr)
             {
-	    Scalar rsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
-	    isoEval(rsq,_rcutsq,_params.iP);
-	    dirEval(_dr,_quat_i,_quat_j,_params.dP);
+            Scalar rsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
+            isoEval(rsq,_rcutsq,_params.iP);
+            dirEval(_dr,_quat_i,_quat_j,_params.dP);
             }
         
         //! uses diameter
@@ -123,19 +123,19 @@ class EvaluatorPairAnisoModulated
             {
             if (params.iEv.needsDiameter())
                 iEv.setDiameter(di,dj);
-	    if (params.dEv.needsDiameter())
+            if (params.dEv.needsDiameter())
                 dEv.setDiameter(di,dj);
-	    }
+            }
 
         //! whether pair potential requires charges
-	//! This function is pure virtual
+        //! This function is pure virtual
         DEVICE static bool needsCharge()
             {
             return (iEv.needsCharge() || dEv.needsCharge());
             }
 
         //! Accept the optional diameter values
-	//! This function is pure virtual
+        //! This function is pure virtual
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
@@ -144,61 +144,64 @@ class EvaluatorPairAnisoModulated
             if (params.iEv.needsCharge())
                 iEv.setCharge(di,dj);
             if (params.dEv.needsCharge())
-                    dEv.setCharge(di,dj);
+                dEv.setCharge(di,dj);
             }
             
         //! Evaluate the force and energy
-	//! This function is pure virtual
+        //! This function is pure virtual
         /*! \param force Output parameter to write the computed force.
             \param pair_eng Output parameter to write the computed pair energy.
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
-	    \param torque_i The torque exterted on the i^th particle.
-	    \param torque_j The torque exterted on the j^th particle.
+            \param torque_i The torque exterted on the i^th particle.
+            \param torque_j The torque exterted on the j^th particle.
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
                   in PotentialPair.
             
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
         DEVICE bool
-		evalPair(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
+        evalPair(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
-	    // used in computation
-	    Scalar isoModulator,
-	    Scalar force_divr;
-	    
-	    // do individual computes
+            // used in computation
+            Scalar isoModulator,
+            Scalar force_divr;
+        
+            // do individual computes
             dEv.evalPair(force,isoModulator,torque_i,torque_j);
-	    iEv.evalForceAndEnergy(force_divr,pair_eng,energy_shift);
+            iEv.evalForceAndEnergy(force_divr,pair_eng,energy_shift);
 
-	    // correct forces
-	    force.x = pair_eng*force.x+dr.x*force_divr;
-	    force.y = pair_eng*force.y+dr.y*force_divr;
-	    force.z = pair_eng*force.z+dr.z*force_divr;
+            // correct forces
+            force.x = pair_eng*force.x+dr.x*force_divr;
+            force.y = pair_eng*force.y+dr.y*force_divr;
+            force.z = pair_eng*force.z+dr.z*force_divr;
 
-	    // correct torques
-	    torque_i.x *= pair_eng;
-	    torque_i.y *= pair_eng;
-	    torque_i.z *= pair_eng;
+            // correct torques
+            torque_i.x *= pair_eng;
+            torque_i.y *= pair_eng;
+            torque_i.z *= pair_eng;
 
-	    torque_j.x *= pair_eng;
-	    torque_j.y *= pair_eng;
-	    torque_j.z *= pair_eng;
+            torque_j.x *= pair_eng;
+            torque_j.y *= pair_eng;
+            torque_j.z *= pair_eng;
 
-	    // correct pair energy
-	    pair_eng *= isoModulator;
+            // correct pair energy
+            pair_eng *= isoModulator;
             }
 
         #ifndef NVCC
         //! Get the name of the potential
-	//! This function is pure virtual
+        //! This function is pure virtual
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.
         */
-        static std::string getName() { }
+        static std::string getName()
+            {
+            return iE.getName() + "_" + dE.getName();
+            }
         #endif
 
     protected:
-	Scalar3 dr;
+        Scalar3 dr;
         isoEval iEv;     //!< An isotropic pair evaluator
         dirEval dEv;     //!< A directional pair evaluator
     };
