@@ -81,19 +81,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Provides class for generalized diblock Janus spheres. It uses preexisting isotropic pair evaluators to do much of
     the work.
 */
-template <EvaluatorPairSphereStruct>
+template <class EvaluatorPairSphereStruct>
 class DirectionalEvaluatorPairSphere
     {
     public:
-        typedef typename DirectionalEvaluatorPair.params param_type;
+        typedef typename EvaluatorPairSphereStruct::param_type param_type;
 
         //! Constructor
         DirectionalEvaluatorPairSphere(Scalar3 _dr, Scalar4 _quat_i,
-                        Scalar4 _quat_j, Scalar _rcutsq, param_type _params)
+                        Scalar4 _quat_j, Scalar _rcutsq, param_type _params):
+            s(_dr,_quat_i,_quat_j,_rcutsq,_params)
             {
-            // call constructor for underlying struct
-            s = DirectionalEvaluatorPairSphere(_dr,_quat_i,_quat_j,
-                            _rcutsq,_params);
             }
 
         //! uses diameter
@@ -127,7 +125,7 @@ class DirectionalEvaluatorPairSphere
             
             \return Always true
         */
-        DEVICE bool evalPair(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
+        DEVICE bool evaluate(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
             {
             // common calculations
             Scalar modi = s.Modulatori();
@@ -170,7 +168,7 @@ class DirectionalEvaluatorPairSphere
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.
         */
-        static std::string getName() { return std::string("deps") }
+        static std::string getName() { return std::string("deps"); }
         #endif
 
     private:
@@ -184,19 +182,17 @@ class DirectionalEvaluatorPairSphere
     Provides class for generalized diblock Janus spheres. It uses preexisting isotropic pair evaluators to do much of
     the work. This does the "non-decorated" part of the sphere.
 */
-template <typename EvaluatorPairSphereStruct>
-class DirectionalEvaluatorPairJanusSphereComplement
+template <class EvaluatorPairSphereStruct>
+class DirectionalEvaluatorPairSphereComplement
     {
     public:
-        typedef typename DirectionalEvaluatorPair.params param_type;
+        typedef typename EvaluatorPairSphereStruct::param_type param_type;
 
         //! Constructor
-        DirectionalEvaluatorPairSphere(Scalar3 _dr, Scalar4 _quat_i,
-                        Scalar4 _quat_j, Scalar _rcutsq, param_type _params)
+        DirectionalEvaluatorPairSphereComplement(Scalar3 _dr, Scalar4 _quat_i,
+                        Scalar4 _quat_j, Scalar _rcutsq, param_type _params):
+             s (_dr,_quat_i,_quat_j,_rcutsq,_params)
             {
-            // call constructor for underlying struct
-            s = DirectionalEvaluatorPairSphere(_dr,_quat_i,_quat_j,
-                            _rcutsq,_params);
             }
 
         //! uses diameter
@@ -229,7 +225,7 @@ class DirectionalEvaluatorPairJanusSphereComplement
             
             \return Always true
         */
-        DEVICE bool evalPair(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
+        DEVICE bool evaluate(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
             {
             // common calculations
             Scalar modi = s.Modulatori();
@@ -272,7 +268,7 @@ class DirectionalEvaluatorPairJanusSphereComplement
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.
         */
-        static std::string getName() { return std::string("depjsc") }
+        static std::string getName() { return std::string("depjsc"); }
         #endif
 
     private:

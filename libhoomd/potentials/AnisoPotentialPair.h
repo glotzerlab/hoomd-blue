@@ -348,7 +348,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
 
     // need to start from a zero force, energy and virial
     memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
-    memset(&m_tdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
+    memset(&m_torque_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
     memset(&m_virial_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar)*arrays.nparticles);
     
     // for each particle
@@ -397,7 +397,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             Scalar dy = yi - arrays.y[j];
             Scalar dz = zi - arrays.z[j];
             
-            Scalar quat_j = h_orienation.data[j];
+            Scalar quat_j = h_orientation.data[j];
 
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = arrays.type[j];
@@ -540,9 +540,9 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
         m_fdata_partial[mem_idx].y += fyi;
         m_fdata_partial[mem_idx].z += fzi;
 
-        m_tdata_partial[mem_idx].x += txi;
-        m_tdata_partial[mem_idx].y += tyi;
-        m_tdata_partial[mem_idx].z += tzi;
+        m_torque_partial[mem_idx].x += txi;
+        m_torque_partial[mem_idx].y += tyi;
+        m_torque_partial[mem_idx].z += tzi;
 
         m_fdata_partial[mem_idx].w += pei;
         m_virial_partial[mem_idx] += viriali;
@@ -558,9 +558,9 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
         h_force.data[i].y = m_fdata_partial[i].y;
         h_force.data[i].z = m_fdata_partial[i].z;
         h_force.data[i].w = m_fdata_partial[i].w;
-        h_torque.data[i].x  = m_tdata_partial[i].x;
-        h_torque.data[i].y = m_tdata_partial[i].y;
-        h_torque.data[i].z = m_tdata_partial[i].z;
+        h_torque.data[i].x  = m_torque_partial[i].x;
+        h_torque.data[i].y = m_torque_partial[i].y;
+        h_torque.data[i].z = m_torque_partial[i].z;
         h_virial.data[i] = m_virial_partial[i];
 
         #ifdef ENABLE_OPENMP
@@ -573,9 +573,9 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             h_force.data[i].y += m_fdata_partial[mem_idx].y;
             h_force.data[i].z += m_fdata_partial[mem_idx].z;
             h_force.data[i].w += m_fdata_partial[mem_idx].w;
-            h_torque.data[i].x + = m_tdata_partial[i].x;
-            h_torque.data[i].y += m_tdata_partial[i].y;
-            h_torque.data[i].z += m_tdata_partial[i].z;
+            h_torque.data[i].x += m_torque_partial[i].x;
+            h_torque.data[i].y += m_torque_partial[i].y;
+            h_torque.data[i].z += m_torque_partial[i].z;
             h_virial.data[i]  += m_virial_partial[mem_idx];
             }
         #endif

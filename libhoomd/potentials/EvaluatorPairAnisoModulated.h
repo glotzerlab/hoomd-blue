@@ -80,7 +80,7 @@ struct EvaluatorPairAnisoModulatedParamStruct
 
     iParam iP;
     dParam dP;
-    }
+    };
 
 //! Class for evaluating anisotropic pair interations
 /*! <b>General Overview</b>
@@ -100,7 +100,7 @@ class EvaluatorPairAnisoModulated
         \param _q_j Quaterion of j^th particle
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairAnisoModulated(Scalar3 _dr, Scalar4 _quat_i, Scalar4 _quat_j, Scalar _rcutsq,
+        DEVICE EvaluatorPairAnisoModulated(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq,
             param_type _params)
             : dr(_dr)
             {
@@ -112,7 +112,7 @@ class EvaluatorPairAnisoModulated
         //! uses diameter
         DEVICE static bool needsDiameter()
             {
-            return (iEv.needsDiameter() || dEv.needsDiameter());
+            return (isoEval::needsDiameter() || dirEval::needsDiameter());
             }
 
         //! Accept the optional diameter values
@@ -121,9 +121,9 @@ class EvaluatorPairAnisoModulated
         */
         DEVICE void setDiameter(Scalar di, Scalar dj)
             {
-            if (params.iEv.needsDiameter())
+            if (isoEval::needsDiameter())
                 iEv.setDiameter(di,dj);
-            if (params.dEv.needsDiameter())
+            if (dirEval::needsDiameter())
                 dEv.setDiameter(di,dj);
             }
 
@@ -131,7 +131,7 @@ class EvaluatorPairAnisoModulated
         //! This function is pure virtual
         DEVICE static bool needsCharge()
             {
-            return (iEv.needsCharge() || dEv.needsCharge());
+            return (isoEval::needsCharge() || dirEval::needsCharge());
             }
 
         //! Accept the optional diameter values
@@ -141,10 +141,10 @@ class EvaluatorPairAnisoModulated
         */
         DEVICE void setCharge(Scalar qi, Scalar qj)
             {
-            if (params.iEv.needsCharge())
-                iEv.setCharge(di,dj);
-            if (params.dEv.needsCharge())
-                dEv.setCharge(di,dj);
+            if (isoEval::needsCharge())
+                iEv.setCharge(qi,qj);
+            if (dirEval::needsCharge())
+                dEv.setCharge(qi,qj);
             }
             
         //! Evaluate the force and energy
@@ -160,14 +160,15 @@ class EvaluatorPairAnisoModulated
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
         DEVICE bool
-        evalPair(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
+        evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
+            if(iEv.rsq<iEv.rcutsq) return false;
             // used in computation
-            Scalar isoModulator,
+            Scalar isoModulator;
             Scalar force_divr;
         
             // do individual computes
-            dEv.evalPair(force,isoModulator,torque_i,torque_j);
+            dEv.evaluate(force,isoModulator,torque_i,torque_j);
             iEv.evalForceAndEnergy(force_divr,pair_eng,energy_shift);
 
             // correct forces
@@ -186,6 +187,8 @@ class EvaluatorPairAnisoModulated
 
             // correct pair energy
             pair_eng *= isoModulator;
+
+            return true;
             }
 
         #ifndef NVCC
@@ -196,7 +199,7 @@ class EvaluatorPairAnisoModulated
         */
         static std::string getName()
             {
-            return iE.getName() + "_" + dE.getName();
+            return isoEval::getName() + "_" + dirEval::getName();
             }
         #endif
 

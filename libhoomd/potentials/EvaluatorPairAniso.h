@@ -93,9 +93,9 @@ class EvaluatorPairAniso
 	    \param _q_j Quaterion of j^th particle
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairAniso(Scalar3 _dr, Scalar4 _quat_i, Scalar4 _quat_j, Scalar _rcutsq, param_type _params)
-            :dr(_dr),quat_i(_quat_i),quat_j(_quat_j),rcutsq(_rcutsq),params(params)
+        DEVICE EvaluatorPairAniso(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, param_type _params)
             {
+            //initialize member var
             }
         
         //! uses diameter
@@ -132,7 +132,7 @@ class EvaluatorPairAniso
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
         DEVICE  bool
-		evalPair(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j) 
+		evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j) 
             {
             return true;
             }
@@ -146,11 +146,12 @@ class EvaluatorPairAniso
         #endif
 
     protected:
+        //Optional member variables 
         Scalar3 dr;     //!< Stored vector pointing between particle centres of mass
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
         Scalar4 q_i;     //!< Stored quaternion of i^th particle from constuctor
         Scalar4 q_j;     //!< Stored quaternion of j^th particle from constructor
-        param_type params;
+        Scalar param1, param2;
     };
 
 

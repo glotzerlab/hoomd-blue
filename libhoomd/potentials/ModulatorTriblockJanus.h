@@ -43,8 +43,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: grva
 
-#ifndef __DirectionalEvaluatorPairJanusSphere__
-#define __DirectionalEvaluatorPairJanusSphere__
+#ifndef __ModulatorTriblockJanus__
+#define __ModulatorTriblockJanus__
 
 #ifndef NVCC
 #include <string>
@@ -52,8 +52,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 
-/*! \file DirectionalEvaluatorPairJanusSphere.h
-    \brief This is a struct that handles Janus spheres of arbitrary balance
+/*! \file ModulatorTriblockJanusSphere.h
+    \brief Defines an evaluator struct for Triblock Janus Spheres
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -72,62 +72,68 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RSQRT(x) Scalar(1.0) / sqrt( (x) )
 #endif
 
-struct EvaluatorPairJanusSphereStruct
+class ModulatorTriblockJanus
     {
-    EvaluatorPairJanusSphereStruct(Scalar3& _dr, Scalar4& _qi, Scalar4& _qj,
-                    Scalar _rcutsq, Scalar2 _params) :
-        dr(_dr), qi(_qi), qj(_qj), params(_params)
-        {
-        // compute current janus direction vectors
-        Scalar3 e = { 0 , 0 , 1 };
-        quatrot(e,qi,ei);
-        quatrot(e,qj,ej);
-        
-        // compute distance
-        drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
-        magdr = sqrt(drsq);
+    public:
+        typedef Scalar2 param_type;
 
-        // compute dot products
-        doti =  (dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr;
-        dotj = -(dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
-        }
+        DEVICE ModulatorTriblockJanus(Scalar3& _dr, Scalar4& _qi,
+                        Scalar4& _qj, param_type _params) :
+            dr(_dr), qi(_qi), qj(_qj), params(_params)
+            {
+            // compute current janus direction vectors
+            Scalar3 e = { 0 , 0 , 1 };
+            quatrot(e,qi,ei);
+            quatrot(e,qj,ej);
 
-    DEVICE inline Scalar Modulatori(void)
-        {
-        return Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)));
-        }
+            // compute distance
+            drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
+            magdr = sqrt(drsq);
 
-    DEVICE inline Scalar Modulatorj(void)
-        {
-        return Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)));
-        }
+            // compute dot products
+            doti =  (dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr;
+            dotj = -(dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
+            }
 
-    DEVICE Scalar ModulatorPrimei(void)
-        {
-        Scalar fact = Modulatori();
-        return params.x*exp(-params.x*(doti-params.y))*fact*fact;
-        }
+        DEVICE inline Scalar Modulatori(void)
+            {
+            return Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)))+
+                   Scalar(1.0)/(1.0+exp(params.x*(doti+params.y)));
+            }
 
-    DEVICE Scalar ModulatorPrimej(void)
-        {
-        Scalar fact = Modulatorj();
-        return params.x*exp(-params.x*(dotj-params.y))*fact*fact;
-        }
+        DEVICE inline Scalar Modulatorj(void)
+            {
+            return Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)))+
+                   Scalar(1.0)/(1.0+exp(params.x*(dotj+params.y)));
+            }
 
+        DEVICE Scalar ModulatorPrimei(void)
+            {
+            Scalar fact1 = Scalar(1.0)/(1.0+exp(-params.x*(doti-params.y)));
+            Scalar fact2 = Scalar(1.0)/(1.0+exp(params.x*(doti+params.y)));
+            return params.x*(exp(-params.x*(doti-params.y))*fact1*fact1-exp(params.x*(doti+params.y))*fact2*fact2);
+            }
 
-    // things that get passed in to constructor
-    Scalar3 dr;
-    Scalar4 qi;
-    Scalar4 qj;
-    Scalar2 params;
-    // things that get calculated when constructor is called
-    Scalar3 ei;
-    Scalar3 ej;
-    Scalar drsq;
-    Scalar magdr;
-    Scalar doti;
-    Scalar dotj;
+        DEVICE Scalar ModulatorPrimej(void)
+            {
+            Scalar fact1 = Scalar(1.0)/(1.0+exp(-params.x*(dotj-params.y)));
+            Scalar fact2 = Scalar(1.0)/(1.0+exp(params.x*(dotj+params.y)));
+            return params.x*(exp(-params.x*(dotj-params.y))*fact1*fact1-exp(params.x*(dotj+params.y))*fact2*fact2);
+            }
+
+        // things that get passed in to constructor
+        Scalar3 dr;
+        Scalar4 qi;
+        Scalar4 qj;
+        param_type params;
+        // things that get calculated when constructor is called
+        Scalar3 ei;
+        Scalar3 ej;
+        Scalar drsq;
+        Scalar magdr;
+        Scalar doti;
+        Scalar dotj;
     };
 
-#endif // __DirectionalEvaluatorPairJanusSphere__
+#endif // __ModulatorTriblockJanus__
 
