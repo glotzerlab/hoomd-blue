@@ -445,12 +445,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_FENEBondForceComputeGPU();
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
-<<<<<<< .mine
-=======
 //    export_ConstExternalFieldDipoleForceComputeGPU();
->>>>>>> .r3816
-#endif
-    
+#endif    
     // analyzers
     export_Analyzer();
     export_IMDInterface();

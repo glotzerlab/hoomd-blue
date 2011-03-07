@@ -132,6 +132,7 @@ void TwoStepNVERigid::setup()
     m_virial.swap(virial);
     
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
     
     {
     // rigid data handles
@@ -158,6 +159,7 @@ void TwoStepNVERigid::setup()
     ArrayHandle<bool> angmom_init_handle(m_rigid_data->getAngMomInit(), access_location::host, access_mode::read);
     
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::read);
     
     // Reset all forces and torques
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
@@ -231,10 +233,14 @@ void TwoStepNVERigid::setup()
                     + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
                     + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
             
-            torque_handle.data[body].x += ry * fz - rz * fy;
-            torque_handle.data[body].y += rz * fx - rx * fz;
-            torque_handle.data[body].z += rx * fy - ry * fx;
-          
+            Scalar tx = h_net_torque.data[pidx].x;
+            Scalar ty = h_net_torque.data[pidx].y;
+            Scalar tz = h_net_torque.data[pidx].z;
+            
+            torque_handle.data[body].x += ry * fz - rz * fy + tx;
+            torque_handle.data[body].y += rz * fx - rx * fz + ty;
+            torque_handle.data[body].z += rx * fy - ry * fx + tz;
+            
             // Angular momentum = r x (m * v) is calculated for setup
             if (angmom_init == false) // if angmom is not yet set for this body
                 {
@@ -398,7 +404,6 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
                           ez_space_handle.data[body],
                           m_deltaT,
                           orientation_handle.data[body]);
-
         }
     } // out of scope for handles
         
@@ -743,12 +748,12 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                 arrays.iz[pidx]--;
                 }
 
-            //Update the particle orientation q_i,lab_frame = q_rb,lab_frame * q_i,rb_frame;
+            // update the particle orientation: q_i = quat[body] * particle_quat
             Scalar4 porientation; 
             quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
             normalize(porientation);
             m_pdata->setOrientation(tag, porientation);
-
+            
             // store the current position for the next step
             particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];
             particle_oldpos_handle.data[localidx].y = arrays.y[pidx] + Ly * arrays.iy[pidx];

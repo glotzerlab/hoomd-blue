@@ -430,7 +430,7 @@ void RigidData::initializeData()
             dof_one--;
             moment_inertia_handle.data[body].z = Scalar(0.0);
             }
- 
+        
         body_dof_handle.data[body] = dof_one;    
         m_ndof += dof_one;
         
@@ -553,8 +553,17 @@ void RigidData::initializeData()
         quatconj(orientation_handle.data[body], qc);
         
         porientation = m_pdata->getOrientation(tag);
-        quatquat(qc, porientation, h_particle_orientation.data[j]);
-        normalize(h_particle_orientation.data[j]);
+        quatquat(qc, porientation, h_particle_orientation.data[idx]);
+        normalize(h_particle_orientation.data[idx]);
+        
+        // only one particle body
+        if (body_size_handle.data[body] == 1 && local_indices_handle.data[body] == 0)
+        {
+            // the formula for a solid ellipsoid is: Ixx = body_mass * (ry * ry + rz * rz) / 5 
+            moment_inertia_handle.data[body].x = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
+            moment_inertia_handle.data[body].y = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
+            moment_inertia_handle.data[body].z = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
+        }
         
         particle_oldpos_handle.data[idx].x = unwrappedx;
         particle_oldpos_handle.data[idx].y = unwrappedy;
