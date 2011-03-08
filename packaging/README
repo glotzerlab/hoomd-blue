@@ -1,0 +1,10 @@
+To build a Redhat Package Manager package (RPM) of the current hoomd trunk,
+copy the hoomd spec file in this directory to the SPECS directory in your
+rpm build environment and run
+rpmbuild -ba hoomd-0.9.1.spec
+
+Note that you will need cmake, subversion (svn), and some other software
+installed. Non-obvious missing software should produce explicit error
+messages. If you have the software installed but not as an rpm package,
+rpmbuild may still produce errors. To bypass these errors, use 
+rpmbuild -ba --nodeps hoomd-0.9.1.spec
