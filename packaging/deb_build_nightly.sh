@@ -12,7 +12,7 @@ else
 	if [ "$(dpkg-architecture -qDEB_BUILD_ARCH_BITS )" == "64" ] 2>/dev/null ; 
 		then export lib_suffix="64" ;	fi
 #remove old traces of building packages
-	rm -r debian
+	rm -r debian/*
 	echo $(svnversion .) > packaging/deb_old_version
 #create build directory to move cuda libs to
 	export deb_build_folder="obj-$(dpkg-architecture -qDEB_BUILD_GNU_CPU)-linux-gnu" 
