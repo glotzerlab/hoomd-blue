@@ -1,0 +1,2 @@
+shlibs:Depends=libboost-filesystem1.40.0 (>= 1.40.0-1), libboost-iostreams1.40.0 (>= 1.40.0-1), libboost-program-options1.40.0 (>= 1.40.0-1), libboost-python1.40.0 (>= 1.40.0-1), libboost-signals1.40.0 (>= 1.40.0-1), libboost-system1.40.0 (>= 1.40.0-1), libboost-thread1.40.0 (>= 1.40.0-1), libc6 (>= 2.3.6-6~), libc6 (>= 2.4), libgcc1 (>= 1:4.1.1), libgomp1 (>= 4.2.1), libpython2.6 (>= 2.6), libstdc++6 (>= 4.2.1), zlib1g (>= 1:1.1.4)
+misc:Depends=
