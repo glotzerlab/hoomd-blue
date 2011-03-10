@@ -1,0 +1,13 @@
+Source: hoomd-blue
+Section: science
+Priority: extra
+Maintainer: Ross Smith <rjsm@umich.edu>
+Build-Depends: cdbs, debhelper (>= 7), cmake
+Standards-Version: 3.8.3
+Homepage: http://codeblue.umich.edu/hoomd-blue/
+
+Package: hoomd-blue
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+ HOOMD-blue stands for Highly Optimized Object-oriented Many-particle  Dynamics -- Blue Edition. It performs general purpose particle dynamics  simulations on a single workstation, taking advantage of NVIDIA GPUs to  attain a level of performance equivalent to many processor cores on a fast cluster.
