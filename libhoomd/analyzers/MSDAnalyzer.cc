@@ -234,7 +234,6 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
             m_initial_z[tag] += Scalar(image.z) * Lz;
             }
         }
-    m_pdata->release();
     }
 
 /*! The entire header row is written to the file. First, timestep is written as every file includes it and then the

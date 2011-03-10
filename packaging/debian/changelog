@@ -1,0 +1,5 @@
+hoomd-blue (HVERSION) unstable; urgency=low
+
+  * Dummy changelog for debian compatibilty  see website for up-to-date changelog
+
+ -- Ross Smith <rjsm@umich.edu>  Thu, 24 Feb 2011 15:58:30 -0500
