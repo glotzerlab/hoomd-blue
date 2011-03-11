@@ -1,19 +1,26 @@
 #update our codebase
 cd  ../
-fsvn up
+svn up
 
 #check  the previous version built
-atrev=$(cat packaging/deb_old_version)
+atrev=$(cat ../deb_old_version)
 if [ "$atrev" -eq "$(svnversion . )" ];then
 	echo "up to date"
 else
+#move trunk to staging so svn gives us a good version number
+	cd ../
+	rm -r staging
+	mkdir -p staging
+	cp -r trunk/* staging/
+	cd staging
+
 #get what architecture we're building on.
 	export deb_arch=$(dpkg-architecture -qDEB_BUILD_GNU_CPU)
 	if [ "$(dpkg-architecture -qDEB_BUILD_ARCH_BITS )" == "64" ] 2>/dev/null ; 
 		then export lib_suffix="64" ;	fi
 #remove old traces of building packages
 	rm -r debian/*
-	echo $(svnversion .) > packaging/deb_old_version
+	echo $(svnversion .) > ../deb_old_version
 #create build directory to move cuda libs to
 	export deb_build_folder="obj-$(dpkg-architecture -qDEB_BUILD_GNU_CPU)-linux-gnu" 
 	mkdir -p  debian/hoomd-blue/usr/lib${lib_suffix}

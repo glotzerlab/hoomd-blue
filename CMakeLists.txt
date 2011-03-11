@@ -19,6 +19,12 @@ project (HOOMD)
 include (CMake_install_options.cmake)
 message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
+#install files for deb package
+if (ENABLE_DEB_BUILD)
+	FILE(GLOB cudart "/usr/local/cuda/lib/libcudart.so.?")
+	install(FILES ${cudart}  DESTINATION ${CMAKE_BIN_DIR}/usr/lib${lib_arch} )
+endif (ENABLE_DEB_BUILD)
+
 # bring in custom modules
 add_subdirectory (CMake)
 
