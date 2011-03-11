@@ -57,11 +57,8 @@ using namespace std;
 
 void output_version_info(bool verbose)
     {
-    // output the version info differently if this is tagged as a subversion build or not
-    if (HOOMD_SUBVERSION_BUILD)
-        cout << "HOOMD-blue svnversion " << HOOMD_SVNVERSION << endl;
-    else
-        cout << "HOOMD-blue " << HOOMD_VERSION << endl;
+    // output the version info that comes from CMake
+    cout << "HOOMD-blue " << HOOMD_VERSION_LONG << endl;
         
     // output the compiled date and copyright information
     cout << "Compiled: " << COMPILE_DATE << endl;
