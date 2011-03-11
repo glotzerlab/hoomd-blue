@@ -14,7 +14,7 @@ else
 	rm -r debian/*
 	cp -r packaging/debian ./
 #get what architecture we're building on.
-	if [ `arch`="x86_64" ]
+	if [ `arch` = "x86_64" ]
 		then
 #patch debian folder for 64 bit
 		echo "patching 64bit"
