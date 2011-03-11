@@ -43,6 +43,6 @@ fi
 #move files to be uploaded
 	cd ..
 	cp deb_old_version deb_version${lib_suffix}
-	scp deb_version${lib_suffix} joaander@foxx.engin.umich.edu:devel/incoming
-	scp hoomd-blue_${HVERSION}*.deb joaander@foxx.engin.umich.edu:devel/incoming
+	scp deb_version${lib_suffix} joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
+	scp hoomd-blue_${HVERSION}*.deb joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
 fi
