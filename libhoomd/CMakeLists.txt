@@ -58,10 +58,9 @@ if (NOT ENABLE_STATIC)
     endif(APPLE)
     fix_cudart_rpath(libhoomd)
 
-    # if this is a PYTHON_SITEDIR build, set the rpath appropriately
-    if (PYTHON_SITEDIR)
-        set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../../hoomd")
-    endif (PYTHON_SITEDIR)
+    # set the rpath so that the lib can find other libs stashed in lib/hoomd
+    set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../../hoomd")
+    set_target_properties(libhoomd PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib/hoomd/python-module")
 endif (NOT ENABLE_STATIC)
 
 if (ENABLE_STATIC)

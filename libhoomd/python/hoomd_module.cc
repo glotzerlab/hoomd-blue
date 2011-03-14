@@ -143,6 +143,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SignalHandler.h"
 
 #include "HOOMDVersion.h"
+#include "PathUtils.h"
 
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
@@ -181,14 +182,16 @@ string find_hoomd_data_dir()
             string result = (hoomd_root_dir / "share" / "hoomd").string();
             return result;
             }
-        // try root/share (for /opt/hoomd style install)
-        if (exists(hoomd_root_dir / "share" / "hoomd_data_dir"))
-            {
-            string result = (hoomd_root_dir / "share").string();
-            return result;
-            }
         }
-        
+    
+    // next, try finding the data dir referenced from the executable file location
+    // this should work every time, but leave the other methods for fallback
+    string exepath = getExePath();
+    
+    // typical installation
+    if (exists(path(exepath) / ".." / "share" / "hoomd" / "hoomd_data_dir"))
+       return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
+
     // try the source directory next, to ensure that any current source is used over
     // an older installed version
     if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / "hoomd_data_dir"))
@@ -210,23 +213,12 @@ string find_hoomd_data_dir()
             return (install_dir).string();
         }
     delete[] value;
-    
-    
-    // otherwise, check the program files root
-    if (getenv("PROGRAMFILES"))
-        {
-        path program_files_dir = path(string(getenv("PROGRAMFILES")));
-        if (exists(program_files_dir / "hoomd" / "hoomd_data_dir"))
-            return (program_files_dir / "hoomd").string();
-        }
 #else
     // check a few likely installation locations
     if (exists("/usr/share/hoomd/hoomd_data_dir"))
         return "/usr/share/hoomd";
     if (exists("/usr/local/share/hoomd/hoomd_data_dir"))
         return "/usr/local/share/hoomd";
-    if (exists("/opt/hoomd/share/hoomd_data_dir"))
-        return "/opt/hoomd/share";
 #endif
         
     cerr << endl 

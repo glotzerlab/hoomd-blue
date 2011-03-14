@@ -52,12 +52,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+
 #include <boost/python.hpp>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 
 using namespace boost::filesystem;
+
+#include "PathUtils.h"
+#include "HOOMDVersion.h"
 
 #include <string>
 #include <sstream>
@@ -72,33 +76,26 @@ using namespace std;
 //! forward declaration of the inithoomd function that inits the python module from hoomd_module.cc
 extern "C" void inithoomd();
 
-//! bring in the find_hoomd_data_dir from the python module
-string find_hoomd_data_dir();
-
 //! A simple method for finding the hoomd_script python module
 string find_hoomd_script()
     {
-    path hoomd_data_dir(find_hoomd_data_dir());
+    // this works on the requirement in the hoomd build scripts that the python module is always
+    // installed in lib/hoomd/python-module on linux and mac. On windows, it actually ends up in bin/python-module
+    path exepath = path(getExePath());
     list<path> search_paths;
-    search_paths.push_back(hoomd_data_dir / "bin/python-module");
-    search_paths.push_back(hoomd_data_dir / "lib/python-module");
-    search_paths.push_back(hoomd_data_dir / "lib/hoomd/python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / "python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / "lib/python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / "lib/hoomd/python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / ".." / "python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / ".." / "lib/python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / ".." / "lib/hoomd/python-module");
+    search_paths.push_back(exepath / "python-module");                            // windows
+    search_paths.push_back(exepath / ".." / "lib" / "hoomd" / "python-module");   // linux/mac
+    search_paths.push_back(path(HOOMD_SOURCE_DIR) / "python-module");             // from source builds
     
     list<path>::iterator cur_path;
     for (cur_path = search_paths.begin(); cur_path != search_paths.end(); ++cur_path)
         {
+        cout << "Checking" << cur_path->native_file_string() << endl;
         if (exists(*cur_path / "hoomd_script" / "__init__.py"))
             return cur_path->native_file_string();
         }
     cerr << endl 
-         << "***Error! HOOMD python-module directory not found. Check your HOOMD directory file structure near " 
-         << hoomd_data_dir.string() << endl << endl;
+         << "***Error! HOOMD python-module directory not found. Check your HOOMD directory structure." << endl;
     return "";
     }
 
@@ -109,6 +106,9 @@ string find_hoomd_script()
 */
 int main(int argc, char **argv)
     {
+    cout << "my path is: " << getExePath() << endl;
+    cout << "my hoomd_script directory is: " << find_hoomd_script() << endl;
+    
     char module_name[] = "hoomd";
     PyImport_AppendInittab(module_name, &inithoomd);
     Py_Initialize();

@@ -4,33 +4,30 @@
 
 # handle native python installs separately from the others
 if (PYTHON_SITEDIR)
-    set(_hoomd_run_input ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_run_native.in)
+    # install the hoomd runner script to transparently process hoomd into python
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd_run_native.in
+                   ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
+                   @ONLY
+                   )
+
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
+            DESTINATION ${BIN_INSTALL_DIR}
+            RENAME hoomd
+            )
 else (PYTHON_SITEDIR)
+    # setup and install the hoomd executable
     set(_hoomd_run_input ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_run.in)
     
     add_executable(hoomd hoomd.cc)
     target_link_libraries(hoomd libhoomd ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(hoomd)
 
+    # set the rpath so that the exe can find libs stashed in lib/hoomd and lib/hoomd/python-module
+    set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../hoomd")
+    set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../hoomd/python-module")
+
     # install the executable
-    if (ENABLE_APP_BUNDLE_INSTALL)
     install(TARGETS hoomd
             RUNTIME DESTINATION ${BIN_INSTALL_DIR})
-    else(ENABLE_APP_BUNDLE_INSTALL)
-    install(TARGETS hoomd
-            RUNTIME DESTINATION ${LIB_INSTALL_DIR})
-    endif(ENABLE_APP_BUNDLE_INSTALL)
 endif (PYTHON_SITEDIR)
     
-# install the hoomd runner script
-configure_file(${_hoomd_run_input}
-                ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
-                @ONLY
-                )
-
-if (NOT WIN32 AND NOT ENABLE_APP_BUNDLE_INSTALL)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
-    DESTINATION ${BIN_INSTALL_DIR}
-    RENAME hoomd
-    )
-endif (NOT WIN32 AND NOT ENABLE_APP_BUNDLE_INSTALL)
