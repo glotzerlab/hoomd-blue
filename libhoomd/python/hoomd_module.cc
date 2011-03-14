@@ -43,6 +43,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
 
+// temporarily work around issues with the new boost fileystem libraries
+// http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
+#define BOOST_FILESYSTEM_VERSION 2
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 4267 )
