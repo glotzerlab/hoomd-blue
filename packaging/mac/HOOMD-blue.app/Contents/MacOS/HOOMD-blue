@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Launcher script setup borrowed from VMD
+appdir=`dirname "$0"`
+
+# Strip off the psn argument if it exists
+if [[ $1 == -psn* ]]
+then
+    shift
+fi
+
+osascript -e "tell application \"Terminal\" to do script \"${appdir}/../bin/hoomd $*;exit\"" >/dev/null <<EOF

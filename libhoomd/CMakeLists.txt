@@ -73,9 +73,15 @@ if (ENABLE_STATIC)
     endif(WIN32)
 endif (ENABLE_STATIC)
 
+if (ENABLE_APP_BUNDLE_INSTALL)
+set(_hoomd_so_install_dir ${BIN_INSTALL_DIR})
+else (ENABLE_APP_BUNDLE_INSTALL)
+set(_hoomd_so_install_dir ${HOOMD_PYTHON_MODULE_DIR})
+endif(ENABLE_APP_BUNDLE_INSTALL)
+
 # install the library
 install(TARGETS libhoomd
-        LIBRARY DESTINATION ${HOOMD_PYTHON_MODULE_DIR}
+        LIBRARY DESTINATION ${_hoomd_so_install_dir}
         ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR}
         )
 

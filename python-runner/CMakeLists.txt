@@ -13,8 +13,13 @@ else (PYTHON_SITEDIR)
     fix_cudart_rpath(hoomd)
 
     # install the executable
+    if (ENABLE_APP_BUNDLE_INSTALL)
+    install(TARGETS hoomd
+            RUNTIME DESTINATION ${BIN_INSTALL_DIR})
+    else(ENABLE_APP_BUNDLE_INSTALL)
     install(TARGETS hoomd
             RUNTIME DESTINATION ${LIB_INSTALL_DIR})
+    endif(ENABLE_APP_BUNDLE_INSTALL)
 endif (PYTHON_SITEDIR)
     
 # install the hoomd runner script
@@ -23,9 +28,9 @@ configure_file(${_hoomd_run_input}
                 @ONLY
                 )
 
-if (NOT WIN32)
+if (NOT WIN32 AND NOT ENABLE_APP_BUNDLE_INSTALL)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
     DESTINATION ${BIN_INSTALL_DIR}
     RENAME hoomd
     )
-endif (NOT WIN32)
+endif (NOT WIN32 AND NOT ENABLE_APP_BUNDLE_INSTALL)

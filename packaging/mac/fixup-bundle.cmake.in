@@ -1,0 +1,146 @@
+set(CMAKE_MODULE_PATH 
+    @CMAKE_CURRENT_SOURCE_DIR@
+    )
+
+include(BundleUtilities)
+
+# due to the strange way that gp_resolve_item_override works, need to copy in the whole darn function
+# the default function needs to be overridden so that cuda's funky linked @rpath/libtlshook.dylib can be resolved
+
+function(gp_resolve_item_override context item exepath dirs resolved_item_var resolved_var)
+  set(resolved 0)
+  set(resolved_item "${item}")
+  
+  # just remove rpath, we don't need it and doing so enables the lib to be found
+  if(item MATCHES "@rpath")
+      string(REPLACE "@rpath" "" ni "${item}")
+      set(item ${ni})
+  endif(item MATCHES "@rpath")
+   
+  # THE REST OF THIS FUNCTION IS AS IS FROM CMAKE, exept where the override is not called and resolved_var is set
+
+  # Is it already resolved?
+  #
+  if(EXISTS "${resolved_item}")
+    set(resolved 1)
+  endif(EXISTS "${resolved_item}")
+
+  if(NOT resolved)
+    if(item MATCHES "@executable_path")
+      #
+      # @executable_path references are assumed relative to exepath
+      #
+      string(REPLACE "@executable_path" "${exepath}" ri "${item}")
+      get_filename_component(ri "${ri}" ABSOLUTE)
+
+      if(EXISTS "${ri}")
+        #message(STATUS "info: embedded item exists (${ri})")
+        set(resolved 1)
+        set(resolved_item "${ri}")
+      else(EXISTS "${ri}")
+        message(STATUS "warning: embedded item does not exist '${ri}'")
+      endif(EXISTS "${ri}")
+    endif(item MATCHES "@executable_path")
+  endif(NOT resolved)
+
+  if(NOT resolved)
+    if(item MATCHES "@loader_path")
+      #
+      # @loader_path references are assumed relative to the
+      # PATH of the given "context" (presumably another library)
+      #
+      get_filename_component(contextpath "${context}" PATH)
+      string(REPLACE "@loader_path" "${contextpath}" ri "${item}")
+      get_filename_component(ri "${ri}" ABSOLUTE)
+
+      if(EXISTS "${ri}")
+        #message(STATUS "info: embedded item exists (${ri})")
+        set(resolved 1)
+        set(resolved_item "${ri}")
+      else(EXISTS "${ri}")
+        message(STATUS "warning: embedded item does not exist '${ri}'")
+      endif(EXISTS "${ri}")
+    endif(item MATCHES "@loader_path")
+  endif(NOT resolved)
+
+  if(NOT resolved)
+    set(ri "ri-NOTFOUND")
+    find_file(ri "${item}" ${exepath} ${dirs} NO_DEFAULT_PATH)
+    find_file(ri "${item}" ${exepath} ${dirs} /usr/lib)
+    if(ri)
+      #message(STATUS "info: 'find_file' in exepath/dirs (${ri})")
+      set(resolved 1)
+      set(resolved_item "${ri}")
+      set(ri "ri-NOTFOUND")
+    endif(ri)
+  endif(NOT resolved)
+
+  if(NOT resolved)
+    if(item MATCHES "[^/]+\\.framework/")
+      set(fw "fw-NOTFOUND")
+      find_file(fw "${item}"
+        "~/Library/Frameworks"
+        "/Library/Frameworks"
+        "/System/Library/Frameworks"
+      )
+      if(fw)
+        #message(STATUS "info: 'find_file' found framework (${fw})")
+        set(resolved 1)
+        set(resolved_item "${fw}")
+        set(fw "fw-NOTFOUND")
+      endif(fw)
+    endif(item MATCHES "[^/]+\\.framework/")
+  endif(NOT resolved)
+
+  # Using find_program on Windows will find dll files that are in the PATH.
+  # (Converting simple file names into full path names if found.)
+  #
+  if(WIN32 AND NOT UNIX)
+  if(NOT resolved)
+    set(ri "ri-NOTFOUND")
+    find_program(ri "${item}" PATHS "${exepath};${dirs}" NO_DEFAULT_PATH)
+    find_program(ri "${item}" PATHS "${exepath};${dirs}")
+    if(ri)
+      #message(STATUS "info: 'find_program' in exepath/dirs (${ri})")
+      set(resolved 1)
+      set(resolved_item "${ri}")
+      set(ri "ri-NOTFOUND")
+    endif(ri)
+  endif(NOT resolved)
+  endif(WIN32 AND NOT UNIX)
+
+  if(NOT resolved)
+    message(STATUS "
+warning: cannot resolve item '${item}'
+
+  possible problems:
+    need more directories?
+    need to use InstallRequiredSystemLibraries?
+    run in install tree instead of build tree?
+")
+#    message(STATUS "
+#******************************************************************************
+#warning: cannot resolve item '${item}'
+#
+#  possible problems:
+#    need more directories?
+#    need to use InstallRequiredSystemLibraries?
+#    run in install tree instead of build tree?
+#
+#    context='${context}'
+#    item='${item}'
+#    exepath='${exepath}'
+#    dirs='${dirs}'
+#    resolved_item_var='${resolved_item_var}'
+#******************************************************************************
+#")
+  endif(NOT resolved)
+
+  set(${resolved_item_var} "${resolved_item}" PARENT_SCOPE)
+  set(${resolved_var} "${resolved}" PARENT_SCOPE)
+
+endfunction(gp_resolve_item_override)
+
+fixup_bundle("@CMAKE_INSTALL_PREFIX@/HOOMD-blue.app"
+             "@CMAKE_INSTALL_PREFIX@/@BIN_INSTALL_DIR@/hoomd.so"
+             "@_libdirs@")
