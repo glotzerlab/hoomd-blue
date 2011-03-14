@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string>
 #include <stdexcept>
+#include <iostream>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -87,12 +88,13 @@ std::string getExePath()
     result = std::string(realbuf);
     free(realbuf);
     
-    #elif UNIX
+    #elif __linux__
     char buf[1024];
     memset(buf, 0, 1024);
     size_t bufsize = 1024;
     size_t retval = readlink("/proc/self/exe", buf, bufsize);
-    if (retval == -1)
+
+    if (retval == size_t(-1))
         throw std::runtime_error("Unable to determine executable path");
 
     result = std::string(buf);
@@ -100,6 +102,8 @@ std::string getExePath()
     #elif WIN32
     #error Not implemented
     // see the above link for a howto on implementing this. Not a high priority to do so because windows is deprecated
+    #else
+    #error Not implemented
     #endif
 
     // the above routines get the actual executable. Return the path to it

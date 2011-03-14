@@ -22,9 +22,8 @@ else (PYTHON_SITEDIR)
     target_link_libraries(hoomd libhoomd ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(hoomd)
 
-    # set the rpath so that the exe can find libs stashed in lib/hoomd and lib/hoomd/python-module
-    set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../hoomd")
-    set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../hoomd/python-module")
+    # set the rpath so that the exe can find libs stashed in lib/hoomd/python-module
+    set_target_properties(hoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../lib/hoomd/python-module")
 
     # install the executable
     install(TARGETS hoomd
