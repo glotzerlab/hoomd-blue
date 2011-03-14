@@ -103,7 +103,11 @@ std::string getExePath()
     #endif
 
     // the above routines get the actual executable. Return the path to it
+    #if (BOOST_VERSION <= 103500)
+    return boost::filesystem::path(result).branch_path().native_file_string();
+    #else
     return boost::filesystem::path(result).parent_path().native_file_string();
+    #endif
     }
 
 #endif
