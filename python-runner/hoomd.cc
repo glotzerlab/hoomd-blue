@@ -114,6 +114,12 @@ string find_hoomd_script()
 */
 int main(int argc, char **argv)
     {
+    if (argc == 1)
+        {
+        // This shell is an interactive launch with no arguments
+        cout << "Launching intractive python shell now.... run \"from hoomd_script import *\" to load the HOOMD-blue python module" << endl << endl;
+        }
+
     char module_name[] = "hoomd";
     PyImport_AppendInittab(module_name, &inithoomd);
     Py_Initialize();
