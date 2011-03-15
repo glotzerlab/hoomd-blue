@@ -45,6 +45,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
+
+//! Enable old boost::filesystem API (temporary fix)
 #define BOOST_FILESYSTEM_VERSION 2
 
 #ifdef WIN32
@@ -165,68 +167,6 @@ using namespace std;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-//! Scans for possible hoomd data directories
-/*! \returns the first one it finds
-    This function is for use by the demos and benchmarks installed with HOOMD.
-*/
-string find_hoomd_data_dir()
-    {
-    // try checking offsets from the environment variable first:
-    // it is searched first so as to override any other potential location
-    if (getenv("HOOMD_ROOT"))
-        {
-        path hoomd_root_dir = path(string(getenv("HOOMD_ROOT")));
-        // try root/share/hoomd (for /usr/local /usr etc)
-        if (exists(hoomd_root_dir / "share" / "hoomd" / "hoomd_data_dir"))
-            {
-            string result = (hoomd_root_dir / "share" / "hoomd").string();
-            return result;
-            }
-        }
-    
-    // next, try finding the data dir referenced from the executable file location
-    // this should work every time, but leave the other methods for fallback
-    string exepath = getExePath();
-    
-    // typical installation
-    if (exists(path(exepath) / ".." / "share" / "hoomd" / "hoomd_data_dir"))
-       return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
-
-    // try the source directory next, to ensure that any current source is used over
-    // an older installed version
-    if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / "hoomd_data_dir"))
-        return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
-        
-#ifdef WIN32
-    // access the registry key
-    string name = string("hoomd ") + string(HOOMD_VERSION);
-    string reg_path = "SOFTWARE\\University of Michigan\\" + name;
-    
-    char *value = new char[1024];
-    LONG value_size = 1024;
-    LONG err_code = RegQueryValue(HKEY_LOCAL_MACHINE, reg_path.c_str(), value, &value_size);
-    // see if it installed where the reg key says so
-    if (err_code == ERROR_SUCCESS)
-        {
-        path install_dir = path(string(value));
-        if (exists(install_dir / "hoomd_data_dir"))
-            return (install_dir).string();
-        }
-    delete[] value;
-#else
-    // check a few likely installation locations
-    if (exists("/usr/share/hoomd/hoomd_data_dir"))
-        return "/usr/share/hoomd";
-    if (exists("/usr/local/share/hoomd/hoomd_data_dir"))
-        return "/usr/local/share/hoomd";
-#endif
-        
-    cerr << endl 
-         << "***Error! HOOMD data directory not found, please set the environment variable HOOMD_ROOT" 
-         << endl << endl;
-    return string("");
-    }
-
 //! Scans for a VMD installation
 /*! \returns Full path to the vmd executable
     This function is for use by the demos and benchmarks installed with HOOMD.
@@ -237,6 +177,9 @@ string find_vmd()
     
     // find VMD through the registry
     vector<string> reg_paths;
+    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.1");
+    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.0");
+    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9");
     reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.7");
     reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.6");
     
@@ -285,12 +228,10 @@ string find_vmd()
         return "/usr/local/bin/vmd";
     if (exists("/opt/vmd/bin/vmd"))
         return "/opt/vmd/bin/vmd";
-    if (exists(path("/Applications/3rd Party Apps/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check )))
-        return("/Applications/3rd Party Apps/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
+    if (exists(path("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+        return("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
     if (exists(path("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
         return("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-    if (exists(path("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check )))
-        return("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
     if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
         return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
 #endif
@@ -305,11 +246,7 @@ string find_vmd()
 string get_hoomd_version()
     {
     ostringstream ver;
-    // output the version info differently if this is tagged as a subversion build or not
     // always outputting main version number: #402
-    /* if (HOOMD_SUBVERSION_BUILD)
-        ver << "HOOMD-blue svnversion " << HOOMD_SVNVERSION;
-    else*/
     ver << "HOOMD-blue " << HOOMD_VERSION << endl;
         
     return ver.str();
@@ -341,7 +278,6 @@ BOOST_PYTHON_MODULE(hoomd)
     {
     // write out the version information on the module import
     output_version_info(false);
-    def("find_hoomd_data_dir", &find_hoomd_data_dir);
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
 
