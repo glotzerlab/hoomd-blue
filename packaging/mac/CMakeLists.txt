@@ -16,8 +16,13 @@ endif (ENABLE_CUDA)
 
 set(_libdirs ${Boost_LIBRARY_DIRS} ${_cuda_libdir})
 
-# fixup the bundle on install
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/fixup-bundle.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/fixup-bundle.cmake @ONLY)
-install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/fixup-bundle.cmake)
+
+install(CODE "include(${CMAKE_CURRENT_BINARY_DIR}/fixup-bundle.cmake)")
+
+# setup CPack for DragNDrop
+set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-10.6")
+set (CPACK_GENERATOR "DragNDrop")
+include(CPack)
 
 endif(ENABLE_APP_BUNDLE_INSTALL)

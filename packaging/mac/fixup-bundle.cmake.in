@@ -137,6 +137,6 @@ warning: cannot resolve item '${item}'
 
 endfunction(gp_resolve_item_override)
 
-fixup_bundle("@CMAKE_INSTALL_PREFIX@/HOOMD-blue.app"
-             "@CMAKE_INSTALL_PREFIX@/@BIN_INSTALL_DIR@/hoomd.so"
+fixup_bundle("${CMAKE_INSTALL_PREFIX}/HOOMD-blue.app"
+             "${CMAKE_INSTALL_PREFIX}/@BIN_INSTALL_DIR@/hoomd.so"
              "@_libdirs@")
