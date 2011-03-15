@@ -42,12 +42,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file PathUtils.h
+/*! \file PathUtils.cc
     \brief Simple functions for dealing with paths
 */
 
-#ifndef __PATH_UTILS_H__
-#define __PATH_UTILS_H__
+//! Enable old boost::filesystem API (temporary fix)
+#define BOOST_FILESYSTEM_VERSION 2
 
 #include <stdlib.h>
 #include <string>
@@ -65,8 +65,53 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 
-//! Get the path this executable is in
-std::string getExePath();
+#include "PathUtils.h"
 
-#endif
+/*! \returns The path
+    getExePath uses different methods on different platforms. It identifies the real file for the running executable.
+*/
+std::string getExePath()
+    {
+    // exe path identification from: http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
+    std::string result;
+
+    #ifdef __APPLE__
+    // ask darwin what our exe path is
+    char buf[1024];
+    memset(buf, 0, 1024);
+    uint32_t bufsize = 1024;
+    int retval = _NSGetExecutablePath(buf, &bufsize);
+    if (retval != 0)
+        throw std::runtime_error("Unable to determine executable path");
+
+    // turn it into a real path
+    char *realbuf = realpath(buf, NULL);
+    result = std::string(realbuf);
+    free(realbuf);
+    
+    #elif __linux__
+    char buf[1024];
+    memset(buf, 0, 1024);
+    size_t bufsize = 1024;
+    size_t retval = readlink("/proc/self/exe", buf, bufsize);
+
+    if (retval == size_t(-1))
+        throw std::runtime_error("Unable to determine executable path");
+
+    result = std::string(buf);
+    
+    #elif WIN32
+    #error Not implemented
+    // see the above link for a howto on implementing this. Not a high priority to do so because windows is deprecated
+    #else
+    #error Not implemented
+    #endif
+
+    // the above routines get the actual executable. Return the path to it
+    #if (BOOST_VERSION <= 103500)
+    return boost::filesystem::path(result).branch_path().native_file_string();
+    #else
+    return boost::filesystem::path(result).parent_path().native_file_string();
+    #endif
+    }
 
