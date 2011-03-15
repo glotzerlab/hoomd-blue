@@ -9,4 +9,4 @@ then
     shift
 fi
 
-osascript -e "tell application \"Terminal\" to do script \"${appdir}/../bin/hoomd $*;exit\"" >/dev/null <<EOF
+osascript -e "tell application \"Terminal\" to do script \"${appdir}/hoomd $*;exit\"" >/dev/null <<EOF

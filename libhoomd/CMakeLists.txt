@@ -60,7 +60,11 @@ if (NOT ENABLE_STATIC)
 
     # set the rpath so that the lib can find other libs stashed in lib/hoomd
     set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../../hoomd")
+    
+    # for non-app-bundle relocatable installs, set the install name of the lib for linking relative to bin/
+    if (NOT ENABLE_APP_BUNDLE_INSTALL)
     set_target_properties(libhoomd PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib/hoomd/python-module")
+    endif (NOT ENABLE_APP_BUNDLE_INSTALL)
 endif (NOT ENABLE_STATIC)
 
 if (ENABLE_STATIC)
@@ -72,6 +76,7 @@ if (ENABLE_STATIC)
     endif(WIN32)
 endif (ENABLE_STATIC)
 
+# due to the way that app bundle installs work with relative linking, hoomd.so must be installed into the bin dir, ugh!
 if (ENABLE_APP_BUNDLE_INSTALL)
 set(_hoomd_so_install_dir ${BIN_INSTALL_DIR})
 else (ENABLE_APP_BUNDLE_INSTALL)

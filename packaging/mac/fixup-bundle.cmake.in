@@ -1,7 +1,3 @@
-set(CMAKE_MODULE_PATH 
-    @CMAKE_CURRENT_SOURCE_DIR@
-    )
-
 include(BundleUtilities)
 
 # due to the strange way that gp_resolve_item_override works, need to copy in the whole darn function
