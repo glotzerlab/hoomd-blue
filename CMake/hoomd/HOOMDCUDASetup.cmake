@@ -22,11 +22,7 @@ if (SINGLE_PRECISION)
             mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
         endif (CUDA_TOOLKIT_ROOT_DIR)
         mark_as_advanced(CUDA_VERBOSE_BUILD)
-
-        # define _DEVICEEMU in emulation mode
-        if (CUDA_BUILD_EMULATION)
-            add_definitions(-D_DEVICEEMU)
-        endif (CUDA_BUILD_EMULATION)
+        mark_as_advanced(CUDA_BUILD_EMULATION)
     endif (ENABLE_CUDA)
 endif (SINGLE_PRECISION)
 
