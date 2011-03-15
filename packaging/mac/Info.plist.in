@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>HOOMD-blue</string>
 	<key>CFBundleIconFile</key>
-	<string>${MACOSX_BUNDLE_ICON_FILE}</string>
+	<string>HOOMD-blue</string>
 	<key>CFBundleIdentifier</key>
 	<string>edu.umich.hoomd-blue</string>
 	<key>CFBundleInfoDictionaryVersion</key>
