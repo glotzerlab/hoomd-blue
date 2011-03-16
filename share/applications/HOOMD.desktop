@@ -1,9 +1,9 @@
 [Desktop Entry]
-Comment=Launches the HOOMD Python interpreter
+Comment=Launches the HOOMD-blue Python interpreter
 Exec=hoomd %f
 Icon=hoomd
 MimeType=application/x-hoomd;
-Name=HOOMD
+Name=HOOMD-blue
 StartupNotify=false
 Terminal=true
 Type=Application

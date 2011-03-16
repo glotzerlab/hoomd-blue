@@ -38,51 +38,80 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 // $Id$
 // $URL$
 // Maintainer: joaander
 
-#include <iostream>
-#include <string>
-
-using namespace std;
-
-#include "HOOMDVersion.h"
-/*! \file HOOMDVersion.cc
-    \brief Defines functions for writing compile time version information to the screen.
-
-    \ingroup utils
+/*! \file PathUtils.cc
+    \brief Simple functions for dealing with paths
 */
 
-void output_version_info(bool verbose)
+//! Enable old boost::filesystem API (temporary fix)
+#define BOOST_FILESYSTEM_VERSION 2
+
+#include <stdlib.h>
+#include <string>
+#include <stdexcept>
+#include <iostream>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
+#ifdef UNIX
+#include <unistd.h>
+#endif
+
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
+
+#include "PathUtils.h"
+
+/*! \returns The path
+    getExePath uses different methods on different platforms. It identifies the real file for the running executable.
+*/
+std::string getExePath()
     {
-    // output the version info that comes from CMake
-    cout << "HOOMD-blue " << HOOMD_VERSION_LONG << endl;
-        
-    // output the compiled date and copyright information
-    cout << "Compiled: " << COMPILE_DATE << endl;
-    cout << "Copyright 2008, 2009 Ames Laboratory Iowa State University and the Regents of the University of Michigan" 
-         << endl;
+    // exe path identification from: http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
+    std::string result;
+
+    #ifdef __APPLE__
+    // ask darwin what our exe path is
+    char buf[1024];
+    memset(buf, 0, 1024);
+    uint32_t bufsize = 1024;
+    int retval = _NSGetExecutablePath(buf, &bufsize);
+    if (retval != 0)
+        throw std::runtime_error("Unable to determine executable path");
+
+    // turn it into a real path
+    char *realbuf = realpath(buf, NULL);
+    result = std::string(realbuf);
+    free(realbuf);
     
-    // output the paper citation information
-    cout << "-----" << endl;
-    cout << "http://codeblue.umich.edu/hoomd-blue/" << endl;
-    cout << "This code is the implementation of the algorithms discussed in:" << endl;
-    cout << "   Joshua A. Anderson, Chris D. Lorenz, and Alex Travesset - 'General" << endl;
-    cout << "   Purpose Molecular Dynamics Fully Implemented on Graphics Processing" << endl;
-    cout << "   Units', Journal of Computational Physics 227 (2008) 5342-5359" << endl;
-    cout << "-----" << endl;
+    #elif __linux__
+    char buf[1024];
+    memset(buf, 0, 1024);
+    size_t bufsize = 1024;
+    size_t retval = readlink("/proc/self/exe", buf, bufsize);
+
+    if (retval == size_t(-1))
+        throw std::runtime_error("Unable to determine executable path");
+
+    result = std::string(buf);
     
-    // warn the user if they are running a debug or GPU emulation build
-#ifndef NDEBUG
-    cout << "WARNING: This is a DEBUG build, expect slow performance." << endl;
-#endif
-    
-#ifdef ENABLE_CUDA
-#ifdef _DEVICEEMU
-    cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
-#endif
-#endif
+    #elif WIN32
+    #error Not implemented
+    // see the above link for a howto on implementing this. Not a high priority to do so because windows is deprecated
+    #else
+    #error Not implemented
+    #endif
+
+    // the above routines get the actual executable. Return the path to it
+    #if (BOOST_VERSION <= 103500)
+    return boost::filesystem::path(result).branch_path().native_file_string();
+    #else
+    return boost::filesystem::path(result).parent_path().native_file_string();
+    #endif
     }
 

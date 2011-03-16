@@ -104,7 +104,7 @@ generate. The makefile/IDE project is now updated with the newly selected option
  - \b ENABLE_OCELOT - compiles hoomd against ocelot instead of the CUDA runtime
  - \b ENABLE_OPENMP - enables the generation of a multi-core capable hoomd using OpenMP. Can only be enabled if your
         compiler supports OpenMP.
- - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
+ - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging.
  - \b ENABLE_ZLIB - Links hoomd to libz (must be available) and enables direct writing of zlib compressed files from dump.bin
  - \b SINGLE_PRECISION - Controls precision
  	- When set to \b ON, all calculations are performed in single precision.
@@ -112,16 +112,14 @@ generate. The makefile/IDE project is now updated with the newly selected option
  	- Must be set to \b ON to enable the \b ENABLE_CUDA option (HOOMD-blue has not yet been updated to perform double precision calculations)
 
 There are a few options for controlling the CUDA compilation.
- - \b CUDA_ARCH	- Sets the GPU architecture to compile for. Parts of HOOMD-blue will run significantly faster 
- 		when run on compute 1.1 or newer GPUs, but only if hoomd is compiled for that that target. The
-		CUDA programming guide has a nice list of which GPUs are which compute version in Appendix A.
-		- \b 10 - compile for compute 1.0 and newer devices. Executable will run on all CUDA GPUs, but no fast
-			code paths are activated.
-		- \b 11 - compile for compute 1.1 and newer devices. Some faster code paths are activated.
-		- \b 12 - compile for compute 1.2 and newer devices. 
-		- \b 13 - compile for compute 1.3 and newer devices. Allows double precision calculations.
+ - \b CUDA_ARCH_LIST - A semicolon separated list of GPU architecture to compile in. Portions of HOOMD are optimized for specific
+                       hardware architectures, but those optimizations are only activated when they are compiled in.
+                       By default, all known architectures supported by the installed CUDA toolkit are activated in the list.
+                       There is no disadvantage to doing so, except perhaps a slightly larger executable size and compile times.
+                       The CUDA programming guide contains list of which GPUs are which compute version in Appendix A.
+                       Note: while sm_21 is a hardware architecture, nvcc does not treat it differently from sm_20. 20
+                       should not be added to CUDA_ARCH_LIST.
  - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.
- - \b CUDA_BUILD_EMULATION - Set to ON to have CUDA emulate the GPU in software. This is extremely slow.
  - \b NVCC_FLAGS - Allows additional flags to be passed to nvcc.
 
 The following are advanced variables, and thus will only show when CMake's advanced mode is turned on.

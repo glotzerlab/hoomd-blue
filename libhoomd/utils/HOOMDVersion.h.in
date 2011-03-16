@@ -48,8 +48,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Full text HOOMD version string
 #define HOOMD_VERSION "${HOOMD_VERSION}"
-//! Text string containing the version determined by svnversion
-#define HOOMD_SVNVERSION "${SVNVERSION}"
+//! Full text HOOMD version string 
+#define HOOMD_VERSION_LONG "${HOOMD_VERSION_LONG}"
 //! Text string containing the date this build was configured
 #define COMPILE_DATE "${COMPILE_DATE}"
 //! Set to 1 if this is built from a subversion checkout

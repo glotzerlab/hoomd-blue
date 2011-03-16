@@ -3,26 +3,34 @@ cd  ../
 svn up
 
 #check  the previous version built
-atrev=$(cat packaging/deb_old_version)
-if [ "$atrev" -eq "$(svnversion . )" ];then
+export atrev="$(cat ../deb_old_version)"
+export old_ver="$(svnversion . )"
+echo $atrev
+echo $old_ver
+if [ $atrev =  $old_ver ];then
 	echo "up to date"
 else
-#get what architecture we're building on.
-	export deb_arch=$(dpkg-architecture -qDEB_BUILD_GNU_CPU)
-	if [ "$(dpkg-architecture -qDEB_BUILD_ARCH_BITS )" == "64" ] 2>/dev/null ; 
-		then export lib_suffix="64" ;	fi
-#remove old traces of building packages
+	echo "commence building"
 	rm -r debian/*
-	echo $(svnversion .) > packaging/deb_old_version
-#create build directory to move cuda libs to
-	export deb_build_folder="obj-$(dpkg-architecture -qDEB_BUILD_GNU_CPU)-linux-gnu" 
-	mkdir -p  ${deb_build_folder}/usr/lib${lib_suffix}
-
-#make sure cuda libs are  where we want it
-	cp /usr/local/cuda/lib/libcudart.so*  ${deb_build_folder}/usr/lib${lib_suffix}
-	cp /usr/local/cuda/lib/libcudafft.so* ${deb_build_folder}/usr/lib${lib_suffix}
-
 	cp -r packaging/debian ./
+#get what architecture we're building on.
+	if [ `arch` = "x86_64" ]
+		then
+#patch debian folder for 64 bit
+		echo "patching 64bit"
+		export lib_suffix="64"
+		sed -i s/i386/amd64/ debian/control
+		sed -i s/i386/amd64/ debian/files
+	else
+#patch debian folder for building on i386
+		echo "patching 32bit"
+		export lib_suffix=""
+		sed -i s/amd64/i386/ debian/control
+		sed -i s/and64/i386/ debian/files
+
+fi
+#set the version we just setup for in deb_old_version so it won't be built again
+	echo $(svnversion .) > ../deb_old_version
 
 #export the variables to set the version from svn
 	export HSVN_VERSION=$(svnversion . )
@@ -30,7 +38,11 @@ else
 	echo $HVERSION
 #set our package version in changelog
 	sed s/HVERSION/${HVERSION}/ debian/changelog -i
-
 #call package builder
 	dpkg-buildpackage
+#move files to be uploaded
+	cd ..
+	cp deb_old_version deb_version${lib_suffix}
+	scp deb_version${lib_suffix} joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
+	scp hoomd-blue_${HVERSION}*.deb joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
 fi
