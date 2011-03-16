@@ -18,7 +18,7 @@ else(ENABLE_STATIC)
 endif(ENABLE_STATIC)
 
 # setup some additional boost versions so that the newest versions of boost will be found
-set(Boost_ADDITIONAL_VERSIONS "1.45.1;1.45.0;1.45;1.44.1;1.44.0;1.44;1.43.1;1.43.0;1.43;1.42.1;1.42.0;1.42;1.41.0;1.41;1.41;1.40.0;1.40;1.39.0;1.39;1.38.0;1.38")
+set(Boost_ADDITIONAL_VERSIONS "1.46;1.46.0;1.45.1;1.45.0;1.45;1.44.1;1.44.0;1.44;1.43.1;1.43.0;1.43;1.42.1;1.42.0;1.42;1.41.0;1.41;1.41;1.40.0;1.40;1.39.0;1.39;1.38.0;1.38")
 
 # first, see if we can get any supported version of Boost
 find_package(Boost 1.32.0 COMPONENTS thread filesystem python signals program_options unit_test_framework iostreams REQUIRED)

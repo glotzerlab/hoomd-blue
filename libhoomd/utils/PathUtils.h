@@ -38,51 +38,36 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 // $Id$
 // $URL$
 // Maintainer: joaander
 
-#include <iostream>
-#include <string>
-
-using namespace std;
-
-#include "HOOMDVersion.h"
-/*! \file HOOMDVersion.cc
-    \brief Defines functions for writing compile time version information to the screen.
-
-    \ingroup utils
+/*! \file PathUtils.h
+    \brief Simple functions for dealing with paths
 */
 
-void output_version_info(bool verbose)
-    {
-    // output the version info that comes from CMake
-    cout << "HOOMD-blue " << HOOMD_VERSION_LONG << endl;
-        
-    // output the compiled date and copyright information
-    cout << "Compiled: " << COMPILE_DATE << endl;
-    cout << "Copyright 2008, 2009 Ames Laboratory Iowa State University and the Regents of the University of Michigan" 
-         << endl;
-    
-    // output the paper citation information
-    cout << "-----" << endl;
-    cout << "http://codeblue.umich.edu/hoomd-blue/" << endl;
-    cout << "This code is the implementation of the algorithms discussed in:" << endl;
-    cout << "   Joshua A. Anderson, Chris D. Lorenz, and Alex Travesset - 'General" << endl;
-    cout << "   Purpose Molecular Dynamics Fully Implemented on Graphics Processing" << endl;
-    cout << "   Units', Journal of Computational Physics 227 (2008) 5342-5359" << endl;
-    cout << "-----" << endl;
-    
-    // warn the user if they are running a debug or GPU emulation build
-#ifndef NDEBUG
-    cout << "WARNING: This is a DEBUG build, expect slow performance." << endl;
+#ifndef __PATH_UTILS_H__
+#define __PATH_UTILS_H__
+
+#include <stdlib.h>
+#include <string>
+#include <stdexcept>
+#include <iostream>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
 #endif
-    
-#ifdef ENABLE_CUDA
-#ifdef _DEVICEEMU
-    cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
+
+#ifdef __linux__
+#include <unistd.h>
+#include <string.h>
 #endif
+
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
+
+//! Get the path this executable is in
+std::string getExePath();
+
 #endif
-    }
 
