@@ -7,6 +7,9 @@ if (APPLE)
 option(ENABLE_APP_BUNDLE_INSTALL "Enable installation of an app bundle installation" OFF)
 endif(APPLE)
 
+option(ENABLE_EMBED_CUDA "Enable embedding of the CUDA libraries into lib/hoomd" OFF)
+mark_as_advanced(ENABLE_EMBED_CUDA)
+
 # setup flags to specify installation directories for files, these differ in
 # linux and windows
 if (WIN32)
