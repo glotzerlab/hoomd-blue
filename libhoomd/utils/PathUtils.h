@@ -58,8 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mach-o/dyld.h>
 #endif
 
-#ifdef UNIX
+#ifdef __linux__
 #include <unistd.h>
+#include <string.h>
 #endif
 
 #include <boost/filesystem/operations.hpp>
