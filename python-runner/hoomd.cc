@@ -43,10 +43,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
+// temporarily work around issues with the new boost fileystem libraries
+// http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
+
+//! Enable old boost::filesystem API (temporary fix)
+#define BOOST_FILESYSTEM_VERSION 2
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
 #endif
+
 
 #include <boost/python.hpp>
 
@@ -54,6 +61,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/convenience.hpp>
 
 using namespace boost::filesystem;
+
+#include "PathUtils.h"
+#include "HOOMDVersion.h"
 
 #include <string>
 #include <sstream>
@@ -68,23 +78,16 @@ using namespace std;
 //! forward declaration of the inithoomd function that inits the python module from hoomd_module.cc
 extern "C" void inithoomd();
 
-//! bring in the find_hoomd_data_dir from the python module
-string find_hoomd_data_dir();
-
 //! A simple method for finding the hoomd_script python module
 string find_hoomd_script()
     {
-    path hoomd_data_dir(find_hoomd_data_dir());
+    // this works on the requirement in the hoomd build scripts that the python module is always
+    // installed in lib/hoomd/python-module on linux and mac. On windows, it actually ends up in bin/python-module
+    path exepath = path(getExePath());
     list<path> search_paths;
-    search_paths.push_back(hoomd_data_dir / "bin/python-module");
-    search_paths.push_back(hoomd_data_dir / "lib/python-module");
-    search_paths.push_back(hoomd_data_dir / "lib/hoomd/python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / "python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / "lib/python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / "lib/hoomd/python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / ".." / "python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / ".." / "lib/python-module");
-    search_paths.push_back(hoomd_data_dir / ".." / ".." / "lib/hoomd/python-module");
+    search_paths.push_back(exepath / "python-module");                            // windows
+    search_paths.push_back(exepath / ".." / "lib" / "hoomd" / "python-module");   // linux/mac
+    search_paths.push_back(path(HOOMD_SOURCE_DIR) / "python-module");             // from source builds
     
     list<path>::iterator cur_path;
     for (cur_path = search_paths.begin(); cur_path != search_paths.end(); ++cur_path)
@@ -92,9 +95,15 @@ string find_hoomd_script()
         if (exists(*cur_path / "hoomd_script" / "__init__.py"))
             return cur_path->native_file_string();
         }
+        
     cerr << endl 
-         << "***Error! HOOMD python-module directory not found. Check your HOOMD directory file structure near " 
-         << hoomd_data_dir.string() << endl << endl;
+         << "***Error! HOOMD python-module directory not found. Check your HOOMD directory structure." << endl;
+    cerr << "Searched for hoomd_script in:" << endl;
+    for (cur_path = search_paths.begin(); cur_path != search_paths.end(); ++cur_path)
+        {
+        cerr << cur_path->native_file_string() << endl;
+        }
+    
     return "";
     }
 
@@ -105,18 +114,31 @@ string find_hoomd_script()
 */
 int main(int argc, char **argv)
     {
+    if (argc == 1)
+        {
+        // This shell is an interactive launch with no arguments
+        cout << "Launching intractive python shell now.... run \"from hoomd_script import *\" to load the HOOMD-blue python module" << endl << endl;
+        }
+
     char module_name[] = "hoomd";
     PyImport_AppendInittab(module_name, &inithoomd);
     Py_Initialize();
     
-    // Need to inject the hoomd module path into sys.path
+    // Need to inject the hoomd module path and the plugins dir into sys.path
+    string python_cmds("import sys\n");
+    if (getenv("HOOMD_PLUGINS_DIR"))
+        {
+        string hoomd_plugins_dir = string(getenv("HOOMD_PLUGINS_DIR"));
+        python_cmds += string("sys.path.append(r\"") + hoomd_plugins_dir + string("\")\n");
+        cout << "Notice: Using hoomd plugins in " << hoomd_plugins_dir << endl;
+        }
+        
     string hoomd_script_dir = find_hoomd_script();
     if (hoomd_script_dir != "")
         {
-        string python_cmds("import sys\n");
         python_cmds += string("sys.path.append(r\"") + hoomd_script_dir + string("\")\n");
-        PyRun_SimpleString(python_cmds.c_str());
         }
+    PyRun_SimpleString(python_cmds.c_str());
         
     int retval = Py_Main(argc, argv);
     

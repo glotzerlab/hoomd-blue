@@ -1,10 +1,11 @@
 %global release		%(svn info http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk|grep Revision |awk '{print $2}')
 %global libname		lib%(uname -m |sed -n 's/.*64$/64/p')
+%global libsuffix   %(uname -m |sed -n 's/.*64$/64/p')
 %define pyver		%( rpm -q --qf \%\{version\} python |awk -F. '{print $1"."$2}' )
 %global python			python%{pyver}
 
 BuildRoot:		%{_tmppath}/%{name}-root
-Summary: 		Highly Object Oriented Molecular Dynamics package
+Summary: 		Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
 License: 		various
 Name: 			hoomd
 Version: 		0.9.1
@@ -35,7 +36,7 @@ if [ $? -ne 0 ]; then
   exit $?
 fi
 
-cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DENABLE_NATIVE_INSTALL=ON -DPYTHON_SITEDIR=%{libname}/%{python}/site-packages -DPYTHON_INCLUDE_DIR=/usr/include/%{python} -DPYTHON_LIBRARY=/usr/%{libname}/lib%{python}.so.1.0
+cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DLIB_SUFFIX=%{libsuffix} -DENABLE_EMBED_CUDA=ON -DPYTHON_SITEDIR=%{libname}/%{python}/site-packages -DPYTHON_INCLUDE_DIR=/usr/include/%{python} -DPYTHON_LIBRARY=/usr/%{libname}/lib%{python}.so.1.0
 
 %build
 cd $RPM_BUILD_DIR/%{name}-%{version}
@@ -43,30 +44,12 @@ make
 make preinstall
 
 %install
-CUDART=`ldd libhoomd/hoomd.so |grep cudart|awk '{print $3}'`
-LOCALCUDA=%{prefix}/%{libname}/`basename $CUDART`
-HOOMDCUDA=%{prefix}/%{libname}/hoomd/`basename $CUDART`
 rm -rf $RPM_BUILD_ROOT
 
 rm -f fluid-file-list
 echo "/usr/%{libname}/%{python}/site-packages/hoomd.so" >> fluid-file-list
 echo "/usr/%{libname}/%{python}/site-packages/hoomd_plugins" >> fluid-file-list
 echo "/usr/%{libname}/%{python}/site-packages/hoomd_script" >> fluid-file-list
-
-mkdir -p $RPM_BUILD_ROOT/usr/%{libname}/hoomd/
-cp $CUDART $RPM_BUILD_ROOT/usr/%{libname}/hoomd/
-cat > $RPM_BUILD_ROOT/usr/%{libname}/hoomd/mklink <<EOF
-if [ ! -e $LOCALCUDA ] ; then
-	ln -s $HOOMDCUDA $LOCALCUDA
-fi
-EOF
-cat > $RPM_BUILD_ROOT/usr/%{libname}/hoomd/rmlink <<EOF
-if [ -L $LOCALCUDA ]
-	if ( ls -l $LOCALCUDA |grep -q $HOOMDCUDA ) ;
-		then rm $LOCALCUDA
-	fi
-fi
-EOF
 echo "/usr/%{libname}/hoomd" >> fluid-file-list
 
 make install
@@ -74,10 +57,8 @@ make install
 rm -rf $RPM_BUILD_ROOT
 
 %post
-sh %{prefix}/%{libname}/hoomd/mklink
 
 %postun
-sh %{prefix}/%{libname}/hoomd/rmlink
 
 %files -f fluid-file-list
 %defattr(-,root,root)

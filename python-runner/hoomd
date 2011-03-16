@@ -8,6 +8,7 @@ fi
 
 if [ -n "$HOOMD_PLUGINS_DIR" ]
 then
+    echo "Notice: Using hoomd plugins in ${HOOMD_PLUGINS_DIR}"
     export PYTHONPATH="${HOOMD_PLUGINS_DIR}:${PYTHONPATH}"
 fi
 
