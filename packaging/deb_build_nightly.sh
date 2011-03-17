@@ -26,7 +26,7 @@ else
 		echo "patching 32bit"
 		export lib_suffix=""
 		sed -i s/amd64/i386/ debian/control
-		sed -i s/and64/i386/ debian/files
+		sed -i s/amd64/i386/ debian/files
 
 fi
 #set the version we just setup for in deb_old_version so it won't be built again
