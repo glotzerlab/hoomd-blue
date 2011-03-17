@@ -1,3 +1,5 @@
+echo "--- Building nightly Mac OS X hoomd package on `date`"
+
 # get up to the root of the tree
 cd ..
 cd ..
@@ -15,3 +17,5 @@ cmake -DENABLE_DOXYGEN=OFF -DENABLE_APP_BUNDLE_INSTALL=ON -DBOOST_ROOT=/opt/boos
 
 make package -j6
 mv hoomd-blue-*.dmg /Users/joaander/devel/incoming/mac
+echo "--- Done!"
+echo ""
