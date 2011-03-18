@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\">");
+        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"4\" >");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -770,7 +770,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"100\" dimensions=\"3\">");
+        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"100\" dimensions=\"3\" natoms=\"6\" >");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
