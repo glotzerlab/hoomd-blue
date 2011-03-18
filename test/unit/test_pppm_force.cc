@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: test_lj_force.cc 3453 2010-09-01 17:33:44Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/electrostatics/test/unit/test_pppm_force.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 #ifdef WIN32

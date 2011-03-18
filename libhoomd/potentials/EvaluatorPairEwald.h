@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: EvaluatorPairEwald.h 2862 2010-03-12 19:16:16Z joaander $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/EvaluatorPairEwald.h $
+// $Id$
+// $URL$
 // Maintainer: sbarr
 
 #ifndef __PAIR_EVALUATOR_EWALD_H__
@@ -184,3 +184,4 @@ class EvaluatorPairEwald
 
 
 #endif // __PAIR_EVALUATOR_EWALD_H__
+

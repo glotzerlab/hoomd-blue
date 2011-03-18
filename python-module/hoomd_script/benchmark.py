@@ -85,3 +85,4 @@ def series(warmup=100000, repeat=20, steps=10000):
         print "          Series TPS std dev: %4.2f" % numpy.std(tps_list);
     
     return tps_list;
+

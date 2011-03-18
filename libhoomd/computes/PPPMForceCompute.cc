@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: PPPMForceCompute.cc 2927 2010-04-14 13:31:03Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes/PPPMForceCompute.cc $
+// $Id$
+// $URL$
 // Maintainer: sbarr
 
 #ifdef WIN32

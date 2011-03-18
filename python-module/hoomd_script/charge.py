@@ -38,8 +38,8 @@
 #OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 #ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# $Id: charge.py 3644 2011-01-25 13:52:25Z joaander $
-# $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/electrostatics/python-module/hoomd_script/charge.py $
+# $Id$
+# $URL$
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 ## \package hoomd_script.charge
