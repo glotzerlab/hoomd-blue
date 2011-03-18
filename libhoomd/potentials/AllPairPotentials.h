@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairGauss.h"
 #include "EvaluatorPairYukawa.h"
+#include "EvaluatorPairEwald.h"
 #include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairMorse.h"
 #include "EvaluatorPairDPDThermo.h"
@@ -78,6 +79,8 @@ typedef PotentialPair<EvaluatorPairGauss> PotentialPairGauss;
 typedef PotentialPair<EvaluatorPairSLJ> PotentialPairSLJ;
 //! Pair potential force compute for yukawa forces
 typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
+//! Pair potential force compute for ewald forces
+typedef PotentialPair<EvaluatorPairEwald> PotentialPairEwald;
 //! Pair potential force compute for morse forces
 typedef PotentialPair<EvaluatorPairMorse> PotentialPairMorse;
 //! Pair potential force compute for dpd conservative forces
@@ -94,6 +97,8 @@ typedef PotentialPairGPU< EvaluatorPairGauss, gpu_compute_gauss_forces > Potenti
 typedef PotentialPairGPU< EvaluatorPairSLJ, gpu_compute_slj_forces > PotentialPairSLJGPU;
 //! Pair potential force compute for yukawa forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairYukawa, gpu_compute_yukawa_forces > PotentialPairYukawaGPU;
+//! Pair potential force compute for ewald forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairEwald, gpu_compute_ewald_forces > PotentialPairEwaldGPU;
 //! Pair potential force compute for morse forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairMorse, gpu_compute_morse_forces > PotentialPairMorseGPU;
 //! Pair potential force compute for dpd conservative forces on the GPU

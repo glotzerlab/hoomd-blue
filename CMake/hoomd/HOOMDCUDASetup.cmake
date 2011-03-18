@@ -57,7 +57,7 @@ if (ENABLE_EMBED_CUDA)
 
     # determine the directory of the found cuda libs
     get_filename_component(_cuda_libdir ${CUDA_CUDART_LIBRARY} PATH)
-    FILE(GLOB _cuda_libs "${_cuda_libdir}/lib*")
+    FILE(GLOB _cuda_libs ${_cuda_libdir}/libcudart* ${_cuda_libdir}/libcufft*)
     install(PROGRAMS ${_cuda_libs} DESTINATION ${LIB_INSTALL_DIR})
 
 endif (ENABLE_EMBED_CUDA)

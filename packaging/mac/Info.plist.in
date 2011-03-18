@@ -17,7 +17,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>${HOOMD_VERSION}</string>
+	<string>${HOOMD_VERSION_LONG}</string>
 	<key>CFBundleVersion</key>
 	<string>${SVNVERSION}</string>
 	<key>CSResourcesFileMapped</key>

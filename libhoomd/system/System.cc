@@ -374,10 +374,12 @@ boost::shared_ptr<Integrator> System::getIntegrator()
     run() can be called as many times as the user wishes:
     each time, it will continue at the time step where it left off.
 */
+
 void System::run(unsigned int nsteps, unsigned int cb_frequency,
                  boost::python::object callback, double limit_hours,
                  unsigned int limit_multiple)
     {    
+
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
     
