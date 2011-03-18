@@ -118,6 +118,7 @@ class xml(analyze._analyzer):
     # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
     # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
     # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml 
+    # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml 
     # file
     #
     # Using set_params() requires that the %dump was saved in a variable when it was specified.
@@ -148,13 +149,14 @@ class xml(analyze._analyzer):
                    angle=None,
                    dihedral=None,
                    improper=None,
-                   acceleration=None):
+                   acceleration=None,
+                   charge=None):
         util.print_status_line();
         self.check_initialization();
         
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
-            acceleration = body = True;
+            acceleration = charge = body = True;
 
         if position is not None:
             self.cpp_analyzer.setOutputPosition(position);
@@ -195,7 +197,9 @@ class xml(analyze._analyzer):
         if acceleration is not None:
             self.cpp_analyzer.setOutputAccel(acceleration);
             
-    ## Write a file at the current time step
+        if charge is not None:
+            self.cpp_analyzer.setOutputCharge(charge);
+   ## Write a file at the current time step
     #
     # \param filename File name to write to
     #

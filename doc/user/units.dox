@@ -34,6 +34,16 @@ value is actually a thermal energy \f$T = k_\mathrm{B} T_\mathrm{real}\f$ <i>in 
 \f$k_\mathrm{B}\f$ is uniquely determined by your choice of real units for distance, energy, and mass.
 
 <hr>
+<h2>Charge</h2>
+
+Charge also requires careful consideration. The unit of charge used in HOOMD-blue is also reduced, but cannot be
+completely represented using the 3 fundamental units - the permittivity of free space \f$ \varepsilon_0 \f$  also enters
+into the conversion, as does a scaling factor.
+
+Specifically, the units of charge are: \f$ (4 \pi \varepsilon_0 D_u E_u)^{1/2} \f$. Divide a given charge by this
+quantity to convert it into simulation units.
+
+<hr>
 <h2>Common derived units</h2>
 Here is a list of some commonly used derived units and how they relate to the fundamental ones.
  - time - \f$t_u = \sqrt{\frac{M_u D_u^2}{E_u}}\f$

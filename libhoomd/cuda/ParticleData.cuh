@@ -114,5 +114,6 @@ cudaError_t gpu_generate_pdata_test(const gpu_pdata_arrays &pdata);
 //! Read from the pos texture and write into the vel array (for unit testing)
 cudaError_t gpu_pdata_texread_test(const gpu_pdata_arrays &pdata);
 
+
 #endif
 

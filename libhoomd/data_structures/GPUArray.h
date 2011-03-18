@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ExecutionConfiguration.h"
-
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>

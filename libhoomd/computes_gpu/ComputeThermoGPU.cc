@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoGPU.cuh"
+#include "PPPMForceGPU.cuh"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -67,6 +68,7 @@ using namespace std;
     \param group Subset of the system over which properties are calculated
     \param suffix Suffix to append to all logged quantity names
 */
+
 ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ParticleGroup> group,
                                    const std::string& suffix)
@@ -88,7 +90,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
 
 /*! Computes all thermodynamic properties of the system in one fell swoop, on the GPU.
-*/
+ */
 void ComputeThermoGPU::computeProperties()
     {
     unsigned int group_size = m_group->getNumMembers();
@@ -105,6 +107,7 @@ void ComputeThermoGPU::computeProperties()
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
+    { // scope these array handles so they are released before the additional terms are added
     // access the net force, pe, and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
@@ -138,17 +141,57 @@ void ComputeThermoGPU::computeProperties()
         CHECK_CUDA_ERROR();
     
     m_pdata->release();
+    }
+
+    if(PPPMData::compute_pppm_flag) {
+        Scalar2 pppm_thermo = ComputeThermoGPU::PPPM_thermo_compute();
+        ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::readwrite);
+        h_properties.data[thermo_index::pressure] += pppm_thermo.x;
+        h_properties.data[thermo_index::potential_energy] += pppm_thermo.y;
+        PPPMData::pppm_energy = pppm_thermo.y;
+        }
 
     if (m_prof) m_prof->pop();
+    }
+
+
+Scalar2 ComputeThermoGPU::PPPM_thermo_compute()
+    {
+
+    gpu_boxsize box = m_pdata->getBoxGPU();
+
+    ArrayHandle<cufftComplex> d_rho_real_space(PPPMData::m_rho_real_space, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_green_hat(PPPMData::m_green_hat, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_vg(PPPMData::m_vg, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar2> d_i_data(PPPMData::i_data, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar2> d_o_data(PPPMData::o_data, access_location::device, access_mode::readwrite);
+
+    Scalar2 pppm_virial_energy =  gpu_compute_pppm_thermo(PPPMData::Nx,
+                                                          PPPMData::Ny,
+                                                          PPPMData::Nz,
+                                                          d_rho_real_space.data,
+                                                          d_vg.data,
+                                                          d_green_hat.data,
+                                                          d_o_data.data,
+                                                          d_i_data.data,
+                                                          256);
+
+    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * box.Lx * box.Ly * box.Lz);
+    pppm_virial_energy.y *= PPPMData::energy_virial_factor;
+    pppm_virial_energy.y -= PPPMData::q2 * PPPMData::kappa / 1.772453850905516027298168f;
+    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* box.Lx * box.Ly * box.Lz);
+
+    return pppm_virial_energy;
+
     }
 
 void export_ComputeThermoGPU()
     {
     class_<ComputeThermoGPU, boost::shared_ptr<ComputeThermoGPU>, bases<ComputeThermo>, boost::noncopyable >
-    ("ComputeThermoGPU", init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<ParticleGroup>,
-                         const std::string& >())
-    ;
+        ("ComputeThermoGPU", init< boost::shared_ptr<SystemDefinition>,
+         boost::shared_ptr<ParticleGroup>,
+         const std::string& >())
+        ;
     }
 
 #ifdef WIN32

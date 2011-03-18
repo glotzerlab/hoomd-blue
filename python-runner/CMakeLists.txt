@@ -5,7 +5,7 @@
 # handle native python installs separately from the others
 if (PYTHON_SITEDIR)
     # install the hoomd runner script to transparently process hoomd into python
-    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd
+    install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd
             DESTINATION ${BIN_INSTALL_DIR}
             )
 else (PYTHON_SITEDIR)

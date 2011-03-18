@@ -123,6 +123,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "PotentialPair.h"
+#include "PPPMForceCompute.h"
 
 
 // include GPU classes
@@ -153,6 +154,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
+#include "PPPMForceComputeGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -346,6 +348,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
     export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
     export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
+    export_PotentialPair<PotentialPairEwald>("PotentialPairEwald");
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
@@ -355,6 +358,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborList();
     export_NeighborListBinned();
     export_ConstraintSphere();
+    export_PPPMForceCompute();
 #ifdef ENABLE_CUDA
     export_CellListGPU();
     export_NeighborListGPU();
@@ -364,6 +368,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
+    export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>("PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
@@ -378,7 +383,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
-#endif    
+    export_PPPMForceComputeGPU();
+#endif
+    
     // analyzers
     export_Analyzer();
     export_IMDInterface();

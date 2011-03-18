@@ -18,11 +18,7 @@ else(DOXYGEN_DOT_PATH)
 endif(DOXYGEN_DOT_PATH)
 
 # setup version number to be included in the documentation
-if (HOOMD_SUBVERSION_BUILD)
-    set(DOXYGEN_HOOMD_VERSION "svnversion:${SVNVERSION}")
-else (HOOMD_SUBVERSION_BUILD)
-    set(DOXYGEN_HOOMD_VERSION ${HOOMD_VERSION})
-endif (HOOMD_SUBVERSION_BUILD)
+set(DOXYGEN_HOOMD_VERSION ${HOOMD_VERSION_LONG})
 
 # generate a list of source files to depend on
 file(GLOB_RECURSE _source_files

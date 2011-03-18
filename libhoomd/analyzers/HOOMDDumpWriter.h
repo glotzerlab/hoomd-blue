@@ -113,6 +113,8 @@ class HOOMDDumpWriter : public Analyzer
         void setOutputAccel(bool enable);
         //! Enables/disables the writing of body
         void setOutputBody(bool enable);
+        //! Enables/disables the writing of charge
+        void setOutputCharge(bool enable);
         
         //! Writes a file at the current time step
         void writeFile(std::string fname, unsigned int timestep);
@@ -131,6 +133,7 @@ class HOOMDDumpWriter : public Analyzer
         bool m_output_improper;     //!< true if impropers should be written
         bool m_output_accel;        //!< true if acceleration should be written
         bool m_output_body;         //!< true if body should be written
+        bool m_output_charge;         //!< true if body should be written
         };
 
 //! Exports the HOOMDDumpWriter class to python

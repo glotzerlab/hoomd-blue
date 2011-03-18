@@ -41,40 +41,76 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
+// Maintainer: sbarr
 
-#include "ComputeThermo.h"
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 )
+#endif
 
-/*! \file ComputeThermoGPU.h
-    \brief Declares a class for computing thermodynamic quantities on the GPU
+#include <cufft.h>
+#include "PPPMForceCompute.h"
+#include "PPPMForceGPU.cuh"
+#include "NeighborList.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
+
+/*! \file PPPMForceComputeGPU.h
+    \brief Declares the PPPMForceGPU class
 */
 
-#ifndef __COMPUTE_THERMO_GPU_H__
-#define __COMPUTE_THERMO_GPU_H__
+#ifndef __PPPMFORCECOMPUTEGPU_H__
+#define __PPPMFORCECOMPUTEGPU_H__
 
-//! Computes thermodynamic properties of a group of particles on the GPU
-/*! ComputeThermoGPU is a GPU accelerated implementation of ComputeThermo
+//! Implements the harmonic bond force calculation on the GPU
+/*! PPPMForceComputeGPU implements the same calculations as PPPMForceCompute,
+    but executing on the GPU.
+
+    Per-type parameters are stored in a simple global memory area pointed to by
+    \a m_gpu_params. They are stored as float2's with the \a x component being K and the
+    \a y component being r_0.
+
+    The GPU kernel can be found in bondforce_kernel.cu.
+
     \ingroup computes
 */
-class ComputeThermoGPU : public ComputeThermo
+class PPPMForceComputeGPU : public PPPMForceCompute
     {
     public:
         //! Constructs the compute
-        ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<ParticleGroup> group,
-                         const std::string& suffix = std::string(""));
-        //! Computes the PPPM contribution to the system energy and virial
-        Scalar2 PPPM_thermo_compute();
+        PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                            boost::shared_ptr<NeighborList> nlist,
+                            boost::shared_ptr<ParticleGroup> group);
+        //! Destructor
+        ~PPPMForceComputeGPU();
+        
+        //! Sets the block size to run on the device
+        /*! \param block_size Block size to set
+         */
+        void setBlockSize(int block_size)
+            {
+            m_block_size = block_size;
+            }
+            
+        //! Set the parameters
+        virtual void setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut);
+
+
     protected:
-        GPUArray<float4> m_scratch;  //!< Scratch space for partial sums
-        unsigned int m_num_blocks;   //!< Number of blocks participating in the reduction
-        unsigned int m_block_size;   //!< Block size executed
-        //! Does the actual computation
-        virtual void computeProperties();
+        int m_block_size;                    //!< Block size to run calculation on
+        cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
+
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
     };
 
-//! Exports the ComputeThermoGPU class to python
-void export_ComputeThermoGPU();
+//! Export the BondForceComputeGPU class to python
+void export_PPPMForceComputeGPU();
 
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif
 

@@ -1,6 +1,7 @@
-%global release		%(svn info http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk|grep Revision |awk '{print $2}')
-%global libname		lib%(uname -m |sed -n 's/.*64$/64/p')
-%global libsuffix   %(uname -m |sed -n 's/.*64$/64/p')
+%global release		%{?release}%{!?release:%(svn info http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk|grep Revision |awk '{print $2}')}
+# the Red Hat convention is to put 64-bit libs in lib64
+%global libsuffix   %(uname -p |sed -n 's/.*64$/64/p')
+%global libname		lib%(uname -p |sed -n 's/.*64$/64/p')
 %define pyver		%( rpm -q --qf \%\{version\} python |awk -F. '{print $1"."$2}' )
 %global python			python%{pyver}
 
@@ -31,7 +32,7 @@ HOOMD-blue is a direct continuation of the project HOOMD, originally developed a
 rm -rf $RPM_BUILD_DIR/%{name}-%{version}
 
 %setup -T -c
-svn checkout http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk .
+svn checkout -r %{release} http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk .
 if [ $? -ne 0 ]; then
   exit $?
 fi

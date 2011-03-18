@@ -73,6 +73,7 @@ A number of data nodes can be included inside the configuration node <b>in any o
  - \b velocity (\ref sec_xml_velocity)
  - \b mass (\ref sec_xml_mass)
  - \b diameter (\ref sec_xml_diameter)
+ - \b charge (\ref sec_xml_charge)
  - \b type (\ref sec_xml_type)
  - \b body (\ref sec_xml_body)
  - \b bond (\ref sec_xml_bond)
@@ -232,6 +233,29 @@ Version: 1.0 and newer
 \b Attributes:
  - \a num (\b optional) number of particles coming in the node content. This attribute is written by
 	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
+
+The format of the node data is the same as for \<position\> (see \ref sec_xml_position), except that only one value
+per particle is specified.
+
+<hr>
+
+\section sec_xml_charge Particle charges
+The \<charge\> node sets the charge of each particle in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node (all charges default to 0.0 if it is not specified).<br>
+Version: 1.3 and newer
+
+\b Example:
+\code
+<charge>
+1.0
+2.0
+-3.0
+</charge>
+\endcode
+\b Attributes:
+ - \a num (\b optional) number of particles coming in the node content. This attribute is written by
+    \link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
 
 The format of the node data is the same as for \<position\> (see \ref sec_xml_position), except that only one value
 per particle is specified.
