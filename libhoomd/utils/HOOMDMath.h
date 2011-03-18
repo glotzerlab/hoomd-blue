@@ -66,6 +66,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // files which define the vector types (float4, etc...)
 #include "cudacpu_vector_types.h"
 #include "cudacpu_vector_functions.h"
+
+typedef float2 cufftComplex;
 #endif
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc

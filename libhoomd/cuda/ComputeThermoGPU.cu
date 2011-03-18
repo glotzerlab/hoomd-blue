@@ -77,6 +77,7 @@ extern __shared__ float3 compute_thermo_sdata[];
     partial sums are written to d_scratch[blockIdx.x]. sizeof(float3)*block_size of dynamic shared memory are needed
     for this kernel to run.
 */
+
 __global__ void gpu_compute_thermo_partial_sums(float4 *d_scratch,
                                                 float4 *d_net_force,
                                                 float *d_net_virial,
@@ -243,6 +244,7 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
     
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
+
 cudaError_t gpu_compute_thermo(float *d_properties,
                                const gpu_pdata_arrays &pdata,
                                unsigned int *d_group_members,

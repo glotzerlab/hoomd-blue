@@ -79,7 +79,7 @@ HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), 
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), 
         m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false), 
-        m_output_dihedral(false), m_output_improper(false), m_output_accel(false)
+        m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_charge(false)
     {
     }
 
@@ -161,6 +161,13 @@ void HOOMDDumpWriter::setOutputAccel(bool enable)
     m_output_accel = enable;
     }
 
+/*! \param enable Set to true to output body to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputCharge(bool enable)
+    {
+    m_output_charge = enable;
+    }
+
 /*! \param fname File name to write
     \param timestep Current time step of the simulation
 */
@@ -184,7 +191,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     Lz=Scalar(box.zhi-box.zlo);
     
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    f << "<hoomd_xml version=\"1.2\">" << "\n";
+    f << "<hoomd_xml version=\"1.3\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" dimensions=\"" << m_sysdef->getNDimensions() << "\">" << "\n";
     f << "<box " << "lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << "\n";
 
@@ -429,6 +436,29 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "</wall>" << "\n";
         }
         
+    // If the charge flag is true output the mass of all particles to the file
+    if (m_output_charge)
+        {
+        f <<"<charge num=\"" << m_pdata->getN() << "\">" << "\n";
+        
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            // use the rtag data to output the particles in the order they were read in
+            int i;
+            i= arrays.rtag[j];
+            
+            Scalar charge = arrays.charge[i];
+            f << charge << "\n";
+            if (!f.good())
+                {
+                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
+            }
+            
+        f <<"</charge>" << "\n";
+        }
+
     f << "</configuration>" << "\n";
     f << "</hoomd_xml>" << "\n";
     
@@ -478,6 +508,7 @@ void export_HOOMDDumpWriter()
     .def("setOutputImproper", &HOOMDDumpWriter::setOutputImproper)
     .def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
     .def("setOutputAccel", &HOOMDDumpWriter::setOutputAccel)
+    .def("setOutputCharge", &HOOMDDumpWriter::setOutputCharge)
     .def("writeFile", &HOOMDDumpWriter::writeFile)
     ;
     }
