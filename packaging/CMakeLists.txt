@@ -7,7 +7,8 @@ set(CPACK_PACKAGE_VERSION_PATCH ${HOOMD_VERSION_PATCH})
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "hoomd")
 
 # the package name is upper case now, force it lower here to be pretty
-set(CPACK_PACKAGE_NAME "hoomd-blue")
+set(CPACK_PACKAGE_NAME "hoomd")
+set(CPACK_PACKAGE_VERSION "${HOOMD_VERSION_LONG}")
 
 #set(CPACK_RESOURCE_FILE_LICENSE "${HOOMD_SOURCE_DIR}/LICENSE")
 

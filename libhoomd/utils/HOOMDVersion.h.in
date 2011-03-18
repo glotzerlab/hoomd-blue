@@ -52,8 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOOMD_VERSION_LONG "${HOOMD_VERSION_LONG}"
 //! Text string containing the date this build was configured
 #define COMPILE_DATE "${COMPILE_DATE}"
-//! Set to 1 if this is built from a subversion checkout
-#define HOOMD_SUBVERSION_BUILD ${HOOMD_SUBVERSION_BUILD}
 //! Set to the src dir to be used as the root to read data files from
 #define HOOMD_SOURCE_DIR "${HOOMD_SOURCE_DIR}"
 
