@@ -41,13 +41,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 \b Contents:
  - \ref sec_system_req
  - \ref sec_install_hoomd_linux
+   - \ref sec_install_hoomd_linux_gentoo
+   - \ref sec_install_hoomd_linux_redhat
+   - \ref sec_install_hoomd_linux_ubuntu
  - \ref sec_install_hoomd_mac
+ - \ref sec_gpu_options
  
 <hr>
 
 \section sec_system_req System requirements
  - \b OS: 
-    - Supported Linux distributions - \b Recommended
+    - Linux - \b Recommended
         - Ubuntu 10.04
         - Fedora 13
         - Gentoo
@@ -59,18 +63,129 @@ THE POSSIBILITY OF SUCH DAMAGE.
            Tesla GPUs connected to it should have at least 16 GB of RAM.
  - \b GPU: (optional) A <a href=" http://www.nvidia.com/object/cuda_home.html">CUDA capable GPU</a> is required to run hoomd with
     GPU acceleration. Without one, hoomd will run on the CPU.
- - \b Software:
-   - Linux
-     - (if you have an NVIDIA GPU) NVIDIA Drivers version 260.19.26 or newer (http://www.nvidia.com)
-     - All other required software will be installed via package dependances
-   - Mac OS X
-     - (if you have an NVIDIA GPU) NVIDIA Developer Drivers version 3.2 or newer ( http://www.nvidia.com/object/cuda_get.html#MacOS )
-       <br>Note that once installed, the developer drivers can be updated via the CUDA panel in System Preferences.
-     - All other required software is included in the application bundle.
+ -  GPU \b Driver software (install only on systems with NVIDIA GPUs -- needed to enable GPUs for use with hoomd):
+   - Linux - NVIDIA Drivers version 260.19.26 or newer (http://www.nvidia.com)
+   - Mac OS X NVIDIA CUDA Drivers version 3.2 or newer ( http://www.nvidia.com/object/mac-driver-archive.html )
+
      
 VMD 1.9 or newer (http://www.ks.uiuc.edu/Research/vmd/) is not a requirement to run HOOMD-blue, but you may find it
 extremely useful in visualizing simulation results. VMD 1.9 includes native support for reading HOOMD-blue XML files.
 
+\section sec_install_hoomd_linux Installing HOOMD-blue in Linux
+
+\subsection sec_install_hoomd_linux_gentoo Gentoo Linux
+
+HOOMD-blue is currently available via the sunrise overlay for Gentoo. To enable the overlay for use on your
+system, see http://overlays.gentoo.org/proj/sunrise .
+
+ -# (if you have a NVIDIA GPU) <b>Install</b> the nvidia-drivers.
+    \code
+emerge nvidia-drivers
+    \endcode
+    You may need to perform some configuration: http://www.gentoo.org/doc/en/nvidia-guide.xml
+    
+ -# <b>Unmask</b> the latest version of hoomd (this only needs to be performed once on each computer).
+    \code
+echo "sci-chemistry/hoomd ~amd64" >> /etc/portage/package.keywords
+    \endcode
+ 
+ -# <b>Install</b> or <b>upgrade</b> hoomd.
+ 	\code
+emerge hoomd
+ 	\endcode
+ 
+ \subsection sec_install_hoomd_linux_redhat CentOS/RHEL/Fedora
+
+ -# (if you have a NVIDIA GPU) <b>Download</b> the latest drivers for your GPU from http://www.nvidia.com . 
+    <br><b>To install</b>, open a terminal, cd to the directory where you downloaded the file and then run
+    \code
+sudo bash NVIDIA-Linux-*.run
+    \endcode
+    Follow the on screen prompts to complete the installation.
+ -# <b>Download</b> the HOOMD-blue RPM package matching your linux distrubution from http://codeblue.umich.edu/hoomd-blue/download.html
+ -# To <b>install</b> or <b>upgrade</b> double click on the downloaded file, or
+    open a terminal, cd to the directory where you downloaded the
+    file and run
+ 	\code
+sudo yum localinstall hoomd-blue-0.9.2*.rpm
+    \endcode
+    
+If sudo is not configured on your system, su to root and execute the above commands without using sudo.
+
+ \subsection sec_install_hoomd_linux_ubuntu Ubuntu
+
+ -# (if you have a NVIDIA GPU) <b>Download</b> the latest drivers for your GPU from http://www.nvidia.com . 
+    <br><b>To install</b>, open a terminal, cd to the directory where you downloaded the file and then run
+    \code
+sudo bash NVIDIA-Linux-*.run
+    \endcode
+    Follow the on screen prompts to complete the installation.
+ -# <b>Download</b> the HOOMD-blue deb package matching your linux distrubution from http://codeblue.umich.edu/hoomd-blue/download.html
+ -# To <b>install</b> or <b>upgrade</b> double click on the downloaded file,
+    or open a terminal, cd to the directory where you downloaded the
+    file and run
+ 	\code
+sudo dpkg -i hoomd-blue-0.9.2*.deb
+sudo apt-get -f install
+    \endcode
+    
+ \subsection sec_install_hoomd_linux_homedir Home directory installation
+ -# If you do not have adminsitrator access or otherwise desire to install hoomd into your home directory,
+ it is recommended that you compile hoomd from source. See \ref page_compile_guide for detailed
+ information.
+
+The standard benchmark scripts serve as a good test of your installation. To run one of them, open a
+terminal and run:
+\code
+ cd /usr/share/hoomd/benchmarks
+ hoomd lj_liquid_bmark.hoomd
+ # ... watch the simulation run ...
+\endcode
+
+Check out the \ref page_quick_start to start learning how to use hoomd.
+
+<hr>
+
+\section sec_install_hoomd_mac Installing HOOMD-blue in Mac OS X
+
+ -# (if you have a NVIDIA GPU) <b>Download</b> the CUDA Drivers from http://www.nvidia.com/object/mac-driver-archive.html . 
+    <br><b>To install</b>, open Finder, navigate to the directory where you downloaded the file and double-click on it.
+    Follow the on screen prompts to complete the installation.
+    <br><br>
+ -# <b>Download</b> the HOOMD-blue dmg package from http://codeblue.umich.edu/hoomd-blue/download.html
+    <br><br>
+ -# <b>Double click</b> on the downloaded dmg file and drag the HOOMD-blue application to the desired location on
+    your hard drive to install it. The following instructions assume you install HOOMD-blue in /Applications
+    <br><br>
+ -# <b>Launch</b> HOOMD-blue by double clicking on the application. You may also drag it to your dock
+ 	and launch it from there. This will launch the HOOMD-blue python interpreter. (A launcher GUI is being considered for development
+    in the future).
+    <br><br>
+ -# Perform the following steps to prepare HOOMD-blue for use from the command line. <b>Open</b> a terminal window and
+    execute
+    \code
+ open ~/.bash_profile
+    \endcode
+    To open your ~/.bash_profile file.  Add this line to the end:
+    \code
+ alias hoomd="/Applications/HOOMD-blue.app/Contents/MacOS/hoomd"
+    \endcode
+    <i>Adjust</i> the name of the directory to <b>match the one you installed</b>.
+    The alias will only take effect in newly opened terminal windows.
+
+The standard benchmark scripts serve as a good test of your installation. To run one of them, open a
+terminal and run:
+\code
+ cd /Applications/HOOMD-blue.app/Contents/share/hoomd/benchmarks/
+ hoomd lj_liquid_bmark.hoomd
+ # ... watch the simulation run ...
+\endcode
+As before, <i>adjust</i> the name of the directory to <b>match the one you installed</b>. Run ls to see a list
+of other benchmarks you can run.
+
+Check out the \ref page_quick_start to start learning how to use hoomd.
+
+<hr>
 \section sec_gpu_options Supported GPUs
 
 A GPU is needed to take full advantage of hoomd's performance capabilities. 
@@ -92,9 +207,9 @@ GPUs.
 
 For GPU-ready desktops, there are many GPUs that are supported by HOOMD-blue 0.9.x.
 
-The following are consumer level GPUs marketed for gaming.
+The following are consumer level GPUs designed for gaming.
 - <a href="http://www.nvidia.com/object/product-geforce-gtx-580-us.html">GeForce GTX 580</a> - \b Recommended for performance desktops
-- <a href-"http://www.nvidia.com/object/product-geforce-gtx-570-us.html">GeForce GTX 570</a>
+- <a href="http://www.nvidia.com/object/product-geforce-gtx-570-us.html">GeForce GTX 570</a>
 - <a href="http://www.nvidia.com/object/product-geforce-gtx-560ti-us.html">GeForce GTX 560 Ti</a>
 - <a href="http://www.nvidia.com/object/product_geforce_gtx_480_us.html">GeForce GTX 480</a>
 - <a href="http://www.nvidia.com/object/product_geforce_gtx_470_us.html">GeForce GTX 470</a>
@@ -170,106 +285,4 @@ do not support laptops as a platform for long running hoomd simulations.
 GPUs newer than this document may also be supported. HOOMD-blue 0.9.x is tested and supported on the Fermi (GF100)
 and Tesla (G200) generations. All GPUs from these generations are supported.
 
-<hr>
-
-\section sec_install_hoomd_linux Installing HOOMD-blue in Linux
-
- -# <b>Download</b> the NVIDIA CUDA Toolkit appropriate for your system from http://www.nvidia.com/object/cuda_get.html . 
-    <br><b>To install</b>, open a terminal, cd to the directory where you downloaded the file and then run
-    \code
- sudo bash cudatoolkit_*.run
-    \endcode
-    Follow the on screen prompts to complete the installation. After installation, you need to place
-    the installed directories on your path. <b>Open</b> your ~/.bashrc file and add these lines to the end:
-    \code
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64:/usr/local/cuda/lib
-export PATH=${PATH}:/usr/local/cuda/bin
-\endcode
-    You will probably need to log out and back in for the path setting to take effect.
-    <br><br>
- -# (if you have an NVIDIA GPU) <b>Download</b> the latest drivers for your GPU from http://www.nvidia.com . 
-    <br><b>To install</b>, open a terminal, cd to the directory where you downloaded the file and then run
-    \code
-sudo bash NVIDIA-Linux-*.run
-    \endcode
-    Follow the on screen prompts to complete the installation.
-    <br><br>
- -# Before you download HOOMD-blue, check which python version you have by running 
- 	\code
- python -V
- 	\endcode
- 	in a terminal.
-    <br><br>
- -# <b>Download</b> the matching HOOMD-blue package from http://codeblue.umich.edu/hoomd-blue/download.html
-    <br><b>To install</b> to your <i>home directory</i>, open a terminal, cd to the directory where you downloaded the file
-    and then run
- 	\code
- tar -xvjpf hoomd-0.9.0-*.tar.bz2 -C ~/
- 	\endcode
- 	in a terminal. To <i>instead</i> install in a system directory for all users to access, extract into /opt by running
-  	\code
- sudo tar -xvjpf hoomd-0.9.0-*.tar.bz2 -C /opt
-    \endcode
-    <b>Open</b> your ~/.bashrc file and add this line to the end:
-    \code
- export PATH=${PATH}:${HOME}/hoomd-0.9.0-Linux-x86_64-Python2.5/bin
-    \endcode
-    <i>Adjust</i> the name of the directory to <b>match the one you installed</b>.
-    You will probably need to log out and back in for the path setting to take effect.
-
-\b Note: When upgrading to a new version of HOOMD-blue, update the lines you have already added to ~/.bashrc 
-instead of adding new ones.
-
-The standard benchmark scripts serve as a <b>good test</b> of your installation. To <b>run one of them</b>, open a
-terminal and run:
-\code
- cd ~/hoomd-0.9.0-Linux-x86_64-Python2.5/share/hoomd/benchmarks
- hoomd lj_liquid_bmark.hoomd
- # ... watch the simulation run ...
-\endcode
-As before, <i>adjust</i> the name of the directory to <b>match the one you installed</b>. Run ls to see a list
-of other benchmarks you can run.
-
-Check out the \ref page_quick_start to start learning how to use hoomd.
-
-<hr>
-
-\section sec_install_hoomd_mac Installing HOOMD-blue in Mac OS X
-
- -# (if you have an NVIDIA GPU) <b>Download</b> the Developer Drivers from http://www.nvidia.com/object/cuda_get.html#MacOS . 
-    <br><b>To install</b>, open Finder, navigate to the directory where you downloaded the file and double-click on it.
-    Follow the on screen prompts to complete the installation.
-    <br><br>
- -# <b>Download</b> the HOOMD-blue dmg package from http://codeblue.umich.edu/hoomd-blue/download.html
-    <br><br>
- -# <b>Double click</b> on the downloaded dmg file and drag the HOOMD-blue application to the desired location on
-    your hard drive to install it. The following instructions assume you install HOOMD-blue in /Applications
-    <br><br>
- -# <b>Launch</b> HOOMD-blue by double clicking on the application or by dragging it to your Dock and clicking on the 
-    dock icon. This will launch the HOOMD-blue python interpreter. (A launcher GUI is being considered for development
-    in the future).
-    <br><br>
- -# Perform the following steps to prepare HOOMD-blue for use from the command line. <b>Open</b> a terminal window and
-    execute
-    \code
- open ~/.bash_profile
-    \endcode
-    To open your ~/.bash_profile file.  Add this line to the end:
-    \code
- alias hoomd="/Applications/HOOMD-blue.app/Contents/MacOS/hoomd"
-    \endcode
-    <i>Adjust</i> the name of the directory to <b>match the one you installed</b>.
-    The alias will only take effect in newly opened terminal windows.
-
-The standard benchmark scripts serve as a <b>good test</b> of your installation. To <b>run one of them</b>, open a
-terminal and run:
-\code
- cd /Applications/HOOMD-blue.app/Contents/share/hoomd/benchmarks/
- hoomd lj_liquid_bmark.hoomd
- # ... watch the simulation run ...
-\endcode
-As before, <i>adjust</i> the name of the directory to <b>match the one you installed</b>. Run ls to see a list
-of other benchmarks you can run.
-
-Check out the \ref page_quick_start to start learning how to use hoomd.
 */
