@@ -44,6 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
    - \ref sec_install_hoomd_linux_gentoo
    - \ref sec_install_hoomd_linux_redhat
    - \ref sec_install_hoomd_linux_ubuntu
+   - \ref sec_install_hoomd_linux_homedir
  - \ref sec_install_hoomd_mac
  - \ref sec_gpu_options
  
@@ -83,12 +84,11 @@ system, see http://overlays.gentoo.org/proj/sunrise .
 emerge nvidia-drivers
     \endcode
     You may need to perform some configuration: http://www.gentoo.org/doc/en/nvidia-guide.xml
-    
- -# <b>Unmask</b> the latest version of hoomd (this only needs to be performed once on each computer).
+    <br><br>
+ -# <b>Unmask</b> the latest version of hoomd (this only needs to be performed once).
     \code
 echo "sci-chemistry/hoomd ~amd64" >> /etc/portage/package.keywords
     \endcode
- 
  -# <b>Install</b> or <b>upgrade</b> hoomd.
  	\code
 emerge hoomd
@@ -102,7 +102,17 @@ emerge hoomd
 sudo bash NVIDIA-Linux-*.run
     \endcode
     Follow the on screen prompts to complete the installation.
+    <br><br>
+ -# <b>Download</b> and <b>import</b> the GPG public key to validiate HOOMD-blue RPMs with the following
+ 	terminal commands.
+ 	\code
+ wget http://codeblue.umich.edu/hoomd-blue/downloads/RPM-GPG-KEY-joaander
+ sudo rpm --import RPM-GPG-KEY-joaander
+ 	\endcode
+ 	This step only needs to be performed once.
+ 	<br><br>
  -# <b>Download</b> the HOOMD-blue RPM package matching your linux distrubution from http://codeblue.umich.edu/hoomd-blue/download.html
+ <br><br>
  -# To <b>install</b> or <b>upgrade</b> double click on the downloaded file, or
     open a terminal, cd to the directory where you downloaded the
     file and run
@@ -110,7 +120,7 @@ sudo bash NVIDIA-Linux-*.run
 sudo yum localinstall hoomd-blue-0.9.2*.rpm
     \endcode
     
-If sudo is not configured on your system, su to root and execute the above commands without using sudo.
+If sudo is not configured on your system, su to root and execute the above commands without sudo.
 
  \subsection sec_install_hoomd_linux_ubuntu Ubuntu
 
@@ -120,7 +130,9 @@ If sudo is not configured on your system, su to root and execute the above comma
 sudo bash NVIDIA-Linux-*.run
     \endcode
     Follow the on screen prompts to complete the installation.
+    <br><br>
  -# <b>Download</b> the HOOMD-blue deb package matching your linux distrubution from http://codeblue.umich.edu/hoomd-blue/download.html
+ <br><br>
  -# To <b>install</b> or <b>upgrade</b> double click on the downloaded file,
     or open a terminal, cd to the directory where you downloaded the
     file and run
