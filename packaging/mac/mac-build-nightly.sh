@@ -30,7 +30,7 @@ else
     cmake -DENABLE_DOXYGEN=OFF -DENABLE_APP_BUNDLE_INSTALL=ON -DBOOST_ROOT=/opt/boost-1.46.0/ -DBoost_NO_SYSTEM_PATHS=ON -DPYTHON_EXECUTABLE=/usr/bin/python ../hoomd/
 
     make package -j6
-    mv hoomd-blue-*.dmg /Users/joaander/devel/incoming/mac
+    mv hoomd-*.dmg /Users/joaander/devel/incoming/mac
 fi
 
 echo "--- Done!"
