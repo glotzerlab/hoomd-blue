@@ -113,8 +113,8 @@ void HarmonicBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0
     m_r_0[type] = r_0;
     
     // check for some silly errors a user could make
-    if (K <= 0)
-        cout << "***Warning! K <= 0 specified for harmonic bond" << endl;
+    if (K < 0)
+        cout << "***Warning! K < 0 specified for harmonic bond" << endl;
     if (r_0 < 0)
         cout << "***Warning! r_0 <= 0 specified for harmonic bond" << endl;
     }

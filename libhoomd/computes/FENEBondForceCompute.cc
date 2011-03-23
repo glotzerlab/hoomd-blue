@@ -127,14 +127,14 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
     m_epsilon[type] = epsilon;
         
     // check for some silly errors a user could make
-    if (K <= 0)
-        cout << "***Warning! K <= 0 specified for fene bond" << endl;
-    if (r_0 <= 0)
-        cout << "***Warning! r_0 <= 0 specified for fene bond" << endl;
-    if (sigma <= 0)
-        cout << "***Warning! sigma <= 0 specified for fene bond" << endl;
-    if (epsilon <= 0)
-        cout << "***Warning! epsilon <= 0 specified for fene bond" << endl;
+    if (K < 0)
+        cout << "***Warning! K < 0 specified for fene bond" << endl;
+    if (r_0 < 0)
+        cout << "***Warning! r_0 < 0 specified for fene bond" << endl;
+    if (sigma < 0)
+        cout << "***Warning! sigma < 0 specified for fene bond" << endl;
+    if (epsilon < 0)
+        cout << "***Warning! epsilon < 0 specified for fene bond" << endl;
     }
 
 /*! BondForceCompute provides
@@ -213,7 +213,11 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         const Bond& bond = m_bond_data->getBond(i);
         assert(bond.a < m_pdata->getN());
         assert(bond.b < m_pdata->getN());
-        
+       
+        // if k == 0 for this bond, just skip it
+        if (m_K[bond.type] == Scalar(0.0))
+            continue;
+
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = arrays.rtag[bond.a];
