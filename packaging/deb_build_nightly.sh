@@ -44,5 +44,5 @@ fi
 	cd ..
 	cp deb_old_version deb_version${lib_suffix}
 	scp deb_version${lib_suffix} joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
-	scp hoomd-blue_${HVERSION}*.deb joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
+	scp hoomd-blue_${HVERSION}_$(dpkg-architecture -qDEB_BUILD_ARCH).deb joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
 fi
