@@ -135,6 +135,11 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
         // get the bond parameters (MEM TRANSFER: 8 bytes)
         float4 params = tex1Dfetch(bond_params_tex, cur_bond_type);
         float K = params.x;
+        
+        // if K == 0 for this bond, just skip it
+        if (K == 0.0f)
+            continue;
+
         float r_0 = params.y;
         // lj1 is defined as 4*epsilon*sigma^12
         float lj1 = 4.0f * params.w * params.z * params.z * params.z * params.z * params.z * params.z * 
@@ -142,8 +147,7 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
         // lj2 is defined as 4*epsilon*sigma^6
         float lj2 = 4.0f * params.w * params.z * params.z * params.z * params.z * params.z * params.z;
         float epsilon = params.w;
-        
-        
+       
         // FLOPS: 5
         float rsq = dx*dx + dy*dy + dz*dz;
         //float r = sqrtf(rsq);
