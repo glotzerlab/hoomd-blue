@@ -13,7 +13,7 @@ hello
 " $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should
 see the same output obtained above on the next line: "hello"
 
-You must be an adminstrator to install software.
+You must be an administrator to install software.
 
 \section software_req_install_ubuntu_dev Development environment
 

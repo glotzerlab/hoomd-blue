@@ -13,14 +13,26 @@ installed via 'make install'. Plugins can only be built against hoomd when it is
 
 $ mkdir plugin_build
 $ cd plugin_build
-$ ccmake /hoomd_install_dir/share/hoomd/plugin_template_cpp 
+$ ccmake /path/to/plugin_template_cpp 
 (follow normal cmake steps)
 $ make -j6
 $ make install
 
-After running make install, you will find that the plugin has been copied into 
-/hoomd_install_dir/lib/hoomd/python_module/hoomd_plugins/plugin_template (assuming you didn't change 
-CMAKE_INSTALL_PREFIX.
+If hoomd is not in your PATH, you can specify the root using
+$ ccmake /path/to/plugin_template -DHOOMD_ROOT=/path/to/hoomd
+where ${HOOMD_ROOT}/bin/hoomd is where the hoomd executable is installed
+
+By default, make install will install the plugin into
+${HOOMD_ROOT}/lib/hoomd/python_module/hoomd_plugins/plugin_template
+This works if you have 'make install'ed hoomd into your home directory. 
+
+If hoomd is installed in a system directory (such as via an rpm or deb package), then you can still use plugins.
+Delete the plugin_build directory and start over. Set the environment variable HOOMD_PLUGINS_DIR in your .bash_profile
+ - export HOOMD_PLUGINS_DIR=${HOME}/hoomd_plugins  # as an example
+When running ccmake, add -DHOOMD_PLUGINS_DIR=${HOOMD_PLUGINS_DIR} to the options
+ - ccmake /path/to/plugin_template_cpp -DHOOMD_PLUGINS_DIR=${HOOMD_PLUGINS_DIR}
+Now, 'make install' will install the plugins into ${HOOMD_PLUGINS_DIR} and hoomd, when launched, will look there
+for the plugins.
 
 The plugin can now be used in any hoomd script.
 Example of how to use an installed plugin:
