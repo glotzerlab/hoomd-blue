@@ -173,7 +173,15 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
         float wcaforcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
         // calculate the pair energy (FLOPS: 3)
         float pair_eng = r6inv * (lj1 * r6inv - lj2) + epsilon;
-        
+    
+        // if epsilon == 0, then wcaforcemag_divr = 0 and pair_eng = 0, this solves the issue of a nan
+        // generated from a zero length bond
+        if (epsilon == 0.0f)
+            {
+            wcaforcemag_divr = 0.0f;
+            pair_eng = 0.0f;
+            }
+
         // FLOPS: 7
         float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0))*rmdoverr + wcaforcemag_divr*rmdoverr*pastwcalimit;
         float bond_eng = -0.5f * K * r_0*r_0*logf(1.0f - rsq/(r_0*r_0));
