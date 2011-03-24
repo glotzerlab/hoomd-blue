@@ -37,12 +37,10 @@ class example(_updater):
         _updater.__init__(self);
         
         # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_integrator = _plugin_template.ExampleUpdater(globals.system_definition);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_integrator = _plugin_template.ExampleUpdaterGPU(globals.system_definition);
         else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating example updater");
+            self.cpp_integrator = _plugin_template.ExampleUpdaterGPU(globals.system_definition);
+
         self.setupUpdater(period);
 

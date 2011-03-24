@@ -31,6 +31,18 @@ endif (HOOMD_BIN_DIR)
 # root directory where HOOMD was found
 set(HOOMD_ROOT ${_hoomd_root_guess} CACHE PATH "Root directory where HOOMD is installed")
 
+# try again to find HOOMD_BIN_DIR
+if (NOT HOOMD_BIN_DIR)
+    find_path(HOOMD_BIN_DIR
+              NAMES hoomd
+              HINTS ${HOOMD_ROOT}/bin
+              )
+endif (NOT HOOMD_BIN_DIR)
+
+if (HOOMD_BIN_DIR)
+    message(STATUS "Found HOOMD bin directory: ${HOOMD_BIN_DIR}")
+endif (HOOMD_BIN_DIR)
+
 # search for the hoomd include directory
 find_path(HOOMD_INCLUDE_DIR
           NAMES hoomd/hoomd_config.h
@@ -49,6 +61,17 @@ set(CMAKE_FIND_LIBRARY_PREFIXES "" "lib")
 find_library(HOOMD_LIB
              NAMES hoomd
              HINTS ${HOOMD_ROOT}/lib/hoomd/python-module ${HOOMD_ROOT}/lib
+                   ${HOOMD_ROOT}/lib64/hoomd/python-module ${HOOMD_ROOT}/lib64
+                   ${HOOMD_ROOT}/lib64/python/site-packages
+                   ${HOOMD_ROOT}/lib64/python2.4/site-packages
+                   ${HOOMD_ROOT}/lib64/python2.5/site-packages
+                   ${HOOMD_ROOT}/lib64/python2.6/site-packages
+                   ${HOOMD_ROOT}/lib64/python2.7/site-packages
+                   ${HOOMD_ROOT}/lib/python/site-packages
+                   ${HOOMD_ROOT}/lib/python2.4/site-packages
+                   ${HOOMD_ROOT}/lib/python2.5/site-packages
+                   ${HOOMD_ROOT}/lib/python2.6/site-packages
+                   ${HOOMD_ROOT}/lib/python2.7/site-packages
              )
 set(CMAKE_FIND_LIBRARY_PREFIXES ${_old_prefixes})
              
