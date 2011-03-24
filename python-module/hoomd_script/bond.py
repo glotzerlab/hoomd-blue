@@ -70,7 +70,7 @@ import sys;
 # where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
 # Coeffients:
-# - \f$ k \f$ - %force constanct (in units of energy/distance^2)
+# - \f$ k \f$ - %force constant (in units of energy/distance^2)
 # - \f$ r_0 \f$ - %bond rest length (in distance units)
 #
 # Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of %bond in the simulation using

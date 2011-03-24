@@ -103,7 +103,7 @@ sudo bash NVIDIA-Linux-*.run
     \endcode
     Follow the on screen prompts to complete the installation.
     <br><br>
- -# <b>Download</b> and <b>import</b> the GPG public key to validiate HOOMD-blue RPMs with the following
+ -# <b>Download</b> and <b>import</b> the GPG public key to validate HOOMD-blue RPMs with the following
  	terminal commands.
  	\code
  wget http://codeblue.umich.edu/hoomd-blue/downloads/RPM-GPG-KEY-joaander
@@ -111,7 +111,7 @@ sudo bash NVIDIA-Linux-*.run
  	\endcode
  	This step only needs to be performed once.
  	<br><br>
- -# <b>Download</b> the HOOMD-blue RPM package matching your linux distrubution from http://codeblue.umich.edu/hoomd-blue/download.html
+ -# <b>Download</b> the HOOMD-blue RPM package matching your linux distribution from http://codeblue.umich.edu/hoomd-blue/download.html
  <br><br>
  -# To <b>install</b> or <b>upgrade</b> double click on the downloaded file, or
     open a terminal, cd to the directory where you downloaded the
@@ -131,7 +131,7 @@ sudo bash NVIDIA-Linux-*.run
     \endcode
     Follow the on screen prompts to complete the installation.
     <br><br>
- -# <b>Download</b> the HOOMD-blue deb package matching your linux distrubution from http://codeblue.umich.edu/hoomd-blue/download.html
+ -# <b>Download</b> the HOOMD-blue deb package matching your linux distribution from http://codeblue.umich.edu/hoomd-blue/download.html
  <br><br>
  -# To <b>install</b> or <b>upgrade</b> double click on the downloaded file,
     or open a terminal, cd to the directory where you downloaded the
@@ -142,7 +142,7 @@ sudo apt-get -f install
     \endcode
     
  \subsection sec_install_hoomd_linux_homedir Home directory installation
- -# If you do not have adminsitrator access or otherwise desire to install hoomd into your home directory,
+ -# If you do not have administrator access or otherwise desire to install hoomd into your home directory,
  it is recommended that you compile hoomd from source. See \ref page_compile_guide for detailed
  information.
 
@@ -241,7 +241,7 @@ The following are consumer level GPUs designed for gaming.
 - <a href="http://www.nvidia.com/object/product_geforce_gt_240_us.html">GeForce GT 240</a>
 - <a href="http://www.nvidia.com/object/product_geforce_gt_220_us.html">GeForce GT 220</a>
 - <a href="http://www.nvidia.com/object/product_geforce_210_us.html">GeForce GT 210</a>
-- \b Note: Factory-overclocked models are \b not supported.
+- \b Note: Factory over-clocked models are \b not supported.
 
 Tesla CXXXX GPUs are professional level compute cards with more memory than their consumer-level counterparts.
 Also, Tesla C20X0 cards are capable of four times more double precision FLOPS than GTX 480.

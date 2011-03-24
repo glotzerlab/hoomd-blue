@@ -533,7 +533,7 @@ class force_data:
 ## Access the %force on a single particle via a proxy
 #
 # force_data_proxy provides access to the current %force, virial, and energy of a single particle due to a single 
-# %force compuations.
+# %force computations.
 #
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # force_data_proxy, documented by example.

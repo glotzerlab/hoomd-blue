@@ -613,7 +613,7 @@ import globals;
 # at the optimal r_buff in order to determine the maximum value of check_period. In total,
 # (2*warmup + 3*jump*steps) time steps are run().
 #
-# \note By default, the maximum check_period is \b not set in tune.r_buff() for saftey. If you wish to have it set
+# \note By default, the maximum check_period is \b not set in tune.r_buff() for safety. If you wish to have it set
 # when the call completes, call with the parameter set_max_check_period=True.
 #
 # \returns (optimal_r_buff, maximum check_period)
