@@ -129,14 +129,14 @@ int main(int argc, char **argv)
     if (getenv("HOOMD_PLUGINS_DIR"))
         {
         string hoomd_plugins_dir = string(getenv("HOOMD_PLUGINS_DIR"));
-        python_cmds += string("sys.path.append(r\"") + hoomd_plugins_dir + string("\")\n");
+        python_cmds += string("sys.path.insert(0, r\"") + hoomd_plugins_dir + string("\")\n");
         cout << "Notice: Using hoomd plugins in " << hoomd_plugins_dir << endl;
         }
         
     string hoomd_script_dir = find_hoomd_script();
     if (hoomd_script_dir != "")
         {
-        python_cmds += string("sys.path.append(r\"") + hoomd_script_dir + string("\")\n");
+        python_cmds += string("sys.path.insert(0, r\"") + hoomd_script_dir + string("\")\n");
         }
     PyRun_SimpleString(python_cmds.c_str());
         

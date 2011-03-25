@@ -169,9 +169,9 @@ class PPPMData
     {
     public:
         static int compute_pppm_flag;                   //!< Flag to see if we should compute the PPPM thermodynamic properties
-        static Scalar Nx;                               //!< Number of grid points in x direction
-        static Scalar Ny;                               //!< Number of grid points in y direction
-        static Scalar Nz;                               //!< Number of grid points in z direction
+        static int Nx;                                  //!< Number of grid points in x direction
+        static int Ny;                                  //!< Number of grid points in y direction
+        static int Nz;                                  //!< Number of grid points in z direction
         static Scalar q2;                               //!< Sum(q_i*q_i), where q_i is the charge of each particle
         static Scalar q;                                //!< Sum(q_i*q_i), where q_i is the charge of each particle
         static Scalar kappa;                            //!< screening parameter for erfc(kappa*r)

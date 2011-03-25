@@ -150,13 +150,17 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
        
         // FLOPS: 5
         float rsq = dx*dx + dy*dy + dz*dz;
-        //float r = sqrtf(rsq);
-        // if particles have diameters that are not 1.0 need to correct this value by alpha
-        float r = sqrtf(rsq);
-        float radj =  r - (diam/2.0f + neigh_diam/2.0f - 1.0f);
-        float rmdoverr = radj/r;
-        rsq = radj*radj;  // This is now a diameter adjusted potential distance for diameter shifted potentials
-        
+        float rmdoverr = 1.0f;
+
+        if (diam != 1.0f || neigh_diam != 1.0f)
+            {
+            //float r = sqrtf(rsq);
+            // if particles have diameters that are not 1.0 need to correct this value by alpha
+            float r = sqrtf(rsq);
+            float radj =  r - (diam/2.0f + neigh_diam/2.0f - 1.0f);
+            rmdoverr = radj/r;
+            rsq = radj*radj;  // This is now a diameter adjusted potential distance for diameter shifted potentials
+            }
         
         // calculate 1/r^2 (FLOPS: 2)
         float r2inv;

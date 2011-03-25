@@ -155,7 +155,7 @@ class EvaluatorPairEwald
                 
                 Scalar erfc_by_r_val = ERFC(kappa * r) * rinv;
                         
-                force_divr = qiqj * r2inv * (erfc_by_r_val + 2.0*kappa*RSQRT(M_PI) * EXP(-kappa*kappa* rsq));
+                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*RSQRT(M_PI) * EXP(-kappa*kappa* rsq));
                 pair_eng = qiqj * erfc_by_r_val ;
 
                 return true;

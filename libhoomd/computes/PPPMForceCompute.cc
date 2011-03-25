@@ -75,9 +75,9 @@ using namespace std;
 */
 
 int PPPMData::compute_pppm_flag = 0;
-Scalar PPPMData::Nx;                               
-Scalar PPPMData::Ny;                               
-Scalar PPPMData::Nz;                               
+int PPPMData::Nx;                               
+int PPPMData::Ny;                               
+int PPPMData::Nz;                               
 Scalar PPPMData::q2;                               
 Scalar PPPMData::q;                               
 Scalar PPPMData::kappa;                            
@@ -790,7 +790,7 @@ void PPPMForceCompute::assign_charges_to_grid()
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
     ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
 
-    memset(h_rho_real_space.data, 0.0, sizeof(cufftComplex)*m_Nx*m_Ny*m_Nz);
+    memset(h_rho_real_space.data, 0, sizeof(cufftComplex)*m_Nx*m_Ny*m_Nz);
 
     for(int i = 0; i < (int)arrays.nparticles; i++)
         {
