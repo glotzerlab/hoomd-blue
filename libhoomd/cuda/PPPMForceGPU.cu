@@ -151,13 +151,13 @@ void assign_charges_to_grid_kernel(gpu_pdata_arrays pdata,
     
             if (order % 2) 
                 {
-                shift =0.5;
-                shiftone = 0.0;
+                shift =0.5f;
+                shiftone = 0.0f;
                 }
             else 
                 {
-                shift = 0.0;
-                shiftone = 0.5;
+                shift = 0.0f;
+                shiftone = 0.5f;
                 }
         
             nxi = __float2int_rd(posi.x + shift);
@@ -325,13 +325,13 @@ void calculate_forces_kernel(float4 *d_force,
             float4 local_force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
             if(order % 2) 
                 {
-                shift =0.5;
-                shiftone = 0.0;
+                shift =0.5f;
+                shiftone = 0.0f;
                 }
             else 
                 {
-                shift = 0.0;
-                shiftone = 0.5;
+                shift = 0.0f;
+                shiftone = 0.5f;
                 }
     
     
@@ -435,12 +435,12 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
         return error;
         
     // set the grid charge to zero
-    cudaMemset(GPU_rho_real_space, 0.0f, sizeof(cufftComplex)*Nx*Ny*Nz);
+    cudaMemset(GPU_rho_real_space, 0, sizeof(cufftComplex)*Nx*Ny*Nz);
 
     // zero the force arrays for all particles
     // zero_forces <<< grid, threads >>> (force_data, pdata);
-    cudaMemset(d_force, 0.0f, sizeof(float4)*pdata.N);
-    cudaMemset(d_virial, 0.0f, sizeof(float)*pdata.N);
+    cudaMemset(d_force, 0, sizeof(float4)*pdata.N);
+    cudaMemset(d_virial, 0, sizeof(float)*pdata.N);
 
 
     // run the kernels
@@ -790,16 +790,16 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
         kvec_array[idx].z = j.z*inverse_lattice_vector.z;
 
         float sqk =  kvec_array[idx].x*kvec_array[idx].x + kvec_array[idx].y*kvec_array[idx].y + kvec_array[idx].z*kvec_array[idx].z;
-        if(sqk == 0.0) {
+        if(sqk == 0.0f) {
             vg[idx].x = 0.0f;
             vg[idx].y = 0.0f;
             vg[idx].z = 0.0f;
             }
         else {
             float vterm = (-2.0f/sqk - 0.5f/kappa2);
-            vg[idx].x = 1.0+vterm*kvec_array[idx].x*kvec_array[idx].x;
-            vg[idx].y = 1.0+vterm*kvec_array[idx].y*kvec_array[idx].y;
-            vg[idx].z = 1.0+vterm*kvec_array[idx].z*kvec_array[idx].z;
+            vg[idx].x = 1.0f+vterm*kvec_array[idx].x*kvec_array[idx].x;
+            vg[idx].y = 1.0f+vterm*kvec_array[idx].y*kvec_array[idx].y;
+            vg[idx].z = 1.0f+vterm*kvec_array[idx].z*kvec_array[idx].z;
             }
 
         float unitkx = (6.28318531f/box.Lx);
@@ -812,21 +812,21 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
         float numerator, denominator;
 
         mper = zn - Nz*(2*zn/Nz);
-        snz = sinf(0.5*unitkz*mper*box.Lz/Nz);
+        snz = sinf(0.5f*unitkz*mper*box.Lz/Nz);
         snz2 = snz*snz;
 
         lper = yn - Ny*(2*yn/Ny);
-        sny = sinf(0.5*unitky*lper*box.Ly/Ny);
+        sny = sinf(0.5f*unitky*lper*box.Ly/Ny);
         sny2 = sny*sny;
 
         kper = xn - Nx*(2*xn/Nx);
-        snx = sinf(0.5*unitkx*kper*box.Lx/Nx);
+        snx = sinf(0.5f*unitkx*kper*box.Lx/Nx);
         snx2 = snx*snx;
         sqk = unitkx*kper*unitkx*kper + unitky*lper*unitky*lper + unitkz*mper*unitkz*mper;
 
 
         int l;
-        sz = sy = sx = 0.0;
+        sz = sy = sx = 0.0f;
         for (l = order-1; l >= 0; l--) {
             sx = gf_b[l] + sx*snx2;
             sy = gf_b[l] + sy*sny2;
@@ -836,27 +836,27 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
         denominator *= denominator;
 
         float W;
-        if (sqk != 0.0) {
+        if (sqk != 0.0f) {
             numerator = 12.5663706f/sqk;
-            sum1 = 0.0;
+            sum1 = 0.0f;
             for (ix = -nbx; ix <= nbx; ix++) {
                 qx = unitkx*(kper+(float)(Nx*ix));
                 sx = expf(-.25f*qx*qx/kappa2);
                 wx = 1.0f;
                 argx = 0.5f*qx*box.Lx/(float)Nx;
-                if (argx != 0.0) wx = powf(sinf(argx)/argx,order);
+                if (argx != 0.0f) wx = powf(sinf(argx)/argx,order);
                 for (iy = -nby; iy <= nby; iy++) {
                     qy = unitky*(lper+(float)(Ny*iy));
                     sy = expf(-.25f*qy*qy/kappa2);
                     wy = 1.0f;
                     argy = 0.5f*qy*box.Ly/(float)Ny;
-                    if (argy != 0.0) wy = powf(sinf(argy)/argy,order);
+                    if (argy != 0.0f) wy = powf(sinf(argy)/argy,order);
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = unitkz*(mper+(float)(Nz*iz));
                         sz = expf(-.25f*qz*qz/kappa2);
                         wz = 1.0f;
                         argz = 0.5f*qz*box.Lz/(float)Nz;
-                        if (argz != 0.0) wz = powf(sinf(argz)/argz,order);
+                        if (argz != 0.0f) wz = powf(sinf(argz)/argz,order);
 
                         dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
                         dot2 = qx*qx+qy*qy+qz*qz;
@@ -866,7 +866,7 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
                     }
                 }
             green_hat[idx] = numerator*sum1/denominator;
-            } else green_hat[idx] = 0.0;
+            } else green_hat[idx] = 0.0f;
         }
     }
 
