@@ -1,18 +1,22 @@
 To build a Redhat Package Manager package (RPM) of the current hoomd trunk,
+either use 'make rpm' or use the rpmbuild command directly. You will have to
 copy the hoomd spec file in the SPECS directory to the SPECS directory in
 your rpm build environment and run
-rpmbuild -ba hoomd-0.9.1.spec
+rpmbuild -ba hoomd.spec
 
 Make sure the nvcc compiler from the cuda toolkit is in your path.
 
 For example:
 $ cd <rpm build root>/SPECS
 $ svn checkout http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk/packaging/SPECS .
-$ PATH=$PATH:/usr/local/cuda/bin rpmbuild -ba hoomd-0.9.1.spec
+$ PATH=$PATH:/usr/local/cuda/bin rpmbuild -ba hoomd.spec
 
 Note that you will need cmake, subversion (svn), the rpm-build package (of
 course), and some other software installed. Non-obvious missing software
 should produce explicit error messages. If you have the software installed
 but not as an rpm package, rpmbuild may still produce errors. To bypass
 these errors, use 
-$ rpmbuild -ba --nodeps hoomd-0.9.1.spec
+$ rpmbuild -ba --nodeps hoomd.spec
+
+For additional options that may be specified with --define commands to
+rpmbuild, refer the the spec file.
