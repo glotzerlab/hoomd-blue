@@ -1,16 +1,16 @@
-%global	url	http://codeblue.engin.umich.edu/hoomd-blue/svn/
+%global	repository	http://codeblue.engin.umich.edu/hoomd-blue/svn/
 # A tagged hoomd release version number may be specified by defining %{version}.
 # A subversion revision number may be specified by defining %{release}.
 # Otherwise %{release} is the last revision affecting trunk.
 # Note that if both version and release are specified, the latter is ignored.
 %if %{?version:1}%{!?version:0}
 %global branch	tags/hoomd-%{version}
-%global release	%(svn info %{url}%{branch} |grep 'Last Changed Rev' |awk '{print $NF}')
+%global release	%(svn info %{repository}%{branch} |grep 'Last Changed Rev' |awk '{print $NF}')
 %else
 %global	branch	trunk
 %endif
 %global version	%{?version}%{!?version:0.9.1}
-%global release	%{?release}%{!?release:%(svn info %{url}%{branch} |grep 'Last Changed Rev' |awk '{print $NF}')}
+%global release	%{?release}%{!?release:%(svn info %{repository}%{branch} |grep 'Last Changed Rev' |awk '{print $NF}')}
 
 # the Red Hat convention is to put 64-bit libs in lib64
 %global libsuffix   %(uname -p |sed -n 's/.*64$/64/p')
@@ -45,7 +45,7 @@ HOOMD-blue is a direct continuation of the project HOOMD, originally developed a
 rm -rf $RPM_BUILD_DIR/%{name}-%{version}
 
 %setup -T -c
-svn checkout -r %{release} %{url}%{branch} .
+svn checkout -r %{release} %{repository}%{branch} .
 if [ $? -ne 0 ]; then
   exit $?
 fi
