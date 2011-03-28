@@ -13,10 +13,10 @@
 %global release	%{?release}%{!?release:%(svn info %{repository}%{branch} |grep 'Last Changed Rev' |awk '{print $NF}')}
 
 # the Red Hat convention is to put 64-bit libs in lib64
-%global libsuffix   %(uname -p |sed -n 's/.*64$/64/p')
+%global libsuffix	%(uname -p |sed -n 's/.*64$/64/p')
 %global libname		lib%(uname -p |sed -n 's/.*64$/64/p')
-%define pyver		%( rpm -q --qf \%\{version\} python |awk -F. '{print $1"."$2}' )
-%global python			python%{pyver}
+%global python		%(which python)
+%global sitedir		%(%{python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(plat_specific=True)")
 
 BuildRoot:		%{_tmppath}/%{name}-root
 Summary: 		Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
@@ -50,7 +50,7 @@ if [ $? -ne 0 ]; then
   exit $?
 fi
 
-cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DLIB_SUFFIX=%{libsuffix} -DENABLE_EMBED_CUDA=ON -DPYTHON_SITEDIR=%{libname}/%{python}/site-packages -DPYTHON_INCLUDE_DIR=/usr/include/%{python} -DPYTHON_LIBRARY=/usr/%{libname}/lib%{python}.so.1.0
+cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DLIB_SUFFIX=%{libsuffix} -DENABLE_EMBED_CUDA=ON -DPYTHON_SITEDIR=$RPM_BUILD_ROOT/%{sitedir} -DPYTHON_EXECUTABLE=%{python}
 
 %build
 cd $RPM_BUILD_DIR/%{name}-%{version}
@@ -61,9 +61,9 @@ make preinstall
 rm -rf $RPM_BUILD_ROOT
 
 rm -f fluid-file-list
-echo "/usr/%{libname}/%{python}/site-packages/hoomd.so" >> fluid-file-list
-echo "/usr/%{libname}/%{python}/site-packages/hoomd_plugins" >> fluid-file-list
-echo "/usr/%{libname}/%{python}/site-packages/hoomd_script" >> fluid-file-list
+echo "%{sitedir}/hoomd.so" >> fluid-file-list
+echo "%{sitedir}/hoomd_plugins" >> fluid-file-list
+echo "%{sitedir}/hoomd_script" >> fluid-file-list
 echo "/usr/%{libname}/hoomd" >> fluid-file-list
 
 make install
