@@ -42,6 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "QuaternionMath.h"
 #include "TwoStepNVERigidGPU.cuh"
+#include <stdio.h>
 
 #ifdef WIN32
 #include <cassert>
@@ -359,9 +360,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     __syncthreads();
     
     // compute the number of windows that we need to loop over
-    unsigned int n_windows = nmax / window_size;
-    if (n_windows == 0)
-        n_windows = 1;
+    unsigned int n_windows = nmax / window_size + 1;
         
     // slide the window throughout the block
     for (unsigned int start = 0; start < n_windows; start++)
@@ -413,7 +412,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     // put the partial sums into shared memory
     body_force[threadIdx.x] = sum_force;
     body_torque[threadIdx.x] = sum_torque;
-    
+   
     // perform a set of partial reductions. Each block_size/n_bodies_per_block threads performs a sum reduction
     // just within its own group
     unsigned int offset = min(window_size, nmax) >> 1;
