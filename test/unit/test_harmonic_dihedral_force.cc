@@ -416,9 +416,9 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
 
         // also check that each individual calculation is somewhat close
         }
-    deltaf2 /= double(pdata->getN());
-    deltape2 /= double(pdata->getN());
-    deltav2 /= double(pdata->getN());
+    deltaf2 /= double(N);
+    deltape2 /= double(N);
+    deltav2 /= double(N);
     BOOST_CHECK_SMALL(deltaf2, double(tol_small));
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
     BOOST_CHECK_SMALL(deltav2, double(tol_small));

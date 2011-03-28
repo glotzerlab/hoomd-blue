@@ -378,9 +378,9 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
 
         // also check that each individual calculation is somewhat close
         }
-    deltaf2 /= double(pdata->getN());
-    deltape2 /= double(pdata->getN());
-    deltav2 /= double(pdata->getN());
+    deltaf2 /= double(N);
+    deltape2 /= double(N);
+    deltav2 /= double(N);
     BOOST_CHECK_SMALL(deltaf2, double(tol_small));
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
     BOOST_CHECK_SMALL(deltav2, double(tol_small));
