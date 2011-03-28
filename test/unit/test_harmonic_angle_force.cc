@@ -354,21 +354,36 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     fc2->compute(0);
     
     {
-    // verify that the forces are identical (within roundoff errors)
-    GPUArray<Scalar4>& force_array_6 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_6 =  fc1->getVirialArray();
-    ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_7 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_7 =  fc2->getVirialArray();
+    GPUArray<Scalar4>& force_array_7 =  fc1->getForceArray();
+    GPUArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
+    GPUArray<Scalar4>& force_array_8 =  fc2->getForceArray();
+    GPUArray<Scalar>& virial_array_8 =  fc2->getVirialArray();
+    ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
+    ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
     
-    Scalar rough_tol = Scalar(3.0);
-    
+    // compare average deviation between the two computes
+    double deltaf2 = 0.0;
+    double deltape2 = 0.0;
+    double deltav2 = 0.0;
+        
     for (unsigned int i = 0; i < N; i++)
         {
+        deltaf2 += double(h_force_8.data[i].x - h_force_7.data[i].x) * double(h_force_8.data[i].x - h_force_7.data[i].x);
+        deltaf2 += double(h_force_8.data[i].y - h_force_7.data[i].y) * double(h_force_8.data[i].y - h_force_7.data[i].y);
+        deltaf2 += double(h_force_8.data[i].z - h_force_7.data[i].z) * double(h_force_8.data[i].z - h_force_7.data[i].z);
+        deltape2 += double(h_force_8.data[i].w - h_force_7.data[i].w) * double(h_force_8.data[i].w - h_force_7.data[i].w);
+        deltav2 += double(h_virial_8.data[i] - h_virial_7.data[i]) * double(h_virial_8.data[i] - h_virial_7.data[i]);
+
+        // also check that each individual calculation is somewhat close
         }
+    deltaf2 /= double(pdata->getN());
+    deltape2 /= double(pdata->getN());
+    deltav2 /= double(pdata->getN());
+    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
+    BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2, double(tol_small));
     }
     }
 
