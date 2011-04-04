@@ -9,7 +9,7 @@
 %else
 %global	branch	trunk
 %endif
-%global version	%{?version}%{!?version:0.9.1}
+%global version	%{?version}%{!?version:0.9.2}
 %global release	%{?release}%{!?release:%(svn info %{repository}%{branch} |grep 'Last Changed Rev' |awk '{print $NF}')}
 
 # the Red Hat convention is to put 64-bit libs in lib64
@@ -25,7 +25,7 @@ Name: 			hoomd
 Version: 		%{version}
 Release: 		%{release}
 # sources will be retrieved with subversion
-# Source: 		http://codeblue.umich.edu/hoomd-blue/downloads/0.9/hoomd-0.9.1.tar.bz2
+# Source: 		http://codeblue.umich.edu/hoomd-blue/downloads/0.9/hoomd-0.9.2.tar.bz2
 URL:			http://codeblue.umich.edu/hoomd-blue/
 Prefix:			/usr
 Group: 			Applications

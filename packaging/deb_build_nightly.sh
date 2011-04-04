@@ -34,7 +34,7 @@ fi
 
 #export the variables to set the version from svn
 	export HSVN_VERSION=$(svnversion . )
-	export HVERSION="0.9.1."${HSVN_VERSION}
+	export HVERSION="0.9.2."${HSVN_VERSION}
 	echo $HVERSION
 #set our package version in changelog
 	sed s/HVERSION/${HVERSION}/ debian/changelog -i
