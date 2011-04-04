@@ -126,6 +126,12 @@ int main(int argc, char **argv)
     
     // Need to inject the hoomd module path and the plugins dir into sys.path
     string python_cmds("import sys\n");
+    string hoomd_script_dir = find_hoomd_script();
+    if (hoomd_script_dir != "")
+        {
+        python_cmds += string("sys.path.insert(0, r\"") + hoomd_script_dir + string("\")\n");
+        }
+    
     if (getenv("HOOMD_PLUGINS_DIR"))
         {
         string hoomd_plugins_dir = string(getenv("HOOMD_PLUGINS_DIR"));
@@ -133,11 +139,6 @@ int main(int argc, char **argv)
         cout << "Notice: Using hoomd plugins in " << hoomd_plugins_dir << endl;
         }
         
-    string hoomd_script_dir = find_hoomd_script();
-    if (hoomd_script_dir != "")
-        {
-        python_cmds += string("sys.path.insert(0, r\"") + hoomd_script_dir + string("\")\n");
-        }
     PyRun_SimpleString(python_cmds.c_str());
         
     int retval = Py_Main(argc, argv);

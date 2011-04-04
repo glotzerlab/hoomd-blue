@@ -69,7 +69,7 @@ else
 fi
 
 #clean up
-cd $HOME/rpmbuild/RPMS/$ARCH
+cd $HOME/nightly-build/rpmbuild/RPMS/$ARCH
 rpmfiles=( `ls -td hoomd*.rpm` )
 numfiles=${#rpmfiles[*]}
 for ((  i=$(( $NRPMS )); $i < $numfiles ; i++ )); do

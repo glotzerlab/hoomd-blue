@@ -125,8 +125,8 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     // compute the forces
     fc_2->compute(0);
     
-    ArrayHandle<float4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
-    ArrayHandle<float> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
 
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);

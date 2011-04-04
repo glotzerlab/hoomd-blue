@@ -39,7 +39,7 @@ endif (WIN32)
 ## Version information
 set(HOOMD_VERSION_MAJOR "0")
 set(HOOMD_VERSION_MINOR "9")
-set(HOOMD_VERSION_PATCH "1")
+set(HOOMD_VERSION_PATCH "2")
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
 
 # users may not have subversion installed, search for it and set a dummy version if that is

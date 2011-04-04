@@ -298,7 +298,7 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
 // *****************************************
 
 template<class T> GPUArray<T>::GPUArray() :
-        m_num_elements(0), m_acquired(false), m_data_location(data_location::host),
+        m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
