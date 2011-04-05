@@ -85,11 +85,11 @@ std::string getExePath()
         throw std::runtime_error("Unable to determine executable path");
 
     // turn it into a real path
-    char *result = NULL;
+    char *result_buf = NULL;
     #ifdef PATH_MAX
-    result = (char *)malloc(PATH_MAX);
+    result_buf = (char *)malloc(PATH_MAX);
     #endif
-    char *realbuf = realpath(buf, result);
+    char *realbuf = realpath(buf, result_buf);
     result = std::string(realbuf);
     free(realbuf);
     
