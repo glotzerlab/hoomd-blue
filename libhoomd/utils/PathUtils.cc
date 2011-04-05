@@ -85,14 +85,24 @@ std::string getExePath()
         throw std::runtime_error("Unable to determine executable path");
 
     // turn it into a real path
-    char *realbuf = realpath(buf, NULL);
+    char *result = NULL;
+    #ifdef PATH_MAX
+    result = (char *)malloc(PATH_MAX);
+    #endif
+    char *realbuf = realpath(buf, result);
     result = std::string(realbuf);
     free(realbuf);
     
     #elif __linux__
-    char buf[1024];
-    memset(buf, 0, 1024);
-    size_t bufsize = 1024;
+    #ifdef PATH_MAX
+    const unsigned int path_max=PATH_MAX;
+    #else
+    const unsigned int path_max=1024;
+    #endif
+
+    char buf[path_max];
+    memset(buf, 0, path_max);
+    size_t bufsize = path_max;
     size_t retval = readlink("/proc/self/exe", buf, bufsize);
 
     if (retval == size_t(-1))
