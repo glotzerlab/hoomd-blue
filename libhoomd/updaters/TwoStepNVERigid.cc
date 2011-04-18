@@ -685,8 +685,6 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
             unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
             // get the index of particle in the current rigid body in the particle_pos array
             unsigned int localidx = body * particle_pos_pitch + j;
-            // get the particle tag to access the particle orientation
-            unsigned int tag = arrays.tag[pidx];
             
             // project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
             Scalar xr = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
@@ -752,7 +750,7 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
             Scalar4 porientation; 
             quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
             normalize(porientation);
-            m_pdata->setOrientation(tag, porientation);
+            arrays.orientation[pidx] = porientation;
             
             // store the current position for the next step
             particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];
