@@ -97,12 +97,5 @@ cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
                                          bool clear);
-/* old gpu_integrator
-cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
-                                         float1 *d_net_virial,
-                                         const gpu_force_list& force_list,
-                                         unsigned int nparticles,
-                                         bool clear);
-*/
-#endif
 
+#endif

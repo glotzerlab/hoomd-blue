@@ -60,7 +60,6 @@ __device__ void add_force_total(float4& net_force, float& net_virial, float4& ne
     {
     if (d_f != NULL && d_v != NULL && d_t != NULL)
         {
-        
         float4 f = d_f[idx];
         float v = d_v[idx];
         float4 t = d_t[idx];
@@ -76,7 +75,6 @@ __device__ void add_force_total(float4& net_force, float& net_virial, float4& ne
         net_torque.y += t.y;
         net_torque.z += t.z;
         net_torque.w += t.w;
-
         }
     }
 
@@ -152,7 +150,7 @@ cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
     {
     // sanity check
     assert(d_net_force);
-    assert(d_net_force);
+    assert(d_net_virial);
     assert(d_net_torque);
     
     const int block_size = 256;
