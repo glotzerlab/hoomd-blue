@@ -100,7 +100,8 @@ void ForceCompute::allocateThreadPartial()
     //Don't use GPU arrays here, *_partial's only used on CPU
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
-   }
+    m_torque_partial = new Scalar4[m_index_thread_partial.getNumElements()];
+    }
 
 /*! Frees allocated memory
 */
