@@ -672,6 +672,8 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
     assert(arrays.ix != NULL && arrays.iy != NULL && arrays.iz != NULL);
     
+    ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    
     // for each body
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
@@ -750,7 +752,7 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
             Scalar4 porientation; 
             quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
             normalize(porientation);
-            arrays.orientation[pidx] = porientation;
+            h_p_orientation.data[pidx] = porientation;
             
             // store the current position for the next step
             particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];
