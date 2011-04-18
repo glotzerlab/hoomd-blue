@@ -49,6 +49,12 @@ Stephen Barr, Princeton University
 Greg van Anders, Benjamin Schultz, University of Michigan
  - refactoring of ForceCompute
 
+Eric Irrgang, University of Michigan
+ - RPM packaging and daily builds
+
+Ross Smith, University of Michigan
+ - Deb packaging and daily builds
+
 While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is 
 responsible for numerous performance tweaks to the neighbor list and pair force code.
 

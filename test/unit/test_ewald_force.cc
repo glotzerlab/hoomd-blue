@@ -113,8 +113,8 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     fc_3->compute(0);
     
     {
-    ArrayHandle<float4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
-    ArrayHandle<float> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
     
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, -0.9188914117, tol);
     MY_BOOST_CHECK_SMALL(h_force.data[0].y, tol_small);
@@ -153,8 +153,8 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     fc_3->compute(1);
     
     {
-    ArrayHandle<float4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
-    ArrayHandle<float> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
 
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.9188914117, tol);
     MY_BOOST_CHECK_CLOSE(h_force.data[2].x, 0.9188914117, tol);
@@ -192,10 +192,10 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
     fc2->compute(0);
     
     // verify that the forces are identical (within roundoff errors)
-    ArrayHandle<float4> h_force1(fc1->getForceArray(), access_location::host, access_mode::read);
-    ArrayHandle<float> h_virial1(fc1->getVirialArray(), access_location::host, access_mode::read);
-    ArrayHandle<float4> h_force2(fc2->getForceArray(), access_location::host, access_mode::read);
-    ArrayHandle<float> h_virial2(fc2->getVirialArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_force1(fc1->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_virial1(fc1->getVirialArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_force2(fc2->getForceArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_virial2(fc2->getVirialArray(), access_location::host, access_mode::read);
 
     
     // compare average deviation between the two computes

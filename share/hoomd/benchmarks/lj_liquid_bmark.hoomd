@@ -7,7 +7,7 @@ from hoomd_script import *
 
 init.create_random(N=64000, phi_p=0.2)
 lj = pair.lj(r_cut=3.0)
-lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
 all = group.all()
 integrate.mode_standard(dt=0.005)
@@ -16,9 +16,9 @@ integrate.nvt(group=all, T=1.2, tau=0.5)
 # warm up run
 run(2000)
 
-# the system is thermally equilibrated, we can now bump up the 
-# check period for a slight boost in performance
-nlist.set_params(check_period=5)
+nlist.set_params(r_buff=0.4, check_period=5)
+# these paramters ^^^         ^^^            are determined automatically by running with the next line uncommented
+# tune.r_buff(set_max_check_period=True)
 
 # quick benchmark run
 run(2000, profile=True)

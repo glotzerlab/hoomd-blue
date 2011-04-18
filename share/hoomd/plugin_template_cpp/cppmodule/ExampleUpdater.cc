@@ -78,10 +78,14 @@ void ExampleUpdaterGPU::update(unsigned int timestep)
     if (m_prof) m_prof->push("ExampleUpdater");
     
     // access the particle data arrays for writing on the GPU
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    const gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_zero_velocities, d_pdata[0]));
+    // call the kernel devined in ExampleUpdater.cu
+    gpu_zero_velocities(d_pdata);
+    
+    // check for error codes from the GPU if error checking is enabled
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
     
@@ -96,4 +100,3 @@ void export_ExampleUpdaterGPU()
     }
 
 #endif // ENABLE_CUDA
-

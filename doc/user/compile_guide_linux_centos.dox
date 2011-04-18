@@ -28,7 +28,7 @@ Install g++, boost, python headers, zlib headers, and subversion.
 
 CMake is not available via yum, so download cmake-?.?.?-Linux-i386.sh from http://www.cmake.org/ .
 Replace ?.?.? with the most current version. The following terminal command is an example
-that downloads verison 2.8.3
+that downloads version 2.8.3
 
 \code
  $ wget http://www.cmake.org/files/v2.8/cmake-2.8.3-Linux-i386.sh

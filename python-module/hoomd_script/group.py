@@ -545,7 +545,7 @@ def charged(name='charged'):
 # \param a First group
 # \param b Second group
 #
-# The set differnce of a set of particles \a a with respect to group \a b is defined to be the set of particles in \a b but not in \a a. 
+# The set difference of a set of particles \a a with respect to group \a b is defined to be the set of particles in \a b but not in \a a. 
 # A new group called \a name is created that contains the complement particles. This can be
 # useful for inverting the sense of a group (see below).
 #

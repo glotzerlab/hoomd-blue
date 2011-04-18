@@ -34,7 +34,7 @@ fi
 
 #export the variables to set the version from svn
 	export HSVN_VERSION=$(svnversion . )
-	export HVERSION="0.9.1."${HSVN_VERSION}
+	export HVERSION="0.9.2."${HSVN_VERSION}
 	echo $HVERSION
 #set our package version in changelog
 	sed s/HVERSION/${HVERSION}/ debian/changelog -i
@@ -44,5 +44,5 @@ fi
 	cd ..
 	cp deb_old_version deb_version${lib_suffix}
 	scp deb_version${lib_suffix} joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
-	scp hoomd-blue_${HVERSION}*.deb joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
+	scp hoomd-blue_${HVERSION}_$(dpkg-architecture -qDEB_BUILD_ARCH).deb joaander@foxx.engin.umich.edu:devel/incoming/ubuntu
 fi

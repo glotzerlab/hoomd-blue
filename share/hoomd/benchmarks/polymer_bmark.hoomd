@@ -34,9 +34,9 @@ integrate.nvt(group=all, T=T, tau=0.5)
 # warm up the system
 run(4000)
 
-# the system is thermally equilibrated, we can now bump up the 
-# check period for a slight boost in performance
-nlist.set_params(check_period=5)
+nlist.set_params(r_buff=0.4, check_period=5)
+# these paramters ^^^         ^^^            are determined automatically by running with the next line uncommented
+#tune.r_buff(set_max_check_period=True)
 
 # quick benchmark
 run(2000, profile=True)

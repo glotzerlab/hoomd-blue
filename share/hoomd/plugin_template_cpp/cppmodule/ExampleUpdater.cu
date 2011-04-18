@@ -1,8 +1,5 @@
 #include "ExampleUpdater.cuh"
 
-// include gpu_settings.h for g_gpu_error_checking
-#include <hoomd/gpu_settings.h>
-
 /*! \file ExampleUpdater.cu
     \brief CUDA kernels for ExampleUpdater
 */
@@ -19,7 +16,7 @@ void gpu_zero_velocities_kernel(gpu_pdata_arrays pdata)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx < pdata.local_num)
+    if (idx < pdata.N)
         {
         pdata.vel[idx] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         }
@@ -32,19 +29,14 @@ cudaError_t gpu_zero_velocities(const gpu_pdata_arrays &pdata)
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-   gpu_zero_velocities_kernel<<< grid, threads >>>(pdata);
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    gpu_zero_velocities_kernel<<< grid, threads >>>(pdata);
+    
+    // this method always succeds. If you had a cuda* call in this driver, you could return its error code if not
+    // cudaSuccess
+    return cudaSuccess;
     }
 

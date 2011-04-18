@@ -440,7 +440,7 @@ class nlist:
     # When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
     # during the following run() commands (see pair.slj for more information). When using in conjunction with pair.slj, 
     # pair.slj will 
-    # automatically set \a d_max for the nlist.  This can be overidden (e.g. if multiple potentials using diameters are used) 
+    # automatically set \a d_max for the nlist.  This can be overridden (e.g. if multiple potentials using diameters are used) 
     # by using nlist.set_params() after the 
     # pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
     # \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower 
@@ -493,7 +493,7 @@ class nlist:
     # - \b %body - Exclude particles that belong to the same body
     # - \b %diameter - Exclude particles using their diameters to modify r_cut per pair, as pair.slj does. Enabling the
     #                  \b diameter exclusion does not change which particles interact, but rather offers a potential
-    #                  performance boost by removing uneeded neighbors from the list.
+    #                  performance boost by removing unneeded neighbors from the list.
     #
     # \note Enabling the \b diameter exclusion is intended for use only with the pair.slj potential. With sufficient
     #       care in the choice of particle diameters, it may be possible to use it in other situations (such as with
@@ -650,7 +650,7 @@ def _update_global_nlist(r_cut):
 # it is collected here.
 #
 # All %pair %force commands specify that a given potential energy and %force be computed on all particle pairs in the
-# system within a short range cuttoff distance \f$ r_{\mathrm{cut}} \f$.
+# system within a short range cutoff distance \f$ r_{\mathrm{cut}} \f$.
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
@@ -1089,7 +1089,7 @@ class slj(pair):
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         
-        # setup the coefficent options
+        # setup the coefficient options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
         self.pair_coeff.set_default_coeff('alpha', 1.0);
         
@@ -1339,7 +1339,7 @@ class ewald(pair):
 # For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
 # \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
-# The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.cg is specified (see __init__())
+# The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.cg is specified (see __init__())
 #
 class cgcmm(force._force):
     ## Specify the CG-CMM Lennard-Jones %pair %force
@@ -1808,7 +1808,7 @@ class dpd(pair):
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 #
-# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair in the
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair in the
 # main hoomd documentation.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
@@ -1950,6 +1950,6 @@ class eam(force._force):
         self.pair_coeff = coeff();
         
     def update_coeffs(self):
-        # check that the pair coefficents are valid
+        # check that the pair coefficients are valid
         pass;
 
