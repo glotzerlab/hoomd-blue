@@ -136,43 +136,51 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
         float4 params = tex1Dfetch(bond_params_tex, cur_bond_type);
         float K = params.x;
         float r_0 = params.y;
+        
         // lj1 is defined as 4*epsilon*sigma^12
         float lj1 = 4.0f * params.w * params.z * params.z * params.z * params.z * params.z * params.z * 
                         params.z * params.z * params.z * params.z * params.z * params.z;
         // lj2 is defined as 4*epsilon*sigma^6
         float lj2 = 4.0f * params.w * params.z * params.z * params.z * params.z * params.z * params.z;
         float epsilon = params.w;
-        
-        
+       
         // FLOPS: 5
         float rsq = dx*dx + dy*dy + dz*dz;
-        //float r = sqrtf(rsq);
+        float rmdoverr = 1.0f;
+
         // if particles have diameters that are not 1.0 need to correct this value by alpha
-        float r = sqrtf(rsq);
+        float rinv = rsqrtf(rsq);
+        float r = 1.0f / rinv;
         float radj =  r - (diam/2.0f + neigh_diam/2.0f - 1.0f);
-        float rmdoverr = radj/r;
+        rmdoverr = radj * rinv;
         rsq = radj*radj;  // This is now a diameter adjusted potential distance for diameter shifted potentials
         
-        
-        // calculate 1/r^2 (FLOPS: 2)
-        float r2inv;
-        float pastwcalimit;
-        r2inv = 1.0f / rsq;
-        if (rsq >= 1.2599210498f)  // comparing to the WCA limit
-            pastwcalimit = 0.0f;
-        else
-            pastwcalimit = 1.0f;
-            
-        // calculate 1/r^6 (FLOPS: 2)
-        float r6inv = r2inv*r2inv*r2inv;
-        // calculate the force magnitude / r (FLOPS: 6)
-        float wcaforcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
-        // calculate the pair energy (FLOPS: 3)
-        float pair_eng = r6inv * (lj1 * r6inv - lj2) + epsilon;
-        
+        float wcaforcemag_divr = 0.0f;
+        float pair_eng = 0.0f;
+         
+        if (rsq < 1.2599210498f && epsilon != 0.0f)  // comparing to the WCA limit
+            {
+            // calculate 1/r^6 (FLOPS: 2)
+            float r2inv = rinv * rinv;
+            float r6inv = r2inv*r2inv*r2inv;
+            // calculate the force magnitude / r (FLOPS: 6)
+            wcaforcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
+            // calculate the pair energy (FLOPS: 3)
+            pair_eng = r6inv * (lj1 * r6inv - lj2) + epsilon;
+            }
+        if (!isfinite(pair_eng))
+            pair_eng = 0.0f;    
+
         // FLOPS: 7
-        float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0))*rmdoverr + wcaforcemag_divr*rmdoverr*pastwcalimit;
+        float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0))*rmdoverr + wcaforcemag_divr*rmdoverr;
         float bond_eng = -0.5f * K * r_0*r_0*logf(1.0f - rsq/(r_0*r_0));
+        
+        // detect non-finite results and zero them. This will result in the correct 0 force for r ~= 0. The energy
+        // will be incorrect for r > r_0, however. Assuming that r > r_0 because K == 0, this is fine.
+        if (!isfinite(forcemag_divr))
+            forcemag_divr = 0.0f;
+        if (!isfinite(bond_eng))
+            bond_eng = 0.0f;
         
         // add up the virial (FLOPS: 3)
         virial += float(1.0/6.0) * rsq * forcemag_divr;
@@ -181,11 +189,10 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
         force.x += dx * forcemag_divr;
         force.y += dy * forcemag_divr;
         force.z += dz * forcemag_divr;
-        force.w += bond_eng + pastwcalimit*pair_eng;
+        force.w += bond_eng + pair_eng;
         
         // Checking to see if bond length restriction is violated.
         if (rsq >= r_0*r_0) *d_checkr = 1;
-        
         }
         
     // energy is double counted: multiply by 0.5

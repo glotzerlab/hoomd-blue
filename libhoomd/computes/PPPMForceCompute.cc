@@ -75,9 +75,9 @@ using namespace std;
 */
 
 int PPPMData::compute_pppm_flag = 0;
-Scalar PPPMData::Nx;                               
-Scalar PPPMData::Ny;                               
-Scalar PPPMData::Nz;                               
+int PPPMData::Nx;                               
+int PPPMData::Ny;                               
+int PPPMData::Nz;                               
 Scalar PPPMData::q2;                               
 Scalar PPPMData::q;                               
 Scalar PPPMData::kappa;                            
@@ -311,8 +311,8 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
                 snx = sin(0.5*unitkx*kper*xprd/Nx);
                 snx2 = snx*snx;
       
-                sqk = pow(unitkx*kper,2.0f) + pow(unitky*lper,2.0f) + 
-                    pow(unitkz*mper,2.0f);
+                sqk = pow(Scalar(unitkx*kper),Scalar(2.0)) + pow(Scalar(unitky*lper),Scalar(2.0)) + 
+                    pow(Scalar(unitkz*mper),Scalar(2.0));
                 if (sqk != 0.0) {
                     numerator = form*12.5663706/sqk;
                     denominator = gf_denom(snx2,sny2,snz2);  
@@ -320,26 +320,26 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
                     sum1 = 0.0;
                     for (ix = -nbx; ix <= nbx; ix++) {
                         qx = unitkx*(kper+(Scalar)(Nx*ix));
-                        sx = exp(-.25*pow(qx/kappa,2.0f));
+                        sx = exp(-.25*pow(Scalar(qx/kappa),Scalar(2.0)));
                         wx = 1.0;
                         argx = 0.5*qx*xprd/(Scalar)Nx;
                         if (argx != 0.0) wx = pow(sin(argx)/argx,order);
                         for (iy = -nby; iy <= nby; iy++) {
                             qy = unitky*(lper+(Scalar)(Ny*iy));
-                            sy = exp(-.25*pow(qy/kappa,2.0f));
+                            sy = exp(-.25*pow(Scalar(qy/kappa),Scalar(2.0)));
                             wy = 1.0;
                             argy = 0.5*qy*yprd/(Scalar)Ny;
                             if (argy != 0.0) wy = pow(sin(argy)/argy,order);
                             for (iz = -nbz; iz <= nbz; iz++) {
                                 qz = unitkz*(mper+(Scalar)(Nz*iz));
-                                sz = exp(-.25*pow(qz/kappa,2.0f));
+                                sz = exp(-.25*pow(Scalar(qz/kappa),Scalar(2.0)));
                                 wz = 1.0;
                                 argz = 0.5*qz*zprd_slab/(Scalar)Nz;
                                 if (argz != 0.0) wz = pow(sin(argz)/argz,order);
 
                                 dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
                                 dot2 = qx*qx+qy*qy+qz*qz;
-                                sum1 += (dot1/dot2) * sx*sy*sz * pow(wx*wy*wz,2.0f);
+                                sum1 += (dot1/dot2) * sx*sy*sz * pow(Scalar(wx*wy*wz),Scalar(2.0));
                                 }
                             }
                         }
@@ -738,8 +738,8 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 snx = sin(0.5*unitkx*kper*xprd/m_Nx);
                 snx2 = snx*snx;
       
-                sqk = pow(unitkx*kper,2.0f) + pow(unitky*lper,2.0f) + 
-                    pow(unitkz*mper,2.0f);
+                sqk = pow(Scalar(unitkx*kper),Scalar(2.0)) + pow(Scalar(unitky*lper),Scalar(2.0)) + 
+                    pow(Scalar(unitkz*mper),Scalar(2.0));
                 if (sqk != 0.0) {
                     numerator = form*12.5663706/sqk;
                     denominator = gf_denom(snx2,sny2,snz2);  
@@ -747,26 +747,26 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                     sum1 = 0.0;
                     for (ix = -nbx; ix <= nbx; ix++) {
                         qx = unitkx*(kper+(Scalar)(m_Nx*ix));
-                        sx = exp(-.25*pow(qx/m_kappa,2.0f));
+                        sx = exp(-.25*pow(Scalar(qx/m_kappa),Scalar(2.0)));
                         wx = 1.0;
                         argx = 0.5*qx*xprd/(Scalar)m_Nx;
                         if (argx != 0.0) wx = pow(sin(argx)/argx,m_order);
                         for (iy = -nby; iy <= nby; iy++) {
                             qy = unitky*(lper+(Scalar)(m_Ny*iy));
-                            sy = exp(-.25*pow(qy/m_kappa,2.0f));
+                            sy = exp(-.25*pow(Scalar(qy/m_kappa),Scalar(2.0)));
                             wy = 1.0;
                             argy = 0.5*qy*yprd/(Scalar)m_Ny;
                             if (argy != 0.0) wy = pow(sin(argy)/argy,m_order);
                             for (iz = -nbz; iz <= nbz; iz++) {
                                 qz = unitkz*(mper+(Scalar)(m_Nz*iz));
-                                sz = exp(-.25*pow(qz/m_kappa,2.0f));
+                                sz = exp(-.25*pow(Scalar(qz/m_kappa),Scalar(2.0)));
                                 wz = 1.0;
                                 argz = 0.5*qz*zprd_slab/(Scalar)m_Nz;
                                 if (argz != 0.0) wz = pow(sin(argz)/argz,m_order);
 
                                 dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
                                 dot2 = qx*qx+qy*qy+qz*qz;
-                                sum1 += (dot1/dot2) * sx*sy*sz * pow(wx*wy*wz,2.0f);
+                                sum1 += (dot1/dot2) * sx*sy*sz * pow(Scalar(wx*wy*wz),Scalar(2.0));
                                 }
                             }
                         }
@@ -790,7 +790,7 @@ void PPPMForceCompute::assign_charges_to_grid()
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
     ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
 
-    memset(h_rho_real_space.data, 0.0, sizeof(cufftComplex)*m_Nx*m_Ny*m_Nz);
+    memset(h_rho_real_space.data, 0, sizeof(cufftComplex)*m_Nx*m_Ny*m_Nz);
 
     for(int i = 0; i < (int)arrays.nparticles; i++)
         {

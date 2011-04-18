@@ -127,14 +127,14 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
     m_epsilon[type] = epsilon;
         
     // check for some silly errors a user could make
-    if (K <= 0)
-        cout << "***Warning! K <= 0 specified for fene bond" << endl;
-    if (r_0 <= 0)
-        cout << "***Warning! r_0 <= 0 specified for fene bond" << endl;
-    if (sigma <= 0)
-        cout << "***Warning! sigma <= 0 specified for fene bond" << endl;
-    if (epsilon <= 0)
-        cout << "***Warning! epsilon <= 0 specified for fene bond" << endl;
+    if (K < 0)
+        cout << "***Warning! K < 0 specified for fene bond" << endl;
+    if (r_0 < 0)
+        cout << "***Warning! r_0 < 0 specified for fene bond" << endl;
+    if (sigma < 0)
+        cout << "***Warning! sigma < 0 specified for fene bond" << endl;
+    if (epsilon < 0)
+        cout << "***Warning! epsilon < 0 specified for fene bond" << endl;
     }
 
 /*! BondForceCompute provides
@@ -213,7 +213,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         const Bond& bond = m_bond_data->getBond(i);
         assert(bond.a < m_pdata->getN());
         assert(bond.b < m_pdata->getN());
-        
+       
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = arrays.rtag[bond.a];
@@ -251,36 +251,31 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         assert(dy >= box.ylo && dx < box.yhi);
         assert(dz >= box.zlo && dx < box.zhi);
         
-        //ALL FLOPS NEED TO BE FIXED
         // on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * \vec{r} + (12*lj1/r^12 - 6*lj2/r^6) *\vec{r}
         // FLOPS: 5
         Scalar rsq = dx*dx+dy*dy+dz*dz;
         Scalar rmdoverr = 1.0f;
         
-        //If appropriate, correct the rsq for particles that are not unit in size.
-        if (diameter_a != 1.0 || diameter_b != 1.0)
-            {
-            Scalar rtemp = sqrt(rsq) - diameter_a/2 - diameter_b/2 + 1.0;
-            rmdoverr = rtemp/sqrt(rsq);
-            rsq = rtemp*rtemp;
-            }
-            
+        // Correct the rsq for particles that are not unit in size.
+        Scalar rtemp = sqrt(rsq) - diameter_a/2 - diameter_b/2 + 1.0;
+        rmdoverr = rtemp/sqrt(rsq);
+        rsq = rtemp*rtemp;
+         
         // compute the force magnitude/r in forcemag_divr (FLOPS: 9)
         Scalar r2inv = Scalar(1.0)/rsq;
         Scalar r6inv = r2inv * r2inv * r2inv;
         
-        Scalar WCAforcemag_divr;
-        Scalar pair_eng;
-        if (rsq < 1.2599210498)     //wcalimit squared (2^(1/6))^2
+        Scalar WCAforcemag_divr = Scalar(0.0);
+        Scalar pair_eng = Scalar(0.0);
+
+        // add != 0.0f check to allow epsilon=0 FENE bonds to go to r=0
+        if (rsq < 1.2599210498 && m_epsilon[bond.type] != 0)     //wcalimit squared (2^(1/6))^2
             {
             WCAforcemag_divr = r2inv * r6inv * (Scalar(12.0)*m_lj1[bond.type]*r6inv - Scalar(6.0)*m_lj2[bond.type]);
             pair_eng = Scalar(0.5) * (r6inv * (m_lj1[bond.type]*r6inv - m_lj2[bond.type]) + m_epsilon[bond.type]);
             }
-        else
-            {
-            WCAforcemag_divr = 0;
-            pair_eng = 0;
-            }
+        if (!isfinite(pair_eng))
+            pair_eng = 0.0f;
             
         // Additional check for FENE spring
         assert(rsq < m_r_0[bond.type]*m_r_0[bond.type]);
@@ -292,6 +287,13 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         Scalar bond_eng = -Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] * m_r_0[bond.type]) * 
                            log(Scalar(1.0) - rsq/(m_r_0[bond.type] * m_r_0[bond.type]));
         
+        // detect non-finite results and zero them. This will result in the correct 0 force for r ~= 0. The energy
+        // will be incorrect for r > r_0, however. Assuming that r > r_0 because K == 0, this is fine.
+        if (!isfinite(forcemag_divr))
+            forcemag_divr = 0.0f;
+        if (!isfinite(bond_eng))
+            bond_eng = 0.0f;
+
         // calculate virial (FLOPS: 2)
         Scalar bond_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
         
