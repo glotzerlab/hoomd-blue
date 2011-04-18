@@ -194,7 +194,8 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     \param deltaT Amount of real time to step forward in one time step
 */
 cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata, 
-                                   const gpu_rigid_data_arrays& rigid_data, 
+                                   const gpu_rigid_data_arrays& rigid_data,
+                                   float4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
@@ -257,7 +258,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     dim3 particle_grid(group_size/block_size+1, 1, 1);
     dim3 particle_threads(block_size, 1, 1);
     
-    assert(pdata.orientation);
+    assert(d_pdata_orientation);
     assert(pdata.pos);
     assert(pdata.vel);
     assert(pdata.image);
@@ -268,7 +269,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     
     gpu_rigid_setxv_kernel<true><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                         pdata.vel,
-                                                                        pdata.orientation,
+                                                                        d_pdata_orientation,
                                                                         pdata.image,
                                                                         d_group_members,
                                                                         group_size,
@@ -644,6 +645,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
 */
 cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata, 
                                    const gpu_rigid_data_arrays& rigid_data,
+                                   float4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
@@ -680,7 +682,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     
     gpu_rigid_setxv_kernel<false><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                         pdata.vel,
-                                                                        pdata.orientation,
+                                                                        d_pdata_orientation,
                                                                         pdata.image,
                                                                         d_group_members,
                                                                         group_size,

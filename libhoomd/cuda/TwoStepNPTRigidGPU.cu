@@ -386,13 +386,14 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     
 */
 cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,       
-                                    const gpu_rigid_data_arrays& rigid_data,
-                                    unsigned int *d_group_members,
-                                    unsigned int group_size,
-                                    float4 *d_net_force,
-                                    const gpu_boxsize &box, 
-                                    const gpu_npt_rigid_data& npt_rdata,
-                                    float deltaT)
+                                   const gpu_rigid_data_arrays& rigid_data,
+                                   float4 *d_pdata_orientation,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   float4 *d_net_force,
+                                   const gpu_boxsize &box, 
+                                   const gpu_npt_rigid_data& npt_rdata,
+                                   float deltaT)
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
@@ -446,7 +447,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     
     gpu_rigid_setxv_kernel<true><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                         pdata.vel,
-                                                                        pdata.orientation,
+                                                                        d_pdata_orientation,
                                                                         pdata.image,
                                                                         d_group_members,
                                                                         group_size,
@@ -612,7 +613,8 @@ extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(float4* rdata_vel,
     
 */
 cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata, 
-                                    const gpu_rigid_data_arrays& rigid_data, 
+                                    const gpu_rigid_data_arrays& rigid_data,
+                                    float4 *d_pdata_orientation,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
                                     float4 *d_net_force,
@@ -658,7 +660,7 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
     
     gpu_rigid_setxv_kernel<false><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                         pdata.vel,
-                                                                        pdata.orientation,
+                                                                        d_pdata_orientation,
                                                                         pdata.image,
                                                                         d_group_members,
                                                                         group_size,

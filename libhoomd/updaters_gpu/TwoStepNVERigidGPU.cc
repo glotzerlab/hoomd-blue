@@ -100,6 +100,8 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
+    
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -168,7 +170,8 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     
     // perform the update on the GPU
     gpu_nve_rigid_step_one(d_pdata,
-                           d_rdata, 
+                           d_rdata,
+                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -204,10 +207,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
         m_prof->push(exec_conf, "NVE rigid step 2");
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
-    ArrayHandle<Scalar4>d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::overwrite);
-
-    //eventually all elements of the gpu_pdata struct will be filled in this way.
-    d_pdata.orientation=d_porientation.data;
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
 
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
@@ -282,7 +282,8 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
                                 
     // perform the update on the GPU
     gpu_nve_rigid_step_two(d_pdata,
-                           d_rdata, 
+                           d_rdata,
+                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
