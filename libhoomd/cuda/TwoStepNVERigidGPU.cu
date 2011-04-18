@@ -202,7 +202,25 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                    float deltaT)
     {
     assert(d_net_force);
-    
+    assert(d_group_members);
+    assert(rigid_data.com);
+    assert(rigid_data.vel);
+    assert(rigid_data.angmom);
+    assert(rigid_data.angvel);
+    assert(rigid_data.orientation);
+    assert(rigid_data.ex_space);
+    assert(rigid_data.ey_space);
+    assert(rigid_data.ez_space);
+    assert(rigid_data.body_imagex);
+    assert(rigid_data.body_imagey);
+    assert(rigid_data.body_imagez);
+    assert(rigid_data.conjqm);
+    assert(rigid_data.body_mass);
+    assert(rigid_data.moment_inertia);
+    assert(rigid_data.force);
+    assert(rigid_data.torque);
+    assert(rigid_data.body_indices);
+//     
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
     unsigned int nmax = rigid_data.nmax;
@@ -238,6 +256,15 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     block_size = 192;
     dim3 particle_grid(group_size/block_size+1, 1, 1);
     dim3 particle_threads(block_size, 1, 1);
+    
+    assert(pdata.orientation);
+    assert(pdata.pos);
+    assert(pdata.vel);
+    assert(pdata.image);
+    assert(rigid_data.particle_offset);
+    assert(rigid_data.particle_indices);
+    assert(rigid_data.particle_pos);
+    assert(rigid_data.particle_orientation);
     
     gpu_rigid_setxv_kernel<true><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                         pdata.vel,
