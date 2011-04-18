@@ -151,6 +151,7 @@ void RigidData::initializeData()
     
     // get the particle data
     const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     BoxDim box = m_pdata->getBox();
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
@@ -339,7 +340,7 @@ void RigidData::initializeData()
         
         // take into account the partile inertia moments
         // get the original particle orientation and inertia tensor from input
-        porientation = m_pdata->getOrientation(tag);
+        porientation = h_p_orientation.data[j];
         pinertia_tensor = m_pdata->getInertiaTensor(tag);
         
         exyzFromQuaternion(porientation, ex, ey, ez);
@@ -518,8 +519,6 @@ void RigidData::initializeData()
         {
         if (arrays.body[j] == NO_BODY) continue;
         
-        unsigned int tag = arrays.tag[j];
-        
         // get the corresponding body
         unsigned int body = arrays.body[j];
         // get the current index in the body
@@ -552,7 +551,7 @@ void RigidData::initializeData()
         Scalar4 qc;
         quatconj(orientation_handle.data[body], qc);
         
-        porientation = m_pdata->getOrientation(tag);
+        porientation = h_p_orientation.data[j];
         quatquat(qc, porientation, h_particle_orientation.data[idx]);
         normalize(h_particle_orientation.data[idx]);
         
