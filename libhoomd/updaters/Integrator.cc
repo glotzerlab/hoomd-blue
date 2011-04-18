@@ -269,9 +269,6 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     \note The summation step is performed <b>on the CPU</b> and will result in a lot of data traffic back and forth
           if the forces and/or integrater are on the GPU. Call computeNetForcesGPU() to sum the forces on the GPU
 */
-
-
-//Need to edit this file to sum torques in addition to forces.
 void Integrator::computeNetForce(unsigned int timestep)
     {
     // compute all the forces first
@@ -345,7 +342,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         return;
 
     // compute all the constraint forces next
-    //Leave this section untouched for the constraint forces update -> constraint forces only apply a force, not a torque
+    // constraint forces only apply a force, not a torque
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
@@ -393,13 +390,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         m_prof->pop();
         }
-
-    /*
-    //rigid bodies sketch)
-    if(there are rigid bodies){
-        //compute net torque and force on rigid bodies? I forget if this is still here, check notes.
-    }
-    */
     }
 
 #ifdef ENABLE_CUDA
