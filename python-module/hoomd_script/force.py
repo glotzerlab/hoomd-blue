@@ -234,7 +234,7 @@ _force.cur_id = 0;
 ## Constant %force
 #
 # The command force.constant specifies that a %constant %force should be added to every
-# particle in the simulation.
+# particle in the simulation or optionally to all particles in a group.
 #
 class constant(_force):
     ## Specify the %constant %force
@@ -242,21 +242,25 @@ class constant(_force):
     # \param fx x-component of the %force (in force units)
     # \param fy y-component of the %force (in force units)
     # \param fz z-component of the %force (in force units)
-    #
+    # \param group Group for which the force will be set
     # \b Examples:
     # \code
     # force.constant(fx=1.0, fy=0.5, fz=0.25)
     # const = force.constant(fx=0.4, fy=1.0, fz=0.5)
+    # const = force.constant(fx=0.4, fy=1.0, fz=0.5,group=fluid)
     # \endcode
-    def __init__(self, fx, fy, fz):
+    def __init__(self, fx, fy, fz, group=None):
         util.print_status_line();
         
         # initialize the base class
         _force.__init__(self);
         
         # create the c++ mirror class
-        self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, fx, fy, fz);
-            
+        if (group is not None):
+            self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, group.cpp_group, fx, fy, fz);
+        else:
+            self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, globals.group_all.cpp_group, fx, fy, fz);
+
         globals.system.addCompute(self.cpp_force, self.force_name);
         
     ## Change the value of the force
@@ -264,6 +268,7 @@ class constant(_force):
     # \param fx New x-component of the %force (in force units)
     # \param fy New y-component of the %force (in force units)
     # \param fz New z-component of the %force (in force units)
+    # \param group Group for which the force will be set
     #
     # Using set_force() requires that you saved the created %constant %force in a variable. i.e.
     # \code
@@ -273,12 +278,15 @@ class constant(_force):
     # \b Example:
     # \code
     # const.set_force(fx=0.2, fy=0.1, fz=-0.5)
+    # const.set_force(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
     # \endcode
-    def set_force(self, fx, fy, fz):
+    def set_force(self, fx, fy, fz, group=None):
         self.check_initialization();
-            
-        self.cpp_force.setForce(fx, fy, fz);
-        
+        if (group is not None): 
+            self.cpp_force.setGroupForce(group.cpp_group,fx,fy,fz);
+        else:
+            self.cpp_force.setForce(fx, fy, fz);
+ 
     # there are no coeffs to update in the constant force compute
     def update_coeffs(self):
         pass
