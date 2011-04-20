@@ -375,7 +375,7 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
             }
             
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
-        quat_multiply(orientation_handle.data[body], tbody, fquat);
+        quatvec(orientation_handle.data[body], tbody, fquat);
         
         conjqm_handle.data[body].x += m_deltaT * fquat.x;
         conjqm_handle.data[body].y += m_deltaT * fquat.y;
@@ -400,7 +400,7 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
         // update angular velocity
         
         exyzFromQuaternion(orientation_handle.data[body], ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body]);
-        inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
+        invquatvec(orientation_handle.data[body], conjqm_handle.data[body], mbody);
         transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
         
         angmom_handle.data[body].x *= 0.5;
@@ -487,14 +487,14 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
         // update conjqm, then transform to angmom, set velocity again
         
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
-        quat_multiply(orientation_handle.data[body], tbody, fquat);
+        quatvec(orientation_handle.data[body], tbody, fquat);
         
         conjqm_handle.data[body].x = scale_r * conjqm_handle.data[body].x + m_deltaT * fquat.x;
         conjqm_handle.data[body].y = scale_r * conjqm_handle.data[body].y + m_deltaT * fquat.y;
         conjqm_handle.data[body].z = scale_r * conjqm_handle.data[body].z + m_deltaT * fquat.z;
         conjqm_handle.data[body].w = scale_r * conjqm_handle.data[body].w + m_deltaT * fquat.w;
         
-        inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
+        invquatvec(orientation_handle.data[body], conjqm_handle.data[body], mbody);
         transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
         
         angmom_handle.data[body].x *= 0.5;

@@ -108,6 +108,7 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -140,7 +141,8 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     
     ArrayHandle<unsigned int> d_particle_offset(m_rigid_data->getParticleOffset(), access_location::device, access_mode::read);
-    
+    ArrayHandle<Scalar4> d_particle_orientation(m_rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
+
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -171,10 +173,12 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_offset = d_particle_offset.data;
-    
+    d_rdata.particle_orientation = d_particle_orientation.data;
+
     // perform the update on the GPU
     gpu_nve_rigid_step_one(d_pdata,
-                           d_rdata, 
+                           d_rdata,
+                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -202,7 +206,8 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
         
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
-    
+    const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "BD NVT rigid step 2");
@@ -211,9 +216,11 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     const Scalar D = Scalar(m_sysdef->getNDimensions());
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
@@ -241,7 +248,8 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_particle_offset(m_rigid_data->getParticleOffset(), access_location::device, access_mode::read);
-    
+    ArrayHandle<Scalar4> d_particle_orientation(m_rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
+
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -269,7 +277,8 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_offset = d_particle_offset.data;
-    
+    d_rdata.particle_orientation = d_particle_orientation.data;
+
     // compute the Langevin forces on the GPU
     bdnvt_step_two_args args;
     args.d_gamma = d_gamma.data;
@@ -295,6 +304,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                     d_index_array.data,
                     group_size,
                     d_net_force.data,
+                    d_net_torque.data,
                     box, 
                     m_deltaT);
     if (exec_conf->isCUDAErrorCheckingEnabled())
@@ -302,7 +312,8 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 
     // perform the update on the GPU
     gpu_nve_rigid_step_two(d_pdata,
-                           d_rdata, 
+                           d_rdata,
+                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,

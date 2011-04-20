@@ -73,7 +73,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \param rdata_conjqm Conjugate quaternion momentum
     \param d_rigid_mass Body mass
     \param d_rigid_mi Body inertia moments
-    \param n_group_bodies Number of rigid bodies in my group
     \param d_rigid_force Body forces
     \param d_rigid_torque Body torques
     \param d_rigid_group Body indices
@@ -195,7 +194,8 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     \param deltaT Amount of real time to step forward in one time step
 */
 cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata, 
-                                   const gpu_rigid_data_arrays& rigid_data, 
+                                   const gpu_rigid_data_arrays& rigid_data,
+                                   float4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
@@ -203,7 +203,25 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                    float deltaT)
     {
     assert(d_net_force);
-    
+    assert(d_group_members);
+    assert(rigid_data.com);
+    assert(rigid_data.vel);
+    assert(rigid_data.angmom);
+    assert(rigid_data.angvel);
+    assert(rigid_data.orientation);
+    assert(rigid_data.ex_space);
+    assert(rigid_data.ey_space);
+    assert(rigid_data.ez_space);
+    assert(rigid_data.body_imagex);
+    assert(rigid_data.body_imagey);
+    assert(rigid_data.body_imagez);
+    assert(rigid_data.conjqm);
+    assert(rigid_data.body_mass);
+    assert(rigid_data.moment_inertia);
+    assert(rigid_data.force);
+    assert(rigid_data.torque);
+    assert(rigid_data.body_indices);
+//     
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
     unsigned int nmax = rigid_data.nmax;
@@ -240,8 +258,18 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     dim3 particle_grid(group_size/block_size+1, 1, 1);
     dim3 particle_threads(block_size, 1, 1);
     
+    assert(d_pdata_orientation);
+    assert(pdata.pos);
+    assert(pdata.vel);
+    assert(pdata.image);
+    assert(rigid_data.particle_offset);
+    assert(rigid_data.particle_indices);
+    assert(rigid_data.particle_pos);
+    assert(rigid_data.particle_orientation);
+    
     gpu_rigid_setxv_kernel<true><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                         pdata.vel,
+                                                                        d_pdata_orientation,
                                                                         pdata.image,
                                                                         d_group_members,
                                                                         group_size,
@@ -257,6 +285,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                         rigid_data.body_imagez,
                                                                         rigid_data.particle_indices,
                                                                         rigid_data.particle_pos,
+                                                                        rigid_data.particle_orientation,
                                                                         n_group_bodies,
                                                                         pdata.N,
                                                                         nmax,
@@ -272,10 +301,19 @@ extern __shared__ float3 sum[];
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
 /*! \param rdata_force Body forces
     \param rdata_torque Body torques
+    \param d_rigid_group Body indices
+    \param d_rigid_orientation Body orientation
+    \param d_particle_orientation Particle orientation (quaternion)
+    \param d_rigid_particle_idx Particle index of a local particle in the body
+    \param d_rigid_particle_dis Position of a particle in the body frame
+    \param d_net_force Particle net forces
+    \param d_net_torque Particle net torques
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param nmax Maximum number of particles in a rigid body
     \param window_size Window size for reduction
+    \param thread_mask Block size minus 1, used for idenifying the first thread in the block
+    \param n_bodies_per_block Number of bodies per block
     \param box Box dimensions for periodic boundary condition handling
     
     Compute the force and torque sum on all bodies in the system from their constituent particles. n_bodies_per_block
@@ -310,9 +348,11 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                                                  float4* rdata_torque,
                                                  unsigned int *d_rigid_group,
                                                  float4* d_rigid_orientation,
+                                                 float4* d_particle_orientation,
                                                  unsigned int* d_rigid_particle_idx,
                                                  float4* d_rigid_particle_dis,
                                                  float4* d_net_force,
+                                                 float4* d_net_torque,
                                                  unsigned int n_group_bodies, 
                                                  unsigned int n_bodies, 
                                                  unsigned int nmax,
@@ -366,6 +406,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     for (unsigned int start = 0; start < n_windows; start++)
         {
         float4 fi = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        float4 ti = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         
         // determine the index with this body that this particle should handle
         unsigned int k = start * window_size + (threadIdx.x & thread_mask);
@@ -383,7 +424,10 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                 // calculate body force and torques
                 float4 particle_pos = d_rigid_particle_dis[localidx];
                 fi = d_net_force[pidx];
-                
+
+                //will likely need to rotate these components too
+                ti = d_net_torque[pidx];
+
                 // tally the force in the per thread counter
                 sum_force.x += fi.x;
                 sum_force.y += fi.y;
@@ -398,11 +442,12 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                         + ez_space[m].y * particle_pos.z;
                 ri.z = ex_space[m].z * particle_pos.x + ey_space[m].z * particle_pos.y 
                         + ez_space[m].z * particle_pos.z;
-                
+
+                //need to update here     
                 // tally the torque in the per thread counter
-                sum_torque.x += ri.y * fi.z - ri.z * fi.y;
-                sum_torque.y += ri.z * fi.x - ri.x * fi.z;
-                sum_torque.z += ri.x * fi.y - ri.y * fi.x;
+                sum_torque.x += ri.y * fi.z - ri.z * fi.y + ti.x;
+                sum_torque.y += ri.z * fi.x - ri.x * fi.z + ti.y;
+                sum_torque.z += ri.x * fi.y - ri.y * fi.x + ti.z;
                 }
             }
         }
@@ -448,6 +493,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
+    \param d_net_torque Particle net torques
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Amount of real time to step forward in one time step
 */
@@ -456,6 +502,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                    unsigned int *d_group_members,
                                    unsigned int group_size, 
                                    float4 *d_net_force,
+                                   float4 *d_net_torque,
                                    const gpu_boxsize &box,
                                    float deltaT)
     {
@@ -487,9 +534,11 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                                                                             rigid_data.torque,
                                                                                             rigid_data.body_indices,
                                                                                             rigid_data.orientation,
+                                                                                            rigid_data.particle_orientation,
                                                                                             rigid_data.particle_indices,
                                                                                             rigid_data.particle_pos,
                                                                                             d_net_force,
+                                                                                            d_net_torque,
                                                                                             n_group_bodies,
                                                                                             n_bodies,
                                                                                             nmax,
@@ -497,6 +546,10 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                                                                             thread_mask,
                                                                                             n_bodies_per_block,
                                                                                             box);
+
+                                                
+                                                 
+                                                 
 
     return cudaSuccess;
     }
@@ -506,7 +559,13 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     \param rdata_vel Body translational velocity
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
+    \param rdata_orientation Quaternion
     \param rdata_conjqm Conjugate quaternion momentum
+    \param d_rigid_mass Body mass
+    \param d_rigid_mi Body inertia moments
+    \param d_rigid_force Body forces
+    \param d_rigid_torque Body torques
+    \param d_rigid_group Body indices
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param deltaT Timestep 
@@ -586,6 +645,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
 */
 cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata, 
                                    const gpu_rigid_data_arrays& rigid_data,
+                                   float4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
@@ -622,6 +682,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     
     gpu_rigid_setxv_kernel<false><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                         pdata.vel,
+                                                                        d_pdata_orientation,
                                                                         pdata.image,
                                                                         d_group_members,
                                                                         group_size,
@@ -637,6 +698,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                         rigid_data.body_imagez,
                                                                         rigid_data.particle_indices,
                                                                         rigid_data.particle_pos,
+                                                                        rigid_data.particle_orientation,
                                                                         n_group_bodies,
                                                                         pdata.N,
                                                                         nmax,

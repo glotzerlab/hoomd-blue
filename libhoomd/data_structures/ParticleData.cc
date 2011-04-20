@@ -179,6 +179,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
     assert(m_arrays.type != NULL && m_arrays.rtag != NULL && m_arrays.tag != NULL && m_arrays.charge != NULL);
     assert(m_arrays.body != NULL);
     
+    ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
+    
     // set default values
     for (unsigned int i = 0; i < N; i++)
         {
@@ -194,6 +196,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         m_arrays.type[i] = 0;
         m_arrays.rtag[i] = i;
         m_arrays.tag[i] = i;
+        h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
         }
         
     // default constructed shared ptr is null as desired
@@ -259,21 +262,26 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     assert(m_arrays.type != NULL && m_arrays.rtag != NULL && m_arrays.tag != NULL && m_arrays.charge != NULL);
     assert(m_arrays.body != NULL);
     
-    // set default values
-    for (unsigned int i = 0; i < m_arrays.nparticles; i++)
         {
-        m_arrays.x[i] = m_arrays.y[i] = m_arrays.z[i] = 0.0;
-        m_arrays.vx[i] = m_arrays.vy[i] = m_arrays.vz[i] = 0.0;
-        m_arrays.ax[i] = m_arrays.ay[i] = m_arrays.az[i] = 0.0;
-        m_arrays.charge[i] = 0.0;
-        m_arrays.mass[i] = 1.0;
-        m_arrays.diameter[i] = 1.0;
-        m_arrays.ix[i] = m_arrays.iy[i] = m_arrays.iz[i] = 0;
+        ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
         
-        m_arrays.body[i] = NO_BODY;
-        m_arrays.type[i] = 0;
-        m_arrays.rtag[i] = i;
-        m_arrays.tag[i] = i;
+        // set default values
+        for (unsigned int i = 0; i < m_arrays.nparticles; i++)
+            {
+            m_arrays.x[i] = m_arrays.y[i] = m_arrays.z[i] = 0.0;
+            m_arrays.vx[i] = m_arrays.vy[i] = m_arrays.vz[i] = 0.0;
+            m_arrays.ax[i] = m_arrays.ay[i] = m_arrays.az[i] = 0.0;
+            m_arrays.charge[i] = 0.0;
+            m_arrays.mass[i] = 1.0;
+            m_arrays.diameter[i] = 1.0;
+            m_arrays.ix[i] = m_arrays.iy[i] = m_arrays.iz[i] = 0;
+            
+            m_arrays.body[i] = NO_BODY;
+            m_arrays.type[i] = 0;
+            m_arrays.rtag[i] = i;
+            m_arrays.tag[i] = i;
+            h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
+            }
         }
         
     // need to set m_data_location before any call to setBox
@@ -798,6 +806,11 @@ void ParticleData::allocate(unsigned int N)
     m_net_force.swap(net_force);
     GPUArray< Scalar > net_virial(getN(), m_exec_conf);
     m_net_virial.swap(net_virial);
+    GPUArray< Scalar4 > net_torque(getN(), m_exec_conf);
+    m_net_torque.swap(net_torque);
+    GPUArray< Scalar4 > orientation(getN(), m_exec_conf);
+    m_orientation.swap(orientation);
+    m_inertia_tensor.resize(getN());
     }
 
 /*! \pre Memory has been allocated
@@ -1173,6 +1186,8 @@ void export_ParticleData()
     .def("getDiameter", &ParticleData::getDiameter)
     .def("getBody", &ParticleData::getBody)
     .def("getType", &ParticleData::getType)
+    .def("getOrientation", &ParticleData::getOrientation)
+    .def("getInertiaTensor", &ParticleData::getInertiaTensor, return_value_policy<copy_const_reference>())
     .def("setPosition", &ParticleData::setPosition)
     .def("setVelocity", &ParticleData::setVelocity)
     .def("setImage", &ParticleData::setImage)
@@ -1181,6 +1196,8 @@ void export_ParticleData()
     .def("setDiameter", &ParticleData::setDiameter)
     .def("setBody", &ParticleData::setBody)
     .def("setType", &ParticleData::setType)
+    .def("setOrientation", &ParticleData::setOrientation)
+    .def("setInertiaTensor", &ParticleData::setInertiaTensor)
     ;
     }
 

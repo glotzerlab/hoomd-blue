@@ -175,6 +175,8 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
+    
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
@@ -206,6 +208,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_particle_orientation(m_rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -236,7 +239,8 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
-    
+    d_rdata.particle_orientation = d_particle_orientation.data;
+
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
@@ -258,7 +262,8 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     
     // perform the update on the GPU
     gpu_npt_rigid_step_one(d_pdata,
-                           d_rdata, 
+                           d_rdata,
+                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -341,11 +346,15 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
         m_prof->push(exec_conf, "NPT rigid step 2");
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
@@ -371,7 +380,8 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
-    
+    ArrayHandle<Scalar4> d_particle_orientation(m_rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
+
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -398,6 +408,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
+    d_rdata.particle_orientation = d_particle_orientation.data;
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
@@ -420,6 +431,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
                     d_index_array.data,
                     group_size,
                     d_net_force.data,
+                    d_net_torque.data,
                     box, 
                     m_deltaT);
 
@@ -428,7 +440,8 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 
     // perform the update on the GPU
     gpu_npt_rigid_step_two(d_pdata,
-                           d_rdata, 
+                           d_rdata,
+                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,

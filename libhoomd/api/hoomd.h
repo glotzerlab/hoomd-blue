@@ -46,6 +46,7 @@
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
 #include "ConstForceCompute.h"
+#include "ConstExternalFieldDipoleForceCompute.h"
 
 #ifdef ENABLE_CUDA
 #include "CellListGPU.h"

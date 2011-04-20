@@ -132,6 +132,7 @@ void TwoStepNVERigid::setup()
     m_virial.swap(virial);
     
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
     
     {
     // rigid data handles
@@ -158,6 +159,7 @@ void TwoStepNVERigid::setup()
     ArrayHandle<bool> angmom_init_handle(m_rigid_data->getAngMomInit(), access_location::host, access_mode::read);
     
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::read);
     
     // Reset all forces and torques
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
@@ -231,10 +233,14 @@ void TwoStepNVERigid::setup()
                     + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
                     + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
             
-            torque_handle.data[body].x += ry * fz - rz * fy;
-            torque_handle.data[body].y += rz * fx - rx * fz;
-            torque_handle.data[body].z += rx * fy - ry * fx;
-          
+            Scalar tx = h_net_torque.data[pidx].x;
+            Scalar ty = h_net_torque.data[pidx].y;
+            Scalar tz = h_net_torque.data[pidx].z;
+            
+            torque_handle.data[body].x += ry * fz - rz * fy + tx;
+            torque_handle.data[body].y += rz * fx - rx * fz + ty;
+            torque_handle.data[body].z += rx * fy - ry * fx + tz;
+            
             // Angular momentum = r x (m * v) is calculated for setup
             if (angmom_init == false) // if angmom is not yet set for this body
                 {
@@ -264,7 +270,7 @@ void TwoStepNVERigid::setup()
         unsigned int body = m_body_group->getMemberIndex(group_idx);
     
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angmom_handle.data[body], mbody);
-        quat_multiply(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
+        quatvec(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
         
         conjqm_handle.data[body].x *= 2.0;
         conjqm_handle.data[body].y *= 2.0;
@@ -398,7 +404,6 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
                           ez_space_handle.data[body],
                           m_deltaT,
                           orientation_handle.data[body]);
-
         }
     } // out of scope for handles
         
@@ -532,7 +537,9 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
     
     // access net force data
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::read);
     
     // rigid data handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
@@ -580,6 +587,13 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
             Scalar fy = h_net_force.data[pidx].y;
             Scalar fz = h_net_force.data[pidx].z;
 
+            /*Access Torque elements from a single particle. Right now I will am assuming that the particle 
+              and rigid body reference frames are the same. Probably have to rotate first.
+            */
+            Scalar tx = h_net_torque.data[pidx].x;
+            Scalar ty = h_net_torque.data[pidx].y;
+            Scalar tz = h_net_torque.data[pidx].z;
+
             force_handle.data[body].x += fx;
             force_handle.data[body].y += fy;
             force_handle.data[body].z += fz;
@@ -596,9 +610,9 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
                     + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
                     + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
             
-            torque_handle.data[body].x += ry * fz - rz * fy;
-            torque_handle.data[body].y += rz * fx - rx * fz;
-            torque_handle.data[body].z += rx * fy - ry * fx;
+            torque_handle.data[body].x += ry * fz - rz * fy + tx;
+            torque_handle.data[body].y += rz * fx - rx * fz + ty;
+            torque_handle.data[body].z += rx * fy - ry * fx + tz;
             }
         }
         
@@ -636,6 +650,7 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
@@ -649,12 +664,15 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
     ArrayHandle<Scalar4> particle_oldpos_handle(m_rigid_data->getParticleOldPos(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldvel_handle(m_rigid_data->getParticleOldVel(), access_location::host, access_mode::readwrite);
-    
+    ArrayHandle<Scalar4> particle_orientation(m_rigid_data->getParticleOrientation(), access_location::host, access_mode::read);
+
     // access the particle data arrays
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
     assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
     assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
     assert(arrays.ix != NULL && arrays.iy != NULL && arrays.iz != NULL);
+    
+    ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     
     // for each body
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
@@ -729,6 +747,12 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                 arrays.z[pidx] += Lz;
                 arrays.iz[pidx]--;
                 }
+
+            // update the particle orientation: q_i = quat[body] * particle_quat
+            Scalar4 porientation; 
+            quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
+            normalize(porientation);
+            h_p_orientation.data[pidx] = porientation;
             
             // store the current position for the next step
             particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];

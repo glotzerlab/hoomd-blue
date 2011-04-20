@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "RigidData.h"
+#include "QuaternionMath.h"
 
 using namespace boost;
 using namespace std;
@@ -129,9 +130,6 @@ void RigidData::recalcIndices()
         assert(body <= m_particle_tags.getHeight() && body <= m_particle_indices.getHeight());
         assert(len <= tags_pitch && len <= indices_pitch);
         
-//         if (body == 0)
-//             cout << "Body " << body << ": ";
-        
         for (unsigned int i = 0; i < len; i++)
             {
             // translate the tag to the current index
@@ -139,11 +137,7 @@ void RigidData::recalcIndices()
             unsigned int pidx = arrays.rtag[tag];
             indices.data[body*indices_pitch + i] = pidx;
             h_particle_offset.data[pidx] = i;
-//             if (body == 0)
-//                 cout << pidx << " ";
             }
-//         if (body == 0)
-//             cout << endl;
         }
         
     m_pdata->release();
@@ -157,6 +151,7 @@ void RigidData::initializeData()
     
     // get the particle data
     const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     BoxDim box = m_pdata->getBox();
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
@@ -314,7 +309,11 @@ void RigidData::initializeData()
         body_imagey_handle.data[body] = 0;
         body_imagez_handle.data[body] = 0;
         }
-        
+    
+    Scalar4 porientation;
+    Scalar4 ex, ey, ez;
+    InertiaTensor pinertia_tensor;
+    Scalar rot_mat[3][3], rot_mat_trans[3][3], Ibody[3][3], Ispace[3][3], tmp[3][3];
     // determine the inertia tensor then diagonalize it
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
@@ -322,6 +321,7 @@ void RigidData::initializeData()
         
         unsigned int body = arrays.body[j];
         Scalar mass_one = arrays.mass[j];
+        unsigned int tag = arrays.tag[j];
         
         Scalar unwrappedx = arrays.x[j] + Lx * arrays.ix[j];
         Scalar unwrappedy = arrays.y[j] + Ly * arrays.iy[j];
@@ -337,6 +337,43 @@ void RigidData::initializeData()
         inertia_handle.data[inertia_pitch * body + 3] -= mass_one * dx * dy;
         inertia_handle.data[inertia_pitch * body + 4] -= mass_one * dy * dz;
         inertia_handle.data[inertia_pitch * body + 5] -= mass_one * dx * dz;
+        
+        // take into account the partile inertia moments
+        // get the original particle orientation and inertia tensor from input
+        porientation = h_p_orientation.data[j];
+        pinertia_tensor = m_pdata->getInertiaTensor(tag);
+        
+        exyzFromQuaternion(porientation, ex, ey, ez);
+        
+        rot_mat[0][0] = rot_mat_trans[0][0] = ex.x;
+        rot_mat[1][0] = rot_mat_trans[0][1] = ex.y;
+        rot_mat[2][0] = rot_mat_trans[0][2] = ex.z;
+        
+        rot_mat[0][1] = rot_mat_trans[1][0] = ey.x;
+        rot_mat[1][1] = rot_mat_trans[1][1] = ey.y;
+        rot_mat[2][1] = rot_mat_trans[1][2] = ey.z;
+        
+        rot_mat[0][2] = rot_mat_trans[2][0] = ez.x;
+        rot_mat[1][2] = rot_mat_trans[2][1] = ez.y;
+        rot_mat[2][2] = rot_mat_trans[2][2] = ez.z;
+        
+        Ibody[0][0] = pinertia_tensor.components[0];
+        Ibody[1][1] = pinertia_tensor.components[1];
+        Ibody[2][2] = pinertia_tensor.components[2];
+        Ibody[0][1] = Ibody[1][0] = pinertia_tensor.components[3];
+        Ibody[1][2] = Ibody[2][1] = pinertia_tensor.components[4];
+        Ibody[0][2] = Ibody[2][0] = pinertia_tensor.components[5];
+        
+        // convert the particle inertia tensor to the space fixed frame 
+        mat_multiply(Ibody, rot_mat_trans, tmp);
+        mat_multiply(rot_mat, tmp, Ispace);
+        
+        inertia_handle.data[inertia_pitch * body + 0] += Ispace[0][0];
+        inertia_handle.data[inertia_pitch * body + 1] += Ispace[1][1];
+        inertia_handle.data[inertia_pitch * body + 2] += Ispace[2][2];
+        inertia_handle.data[inertia_pitch * body + 3] += Ispace[0][1];
+        inertia_handle.data[inertia_pitch * body + 4] += Ispace[1][2];
+        inertia_handle.data[inertia_pitch * body + 5] += Ispace[0][2];
         }
     
     // allocate temporary arrays: revision needed!
@@ -394,7 +431,7 @@ void RigidData::initializeData()
             dof_one--;
             moment_inertia_handle.data[body].z = Scalar(0.0);
             }
- 
+        
         body_dof_handle.data[body] = dof_one;    
         m_ndof += dof_one;
         
@@ -456,6 +493,10 @@ void RigidData::initializeData()
     ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite);
     unsigned int particle_pos_pitch = m_particle_pos.getPitch();
     
+    GPUArray<Scalar4> particle_orientation(m_nmax, m_n_bodies, m_pdata->getExecConf());
+    m_particle_orientation.swap(particle_orientation);
+    ArrayHandle<Scalar4> h_particle_orientation(m_particle_orientation, access_location::host, access_mode::readwrite);
+
     GPUArray<Scalar4> particle_oldpos(m_nmax, m_n_bodies, m_pdata->getExecConf());
     m_particle_oldpos.swap(particle_oldpos);
     ArrayHandle<Scalar4> particle_oldpos_handle(m_particle_oldpos, access_location::host, access_mode::readwrite);
@@ -504,6 +545,24 @@ void RigidData::initializeData()
                 dz * ey_space_handle.data[body].z;
         particle_pos_handle.data[idx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
                 dz * ez_space_handle.data[body].z;
+        
+        // TODO - initialize h_particle_orientation.data[idx] here from the initial particle orientation. This means
+        // reading the intial particle orientation from ParticleData and translating it backwards into the body frame
+        Scalar4 qc;
+        quatconj(orientation_handle.data[body], qc);
+        
+        porientation = h_p_orientation.data[j];
+        quatquat(qc, porientation, h_particle_orientation.data[idx]);
+        normalize(h_particle_orientation.data[idx]);
+        
+        // only one particle body
+        if (body_size_handle.data[body] == 1 && local_indices_handle.data[body] == 0)
+        {
+            // the formula for a solid ellipsoid is: Ixx = body_mass * (ry * ry + rz * rz) / 5 
+            moment_inertia_handle.data[body].x = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
+            moment_inertia_handle.data[body].y = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
+            moment_inertia_handle.data[body].z = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
+        }
         
         particle_oldpos_handle.data[idx].x = unwrappedx;
         particle_oldpos_handle.data[idx].y = unwrappedy;

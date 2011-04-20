@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel driver for the first part of the NVE update called by TwoStepNVERigidGPU
 cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays &pdata,
                              const gpu_rigid_data_arrays& rigid_data, 
+                             float4 *d_pdata_orientation,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
@@ -64,7 +65,8 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays &pdata,
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVERigidGPU
 cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
-                             const gpu_rigid_data_arrays& rigid_data, 
+                             const gpu_rigid_data_arrays& rigid_data,
+                             float4 *d_pdata_orientation,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
@@ -78,6 +80,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
+                             float4 *d_net_torque,
                              const gpu_boxsize &box, 
                              float deltaT);
 
@@ -86,19 +89,32 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
 /*!
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
+    \param pdata_orientation Particle orientation
     \param pdata_image Particle image
     \param d_pgroup_idx Particle index
-    \param rdata_oldpos Particel old position
-    \param rdata_oldvel Particel old velocity
-    \param d_virial Virial contribution from the first part
+    \param n_pgroup Number of particles in the group
+    \param d_particle_offset Local index of a particle in the body
+    \param d_particle_body Body index of a particle
+    \param d_rigid_group Body indices
+    \param d_rigid_orientation Body orientation (quaternion)
+    \param d_rigid_com Body center of mass
+    \param d_rigid_vel Body velocity
+    \param d_rigid_angvel Body angular velocity
+    \param d_rigid_imagex Body image x
+    \param d_rigid_imagey Body image y
+    \param d_rigid_imagez Body image z
+    \param d_rigid_particle_idx Particle index of a local particle in the body
+    \param d_rigid_particle_dis Position of a particle in the body frame
+    \param d_rigid_particle_orientation Orientation of a particle in the body frame
     \param n_group_bodies Number of rigid bodies in my group
-    \param n_bodies Total number of rigid bodies
+    \param n_particles Total number of particles
+    \param nmax Maximum number of particles per body
     \param box Box dimensions for periodic boundary condition handling
-    \param deltaT Time step
 */
 template<bool set_x>
 __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
                                        float4* pdata_vel,
+                                       float4* pdata_orientation,
                                        int4* pdata_image,
                                        unsigned int *d_pgroup_idx,
                                        unsigned int n_pgroup,
@@ -114,6 +130,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
                                        int* d_rigid_imagez,
                                        unsigned int* d_rigid_particle_idx,
                                        float4* d_rigid_particle_dis,
+                                       float4* d_rigid_particle_orientation,
                                        unsigned int n_group_bodies,
                                        unsigned int n_particles,
                                        unsigned int nmax,
@@ -128,10 +145,10 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         return;
     
     unsigned int pidx = d_pgroup_idx[group_idx];
-    
     unsigned int idx_body = d_particle_body[pidx];
     unsigned int particle_offset = d_particle_offset[pidx];
-    float4 orientation = d_rigid_orientation[idx_body];
+    float4 body_orientation = d_rigid_orientation[idx_body];
+    
     com = d_rigid_com[idx_body];
     vel = d_rigid_vel[idx_body];
     angvel = d_rigid_angvel[idx_body];
@@ -142,10 +159,11 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         body_imagez = d_rigid_imagez[idx_body];
         }
     
-    exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
+    exyzFromQuaternion(body_orientation, ex_space, ey_space, ez_space);
     
     int localidx = idx_body * nmax + particle_offset;
     float4 particle_pos = d_rigid_particle_dis[localidx];
+    float4 constituent_orientation = d_rigid_particle_orientation[localidx];
     
     // compute ri with new orientation
     float4 ri;
@@ -155,6 +173,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
     
     float4 ppos;
     int4 image;
+    float4 porientation;
     if (set_x)
         {
         // x_particle = com + ri
@@ -178,6 +197,11 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         ppos.z -= box.Lz * z_shift;
         image.z = body_imagez;
         image.z += (int)z_shift;
+
+        // update particle orientation
+        quatquat(body_orientation,
+                 constituent_orientation,
+                 porientation);
         }
     
     // v_particle = vel + angvel x ri
@@ -192,6 +216,7 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         {
         pdata_pos[pidx] = ppos;
         pdata_image[pidx] = image;
+        pdata_orientation[pidx] = porientation;
         }
     pdata_vel[pidx] = pvel;
     }

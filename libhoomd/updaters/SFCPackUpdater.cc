@@ -103,10 +103,10 @@ void SFCPackUpdater::update(unsigned int timestep)
     
     // apply that sort order to the particles
     applySortOrder();
+
+    m_pdata->notifyParticleSort();
     
     if (m_prof) m_prof->pop();
-    
-    m_pdata->notifyParticleSort();
     }
 
 void SFCPackUpdater::applySortOrder()
@@ -189,7 +189,46 @@ void SFCPackUpdater::applySortOrder()
         scal_tmp[i] = arrays.diameter[m_sort_order[i]];
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         arrays.diameter[i] = scal_tmp[i];
+    
+    // in case anyone access it from frame to frame, sort the net virial
+        {
+        ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
         
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            scal_tmp[i] = h_net_virial.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            h_net_virial.data[i] = scal_tmp[i];
+        }
+
+    // sort net force, net torque, and orientation
+    Scalar4 *scalar4_tmp = new Scalar4[m_pdata->getN()];
+        {
+        ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            scalar4_tmp[i] = h_net_force.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            h_net_force.data[i] = scalar4_tmp[i];
+        }
+
+        {
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            scalar4_tmp[i] = h_net_torque.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            h_net_torque.data[i] = scalar4_tmp[i];
+        }
+
+        {
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            scalar4_tmp[i] = h_orientation.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            h_orientation.data[i] = scalar4_tmp[i];
+        }
+
     // sort ix
     int *int_tmp = new int[m_pdata->getN()];
     for (unsigned int i = 0; i < arrays.nparticles; i++)
@@ -231,6 +270,7 @@ void SFCPackUpdater::applySortOrder()
         arrays.rtag[arrays.tag[i]] = i;
         
     delete[] scal_tmp;
+    delete[] scalar4_tmp;
     delete[] uint_tmp;
     delete[] int_tmp;
     
@@ -531,29 +571,17 @@ void SFCPackUpdater::getSortedOrder3D()
     assert(m_particle_bins.size() == m_pdata->getN());
     assert(m_traversal_order.size() == m_grid*m_grid*m_grid);
     
-    ArrayHandle<Scalar4> h_rigid_com(m_sysdef->getRigidData()->getCOM(), access_location::host, access_mode::read);
-    
     // put the particles in the bins
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
     // for each particle
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
         Scalar x, y, z;
-        if (true /*m_shuffle_bodies || */ /*arrays.body[n] == NO_BODY*/)
-            {
-            // bin them by particle position if they are in no body
-            x = (arrays.x[n]-box.xlo)*scalex;
-            y = (arrays.y[n]-box.ylo)*scaley;
-            z = (arrays.z[n]-box.zlo)*scalez;
-            }
-        else
-            {
-            // or by the center of mass of the body if they are
-            unsigned int b = arrays.body[n];
-            x = (h_rigid_com.data[b].x-box.xlo)*scalex;
-            y = (h_rigid_com.data[b].y-box.ylo)*scaley;
-            z = (h_rigid_com.data[b].z-box.zlo)*scalez;
-            }
+
+        // bin them by particle position if they are in no body
+        x = (arrays.x[n]-box.xlo)*scalex;
+        y = (arrays.y[n]-box.ylo)*scaley;
+        z = (arrays.z[n]-box.zlo)*scalez;
         
         // find the bin each particle belongs in
         unsigned int ib = (unsigned int)(x) % m_grid;

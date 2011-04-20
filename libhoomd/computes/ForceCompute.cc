@@ -78,11 +78,14 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     unsigned int num_particles = m_pdata->getN();
     GPUArray<Scalar4>  force(num_particles,exec_conf);
     GPUArray<Scalar>  virial(num_particles,exec_conf);
+    GPUArray<Scalar4>  torque(num_particles,exec_conf);
     m_force.swap(force);
     m_virial.swap(virial);
+    m_torque.swap(torque);
     
     m_fdata_partial = NULL;
     m_virial_partial = NULL;
+    m_torque_partial = NULL;
   
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
@@ -97,7 +100,8 @@ void ForceCompute::allocateThreadPartial()
     //Don't use GPU arrays here, *_partial's only used on CPU
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
-   }
+    m_torque_partial = new Scalar4[m_index_thread_partial.getNumElements()];
+    }
 
 /*! Frees allocated memory
 */
@@ -109,6 +113,8 @@ ForceCompute::~ForceCompute()
         m_fdata_partial = NULL;
         delete[] m_virial_partial;
         m_virial_partial = NULL;
+        delete[] m_torque_partial;
+        m_torque_partial=NULL;
         }
     m_sort_connection.disconnect();
     }
@@ -147,6 +153,7 @@ void ForceCompute::compute(unsigned int timestep)
     computeForces(timestep);
     m_particles_sorted = false;
     }
+
 
 /*! \param num_iters Number of iterations to average for the benchmark
     \returns Milliseconds of execution time per calculation
@@ -204,6 +211,7 @@ void export_ForceCompute()
     class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
     ("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
     .def("getForce", &ForceCompute::getForce)
+    .def("getTorque", &ForceCompute::getTorque)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)
     ;

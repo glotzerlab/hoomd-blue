@@ -198,7 +198,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
     body_imagez += (int)z_shift;
     
     matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
-    quat_multiply(orientation, tbody, fquat);
+    quatvec(orientation, tbody, fquat);
     
     float4 conjqm2;
     conjqm2.x = conjqm.x + deltaT * fquat.x;
@@ -224,7 +224,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
     // update angular velocity
     float4 angmom2;
     exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
-    inv_quat_multiply(orientation, conjqm2, mbody);
+    invquatvec(orientation, conjqm2, mbody);
     transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
     
     angmom2.x *= 0.5f;
@@ -267,6 +267,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
 */
 cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,       
                                     const gpu_rigid_data_arrays& rigid_data,
+                                    float4 *d_pdata_orientation,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
                                     float4 *d_net_force,
@@ -319,6 +320,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
     
     gpu_rigid_setxv_kernel<true><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                             pdata.vel,
+                                                            d_pdata_orientation,
                                                             pdata.image,
                                                             d_group_members,
                                                             group_size,
@@ -334,6 +336,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                             rigid_data.body_imagez,
                                                             rigid_data.particle_indices,
                                                             rigid_data.particle_pos,
+                                                            rigid_data.particle_orientation,
                                                             n_group_bodies,
                                                             pdata.N,
                                                             nmax,
@@ -349,7 +352,13 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
     \param rdata_vel Body velocity
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
+    \param rdata_orientation Quaternion
     \param rdata_conjqm Conjugate quaternion momentum
+    \param d_rigid_mass Body mass
+    \param d_rigid_mi Body inertia moments
+    \param d_rigid_force Body forces
+    \param d_rigid_torque Body torques
+    \param d_rigid_group Body indices
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param nvt_rdata_eta_dot_t0 Thermostat translational part 
@@ -423,7 +432,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
     
     // update angular momentum
     matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
-    quat_multiply(orientation, tbody, fquat);
+    quatvec(orientation, tbody, fquat);
     
     float4  conjqm2, angmom2;
     conjqm2.x = scale_r * conjqm.x + deltaT * fquat.x;
@@ -431,7 +440,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
     conjqm2.z = scale_r * conjqm.z + deltaT * fquat.z;
     conjqm2.w = scale_r * conjqm.w + deltaT * fquat.w;
     
-    inv_quat_multiply(orientation, conjqm2, mbody);
+    invquatvec(orientation, conjqm2, mbody);
     transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
     
     angmom2.x *= 0.5f;
@@ -467,7 +476,8 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
     
 */
 cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata, 
-                                    const gpu_rigid_data_arrays& rigid_data, 
+                                    const gpu_rigid_data_arrays& rigid_data,
+                                    float4 *d_pdata_orientation,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
                                     float4 *d_net_force,
@@ -509,6 +519,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
     
     gpu_rigid_setxv_kernel<false><<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                 pdata.vel,
+                                                                d_pdata_orientation,
                                                                 pdata.image,
                                                                 d_group_members,
                                                                 group_size,
@@ -524,6 +535,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                 rigid_data.body_imagez,
                                                                 rigid_data.particle_indices,
                                                                 rigid_data.particle_pos,
+                                                                rigid_data.particle_orientation,
                                                                 n_group_bodies,
                                                                 pdata.N,
                                                                 nmax,
