@@ -147,7 +147,8 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
     unsigned int pidx = d_pgroup_idx[group_idx];
     unsigned int idx_body = d_particle_body[pidx];
     unsigned int particle_offset = d_particle_offset[pidx];
-    float4 orientation = d_rigid_orientation[idx_body];
+    float4 body_orientation = d_rigid_orientation[idx_body];
+    
     com = d_rigid_com[idx_body];
     vel = d_rigid_vel[idx_body];
     angvel = d_rigid_angvel[idx_body];
@@ -158,10 +159,11 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         body_imagez = d_rigid_imagez[idx_body];
         }
     
-    exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
+    exyzFromQuaternion(body_orientation, ex_space, ey_space, ez_space);
     
     int localidx = idx_body * nmax + particle_offset;
     float4 particle_pos = d_rigid_particle_dis[localidx];
+    float4 constituent_orientation = d_rigid_particle_orientation[localidx];
     
     // compute ri with new orientation
     float4 ri;
@@ -197,8 +199,8 @@ __global__ void gpu_rigid_setxv_kernel(float4* pdata_pos,
         image.z += (int)z_shift;
 
         // update particle orientation
-        quatquat(d_rigid_orientation[idx_body],
-                 d_rigid_particle_orientation[localidx],
+        quatquat(body_orientation,
+                 constituent_orientation,
                  porientation);
         }
     
