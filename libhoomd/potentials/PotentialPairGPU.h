@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 
-#include "AllPairPotentials.h"
+#include "PotentialPair.h"
 #include "PotentialPairGPU.cuh"
 
 /*! \file PotentialPairGPU.h
