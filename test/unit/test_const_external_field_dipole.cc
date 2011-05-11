@@ -90,11 +90,13 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     arrays.x[1] = Scalar(12.2); arrays.y[1] = Scalar(-10.0); arrays.z[1] = 0.0; // particle to test wall at pos 10,0,0
     arrays.x[2] = 0.0; arrays.y[2] = Scalar(10.0); arrays.z[2] = Scalar(-12.9); // particle to test wall at pos 0,0,-10
     pdata_3->release();
-    
+
+    {   
     ArrayHandle<Scalar4> h_orientation(pdata_3->getOrientationArray());
-    eulerToQuat(1.5*PI, 0.0, 1.5*PI, h_orientation.data[0]); //dipole along x
-    eulerToQuat(0.5*PI,0.5*PI, 0.0, h_orientation.data[1]); //dipole along y
+    eulerToQuat(0.0,0.5*PI, 0.0, h_orientation.data[0]); //dipole along x
+    eulerToQuat(0.5*PI,0, 0.0, h_orientation.data[1]); //dipole along y
     eulerToQuat(2*PI, 2*PI, 2*PI, h_orientation.data[2]); //dipole along z
+    }
     // create the wall force compute with a default cutoff of 1.0 => all forces should be 0 for the first round
     shared_ptr<ConstExternalFieldDipoleForceCompute> fc_3 = cefd_creator(sysdef_3, Scalar(0.0),Scalar(0.0),Scalar(0.0),Scalar(0.0));
     
@@ -187,9 +189,9 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     MY_BOOST_CHECK_CLOSE(h_torque_2.data[0].z, field_y,tol);
     MY_BOOST_CHECK_SMALL(h_torque_2.data[0].w, tol_small);
      
-    MY_BOOST_CHECK_CLOSE(h_torque_2.data[1].x, field_z, tol);
+    MY_BOOST_CHECK_CLOSE(h_torque_2.data[1].x, -field_z, tol);
     MY_BOOST_CHECK_SMALL(h_torque_2.data[1].y, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_torque_2.data[1].z, -field_x,tol);
+    MY_BOOST_CHECK_CLOSE(h_torque_2.data[1].z, field_x,tol);
     MY_BOOST_CHECK_SMALL(h_torque_2.data[1].w, tol_small);
     
     MY_BOOST_CHECK_CLOSE(h_torque_2.data[2].x, -field_y, tol);
