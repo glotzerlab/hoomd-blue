@@ -1150,6 +1150,7 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     shared_ptr<IntegratorTwoStep> nvt_up(new IntegratorTwoStep(sysdef, deltaT));
     shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     shared_ptr<TwoStepNVT> two_step_nvt = nvt_creator(sysdef, group_all, thermo, tau, T);
+    two_step_nvt->setXi(Scalar(1.0));
     nvt_up->addIntegrationMethod(two_step_nvt);
     thermo->setNDOF(3);
     
