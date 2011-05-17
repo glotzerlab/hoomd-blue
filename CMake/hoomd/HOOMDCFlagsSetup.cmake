@@ -61,14 +61,13 @@ SET(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "First configure has run: CXX_FLAGS
 endif(NOT PASSED_FIRST_CONFIGURE)
 
 # add openmp compile option to the flags
-if(NOT APPLE)
 find_package(OpenMP)
 if (ENABLE_OPENMP AND OPENMP_FOUND)
     # these changes unfortunately don't make it into the cache, but the user doesn't really need to see it, they can control it with the ENABLE_OPENMP option
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    list(APPEND CMAKE_EXE_LINKER_FLAGS ${OpenMP_CXX_FLAGS})
 endif (ENABLE_OPENMP AND OPENMP_FOUND)
-endif(NOT APPLE)
 
 # disable crazy windows warnings
 if (WIN32)
