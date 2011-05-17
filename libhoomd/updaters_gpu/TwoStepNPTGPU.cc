@@ -105,6 +105,19 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
 
+    if (!m_state_initialized)
+        {
+        // compute the current thermodynamic properties
+        m_thermo_group->compute(timestep);
+        m_thermo_all->compute(timestep);
+        
+        // compute temperature for the next half time step
+        m_curr_group_T = m_thermo_group->getTemperature();
+        // compute pressure for the next half time step
+        m_curr_P = m_thermo_all->getPressure();
+        m_state_initialized = true;
+        }
+
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();

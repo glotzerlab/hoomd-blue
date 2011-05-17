@@ -143,6 +143,8 @@ class TwoStepNPT : public IntegrationMethodTwoStep
         Scalar m_Lx;                    //!< Box length in x direction
         Scalar m_Ly;                    //!< Box length in y direction
         Scalar m_Lz;                    //!< Box length in z direction
+        
+        bool m_state_initialized;       //!< Flag to test if we have initialized m_curr_group_T and m_curr_P yet
     };
 
 //! Exports the TwoStepNVT class to python
