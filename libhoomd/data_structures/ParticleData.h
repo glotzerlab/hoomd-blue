@@ -363,6 +363,11 @@ class ParticleDataInitializer
             Rigid bodies are optional: the base class does nothing
         */
         virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const {}
+        
+        //! Initialize the orientation data
+        /*! \param orientation Pointer to one orientation per particle to be initialized
+        */
+        virtual void initOrientation(Scalar4 *orientation) const {}
     };
 
 //! Manages all of the data arrays for the particles

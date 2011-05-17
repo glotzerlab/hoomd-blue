@@ -175,6 +175,13 @@ void HOOMDDumpWriter::setOutputCharge(bool enable)
     m_output_charge = enable;
     }
 
+/*! \param enable Set to true to output orientation to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputOrientation(bool enable)
+    {
+    m_output_orientation = enable;
+    }
+
 /*! \param fname File name to write
     \param timestep Current time step of the simulation
 */
@@ -491,6 +498,29 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f <<"</charge>" << "\n";
         }
 
+    // if the orientation flag is set, write out the orientation quaternion to the XML file
+    if (m_output_orientation)
+        {
+        f << "<orientation num=\"" << m_pdata->getN() << "\">" << "\n";
+        
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            // use the rtag data to output the particles in the order they were read in
+            int i;
+            i= arrays.rtag[j];
+            
+            Scalar4 orientation = h_orientation.data[i];
+            f << orientation.x << " " << orientation.y << " " << orientation.z << " " << orientation.w << "\n";
+            if (!f.good())
+                {
+                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
+            }
+        }
+
     f << "</configuration>" << "\n";
     f << "</hoomd_xml>" << "\n";
     
@@ -542,6 +572,7 @@ void export_HOOMDDumpWriter()
     .def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
     .def("setOutputAccel", &HOOMDDumpWriter::setOutputAccel)
     .def("setOutputCharge", &HOOMDDumpWriter::setOutputCharge)
+    .def("setOutputOrientation", &HOOMDDumpWriter::setOutputOrientation)
     .def("writeFile", &HOOMDDumpWriter::writeFile)
     ;
     }

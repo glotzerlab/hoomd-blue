@@ -291,6 +291,10 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     
     setBox(init.getBox());        
     init.initArrays(m_arrays);
+        {
+        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::overwrite);
+        init.initOrientation(h_orientation.data);
+        }
             
     // it is an error for particles to be initialized outside of their box
     if (!inBox(false))

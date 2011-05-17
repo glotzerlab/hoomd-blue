@@ -92,6 +92,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
     m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
+    m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
     
     // read in the file
     readFile(fname);
@@ -413,7 +414,13 @@ void HOOMDInitializer::readFile(const string &fname)
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
-        
+    if (m_orientation.size() != 0 && m_orientation.size() != m_pos_array.size())
+        {
+        cerr << endl << "***Error! " << m_orientation.size() << " orientation values != " << m_pos_array.size()
+             << " positions" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_xml file");
+        }
+
     // notify the user of what we have accomplished
     cout << "--- hoomd_xml file read summary" << endl;
     cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
@@ -440,6 +447,8 @@ void HOOMDInitializer::readFile(const string &fname)
         cout << m_charge_array.size() << " charges" << endl;
     if (m_walls.size() > 0)
         cout << m_walls.size() << " walls" << endl;
+    if (m_orientation.size() > 0)
+        cout << m_orientation.size() << " orientations" << endl;
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
@@ -891,6 +900,33 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
         }
     }
 
+/*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b orientation node and fills out m_orientation. The number
+    of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseOrientationNode(const XMLNode &node)
+    {
+    // check that this is actually a charge node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("orientation"));
+    
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        Scalar ox, oy, oz, ow;
+        parser >> ox >> oy >> oz >> ow;
+        if (parser.good())
+            m_orientation.push_back(make_scalar4(ox, oy, oz, ow));
+        }
+    }
+
 /*! \param name Name to get type id of
     If \a name has already been added, this returns the type index of that name.
     If \a name has not yet been added, it is added to the list and the new id is returned.
@@ -1051,6 +1087,12 @@ void HOOMDInitializer::initImproperData(boost::shared_ptr<DihedralData> improper
         improper_data->addDihedral(m_impropers[i]);
         
     improper_data->setDihedralTypeMapping(m_improper_type_mapping);
+    }
+
+void HOOMDInitializer::initOrientation(Scalar4 *orientation) const
+    {
+    for (unsigned int i = 0; i < m_orientation.size(); i++)
+        orientation[i] = m_orientation[i];
     }
 
 /*! \returns A mapping of type ids to type names deteremined from the XML input file
