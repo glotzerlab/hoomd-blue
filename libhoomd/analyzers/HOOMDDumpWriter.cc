@@ -374,7 +374,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the body flag is true output the bodies of all particles to an xml file
     if  (m_output_body)
         {
-        f <<"<body num=\"" << m_pdata->getN() << "\">" <<endl;
+        f <<"<body num=\"" << m_pdata->getN() << "\">" << "\n";
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
             unsigned int i;
@@ -388,9 +388,9 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             else
                 out = (int)body;
             
-            f << out << endl;
+            f << out << "\n";
             }
-        f <<"</body>" <<endl;
+        f <<"</body>" << "\n";
         }
         
     // if the bond flag is true, output the bonds to the xml file
