@@ -519,6 +519,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
+        f << "</orientation>" << "\n";
         }
 
     f << "</configuration>" << "\n";
