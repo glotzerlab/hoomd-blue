@@ -512,12 +512,12 @@ DEVICE inline void quatToR(const Scalar4& q, Scalar* R)
     Scalar q1_2 = q.y * q.y;
     Scalar q2_2 = q.z * q.z;
     Scalar q3_2 = q.w * q.w;
-    Scalar two_q0q1 = 2.0 * q.x * q.y;
-    Scalar two_q0q2 = 2.0 * q.x * q.z;
-    Scalar two_q0q3 = 2.0 * q.x * q.w;
-    Scalar two_q1q2 = 2.0 * q.y * q.z;
-    Scalar two_q1q3 = 2.0 * q.y * q.w;
-    Scalar two_q2q3 = 2.0 * q.z * q.w;
+    Scalar two_q0q1 = Scalar(2.0) * q.x * q.y;
+    Scalar two_q0q2 = Scalar(2.0) * q.x * q.z;
+    Scalar two_q0q3 = Scalar(2.0) * q.x * q.w;
+    Scalar two_q1q2 = Scalar(2.0) * q.y * q.z;
+    Scalar two_q1q3 = Scalar(2.0) * q.y * q.w;
+    Scalar two_q2q3 = Scalar(2.0) * q.z * q.w;
     
     R[0] = q0_2 + q1_2 - q2_2 -q3_2;
     R[1] = two_q1q2 - two_q0q3;
