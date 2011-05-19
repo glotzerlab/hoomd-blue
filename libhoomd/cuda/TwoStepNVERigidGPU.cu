@@ -114,7 +114,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     float body_mass;
     float4 moment_inertia, com, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
     int body_imagex, body_imagey, body_imagez;
-    float dt_half = 0.5 * deltaT;
+    float dt_half = 0.5f * deltaT;
         
     unsigned int idx_body = d_rigid_group[group_idx];
     body_mass = d_rigid_mass[idx_body];
@@ -165,7 +165,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     angmom2.x = angmom.x + dt_half * torque.x;
     angmom2.y = angmom.y + dt_half * torque.y;
     angmom2.z = angmom.z + dt_half * torque.z;
-    angmom2.w = 0.0;
+    angmom2.w = 0.0f;
     
     float4 angvel2;
     advanceQuaternion(angmom2, moment_inertia, angvel2, ex_space, ey_space, ez_space, deltaT, orientation);
@@ -593,7 +593,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
     
     float body_mass;
     float4 moment_inertia, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
-    float dt_half = 0.5 * deltaT;
+    float dt_half = 0.5f * deltaT;
     
     unsigned int idx_body = d_rigid_group[group_idx];
     
@@ -614,14 +614,14 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
     vel2.x = vel.x + dtfm * force.x;
     vel2.y = vel.y + dtfm * force.y;
     vel2.z = vel.z + dtfm * force.z;
-    vel2.w = 0.0;
+    vel2.w = 0.0f;
 
     // update angular momentum
     float4 angmom2;
     angmom2.x = angmom.x + dt_half * torque.x;
     angmom2.y = angmom.y + dt_half * torque.y;
     angmom2.z = angmom.z + dt_half * torque.z;
-    angmom2.w = 0.0;
+    angmom2.w = 0.0f;
     
     // update angular velocity        
     float4 angvel2;
