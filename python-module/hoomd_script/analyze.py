@@ -551,10 +551,10 @@ class msd(_analyzer):
     # msd = analyze.msd(filename='msd.log', groups=[group1, group2], 
     #                   period=100)
     #
-    # analyze.log(groups=[group1, group2, group3], period=1000, 
+    # analyze.msd(groups=[group1, group2, group3], period=1000, 
     #             filename='msd.log', header_prefix='#')
     # 
-    # analyze.log(filename='msd.log', groups=[group1], period=10, 
+    # analyze.msd(filename='msd.log', groups=[group1], period=10, 
     #             header_prefix='Log of group1 msd, run 5\n')
     # \endcode
     #
