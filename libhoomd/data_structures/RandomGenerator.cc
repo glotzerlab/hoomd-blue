@@ -147,22 +147,25 @@ bool GeneratedParticles::canPlace(const particle& p)
         
     // first, map the particle back into the box
     Scalar x = p.x;
+    Scalar lx = m_box.xhi - m_box.xlo;
     if (x > m_box.xhi)
-        x -= m_box.xhi - m_box.xlo;
+        x -= lx*(((int)((x-m_box.xhi)/lx))+1);
     else if (x < m_box.xlo)
-        x += m_box.xhi - m_box.xlo;
+        x += lx*(((int)((m_box.xlo-x)/lx))+1);
         
     Scalar y = p.y;
+    Scalar ly = m_box.yhi - m_box.ylo;
     if (y > m_box.yhi)
-        y -= m_box.yhi - m_box.ylo;
+        y -= ly*(((int)((y-m_box.yhi)/ly))+1);
     else if (y < m_box.ylo)
-        y += m_box.yhi - m_box.ylo;
-        
+        y += ly*(((int)((m_box.ylo-y)/ly))+1);
+
     Scalar z = p.z;
+    Scalar lz = m_box.zhi - m_box.zlo;
     if (z > m_box.zhi)
-        z -= m_box.zhi - m_box.zlo;
+        z -= lz*(((int)((z-m_box.zhi)/lz))+1);
     else if (z < m_box.zlo)
-        z += m_box.zhi - m_box.zlo;
+        z += lz*(((int)((m_box.zlo-z)/lz))+1);
         
     // determine the bin the particle is in
     int ib = (int)((x-m_box.xlo)*m_scalex);
@@ -178,7 +181,7 @@ bool GeneratedParticles::canPlace(const particle& p)
         kb = 0;
         
     // sanity check
-    assert(ib < m_Mx && jb < m_My && kb < m_Mz);
+    assert(0<= ib && ib < m_Mx && 0 <= jb && jb < m_My && 0<=kb && kb < m_Mz);
     
     // loop over all neighboring bins in (cur_ib, cur_jb, cur_kb)
     for (int cur_ib = ib - 1; cur_ib <= ib+1; cur_ib++)
@@ -205,7 +208,8 @@ bool GeneratedParticles::canPlace(const particle& p)
                     cmp_kb += m_Mz;
                 if (cmp_kb >= m_Mz)
                     cmp_kb -= m_Mz;
-                    
+
+                assert(cmp_ib >= 0 && cmp_ib < m_Mx && cmp_jb >=0 && cmp_jb < m_My && cmp_kb >= 0 && cmp_kb < m_Mz);
                 int cmp_bin = cmp_ib*(m_My*m_Mz) + cmp_jb * m_Mz + cmp_kb;
                 
                 // check all particles in that bin
@@ -216,26 +220,44 @@ bool GeneratedParticles::canPlace(const particle& p)
                     const particle& p_cmp = m_particles[bin_list[i]];
                     
                     Scalar min_dist = m_radii[p.type] + m_radii[p_cmp.type];
-                    
-                    // box wrap dx
-                    Scalar dx = p.x - p_cmp.x;
-                    if (dx > m_box.xhi)
-                        dx -= m_box.xhi - m_box.xlo;
-                    else if (dx < m_box.xlo)
-                        dx += m_box.xhi - m_box.xlo;
+
+                    // map p_cmp into box
+                    Scalar cmp_x = p_cmp.x;
+                    if (cmp_x > m_box.xhi)
+                        cmp_x -= lx*(((int)((cmp_x-m_box.xhi)/lx))+1);
+                    else if (x < m_box.xlo)
+                        cmp_x += lx*(((int)((m_box.xlo-cmp_x)/lx))+1);
+        
+                    Scalar cmp_y = p_cmp.y;
+                    if (y > m_box.yhi)
+                        cmp_y -= ly*(((int)((cmp_y-m_box.yhi)/ly))+1);
+                    else if (y < m_box.ylo)
+                        cmp_y += ly*(((int)((m_box.ylo-cmp_y)/ly))+1);
+
+                    Scalar cmp_z = p_cmp.z;
+                    if (cmp_z > m_box.zhi)
+                        cmp_z -= lz*(((int)((cmp_z-m_box.zhi)/lz))+1);
+                    else if (cmp_z < m_box.zlo)
+                        cmp_z += lz*(((int)((m_box.zlo-cmp_z)/lz))+1);
+
+                    // minimum image convention for dx
+                    Scalar dx = x - cmp_x;
+                    if (dx > lx/2.)
+                        dx -= lx;
+                    else if (dx <= -lx/2.)
+                        dx += lx;
                         
-                    Scalar dy = p.y - p_cmp.y;
-                    if (dy > m_box.yhi)
-                        dy -= m_box.yhi - m_box.ylo;
-                    else if (dy < m_box.ylo)
-                        dy += m_box.yhi - m_box.ylo;
+                    Scalar dy = y - cmp_y;
+                    if (dy > ly/2.)
+                        dy -= ly;
+                    else if (dy <= -ly/2.)
+                        dy += ly;
                         
-                    Scalar dz = p.z - p_cmp.z;
-                    if (dz > m_box.zhi)
-                        dz -= m_box.zhi - m_box.zlo;
-                    else if (dz < m_box.zlo)
-                        dz += m_box.zhi - m_box.zlo;
-                        
+                    Scalar dz = z - cmp_z;
+                    if (dz > lz/2.)
+                        dz -= lz;
+                    else if (dz <= -lz/2.)
+                        dz += lz;
                         
                     if (dx*dx + dy*dy + dz*dz < min_dist)
                         return false;
@@ -267,27 +289,54 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
         
     // first, map the particle back into the box
     Scalar x = p.x;
+    Scalar lx = m_box.xhi - m_box.xlo;
+    int ix = 0;
     if (x > m_box.xhi)
-        x -= m_box.xhi - m_box.xlo;
+        {
+        ix=(((int)((x-m_box.xhi)/lx))+1);
+        x -= lx*ix;
+        }
     else if (x < m_box.xlo)
-        x += m_box.xhi - m_box.xlo;
-        
+        {
+        ix=-(((int)((m_box.xlo-x)/lx))+1);
+        x -= lx*ix;
+        }
+
     Scalar y = p.y;
+    Scalar ly = m_box.yhi - m_box.ylo;
+    int iy = 0;
     if (y > m_box.yhi)
-        y -= m_box.yhi - m_box.ylo;
+        {
+        iy=(((int)((y-m_box.yhi)/ly))+1);
+        y -= ly*iy;
+        }
     else if (y < m_box.ylo)
-        y += m_box.yhi - m_box.ylo;
+        {
+        iy=-(((int)((m_box.ylo-y)/ly))+1);
+        y -= ly*iy;
+        }
         
     Scalar z = p.z;
+    Scalar lz = m_box.zhi - m_box.zlo;
+    int iz = 0;
     if (z > m_box.zhi)
-        z -= m_box.zhi - m_box.zlo;
+        {
+        iz=(((int)((z-m_box.zhi)/lz))+1);
+        z -= lz*iz;
+        }
     else if (z < m_box.zlo)
-        z += m_box.zhi - m_box.zlo;
-        
+        {
+        iz=-(((int)((m_box.zlo-z)/lz))+1);
+        z -= lz*iz;
+        }
+
     // set the particle data
     m_particles[idx].x = x;
     m_particles[idx].y = y;
     m_particles[idx].z = z;
+    m_particles[idx].ix = ix;
+    m_particles[idx].iy = iy;
+    m_particles[idx].iz = iz;
     m_particles[idx].type = p.type;
     
     // determine the bin the particle is in
@@ -320,30 +369,57 @@ void GeneratedParticles::undoPlace(unsigned int idx)
     {
     assert(idx < m_particles.size());
     
-    // first, map the particle back into the box
     particle p = m_particles[idx];
+    // first, map the particle back into the box
     Scalar x = p.x;
+    Scalar lx = m_box.xhi - m_box.xlo;
+    int ix = 0;
     if (x > m_box.xhi)
-        x -= m_box.xhi - m_box.xlo;
+        {
+        ix=(((int)((x-m_box.xhi)/lx))+1);
+        x -= lx*ix;
+        }
     else if (x < m_box.xlo)
-        x += m_box.xhi - m_box.xlo;
-        
+        {
+        ix=-(((int)((m_box.xlo-x)/lx))+1);
+        x -= lx*ix;
+        }
+
     Scalar y = p.y;
+    Scalar ly = m_box.yhi - m_box.ylo;
+    int iy = 0;
     if (y > m_box.yhi)
-        y -= m_box.yhi - m_box.ylo;
+        {
+        iy=(((int)((y-m_box.yhi)/ly))+1);
+        y -= ly*iy;
+        }
     else if (y < m_box.ylo)
-        y += m_box.yhi - m_box.ylo;
+        {
+        iy=-(((int)((m_box.ylo-y)/ly))+1);
+        y -= ly*iy;
+        }
         
     Scalar z = p.z;
+    Scalar lz = m_box.zhi - m_box.zlo;
+    int iz = 0;
     if (z > m_box.zhi)
-        z -= m_box.zhi - m_box.zlo;
+        {
+        iz=(((int)((z-m_box.zhi)/lz))+1);
+        z -= lz*iz;
+        }
     else if (z < m_box.zlo)
-        z += m_box.zhi - m_box.zlo;
-        
+        {
+        iz=-(((int)((m_box.zlo-z)/lz))+1);
+        z -= lz*iz;
+        }
+
     // set the particle data
     m_particles[idx].x = x;
     m_particles[idx].y = y;
     m_particles[idx].z = z;
+    m_particles[idx].ix = ix;
+    m_particles[idx].iy = iy;
+    m_particles[idx].iz = iz;
     m_particles[idx].type = p.type;
     
     // determine the bin the particle is in
@@ -417,6 +493,9 @@ void RandomGenerator::initArrays(const ParticleDataArrays &pdata) const
         pdata.x[i] = m_data.m_particles[i].x;
         pdata.y[i] = m_data.m_particles[i].y;
         pdata.z[i] = m_data.m_particles[i].z;
+        pdata.ix[i] = m_data.m_particles[i].ix;
+        pdata.iy[i] = m_data.m_particles[i].iy;
+        pdata.iz[i] = m_data.m_particles[i].iz;
         pdata.type[i] = m_data.m_particles[i].type_id;
         
         pdata.tag[i] = i;
