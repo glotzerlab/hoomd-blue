@@ -75,7 +75,7 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group), m_thermo_all(thermo_all), 
-      m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P)
+      m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_state_initialized(false)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in TwoStepNPT" << endl;
@@ -94,14 +94,9 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
 
-    // compute the current thermodynamic properties
-    m_thermo_group->compute(0);
-    m_thermo_all->compute(0);
-    
-    // compute temperature for the next half time step
-    m_curr_group_T = m_thermo_group->getTemperature();
-    // compute pressure for the next half time step
-    m_curr_P = m_thermo_all->getPressure();
+    // choose dummy values for the current temp and pressure
+    m_curr_group_T = 0.0;
+    m_curr_P = 0.0;
 
     if (!restartInfoTestValid(v, "npt", 2))
         {
@@ -130,6 +125,19 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push("NPT step 1");
+
+    if (!m_state_initialized)
+        {
+        // compute the current thermodynamic properties
+        m_thermo_group->compute(timestep);
+        m_thermo_all->compute(timestep);
+        
+        // compute temperature for the next half time step
+        m_curr_group_T = m_thermo_group->getTemperature();
+        // compute pressure for the next half time step
+        m_curr_P = m_thermo_all->getPressure();
+        m_state_initialized = true;
+        }
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];

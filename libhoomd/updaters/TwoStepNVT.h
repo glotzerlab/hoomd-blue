@@ -95,6 +95,15 @@ class TwoStepNVT : public IntegrationMethodTwoStep
             m_tau = tau;
             }
 
+        //! Set the value of xi (for unit tests)
+        void setXi(Scalar new_xi)
+            {
+            IntegratorVariables v = getIntegratorVariables();
+            Scalar& xi = v.variable[0];
+            xi = new_xi;
+            setIntegratorVariables(v);
+            }
+
         //! Returns a list of log quantities this integrator calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         

@@ -105,10 +105,10 @@ void BoxResizeUpdater::update(unsigned int timestep)
     // check if the current box size is the same
     BoxDim curBox = m_pdata->getBox();
     BoxDim newBox(Lx, Ly, Lz);
-    
-    bool no_change = fabs((Lx - curBox.xhi - curBox.xlo) / Lx) < 1e-5 &&
-                     fabs((Ly - curBox.yhi - curBox.ylo) / Ly) < 1e-5 &&
-                     fabs((Lz - curBox.zhi - curBox.zlo) / Lz) < 1e-5;
+
+    bool no_change = fabs((Lx - (curBox.xhi - curBox.xlo)) / Lx) < 1e-5 &&
+                     fabs((Ly - (curBox.yhi - curBox.ylo)) / Ly) < 1e-5 &&
+                     fabs((Lz - (curBox.zhi - curBox.zlo)) / Lz) < 1e-5;
                      
     // only change the box if there is a change in the box size
     if (!no_change)

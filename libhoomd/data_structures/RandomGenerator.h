@@ -84,6 +84,9 @@ class GeneratedParticles
             Scalar x;   //!< X-coordinate
             Scalar y;   //!< Y-coordinate
             Scalar z;   //!< Z-coordinate
+            int ix;     //!< Shift in x direction
+            int iy;     //!< Shift in y direction
+            int iz;     //!< Shift in z direction
             std::string type;   //!< Particle's type name
             unsigned int type_id;   //!< Particle's type id
             };

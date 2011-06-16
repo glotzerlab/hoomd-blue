@@ -79,8 +79,8 @@ HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), 
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), 
         m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false), 
-        m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_charge(false),
-        m_output_body(false)
+        m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_body(false),
+        m_output_charge(false), m_output_orientation(false)
     {
     }
 
