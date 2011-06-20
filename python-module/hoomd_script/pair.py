@@ -1751,7 +1751,6 @@ class dpd(pair):
             self.cpp_force = hoomd.PotentialPairDPDThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDThermoDPDGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.dpd'));
-            self.cpp_force.setBlockSize(64);
 
                 
         globals.system.addCompute(self.cpp_force, self.force_name);
