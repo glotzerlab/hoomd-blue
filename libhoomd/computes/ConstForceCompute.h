@@ -84,7 +84,7 @@ class ConstForceCompute : public ForceCompute
 
     private:
 
-        // Constant force values 
+        //! Constant force values 
         Scalar m_fx; //! Constant force in x-direction
         Scalar m_fy; //! Constant force in y-direction
         Scalar m_fz; //! Constant force in z-direction
