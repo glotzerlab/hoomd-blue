@@ -1722,7 +1722,7 @@ class dpd(pair):
     #
     # \b Example:
     # \code
-    # dpd = pair.dpd(r_cut=3.0, seed=12345)
+    # dpd = pair.dpd(r_cut=3.0, T=1.0, seed=12345)
     # dpd.pair_coeff.set('A', 'A', A=1.0, gamma = 3.0)
     # dpd.pair_coeff.set('A', 'B', A=2.0, gamma = 3.0, r_cut = 1.0)
     # dpd.pair_coeff.set('B', 'B', A=1.0, gamma = 3.0)
