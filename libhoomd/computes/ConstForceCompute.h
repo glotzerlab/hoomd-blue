@@ -84,10 +84,9 @@ class ConstForceCompute : public ForceCompute
 
     private:
 
-        //! Constant force values 
-        Scalar m_fx; //! Constant force in x-direction
-        Scalar m_fy; //! Constant force in y-direction
-        Scalar m_fz; //! Constant force in z-direction
+        Scalar m_fx; //!< Constant force in x-direction
+        Scalar m_fy; //!< Constant force in y-direction
+        Scalar m_fz; //!< Constant force in z-direction
 
         //! Group of particles to apply force to
         boost::shared_ptr<ParticleGroup> m_group; 
