@@ -1952,3 +1952,173 @@ class eam(force._force):
         # check that the pair coefficients are valid
         pass;
 
+
+        
+## NVT Integration via Dissipative Particle Dynamics %pair %force with a Lennard Jones conservative force
+#
+# The command pair.dpdlj specifies that a DPD thermostat and a Lennard Jones (LJ) %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# \f{eqnarray*}  
+# F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
+# \f}
+#
+# \f{eqnarray*}
+# F_{\mathrm{C}}(r) = & \partial V_{\mathrm{LJ}} / \partial r \\
+# F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3} \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
+# F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left( \hat r_{ij} \circ v_{ij} \right)  \\
+# \f}
+#
+# where
+# \f{eqnarray*}
+# V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+#                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+# and
+# \f{eqnarray*}
+# w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)  & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+# where \f$\hat r_{ij} \f$ is a normalized vector from particle i to particle j, \f$ v_{ij} = v_i - v_j \f$, and \f$ \theta_{ij} \f$ is a uniformly distributed
+# random number in the range [-1, 1].
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
+# - \f$ \sigma \f$ - \c sigma (in distance units)
+# - \f$ \alpha \f$ - \c alpha (unitless)
+#   - <i>optional</i>: defaults to 1.0
+# - \f$ \gamma \f$ gamma (in units of force/velocity)
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# To use the dpdlj thermostat, an nve integrator must be applied to the system and the user must specify a temperature, which can be a %variant.
+# (see hoomd_script.variant for more information).  Use of the
+# dpdlj thermostat pair force with other integrators will result in unphysical behavior. 
+# To use pair.dpdlj with a different conservative potential than \f$ F_C \f$, simply set A to zero.  Note that dpdlj thermostats
+# are often defined in terms of \f$ \sigma \f$ where \f$ \sigma = \sqrt{2k_b\gamma T} \f$.
+#
+#
+# \b Example:
+# \code
+# dpdlj = pair.dpdlj(r_cut=1.0, T=1.0)
+# dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
+# dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
+# dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
+# dpdlj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon = 3.0,sigma=1.0, gamma = 1.2)
+# dpdlj.set_params(T = 1.0)
+# integrate.mode_standard(dt=0.02)
+# integrate.nve(group=group.all())
+# \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
+#
+# The cutoff radius \a r_cut passed into the initial pair.dpdlj command sets the default \a r_cut for all
+# %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
+# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
+#
+# pair.dpdlj is a standard %pair potential and supports a number of energy shift / smoothing modes for the conservative LJ potential. See pair for a full
+# description of the various options.
+#
+class dpdlj(pair):
+    ## Specify the DPD %pair %force and thermostat
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param T Temperature of thermostat (in energy units)
+    # \param name Name of the force instance
+    # \param seed seed for the PRNG in the DPD thermostat
+    #
+    # \b Example:
+    # \code
+    # dpdlj = pair.dpdlj(r_cut=3.0, T=1.0, seed=12345)
+    # dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
+    # dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
+    # dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, T, seed=1, name=None):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDLJThermoDPD;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairDPDLJThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDLJThermoDPDGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.dpdlj'));
+
+                
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon','sigma', 'alpha', 'gamma'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
+      
+        
+        # set the seed for dpdlj thermostat
+        self.cpp_force.setSeed(seed);
+ 
+        # set the temperature
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+        self.cpp_force.setT(T.cpp_variant);  
+        
+    ## Changes parameters
+    # \param T Temperature (if set) (in energy units)
+    # \param mode energy shift/smoothing mode (default noshift).  see pair.lj 
+    #
+    # To change the parameters of an existing pair force, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # dpdlj = pair.dpd(r_cut = 1.0)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # dpdlj.ljset_params(T=variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)]))    
+    # dpdlj.ljset_params(T=2.0, mode="shift")
+    # \endcode
+    def set_params(self, T=None, mode=None):
+        util.print_status_line();
+        self.check_initialization();
+        
+        # change the parameters
+        if T is not None:
+            # setup the variant inputs
+            T = variant._setup_variant_input(T);
+            self.cpp_force.setT(T.cpp_variant); 
+        
+        if mode is not None:
+            #use the inherited set_params
+            pair.set_params(self, mode=mode)
+               
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        gamma = coeff['gamma'];
+        alpha = coeff['alpha'];        
+        
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+        return hoomd.make_scalar4(lj1, lj2, gamma, 0.0);                             
+
+        
+

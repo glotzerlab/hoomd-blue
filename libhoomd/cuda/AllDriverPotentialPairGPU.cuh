@@ -53,6 +53,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPairGPU.cuh"
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "EvaluatorPairDPDThermo.h"
+#include "PotentialPairDPDLJThermoGPU.cuh"
+#include "EvaluatorPairDPDLJThermo.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
@@ -85,5 +87,14 @@ cudaError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
 //! Compute ewlad pair forces on the GPU with PairEvaluatorEwald
 cudaError_t gpu_compute_ewald_forces(const pair_args_t& pair_args,
                                      const float *d_params);
+                                     
+//! Compute dpdlj thermostat on GPU with PairEvaluatorDPDLJThermo
+cudaError_t gpu_compute_dpdljthermodpd_forces(const dpdlj_pair_args_t& args,
+                                            const float4 *d_params);
+
+//! Compute dpdlj conservative force on GPU with PairEvaluatorDPDThermo
+cudaError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
+                                         const float4 *d_params);
+                                     
 #endif
 
