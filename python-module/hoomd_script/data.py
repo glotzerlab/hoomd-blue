@@ -438,7 +438,7 @@ class particle_data_proxy:
             self.pdata.setVelocity(self.tag, v);
             return;
         if name == "image":
-            v = hoomd.uint3();
+            v = hoomd.int3();
             v.x = int(value[0]);
             v.y = int(value[1]);
             v.z = int(value[2]);

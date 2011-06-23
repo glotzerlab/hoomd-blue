@@ -506,12 +506,12 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current image flags of a particle
-        uint3 getImage(unsigned int tag)
+        int3 getImage(unsigned int tag)
             {
             assert(tag < getN());
             acquireReadOnly();
             unsigned int idx = m_arrays.rtag[tag];
-            uint3 result = make_uint3(m_arrays.ix[idx], m_arrays.iy[idx], m_arrays.iz[idx]);
+            int3 result = make_int3(m_arrays.ix[idx], m_arrays.iy[idx], m_arrays.iz[idx]);
             release();
             return result;
             }
