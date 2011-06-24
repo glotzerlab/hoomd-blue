@@ -14,7 +14,7 @@ export LD_LIBRARY_PATH += ":${CMAKE_BINARY_DIR}/lib}"
 export LD_LIBRARY_PATH += ":/usr/local/lib/"
 #echo "${LD_LIBRARY_PATH}"
 export RPATH += /home/gaurdro/hoomd-blue_0.9.1-beta3800/obj-i486-linux-gnu/libhoomd/
-export DEB_CMAKE_EXTRA_FLAGS += -DPYTHON_SITEDIR=lib/python2.6/ -DENABLE_EMBED_CUDA=ON
+export DEB_CMAKE_EXTRA_FLAGS += -DPYTHON_SITEDIR=lib/python2.6/ -DENABLE_EMBED_CUDA=ON -DENABLE_OPENMP=OFF
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/cmake.mk
 #%:
