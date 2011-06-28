@@ -166,7 +166,7 @@ void NeighborList::compute(unsigned int timestep)
             if (overflowed)
                 {
                 allocateNlist();
-                cout << "Notice: neighbor list overflow, allocating " << m_Nmax << " slots per particle" << endl;
+                // cout << "Notice: neighbor list overflow, allocating " << m_Nmax << " slots per particle" << endl;
                 resetConditions();
                 }
             } while (overflowed);

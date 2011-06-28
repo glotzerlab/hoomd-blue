@@ -173,7 +173,7 @@ void CellList::compute(unsigned int timestep)
             if (overflowed)
                 {
                 initializeAll();
-                cout << "Notice: cell list overflow, allocating " << m_Nmax << " slots per cell" << endl;
+                // cout << "Notice: cell list overflow, allocating " << m_Nmax << " slots per cell" << endl;
                 resetConditions();
                 }
             } while (overflowed);
