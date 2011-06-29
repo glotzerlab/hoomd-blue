@@ -66,8 +66,8 @@ if (ENABLE_OPENMP AND OPENMP_FOUND)
     # these changes unfortunately don't make it into the cache, but the user doesn't really need to see it, they can control it with the ENABLE_OPENMP option
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    list(APPEND CMAKE_EXE_LINKER_FLAGS ${OpenMP_CXX_FLAGS})
-    list(APPEND CMAKE_SHARED_LINKER_FLAGS ${OpenMP_CXX_FLAGS})
+    set(CMAKE_EXE_LINKER_FLAGS "${OpenMP_CXX_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${OpenMP_CXX_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS}")
 endif (ENABLE_OPENMP AND OPENMP_FOUND)
 
 # disable crazy windows warnings
