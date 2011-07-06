@@ -595,7 +595,7 @@ class ParticleData : boost::noncopyable
             release();
             }
         //! Set the current image flags of a particle
-        void setImage(unsigned int tag, const uint3& image)
+        void setImage(unsigned int tag, const int3& image)
             {
             assert(tag < getN());
             acquireReadWrite();
