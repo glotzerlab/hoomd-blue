@@ -277,6 +277,23 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         }
     }
 
+/*! Return the combined flags of all integration methods.
+*/
+PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
+    {
+    PDataFlags flags;
+
+    // loop through all methods
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // or them all together
+        flags |= (*method)->getRequestedPDataFlags();
+        }
+
+    return flags;
+    }
+
 void export_IntegratorTwoStep()
     {
     class_<IntegratorTwoStep, boost::shared_ptr<IntegratorTwoStep>, bases<Integrator>, boost::noncopyable>

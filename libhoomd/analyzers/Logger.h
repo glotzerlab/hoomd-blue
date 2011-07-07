@@ -110,6 +110,16 @@ class Logger : public Analyzer
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
         
+        //! Get needed pdata flags
+        /*! Logger may potentially log any of the optional quantities, enable all of the bits.
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            PDataFlags flags;
+            flags[pdata_flag::isotropic_virial] = 1;
+            flags[pdata_flag::potential_energy] = 1;
+            return flags;
+            }
     private:
         //! The delimiter to put between columns in the file
         std::string m_delimiter;
