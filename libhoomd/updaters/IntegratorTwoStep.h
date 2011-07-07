@@ -104,6 +104,9 @@ class IntegratorTwoStep : public Integrator
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep);
 
+        //! Get needed pdata flags
+        virtual PDataFlags getRequestedPDataFlags();
+
     protected:
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();

@@ -120,6 +120,11 @@ class ComputeThermo : public Compute
         */
         Scalar getPressure()
             {
+            // validate (in debug builds) that the isotropic virial was computed
+            PDataFlags flags = m_pdata->getFlags();
+            assert(flags[pdata_flag::isotropic_virial]);
+
+            // return the pressure
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::pressure];
             }

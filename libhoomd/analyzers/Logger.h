@@ -110,6 +110,16 @@ class Logger : public Analyzer
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
         
+        //! Get needed pdata flags
+        /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
+            fields, they must return the requested fields in getRequestedPDataFlags().
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            PDataFlags flags;
+            flags[pdata_flag::isotropic_virial] = 1;
+            return flags;
+            }
     private:
         //! The delimiter to put between columns in the file
         std::string m_delimiter;

@@ -190,6 +190,15 @@ class IntegrationMethodTwoStep : boost::noncopyable
         
         //! Get the number of degrees of freedom granted to a given group
         virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> query_group);
+
+        //! Get needed pdata flags
+        /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
+            fields, they must return the requested fields in getRequestedPDataFlags().
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            return PDataFlags(0);
+            }
         
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
