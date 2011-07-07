@@ -129,8 +129,7 @@ class TwoStepNPT : public IntegrationMethodTwoStep
         virtual void integrateStepTwo(unsigned int timestep);
 
         //! Get needed pdata flags
-        /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
-            fields, they must return the requested fields in getRequestedPDataFlags().
+        /*! TwoStepNPT needs the pressure, so the isotropic_virial flag is set
         */
         virtual PDataFlags getRequestedPDataFlags()
             {

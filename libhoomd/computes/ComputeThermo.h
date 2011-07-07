@@ -143,6 +143,10 @@ class ComputeThermo : public Compute
         */
         Scalar getPotentialEnergy()
             {
+            // validate (in debug builds) that the energy was computed
+            PDataFlags flags = m_pdata->getFlags();
+            assert(flags[pdata_flag::potential_energy]);
+            
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::potential_energy];
             }

@@ -111,13 +111,13 @@ class Logger : public Analyzer
         void analyze(unsigned int timestep);
         
         //! Get needed pdata flags
-        /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
-            fields, they must return the requested fields in getRequestedPDataFlags().
+        /*! Logger may potentially log any of the optional quantities, enable all of the bits.
         */
         virtual PDataFlags getRequestedPDataFlags()
             {
             PDataFlags flags;
             flags[pdata_flag::isotropic_virial] = 1;
+            flags[pdata_flag::potential_energy] = 1;
             return flags;
             }
     private:

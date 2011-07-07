@@ -112,7 +112,17 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         
         //! Access the group
         boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }        
-        
+
+        //! Get needed pdata flags
+        /*! FIREEnergyMinimzer needs the potential energy, so its flag is set
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            PDataFlags flags;
+            flags[pdata_flag::potential_energy] = 1;
+            return flags;
+            }
+
     protected:
         //! Function to create the underlying integrator 
         //virtual void createIntegrator(); 

@@ -117,7 +117,8 @@ struct pdata_flag
     //! The enum
     enum Enum
         {
-        isotropic_virial=0  //!< Bit id in PDataFlags for the isotropic virial
+        isotropic_virial=0,  //!< Bit id in PDataFlags for the isotropic virial
+        potential_energy     //!< Bit id in PDataFlags for the potential energy
         };
     };
 
@@ -386,6 +387,13 @@ class ParticleDataInitializer
     the updaters and analyzers that are to be executed on the current step. All of the flag requests are combined
     with the binary or operation into a single set of flag requests. System::run() then sets the flags by calling
     setPDataFlags so that the computes produce the requested values during that step.
+    
+    These fields are:
+     - pdata_flag::isotropic_virial - specify that the net_virial should be/is computed (getNetVirial)
+     - pdata_flag::potential_energy - specify that the potential energy .w component stored in the net force array 
+       (getNetForce) is valid
+       
+    If these flags are not set, these arrays can still be read but their values may be incorrect.
     
     \note When writing to the particle data, particles must not be moved outside the box.
     In debug builds, any aquire will fail an assertion if this is done.
