@@ -142,8 +142,11 @@ void PDBDumpWriter::writeFile(std::string fname)
     f << buf;
     
     // write out all the atoms
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
+        int i;
+        i= arrays.rtag[j];
+        
         // first check that everything will fit into the PDB output
         if (arrays.x[i] < -999.9994f || arrays.x[i] > 9999.9994f || arrays.y[i] < -999.9994f || arrays.y[i] > 9999.9994f || arrays.z[i] < -999.9994f || arrays.z[i] > 9999.9994f)
             {

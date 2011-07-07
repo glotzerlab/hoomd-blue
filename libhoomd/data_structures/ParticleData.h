@@ -72,6 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <vector>
 #include <string>
+#include <bitset>
 
 using namespace std;
 
@@ -112,6 +113,20 @@ class RigidData;
 
 // Forward declaration of IntegratorData
 class IntegratorData;
+
+//! List of optional fields that can be enabled in ParticleData
+struct pdata_flag
+    {
+    //! The enum
+    enum Enum
+        {
+        isotropic_virial=0,  //!< Bit id in PDataFlags for the isotropic virial
+        potential_energy     //!< Bit id in PDataFlags for the potential energy
+        };
+    };
+
+//! flags determines which optional fields in in the particle data arrays are to be computed / are valid
+typedef std::bitset<32> PDataFlags;
 
 //! Defines a simple structure to deal with complex numbers
 /*! This structure is useful to deal with complex numbers for such situations
@@ -398,6 +413,22 @@ class ParticleDataInitializer
     changes the order must call notifyParticleSort(). Any class interested in being notified
     can subscribe to the signal by calling connectParticleSort().
 
+    Some fields in ParticleData are not computed and assigned by default because they require additional processing
+    time. PDataFlags is a bitset that lists which flags (enumerated in pdata_flag) are enable/disabled. Computes should
+    call getFlags() and compute the requested quantities whenever the corresponding flag is set. Updaters and Analyzers
+    can request flags be computed via their getRequestedPDataFlags() methods. A particular updater or analyzer should 
+    return a bitset PDataFlags with only the bits set for the flags that it needs. During a run, System will query
+    the updaters and analyzers that are to be executed on the current step. All of the flag requests are combined
+    with the binary or operation into a single set of flag requests. System::run() then sets the flags by calling
+    setPDataFlags so that the computes produce the requested values during that step.
+    
+    These fields are:
+     - pdata_flag::isotropic_virial - specify that the net_virial should be/is computed (getNetVirial)
+     - pdata_flag::potential_energy - specify that the potential energy .w component stored in the net force array 
+       (getNetForce) is valid
+       
+    If these flags are not set, these arrays can still be read but their values may be incorrect.
+    
     \note When writing to the particle data, particles must not be moved outside the box.
     In debug builds, any aquire will fail an assertion if this is done.
     \ingroup data_structs
@@ -564,12 +595,12 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current image flags of a particle
-        uint3 getImage(unsigned int tag)
+        int3 getImage(unsigned int tag)
             {
             assert(tag < getN());
             acquireReadOnly();
             unsigned int idx = m_arrays.rtag[tag];
-            uint3 result = make_uint3(m_arrays.ix[idx], m_arrays.iy[idx], m_arrays.iz[idx]);
+            int3 result = make_int3(m_arrays.ix[idx], m_arrays.iy[idx], m_arrays.iz[idx]);
             release();
             return result;
             }
@@ -668,7 +699,7 @@ class ParticleData : boost::noncopyable
             release();
             }
         //! Set the current image flags of a particle
-        void setImage(unsigned int tag, const uint3& image)
+        void setImage(unsigned int tag, const int3& image)
             {
             assert(tag < getN());
             acquireReadWrite();
@@ -737,6 +768,16 @@ class ParticleData : boost::noncopyable
             {
             m_inertia_tensor[tag] = tensor;
             }
+            
+        //!< Get the particle data flags
+        PDataFlags getFlags() { return m_flags; }
+        
+        //!< Set the particle data flags
+        /*! \note Setting the flags does not make the requested quantities immediately available. Only after the next
+            set of compute() calls will the requested values be computed. The System class talks to the various
+            analyzers and updaters to determine the value of the flags for any given time step.
+        */
+        void setFlags(const PDataFlags& flags) { m_flags = flags; }
 
     private:
         BoxDim m_box;                               //!< The simulation box
@@ -761,6 +802,7 @@ class ParticleData : boost::noncopyable
         GPUArray< Scalar4 > m_orientation;           //!< Orientation quaternion for each particle (ignored if not anisotropic)
         std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle
         
+        PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         
 #ifdef ENABLE_CUDA
         

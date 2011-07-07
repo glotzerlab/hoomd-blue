@@ -144,6 +144,15 @@ class Updater : boost::noncopyable
         virtual void resetStats()
             {
             }
+
+        //! Get needed pdata flags
+        /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
+            fields, they must return the requested fields in getRequestedPDataFlags().
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            return PDataFlags(0);
+            }
         
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with

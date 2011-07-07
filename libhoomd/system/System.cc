@@ -378,7 +378,7 @@ boost::shared_ptr<Integrator> System::getIntegrator()
 void System::run(unsigned int nsteps, unsigned int cb_frequency,
                  boost::python::object callback, double limit_hours,
                  unsigned int limit_multiple)
-    {    
+    {
 
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
@@ -390,11 +390,15 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     
     resetStats();
     
+    // Prepare the run
     if (!m_integrator)
         cout << "***Warning! You are running without an integrator." << endl;
     else
         m_integrator->prepRun(m_cur_tstep);
-        
+    
+    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
+    m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
+    
     // handle time steps
     for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
         {
@@ -616,6 +620,34 @@ void System::generateStatusLine()
     
     // write the line
     cout << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
+    }
+
+/*! \param tstep Time step for which to determine the flags
+
+    The flags needed are determiend by peeking to \a tstep and then using bitwise or to combine all of the flags from the
+    analyzers and updaters that are to be executed on that step.
+*/
+PDataFlags System::determineFlags(unsigned int tstep)
+    {
+    PDataFlags flags(0);
+    if (m_integrator)
+        flags = m_integrator->getRequestedPDataFlags();
+    
+    vector<analyzer_item>::iterator analyzer;
+    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+        {
+        if (analyzer->peekExecute(tstep))
+            flags |= analyzer->m_analyzer->getRequestedPDataFlags();
+        }
+
+    vector<updater_item>::iterator updater;
+    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
+        {
+        if (updater->peekExecute(tstep))
+            flags |= updater->m_updater->getRequestedPDataFlags();
+        }
+        
+    return flags;
     }
 
 void export_System()

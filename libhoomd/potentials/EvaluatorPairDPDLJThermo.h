@@ -39,12 +39,12 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: EvaluatorPairDPDLJThermo.h 3505 2010-10-08 15:17:18Z phillicl $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/EvaluatorPairDPDLJThermo.h $
 // Maintainer: phillicl
 
-#ifndef __PAIR_EVALUATOR_DPD_H__
-#define __PAIR_EVALUATOR_DPD_H__
+#ifndef __PAIR_EVALUATOR_DPDLJ_H__
+#define __PAIR_EVALUATOR_DPDLJ_H__
 
 #ifndef NVCC
 #include <string>
@@ -59,8 +59,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-/*! \file EvaluatorPairDPDThermo.h
-    \brief Defines the pair evaluator class for the DPD conservative potential
+/*! \file EvaluatorPairDPDLJThermo.h
+    \brief Defines the pair evaluator class for the DPD Thermostat with a Lennard Jones conservative potential
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -102,26 +102,29 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     See EvaluatorPairLJ
     
-    <b>DPD Thermostat and Conservative specifics</b>
+    <b>DPD Thermostat and Conservative LJ specifics</b>
     
-    EvaluatorPairDPDThermo::evalForceAndEnergy evaluates the function:
-    \f[ V_{\mathrm{DPD-C}}(r) = A \cdot \left( r_{\mathrm{cut}} - r \right) 
-                        - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)\f]
-                        
-    The DPD Conservative potential does not need charge or diameter. One parameter is specified and stored in a Scalar. 
-    \a A is placed in \a param.
-        
-    EvaluatorPairDPDThermo::evalForceEnergyThermo evaluates the function:
+    EvaluatorPairDPDLJThermo::evalForceAndEnergy evaluates the Lennard-Jones function (see EvaluatorPairLJ.  However it is not intended to be used.  
+    It is written for completeness sake only.
+            
+    EvaluatorPairDPDLJThermo::evalForceEnergyThermo evaluates the function:
     \f{eqnarray*}  
     F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
     \f}
 
     \f{eqnarray*}
-    F_{\mathrm{C}}(r) = & A \cdot  w(r_{ij}) \\
+    F_{\mathrm{C}}(r) = & \partial V_{\mathrm{LJ}} / \partial r    \\
     F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3} \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
     F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left( \hat r_{ij} \circ v_{ij} \right)  \\
     \f}
 
+    where
+     \f{eqnarray*}
+    V_{\mathrm{LJ}}(r) = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+                                            \alpha \left( \frac{\sigma}{r} \right)^{6} \right]  & r < r_{\mathrm{cut}} \\
+                                            = & 0 & r \ge r_{\mathrm{cut}} \\
+    \f}
+    and
     \f{eqnarray*}
     w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)  & r < r_{\mathrm{cut}} \\
                      = & 0 & r \ge r_{\mathrm{cut}} \\
@@ -129,27 +132,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     where \f$\hat r_{ij} \f$ is a normalized vector from particle i to particle j, \f$ v_{ij} = v_i - v_j \f$, and \f$ \theta_{ij} \f$ is a uniformly distributed
     random number in the range [-1, 1].                        
  
-    The DPD Thermostat potential does not need charge or diameter. Two parameters are specified and stored in a Scalar. 
-    \a A and \a gamma are placed in \a param.   
+    The LJ potential does not need diameter or charge. Three parameters are specified and stored in a Scalar4. \a lj1 is
+    placed in \a params.x, \a lj2 is in \a params.y and \a gamma in \a params.z. The final parameter \a params.w is not used and set to zero.
     
-    These are related to the standard lj parameters sigma and epsilon by:
-    - \a A = \f$ A \f$   
-    - \a gamma = \f$ \gamma \f$    
+    lj1 and lj2 are related to the standard lj parameters sigma and epsilon by:
+    - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
+    - \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);   
      
 */
-class EvaluatorPairDPDThermo
+class EvaluatorPairDPDLJThermo
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef Scalar4 param_type;
         
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
             \param _rcutsq Sqauared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairDPDThermo(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), a(_params.x), gamma(_params.y)
+        DEVICE EvaluatorPairDPDLJThermo(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y), gamma(_params.z)
             {
             }
 
@@ -180,7 +183,7 @@ class EvaluatorPairDPDThermo
             m_T = Temp;
             }
         
-        //! Does not use diameter
+        //! LJ does not use diameter
         DEVICE static bool needsDiameter() { return false; }
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
@@ -188,15 +191,16 @@ class EvaluatorPairDPDThermo
         */
         DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
-        //! Yukawa doesn't use charge
+        //! LJ doesn't use charge
         DEVICE static bool needsCharge() { return false; }
-        //! Accept the optional diameter values
+        //! Accept the optional charge values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
         DEVICE void setCharge(Scalar qi, Scalar qj) { }
+                
         
-        //! Evaluate the force and energy using the conservative force only
+        //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
@@ -208,41 +212,45 @@ class EvaluatorPairDPDThermo
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
-            if (rsq < rcutsq)
+            if (rsq < rcutsq && lj1 != 0)
                 {
-               
-                Scalar rinv = RSQRT(rsq);
-                Scalar r = Scalar(1.0) / rinv;
-                Scalar rcutinv = RSQRT(rcutsq);
-                Scalar rcut = Scalar(1.0) / rcutinv;
-
-                // force is easy to calculate
-                force_divr = a*(rinv - rcutinv);
-                pair_eng = a * (rcut - r) - Scalar(1.0/2.0) * a * rcutinv * (rcutsq - rsq);
-
+                Scalar r2inv = Scalar(1.0)/rsq;
+                Scalar r6inv = r2inv * r2inv * r2inv;
+                force_divr= r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
+                
+                pair_eng = r6inv * (lj1*r6inv - lj2);
+                
+                if (energy_shift)
+                    {
+                    Scalar rcut2inv = Scalar(1.0)/rcutsq;
+                    Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+                    pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
+                    }
                 return true;
                 }
             else
                 return false;
             }
-            
+        
         //! Evaluate the force and energy using the thermostat
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
+            \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff            
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
                   in PotentialPair.
             
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
-        DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& pair_eng)
+                
+        DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
-            if (rsq < rcutsq)
+            if (rsq < rcutsq && lj1!= 0)
                 {
                 Scalar rinv = RSQRT(rsq);
-                Scalar r = Scalar(1.0) / rinv;
+                Scalar r2inv = Scalar(1.0)/rsq;
+                Scalar r6inv = r2inv * r2inv * r2inv;
                 Scalar rcutinv = RSQRT(rcutsq);
-                Scalar rcut = Scalar(1.0) / rcutinv;
 
                 // force calculation
                 
@@ -265,10 +273,9 @@ class EvaluatorPairDPDThermo
                 // Generate a single random number
                 Scalar alpha = CALL_SARU(-1,1) ;
                 
-                // conservative dpd
-                //force_divr = FDIV(a,r)*(Scalar(1.0) - r*rcutinv);
-                force_divr = a*(rinv - rcutinv);
-                
+                // conservative lj
+                force_divr = r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
+                                
                 //  Drag Term 
                 force_divr -=  gamma*m_dot*(rinv - rcutinv)*(rinv - rcutinv);
                 
@@ -276,9 +283,17 @@ class EvaluatorPairDPDThermo
                 force_divr += RSQRT(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
                 
                 //conservative energy only
-                pair_eng = a * (rcut - r) - Scalar(1.0/2.0) * a * rcutinv * (rcutsq - rsq);  
+                pair_eng = r6inv * (lj1*r6inv - lj2);
 
- 
+
+                if (energy_shift)
+                    {
+                    Scalar rcut2inv = Scalar(1.0)/rcutsq;
+                    Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+                    pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
+                    }
+                    
+                      
                 return true;
                 }
             else
@@ -292,14 +307,15 @@ class EvaluatorPairDPDThermo
         */
         static std::string getName()
             {
-            return std::string("dpd");
+            return std::string("dpdlj");
             }
         #endif
 
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar a;       //!< a parameter for potential extracted from params by constructor
+        Scalar lj1;     //!< lj1 parameter extracted from the params passed to the constructor
+        Scalar lj2;     //!< lj2 parameter extracted from the params passed to the constructor
         Scalar gamma;   //!< gamma parameter for potential extracted from params by constructor
         unsigned int m_seed; //!< User set seed for thermostat PRNG
         unsigned int m_i;   //!< index of first particle (should it be tag?).  For use in PRNG
@@ -312,4 +328,5 @@ class EvaluatorPairDPDThermo
 
 #undef SARU
 
-#endif // __PAIR_EVALUATOR_DPD_H__
+#endif // __PAIR_EVALUATOR_DPDLJ_H__
+

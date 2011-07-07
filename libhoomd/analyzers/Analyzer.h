@@ -121,6 +121,15 @@ class Analyzer : boost::noncopyable
             {
             }
         
+        //! Get needed pdata flags
+        /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
+            fields, they must return the requested fields in getRequestedPDataFlags().
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            return PDataFlags(0);
+            }
+        
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with

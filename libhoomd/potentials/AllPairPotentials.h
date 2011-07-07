@@ -55,12 +55,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairMorse.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "PotentialPairDPDThermo.h"
+#include "EvaluatorPairDPDLJThermo.h"
+#include "PotentialPairDPDLJThermo.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "AllDriverPotentialPairGPU.cuh"
+#include "PotentialPairDPDLJThermoGPU.h"
+#include "PotentialPairDPDLJThermoGPU.cuh"
 #endif
 
 /*! \file AllPairPotentials.h
@@ -87,6 +91,11 @@ typedef PotentialPair<EvaluatorPairMorse> PotentialPairMorse;
 typedef PotentialPair<EvaluatorPairDPDThermo> PotentialPairDPD;
 //! Pair potential force compute for dpd thermostat and conservative forces
 typedef PotentialPairDPDThermo<EvaluatorPairDPDThermo> PotentialPairDPDThermoDPD;
+//! Pair potential force compute for dpdlj conservative forces (not intended to be used)
+typedef PotentialPair<EvaluatorPairDPDLJThermo> PotentialPairDPDLJ;
+//! Pair potential force compute for dpd thermostat and LJ conservative forces
+typedef PotentialPairDPDLJThermo<EvaluatorPairDPDLJThermo> PotentialPairDPDLJThermoDPD;
+
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for lj forces on the GPU
@@ -105,6 +114,11 @@ typedef PotentialPairGPU< EvaluatorPairMorse, gpu_compute_morse_forces > Potenti
 typedef PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > PotentialPairDPDGPU;
 //! Pair potential force compute for dpd thermostat and conservative forces on the GPU
 typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > PotentialPairDPDThermoDPDGPU;
+//! Pair potential force compute for dpdlj conservative forces on the GPU (not intended to be used)
+typedef PotentialPairGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermo_forces > PotentialPairDPDLJGPU;
+//! Pair potential force compute for dpd thermostat and LJ conservative forces on the GPU
+typedef PotentialPairDPDLJThermoGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermodpd_forces > PotentialPairDPDLJThermoDPDGPU;
+
 #endif
 
 #endif // __PAIR_POTENTIALS_H__

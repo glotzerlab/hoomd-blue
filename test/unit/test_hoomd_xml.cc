@@ -78,7 +78,7 @@ using namespace std;
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
     // start by creating a single particle system: see it the correct file is written
-    BoxDim box(Scalar(2.5), Scalar(4.5), Scalar(12.1));
+    BoxDim box(Scalar(3.5), Scalar(5.5), Scalar(12.5));
     int n_types = 5;
     int n_bond_types = 2;
     int n_angle_types = 1;
@@ -90,81 +90,81 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     
     // set recognizable values for the particle
     const ParticleDataArrays array = pdata->acquireReadWrite();
-    array.x[0] = Scalar(1.1);
-    array.y[0] = Scalar(2.1234567890123456);
-    array.z[0] = Scalar(-5.76);
+    array.x[0] = Scalar(1.5);
+    array.y[0] = Scalar(2.5);
+    array.z[0] = Scalar(-5.5);
     
     array.ix[0] = -1;
     array.iy[0] = -5;
     array.iz[0] = 6;
     
-    array.vx[0] = Scalar(-1.4567);
-    array.vy[0] = Scalar(-10.0987654321098765);
-    array.vz[0] = Scalar(56.78);
+    array.vx[0] = Scalar(-1.5);
+    array.vy[0] = Scalar(-10.5);
+    array.vz[0] = Scalar(56.5);
     
-    array.mass[0] = Scalar(1.8);
+    array.mass[0] = Scalar(1.5);
     
-    array.diameter[0] = Scalar(3.8);
+    array.diameter[0] = Scalar(3.5);
     
     array.type[0] = 3;
-    
-    array.body[0] = NO_BODY;
-    
-    array.x[1] = Scalar(1.2);
-    array.y[1] = Scalar(2.1);
-    array.z[1] = Scalar(-3.4);
+
+    array.body[0] = NO_BODY;    
+
+    array.x[1] = Scalar(1.5);
+    array.y[1] = Scalar(2.5);
+    array.z[1] = Scalar(-3.5);
     
     array.ix[1] = 10;
     array.iy[1] = 500;
     array.iz[1] = 900;
     
     array.vx[1] = Scalar(-1.5);
-    array.vy[1] = Scalar(-10.6);
-    array.vz[1] = Scalar(5.7);
+    array.vy[1] = Scalar(-10.5);
+    array.vz[1] = Scalar(5.5);
     
-    array.mass[1] = Scalar(2.8);
+    array.mass[1] = Scalar(2.5);
     
-    array.diameter[1] = Scalar(4.8);
+    array.diameter[1] = Scalar(4.5);
     
     array.type[1] = 0;
     
     array.body[1] = 1;
-    
-    array.x[2] = Scalar(-1.2);
-    array.y[2] = Scalar(2.1);
-    array.z[2] = Scalar(3.4);
+
+    array.x[2] = Scalar(-1.5);
+    array.y[2] = Scalar(2.5);
+    array.z[2] = Scalar(3.5);
     
     array.ix[2] = 10;
     array.iy[2] = 500;
     array.iz[2] = 900;
     
     array.vx[2] = Scalar(-1.5);
-    array.vy[2] = Scalar(-10.6);
-    array.vz[2] = Scalar(5.7);
+    array.vy[2] = Scalar(-10.5);
+    array.vz[2] = Scalar(5.5);
     
-    array.mass[2] = Scalar(2.8);
+    array.mass[2] = Scalar(2.5);
     
-    array.diameter[2] = Scalar(4.8);
+    array.diameter[2] = Scalar(4.5);
     
     array.type[2] = 1;
     
     array.body[2] = 1;
-    
-    array.x[3] = Scalar(-1.25);
-    array.y[3] = Scalar(2.15);
-    array.z[3] = Scalar(3.45);
+
+    array.x[3] = Scalar(-1.5);
+    array.y[3] = Scalar(2.5);
+    array.z[3] = Scalar(3.5);
     
     array.ix[3] = 105;
     array.iy[3] = 5005;
     array.iz[3] = 9005;
     
-    array.vx[3] = Scalar(-1.55);
-    array.vy[3] = Scalar(-10.65);
-    array.vz[3] = Scalar(5.75);
+    array.vx[3] = Scalar(-1.5);
+    array.vy[3] = Scalar(-10.5);
+    array.vz[3] = Scalar(5.5);
     
-    array.mass[3] = Scalar(2.85);
+    array.mass[3] = Scalar(2.5);
     
-    array.diameter[3] = Scalar(4.85);
+    array.diameter[3] = Scalar(4.5);
     
     array.type[3] = 1;
     
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box lx=\"2.5\" ly=\"4.5\" lz=\"12.1\"/>");
+        BOOST_CHECK_EQUAL(line,  "<box lx=\"3.5\" ly=\"5.5\" lz=\"12.5\"/>");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -264,19 +264,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.1 2.12346 -5.76");
+        BOOST_CHECK_EQUAL(line, "1.5 2.5 -5.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.2 2.1 -3.4");
+        BOOST_CHECK_EQUAL(line, "1.5 2.5 -3.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.2 2.1 3.4");
+        BOOST_CHECK_EQUAL(line, "-1.5 2.5 3.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.25 2.15 3.45");
+        BOOST_CHECK_EQUAL(line, "-1.5 2.5 3.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -312,19 +312,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.4567 -10.0988 56.78");
+        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 56.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.6 5.7");
+        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.6 5.7");
+        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.55 -10.65 5.75");
+        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -562,19 +562,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.8");
+        BOOST_CHECK_EQUAL(line, "1.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2.8");
+        BOOST_CHECK_EQUAL(line, "2.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2.8");
+        BOOST_CHECK_EQUAL(line, "2.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2.85");
+        BOOST_CHECK_EQUAL(line, "2.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -607,19 +607,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "3.8");
+        BOOST_CHECK_EQUAL(line, "3.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.8");
+        BOOST_CHECK_EQUAL(line, "4.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.8");
+        BOOST_CHECK_EQUAL(line, "4.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.85");
+        BOOST_CHECK_EQUAL(line, "4.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -774,9 +774,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         array.tag[i] = tags[i];
         unsigned int tag = tags[i];
         
-        array.x[i] = Scalar(tag)+Scalar(0.1);
-        array.y[i] = Scalar(tag)+Scalar(1.1);
-        array.z[i] = Scalar(tag)+Scalar(2.1);
+        array.x[i] = Scalar(tag)+Scalar(0.5);
+        array.y[i] = Scalar(tag)+Scalar(1.5);
+        array.z[i] = Scalar(tag)+Scalar(2.5);
         
         array.ix[i] = tag - 10;
         array.iy[i] = tag - 11;
@@ -837,27 +837,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         
         // check all the positions
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0.1 1.1 2.1");
+        BOOST_CHECK_EQUAL(line, "0.5 1.5 2.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.1 2.1 3.1");
+        BOOST_CHECK_EQUAL(line, "1.5 2.5 3.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2.1 3.1 4.1");
+        BOOST_CHECK_EQUAL(line, "2.5 3.5 4.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "3.1 4.1 5.1");
+        BOOST_CHECK_EQUAL(line, "3.5 4.5 5.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.1 5.1 6.1");
+        BOOST_CHECK_EQUAL(line, "4.5 5.5 6.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "5.1 6.1 7.1");
+        BOOST_CHECK_EQUAL(line, "5.5 6.5 7.5");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
