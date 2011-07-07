@@ -250,6 +250,20 @@ class System
                 else
                     return false;
                 }
+            
+            //! Peek if this analyzer will execute on the given step
+            /*! \param tstep Requested simulation step
+                \returns true if the Analyze will be executed on \a tstep
+                
+                peekExecute will return true for the same step that shouldExecute will. However, peekExecute does not
+                update any internal state. It offers a way to peek and determine if a given step will be the very next
+                step that the anlyzer is to be called.
+            */
+            bool peekExecute(unsigned int tstep)
+                {
+                return (tstep == m_next_execute_tstep);
+                }
+
                 
             //! Changes the period
             /*! \param period New period to set
@@ -342,6 +356,19 @@ class System
                 else
                     return false;
                 }
+
+            //! Peek if this updater will execute on the given step
+            /*! \param tstep Requested simulation step
+                \returns true if the Analyze will be executed on \a tstep
+                
+                peekExecute will return true for the same step that shouldExecute will. However, peekExecute does not
+                update any internal state. It offers a way to peek and determine if a given step will be the very next
+                step that the anlyzer is to be called.
+            */
+            bool peekExecute(unsigned int tstep)
+                {
+                return (tstep == m_next_execute_tstep);
+                }
                 
             //! Changes the period
             /*! \param period New period to set
@@ -410,6 +437,9 @@ class System
         
         //! Prints out a formatted status line
         void generateStatusLine();
+        
+        //! Get the flags needed for a particular step
+        PDataFlags determineFlags(unsigned int tstep);
         
         // --------- Helper function for handling lists
         //! Search for an Analyzer by name
