@@ -78,7 +78,7 @@ using namespace std;
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
     // start by creating a single particle system: see it the correct file is written
-    BoxDim box(Scalar(2.5), Scalar(4.5), Scalar(12.5));
+    BoxDim box(Scalar(3.5), Scalar(5.5), Scalar(12.5));
     int n_types = 5;
     int n_bond_types = 2;
     int n_angle_types = 1;
@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box lx=\"2.5\" ly=\"4.5\" lz=\"12.5\"/>");
+        BOOST_CHECK_EQUAL(line,  "<box lx=\"3.5\" ly=\"5.5\" lz=\"12.5\"/>");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
