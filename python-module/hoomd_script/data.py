@@ -239,8 +239,9 @@ class system_data:
     def __init__(self, sysdef):
         self.sysdef = sysdef;
         self.particles = particle_data(sysdef.getParticleData());
-        # Added to try to add defining Bond_data  CLP
+        # Added to try to add defining Bond_data  
         self.bonds = bond_data(sysdef.getBondData());
+        self.bodies = body_data(sysdef.getRigidData());
 
     ## \var sysdef
     # \internal
@@ -474,7 +475,7 @@ class particle_data_proxy:
         
 ## Access force data
 #
-# particle_data provides access to the per-particle data of all particles in the system.
+# force_data provides access to the per-particle data of all forces in the system.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # force_data, documented by example.
 #
@@ -726,6 +727,119 @@ class bond_data_proxy:
             return;
         if name == "typeid":
             raise AttributeError;
+ 
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
+
+
+
+## Access body data
+#
+# body_data provides access to the per-body data of all bodies in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# body_data, documented by example.
+#
+class body_data:
+    ## \internal
+    # \brief bond_data iterator
+    class body_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+            
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+    
+    ## \internal
+    # \brief create a body_data
+    #
+    # \param bdata BodyData to connect
+    def __init__(self, bdata):
+        self.bdata = bdata;
+    
+    ## \var bdata
+    # \internal
+    # \brief BodyData to which this instance is connected
+
+    ## \internal
+    # \brief Get a body_proxy reference to the body with body index \a tag
+    # \param tag Body tag to access
+    def __getitem__(self, tag):
+        if tag >= len(self) or tag < 0:
+            raise IndexError;
+        return body_data_proxy(self.bdata, tag);
+    
+    ## \internal
+    # \brief Set a body's properties
+    # \param tag Body tag to set
+    # \param p Value containing properties to set
+    def __setitem__(self, tag, p):
+        raise RuntimeError('__setitem__ not implemented');
+    
+    ## \internal
+    # \brief Get the number of bodies
+    def __len__(self):
+        return self.bdata.getNumBodies();
+    
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Body Data for %d bodies" % (self.bdata.getNumBodies());
+        return result
+    
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return body_data.body_data_iterator(self);
+        
+## Access a single body via a proxy
+#
+# body_data_proxy provides access to all of the properties of a single bond in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# body_data_proxy, documented by example.
+#
+# The following attributes are read only:
+
+#
+# The following attributes can be both read and set
+
+#
+#
+class body_data_proxy:
+    ## \internal
+    # \brief create a body_data_proxy
+    #
+    # \param bdata RigidData to which this proxy belongs
+    # \param tag tag of this body in \a bdata
+    def __init__(self, bdata, tag):
+        self.bdata = bdata;
+        self.tag = tag;
+    
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "";
+        result += "COM         : " + str(self.COM) + "\n"
+        return result;
+    
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):        
+        if name == "COM":
+            COM = self.bdata.getBodyCOM(self.tag);
+            return (COM.x, COM.y, COM.z);
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+    
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
  
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;

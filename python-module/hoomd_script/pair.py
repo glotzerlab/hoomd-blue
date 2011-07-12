@@ -1478,14 +1478,14 @@ class table(force._force):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, width, name=None):
+    def __init__(self, width, r_cut, name=None):
         util.print_status_line();
         
         # initialize the base class
         force._force.__init__(self, name);
 
         # update the neighbor list with a dummy 0 r_cut. The r_cut will be properly updated before the first run()
-        neighbor_list = _update_global_nlist(0);
+        neighbor_list = _update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
