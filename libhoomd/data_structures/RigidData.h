@@ -233,6 +233,15 @@ class RigidData
             {
             return m_torque;
             }
+             
+         //! Get the current COM of a body
+        Scalar3 getBodyCOM(unsigned int body)
+            {
+            assert(body < getNumBodies());
+            ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::read);
+            Scalar3 result = make_scalar3(com_handle.data[body].x, com_handle.data[body].y, com_handle.data[body].z);
+            return result;
+            }           
         //@}
         
         //! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.

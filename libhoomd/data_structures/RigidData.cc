@@ -805,6 +805,8 @@ void export_RigidData()
     {
     class_<RigidData, boost::shared_ptr<RigidData>, boost::noncopyable>("RigidData", init< boost::shared_ptr<ParticleData> >())
     .def("initializeData", &RigidData::initializeData)
+    .def("getNumBodies", &RigidData::getNumBodies)    
+    .def("getBodyCOM", &RigidData::getBodyCOM)    
     ;
     }
 
