@@ -102,7 +102,7 @@ class Compute : boost::noncopyable
             Derived classes will implement this method to calculate their results
         */
         virtual void compute(unsigned int timestep) = 0;
-        
+
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
         
@@ -153,7 +153,14 @@ class Compute : boost::noncopyable
             {
             return Scalar(0.0);
             }
-            
+
+        //! Force recalculation of compute
+        /*! If this function is called, recalculation of the compute will be forced (even if had
+         *  been calculated earlier in this timestep)
+         * \param timestep current timestep
+         */
+        virtual void forceCompute(unsigned int timestep);
+
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
@@ -165,6 +172,7 @@ class Compute : boost::noncopyable
     private:
         unsigned int m_last_computed;   //!< Stores the last timestep compute was called
         bool m_first_compute;           //!< true if compute has not yet been called
+        bool m_force_compute;           //!< true if calculation is enforced
         
         //! The python export needs to be a friend to export shouldCompute()
         friend void export_Compute();
