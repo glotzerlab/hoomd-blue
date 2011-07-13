@@ -237,77 +237,145 @@ class RigidData
          //! Get the number of particles of a body
         unsigned int getBodyNSize(unsigned int body)
             {
-            assert(body < getNumBodies());
+            assert(body >= 0 && body < getNumBodies());
             ArrayHandle<unsigned int> size_handle(m_body_size, access_location::host, access_mode::read);
             unsigned int result = size_handle.data[body];
             return result;
             }    
- 
+         //! Get the mass of a body
+        Scalar getMass(unsigned int body)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar> mass_handle(m_body_mass, access_location::host, access_mode::read);
+            unsigned int result = mass_handle.data[body];
+            return result;
+            }    
+        //! set the mass of a body
+        void setMass(unsigned int body, const Scalar mass)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar> mass_handle(m_body_mass, access_location::host, access_mode::readwrite);
+            mass_handle.data[body] = mass;
+            }                     
         //! Get the particle tags of a body
         unsigned int getParticleTag(unsigned int body, unsigned int index)
             {
-            assert(body < getNumBodies());
-            assert(index < getBodyNSize(body));
+            assert(body >= 0 && body < getNumBodies());
+            assert(index >= 0 && index < getBodyNSize(body));
             ArrayHandle<unsigned int> tags(m_particle_tags, access_location::host, access_mode::read);
             unsigned int tags_pitch = m_particle_tags.getPitch();
             unsigned int result = tags.data[body*tags_pitch + index];
             return result;
             }       
- 
         //! Get the particle displacement relative to COM of a body
         Scalar3 getParticleDisp(unsigned int body, unsigned int index)
             {
-            assert(body < getNumBodies());
-            assert(index < getBodyNSize(body));
+            assert(body >= 0 && body < getNumBodies());
+            assert(index >= 0 && index < getBodyNSize(body));
             ArrayHandle<Scalar4> pos(m_particle_pos, access_location::host, access_mode::read);
             unsigned int particle_pos_pitch = m_particle_pos.getPitch();
             unsigned int idx = body * particle_pos_pitch + index;
             Scalar3 result = make_scalar3(pos.data[idx].x, pos.data[idx].y, pos.data[idx].z) ;
             return result;
             } 
-                                                                                           
-             
-         //! Get the current COM of a body
+        //! Set the particle displacement relative to COM of a body
+        void setParticleDisp(unsigned int body, unsigned int index, const Scalar3& new_pos)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            assert(index >= 0 && index < getBodyNSize(body));
+            ArrayHandle<Scalar4> pos(m_particle_pos, access_location::host, access_mode::readwrite);
+            unsigned int particle_pos_pitch = m_particle_pos.getPitch();
+            unsigned int idx = body * particle_pos_pitch + index;
+            pos.data[idx].x= new_pos.x;
+            pos.data[idx].y= new_pos.y;
+            pos.data[idx].z= new_pos.z;
+            }            
+        //! Get the current COM of a body
         Scalar3 getBodyCOM(unsigned int body)
             {
-            assert(body < getNumBodies());
+            assert(body >= 0 && body < getNumBodies());
             ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::read);
             Scalar3 result = make_scalar3(com_handle.data[body].x, com_handle.data[body].y, com_handle.data[body].z);
             return result;
-            }   
-            
+            }    
+        //! Set the current COM of a body
+        void setBodyCOM(unsigned int body,const Scalar3& pos)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
+            com_handle.data[body].x = pos.x;
+            com_handle.data[body].y = pos.y;
+            com_handle.data[body].z = pos.z;
+            }
          //! Get the current velocity of a body's COM
         Scalar3 getBodyVel(unsigned int body)
             {
-            assert(body < getNumBodies());
+            assert(body >= 0 && body < getNumBodies());
             ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::read);
             Scalar3 result = make_scalar3(vel_handle.data[body].x, vel_handle.data[body].y, vel_handle.data[body].z);
             return result;
             }   
+         //! Set the current velocity of a body's COM
+        void setBodyVel(unsigned int body, const Scalar3& vel)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::readwrite);
+            vel_handle.data[body].x = vel.x;
+            vel_handle.data[body].y = vel.y;
+            vel_handle.data[body].z = vel.z;
+            }            
          //! Get the current orientation (quaternion) of a body
         Scalar4 getBodyOrientation(unsigned int body)
             {
-            assert(body < getNumBodies());
+            assert(body >= 0 && body < getNumBodies());
             ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::read);
             Scalar4 result = make_scalar4(orientation_handle.data[body].x, orientation_handle.data[body].y, orientation_handle.data[body].z, orientation_handle.data[body].w);
             return result;
             } 
-         //! Get the current angular velocity of a body
-        Scalar3 getBodyAngVel(unsigned int body)
+        //! Set the current orientation (quaternion) of a body
+        void setBodyOrientation(unsigned int body, const Scalar4& in_quat)
             {
-            assert(body < getNumBodies());
-            ArrayHandle<Scalar4> angvel_handle(m_angvel, access_location::host, access_mode::read);
-            Scalar3 result = make_scalar3(angvel_handle.data[body].x, angvel_handle.data[body].y, angvel_handle.data[body].z);
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::readwrite);
+            
+            Scalar4 quat = in_quat;
+            // Normalize
+            Scalar norm = 1.0 / sqrt(quat.x * quat.x + quat.y * quat.y + quat.z * quat.z + quat.w * quat.w);
+            quat.x *= norm;
+            quat.y *= norm;
+            quat.z *= norm;
+            quat.w *= norm;
+                        
+            orientation_handle.data[body].x = quat.x;
+            orientation_handle.data[body].y = quat.y;
+            orientation_handle.data[body].z = quat.z;
+            orientation_handle.data[body].w = quat.w;            
+            }            
+         //! Get the current angular momentum of a body
+        Scalar3 getBodyAngMom(unsigned int body)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::read);
+            Scalar3 result = make_scalar3(angmom_handle.data[body].x, angmom_handle.data[body].y, angmom_handle.data[body].z);
             return result;
-            }
+            }           
          //! Get the diagonalized moment of inertia of a body
         Scalar3 getBodyMomInertia(unsigned int body)
             {
-            assert(body < getNumBodies());
+            assert(body >= 0 && body < getNumBodies());
             ArrayHandle<Scalar4> mom_inertia_handle(m_moment_inertia, access_location::host, access_mode::read);
             Scalar3 result = make_scalar3(mom_inertia_handle.data[body].x, mom_inertia_handle.data[body].y, mom_inertia_handle.data[body].z);
             return result;
-            }                        
+            }    
+         //! set the diagonalized moment of inertia of a body
+        void setBodyMomInertia(unsigned int body, const Scalar3& mom)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar4> mom_inertia_handle(m_moment_inertia, access_location::host, access_mode::readwrite);
+            mom_inertia_handle.data[body].x= mom.x;
+            mom_inertia_handle.data[body].y= mom.y;
+            mom_inertia_handle.data[body].z= mom.z;           
+            }                                
                                                             
         //@}
         
