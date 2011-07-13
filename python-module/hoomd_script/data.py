@@ -825,9 +825,15 @@ class body_data_proxy:
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        result += "COM         : " + str(self.COM) + "\n"
-        result += "velocity    : " + str(self.velocity) + "\n"        
-        result += "orientation    : " + str(self.orientation) + "\n"                
+        result += "num_particles    : " + str(self.num_particles) + "\n"                        
+        result += "COM              : " + str(self.COM) + "\n"
+        result += "velocity         : " + str(self.velocity) + "\n"        
+        result += "orientation      : " + str(self.orientation) + "\n"      
+        result += "angular_velocity : " + str(self.angular_velocity) + "\n"                
+        result += "moment of inertia: " + str(self.moment_inertia) + "\n"                
+        result += "particle tags    : " + str(self.particle_tags) + "\n"                
+        result += "particle disp    : " + str(self.particle_disp) + "\n"                
+                 
         return result;
     
     ## \internal
@@ -842,6 +848,26 @@ class body_data_proxy:
         if name == "orientation":
             orientation = self.bdata.getBodyOrientation(self.tag);
             return (orientation.x, orientation.y, orientation.z, orientation.w);  
+        if name == "angular_velocity":
+            angular_velocity = self.bdata.getBodyAngVel(self.tag);
+            return (angular_velocity.x, angular_velocity.y, angular_velocity.z);
+        if name == "num_particles":
+            num_particles = self.bdata.getBodyNSize(self.tag);
+            return num_particles;             
+        if name == "moment_inertia":
+            moment_inertia = self.bdata.getBodyMomInertia(self.tag);
+            return (moment_inertia.x, moment_inertia.y, moment_inertia.z);
+        if name == "particle_tags":
+            particle_tags = [];
+            for i in range(0, self.num_particles):        
+               particle_tags.append(self.bdata.getParticleTag(self.tag, i));
+            return particle_tags; 
+        if name == "particle_disp":
+            particle_disp = [];
+            for i in range(0, self.num_particles):    
+               disp = self.bdata.getParticleDisp(self.tag, i);
+               particle_disp.append([disp.x, disp.y, disp.z]);
+            return particle_disp;                       
             
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
