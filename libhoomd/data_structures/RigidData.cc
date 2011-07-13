@@ -808,7 +808,12 @@ void export_RigidData()
     .def("getNumBodies", &RigidData::getNumBodies)    
     .def("getBodyCOM", &RigidData::getBodyCOM)    
     .def("getBodyVel", &RigidData::getBodyVel)  
-    .def("getBodyOrientation", &RigidData::getBodyOrientation)                  
+    .def("getBodyOrientation", &RigidData::getBodyOrientation)    
+    .def("getBodyNSize", &RigidData::getBodyNSize)    
+    .def("getBodyAngVel", &RigidData::getBodyAngVel)      
+    .def("getBodyMomInertia", &RigidData::getBodyMomInertia)   
+    .def("getParticleTag", &RigidData::getParticleTag)   
+    .def("getParticleDisp", &RigidData::getParticleDisp)                                                                           
     ;
     }
 

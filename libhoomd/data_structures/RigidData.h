@@ -233,6 +233,39 @@ class RigidData
             {
             return m_torque;
             }
+
+         //! Get the number of particles of a body
+        unsigned int getBodyNSize(unsigned int body)
+            {
+            assert(body < getNumBodies());
+            ArrayHandle<unsigned int> size_handle(m_body_size, access_location::host, access_mode::read);
+            unsigned int result = size_handle.data[body];
+            return result;
+            }    
+ 
+        //! Get the particle tags of a body
+        unsigned int getParticleTag(unsigned int body, unsigned int index)
+            {
+            assert(body < getNumBodies());
+            assert(index < getBodyNSize(body));
+            ArrayHandle<unsigned int> tags(m_particle_tags, access_location::host, access_mode::read);
+            unsigned int tags_pitch = m_particle_tags.getPitch();
+            unsigned int result = tags.data[body*tags_pitch + index];
+            return result;
+            }       
+ 
+        //! Get the particle displacement relative to COM of a body
+        Scalar3 getParticleDisp(unsigned int body, unsigned int index)
+            {
+            assert(body < getNumBodies());
+            assert(index < getBodyNSize(body));
+            ArrayHandle<Scalar4> pos(m_particle_pos, access_location::host, access_mode::read);
+            unsigned int particle_pos_pitch = m_particle_pos.getPitch();
+            unsigned int idx = body * particle_pos_pitch + index;
+            Scalar3 result = make_scalar3(pos.data[idx].x, pos.data[idx].y, pos.data[idx].z) ;
+            return result;
+            } 
+                                                                                           
              
          //! Get the current COM of a body
         Scalar3 getBodyCOM(unsigned int body)
@@ -259,6 +292,22 @@ class RigidData
             Scalar4 result = make_scalar4(orientation_handle.data[body].x, orientation_handle.data[body].y, orientation_handle.data[body].z, orientation_handle.data[body].w);
             return result;
             } 
+         //! Get the current angular velocity of a body
+        Scalar3 getBodyAngVel(unsigned int body)
+            {
+            assert(body < getNumBodies());
+            ArrayHandle<Scalar4> angvel_handle(m_angvel, access_location::host, access_mode::read);
+            Scalar3 result = make_scalar3(angvel_handle.data[body].x, angvel_handle.data[body].y, angvel_handle.data[body].z);
+            return result;
+            }
+         //! Get the diagonalized moment of inertia of a body
+        Scalar3 getBodyMomInertia(unsigned int body)
+            {
+            assert(body < getNumBodies());
+            ArrayHandle<Scalar4> mom_inertia_handle(m_moment_inertia, access_location::host, access_mode::read);
+            Scalar3 result = make_scalar3(mom_inertia_handle.data[body].x, mom_inertia_handle.data[body].y, mom_inertia_handle.data[body].z);
+            return result;
+            }                        
                                                             
         //@}
         
