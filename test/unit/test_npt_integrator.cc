@@ -101,6 +101,12 @@ void npt_updater_test(twostepnpt_creator npt_creator, boost::shared_ptr<Executio
     rand_init.setSeed(12345);
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    // enable the energy computation
+    PDataFlags flags;
+    flags[pdata_flag::isotropic_virial] = 1;
+    pdata->setFlags(flags);
+    
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
