@@ -241,7 +241,25 @@ class RigidData
             ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::read);
             Scalar3 result = make_scalar3(com_handle.data[body].x, com_handle.data[body].y, com_handle.data[body].z);
             return result;
-            }           
+            }   
+            
+         //! Get the current velocity of a body's COM
+        Scalar3 getBodyVel(unsigned int body)
+            {
+            assert(body < getNumBodies());
+            ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::read);
+            Scalar3 result = make_scalar3(vel_handle.data[body].x, vel_handle.data[body].y, vel_handle.data[body].z);
+            return result;
+            }   
+         //! Get the current orientation (quaternion) of a body
+        Scalar4 getBodyOrientation(unsigned int body)
+            {
+            assert(body < getNumBodies());
+            ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::read);
+            Scalar4 result = make_scalar4(orientation_handle.data[body].x, orientation_handle.data[body].y, orientation_handle.data[body].z, orientation_handle.data[body].w);
+            return result;
+            } 
+                                                            
         //@}
         
         //! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.

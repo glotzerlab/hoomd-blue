@@ -807,6 +807,8 @@ void export_RigidData()
     .def("initializeData", &RigidData::initializeData)
     .def("getNumBodies", &RigidData::getNumBodies)    
     .def("getBodyCOM", &RigidData::getBodyCOM)    
+    .def("getBodyVel", &RigidData::getBodyVel)  
+    .def("getBodyOrientation", &RigidData::getBodyOrientation)                  
     ;
     }
 
