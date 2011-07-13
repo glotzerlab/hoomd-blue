@@ -826,6 +826,8 @@ class body_data_proxy:
     def __str__(self):
         result = "";
         result += "COM         : " + str(self.COM) + "\n"
+        result += "velocity    : " + str(self.velocity) + "\n"        
+        result += "orientation    : " + str(self.orientation) + "\n"                
         return result;
     
     ## \internal
@@ -834,6 +836,13 @@ class body_data_proxy:
         if name == "COM":
             COM = self.bdata.getBodyCOM(self.tag);
             return (COM.x, COM.y, COM.z);
+        if name == "velocity":
+            velocity = self.bdata.getBodyVel(self.tag);
+            return (velocity.x, velocity.y, velocity.z);            
+        if name == "orientation":
+            orientation = self.bdata.getBodyOrientation(self.tag);
+            return (orientation.x, orientation.y, orientation.z, orientation.w);  
+            
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
     
