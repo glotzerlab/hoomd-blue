@@ -826,10 +826,11 @@ class body_data_proxy:
     def __str__(self):
         result = "";
         result += "num_particles    : " + str(self.num_particles) + "\n"                        
+        result += "mass             : " + str(self.mass) + "\n"                        
         result += "COM              : " + str(self.COM) + "\n"
         result += "velocity         : " + str(self.velocity) + "\n"        
         result += "orientation      : " + str(self.orientation) + "\n"      
-        result += "angular_velocity : " + str(self.angular_velocity) + "\n"                
+        result += "angular_momentum (space frame) : " + str(self.angular_momentum) + "\n"                
         result += "moment of inertia: " + str(self.moment_inertia) + "\n"                
         result += "particle tags    : " + str(self.particle_tags) + "\n"                
         result += "particle disp    : " + str(self.particle_disp) + "\n"                
@@ -848,12 +849,15 @@ class body_data_proxy:
         if name == "orientation":
             orientation = self.bdata.getBodyOrientation(self.tag);
             return (orientation.x, orientation.y, orientation.z, orientation.w);  
-        if name == "angular_velocity":
-            angular_velocity = self.bdata.getBodyAngVel(self.tag);
-            return (angular_velocity.x, angular_velocity.y, angular_velocity.z);
+        if name == "angular_momentum":
+            angular_momentum = self.bdata.getBodyAngMom(self.tag);
+            return (angular_momentum.x, angular_momentum.y, angular_momentum.z);
         if name == "num_particles":
             num_particles = self.bdata.getBodyNSize(self.tag);
-            return num_particles;             
+            return num_particles;    
+        if name == "mass":
+            mass = self.bdata.getMass(self.tag);
+            return mass;                     
         if name == "moment_inertia":
             moment_inertia = self.bdata.getBodyMomInertia(self.tag);
             return (moment_inertia.x, moment_inertia.y, moment_inertia.z);
@@ -875,7 +879,47 @@ class body_data_proxy:
     ## \internal
     # \brief Translate attribute accesses into the low level API function calls
     def __setattr__(self, name, value):
- 
+        if name == "COM":
+            p = hoomd.Scalar3();
+            p.x = float(value[0]);
+            p.y = float(value[1]);
+            p.z = float(value[2]);
+            self.bdata.setBodyCOM(self.tag, p);
+            return;
+        if name == "mass":
+            self.bdata.setMass(self.tag, value);
+            return;            
+        if name == "orientation":
+            q = hoomd.Scalar4();
+            q.x = float(value[0]);
+            q.y = float(value[1]);
+            q.z = float(value[2]);
+            q.w = float(value[3]);
+            self.bdata.setBodyOrientation(self.tag, q);
+            return;   
+        if name == "angular_momentum":
+            p = hoomd.Scalar3();
+            p.x = float(value[0]);
+            p.y = float(value[1]);
+            p.z = float(value[2]);
+            self.bdata.setAngMom(self.tag, p);
+            return;                    
+        if name == "momentum_inertia":
+            p = hoomd.Scalar3();
+            p.x = float(value[0]);
+            p.y = float(value[1]);
+            p.z = float(value[2]);
+            self.bdata.setBodyMomInertia(self.tag, p);
+            return; 
+        if name == "particle_disp":
+            p = hoomd.Scalar3();
+            for i in range(0, self.num_particles):    
+                p.x = float(value[i][0]);
+                p.y = float(value[i][1]);
+                p.z = float(value[i][2]);
+                self.bdata.setParticleDisp(self.tag, i, p);
+            return;         
+                
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
 
