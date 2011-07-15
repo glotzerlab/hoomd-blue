@@ -247,7 +247,7 @@ class RigidData
             {
             assert(body >= 0 && body < getNumBodies());
             ArrayHandle<Scalar> mass_handle(m_body_mass, access_location::host, access_mode::read);
-            unsigned int result = mass_handle.data[body];
+            Scalar result = mass_handle.data[body];
             return result;
             }    
         //! set the mass of a body
