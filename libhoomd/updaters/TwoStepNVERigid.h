@@ -92,10 +92,10 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         virtual void setRestartIntegratorVariables();
         
         //! Set positions and velocities for particles in rigid bodies at the first step
-        void set_xv(unsigned int timestep);
+        //void set_xv(unsigned int timestep);
         
         //! Set velocities for particles in rigid bodies at the second step
-        void set_v(unsigned int timestep);
+        //void set_v(unsigned int timestep);
         
         unsigned int m_n_bodies;                    //!< Number of rigid bodies
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to rigid data
@@ -105,7 +105,6 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         bool m_first_step;                  //!< True if first step
         
         GPUArray<Scalar4>   m_conjqm;      //!< Conjugate quaternion momentum
-        GPUArray<Scalar> m_virial;         //!< Virial contribution from rigid bodies
     };
 
 //! Exports the TwoStepNVERigid class to python

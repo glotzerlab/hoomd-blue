@@ -397,7 +397,6 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
-    unsigned int nmax = rigid_data.nmax;
     
     // setup the grid to run the kernel for rigid bodies
     int block_size = 64;
@@ -441,33 +440,6 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                 box, 
                                                                 npt_rdata);
 
-    block_size = 192;
-    dim3 particle_grid(group_size/block_size+1, 1, 1);
-    dim3 particle_threads(block_size, 1, 1);
-    
-    gpu_rigid_setxv_kernel<true><<< particle_grid, particle_threads >>>(pdata.pos, 
-                                                                        pdata.vel,
-                                                                        d_pdata_orientation,
-                                                                        pdata.image,
-                                                                        d_group_members,
-                                                                        group_size,
-                                                                        rigid_data.particle_offset,
-                                                                        pdata.body,
-                                                                        rigid_data.body_indices,
-                                                                        rigid_data.orientation,
-                                                                        rigid_data.com,
-                                                                        rigid_data.vel,
-                                                                        rigid_data.angvel,
-                                                                        rigid_data.body_imagex,
-                                                                        rigid_data.body_imagey,
-                                                                        rigid_data.body_imagez,
-                                                                        rigid_data.particle_indices,
-                                                                        rigid_data.particle_pos,
-                                                                        rigid_data.particle_orientation,
-                                                                        n_group_bodies,
-                                                                        pdata.N,
-                                                                        nmax,
-                                                                        box);
                                                                     
     return cudaSuccess;
     }
@@ -625,7 +597,6 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
-    unsigned int nmax = rigid_data.nmax;
                                                                                                                                                             
     unsigned int block_size = 64;
     unsigned int n_blocks = n_group_bodies / block_size + 1;                                
@@ -654,33 +625,6 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                     box, 
                                                                     deltaT);
 
-    block_size = 192;
-    dim3 particle_grid(group_size/block_size+1, 1, 1);
-    dim3 particle_threads(block_size, 1, 1);
-    
-    gpu_rigid_setxv_kernel<false><<< particle_grid, particle_threads >>>(pdata.pos, 
-                                                                        pdata.vel,
-                                                                        d_pdata_orientation,
-                                                                        pdata.image,
-                                                                        d_group_members,
-                                                                        group_size,
-                                                                        rigid_data.particle_offset,
-                                                                        pdata.body,
-                                                                        rigid_data.body_indices,
-                                                                        rigid_data.orientation,
-                                                                        rigid_data.com,
-                                                                        rigid_data.vel,
-                                                                        rigid_data.angvel,
-                                                                        rigid_data.body_imagex,
-                                                                        rigid_data.body_imagey,
-                                                                        rigid_data.body_imagez,
-                                                                        rigid_data.particle_indices,
-                                                                        rigid_data.particle_pos,
-                                                                        rigid_data.particle_orientation,
-                                                                        n_group_bodies,
-                                                                        pdata.N,
-                                                                        nmax,
-                                                                        box);
                                                                                                                                              
     return cudaSuccess;
     }

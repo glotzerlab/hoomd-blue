@@ -220,9 +220,6 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         }
     } // out of scope for handles
         
-    // set velocities of particles in rigid bodies
-    set_v(timestep);
-    
     // done profiling
     if (m_prof)
         m_prof->pop();

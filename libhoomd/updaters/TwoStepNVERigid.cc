@@ -128,8 +128,8 @@ void TwoStepNVERigid::setup()
     GPUArray<Scalar4> conjqm_alloc(m_n_bodies, m_pdata->getExecConf());
     m_conjqm.swap(conjqm_alloc);
     
-    GPUArray<Scalar> virial(m_rigid_data->getNmax(), m_n_bodies, m_pdata->getExecConf());
-    m_virial.swap(virial);
+    //GPUArray<Scalar> virial(m_rigid_data->getNmax(), m_n_bodies, m_pdata->getExecConf());
+    //m_virial.swap(virial);
     
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
@@ -282,8 +282,6 @@ void TwoStepNVERigid::setup()
 
     } // out of scope for handles   
     
-    // Set the velocities of particles in rigid bodies
-    set_v(0);
     
     if (m_prof)
         m_prof->pop();
@@ -407,8 +405,6 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
         }
     } // out of scope for handles
         
-    // set positions and velocities of particles in rigid bodies
-    set_xv(timestep);
 
     if (m_prof)
         m_prof->pop();
@@ -468,8 +464,6 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
         }
     } // out of scope for handles
 
-    // set velocities of particles in rigid bodies
-    set_v(timestep);
 
     if (m_prof)
         m_prof->pop();
@@ -618,278 +612,6 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
         
     if (m_prof)
         m_prof->pop();
-    }
-
-/* Set position and velocity of constituent particles in rigid bodies in the 1st half of integration
-    based on the body center of mass and particle relative position in each body frame.
-    \param timestep Current time step
-*/
-
-void TwoStepNVERigid::set_xv(unsigned int timestep)
-    {
-    // get box
-    const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    
-    Scalar dt_half = 0.5 * m_deltaT;
-    
-    // access to the force
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    
-    // access to the virial from rigid bodies
-    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
-    
-    // rigid body handles
-    ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::read);
-    ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::read);
-    ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::read);
-        
-    ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
-    unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
-    ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
-    unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
-    ArrayHandle<Scalar4> particle_oldpos_handle(m_rigid_data->getParticleOldPos(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> particle_oldvel_handle(m_rigid_data->getParticleOldVel(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> particle_orientation(m_rigid_data->getParticleOrientation(), access_location::host, access_mode::read);
-
-    // access the particle data arrays
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-    assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
-    assert(arrays.ix != NULL && arrays.iy != NULL && arrays.iz != NULL);
-    
-    ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-    
-    // for each body
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
-        
-        unsigned int len = body_size_handle.data[body];
-        // for each particle
-        for (unsigned int j = 0; j < len; j++)
-            {
-            // get the actual index of particle in the particle arrays
-            unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
-            // get the index of particle in the current rigid body in the particle_pos array
-            unsigned int localidx = body * particle_pos_pitch + j;
-            
-            // project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
-            Scalar xr = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
-            Scalar yr = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
-            Scalar zr = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
-                        
-            // read the position from the previous step           
-            Scalar4 old_pos;
-            old_pos.x = particle_oldpos_handle.data[localidx].x;
-            old_pos.y = particle_oldpos_handle.data[localidx].y;
-            old_pos.z = particle_oldpos_handle.data[localidx].z;
-            
-            // x_particle = x_com + xr
-            arrays.x[pidx] = com.data[body].x + xr;
-            arrays.y[pidx] = com.data[body].y + yr;
-            arrays.z[pidx] = com.data[body].z + zr;
-            
-            // adjust particle images based on body images
-            arrays.ix[pidx] = body_imagex_handle.data[body];
-            arrays.iy[pidx] = body_imagey_handle.data[body];
-            arrays.iz[pidx] = body_imagez_handle.data[body];
-            
-            if (arrays.x[pidx] >= box.xhi)
-                {
-                arrays.x[pidx] -= Lx;
-                arrays.ix[pidx]++;
-                }
-            else if (arrays.x[pidx] < box.xlo)
-                {
-                arrays.x[pidx] += Lx;
-                arrays.ix[pidx]--;
-                }
-                
-            if (arrays.y[pidx] >= box.yhi)
-                {
-                arrays.y[pidx] -= Ly;
-                arrays.iy[pidx]++;
-                }
-            else if (arrays.y[pidx] < box.ylo)
-                {
-                arrays.y[pidx] += Ly;
-                arrays.iy[pidx]--;
-                }
-                
-            if (arrays.z[pidx] >= box.zhi)
-                {
-                arrays.z[pidx] -= Lz;
-                arrays.iz[pidx]++;
-                }
-            else if (arrays.z[pidx] < box.zlo)
-                {
-                arrays.z[pidx] += Lz;
-                arrays.iz[pidx]--;
-                }
-
-            // update the particle orientation: q_i = quat[body] * particle_quat
-            Scalar4 porientation; 
-            quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
-            normalize(porientation);
-            h_p_orientation.data[pidx] = porientation;
-            
-            // store the current position for the next step
-            particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];
-            particle_oldpos_handle.data[localidx].y = arrays.y[pidx] + Ly * arrays.iy[pidx];
-            particle_oldpos_handle.data[localidx].z = arrays.z[pidx] + Lz * arrays.iz[pidx];
-            
-            // read the velocity from the previous step
-            Scalar4 old_vel;
-            old_vel.x = particle_oldvel_handle.data[localidx].x;
-            old_vel.y = particle_oldvel_handle.data[localidx].y;
-            old_vel.z = particle_oldvel_handle.data[localidx].z;
-            
-            // v_particle = v_com + angvel x xr
-            arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
-            arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
-            arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
-            
-            // calculate the virial from the position and velocity from the previous step
-            Scalar massone = arrays.mass[pidx];
-            Scalar4 fc;
-            fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
-            fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
-            fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
-            
-            h_virial.data[localidx] = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
-            
-            // store the current velocity for the next step
-            particle_oldvel_handle.data[localidx].x = arrays.vx[pidx];
-            particle_oldvel_handle.data[localidx].y = arrays.vy[pidx];
-            particle_oldvel_handle.data[localidx].z = arrays.vz[pidx];
-            }
-        }
-        
-    m_pdata->release();
-    
-    }
-
-/* Set velocity of constituent particles in rigid bodies in the 2nd half of integration
- based on the body center of mass and particle relative position in each body frame.
-    \param timestep Current time step
-*/
-
-void TwoStepNVERigid::set_v(unsigned int timestep)
-    {
-    Scalar dt_half = 0.5 * m_deltaT;
-    
-    // access to the force
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    
-    // access to the virial
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
-    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
-    
-    // access to the virial from rigid bodies
-    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
-    
-    // rigid data handles
-    ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    
-    ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
-    unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
-    ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
-    unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
-    ArrayHandle<Scalar4> particle_oldpos_handle(m_rigid_data->getParticleOldPos(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> particle_oldvel_handle(m_rigid_data->getParticleOldVel(), access_location::host, access_mode::readwrite);
-
-    // access the particle data arrays
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
-    
-    // for each body
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
-        
-        unsigned int len = body_size_handle.data[body];
-        // for each particle
-        for (unsigned int j = 0; j < len; j++)
-            {
-            // get the actual index of particle in the particle arrays
-            unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
-            // get the index of particle in the current rigid body in the particle_pos array
-            unsigned int localidx = body * particle_pos_pitch + j;
-            
-            // project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
-            Scalar xr = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
-            Scalar yr = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
-            Scalar zr = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
-            
-            // read the position from the previous step           
-            Scalar4 old_pos;
-            old_pos.x = particle_oldpos_handle.data[localidx].x;
-            old_pos.y = particle_oldpos_handle.data[localidx].y;
-            old_pos.z = particle_oldpos_handle.data[localidx].z;
-            
-            Scalar4 old_vel;
-            old_vel.x = particle_oldvel_handle.data[localidx].x;
-            old_vel.y = particle_oldvel_handle.data[localidx].y;
-            old_vel.z = particle_oldvel_handle.data[localidx].z;
-
-            // v_particle = v_com + angvel x xr
-            arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
-            arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
-            arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
-            
-            Scalar massone = arrays.mass[pidx];
-            Scalar4 fc;
-            fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
-            fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
-            fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
-            
-            // accumulate the virial from the first part
-            h_net_virial.data[pidx] += h_virial.data[localidx];
-            // and this part
-            h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
-            
-            // store the current velocity for the next step
-            particle_oldvel_handle.data[localidx].x = arrays.vx[pidx];
-            particle_oldvel_handle.data[localidx].y = arrays.vy[pidx];
-            particle_oldvel_handle.data[localidx].z = arrays.vz[pidx];
-            }
-        }
-        
-    m_pdata->release();
-    
     }
 
 void export_TwoStepNVERigid()

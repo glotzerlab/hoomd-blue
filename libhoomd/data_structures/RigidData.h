@@ -51,6 +51,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "GPUArray.h"
+#include "RigidBodyGroup.h"
+
 
 #ifdef ENABLE_CUDA
 #include "RigidData.cuh"
@@ -233,7 +235,23 @@ class RigidData
             {
             return m_torque;
             }
+        //! Get m_virial
+        const GPUArray<Scalar>& getVirial()
+            {
+            return m_virial;
+            }    
+         //! Get m_rigid_particle_index
+        const GPUArray<unsigned int>& getAllIndexRigid()
+            {
+            return m_rigid_particle_indices;
+            }                    
 
+         //! Get m_rigid_particle_index
+        unsigned int getNumIndexRigid()
+            {
+            return m_num_particles;
+            }
+            
          //! Get the number of particles of a body
         unsigned int getBodyNSize(unsigned int body)
             {
@@ -379,6 +397,13 @@ class RigidData
                                                             
         //@}
         
+        //! Update x and v of rigid body data and virial
+        void setRV(unsigned int timestep, Scalar deltaT, bool set_x);
+
+#ifdef ENABLE_CUDA
+        //! Helper funciton to update x and v of rigid body data and virial on the GPU
+        void setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x);
+#endif        
         //! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.
         void initializeData();
         
@@ -427,6 +452,13 @@ class RigidData
         // since the body forces and torques in the shared memory of thread blocks become invalid after the kernel finishes.
         GPUArray<Scalar4> m_force;          //!< n_bodies length 1D array of the body force
         GPUArray<Scalar4> m_torque;         //!< n_bodies length 1D array of the body torque
+        
+        
+        GPUArray<Scalar> m_virial;         //!< Virial contribution from rigid bodies
+        GPUArray<unsigned int> m_rigid_particle_indices; //!< All particle indices that are in rigid bodies, only needed for GPU code
+        unsigned int m_num_particles;         //!< length of m_rigid_particle_indices
+
+             
         
         //@}
         

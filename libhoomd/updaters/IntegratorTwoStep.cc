@@ -142,9 +142,21 @@ void IntegratorTwoStep::update(unsigned int timestep)
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
-    
+
+    // Update the rigid body particle positions and velocities if they are present
+    if (m_sysdef->getRigidData()->getNumBodies() >= 0)
+       {
+        #ifdef ENABLE_CUDA
+            if (exec_conf->exec_mode == ExecutionConfiguration::GPU)
+                m_sysdef->getRigidData()->setRVGPU(timestep+1,m_deltaT,true);
+            else
+        #endif
+                m_sysdef->getRigidData()->setRV(timestep+1,m_deltaT,true);
+       }
+           
     if (m_prof)
         m_prof->pop();
+        
     
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
@@ -159,7 +171,19 @@ void IntegratorTwoStep::update(unsigned int timestep)
     
     // perform the second step of the integration on all groups
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->integrateStepTwo(timestep);
+        (*method)->integrateStepTwo(timestep);        
+
+    // Update the rigid body particle velocities if they are present
+    if (m_sysdef->getRigidData()->getNumBodies() >= 0)
+       {
+        #ifdef ENABLE_CUDA
+            if (exec_conf->exec_mode == ExecutionConfiguration::GPU)
+                m_sysdef->getRigidData()->setRVGPU(timestep+1,m_deltaT,false);
+            else
+        #endif
+                m_sysdef->getRigidData()->setRV(timestep+1,m_deltaT,false);
+       }
+
     if (m_prof)
         m_prof->pop();
     }

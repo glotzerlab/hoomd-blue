@@ -502,9 +502,6 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     // update thermostats
 
     update_nhcp(akin_t, akin_r, timestep);
-
-    // set positions and velocities of particles in rigid bodies
-    set_xv(timestep);
     
     if (m_prof)
         m_prof->pop();
@@ -605,9 +602,6 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
         }
     }
-        
-    // set velocities of particles in rigid bodies
-    set_v(timestep);
     
     if (m_prof)
         m_prof->pop();

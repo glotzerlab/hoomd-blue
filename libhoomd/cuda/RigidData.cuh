@@ -43,6 +43,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define _RIGIDDATA_CUH_
 
 #include <cuda_runtime.h>
+#include "QuaternionMath.h"
+#include "ParticleData.cuh"
 
 /*! \file RigidData.cuh
     \brief Declares GPU kernel code and data structure functions used by RigidData
@@ -87,8 +89,18 @@ struct gpu_rigid_data_arrays
     float4 *particle_oldpos;        //!< Particle position from the previous step
     float4 *particle_oldvel;        //!< Particle velocity from the previous step
     unsigned int *particle_indices; //!< Particle indices: actual particle index in the particle data arrays
-    unsigned int *particle_tags;    //!< Particle tags
+    unsigned int *particle_tags;    //!< Particle tags   
     };
 
+
+//! sets RV on the GPU for rigid bodies
+cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata, 
+                                   const gpu_rigid_data_arrays& rigid_data,
+                                   float4 *d_pdata_orientation,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   const gpu_boxsize &box, 
+                                   float deltaT,
+                                   bool set_x);
 #endif
 

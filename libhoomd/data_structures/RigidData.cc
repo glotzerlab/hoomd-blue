@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <math.h>
 #include <boost/python.hpp>
+#include <algorithm>
 using namespace boost::python;
 
 #include "RigidData.h"
@@ -118,11 +119,14 @@ void RigidData::recalcIndices()
     
     ArrayHandle<unsigned int> indices(m_particle_indices, access_location::host, access_mode::readwrite);
     unsigned int indices_pitch = m_particle_indices.getPitch();
+    ArrayHandle<unsigned int> rigid_particle_indices(m_rigid_particle_indices, access_location::host, access_mode::readwrite);
+    
     
     ArrayHandle<unsigned int> body_size(m_body_size, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_particle_offset(m_particle_offset, access_location::host, access_mode::readwrite);
     
     // for each body
+    unsigned int ridx = 0;
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
         // for each particle in this body
@@ -137,10 +141,17 @@ void RigidData::recalcIndices()
             unsigned int pidx = arrays.rtag[tag];
             indices.data[body*indices_pitch + i] = pidx;
             h_particle_offset.data[pidx] = i;
+            
+            rigid_particle_indices.data[ridx++] = pidx;
             }
         }
         
     m_pdata->release();
+    
+    #ifdef ENABLE_CUDA
+    //Sort them so they are ordered
+    sort(rigid_particle_indices.data, rigid_particle_indices.data + ridx); 
+    #endif
     }
 
 /*! \pre all data members have been allocated
@@ -514,10 +525,15 @@ void RigidData::initializeData()
     // then in the GPUArray constructor the pitch is rounded up once more to be 32.
     m_nmax = particle_tags_pitch;
     
+    //tally up how many particles belong to rigid bodies
+    unsigned int rigid_particle_count = 0;
+    
     // determine the particle indices and particle tags
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
         if (arrays.body[j] == NO_BODY) continue;
+        
+        rigid_particle_count++;
         
         // get the corresponding body
         unsigned int body = arrays.body[j];
@@ -576,7 +592,16 @@ void RigidData::initializeData()
         local_indices_handle.data[body]++;
         }
         
-        
+    
+    //initialize m_virial
+    GPUArray<Scalar> virial(m_nmax, m_n_bodies, m_pdata->getExecConf());
+    m_virial.swap(virial);    
+    
+    //initialize rigid_particle_indices
+    GPUArray<unsigned int> rigid_particle_indices(rigid_particle_count, m_pdata->getExecConf());
+    m_rigid_particle_indices.swap(rigid_particle_indices);
+    m_num_particles = rigid_particle_count;
+                                          
     // release particle data for later access
     m_pdata->release();
     }   // out of scope for handles
@@ -584,6 +609,293 @@ void RigidData::initializeData()
     // finish up by initializing the indices
     recalcIndices();
     }
+    
+/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration
+    based on the body center of mass and particle relative position in each body frame.
+    \param timestep Current time step
+    \param deltaT Current time step size
+    \param set_x if true, positions are updated too.  Else just velocities.
+   
+*/
+
+void RigidData::setRV(unsigned int timestep, Scalar deltaT, bool set_x)
+    {
+    // get box
+    const BoxDim& box = m_pdata->getBox();
+    // sanity check
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+    Scalar dt_half = 0.5 * deltaT;
+    
+    // access to the force
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    
+    // access to the virial
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);    
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
+    
+    // rigid body handles
+    ArrayHandle<unsigned int> body_size_handle(m_body_size, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> com(m_com, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angvel_handle(m_angvel, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::host, access_mode::read);
+    ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::read);
+    ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::read);
+    ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::read);
+        
+    ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::read);
+    unsigned int indices_pitch = m_particle_indices.getPitch();
+    ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::read);
+    unsigned int particle_pos_pitch = m_particle_pos.getPitch();
+    ArrayHandle<Scalar4> particle_oldpos_handle(m_particle_oldpos, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> particle_oldvel_handle(m_particle_oldvel, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> particle_orientation(m_particle_orientation, access_location::host, access_mode::read);
+
+    // access the particle data arrays
+    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+    assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
+    assert(arrays.ix != NULL && arrays.iy != NULL && arrays.iz != NULL);
+    
+    ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    
+    // for each body of all the bodies
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+        {
+                
+        unsigned int len = body_size_handle.data[body];
+        // for each particle
+        for (unsigned int j = 0; j < len; j++)
+            {
+            // get the actual index of particle in the particle arrays
+            unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
+            // get the index of particle in the current rigid body in the particle_pos array
+            unsigned int localidx = body * particle_pos_pitch + j;
+            
+            // project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
+            Scalar xr = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
+            Scalar yr = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
+            Scalar zr = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
+                        
+            // read the position from the previous step           
+            Scalar4 old_pos;
+            old_pos.x = particle_oldpos_handle.data[localidx].x;
+            old_pos.y = particle_oldpos_handle.data[localidx].y;
+            old_pos.z = particle_oldpos_handle.data[localidx].z;
+            
+            if (set_x) 
+                {
+                // x_particle = x_com + xr
+                arrays.x[pidx] = com.data[body].x + xr;
+                arrays.y[pidx] = com.data[body].y + yr;
+                arrays.z[pidx] = com.data[body].z + zr;
+                
+                // adjust particle images based on body images
+                arrays.ix[pidx] = body_imagex_handle.data[body];
+                arrays.iy[pidx] = body_imagey_handle.data[body];
+                arrays.iz[pidx] = body_imagez_handle.data[body];
+                
+                if (arrays.x[pidx] >= box.xhi)
+                    {
+                    arrays.x[pidx] -= Lx;
+                    arrays.ix[pidx]++;
+                    }
+                else if (arrays.x[pidx] < box.xlo)
+                    {
+                    arrays.x[pidx] += Lx;
+                    arrays.ix[pidx]--;
+                    }
+                    
+                if (arrays.y[pidx] >= box.yhi)
+                    {
+                    arrays.y[pidx] -= Ly;
+                    arrays.iy[pidx]++;
+                    }
+                else if (arrays.y[pidx] < box.ylo)
+                    {
+                    arrays.y[pidx] += Ly;
+                    arrays.iy[pidx]--;
+                    }
+                    
+                if (arrays.z[pidx] >= box.zhi)
+                    {
+                    arrays.z[pidx] -= Lz;
+                    arrays.iz[pidx]++;
+                    }
+                else if (arrays.z[pidx] < box.zlo)
+                    {
+                    arrays.z[pidx] += Lz;
+                    arrays.iz[pidx]--;
+                    }
+
+                // update the particle orientation: q_i = quat[body] * particle_quat
+                Scalar4 porientation; 
+                quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
+                normalize(porientation);
+                h_p_orientation.data[pidx] = porientation;
+                
+                
+                // store the current position for the next step
+                particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];
+                particle_oldpos_handle.data[localidx].y = arrays.y[pidx] + Ly * arrays.iy[pidx];
+                particle_oldpos_handle.data[localidx].z = arrays.z[pidx] + Lz * arrays.iz[pidx];
+                }
+                
+                
+            // read the velocity from the previous step
+            Scalar4 old_vel;
+            old_vel.x = particle_oldvel_handle.data[localidx].x;
+            old_vel.y = particle_oldvel_handle.data[localidx].y;
+            old_vel.z = particle_oldvel_handle.data[localidx].z;
+            
+            // v_particle = v_com + angvel x xr
+            arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
+            arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
+            arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
+            
+            // calculate the virial from the position and velocity from the previous step
+            Scalar massone = arrays.mass[pidx];
+            Scalar4 fc;
+            fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
+            fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
+            fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
+            
+            if (set_x)
+                h_virial.data[localidx] = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            else 
+                {
+                // accumulate the virial from the first part
+                h_net_virial.data[pidx] += h_virial.data[localidx];
+                // and this part
+                h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                }
+
+            // store the current velocity for the next step
+            particle_oldvel_handle.data[localidx].x = arrays.vx[pidx];
+            particle_oldvel_handle.data[localidx].y = arrays.vy[pidx];
+            particle_oldvel_handle.data[localidx].z = arrays.vz[pidx];
+            }
+        }
+        
+    m_pdata->release();
+    
+    }
+
+/* Helper GPU function to set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration
+    based on the body center of mass and particle relative position in each body frame.
+    \param timestep Current time step
+    \param deltaT Current time step size
+    \param set_x if true, positions are updated too.  Else just velocities.
+   
+*/
+#ifdef ENABLE_CUDA
+void RigidData::setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x)
+    {
+        
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+            
+    // Acquire handles
+    ArrayHandle<unsigned int> rigid_particle_indices(m_rigid_particle_indices, access_location::device, access_mode::read);
+    
+    // access all the needed data
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
+    
+    gpu_boxsize box = m_pdata->getBoxGPU();
+    
+
+
+    ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> com_handle(m_com, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> vel_handle(m_vel, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> angvel_handle(m_angvel, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::device, access_mode::readwrite);
+    ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::device, access_mode::readwrite);
+    ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::device, access_mode::readwrite);
+    ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> force_handle(m_force, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> torque_handle(m_torque, access_location::device, access_mode::read);
+    
+    //note that currently the rigid body virial is NOT computed on the GPU.
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> particle_oldpos_handle(m_particle_oldpos, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> particle_oldvel_handle(m_particle_oldvel, access_location::device, access_mode::readwrite);
+    
+    ArrayHandle<unsigned int> d_particle_offset(m_particle_offset, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_particle_orientation(m_particle_orientation, access_location::device, access_mode::readwrite);
+
+
+    // More data is filled in here than I use.  
+    gpu_rigid_data_arrays d_rdata;
+    d_rdata.n_bodies = m_n_bodies;
+    d_rdata.n_group_bodies = m_n_bodies;
+    d_rdata.nmax = m_nmax;
+    d_rdata.local_beg = 0;
+    d_rdata.local_num = m_n_bodies;
+    
+    d_rdata.body_mass = body_mass_handle.data;
+    d_rdata.moment_inertia = moment_inertia_handle.data;
+    d_rdata.com = com_handle.data;
+    d_rdata.vel = vel_handle.data;
+    d_rdata.angvel = angvel_handle.data;
+    d_rdata.angmom = angmom_handle.data;
+    d_rdata.orientation = orientation_handle.data;
+    d_rdata.ex_space = ex_space_handle.data;
+    d_rdata.ey_space = ey_space_handle.data;
+    d_rdata.ez_space = ez_space_handle.data;
+    d_rdata.body_imagex = body_imagex_handle.data;
+    d_rdata.body_imagey = body_imagey_handle.data;
+    d_rdata.body_imagez = body_imagez_handle.data;
+    d_rdata.particle_pos = particle_pos_handle.data;
+    d_rdata.particle_indices = particle_indices_handle.data;
+    d_rdata.force = force_handle.data;
+    d_rdata.torque = torque_handle.data;
+    d_rdata.virial = d_virial.data;
+    d_rdata.particle_oldpos = particle_oldpos_handle.data;
+    d_rdata.particle_oldvel = particle_oldvel_handle.data;
+    d_rdata.particle_offset = d_particle_offset.data;
+    d_rdata.particle_orientation = d_particle_orientation.data;
+    
+    
+    gpu_rigid_setRV(               d_pdata, 
+                                   d_rdata,
+                                   d_porientation.data,
+                                   rigid_particle_indices.data,
+                                   m_num_particles,
+                                   box, 
+                                   deltaT,
+                                   set_x);    
+                                       
+        
+    m_pdata->release();
+        
+    }
+#endif    
 
 /*! Compute eigenvalues and eigenvectors of 3x3 real symmetric matrix based on Jacobi rotations adapted from Numerical Recipes jacobi() function (LAMMPS)
     \param matrix Matrix to be diagonalized
@@ -822,6 +1134,10 @@ void export_RigidData()
     .def("getParticleTag", &RigidData::getParticleTag)   
     .def("getParticleDisp", &RigidData::getParticleDisp)
     .def("setParticleDisp", &RigidData::setParticleDisp)
+    .def("setRV", &RigidData::setRV)
+#ifdef ENABLE_CUDA
+    .def("setRVGPU", &RigidData::setRVGPU)
+#endif
     ;
     }
 
