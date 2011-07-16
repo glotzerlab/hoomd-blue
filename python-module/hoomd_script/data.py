@@ -762,7 +762,15 @@ class body_data:
     # \param bdata BodyData to connect
     def __init__(self, bdata):
         self.bdata = bdata;
-    
+     
+    # \brief updates the v and x positions of a rigid body
+    # \note the second arguement is dt, but the value should not matter as long as not zero       
+    def updateRV(self):
+        if not globals.exec_conf.isCUDAEnabled():
+            self.bdata.setRV(0,0.005,True);
+        else:
+            self.bdata.setRVGPU(0,0.005 ,True);
+   
     ## \var bdata
     # \internal
     # \brief BodyData to which this instance is connected
