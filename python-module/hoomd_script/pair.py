@@ -1478,7 +1478,7 @@ class table(force._force):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, width, r_cut, name=None):
+    def __init__(self, width, r_cut=0, name=None):
         util.print_status_line();
         
         # initialize the base class

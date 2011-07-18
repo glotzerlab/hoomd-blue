@@ -119,9 +119,7 @@ def reset():
     expected_count = 2
     if count != expected_count:
         print "\n***Warning! Not all saved variables were cleared before calling reset()";
-        print count-expected_count, "references to the particle data still exist somewhere\n"
-        a = gc.get_referrers(sysdef)
-        print a;        
+        print count-expected_count, "references to the particle data still exist somewhere\n"      
         raise RuntimeError('Error resetting');
 
 

@@ -810,11 +810,17 @@ class body_data:
 # body_data_proxy, documented by example.
 #
 # The following attributes are read only:
-
+# - \c num_particles : The number of particles (or interaction sites) composing the body
+# - \c particle_tags : the tags of the particles (or interaction sites) composing the body
 #
 # The following attributes can be both read and set
-
-#
+# - \c mass          : The mass of the body
+# - \c COM           : The Center of Mass position of the body
+# - \c velocity      : The velocity vector of the center of mass of the body
+# - \c orientation   : The orientation of the body (quaternion)
+# - \c angular momentum : The angular momentum of the body in the space frame
+# - \c moment of inertia : the principle components of the moment of inertia
+# - \c particle displacements : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
 #
 class body_data_proxy:
     ## \internal
@@ -827,7 +833,7 @@ class body_data_proxy:
         self.tag = tag;
     
     ## \internal
-    # \brief Get an informal string representing the object
+    # \brief Get an informal string representing the object 
     def __str__(self):
         result = "";
         result += "num_particles    : " + str(self.num_particles) + "\n"                        
