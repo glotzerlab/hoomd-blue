@@ -609,8 +609,26 @@ void RigidData::initializeData()
     // finish up by initializing the indices
     recalcIndices();
     }
-    
+ 
 /* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration
+    based on the body center of mass and particle relative position in each body frame.
+    \param timestep Current time step
+    \param deltaT Current time step size
+    \param set_x if true, positions are updated too.  Else just velocities.
+   
+*/       
+void RigidData::setRV(unsigned int timestep, Scalar deltaT, bool set_x)
+   {
+    #ifdef ENABLE_CUDA
+        if (m_pdata->getExecConf()->exec_mode == ExecutionConfiguration::GPU)
+            setRVGPU(timestep+1,deltaT,true);
+        else
+    #endif
+         setRVCPU(timestep+1,deltaT,true);
+   }    
+
+    
+/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration on the CPU
     based on the body center of mass and particle relative position in each body frame.
     \param timestep Current time step
     \param deltaT Current time step size
@@ -618,7 +636,7 @@ void RigidData::initializeData()
    
 */
 
-void RigidData::setRV(unsigned int timestep, Scalar deltaT, bool set_x)
+void RigidData::setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x)
     {
     // get box
     const BoxDim& box = m_pdata->getBox();

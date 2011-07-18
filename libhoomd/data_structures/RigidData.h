@@ -400,6 +400,9 @@ class RigidData
         //! Update x and v of rigid body data and virial
         void setRV(unsigned int timestep, Scalar deltaT, bool set_x);
 
+        //! Update x and v of rigid body data and virial
+        void setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x);
+        
 #ifdef ENABLE_CUDA
         //! Helper funciton to update x and v of rigid body data and virial on the GPU
         void setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x);
