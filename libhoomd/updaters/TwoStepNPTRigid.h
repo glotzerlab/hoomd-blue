@@ -125,6 +125,16 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
     
+        //! Get needed pdata flags
+        /*! TwoStepNPT needs the pressure, so the isotropic_virial flag is set
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            PDataFlags flags;
+            flags[pdata_flag::isotropic_virial] = 1;
+            return flags;
+            }
+
     protected:
         boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
         boost::shared_ptr<ComputeThermo> m_thermo_all;     //!< ComputeThermo operating on the group of all particles
