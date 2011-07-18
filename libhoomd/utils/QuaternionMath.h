@@ -382,26 +382,6 @@ DEVICE inline void transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4&
     c.z = ax.z * b.x + ay.z * b.y + az.z * b.z;
     }
 
-//! Matrix multiply
-/*! \param a Input 3-by-3 matrix 
-    \param b Input 3-by-3 matrix 
-    \param c Output 3-by-3 matrix
-*/
-DEVICE inline void mat_multiply(Scalar a[3][3], Scalar b[3][3], Scalar c[3][3])
-    {
-    c[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] + b[2][0];
-    c[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1];
-    c[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2];
-    
-    c[1][0] = a[1][0] * b[0][0] + a[1][1] * b[1][0] + a[1][2] * b[2][0];
-    c[1][1] = a[1][0] * b[0][1] + a[1][1] * b[1][1] + a[1][2] * b[2][1];
-    c[1][2] = a[1][0] * b[0][2] + a[1][1] * b[1][2] + a[1][2] * b[2][2];
-    
-    c[2][0] = a[2][0] * b[0][0] + a[2][1] * b[1][0] + a[2][2] * b[2][0];
-    c[2][1] = a[2][0] * b[0][1] + a[2][1] * b[1][1] + a[2][2] * b[2][1];
-    c[2][2] = a[2][0] * b[0][2] + a[2][1] * b[1][2] + a[2][2] * b[2][2];
-    }
-
 //! Hermitian conjugate of quaternion
 /*! \param a The quaternion to conjugate
     \param b The Hermitian conjugate of a

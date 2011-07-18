@@ -154,6 +154,21 @@ void RigidData::recalcIndices()
     #endif
     }
 
+inline static void mat_multiply(Scalar a[3][3], Scalar b[3][3], Scalar c[3][3])
+    {
+    c[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0];
+    c[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1];
+    c[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2];
+    
+    c[1][0] = a[1][0] * b[0][0] + a[1][1] * b[1][0] + a[1][2] * b[2][0];
+    c[1][1] = a[1][0] * b[0][1] + a[1][1] * b[1][1] + a[1][2] * b[2][1];
+    c[1][2] = a[1][0] * b[0][2] + a[1][1] * b[1][2] + a[1][2] * b[2][2];
+    
+    c[2][0] = a[2][0] * b[0][0] + a[2][1] * b[1][0] + a[2][2] * b[2][0];
+    c[2][1] = a[2][0] * b[0][1] + a[2][1] * b[1][1] + a[2][2] * b[2][1];
+    c[2][2] = a[2][0] * b[0][2] + a[2][1] * b[1][2] + a[2][2] * b[2][2];
+    }
+
 /*! \pre all data members have been allocated
     \post all data members are initialized with data from the particle data
 */
@@ -291,7 +306,19 @@ void RigidData::initializeData()
         inertia_handle.data[inertia_pitch * body + 4] = 0.0;
         inertia_handle.data[inertia_pitch * body + 5] = 0.0;
         }
-        
+    
+    // determine a nominal box image vector for each body
+    // this is done so that bodies may be "unwrapped" from around the box dimensions in a numerically
+    // stable way by bringing all particles unwrapped coords to being at most slightly outside of the box.
+    std::vector<int3> nominal_body_image(m_n_bodies);
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        unsigned int body = arrays.body[j];
+        if (body != NO_BODY)
+            nominal_body_image[body] = make_int3(arrays.ix[j], arrays.iy[j], arrays.iz[j]);
+        }
+    
+    // compute the center of mass for each body by summing up mass * \vec{r} for each particle in the body    
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
         if (arrays.body[j] == NO_BODY) continue;
@@ -299,16 +326,18 @@ void RigidData::initializeData()
         unsigned int body = arrays.body[j];
         Scalar mass_one = arrays.mass[j];
         body_mass_handle.data[body] += mass_one;
-        Scalar unwrappedx = arrays.x[j] + Lx * arrays.ix[j];
-        Scalar unwrappedy = arrays.y[j] + Ly * arrays.iy[j];
-        Scalar unwrappedz = arrays.z[j] + Lz * arrays.iz[j];
+        Scalar unwrappedx = arrays.x[j] + Lx * (arrays.ix[j] - nominal_body_image[body].x);
+        Scalar unwrappedy = arrays.y[j] + Ly * (arrays.iy[j] - nominal_body_image[body].y);
+        Scalar unwrappedz = arrays.z[j] + Lz * (arrays.iz[j] - nominal_body_image[body].z);
             
         com_handle.data[body].x += mass_one * unwrappedx;
         com_handle.data[body].y += mass_one * unwrappedy;
         com_handle.data[body].z += mass_one * unwrappedz;
         }
         
-    // com, vel and body images
+    // complete the COM calculation by dividing by the mass of the body
+    // for the moment, this is left in nominal unwrapped coordinates (it may be slightly outside the box) to enable
+    // computation of the moment of inertia. This will be corrected after the moment of inertia is computed.
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
         Scalar mass_body = body_mass_handle.data[body];
@@ -316,9 +345,9 @@ void RigidData::initializeData()
         com_handle.data[body].y /= mass_body;
         com_handle.data[body].z /= mass_body;
         
-        body_imagex_handle.data[body] = 0;
-        body_imagey_handle.data[body] = 0;
-        body_imagez_handle.data[body] = 0;
+        body_imagex_handle.data[body] = nominal_body_image[body].x;
+        body_imagey_handle.data[body] = nominal_body_image[body].y;
+        body_imagez_handle.data[body] = nominal_body_image[body].z;
         }
     
     Scalar4 porientation;
@@ -334,9 +363,9 @@ void RigidData::initializeData()
         Scalar mass_one = arrays.mass[j];
         unsigned int tag = arrays.tag[j];
         
-        Scalar unwrappedx = arrays.x[j] + Lx * arrays.ix[j];
-        Scalar unwrappedy = arrays.y[j] + Ly * arrays.iy[j];
-        Scalar unwrappedz = arrays.z[j] + Lz * arrays.iz[j];
+        Scalar unwrappedx = arrays.x[j] + Lx*(arrays.ix[j] - nominal_body_image[body].x);
+        Scalar unwrappedy = arrays.y[j] + Ly*(arrays.iy[j] - nominal_body_image[body].y);
+        Scalar unwrappedz = arrays.z[j] + Lz*(arrays.iz[j] - nominal_body_image[body].z);
         
         Scalar dx = unwrappedx - com_handle.data[body].x;
         Scalar dy = unwrappedy - com_handle.data[body].y;
@@ -546,9 +575,9 @@ void RigidData::initializeData()
         
         // determine the particle position in the body frame
         // with ex_space, ey_space and ex_space vectors computed from the diagonalization
-        Scalar unwrappedx = arrays.x[j] + Lx * arrays.ix[j];
-        Scalar unwrappedy = arrays.y[j] + Ly * arrays.iy[j];
-        Scalar unwrappedz = arrays.z[j] + Lz * arrays.iz[j];
+        Scalar unwrappedx = arrays.x[j] + Lx * (arrays.ix[j] - nominal_body_image[body].x);
+        Scalar unwrappedy = arrays.y[j] + Ly * (arrays.iy[j] - nominal_body_image[body].y);
+        Scalar unwrappedz = arrays.z[j] + Lz * (arrays.iz[j] - nominal_body_image[body].z);
         
         Scalar dx = unwrappedx - com_handle.data[body].x;
         Scalar dy = unwrappedy - com_handle.data[body].y;
@@ -562,7 +591,7 @@ void RigidData::initializeData()
         particle_pos_handle.data[idx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
                 dz * ez_space_handle.data[body].z;
         
-        // TODO - initialize h_particle_orientation.data[idx] here from the initial particle orientation. This means
+        // initialize h_particle_orientation.data[idx] here from the initial particle orientation. This means
         // reading the intial particle orientation from ParticleData and translating it backwards into the body frame
         Scalar4 qc;
         quatconj(orientation_handle.data[body], qc);
@@ -591,7 +620,22 @@ void RigidData::initializeData()
         // increment the current index by one
         local_indices_handle.data[body]++;
         }
-        
+
+    // now that all computations using nominally unwrapped coordinates are done, put the COM into the simulation box
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+        {
+        float dx = rintf(com_handle.data[body].x * Scalar(1.0)/Lx);
+        com_handle.data[body].x -= Lx * dx;
+        body_imagex_handle.data[body] += (int)dx;
+
+        float dy= rintf(com_handle.data[body].y * Scalar(1.0)/Ly);
+        com_handle.data[body].y -= Ly * dy;
+        body_imagey_handle.data[body] += (int)dy;
+
+        float dz = rintf(com_handle.data[body].z * Scalar(1.0)/Lz);
+        com_handle.data[body].z -= Lz * dz;
+        body_imagez_handle.data[body] += (int)dz;
+        }
     
     //initialize m_virial
     GPUArray<Scalar> virial(m_nmax, m_n_bodies, m_pdata->getExecConf());
