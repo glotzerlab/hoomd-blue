@@ -131,9 +131,6 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), natomtypes, nbondtypes, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
     BoxDim box = pdata->getBox();
     
     // setup a simple initial state
@@ -235,6 +232,13 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
     
     pdata->release();
     
+    shared_ptr<RigidData> rdata = sysdef->getRigidData();
+    // Initialize rigid bodies
+    rdata->initializeData();
+    
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    
     Scalar deltaT = Scalar(0.005);
     shared_ptr<TwoStepBDNVTRigid> two_step_bdnvt = bdup_creator(sysdef, group_all, temperature, 453034);
         
@@ -264,38 +268,23 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
     unsigned int nrigid_dof, nnonrigid_dof;
     Scalar current_temp;
     
-    shared_ptr<RigidData> rdata = sysdef->getRigidData();
-    
     unsigned int start_step = 0;
     unsigned int steps = 5000;
     unsigned int sampling = 100;
     unsigned int averaging_delay = 1000;
     
 
-    // Initialize rigid bodies
-    rdata->initializeData();
-        
+    // CALLING SET RV
+    rdata->setRV(0,deltaT,true);       
         
     nrigid_dof = rdata->getNumDOF();
     nnonrigid_dof = 3 * (N - body_size * nbodies);
         
-    // Rescale particle velocities to desired temperature:
-    current_temp = 2.0 * KE / (nrigid_dof + nnonrigid_dof);
-    Scalar factor = sqrt(temperature / current_temp);
-        
-    arrays = pdata->acquireReadWrite();
-    for (unsigned int j = 0; j < N; j++)
-        {
-        arrays.vx[j] *= factor;
-        arrays.vy[j] *= factor;
-        arrays.vz[j] *= factor;
-        }
-            
-    pdata->release();
-        
-        
     // Production: turn on LJ interactions between rods
     fc->setRcut(1, 1, Scalar(2.5));
+    
+    bdnvt_up->prepRun(0);
+
  
     for (unsigned int i = start_step; i <= start_step + steps; i++)
         {
