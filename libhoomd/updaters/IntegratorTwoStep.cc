@@ -168,14 +168,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     // Update the rigid body particle velocities if they are present
     if (m_sysdef->getRigidData()->getNumBodies() >= 0)
-       {
-        #ifdef ENABLE_CUDA
-            if (exec_conf->exec_mode == ExecutionConfiguration::GPU)
-                m_sysdef->getRigidData()->setRVGPU(timestep+1,m_deltaT,false);
-            else
-        #endif
-                m_sysdef->getRigidData()->setRV(timestep+1,m_deltaT,false);
-       }
+       m_sysdef->getRigidData()->setRV(timestep+1,m_deltaT,false);
 
     if (m_prof)
         m_prof->pop();

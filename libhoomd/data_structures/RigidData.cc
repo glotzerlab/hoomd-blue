@@ -1197,9 +1197,6 @@ void export_RigidData()
     .def("getParticleDisp", &RigidData::getParticleDisp)
     .def("setParticleDisp", &RigidData::setParticleDisp)
     .def("setRV", &RigidData::setRV)
-#ifdef ENABLE_CUDA
-    .def("setRVGPU", &RigidData::setRVGPU)
-#endif
     ;
     }
 

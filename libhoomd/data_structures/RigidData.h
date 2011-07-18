@@ -400,13 +400,6 @@ class RigidData
         //! Update x and v of rigid body data and virial
         void setRV(unsigned int timestep, Scalar deltaT, bool set_x);
 
-        //! Update x and v of rigid body data and virial
-        void setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x);
-        
-#ifdef ENABLE_CUDA
-        //! Helper funciton to update x and v of rigid body data and virial on the GPU
-        void setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x);
-#endif        
         //! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.
         void initializeData();
         
@@ -474,6 +467,15 @@ class RigidData
         
         //! Compute quaternion from the axes
         void quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
+
+        //! Update x and v of rigid body data and virial
+        void setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x);
+        
+#ifdef ENABLE_CUDA
+        //! Helper funciton to update x and v of rigid body data and virial on the GPU
+        void setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x);
+#endif        
+
         
     };
 
