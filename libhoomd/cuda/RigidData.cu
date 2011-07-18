@@ -189,7 +189,6 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
     \param box Box dimensions for periodic boundary condition handling
-    \param deltaT Amount of real time to step forward in one time step
     \param set_x boolean indicating whether the positions are changed or not (first or second step of integration)
 */
 cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata, 
@@ -198,7 +197,6 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    const gpu_boxsize &box, 
-                                   float deltaT,
                                    bool set_x)
     {
     

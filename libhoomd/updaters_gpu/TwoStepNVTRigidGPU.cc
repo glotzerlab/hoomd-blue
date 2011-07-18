@@ -151,7 +151,6 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_virial(rigid_data->getVirial(), access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
@@ -184,7 +183,6 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
-    d_rdata.virial = d_virial.data;
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
@@ -303,7 +301,6 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_virial(rigid_data->getVirial(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
@@ -333,7 +330,6 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
-    d_rdata.virial = d_virial.data;
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;

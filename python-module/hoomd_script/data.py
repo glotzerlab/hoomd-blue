@@ -790,7 +790,7 @@ class body_data:
     # \brief updates the v and x positions of a rigid body
     # \note the second arguement is dt, but the value should not matter as long as not zero       
     def updateRV(self):
-        self.bdata.setRV(0,0.005,True);
+        self.bdata.setRV(True);
    
     ## \var bdata
     # \internal

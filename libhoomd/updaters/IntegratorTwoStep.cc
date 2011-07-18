@@ -145,7 +145,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     // Update the rigid body particle positions and velocities if they are present
     if (m_sysdef->getRigidData()->getNumBodies() >= 0)
-        m_sysdef->getRigidData()->setRV(timestep+1,m_deltaT,true);
+        m_sysdef->getRigidData()->setRV(true);
            
     if (m_prof)
         m_prof->pop();
@@ -168,7 +168,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     // Update the rigid body particle velocities if they are present
     if (m_sysdef->getRigidData()->getNumBodies() >= 0)
-       m_sysdef->getRigidData()->setRV(timestep+1,m_deltaT,false);
+       m_sysdef->getRigidData()->setRV(false);
 
     if (m_prof)
         m_prof->pop();

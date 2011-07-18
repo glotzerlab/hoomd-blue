@@ -230,11 +230,6 @@ class RigidData
             {
             return m_torque;
             }
-        //! Get m_virial
-        const GPUArray<Scalar>& getVirial()
-            {
-            return m_virial;
-            }    
          //! Get m_rigid_particle_index
         const GPUArray<unsigned int>& getAllIndexRigid()
             {
@@ -393,7 +388,13 @@ class RigidData
         //@}
         
         //! Update x and v of rigid body data and virial
-        void setRV(unsigned int timestep, Scalar deltaT, bool set_x);
+        void setRV(bool set_x);
+
+        //! Performs steps needed to compute the rigid body virial correction at the start of the step
+        void computeVirialCorrectionStart();
+        
+        //! Performs steps needed to compute the rigid body virial correction at the end of the step
+        void computeVirialCorrectionEnd(Scalar deltaT);
 
         //! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.
         void initializeData();
@@ -418,9 +419,6 @@ class RigidData
         GPUArray<Scalar4> m_particle_pos;           //!< n_max by n_bodies 2D array listing particle positions relative to the COM for this body in which body-fixed frame
         GPUArray<Scalar4> m_particle_orientation;   //!< n_max by n_bodies 2D array listing native particle orientations in the body frame
         GPUArray<unsigned int> m_particle_indices;  //!< n_max by n_bodies 2D array listing particle indices belonging to bodies (updated when particles are resorted)
-        GPUArray<Scalar4> m_particle_oldpos;        //!< n_max by n_bodies 2D array listing particle positions from the previous step (w/regards to sorting and virial calculation)
-        GPUArray<Scalar4> m_particle_oldvel;        //!< n_max by n_bodies 2D array listing particle velocities from the previous step (w/regards to sorting and virial calculation)
-        
         GPUArray<unsigned int> m_particle_offset;   //!< n_particles by 1 array listing the offset of each particle in its body
         //@}
         
@@ -443,13 +441,11 @@ class RigidData
         GPUArray<Scalar4> m_force;          //!< n_bodies length 1D array of the body force
         GPUArray<Scalar4> m_torque;         //!< n_bodies length 1D array of the body torque
         
-        
-        GPUArray<Scalar> m_virial;         //!< Virial contribution from rigid bodies
-        GPUArray<unsigned int> m_rigid_particle_indices; //!< All particle indices that are in rigid bodies, only needed for GPU code
-        unsigned int m_num_particles;         //!< length of m_rigid_particle_indices
+        GPUArray<Scalar4> m_particle_oldpos;        //!< nparticles long array storing the old position of the particles (for virial computation)
+        GPUArray<Scalar4> m_particle_oldvel;        //!< npartilces long array storing the old velocity of the particles (for virial computation)
 
-             
-        
+        GPUArray<unsigned int> m_rigid_particle_indices; //!< All particle indices that are in rigid bodies, only needed for GPU code
+        unsigned int m_num_particles;                    //!< length of m_rigid_particle_indices
         //@}
         
         //! Recalculate the cached indices from the stored tags after a particle sort
@@ -463,14 +459,24 @@ class RigidData
         void quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
 
         //! Update x and v of rigid body data and virial
-        void setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x);
+        void setRVCPU(bool set_x);
+
+        //! Performs steps needed to compute the rigid body virial correction at the start of the step on the CPU
+        void computeVirialCorrectionStartCPU();
         
+        //! Performs steps needed to compute the rigid body virial correction at the end of the step on the CPU
+        void computeVirialCorrectionEndCPU(Scalar deltaT);
+
 #ifdef ENABLE_CUDA
         //! Helper funciton to update x and v of rigid body data and virial on the GPU
-        void setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x);
-#endif        
+        void setRVGPU(bool set_x);
 
-        
+        /*//! Performs steps needed to compute the rigid body virial correction at the start of the step on the GPU
+        void computeVirialCorrectionStartGPU();
+
+        //! Performs steps needed to compute the rigid body virial correction at the end of the step on the GPU
+        void computeVirialCorrectionEndGPU(Scalar deltaT);*/
+#endif
     };
 
 //! Export the RigidData class to python

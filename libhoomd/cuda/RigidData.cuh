@@ -100,7 +100,6 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    const gpu_boxsize &box, 
-                                   float deltaT,
                                    bool set_x);
 #endif
 

@@ -524,14 +524,6 @@ void RigidData::initializeData()
     m_particle_orientation.swap(particle_orientation);
     ArrayHandle<Scalar4> h_particle_orientation(m_particle_orientation, access_location::host, access_mode::readwrite);
 
-    GPUArray<Scalar4> particle_oldpos(m_nmax, m_n_bodies, m_pdata->getExecConf());
-    m_particle_oldpos.swap(particle_oldpos);
-    ArrayHandle<Scalar4> particle_oldpos_handle(m_particle_oldpos, access_location::host, access_mode::readwrite);
-    
-    GPUArray<Scalar4> particle_oldvel(m_nmax, m_n_bodies, m_pdata->getExecConf());
-    m_particle_oldvel.swap(particle_oldvel);
-    ArrayHandle<Scalar4> particle_oldvel_handle(m_particle_oldvel, access_location::host, access_mode::readwrite);
-    
     GPUArray<unsigned int> local_indices(m_n_bodies, m_pdata->getExecConf());
     ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite);
     for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -596,14 +588,6 @@ void RigidData::initializeData()
             moment_inertia_handle.data[body].z = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
         }
         
-        particle_oldpos_handle.data[idx].x = unwrappedx;
-        particle_oldpos_handle.data[idx].y = unwrappedy;
-        particle_oldpos_handle.data[idx].z = unwrappedz;
-        
-        particle_oldvel_handle.data[idx].x = arrays.vx[j];
-        particle_oldvel_handle.data[idx].y = arrays.vy[j];
-        particle_oldvel_handle.data[idx].z = arrays.vz[j];
-        
         // increment the current index by one
         local_indices_handle.data[body]++;
         }
@@ -624,14 +608,16 @@ void RigidData::initializeData()
         body_imagez_handle.data[body] += (int)dz;
         }
     
-    //initialize m_virial
-    GPUArray<Scalar> virial(m_nmax, m_n_bodies, m_pdata->getExecConf());
-    m_virial.swap(virial);    
-    
     //initialize rigid_particle_indices
     GPUArray<unsigned int> rigid_particle_indices(rigid_particle_count, m_pdata->getExecConf());
     m_rigid_particle_indices.swap(rigid_particle_indices);
     m_num_particles = rigid_particle_count;
+
+    GPUArray<Scalar4> particle_oldpos(arrays.nparticles, m_pdata->getExecConf());
+    m_particle_oldpos.swap(particle_oldpos);
+    
+    GPUArray<Scalar4> particle_oldvel(arrays.nparticles, m_pdata->getExecConf());
+    m_particle_oldvel.swap(particle_oldvel);
                                           
     // release particle data for later access
     m_pdata->release();
@@ -643,31 +629,26 @@ void RigidData::initializeData()
  
 /* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration
     based on the body center of mass and particle relative position in each body frame.
-    \param timestep Current time step
-    \param deltaT Current time step size
     \param set_x if true, positions are updated too.  Else just velocities.
    
 */       
-void RigidData::setRV(unsigned int timestep, Scalar deltaT, bool set_x)
+void RigidData::setRV(bool set_x)
    {
     #ifdef ENABLE_CUDA
         if (m_pdata->getExecConf()->exec_mode == ExecutionConfiguration::GPU)
-            setRVGPU(timestep+1,deltaT,true);
+            setRVGPU(true);
         else
     #endif
-         setRVCPU(timestep+1,deltaT,true);
+         setRVCPU(true);
    }    
 
     
 /* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration on the CPU
     based on the body center of mass and particle relative position in each body frame.
-    \param timestep Current time step
-    \param deltaT Current time step size
     \param set_x if true, positions are updated too.  Else just velocities.
-   
 */
 
-void RigidData::setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x)
+void RigidData::setRVCPU(bool set_x)
     {
     // get box
     const BoxDim& box = m_pdata->getBox();
@@ -678,16 +659,9 @@ void RigidData::setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x)
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
-    Scalar dt_half = 0.5 * deltaT;
-    
     // access to the force
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    
-    // access to the virial
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
-    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);    
-    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
     
     // rigid body handles
     ArrayHandle<unsigned int> body_size_handle(m_body_size, access_location::host, access_mode::read);
@@ -706,8 +680,6 @@ void RigidData::setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x)
     unsigned int indices_pitch = m_particle_indices.getPitch();
     ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::read);
     unsigned int particle_pos_pitch = m_particle_pos.getPitch();
-    ArrayHandle<Scalar4> particle_oldpos_handle(m_particle_oldpos, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> particle_oldvel_handle(m_particle_oldvel, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_orientation(m_particle_orientation, access_location::host, access_mode::read);
 
     // access the particle data arrays
@@ -742,12 +714,6 @@ void RigidData::setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x)
                         + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
                         + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
                         
-            // read the position from the previous step           
-            Scalar4 old_pos;
-            old_pos.x = particle_oldpos_handle.data[localidx].x;
-            old_pos.y = particle_oldpos_handle.data[localidx].y;
-            old_pos.z = particle_oldpos_handle.data[localidx].z;
-            
             if (set_x) 
                 {
                 // x_particle = x_com + xr
@@ -798,63 +764,25 @@ void RigidData::setRVCPU(unsigned int timestep, Scalar deltaT, bool set_x)
                 quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
                 normalize(porientation);
                 h_p_orientation.data[pidx] = porientation;
-                
-                
-                // store the current position for the next step
-                particle_oldpos_handle.data[localidx].x = arrays.x[pidx] + Lx * arrays.ix[pidx];
-                particle_oldpos_handle.data[localidx].y = arrays.y[pidx] + Ly * arrays.iy[pidx];
-                particle_oldpos_handle.data[localidx].z = arrays.z[pidx] + Lz * arrays.iz[pidx];
                 }
-                
-                
-            // read the velocity from the previous step
-            Scalar4 old_vel;
-            old_vel.x = particle_oldvel_handle.data[localidx].x;
-            old_vel.y = particle_oldvel_handle.data[localidx].y;
-            old_vel.z = particle_oldvel_handle.data[localidx].z;
             
             // v_particle = v_com + angvel x xr
             arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
             arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
             arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
-            
-            // calculate the virial from the position and velocity from the previous step
-            Scalar massone = arrays.mass[pidx];
-            Scalar4 fc;
-            fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
-            fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
-            fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
-            
-            if (set_x)
-                h_virial.data[localidx] = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
-            else 
-                {
-                // accumulate the virial from the first part
-                h_net_virial.data[pidx] += h_virial.data[localidx];
-                // and this part
-                h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
-                }
-
-            // store the current velocity for the next step
-            particle_oldvel_handle.data[localidx].x = arrays.vx[pidx];
-            particle_oldvel_handle.data[localidx].y = arrays.vy[pidx];
-            particle_oldvel_handle.data[localidx].z = arrays.vz[pidx];
             }
         }
         
     m_pdata->release();
-    
     }
 
 /* Helper GPU function to set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration
     based on the body center of mass and particle relative position in each body frame.
-    \param timestep Current time step
-    \param deltaT Current time step size
     \param set_x if true, positions are updated too.  Else just velocities.
    
 */
 #ifdef ENABLE_CUDA
-void RigidData::setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x)
+void RigidData::setRVGPU(bool set_x)
     {
         
     // sanity check
@@ -888,11 +816,6 @@ void RigidData::setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x)
     ArrayHandle<Scalar4> force_handle(m_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_torque, access_location::device, access_mode::read);
     
-    //note that currently the rigid body virial is NOT computed on the GPU.
-    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> particle_oldpos_handle(m_particle_oldpos, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> particle_oldvel_handle(m_particle_oldvel, access_location::device, access_mode::readwrite);
-    
     ArrayHandle<unsigned int> d_particle_offset(m_particle_offset, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_particle_orientation(m_particle_orientation, access_location::device, access_mode::readwrite);
 
@@ -922,9 +845,6 @@ void RigidData::setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
-    d_rdata.virial = d_virial.data;
-    d_rdata.particle_oldpos = particle_oldpos_handle.data;
-    d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
     
@@ -934,8 +854,7 @@ void RigidData::setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x)
                                    d_porientation.data,
                                    rigid_particle_indices.data,
                                    m_num_particles,
-                                   box, 
-                                   deltaT,
+                                   box,
                                    set_x);    
                                        
         
@@ -1155,7 +1074,87 @@ void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
     angmom_handle.data[body].y = angmom.y;
     angmom_handle.data[body].z = angmom.z;
     angmom_handle.data[body].w = angmom.w;
-}
+    }
+
+/*! computeVirialCorrectionStart() must be called at the start of any time step update when there are rigid bodies
+    present in the system and the virial needs to be computed. It only peforms part of the virial correction. The other
+    part is completed by calling computeVirialCorrectionEnd()
+*/
+void RigidData::computeVirialCorrectionStart()
+    {
+    /*#ifdef ENABLE_CUDA
+        if (m_pdata->getExecConf()->isCUDAEnabled())
+            computeVirialCorrectionStartGPU();
+        else
+    #endif*/
+        computeVirialCorrectionStartCPU();
+    }
+        
+
+/*! computeVirialCorrectionEnd() must be called at the end of any time step update when there are rigid bodies
+    present in the system and the virial needs to be computed. And computeVirialCorrectionStart() must have been
+    called at the beginning of the step.
+*/
+void RigidData::computeVirialCorrectionEnd(Scalar deltaT)
+    {
+    /*#ifdef ENABLE_CUDA
+        if (m_pdata->getExecConf()->isCUDAEnabled())
+            computeVirialCorrectionEndGPU(deltaT);
+        else
+    #endif*/
+        computeVirialCorrectionEndCPU(deltaT);
+    }
+
+/*! Helper function that perform the first part necessary to compute the rigid body virial correction on the CPU.
+*/
+void RigidData::computeVirialCorrectionStartCPU()
+    {
+    // get access to the particle data
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_oldpos(m_particle_oldpos, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_oldvel(m_particle_oldvel, access_location::host, access_mode::overwrite);    
+
+    // loop through the particles and save the current position and velocity of each one
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        {
+        h_oldpos.data[i] = make_scalar4(arrays.x[i], arrays.y[i], arrays.z[i], 0.0);
+        h_oldvel.data[i] = make_scalar4(arrays.vx[i], arrays.vy[i], arrays.vz[i], 0.0);
+        }
+    m_pdata->release();
+    }
+
+/*! Helper function that perform the second part necessary to compute the rigid body virial correction on the CPU.
+*/
+void RigidData::computeVirialCorrectionEndCPU(Scalar deltaT)
+    {
+    // get access to the particle data
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_oldpos(m_particle_oldpos, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_oldvel(m_particle_oldvel, access_location::host, access_mode::read); 
+
+    ArrayHandle<Scalar> h_net_virial( m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_net_force( m_pdata->getNetForce(), access_location::host, access_mode::read);
+
+    // loop through all the particles and compute the virial correction to each one
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        {
+        // only correct the virial for body particles
+        if (arrays.body[i] != NO_BODY)
+            {
+            // calculate the virial from the position and velocity from the previous step
+            Scalar mass = arrays.mass[i];
+            Scalar4 old_vel = h_oldvel.data[i];
+            Scalar4 old_pos = h_oldpos.data[i];
+            Scalar3 fc;
+            fc.x = mass * (arrays.vx[i] - old_vel.x) / deltaT - h_net_force.data[i].x;
+            fc.y = mass * (arrays.vy[i] - old_vel.y) / deltaT - h_net_force.data[i].y;
+            fc.z = mass * (arrays.vz[i] - old_vel.z) / deltaT - h_net_force.data[i].z;
+            
+            h_net_virial.data[i] += (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
+            }
+        }
+    m_pdata->release();
+    }
 
 void export_RigidData()
     {

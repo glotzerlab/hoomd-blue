@@ -275,7 +275,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
     
 
     // CALLING SET RV
-    rdata->setRV(0,deltaT,true);       
+    rdata->setRV(true);       
         
     nrigid_dof = rdata->getNumDOF();
     nnonrigid_dof = 3 * (N - body_size * nbodies);
