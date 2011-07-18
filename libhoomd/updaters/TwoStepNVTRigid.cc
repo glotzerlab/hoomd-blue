@@ -300,9 +300,7 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
     
-    ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
@@ -344,34 +342,34 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
         if (com_handle.data[body].x >= box.xhi)
             {
             com_handle.data[body].x -= Lx;
-            body_imagex_handle.data[body]++;
+            body_image_handle.data[body].x++;
             }
         else if (com_handle.data[body].x < box.xlo)
             {
             com_handle.data[body].x += Lx;
-            body_imagex_handle.data[body]--;
+            body_image_handle.data[body].x--;
             }
             
         if (com_handle.data[body].y >= box.yhi)
             {
             com_handle.data[body].y -= Ly;
-            body_imagey_handle.data[body]++;
+            body_image_handle.data[body].y++;
             }
         else if (com_handle.data[body].y < box.ylo)
             {
             com_handle.data[body].y += Ly;
-            body_imagey_handle.data[body]--;
+            body_image_handle.data[body].y--;
             }
             
         if (com_handle.data[body].z >= box.zhi)
             {
             com_handle.data[body].z -= Lz;
-            body_imagez_handle.data[body]++;
+            body_image_handle.data[body].z++;
             }
         else if (com_handle.data[body].z < box.zlo)
             {
             com_handle.data[body].z += Lz;
-            body_imagez_handle.data[body]--;
+            body_image_handle.data[body].z--;
             }
             
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);

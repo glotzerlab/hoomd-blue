@@ -193,9 +193,7 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         std::vector< Scalar4 > m_com;                    //!< n_bodies length 1D array of center of mass positions
         std::vector< Scalar4 > m_vel;                    //!< n_bodies length 1D array of body velocities
         std::vector< Scalar4 > m_angmom;                 //!< n_bodies length 1D array of angular momenta in the space frame
-        std::vector< int > m_body_imagex;                //!< n_bodies length 1D array of the body image in x direction
-        std::vector< int > m_body_imagey;                //!< n_bodies length 1D array of the body image in y direction
-        std::vector< int > m_body_imagez;                //!< n_bodies length 1D array of the body image in z direction
+        std::vector< int3 > m_body_image;                //!< n_bodies length 1D array of the body image
     };
 
 //! Exports HOOMDBinaryInitializer to python

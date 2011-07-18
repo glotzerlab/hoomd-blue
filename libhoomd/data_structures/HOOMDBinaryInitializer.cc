@@ -473,9 +473,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_com.resize(n_bodies);
     m_vel.resize(n_bodies);
     m_angmom.resize(n_bodies);
-    m_body_imagex.resize(n_bodies);
-    m_body_imagey.resize(n_bodies);
-    m_body_imagez.resize(n_bodies);
+    m_body_image.resize(n_bodies);
         
     for (unsigned int body = 0; body < n_bodies; body++)
         {
@@ -494,9 +492,9 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&(m_angmom[body].z), sizeof(Scalar));
         f.read((char*)&(m_angmom[body].w), sizeof(Scalar));
         
-        f.read((char*)&(m_body_imagex[body]), sizeof(int));
-        f.read((char*)&(m_body_imagey[body]), sizeof(int));
-        f.read((char*)&(m_body_imagez[body]), sizeof(int));
+        f.read((char*)&(m_body_image[body].x), sizeof(int));
+        f.read((char*)&(m_body_image[body].y), sizeof(int));
+        f.read((char*)&(m_body_image[body]).z, sizeof(int));
         }
     
     }
@@ -620,9 +618,7 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
     ArrayHandle<Scalar4> r_com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> r_vel_handle(rigid_data->getVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> r_angmom_handle(rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int> r_body_imagex_handle(rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int> r_body_imagey_handle(rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int> r_body_imagez_handle(rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> r_body_image_handle(rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
     
     // We don't need to restore force, torque and orientation because the setup will do the rest,
     // and simulation still resumes smoothly.
@@ -644,9 +640,7 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
         r_angmom_handle.data[body].z = m_angmom[body].z;
         r_angmom_handle.data[body].w = m_angmom[body].w;
         
-        r_body_imagex_handle.data[body] = m_body_imagex[body];
-        r_body_imagey_handle.data[body] = m_body_imagey[body];
-        r_body_imagez_handle.data[body] = m_body_imagez[body];
+        r_body_image_handle.data[body] = m_body_image[body];
         }
     }
 

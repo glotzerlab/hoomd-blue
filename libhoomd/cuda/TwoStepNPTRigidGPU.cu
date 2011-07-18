@@ -186,9 +186,7 @@ extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
     \param rdata_ex_space x-axis unit vector
     \param rdata_ey_space y-axis unit vector
     \param rdata_ez_space z-axis unit vector
-    \param rdata_body_imagex Body image in x-direction
-    \param rdata_body_imagey Body image in y-direction
-    \param rdata_body_imagez Body image in z-direction
+    \param rdata_body_image Body image 
     \param rdata_conjqm Conjugate quaternion momentum
     \param d_rigid_mass Body mass
     \param d_rigid_mi Body inertia moments
@@ -218,9 +216,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
                                                             float4* rdata_ex_space, 
                                                             float4* rdata_ey_space, 
                                                             float4* rdata_ez_space, 
-                                                            int* rdata_body_imagex, 
-                                                            int* rdata_body_imagey, 
-                                                            int* rdata_body_imagez,
+                                                            int3* rdata_body_image, 
                                                             float4* rdata_conjqm,
                                                             float *d_rigid_mass,
                                                             float4 *d_rigid_mi,
@@ -250,7 +246,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     // r(t+deltaT) = r(t) + v(t+deltaT/2)*deltaT
     float body_mass;
     float4 moment_inertia, com, vel, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
-    int body_imagex, body_imagey, body_imagez;
+    int3 body_image;
     float4 mbody, tbody, fquat;
 
     float dt_half = 0.5f * deltaT;
@@ -272,9 +268,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     com = rdata_com[idx_body];
     vel = rdata_vel[idx_body];
     orientation = rdata_orientation[idx_body];
-    body_imagex = rdata_body_imagex[idx_body];
-    body_imagey = rdata_body_imagey[idx_body];
-    body_imagez = rdata_body_imagez[idx_body];
+    body_image = rdata_body_image[idx_body];
     force = d_rigid_force[idx_body];
     torque = d_rigid_torque[idx_body];
     conjqm = rdata_conjqm[idx_body];
@@ -307,15 +301,15 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     // time to fix the periodic boundary conditions
     float x_shift = rintf(pos2.x * box.Lxinv);
     pos2.x -= box.Lx * x_shift;
-    body_imagex += (int)x_shift;
+    body_image.x += (int)x_shift;
     
     float y_shift = rintf(pos2.y * box.Lyinv);
     pos2.y -= box.Ly * y_shift;
-    body_imagey += (int)y_shift;
+    body_image.y += (int)y_shift;
     
     float z_shift = rintf(pos2.z * box.Lzinv);
     pos2.z -= box.Lz * z_shift;
-    body_imagez += (int)z_shift;
+    body_image.z += (int)z_shift;
     
     matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
     quatvec(orientation, tbody, fquat);
@@ -366,9 +360,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     rdata_ex_space[idx_body] = ex_space;
     rdata_ey_space[idx_body] = ey_space;
     rdata_ez_space[idx_body] = ez_space;
-    rdata_body_imagex[idx_body] = body_imagex;
-    rdata_body_imagey[idx_body] = body_imagey;
-    rdata_body_imagez[idx_body] = body_imagez;
+    rdata_body_image[idx_body] = body_image;
     rdata_conjqm[idx_body] = conjqm2;
     
     npt_rdata_partial_Ksum_t[idx_body] = akin_t;
@@ -411,9 +403,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                         rigid_data.ex_space, 
                                                                         rigid_data.ey_space, 
                                                                         rigid_data.ez_space, 
-                                                                        rigid_data.body_imagex, 
-                                                                        rigid_data.body_imagey, 
-                                                                        rigid_data.body_imagez,
+                                                                        rigid_data.body_image, 
                                                                         rigid_data.conjqm,
                                                                         rigid_data.body_mass,
                                                                         rigid_data.moment_inertia,

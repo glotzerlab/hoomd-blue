@@ -190,20 +190,10 @@ class RigidData
             {
             return m_angvel;
             }
-        //! Get m_body_imagex
-        const GPUArray<int>& getBodyImagex()
+        //! Get m_body_image
+        const GPUArray<int3>& getBodyImage()
             {
-            return m_body_imagex;
-            }
-        //! Get m_body_imagey
-        const GPUArray<int>& getBodyImagey()
-            {
-            return m_body_imagey;
-            }
-        //! Get m_body_imagez
-        const GPUArray<int>& getBodyImagez()
-            {
-            return m_body_imagez;
+            return m_body_image;
             }
         //! Get m_ex_space
         const GPUArray<Scalar4>& getExSpace()
@@ -432,9 +422,7 @@ class RigidData
         GPUArray<Scalar4> m_ex_space;       //!< n_bodies length 1D array of the x axis of the body frame in the space frame
         GPUArray<Scalar4> m_ey_space;       //!< n_bodies length 1D array of the y axis of the body frame in the space frame
         GPUArray<Scalar4> m_ez_space;       //!< n_bodies length 1D array of the z axis of the body frame in the space frame
-        GPUArray<int> m_body_imagex;        //!< n_bodies length 1D array of the body image in x direction
-        GPUArray<int> m_body_imagey;        //!< n_bodies length 1D array of the body image in y direction
-        GPUArray<int> m_body_imagez;        //!< n_bodies length 1D array of the body image in z direction
+        GPUArray<int3> m_body_image;        //!< n_bodies length 1D array of the body image 
         
         // Body forces and torques are stored here instead of the rigid body integrator because of GPU implementation
         // since the body forces and torques in the shared memory of thread blocks become invalid after the kernel finishes.

@@ -67,9 +67,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \param d_rigid_com Body center of mass
     \param d_rigid_vel Body velocity
     \param d_rigid_angvel Body angular velocity
-    \param d_rigid_imagex Body image x
-    \param d_rigid_imagey Body image y
-    \param d_rigid_imagez Body image z
+    \param d_rigid_image Body image 
     \param d_rigid_particle_dis Position of a particle in the body frame
     \param d_rigid_particle_orientation Orientation of a particle in the body frame
     \param nmax Maximum number of particles per body
@@ -88,16 +86,14 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
                                        float4* d_rigid_com,
                                        float4* d_rigid_vel,
                                        float4* d_rigid_angvel,
-                                       int* d_rigid_imagex,
-                                       int* d_rigid_imagey,
-                                       int* d_rigid_imagez,
+                                       int3* d_rigid_image,
                                        float4* d_rigid_particle_dis,
                                        float4* d_rigid_particle_orientation,
                                        unsigned int nmax,
                                        gpu_boxsize box)
     {
     float4 com, vel, angvel, ex_space, ey_space, ez_space;
-    int body_imagex=0, body_imagey=0, body_imagez=0;
+    int3 body_image = make_int3(0, 0, 0);
 
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
@@ -114,9 +110,7 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
     angvel = d_rigid_angvel[idx_body];
     if (set_x)
         {
-        body_imagex = d_rigid_imagex[idx_body];
-        body_imagey = d_rigid_imagey[idx_body];
-        body_imagez = d_rigid_imagez[idx_body];
+        body_image = d_rigid_image[idx_body];
         }
     
     exyzFromQuaternion(body_orientation, ex_space, ey_space, ez_space);
@@ -145,17 +139,17 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
         // time to fix the periodic boundary conditions
         float x_shift = rintf(ppos.x * box.Lxinv);
         ppos.x -= box.Lx * x_shift;
-        image.x = body_imagex;
+        image.x = body_image.x;
         image.x += (int)x_shift;
         
         float y_shift = rintf(ppos.y * box.Lyinv);
         ppos.y -= box.Ly * y_shift;
-        image.y = body_imagey;
+        image.y = body_image.y;
         image.y += (int)y_shift;
         
         float z_shift = rintf(ppos.z * box.Lzinv);
         ppos.z -= box.Lz * z_shift;
-        image.z = body_imagez;
+        image.z = body_image.z;
         image.z += (int)z_shift;
 
         // update particle orientation
@@ -212,9 +206,7 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
     assert(rigid_data.com);
     assert(rigid_data.vel);
     assert(rigid_data.angvel);    
-    assert(rigid_data.body_imagex);
-    assert(rigid_data.body_imagey);
-    assert(rigid_data.body_imagez);
+    assert(rigid_data.body_image);
     assert(rigid_data.particle_pos);
     assert(rigid_data.particle_orientation); 
     
@@ -237,9 +229,7 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
                                                                         rigid_data.com,
                                                                         rigid_data.vel,
                                                                         rigid_data.angvel,
-                                                                        rigid_data.body_imagex,
-                                                                        rigid_data.body_imagey,
-                                                                        rigid_data.body_imagez,
+                                                                        rigid_data.body_image,
                                                                         rigid_data.particle_pos,
                                                                         rigid_data.particle_orientation,
                                                                         nmax,
@@ -257,9 +247,7 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
                                                                         rigid_data.com,
                                                                         rigid_data.vel,
                                                                         rigid_data.angvel,
-                                                                        rigid_data.body_imagex,
-                                                                        rigid_data.body_imagey,
-                                                                        rigid_data.body_imagez,
+                                                                        rigid_data.body_image,
                                                                         rigid_data.particle_pos,
                                                                         rigid_data.particle_orientation,
                                                                         nmax,
