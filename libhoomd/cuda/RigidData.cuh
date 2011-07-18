@@ -72,10 +72,7 @@ struct gpu_rigid_data_arrays
     float4 *angvel;         //!< Angular velocity in \c x, \c y, \c z, nothing in \c w
     float4 *angmom;         //!< Angular momentum in \c x, \c y, \c z, nothing in \c w
     float4 *orientation;    //!< Quaternion in \c x, \c y, \c z, nothing in \c w
-    float4 *ex_space;       //!< Body frame x axis in the world space in \c x, \c y, \c z, nothing in \c w
-    float4 *ey_space;       //!< Body frame y axis in the world space in \c x, \c y, \c z, nothing in \c w
-    float4 *ez_space;       //!< Body frame z axis in the world space in \c x, \c y, \c z, nothing in \c w
-    int3   *body_image ;    //!< Body box image location
+    int3   *body_image;     //!< Body box image location
     float4 *force;          //!< Body force in \c x, \c y, \c z, nothing in \c w
     float4 *torque;         //!< Body torque in \c x, \c y, \c z, nothing in \c w
     float *virial;          //!< Virial contribution from the first integration part

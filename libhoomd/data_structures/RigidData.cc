@@ -663,9 +663,6 @@ void RigidData::setRVCPU(bool set_x)
     ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> angvel_handle(m_angvel, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::host, access_mode::read);
     ArrayHandle<int3> body_image_handle(m_body_image, access_location::host, access_mode::read);
         
     ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::read);
@@ -682,10 +679,13 @@ void RigidData::setRVCPU(bool set_x)
     
     ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     
+    Scalar4 ex_space, ey_space, ez_space;
+    
     // for each body of all the bodies
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
-                
+        exyzFromQuaternion(orientation_handle.data[body], ex_space, ey_space, ez_space);
+        
         unsigned int len = body_size_handle.data[body];
         // for each particle
         for (unsigned int j = 0; j < len; j++)
@@ -696,15 +696,15 @@ void RigidData::setRVCPU(bool set_x)
             unsigned int localidx = body * particle_pos_pitch + j;
             
             // project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
-            Scalar xr = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
-            Scalar yr = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
-            Scalar zr = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
+            Scalar xr = ex_space.x * particle_pos_handle.data[localidx].x
+                        + ey_space.x * particle_pos_handle.data[localidx].y
+                        + ez_space.x * particle_pos_handle.data[localidx].z;
+            Scalar yr = ex_space.y * particle_pos_handle.data[localidx].x
+                        + ey_space.y * particle_pos_handle.data[localidx].y
+                        + ez_space.y * particle_pos_handle.data[localidx].z;
+            Scalar zr = ex_space.z * particle_pos_handle.data[localidx].x
+                        + ey_space.z * particle_pos_handle.data[localidx].y
+                        + ez_space.z * particle_pos_handle.data[localidx].z;
                         
             if (set_x) 
                 {
@@ -797,9 +797,6 @@ void RigidData::setRVGPU(bool set_x)
     ArrayHandle<Scalar4> angvel_handle(m_angvel, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::device, access_mode::readwrite);
     ArrayHandle<int3> body_image_handle(m_body_image, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::device, access_mode::read);
@@ -825,9 +822,6 @@ void RigidData::setRVGPU(bool set_x)
     d_rdata.angvel = angvel_handle.data;
     d_rdata.angmom = angmom_handle.data;
     d_rdata.orientation = orientation_handle.data;
-    d_rdata.ex_space = ex_space_handle.data;
-    d_rdata.ey_space = ey_space_handle.data;
-    d_rdata.ez_space = ez_space_handle.data;
     d_rdata.body_image = body_image_handle.data;
     d_rdata.particle_pos = particle_pos_handle.data;
     d_rdata.particle_indices = particle_indices_handle.data;

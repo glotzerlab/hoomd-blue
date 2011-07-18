@@ -64,9 +64,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
     \param rdata_orientation Quaternion
-    \param rdata_ex_space x-axis unit vector
-    \param rdata_ey_space y-axis unit vector
-    \param rdata_ez_space z-axis unit vector
     \param rdata_body_image Body image
     \param rdata_conjqm Conjugate quaternion momentum
     \param d_rigid_mass Body mass
@@ -84,9 +81,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
                                                         float4* rdata_angmom, 
                                                         float4* rdata_angvel,
                                                         float4* rdata_orientation, 
-                                                        float4* rdata_ex_space, 
-                                                        float4* rdata_ey_space, 
-                                                        float4* rdata_ez_space, 
                                                         int3* rdata_body_image, 
                                                         float4* rdata_conjqm,
                                                         float *d_rigid_mass,
@@ -170,9 +164,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     rdata_angmom[idx_body] = angmom2;
     rdata_angvel[idx_body] = angvel2;
     rdata_orientation[idx_body] = orientation;
-    rdata_ex_space[idx_body] = ex_space;
-    rdata_ey_space[idx_body] = ey_space;
-    rdata_ez_space[idx_body] = ez_space;
     rdata_body_image[idx_body] = body_image;
     }
 
@@ -201,9 +192,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     assert(rigid_data.angmom);
     assert(rigid_data.angvel);
     assert(rigid_data.orientation);
-    assert(rigid_data.ex_space);
-    assert(rigid_data.ey_space);
-    assert(rigid_data.ez_space);
     assert(rigid_data.body_image);
     assert(rigid_data.conjqm);
     assert(rigid_data.body_mass);
@@ -211,7 +199,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     assert(rigid_data.force);
     assert(rigid_data.torque);
     assert(rigid_data.body_indices);
-//     
+     
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
     
@@ -226,9 +214,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                            rigid_data.angmom, 
                                                            rigid_data.angvel,
                                                            rigid_data.orientation, 
-                                                           rigid_data.ex_space, 
-                                                           rigid_data.ey_space, 
-                                                           rigid_data.ez_space, 
                                                            rigid_data.body_image, 
                                                            rigid_data.conjqm,
                                                            rigid_data.body_mass,

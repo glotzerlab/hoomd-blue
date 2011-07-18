@@ -125,9 +125,6 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> orientation_handle(rigid_data->getOrientation(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> ex_space_handle(rigid_data->getExSpace(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> ey_space_handle(rigid_data->getEySpace(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> ez_space_handle(rigid_data->getEzSpace(), access_location::device, access_mode::readwrite);
     ArrayHandle<int3> body_image_handle(rigid_data->getBodyImage(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_pos_handle(rigid_data->getParticlePos(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
@@ -155,9 +152,6 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.angvel = angvel_handle.data;
     d_rdata.angmom = angmom_handle.data;
     d_rdata.orientation = orientation_handle.data;
-    d_rdata.ex_space = ex_space_handle.data;
-    d_rdata.ey_space = ey_space_handle.data;
-    d_rdata.ez_space = ez_space_handle.data;
     d_rdata.body_image = body_image_handle.data;
     d_rdata.particle_pos = particle_pos_handle.data;
     d_rdata.particle_indices = particle_indices_handle.data;
@@ -230,9 +224,6 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> orientation_handle(rigid_data->getOrientation(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> ex_space_handle(rigid_data->getExSpace(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> ey_space_handle(rigid_data->getEySpace(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> ez_space_handle(rigid_data->getEzSpace(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> particle_pos_handle(rigid_data->getParticlePos(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
@@ -258,9 +249,6 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.angvel = angvel_handle.data;
     d_rdata.angmom = angmom_handle.data;
     d_rdata.orientation = orientation_handle.data;
-    d_rdata.ex_space = ex_space_handle.data;
-    d_rdata.ey_space = ey_space_handle.data;
-    d_rdata.ez_space = ez_space_handle.data;
     d_rdata.particle_pos = particle_pos_handle.data;
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
