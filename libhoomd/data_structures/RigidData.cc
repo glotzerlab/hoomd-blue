@@ -227,8 +227,6 @@ void RigidData::initializeData()
     GPUArray<Scalar4> force(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> torque(m_n_bodies, m_pdata->getExecConf());
     
-    GPUArray<bool> angmom_init(m_n_bodies, m_pdata->getExecConf());
-    
     GPUArray<unsigned int> particle_offset(m_pdata->getN(), m_pdata->getExecConf());
     
     m_body_dof.swap(body_dof);
@@ -249,8 +247,6 @@ void RigidData::initializeData()
     m_angvel.swap(angvel);
     m_force.swap(force);
     m_torque.swap(torque);
-    
-    m_angmom_init.swap(angmom_init);
     
     m_particle_offset.swap(particle_offset);
     
@@ -289,8 +285,6 @@ void RigidData::initializeData()
     ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
     ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
-    
-    ArrayHandle<bool> angmom_init_handle(m_angmom_init, access_location::host, access_mode::readwrite); 
     
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
@@ -505,13 +499,6 @@ void RigidData::initializeData()
     delete [] evectors;
     delete [] matrix;
     
-    // angmom init to be false by default
-    // to set the body angular momentum, use setAngMom(body, angmom) after this initializeData() function
-    // because only at that point the m_angmom array is already allocated.
-    for (unsigned int body = 0; body < m_n_bodies; body++)
-        {
-        angmom_init_handle.data[body] = false;
-        }
         
     // allocate nmax by m_n_bodies arrays, swap to member variables then use array handles to access
     GPUArray<unsigned int> particle_tags(m_nmax, m_n_bodies,  m_pdata->getExecConf());
@@ -883,8 +870,6 @@ void RigidData::setRVGPU(unsigned int timestep, Scalar deltaT, bool set_x)
     
     gpu_boxsize box = m_pdata->getBoxGPU();
     
-
-
     ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> com_handle(m_com, access_location::device, access_mode::readwrite);
@@ -1157,7 +1142,7 @@ void RigidData::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey
     \param angmom Angular momentum
 */
 void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
-{
+    {
     if (body < 0 || body >= m_n_bodies) 
         {
         cerr << "Error setting angular momentum for body " << body << "\n";
@@ -1165,14 +1150,11 @@ void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
         }
     
     ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::readwrite);
-    ArrayHandle<bool> angmom_init_handle(m_angmom_init, access_location::host, access_mode::readwrite); 
     
     angmom_handle.data[body].x = angmom.x;
     angmom_handle.data[body].y = angmom.y;
     angmom_handle.data[body].z = angmom.z;
     angmom_handle.data[body].w = angmom.w;
-    
-    angmom_init_handle.data[body] = true;
 }
 
 void export_RigidData()
