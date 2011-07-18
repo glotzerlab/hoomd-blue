@@ -494,7 +494,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         
         f.read((char*)&(m_body_image[body].x), sizeof(int));
         f.read((char*)&(m_body_image[body].y), sizeof(int));
-        f.read((char*)&(m_body_image[body]).z, sizeof(int));
+        f.read((char*)&(m_body_image[body].z), sizeof(int));
         }
     
     }
