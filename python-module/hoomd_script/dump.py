@@ -68,12 +68,13 @@ class xml(analyze._analyzer):
     #
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
+    # \param params (optional) Any number of parameters that set_params() accepts
     # 
     # \b Examples:
     # \code
     # dump.xml(filename="atoms.dump", period=1000)
     # xml = dump.xml(filename="particles", period=1e5)
-    # xml = dump.xml()
+    # xml = dump.xml(filename="test.xml", vis=True)
     # \endcode
     #
     # If period is set, a new file will be created every \a period steps. The time step at which 
@@ -82,13 +83,13 @@ class xml(analyze._analyzer):
     # \c particles.0000000000.xml
     #
     # By default, only particle positions are output to the dump files. This can be changed
-    # with set_params().
+    # with set_params(), or by specifying the options in the dump.xml() command.
     #
-    # If \a period is not specified, then no periodic updates will occur. Instead, the write()
-    # command must be executed to write an output file.
+    # If \a period is not specified, then no periodic updates will occur. Instead, the file
+    # \a filename is written immediately.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None):
+    def __init__(self, filename="dump", period=None, **params):
         util.print_status_line();
     
         # initialize base class
@@ -96,15 +97,23 @@ class xml(analyze._analyzer):
         
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.system_definition, filename);
+        util._disable_status_lines = True;
+        self.set_params(**params);
+        util._disable_status_lines = False;
         
         if period is not None:
             self.setupAnalyzer(period);
             self.enabled = False;
             self.prev_period = 1;
+        elif filename != "dump":
+            util._disable_status_lines = True;
+            self.write(filename);
+            util._disable_status_lines = False;
 
     ## Change xml write parameters
     #
-    # \param all (if true) Enables the output of all optional parameters below
+    # \param all (if True) Enables the output of all optional parameters below
+    # \param vis (if True) Enables options commonly used for visualization
     # \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
     # \param image (if set) Set to True/False to enable/disable the output of particle images in the xml file
     # \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
@@ -136,6 +145,7 @@ class xml(analyze._analyzer):
     # \endcode
     def set_params(self,
                    all=None,
+                   vis=None,
                    position=None,
                    image=None,
                    velocity=None,
@@ -155,6 +165,9 @@ class xml(analyze._analyzer):
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
             acceleration = charge = True;
+
+        if vis:
+            position = mass = diameter = type = bond = angle = dihedral = improper = charge = True;
 
         if position is not None:
             self.cpp_analyzer.setOutputPosition(position);
@@ -194,7 +207,8 @@ class xml(analyze._analyzer):
             
         if charge is not None:
             self.cpp_analyzer.setOutputCharge(charge);
-   ## Write a file at the current time step
+    
+    ## Write a file at the current time step
     #
     # \param filename File name to write to
     #
@@ -266,8 +280,8 @@ class bin(analyze._analyzer):
     # commands up until the point that the restart file was written. Another method is to utilize run_upto() in your
     # job script.
     #
-    # If \a period is not specified, then no periodic updates will occur. Instead, the write()
-    # command must be executed to write an output file.
+    # If \a period is not specified, then no periodic updates will occur. Instead, the file
+    # \a filename is written immediately.
     #
     # \note The binary file format may change from one hoomd release to the next. Efforts will be made so that
     # newer versions of hoomd can read previous version's binary format, but support is not guaranteed. The intended
@@ -300,6 +314,10 @@ class bin(analyze._analyzer):
             self.setupAnalyzer(period);
             self.enabled = False;
             self.prev_period = 1;
+        elif filename != "dump":
+            util._disable_status_lines = True;
+            self.write(filename);
+            util._disable_status_lines = False;
 
     ## Write a file at the current time step
     #
@@ -351,8 +369,8 @@ class mol2(analyze._analyzer):
     # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
     # \c particles.0000000000.mol2
     #
-    # If \a period is not specified, then no periodic updates will occur. Instead, the write()
-    # command must be executed to write an output file.
+    # If \a period is not specified, then no periodic updates will occur. Instead, the file
+    # \a filename is written immediately.
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None):
@@ -368,6 +386,10 @@ class mol2(analyze._analyzer):
             self.setupAnalyzer(period);
             self.enabled = False;
             self.prev_period = 1;
+        elif filename != "dump":
+            util._disable_status_lines = True;
+            self.write(filename);
+            util._disable_status_lines = False;
                 
     ## Write a file at the current time step
     #
@@ -494,8 +516,8 @@ class pdb(analyze._analyzer):
     # By default, only particle positions are output to the dump files. This can be changed
     # with set_params().
     #
-    # If \a period is not specified, then no periodic updates will occur. Instead, the write()
-    # command must be executed to write an output file.
+    # If \a period is not specified, then no periodic updates will occur. Instead, the file
+    # \a filename is written immediately.
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None):
@@ -511,7 +533,11 @@ class pdb(analyze._analyzer):
             self.setupAnalyzer(period);
             self.enabled = False;
             self.prev_period = 1;
-            
+        elif filename != "dump":
+            util._disable_status_lines = True;
+            self.write(filename);
+            util._disable_status_lines = False;
+    
     ## Change pdb write parameters
     #
     # \param bond (if set) Set to True/False to enable/disable the output of bonds in the mol2 file
