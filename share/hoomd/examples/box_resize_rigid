@@ -1,0 +1,25 @@
+hoomd_script::init::read_xml hoomd_script::dump::dcd hoomd_script::update::box_resize hoomd_script::variant::linear_interp hoomd_script::data::system_data
+# Due to deficiencies in doxygen, the commands used in this example are listed explicitly here
+# run this script with "python -x filename" to skip the first line, or remove this header
+
+# ---- box_resize.py ----
+from hoomd_script import *
+
+# read in the initial configuration
+system = init.read_xml(filename="box_resize_rigid.xml")
+
+# shrink the box to 1/4 its original size over 100 steps (assumes cubic box)
+initial_L = system.box[0];
+shrink_L = variant.linear_interp(points = [(0, initial_L),
+                                           (100, initial_L/4.0)])
+
+resizer = update.box_resize(Lx=shrink_L, period=1);
+
+# uncomment the next line to enable no scaling of the particles in the box
+resizer.set_params(scale_particles=False)
+
+# dump a .dcd file of the resize operation
+dcd = dump.dcd(filename='box_resize_rigid.dcd', period=1, overwrite=True, wrap=False)
+
+run(100)
+
