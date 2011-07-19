@@ -556,6 +556,7 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/units.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/examples.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/index.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.doc" \
@@ -626,7 +627,7 @@ EXCLUDE_SYMBOLS        =
 # directories that contain example code fragments that are included (see 
 # the \include command).
 
-EXAMPLE_PATH           = 
+EXAMPLE_PATH           = ${HOOMD_SOURCE_DIR}/share/hoomd/examples
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the 
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 

@@ -87,6 +87,7 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/examples.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/index.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.doc

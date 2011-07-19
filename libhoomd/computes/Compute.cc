@@ -65,7 +65,7 @@ using namespace std;
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
 Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
-        exec_conf(m_pdata->getExecConf()), m_last_computed(0), m_first_compute(true)
+        exec_conf(m_pdata->getExecConf()), m_last_computed(0), m_first_compute(true), m_force_compute(false)
     {
     // sanity check
     assert(m_sysdef);
@@ -118,16 +118,32 @@ bool Compute::shouldCompute(unsigned int timestep)
         m_last_computed = timestep;
         return true;
         }
-        
+
+    // Update if computation is enforced, but leave m_last_computed unchanged 
+    // (such that after a forced compute(), still a regular compute() is possible)
+    if (m_force_compute)
+        {
+        m_force_compute = false;
+        return true;
+        }
+
     // otherwise, we update if the last computed timestep is less than the current
     if (m_last_computed != timestep)
         {
         m_last_computed = timestep;
         return true;
         }
-        
+    
+
     // failing the above, we perform no computation
     return false;
+    }
+
+void Compute::forceCompute(unsigned int timestep)
+    {
+    m_force_compute = true;
+    
+    compute(timestep);
     }
 
 //! Wrapper class for handling virtual methods of Compute in python

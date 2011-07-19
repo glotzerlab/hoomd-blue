@@ -1,0 +1,30 @@
+hoomd_script::init::create_random hoomd_script::dump_dcd hoomd_script::pair::lj
+# Due to deficiencies in doxygen, the commands used in this example are listed explicitly here
+# run this script with "python -x filename" to skip the first line, or remove this header
+
+# ---- dump_dcd.py ----
+from hoomd_script import *
+
+# create 1000 random particles of name A
+init.create_random(N=1000, phi_p=0.01, name='A')
+
+# specify Lennard-Jones interactions between particle pairs
+lj = pair.lj(r_cut=2.5)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+
+# integrate at constant temperature
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(group=all, T=1.2, tau=0.5)
+
+# dump an xmle file for the structure information
+xml = dump.xml()
+xml.set_params(all=True)
+xml.write(filename='dump_dcd.xml')
+
+# dump a .dcd file for the trajectory
+dump.dcd(filename='dump_dcd.dcd', period=100)
+
+# run 10,000 time steps
+run(10e3)
+

@@ -407,6 +407,12 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     Scalar L = Scalar(pow((double)(N/rho), 1.0/3.0));
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 2, 0, 0, 0, 0, exec_conf));    
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    // enable the energy computation
+    PDataFlags flags;
+    flags[pdata_flag::potential_energy] = 1;
+    pdata->setFlags(flags);
+
     const ParticleDataArrays& arrays = pdata->acquireReadWrite();
     for (unsigned int i=0; i<N; i++)
         {
@@ -497,6 +503,12 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     Scalar L = Scalar(20);
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 1, 0, 0, 0, 0, exec_conf));    
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    // enable the energy computation
+    PDataFlags flags;
+    flags[pdata_flag::potential_energy] = 1;
+    pdata->setFlags(flags);
+    
     const ParticleDataArrays& arrays = pdata->acquireReadWrite();
 
     arrays.x[0] = 0;
