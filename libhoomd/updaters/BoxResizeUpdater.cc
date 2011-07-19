@@ -96,7 +96,9 @@ void BoxResizeUpdater::setParams(bool scale_particles)
 void BoxResizeUpdater::update(unsigned int timestep)
     {
     if (m_prof) m_prof->push("BoxResize");
-    
+
+    boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+
     // first, compute what the current box size should be
     Scalar Lx = m_Lx->getValue(timestep);
     Scalar Ly = m_Ly->getValue(timestep);
@@ -125,15 +127,18 @@ void BoxResizeUpdater::update(unsigned int timestep)
             
             for (unsigned int i = 0; i < arrays.nparticles; i++)
                 {
-                arrays.x[i] = (arrays.x[i] - curBox.xlo) * sx + newBox.xlo;
-                arrays.y[i] = (arrays.y[i] - curBox.ylo) * sy + newBox.ylo;
-                arrays.z[i] = (arrays.z[i] - curBox.zlo) * sz + newBox.zlo;
+                // scale only free particles, not ones that belong to rigid bodies
+                if (arrays.body[i] == NO_BODY)
+                    {
+                    arrays.x[i] = (arrays.x[i] - curBox.xlo) * sx + newBox.xlo;
+                    arrays.y[i] = (arrays.y[i] - curBox.ylo) * sy + newBox.ylo;
+                    arrays.z[i] = (arrays.z[i] - curBox.zlo) * sz + newBox.zlo;
+                    }
                 }
                 
             m_pdata->release();
             
             // also rescale rigid body COMs
-            boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
             unsigned int n_bodies = rigid_data->getNumBodies();
             if (n_bodies > 0)
                 {
@@ -156,15 +161,18 @@ void BoxResizeUpdater::update(unsigned int timestep)
             
             for (unsigned int i = 0; i < arrays.nparticles; i++)
                 {
-                arrays.x[i] -= Lx * rintf(arrays.x[i] / Lx);
-                arrays.y[i] -= Ly * rintf(arrays.y[i] / Ly);
-                arrays.z[i] -= Lz * rintf(arrays.z[i] / Lz);
+                // update only free particles here
+                if (arrays.body[i] == NO_BODY)
+                    {
+                    arrays.x[i] -= Lx * rintf(arrays.x[i] / Lx);
+                    arrays.y[i] -= Ly * rintf(arrays.y[i] / Ly);
+                    arrays.z[i] -= Lz * rintf(arrays.z[i] / Lz);
+                    }
                 }
-                
+
             m_pdata->release();
             
-            // also rescale rigid body COMs
-            boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+            // do the same for rigid body COMs
             unsigned int n_bodies = rigid_data->getNumBodies();
             if (n_bodies > 0)
                 {
@@ -181,6 +189,9 @@ void BoxResizeUpdater::update(unsigned int timestep)
             
         // set the new box
         m_pdata->setBox(BoxDim(Lx, Ly, Lz));
+        
+        // update the body particle positions to reflect the new rigid body positions
+        rigid_data->setRV(true);
         }
         
     if (m_prof) m_prof->pop();
