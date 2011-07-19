@@ -406,7 +406,7 @@ class nlist:
     def update_exclusions_defaults(self):
         if not self.is_exclusion_overridden:
             util._disable_status_lines = True;
-            self.reset_exclusions(exclusions=['bond']);
+            self.reset_exclusions(exclusions=['body', 'bond']);
             util._disable_status_lines = False;
     
     ## Change neighbor list parameters

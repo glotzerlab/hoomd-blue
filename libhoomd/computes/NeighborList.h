@@ -284,8 +284,12 @@ class NeighborList : public Compute
         //! Enable/disable body filtering
         virtual void setFilterBody(bool filter_body)
             {
-            m_filter_body = filter_body;
-            forceUpdate();
+            // only set the body exclusions if there are bodies in the rigid data, otherwise it just wastes time
+            if (m_sysdef->getRigidData()->getNumBodies() > 0)
+                {
+                m_filter_body = filter_body;
+                forceUpdate();
+                }
             }
         
         //! Enable/disable diameter filtering
