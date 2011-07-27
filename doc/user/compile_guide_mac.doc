@@ -53,18 +53,18 @@ The process can take up to 4 hours, so be patient or leave it to run overnight.
 
 After macports finishes the above command, run
 \code
- $ sudo python_select python27
+ $ sudo port select python python27
 \endcode
 to select the python that macports installed. This step is crucial, or else you will get python <i>version mismatch</i>
 or <i>'NoneType'</i> errors when trying to run hoomd.
 
 You can switch back to the Apple installed python at any time by running
 \code
- $ sudo python_select python25-apple
+ $ sudo port select python python26-apple
 \endcode
 or see a list of all python installations you can switch between with
 \code
- $ sudo python_select -l
+ $ port select python
 \endcode
 
 <b>3. (optional) Install the NVIDIA CUDA toolkit and driver</b>
