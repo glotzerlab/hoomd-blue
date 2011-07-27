@@ -38,9 +38,9 @@ class example(_updater):
         
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_integrator = _plugin_template.ExampleUpdater(globals.system_definition);
+            self.cpp_updater = _plugin_template.ExampleUpdater(globals.system_definition);
         else:
-            self.cpp_integrator = _plugin_template.ExampleUpdaterGPU(globals.system_definition);
+            self.cpp_updater = _plugin_template.ExampleUpdaterGPU(globals.system_definition);
 
         self.setupUpdater(period);
 
