@@ -101,16 +101,25 @@ class DCDDumpWriter : public Analyzer
             {
             m_wrap = wrap;
             }
+
+        //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
+        void setRigidWrap(bool rigid_wrap)
+            {
+            m_rigid_wrap = rigid_wrap;
+            }
+
     private:
         std::string m_fname;                //!< The file name we are writing to
         unsigned int m_start_timestep;      //!< First time step written to the file
         unsigned int m_period;              //!< Time step period bewteen writes
         boost::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
+        boost::shared_ptr<RigidData> m_rigid_data; //!< For accessing rigid body data
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
         unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file
         bool m_wrap;                        //!< True if coordinates should be written out wrapped in the box
-        
+        bool m_rigid_wrap;                  //!< True if rigid coords should be written out wrapped in the box
+
         float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
         
         // helper functions
