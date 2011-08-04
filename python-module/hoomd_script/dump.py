@@ -103,12 +103,14 @@ class xml(analyze._analyzer):
         
         if period is not None:
             self.setupAnalyzer(period);
-            self.enabled = False;
+            self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
             util._disable_status_lines = True;
             self.write(filename);
             util._disable_status_lines = False;
+        else:
+            self.enabled = False;
 
     ## Change xml write parameters
     #
@@ -312,12 +314,14 @@ class bin(analyze._analyzer):
         
         if period is not None:
             self.setupAnalyzer(period);
-            self.enabled = False;
+            self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
             util._disable_status_lines = True;
             self.write(filename);
             util._disable_status_lines = False;
+        else:
+            self.enabled = False;
 
     ## Write a file at the current time step
     #
@@ -384,12 +388,14 @@ class mol2(analyze._analyzer):
         
         if period is not None:
             self.setupAnalyzer(period);
-            self.enabled = False;
+            self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
             util._disable_status_lines = True;
             self.write(filename);
             util._disable_status_lines = False;
+        else:
+            self.enabled = False;
                 
     ## Write a file at the current time step
     #
@@ -531,12 +537,14 @@ class pdb(analyze._analyzer):
         
         if period is not None:
             self.setupAnalyzer(period);
-            self.enabled = False;
+            self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
             util._disable_status_lines = True;
             self.write(filename);
             util._disable_status_lines = False;
+        else:
+            self.enabled = False;
     
     ## Change pdb write parameters
     #
