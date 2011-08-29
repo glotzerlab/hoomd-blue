@@ -138,19 +138,24 @@ void IntegratorTwoStep::update(unsigned int timestep)
     
     if (m_prof)
         m_prof->push("Integrate");
+    
+    // if the virial needs to be computed and there are rigid bodies, perform the virial correction
+    PDataFlags flags = m_pdata->getFlags();
+    if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
+        m_sysdef->getRigidData()->computeVirialCorrectionStart();
+        
     // perform the first step of the integration on all groups
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
 
     // Update the rigid body particle positions and velocities if they are present
-    if (m_sysdef->getRigidData()->getNumBodies() >= 0)
+    if (m_sysdef->getRigidData()->getNumBodies() > 0)
         m_sysdef->getRigidData()->setRV(true);
-           
+
     if (m_prof)
         m_prof->pop();
         
-    
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (exec_conf->exec_mode == ExecutionConfiguration::GPU)
@@ -162,12 +167,16 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_prof)
         m_prof->push("Integrate");
     
+    // if the virial needs to be computed and there are rigid bodies, perform the virial correction
+    if (flags[pdata_flag::isotropic_virial] && m_sysdef->getRigidData()->getNumBodies() > 0)
+        m_sysdef->getRigidData()->computeVirialCorrectionEnd(m_deltaT/2.0);
+
     // perform the second step of the integration on all groups
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);        
 
     // Update the rigid body particle velocities if they are present
-    if (m_sysdef->getRigidData()->getNumBodies() >= 0)
+    if (m_sysdef->getRigidData()->getNumBodies() > 0)
        m_sysdef->getRigidData()->setRV(false);
 
     if (m_prof)
