@@ -96,5 +96,18 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
                                    unsigned int group_size,
                                    const gpu_boxsize &box, 
                                    bool set_x);
+
+//! Computes the virial correction from the rigid body constraints
+cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
+                                              const Scalar4 *d_net_force,
+                                              const Scalar4 *d_oldpos,
+                                              const Scalar4 *d_oldvel,
+                                              const Scalar4 *d_vel,
+                                              const unsigned int *d_body,
+                                              const Scalar *d_mass,
+                                              Scalar deltaT,
+                                              unsigned int N);
+
+
 #endif
 

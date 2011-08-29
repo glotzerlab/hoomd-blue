@@ -255,3 +255,76 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
         return cudaSuccess;
 }
 
+__global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
+                                                         const Scalar4 *d_net_force,
+                                                         const Scalar4 *d_oldpos,
+                                                         const Scalar4 *d_oldvel,
+                                                         const Scalar4 *d_vel,
+                                                         const unsigned int *d_body,
+                                                         const Scalar *d_mass,
+                                                         Scalar deltaT,
+                                                         unsigned int N)
+    {
+    unsigned int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (pidx >= N)
+        return;
+    
+    if (d_body[pidx] != NO_BODY)
+        {
+        // calculate the virial from the position and velocity from the previous step
+        Scalar mass = d_mass[pidx];
+        Scalar4 old_vel = d_oldvel[pidx];
+        Scalar4 old_pos = d_oldpos[pidx];
+        Scalar4 vel = d_vel[pidx];
+        Scalar4 net_force = d_net_force[pidx];
+        Scalar3 fc;
+        fc.x = mass * (vel.x - old_vel.x) / deltaT - net_force.x;
+        fc.y = mass * (vel.y - old_vel.y) / deltaT - net_force.y;
+        fc.z = mass * (vel.z - old_vel.z) / deltaT - net_force.z;
+        
+        d_net_virial[pidx] += (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / Scalar(3.0);
+        }
+    }        
+
+/*! \param d_net_virial Net virial data to update with correction terms
+    \param d_net_force Net force on each particle
+    \param d_oldpos Old position of particles saved at the start of the step
+    \param d_oldvel Old velocity of particles saved at the start of the step
+    \param d_vel Current velocity of particles at the end of the step
+    \param d_body Body index of each particle
+    \param d_mass Mass of each particle
+    \param deltaT Step size
+    \param N number of particles in the box
+*/
+cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
+                                              const Scalar4 *d_net_force,
+                                              const Scalar4 *d_oldpos,
+                                              const Scalar4 *d_oldvel,
+                                              const Scalar4 *d_vel,
+                                              const unsigned int *d_body,
+                                              const Scalar *d_mass,
+                                              Scalar deltaT,
+                                              unsigned int N)
+    {
+    assert(d_net_virial);
+    assert(d_net_force);
+    assert(d_oldpos);
+    assert(d_oldvel);
+    assert(d_vel);
+    
+    unsigned int block_size = 192;
+    dim3 particle_grid(N/block_size+1, 1, 1);
+    dim3 particle_threads(block_size, 1, 1);
+    
+    gpu_compute_virial_correction_end_kernel<<<particle_grid, particle_threads>>>(d_net_virial,
+                                                                                  d_net_force,
+                                                                                  d_oldpos,
+                                                                                  d_oldvel,
+                                                                                  d_vel,
+                                                                                  d_body,
+                                                                                  d_mass,
+                                                                                  deltaT,
+                                                                                  N);
+
+    return cudaSuccess;
+    }

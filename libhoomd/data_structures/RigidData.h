@@ -459,11 +459,11 @@ class RigidData
         //! Helper funciton to update x and v of rigid body data and virial on the GPU
         void setRVGPU(bool set_x);
 
-        /*//! Performs steps needed to compute the rigid body virial correction at the start of the step on the GPU
+        //! Performs steps needed to compute the rigid body virial correction at the start of the step on the GPU
         void computeVirialCorrectionStartGPU();
 
         //! Performs steps needed to compute the rigid body virial correction at the end of the step on the GPU
-        void computeVirialCorrectionEndGPU(Scalar deltaT);*/
+        void computeVirialCorrectionEndGPU(Scalar deltaT);
 #endif
     };
 

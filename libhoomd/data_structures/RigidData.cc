@@ -1064,11 +1064,11 @@ void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
 */
 void RigidData::computeVirialCorrectionStart()
     {
-    /*#ifdef ENABLE_CUDA
+    #ifdef ENABLE_CUDA
         if (m_pdata->getExecConf()->isCUDAEnabled())
             computeVirialCorrectionStartGPU();
         else
-    #endif*/
+    #endif
         computeVirialCorrectionStartCPU();
     }
         
@@ -1079,11 +1079,11 @@ void RigidData::computeVirialCorrectionStart()
 */
 void RigidData::computeVirialCorrectionEnd(Scalar deltaT)
     {
-    /*#ifdef ENABLE_CUDA
+    #ifdef ENABLE_CUDA
         if (m_pdata->getExecConf()->isCUDAEnabled())
             computeVirialCorrectionEndGPU(deltaT);
         else
-    #endif*/
+    #endif
         computeVirialCorrectionEndCPU(deltaT);
     }
 
@@ -1137,6 +1137,53 @@ void RigidData::computeVirialCorrectionEndCPU(Scalar deltaT)
         }
     m_pdata->release();
     }
+
+/*! Helper function that perform the first part necessary to compute the rigid body virial correction on the GPU.
+*/
+void RigidData::computeVirialCorrectionStartGPU()
+    {
+    // get access to the particle data
+    const gpu_pdata_arrays& arrays = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_oldpos(m_particle_oldpos, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::overwrite);    
+
+    // copy the existing position and velocity over to the oldpos arrays
+    cudaMemcpy(d_oldpos.data, arrays.pos, sizeof(Scalar4)*m_pdata->getN(), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(d_oldvel.data, arrays.vel, sizeof(Scalar4)*m_pdata->getN(), cudaMemcpyDeviceToDevice);
+
+    CHECK_CUDA_ERROR();
+
+    m_pdata->release();
+    }
+
+/*! Helper function that perform the second part necessary to compute the rigid body virial correction on the GPU.
+*/
+void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
+    {
+    // get access to the particle data
+    const gpu_pdata_arrays& arrays = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_oldpos(m_particle_oldpos, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::read); 
+
+    ArrayHandle<Scalar> d_net_virial( m_pdata->getNetVirial(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_net_force( m_pdata->getNetForce(), access_location::device, access_mode::read);
+
+    gpu_compute_virial_correction_end(d_net_virial.data,
+                                      d_net_force.data,
+                                      d_oldpos.data,
+                                      d_oldvel.data,
+                                      arrays.vel,
+                                      arrays.body,
+                                      arrays.mass,
+                                      deltaT,
+                                      m_pdata->getN());
+
+    CHECK_CUDA_ERROR();
+
+    m_pdata->release();
+    }
+
+
 
 void export_RigidData()
     {
