@@ -147,22 +147,53 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     Scalar tmp, akin_t, akin_r, scale;
     Scalar dt_half;    
     dt_half = 0.5 * m_deltaT;
-            
-    // update barostat variables a half step
-    {
-    
-    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
-    
-    Scalar kt = boltz * m_temperature->getValue(timestep);
-    w = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
 
-    tmp = -1.0 * dt_half * eta_dot_b_handle.data[0];
-    scale = exp(tmp);
-    epsilon_dot += dt_half * f_epsilon;
-    epsilon_dot *= scale;
-    epsilon += m_deltaT * epsilon_dot;
-    dilation = exp(m_deltaT * epsilon_dot);
-    }
+        {
+        // compute the current thermodynamic properties
+        // m_thermo_group->compute(timestep);
+        m_thermo_all->compute(timestep);
+        
+        // compute pressure for the next half time step
+        m_curr_P = m_thermo_all->getPressure();
+        }
+
+        // update barostat
+        {
+        ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
+        const BoxDim& box = m_pdata->getBox();
+        Scalar Lx = box.xhi - box.xlo;
+        Scalar Ly = box.yhi - box.ylo;
+        Scalar Lz = box.zhi - box.zlo;
+        
+        Scalar vol;   // volume
+        if (dimension == 2) 
+            vol = Lx * Ly;
+        else 
+            vol = Lx * Ly * Lz;
+
+        Scalar p_target = m_pressure->getValue(timestep);
+        
+        f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
+        f_epsilon /= w;
+        Scalar tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);
+        epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
+        }
+                
+        // update barostat variables a half step
+        {
+        
+        ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
+        
+        Scalar kt = boltz * m_temperature->getValue(timestep);
+        w = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
+
+        tmp = -1.0 * dt_half * eta_dot_b_handle.data[0];
+        scale = exp(tmp);
+        epsilon_dot += dt_half * f_epsilon;
+        epsilon_dot *= scale;
+        epsilon += m_deltaT * epsilon_dot;
+        dilation = exp(m_deltaT * epsilon_dot);
+        }
     
     // update thermostat coupled to barostat
 
@@ -461,45 +492,16 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
         
-    {
-    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
-    
-    akin_t = Ksum_t_handle.data[0];
-    akin_r = Ksum_r_handle.data[0];
-    
-    // compute the current thermodynamic properties
-    m_thermo_group->compute(timestep+1);
-    m_thermo_all->compute(timestep+1);
-    
-    // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
-    m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
-    
-    // compute pressure for the next half time step
-    m_curr_P = m_thermo_all->getPressure();
-    }
-    
-    // update barostat
-    {
-    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
-    const BoxDim& box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    
-    Scalar vol;   // volume
-    if (dimension == 2) 
-        vol = Lx * Ly;
-    else 
-        vol = Lx * Ly * Lz;
-
-    Scalar p_target = m_pressure->getValue(timestep);
-    
-    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
-    f_epsilon /= w;
-    Scalar tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);
-    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
-    }
+        {
+        ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
+        
+        akin_t = Ksum_t_handle.data[0];
+        akin_r = Ksum_r_handle.data[0];
+        
+        // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
+        m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
+        }
     
     // done profiling
     if (m_prof)
