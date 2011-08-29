@@ -453,6 +453,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 updater->m_updater->update(m_cur_tstep);
             }
         
+        // look ahead to the next time step and see which analyzers and updaters will be executed
+        // or together all of their requested PDataFlags to determine the flags to set for this time step
+        m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep+1));
         
         // execute the integrator
         if (m_integrator)
