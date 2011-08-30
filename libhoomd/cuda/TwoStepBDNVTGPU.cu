@@ -136,7 +136,7 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         // (MEM TRANSFER: 4 bytes)
         unsigned int ptag = pdata.tag[idx];
         
-        // calculate the magintude of the random force
+        // calculate the magnitude of the random force
         float gamma;
         if (gamma_diam)
             {
