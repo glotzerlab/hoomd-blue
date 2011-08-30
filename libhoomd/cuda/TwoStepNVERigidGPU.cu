@@ -396,7 +396,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
    
     // perform a set of partial reductions. Each block_size/n_bodies_per_block threads performs a sum reduction
     // just within its own group
-    unsigned int offset = min(window_size, nmax) >> 1;
+    unsigned int offset = window_size >> 1;
     while (offset > 0)
         {
         if ((threadIdx.x & thread_mask) < offset)
