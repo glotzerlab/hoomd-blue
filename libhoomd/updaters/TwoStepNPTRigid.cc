@@ -321,6 +321,8 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     Scalar dtfm, dt_half;
     Scalar onednft, onednfr;
     
+    dt_half = 0.5 * m_deltaT;
+    
     // update barostat
         {
         ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
@@ -345,7 +347,7 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
         epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
         }
 
-    dt_half = 0.5 * m_deltaT;
+    
     
     akin_t = akin_r = 0.0;
 
