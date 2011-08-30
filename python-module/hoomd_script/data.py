@@ -386,6 +386,9 @@ class particle_data:
 # - \c diameter     : A single float (in distance units)
 # - \c type         : A string naming the type
 # - \c body         : Rigid body id integer (-1 for free particles)
+# - \c orientation  : Orientation of anisotropic particle (quaternion)
+# - \c net_force    : Net force on particle (x, y, z) (in force units)
+# - \c net_energy   : Net contribution of particle to the potential energy (in energy units)
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
@@ -415,6 +418,9 @@ class particle_data_proxy:
         result += "type        : " + str(self.type) + "\n";
         result += "typeid      : " + str(self.typeid) + "\n";
         result += "body        : " + str(self.body) + "\n";
+        result += "orientation : " + str(self.orientation) + "\n";
+        result += "net_force   : " + str(self.net_force) + "\n";
+        result += "net_energy  : " + str(self.net_energy) + "\n";
         return result;
     
     ## \internal
@@ -445,6 +451,15 @@ class particle_data_proxy:
         if name == "type":
             typeid = self.pdata.getType(self.tag);
             return self.pdata.getNameByType(typeid);
+        if name == "orientation":
+            o = self.pdata.getOrientation(self.tag);
+            return (o.x, o.y, o.z, o.w);
+        if name == "net_force":
+            f = self.pdata.getPNetForce(self.tag);
+            return (f.x, f.y, f.z);
+        if name == "net_energy":
+            f = self.pdata.getPNetForce(self.tag);
+            return f.w;
         
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
@@ -492,6 +507,18 @@ class particle_data_proxy:
         if name == "typeid":
             raise AttributeError;
         if name == "acceleration":
+            raise AttributeError;
+        if name == "orientation":
+            o = hoomd.Scalar4();
+            o.x = int(value[0]);
+            o.y = int(value[1]);
+            o.z = int(value[2]);
+            o.w = int(value[3]);
+            self.pdata.setOrientation(self.tag, o);
+            return;
+        if name == "net_force":
+            raise AttributeError;
+        if name == "net_energy":
             raise AttributeError;
  
         # otherwise, consider this an internal attribute to be set in the normal way
@@ -845,6 +872,8 @@ class body_data:
 # - \c angular momentum : The angular momentum of the body in the space frame
 # - \c moment of inertia : the principle components of the moment of inertia
 # - \c particle displacements : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
+# - \c net_force     : Net force acting on the body (x, y, z) (in force units)
+# - \c net_torque    : Net torque acting on the body (x, y, z) (in units of force * distance)
 #
 class body_data_proxy:
     ## \internal
@@ -860,15 +889,17 @@ class body_data_proxy:
     # \brief Get an informal string representing the object 
     def __str__(self):
         result = "";
-        result += "num_particles    : " + str(self.num_particles) + "\n"                        
-        result += "mass             : " + str(self.mass) + "\n"                        
+        result += "num_particles    : " + str(self.num_particles) + "\n"
+        result += "mass             : " + str(self.mass) + "\n"
         result += "COM              : " + str(self.COM) + "\n"
-        result += "velocity         : " + str(self.velocity) + "\n"        
-        result += "orientation      : " + str(self.orientation) + "\n"      
-        result += "angular_momentum (space frame) : " + str(self.angular_momentum) + "\n"                
-        result += "moment of inertia: " + str(self.moment_inertia) + "\n"                
-        result += "particle tags    : " + str(self.particle_tags) + "\n"                
-        result += "particle disp    : " + str(self.particle_disp) + "\n"                
+        result += "velocity         : " + str(self.velocity) + "\n"
+        result += "orientation      : " + str(self.orientation) + "\n"
+        result += "angular_momentum (space frame) : " + str(self.angular_momentum) + "\n"
+        result += "moment of inertia: " + str(self.moment_inertia) + "\n"
+        result += "particle tags    : " + str(self.particle_tags) + "\n"
+        result += "particle disp    : " + str(self.particle_disp) + "\n"
+        result += "net force        : " + str(self.net_force) + "\n"
+        result += "net torque       : " + str(self.net_torque) + "\n"
                  
         return result;
     
@@ -907,6 +938,12 @@ class body_data_proxy:
                disp = self.bdata.getParticleDisp(self.tag, i);
                particle_disp.append([disp.x, disp.y, disp.z]);
             return particle_disp;                       
+        if name == "net_force":
+            f = self.bdata.getBodyNetForce(self.tag);
+            return (f.x, f.y, f.z);
+        if name == "net_torque":
+            t = self.bdata.getBodyNetTorque(self.tag);
+            return (t.x, t.y, t.z);
             
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
@@ -954,6 +991,10 @@ class body_data_proxy:
                 p.z = float(value[i][2]);
                 self.bdata.setParticleDisp(self.tag, i, p);
             return;         
+        if name == "net_force":
+            raise AttributeError;
+        if name == "net_torque":
+            raise AttributeError;
                 
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;

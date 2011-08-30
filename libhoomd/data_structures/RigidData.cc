@@ -1206,6 +1206,8 @@ void export_RigidData()
     .def("getParticleTag", &RigidData::getParticleTag)   
     .def("getParticleDisp", &RigidData::getParticleDisp)
     .def("setParticleDisp", &RigidData::setParticleDisp)
+    .def("getBodyNetForce", &RigidData::getBodyNetForce)
+    .def("getBodyNetTorque", &RigidData::getBodyNetTorque)
     .def("setRV", &RigidData::setRV)
     ;
     }

@@ -374,7 +374,22 @@ class RigidData
             mom_inertia_handle.data[body].y= mom.y;
             mom_inertia_handle.data[body].z= mom.z;           
             }                                
-                                                            
+        //! Get the current net force on a body
+        Scalar3 getBodyNetForce(unsigned int body)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
+            Scalar3 result = make_scalar3(h_force.data[body].x, h_force.data[body].y, h_force.data[body].z);
+            return result;
+            }
+        //! Get the current net torque on a body
+        Scalar3 getBodyNetTorque(unsigned int body)
+            {
+            assert(body >= 0 && body < getNumBodies());
+            ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::read);
+            Scalar3 result = make_scalar3(h_torque.data[body].x, h_torque.data[body].y, h_torque.data[body].z);
+            return result;
+            }
         //@}
         
         //! Update x and v of rigid body data and virial

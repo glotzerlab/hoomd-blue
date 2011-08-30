@@ -679,6 +679,16 @@ class ParticleData : boost::noncopyable
             {
             return m_inertia_tensor[tag];
             }
+        //! Get the net force / energy on a given particle
+        Scalar4 getPNetForce(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            ArrayHandle< Scalar4 > h_net_force(m_net_force, access_location::host, access_mode::read);
+            unsigned int idx = m_arrays.rtag[tag];
+            release();
+            return h_net_force.data[idx];
+            }
 
         //! Set the current position of a particle
         void setPosition(unsigned int tag, const Scalar3& pos)
