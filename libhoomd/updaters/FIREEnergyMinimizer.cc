@@ -186,6 +186,7 @@ void FIREEnergyMinimizer::reset()
     m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
+
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     unsigned int n = arrays.nparticles;
     for (unsigned int i=0; i<n; i++)

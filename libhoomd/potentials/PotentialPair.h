@@ -166,7 +166,7 @@ class PotentialPair : public ForceCompute
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
         GPUArray<Scalar> m_ronsq;                   //!< ron squared per type pair
-        GPUArray<param_type> m_params;   //!< Pair parameters per type pair
+        GPUArray<param_type> m_params;              //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
         

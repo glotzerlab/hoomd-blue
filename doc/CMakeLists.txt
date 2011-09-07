@@ -114,6 +114,7 @@ add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.html
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.css
                     ${CMAKE_CURRENT_SOURCE_DIR}/dev/*.doc
+                    ${HOOMD_SOURCE_DIR}/share/hoomd/examples/*
                     ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/DoxygenLayout.xml)
 
