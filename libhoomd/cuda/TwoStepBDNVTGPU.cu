@@ -136,7 +136,7 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         // (MEM TRANSFER: 4 bytes)
         unsigned int ptag = pdata.tag[idx];
         
-        // calculate the magintude of the random force
+        // calculate the magnitude of the random force
         float gamma;
         if (gamma_diam)
             {
@@ -204,6 +204,8 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
 
     if (tally)
         {
+        // don't ovewrite values in the s_gammas array with bd_energy transfer
+        __syncthreads();
         bdtally_sdata[threadIdx.x] = bd_energy_transfer;
         __syncthreads();
         
@@ -299,29 +301,35 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    gpu_bdnvt_step_two_kernel<<< grid, threads, sizeof(float)*bdnvt_args.n_types + bdnvt_args.block_size*sizeof(float) >>>
-                                                  (pdata,
-                                                   d_group_members,
-                                                   group_size,
-                                                   d_net_force,
-                                                   bdnvt_args.d_gamma,
-                                                   bdnvt_args.n_types,
-                                                   bdnvt_args.gamma_diam,
-                                                   bdnvt_args.timestep,
-                                                   bdnvt_args.seed,
-                                                   bdnvt_args.T,
-                                                   deltaT,
-                                                   D,
-                                                   limit,
-                                                   limit_val,
-                                                   bdnvt_args.tally,
-                                                   bdnvt_args.d_partial_sum_bdenergy);
+    gpu_bdnvt_step_two_kernel<<< grid,
+                                 threads,
+                                 max((unsigned int)(sizeof(float)*bdnvt_args.n_types),
+                                     (unsigned int)(bdnvt_args.block_size*sizeof(float))) 
+                             >>>(pdata,
+                                 d_group_members,
+                                 group_size,
+                                 d_net_force,
+                                 bdnvt_args.d_gamma,
+                                 bdnvt_args.n_types,
+                                 bdnvt_args.gamma_diam,
+                                 bdnvt_args.timestep,
+                                 bdnvt_args.seed,
+                                 bdnvt_args.T,
+                                 deltaT,
+                                 D,
+                                 limit,
+                                 limit_val,
+                                 bdnvt_args.tally,
+                                 bdnvt_args.d_partial_sum_bdenergy);
                                                    
     // run the summation kernel
     if (bdnvt_args.tally) 
-        gpu_bdtally_reduce_partial_sum_kernel<<< grid1, threads1, bdnvt_args.block_size*sizeof(float) >>>(&bdnvt_args.d_sum_bdenergy[0], 
-                                                                                      bdnvt_args.d_partial_sum_bdenergy, 
-                                                                                      bdnvt_args.num_blocks);    
+        gpu_bdtally_reduce_partial_sum_kernel<<<grid1,
+                                                threads1,
+                                                bdnvt_args.block_size*sizeof(float)
+                                             >>>(&bdnvt_args.d_sum_bdenergy[0], 
+                                                 bdnvt_args.d_partial_sum_bdenergy, 
+                                                 bdnvt_args.num_blocks);    
 
                                                    
                                                    
