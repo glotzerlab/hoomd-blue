@@ -140,6 +140,9 @@ class HOOMDInitializer : public ParticleDataInitializer
         
         //! Initialize the orientation data
         virtual void initOrientation(Scalar4 *orientation) const;
+
+        //! Initialize the inertia tensor data
+        virtual void initMomentInertia(InertiaTensor *moment_inertia) const;
         
         //! simple vec for storing particle data
         struct vec
@@ -220,6 +223,8 @@ class HOOMDInitializer : public ParticleDataInitializer
         void parseWallNode(const XMLNode& node);
         //! Parse orientation node
         void parseOrientationNode(const XMLNode& node);
+        //! Parse moment inertia node
+        void parseMomentInertiaNode(const XMLNode& node);
         
         //! Helper function for identifying the particle type id
         unsigned int getTypeId(const std::string& name);
@@ -259,7 +264,8 @@ class HOOMDInitializer : public ParticleDataInitializer
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
         
-        std::vector<Scalar4> m_orientation;        //!< Orientation of each particle
+        std::vector<Scalar4> m_orientation;             //!< Orientation of each particle
+        std::vector<InertiaTensor> m_moment_inertia;    //!< Inertia tensor for each particle
         
     };
 

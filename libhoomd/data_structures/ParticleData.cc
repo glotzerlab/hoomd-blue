@@ -294,6 +294,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
         {
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::overwrite);
         init.initOrientation(h_orientation.data);
+        init.initMomentInertia(&m_inertia_tensor[0]);
         }
             
     // it is an error for particles to be initialized outside of their box

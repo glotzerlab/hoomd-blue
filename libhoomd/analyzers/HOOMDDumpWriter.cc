@@ -182,6 +182,13 @@ void HOOMDDumpWriter::setOutputOrientation(bool enable)
     m_output_orientation = enable;
     }
 
+/*! \param enable Set to true to output moment_inertia to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputMomentInertia(bool enable)
+    {
+    m_output_moment_inertia = enable;
+    }
+
 /*! \param fname File name to write
     \param timestep Current time step of the simulation
 */
@@ -523,6 +530,28 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 }
             }
         f << "</orientation>" << "\n";
+        }
+
+    // if the moment_inertia flag is set, write out the orientation quaternion to the XML file
+    if (m_output_moment_inertia)
+        {
+        f << "<moment_inertia num=\"" << m_pdata->getN() << "\">" << "\n";
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            {
+            // inertia tensors are stored by tag
+            InertiaTensor I = m_pdata->getInertiaTensor(i);
+            for (unsigned int c = 0; c < 5; c++)
+                f << I.components[c] << " ";
+            f << I.components[5] << "\n";
+            
+            if (!f.good())
+                {
+                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
+            }
+        f << "</moment_inertia>" << "\n";
         }
 
     f << "</configuration>" << "\n";

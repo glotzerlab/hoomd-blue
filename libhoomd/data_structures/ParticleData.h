@@ -139,7 +139,7 @@ struct CScalar
     Scalar i; //!< Imaginary part
     };
 
-//! Defines a simple moment of intertia structure
+//! Defines a simple moment of inertia structure
 /*! This moment of interia is stored per particle. Because there are no per-particle body update steps in the
     design of hoomd, these values are never read or used except at initialization. Thus, a simple descriptive
     structure is used instead of an advanced and complicated GPUArray strided data array.
@@ -155,6 +155,16 @@ struct InertiaTensor
         {
         for (unsigned int i = 0; i < 6; i++)
             components[i] = Scalar(0.0);
+        }
+    
+    void set(Scalar c0, Scalar c1, Scalar c2, Scalar c3, Scalar c4, Scalar c5)
+        {
+        components[0] = c0;
+        components[1] = c1;
+        components[2] = c2;
+        components[3] = c3;
+        components[4] = c4;
+        components[5] = c5;
         }
     
     Scalar components[6];   //!< Stores the components of the inertia tensor
@@ -383,6 +393,12 @@ class ParticleDataInitializer
         /*! \param orientation Pointer to one orientation per particle to be initialized
         */
         virtual void initOrientation(Scalar4 *orientation) const {}
+        
+        //! Initialize the inertia tensor data
+        /*! \param intertia_tensor Pointer to one inertia tensor per particle to be initialize (in tag order!)
+        */
+        virtual void initMomentInertia(InertiaTensor *moment_inertia) const {}
+            
     };
 
 //! Manages all of the data arrays for the particles
@@ -448,7 +464,7 @@ class ParticleDataInitializer
     so it will always remain in tag order.
     
     Access the orientation quaternion of each particle with the GPUArray gotten from getOrientationArray(), the net
-    torque with getTorqueArray(). Individual intertia tensor values can be accessed with getInertiaTensor() and
+    torque with getTorqueArray(). Individual inertia tensor values can be accessed with getInertiaTensor() and
     setInertiaTensor()
 */
 class ParticleData : boost::noncopyable

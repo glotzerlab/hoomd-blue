@@ -386,11 +386,11 @@ void RigidData::initializeData()
         rot_mat[2][2] = rot_mat_trans[2][2] = ez.z;
         
         Ibody[0][0] = pinertia_tensor.components[0];
-        Ibody[1][1] = pinertia_tensor.components[1];
-        Ibody[2][2] = pinertia_tensor.components[2];
-        Ibody[0][1] = Ibody[1][0] = pinertia_tensor.components[3];
+        Ibody[0][1] = Ibody[1][0] = pinertia_tensor.components[1];
+        Ibody[0][2] = Ibody[2][0] = pinertia_tensor.components[2];
+        Ibody[1][1] = pinertia_tensor.components[3];
         Ibody[1][2] = Ibody[2][1] = pinertia_tensor.components[4];
-        Ibody[0][2] = Ibody[2][0] = pinertia_tensor.components[5];
+        Ibody[2][2] = pinertia_tensor.components[5];
         
         // convert the particle inertia tensor to the space fixed frame 
         mat_multiply(Ibody, rot_mat_trans, tmp);
@@ -572,15 +572,6 @@ void RigidData::initializeData()
         porientation = h_p_orientation.data[j];
         quatquat(qc, porientation, h_particle_orientation.data[idx]);
         normalize(h_particle_orientation.data[idx]);
-        
-        // only one particle body
-        if (body_size_handle.data[body] == 1 && local_indices_handle.data[body] == 0)
-        {
-            // the formula for a solid ellipsoid is: Ixx = body_mass * (ry * ry + rz * rz) / 5 
-            moment_inertia_handle.data[body].x = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
-            moment_inertia_handle.data[body].y = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
-            moment_inertia_handle.data[body].z = 0.1 * body_mass_handle.data[body] * arrays.diameter[j] * arrays.diameter[j];
-        }
         
         // increment the current index by one
         local_indices_handle.data[body]++;

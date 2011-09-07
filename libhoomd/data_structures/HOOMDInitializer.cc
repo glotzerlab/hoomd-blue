@@ -93,6 +93,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
     m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
     m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
+    m_parser_map["moment_inertia"] = bind(&HOOMDInitializer::parseMomentInertiaNode, this, _1);
     
     // read in the file
     readFile(fname);
@@ -420,6 +421,12 @@ void HOOMDInitializer::readFile(const string &fname)
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
+    if (m_moment_inertia.size() != 0 && m_moment_inertia.size() != m_pos_array.size())
+        {
+        cerr << endl << "***Error! " << m_moment_inertia.size() << " moment_inertia values != " << m_pos_array.size()
+             << " positions" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_xml file");
+        }
 
     // notify the user of what we have accomplished
     cout << "--- hoomd_xml file read summary" << endl;
@@ -449,6 +456,8 @@ void HOOMDInitializer::readFile(const string &fname)
         cout << m_walls.size() << " walls" << endl;
     if (m_orientation.size() > 0)
         cout << m_orientation.size() << " orientations" << endl;
+    if (m_moment_inertia.size() > 0)
+        cout << m_moment_inertia.size() << " moments of inertia" << endl;
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
@@ -927,6 +936,35 @@ void HOOMDInitializer::parseOrientationNode(const XMLNode &node)
         }
     }
 
+/*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b moment_inertia node and fills out m_moment_inertia. The number
+    of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseMomentInertiaNode(const XMLNode &node)
+    {
+    // check that this is actually a charge node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("moment_inertia"));
+    
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        InertiaTensor I;
+        for (unsigned int i = 0; i < 6; i++)
+            parser >> I.components[i];
+        
+        if (parser.good())
+            m_moment_inertia.push_back(I);
+        }
+    }
+
 /*! \param name Name to get type id of
     If \a name has already been added, this returns the type index of that name.
     If \a name has not yet been added, it is added to the list and the new id is returned.
@@ -1093,6 +1131,12 @@ void HOOMDInitializer::initOrientation(Scalar4 *orientation) const
     {
     for (unsigned int i = 0; i < m_orientation.size(); i++)
         orientation[i] = m_orientation[i];
+    }
+
+void HOOMDInitializer::initMomentInertia(InertiaTensor *moment_inertia) const
+    {
+    for (unsigned int i = 0; i < m_moment_inertia.size(); i++)
+        moment_inertia[i] = m_moment_inertia[i];
     }
 
 /*! \returns A mapping of type ids to type names deteremined from the XML input file
