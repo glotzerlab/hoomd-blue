@@ -154,7 +154,6 @@ void ForceCompute::compute(unsigned int timestep)
     m_particles_sorted = false;
     }
 
-
 /*! \param num_iters Number of iterations to average for the benchmark
     \returns Milliseconds of execution time per calculation
 

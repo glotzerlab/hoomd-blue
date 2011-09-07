@@ -172,7 +172,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
         raise RuntimeError('Error running');
-    
+        
     if globals.integrator is None:
         print "***Warning! Starting a run without an integrator set";
     else:
@@ -183,8 +183,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     # if rigid bodies, setxv  
     if len(data.system_data(globals.system_definition).bodies) > 0:
         data.system_data(globals.system_definition).bodies.updateRV()
-    
-    
+      
     for logger in globals.loggers:
         logger.update_quantities();
     globals.system.enableProfiler(profile);
@@ -193,7 +192,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     if globals.neighbor_list:
         globals.neighbor_list.update_rcut();
         globals.neighbor_list.update_exclusions_defaults();
-        
+
     # detect 0 hours remaining properly
     if limit_hours == 0.0:
         print "***Warning! Requesting a run() with a 0 time limit, doing nothing.\n";

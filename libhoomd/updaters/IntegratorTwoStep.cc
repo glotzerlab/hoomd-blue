@@ -155,7 +155,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     if (m_prof)
         m_prof->pop();
-        
+    
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (exec_conf->exec_mode == ExecutionConfiguration::GPU)
@@ -173,7 +173,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     // perform the second step of the integration on all groups
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->integrateStepTwo(timestep);        
+        (*method)->integrateStepTwo(timestep);
 
     // Update the rigid body particle velocities if they are present
     if (m_sysdef->getRigidData()->getNumBodies() > 0)

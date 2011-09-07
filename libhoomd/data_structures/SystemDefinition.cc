@@ -155,6 +155,7 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
     m_n_dimensions = n_dimensions;
     }
 
+
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())

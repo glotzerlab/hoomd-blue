@@ -125,7 +125,6 @@ class SystemDefinition
             {
             return m_n_dimensions;
             }
-        
         //! Get the particle data
         boost::shared_ptr<ParticleData> getParticleData() const
             {

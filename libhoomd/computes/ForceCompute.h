@@ -117,7 +117,6 @@ class ForceCompute : public Compute
             unsigned int i = m_pdata->getRTag(tag);
             return make_scalar3(h_force.data[i].x,h_force.data[i].y,h_force.data[i].z);
             }
-        
         //! Easy access to the virial on a single particle
         Scalar getVirial(unsigned int tag)
             {
@@ -125,7 +124,6 @@ class ForceCompute : public Compute
             unsigned int i = m_pdata->getRTag(tag);
             return h_virial.data[i];
             }
-
         //! Easy access to the energy on a single particle
         Scalar getEnergy(unsigned int tag)
             {
