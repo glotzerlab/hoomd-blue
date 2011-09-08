@@ -225,7 +225,8 @@ import globals
 # to make copies of the actual property values themselves and not of the proxy references.
 #
 
-## Access system data
+## \internal
+# \brief Access system data
 #
 # system_data provides access to the different data structures that define the current state of the simulation.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
@@ -271,7 +272,8 @@ class system_data:
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
 
-## Access particle data
+## \internal
+# \brief Access particle data
 #
 # particle_data provides access to the per-particle data of all particles in the system.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
@@ -465,7 +467,8 @@ class particle_data_proxy:
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
         
-## Access force data
+## \internal
+# Access force data
 #
 # particle_data provides access to the per-particle data of all particles in the system.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
@@ -578,7 +581,8 @@ class force_data_proxy:
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
 
-## Access bond data
+## \internal
+# \brief Access bond data
 #
 # bond_data provides access to the per-bond data of all bonds in the system.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
