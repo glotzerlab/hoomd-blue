@@ -1,3 +1,7 @@
+## $Id$
+## $URL$
+# Maintainer: joaander
+
 set(CPACK_NSIS_INSTALLER_ICON "${HOOMD_SOURCE_DIR}/data/art/InstallIcon.ico")
 set(CPACK_NSIS_URL_INFO_ABOUT "http://codeblue.umich.edu/hoomd-blue")
 set(CPACK_NSIS_CONTACT "http://codeblue.umich.edu/hoomd-blue")

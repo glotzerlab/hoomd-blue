@@ -1,3 +1,7 @@
+## $Id$
+## $URL$
+# Maintainer: joaander
+
 # generic CPack settings
 set(CPACK_DESCRIPTION_SUMMARY "Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition")
 set(CPACK_PACKAGE_VENDOR "University of Michigan")

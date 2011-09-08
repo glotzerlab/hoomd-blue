@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: akohlmey
+// Maintainer: dnlebard
 
 #include "AngleData.cuh"
 #include "ParticleData.cuh"
