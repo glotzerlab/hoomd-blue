@@ -1,3 +1,7 @@
+## $Id$
+## $URL$
+# Maintainer: joaander
+
 if (ENABLE_APP_BUNDLE_INSTALL)
 # install the template app directory
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/HOOMD-blue.app DESTINATION "."

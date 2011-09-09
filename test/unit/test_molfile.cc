@@ -41,7 +41,6 @@
 
 // $Id$
 // $URL$
-// Maintainer: akohlmey
 
 #ifdef WIN32
 #pragma warning( push )

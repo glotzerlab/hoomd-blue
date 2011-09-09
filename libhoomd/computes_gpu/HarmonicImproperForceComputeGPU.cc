@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: akohlmey
+// Maintainer: dnlebard
 
 #ifdef WIN32
 #pragma warning( push )

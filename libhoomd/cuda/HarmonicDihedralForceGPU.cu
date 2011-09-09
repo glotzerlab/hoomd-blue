@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: akohlmey
+// Maintainer: dnlebard
 
 #include "HarmonicDihedralForceGPU.cuh"
 #include "DihedralData.cuh" // SERIOUSLY, DO I NEED THIS HERE??

@@ -41,7 +41,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
 
 /*! \file particle_group_test.cc
     \brief Unit tests for ParticleGroup

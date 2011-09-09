@@ -39,8 +39,6 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: akohlmey
-
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )

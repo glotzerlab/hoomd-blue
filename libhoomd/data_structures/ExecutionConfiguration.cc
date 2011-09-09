@@ -127,6 +127,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, b
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
         initializeGPU(gpu_id, min_cpu);
+#else
+    if (exec_mode == GPU)
+        {
+        cout << endl << "***Error! GPU execution requested, but this hoomd was built without CUDA support" << endl << endl;
+        throw runtime_error("Error initializing execution configuration");
+        }
 #endif
 
     setupStats();
