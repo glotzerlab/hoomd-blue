@@ -291,6 +291,12 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         // but the accelerations only need to be calculated if the restart is not valid
         if (!isValidRestart())
             computeAccelerations(timestep);
+        
+        // for the moment, isotropic_virial is invalid on the first step if there are any rigid bodies
+        // a future update to the restart data format (that saves net_force and net_virial) will make it
+        // valid when there is a valid restart
+        if (m_sysdef->getRigidData()->getNumBodies() > 0)
+            m_pdata->removeFlag(pdata_flag::isotropic_virial);
         }
     }
 
