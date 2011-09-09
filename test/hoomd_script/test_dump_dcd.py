@@ -21,16 +21,22 @@ class dmp_dcd_tests (unittest.TestCase):
         run(100)
         os.remove('dump_dcd')
     
-    # tests wrap option
-    def test_wrap(self):
-        dump.dcd(filename="dump_dcd", period=100, wrap=False);
+    # tests unwrap_full option
+    def test_unwrap_full(self):
+        dump.dcd(filename="dump_dcd", period=100, unwrap_full=True);
+        run(100)
+        os.remove('dump_dcd')
+    
+    # tests unwrap_rigid option
+    def test_unwrap_rigid(self):
+        dump.dcd(filename="dump_dcd", period=100, unwrap_rigid=True);
         run(100)
         os.remove('dump_dcd')
         
     # tests group option
     def test_group(self):
         typeA = group.type('A');
-        dump.dcd(filename="dump_dcd", group=typeA, period=100, wrap=False);
+        dump.dcd(filename="dump_dcd", group=typeA, period=100);
         run(100)
         os.remove('dump_dcd')
             

@@ -109,7 +109,7 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
                              bool overwrite)
     : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
     m_rigid_data(sysdef->getRigidData()), m_num_frames_written(0), m_last_written_step(0), m_appending(false), 
-      m_wrap(true), m_rigid_wrap(true)
+      m_unwrap_full(false), m_unwrap_rigid(false)
     {
     // handle appending to an existing file if it is requested
     if (!overwrite && exists(fname))
@@ -319,14 +319,18 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[group_idx] = float(arrays.x[arrays.rtag[i]]);
-        if (!m_wrap)
+
+        // handle the unwrap options
+        if (m_unwrap_full)
             m_staging_buffer[group_idx] += float(arrays.ix[arrays.rtag[i]]) * Lx;
-        if (!m_rigid_wrap)
+        else if (m_unwrap_rigid)
+            {
             if (arrays.body[arrays.rtag[i]] != NO_BODY)
                 {
                 int body_ix = body_image_handle.data[arrays.body[arrays.rtag[i]]].x;
                 m_staging_buffer[group_idx] += float(arrays.ix[arrays.rtag[i]] - body_ix) * Lx;
                 }
+            }
         }
     // write x coords
     write_int(file, nparticles * sizeof(float));
@@ -338,14 +342,18 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[group_idx] = float(arrays.y[arrays.rtag[i]]);
-        if (!m_wrap)
+        
+        // handle the unwrap options
+        if (m_unwrap_full)
             m_staging_buffer[group_idx] += float(arrays.iy[arrays.rtag[i]]) * Ly;
-        if (!m_rigid_wrap)
+        else if (m_unwrap_rigid)
+            {
             if (arrays.body[arrays.rtag[i]] != NO_BODY)
                 {
                 int body_iy = body_image_handle.data[arrays.body[arrays.rtag[i]]].y;
                 m_staging_buffer[group_idx] += float(arrays.iy[arrays.rtag[i]] - body_iy) * Ly; 
                 }
+            }
         }
     // write y coords
     write_int(file, nparticles * sizeof(float));
@@ -357,14 +365,18 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[group_idx] = float(arrays.z[arrays.rtag[i]]);
-        if (!m_wrap)
+        
+        // handle the unwrap options
+        if (m_unwrap_full)
             m_staging_buffer[group_idx] += float(arrays.iz[arrays.rtag[i]]) * Lz;
-        if (!m_rigid_wrap)
+        else if (m_unwrap_rigid)
+            {
             if (arrays.body[arrays.rtag[i]] != NO_BODY)
                 {
                 int body_iz = body_image_handle.data[arrays.body[arrays.rtag[i]]].z;
                 m_staging_buffer[group_idx] += float(arrays.iz[arrays.rtag[i]] - body_iz) * Lz;
                 }
+            }
          }
     // write z coords
     write_int(file, nparticles * sizeof(float));
@@ -400,8 +412,8 @@ void export_DCDDumpWriter()
     {
     class_<DCDDumpWriter, boost::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
     ("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int, boost::shared_ptr<ParticleGroup>, bool>())
-    .def("setWrap", &DCDDumpWriter::setWrap)
-    .def("setRigidWrap", &DCDDumpWriter::setRigidWrap)
+    .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
+    .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
     ;
     }
 

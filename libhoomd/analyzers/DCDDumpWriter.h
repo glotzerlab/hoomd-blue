@@ -97,15 +97,15 @@ class DCDDumpWriter : public Analyzer
         void analyze(unsigned int timestep);
         
         //! Set whether coordinates should be written out wrapped or unwrapped.
-        void setWrap(bool wrap)
+        void setUnwrapFull(bool enable)
             {
-            m_wrap = wrap;
+            m_unwrap_full = enable;
             }
 
         //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
-        void setRigidWrap(bool rigid_wrap)
+        void setUnwrapRigid(bool enable)
             {
-            m_rigid_wrap = rigid_wrap;
+            m_unwrap_rigid = enable;
             }
 
     private:
@@ -117,8 +117,8 @@ class DCDDumpWriter : public Analyzer
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
         unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file
-        bool m_wrap;                        //!< True if coordinates should be written out wrapped in the box
-        bool m_rigid_wrap;                  //!< True if rigid coords should be written out wrapped in the box
+        bool m_unwrap_full;                 //!< True if coordinates should be written out fully unwrapped in the box
+        bool m_unwrap_rigid;                //!< True if rigid bodies should be written out unwrapped
 
         float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
         

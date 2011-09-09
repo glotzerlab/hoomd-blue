@@ -454,8 +454,12 @@ class dcd(analyze._analyzer):
     # \param group Particle group to output to the dcd file. If left as None, all particles will be written
     # \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
     #        file \a filename will be overwritten.
-    # \param wrap When True, (the default) wrapped particle coordinates are written. When False, particles will be
-    #        unwrapped into their current box image before writing to the dcd file.
+    # \param unwrap_full When False, (the default) particle coordinates are always written inside the simulation box.
+    #        When True, particles will be unwrapped into their current box image before writing to the dcd file.
+    # \param unwrap_rigid When False, (the default) individual particles are written inside the simulation box which
+    #        breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
+    #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
+    #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
     # 
     # \b Examples:
     # \code
@@ -470,7 +474,7 @@ class dcd(analyze._analyzer):
     #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group=None, overwrite=False, wrap=True):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False):
         util.print_status_line();
         
         # initialize base class
@@ -487,7 +491,8 @@ class dcd(analyze._analyzer):
             util._disable_status_lines = False;
             
         self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
-        self.cpp_analyzer.setWrap(wrap);
+        self.cpp_analyzer.setUnwrapFull(unwrap_full);
+        self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.setupAnalyzer(period);
     
     def enable(self):

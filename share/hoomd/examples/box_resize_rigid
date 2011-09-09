@@ -19,7 +19,7 @@ resizer = update.box_resize(Lx=shrink_L, period=1);
 resizer.set_params(scale_particles=False)
 
 # dump a .dcd file of the resize operation
-dcd = dump.dcd(filename='box_resize_rigid.dcd', period=1, overwrite=True, wrap=False)
+dcd = dump.dcd(filename='box_resize_rigid.dcd', period=1, overwrite=True, unwrap_rigid=True)
 
 run(100)
 
