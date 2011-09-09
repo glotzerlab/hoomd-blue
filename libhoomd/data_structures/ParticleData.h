@@ -445,6 +445,10 @@ class ParticleDataInitializer
        
     If these flags are not set, these arrays can still be read but their values may be incorrect.
     
+    If any computation is unable to supply the appropriate values (i.e. rigid body virial can not be computed
+    until the second step of the simulation), then it should remove the flag to signify that the values are not valid.
+    Any analyzer/updater that expects the value to be set should 
+    
     \note When writing to the particle data, particles must not be moved outside the box.
     In debug builds, any aquire will fail an assertion if this is done.
     \ingroup data_structs
@@ -795,15 +799,18 @@ class ParticleData : boost::noncopyable
             m_inertia_tensor[tag] = tensor;
             }
             
-        //!< Get the particle data flags
+        //! Get the particle data flags
         PDataFlags getFlags() { return m_flags; }
         
-        //!< Set the particle data flags
+        //! Set the particle data flags
         /*! \note Setting the flags does not make the requested quantities immediately available. Only after the next
             set of compute() calls will the requested values be computed. The System class talks to the various
             analyzers and updaters to determine the value of the flags for any given time step.
         */
         void setFlags(const PDataFlags& flags) { m_flags = flags; }
+        
+        //! Remove the given flag
+        void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
     private:
         BoxDim m_box;                               //!< The simulation box

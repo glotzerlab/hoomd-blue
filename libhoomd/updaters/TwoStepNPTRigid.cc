@@ -339,6 +339,10 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
         
         // compute pressure for the next half time step
         m_curr_P = m_thermo_all->getPressure();
+        // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
+        // rare circumstances, usually at the start of the simulation before things are initialize)
+        if (isnan(m_curr_P))
+            m_curr_P = m_pressure->getValue(timestep);
         
         Scalar p_target = m_pressure->getValue(timestep);
         f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);

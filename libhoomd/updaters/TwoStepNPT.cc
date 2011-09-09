@@ -136,6 +136,11 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
         m_curr_group_T = m_thermo_group->getTemperature();
         // compute pressure for the next half time step
         m_curr_P = m_thermo_all->getPressure();
+        // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
+        // rare circumstances, usually at the start of the simulation before things are initialize)
+        if (isnan(m_curr_P))
+            m_curr_P = m_P->getValue(timestep);
+        
         m_state_initialized = true;
         }
 
@@ -266,6 +271,10 @@ void TwoStepNPT::integrateStepTwo(unsigned int timestep)
     m_curr_group_T = m_thermo_group->getTemperature();
     // compute pressure for the next half time step
     m_curr_P = m_thermo_all->getPressure();
+    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
+    // rare circumstances, usually at the start of the simulation before things are initialize)
+    if (isnan(m_curr_P))
+        m_curr_P = m_P->getValue(timestep);
 
     // profile this step
     if (m_prof)

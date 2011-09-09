@@ -44,6 +44,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include <boost/shared_ptr.hpp>
+#include <limits>
 
 #include "PPPMForceCompute.h"
 
@@ -120,13 +121,18 @@ class ComputeThermo : public Compute
         */
         Scalar getPressure()
             {
-            // validate (in debug builds) that the isotropic virial was computed
+            // return NaN if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
-            assert(flags[pdata_flag::isotropic_virial]);
-
-            // return the pressure
-            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return h_properties.data[thermo_index::pressure];
+            if (flags[pdata_flag::isotropic_virial])
+                {
+                // return the pressure
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::pressure];
+                }
+            else
+                {
+                return std::numeric_limits<Scalar>::quiet_NaN();
+                }
             }
         
         //! Returns the kinetic energy last computed by compute()
@@ -139,16 +145,21 @@ class ComputeThermo : public Compute
             }
         
         //! Returns the potential energy last computed by compute()
-        /*! \returns Instantaneous potential energy of the system
+        /*! \returns Instantaneous potential energy of the system, or NaN if the energy is not valid
         */
         Scalar getPotentialEnergy()
             {
-            // validate (in debug builds) that the energy was computed
+            // return NaN if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
-            assert(flags[pdata_flag::potential_energy]);
-            
-            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return h_properties.data[thermo_index::potential_energy];
+            if (flags[pdata_flag::potential_energy])
+                {
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::potential_energy];
+                }
+            else
+                {
+                return std::numeric_limits<Scalar>::quiet_NaN();
+                }
             }
 
         //! Get the gpu array of properties
