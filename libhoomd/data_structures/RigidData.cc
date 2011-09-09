@@ -1129,6 +1129,8 @@ void RigidData::computeVirialCorrectionEndCPU(Scalar deltaT)
     m_pdata->release();
     }
 
+
+#ifdef ENABLE_CUDA
 /*! Helper function that perform the first part necessary to compute the rigid body virial correction on the GPU.
 */
 void RigidData::computeVirialCorrectionStartGPU()
@@ -1173,7 +1175,7 @@ void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
 
     m_pdata->release();
     }
-
+#endif
 
 
 void export_RigidData()
