@@ -361,12 +361,11 @@ void NeighborList::countExclusions()
         excluded_count[num_excluded] += 1;
         }
 
-    cout << "-- Neighborlist exclusion statistics:" << endl;
-    cout << "Max. number of exclusions: " << max_num_excluded << endl;
+    cout << "-- Neighborlist exclusion statistics -- :" << endl;
     for (unsigned int i=0; i <= MAX_COUNT_EXCLUDED; ++i)
         {
         if (excluded_count[i] > 0)
-            cout << "Particles with " << i << " exclusions: " << excluded_count[i] << endl;
+            cout << "Particles with " << i << " exclusions             : " << excluded_count[i] << endl;
         }
 
     if (excluded_count[MAX_COUNT_EXCLUDED+1])
@@ -374,6 +373,18 @@ void NeighborList::countExclusions()
         cout << "Particles with more than " << MAX_COUNT_EXCLUDED << " exclusions: "
              << excluded_count[MAX_COUNT_EXCLUDED+1] << endl;
         }
+    
+    cout << "Neighbors excluded by diameter (slj)    : ";
+    if (m_filter_diameter)
+        cout << "yes" << endl;
+    else
+        cout << "no" << endl;
+
+    cout << "Neighbors excluded when in the same body: ";
+    if (m_filter_body)
+        cout << "yes" << endl;
+    else
+        cout << "no" << endl;
     }
 
 /*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be

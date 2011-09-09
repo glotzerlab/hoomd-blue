@@ -633,7 +633,7 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_diameter_filter )
 //! comparison test case for binned class
 BOOST_AUTO_TEST_CASE( NeighborListBinned_comparison )
     {
-    neighborlist_comparison_test<NeighborList, NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_comparison_test<NeighborList, NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
