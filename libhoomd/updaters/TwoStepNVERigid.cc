@@ -600,6 +600,28 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
         m_prof->pop();
     }
 
+/*! Checks that every particle in the group is valid. This method may be called by anyone wishing to make this
+    error check.
+
+    TwoStepNVERigid acts as the base class for all rigid body integration methods. Check here that all particles belong
+    to rigid bodies.
+*/
+void TwoStepNVERigid::validateGroup()
+    {
+    for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
+        {
+        unsigned int tag = m_group->getMemberTag(gidx);
+        if (m_pdata->getBody(tag) == (int)NO_BODY)
+            {
+            cerr << endl;
+            cerr << "***Error! Particle " << tag << " does not belong to a rigid body. "
+                 << "This integration method does not operate on free particles." << endl << endl;
+                
+            throw std::runtime_error("Error initializing integration method");
+            }
+        }
+    }
+
 void export_TwoStepNVERigid()
 {
     class_<TwoStepNVERigid, boost::shared_ptr<TwoStepNVERigid>, bases<IntegrationMethodTwoStep>, boost::noncopyable>

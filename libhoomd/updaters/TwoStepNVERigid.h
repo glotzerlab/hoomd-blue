@@ -87,6 +87,9 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         //! Get the number of degrees of freedom granted to a given group
         virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> query_group);
         
+        //! Validate that all members in the particle group are valid (throw an exception if they are not)
+        virtual void validateGroup();
+
     protected:
         //! Integrator variables
         virtual void setRestartIntegratorVariables();

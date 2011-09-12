@@ -199,6 +199,9 @@ class IntegrationMethodTwoStep : boost::noncopyable
             {
             return PDataFlags(0);
             }
+
+        //! Validate that all members in the particle group are valid (throw an exception if they are not)
+        virtual void validateGroup();
         
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with

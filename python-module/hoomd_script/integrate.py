@@ -404,6 +404,8 @@ class nvt(_integration_method):
             self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         else:
             self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+        
+        self.cpp_method.validateGroup()
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
@@ -489,7 +491,9 @@ class npt(_integration_method):
             self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
         
         self.cpp_method.setPartialScale(partial_scale);
-        
+
+        self.cpp_method.validateGroup()
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tau New coupling constant (if set) (in time units)
@@ -587,6 +591,8 @@ class nve(_integration_method):
             self.cpp_method.setLimit(limit);
         
         self.cpp_method.setZeroForce(zero_force);
+        
+        self.cpp_method.validateGroup()
         
     ## Changes parameters of an existing integrator
     # \param limit (if set) New limit value to set. Removes the limit if limit is False
@@ -699,6 +705,8 @@ class bdnvt(_integration_method):
         if limit is not None:
             self.cpp_method.setLimit(limit);
     
+        self.cpp_method.validateGroup()
+    
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is
@@ -799,6 +807,8 @@ class nve_rigid(_integration_method):
         else:
             self.cpp_method = hoomd.TwoStepNVERigidGPU(globals.system_definition, group.cpp_group);
 
+        self.cpp_method.validateGroup()
+
 ## NVT Integration for rigid bodies
 #
 # integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
@@ -844,6 +854,8 @@ class nvt_rigid(_integration_method):
             self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
         else:
             self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
+    
+        self.cpp_method.validateGroup()
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
@@ -925,6 +937,7 @@ class bdnvt_rigid(_integration_method):
         else:
             self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
         
+        self.cpp_method.validateGroup()
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
@@ -1032,6 +1045,8 @@ class npt_rigid(_integration_method):
             self.cpp_method = hoomd.TwoStepNPTRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
         else:
             self.cpp_method = hoomd.TwoStepNPTRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
+    
+        self.cpp_method.validateGroup()
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
