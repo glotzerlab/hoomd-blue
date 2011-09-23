@@ -167,8 +167,8 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         
         unsigned int dimension;                     //!< System dimension
         Scalar boltz;                               //!< Boltzmann constant
-        Scalar nf_t;                                //!< Translational degrees of freedom        
-        Scalar nf_r;                                //!< Rotational degrees of freedom 
+        unsigned int nf_t;                          //!< Translational degrees of freedom
+        unsigned int nf_r;                          //!< Rotational degrees of freedom
         Scalar m_dof;                               //!< Total number degrees of freedom used for system temperature compute 
         unsigned int chain;                         //!< Number of thermostats
         
