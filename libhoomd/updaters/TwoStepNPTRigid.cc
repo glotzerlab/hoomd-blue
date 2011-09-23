@@ -231,9 +231,9 @@ void TwoStepNPTRigid::setup()
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
             
-        if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1.0;
-        if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1.0;
-        if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
+        if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1;
+        if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1;
+        if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1;
         }
         
     Scalar kt = boltz * m_temperature->getValue(0);
