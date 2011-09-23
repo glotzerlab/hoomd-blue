@@ -339,7 +339,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     
     akin_t = Ksum_t_handle.data[0];
     akin_r = Ksum_r_handle.data[0];
-    update_nhcp(akin_t, akin_r, m_deltaT);
+    update_nhcp(akin_t, akin_r, timestep);
     }
 
     
