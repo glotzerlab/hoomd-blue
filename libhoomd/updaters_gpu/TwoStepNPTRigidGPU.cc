@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNPTRigidGPU.cc 2680 2010-02-16 19:43:25Z ndtrung $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/libhoomd/updaters_gpu/TwoStepNPTRigidGPU.cc $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 #ifdef WIN32

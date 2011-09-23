@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNPTRigidGPU.cu 2763 2010-02-15 19:05:06Z ndtrung $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/libhoomd/cuda/TwoStepNPTRigidGPU.cu $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 #include "QuaternionMath.h"

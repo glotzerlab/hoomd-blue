@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: EvaluatorPairDPDLJThermo.h 3505 2010-10-08 15:17:18Z phillicl $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/EvaluatorPairDPDLJThermo.h $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 #ifndef __PAIR_EVALUATOR_DPDLJ_H__

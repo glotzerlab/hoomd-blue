@@ -38,8 +38,8 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-// $Id: test_const_external_field_dipole.cc $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/aniso/test/unit/test_const_external_field_dipole.cc $
+// $Id$
+// $URL$
 // Maintainer: baschult
 
 #ifdef WIN32

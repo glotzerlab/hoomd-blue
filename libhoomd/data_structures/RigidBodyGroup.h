@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: ParticleGroup.h 2701 2010-02-05 18:49:58Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/libhoomd/data_structures/ParticleGroup.h $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 /*! \file RigidBodyGroup.h

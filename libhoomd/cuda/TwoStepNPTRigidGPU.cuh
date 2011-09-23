@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNVTRigidGPU.cuh 2626 2010-01-18 06:04:23Z ndtrung $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/libhoomd/cuda/TwoStepNPTRigidGPU.cuh $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 /*! \file TwoStepNPTRigidGPU.cuh

@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNPTRigid.cc 2674 2010-01-28 15:16:21Z ndtrung $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/libhoomd/updaters/TwoStepNPTRigid.cc $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 #ifdef WIN32
