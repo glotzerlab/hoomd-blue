@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: ndtrung
 
 /*! \file TwoStepNVTRigid.cc
     \brief Defines the TwoStepNVTRigid class

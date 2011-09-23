@@ -41,6 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: ndtrung
 
 /*! \file RigidData.cc
     \brief Defines RigidData and related classes.

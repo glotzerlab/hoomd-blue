@@ -41,6 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: ndtrung
 
 /*! \file RigidData.h
     \brief Contains declarations for RigidData and related classes.

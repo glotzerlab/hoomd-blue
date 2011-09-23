@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: ndtrung
 
 #ifndef _RIGIDDATA_CUH_
 #define _RIGIDDATA_CUH_

@@ -41,6 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: ndtrung
 
 /*! \file TwoStepBDNVTRigid.h
     \brief Declares an updater that implements BD NVT dynamics for rigid bodies

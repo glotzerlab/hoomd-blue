@@ -41,6 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: ndtrung
 
 /*! \file TwoStepNVERigid.h
     \brief Declares an updater that implements NVE dynamics for rigid bodies
