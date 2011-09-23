@@ -1207,7 +1207,7 @@ class mode_minimize_rigid_fire(_integrator):
     #   - <i>optional</i>: defaults to 1e-1    
     # \param Etol energy convergence criteria 
     #   - <i>optional</i>: defaults to 1e-5
-    def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, alpha_final=None, ftol = None, wtol=None, Etol= None):
+    def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, falpha=None, ftol = None, wtol=None, Etol= None):
         util.print_status_line();
         
         # initialize base class
@@ -1233,7 +1233,7 @@ class mode_minimize_rigid_fire(_integrator):
         if not(alpha_start is None):
             self.cpp_integrator.setAlphaStart(alpha_start);
         if not(alpha_final is None):
-            self.cpp_integrator.setFalpha(alpha_final);
+            self.cpp_integrator.setFalpha(falpha);
         if not(ftol is None):
             self.cpp_integrator.setFtol(ftol);
         if not(wtol is None):
@@ -1243,7 +1243,6 @@ class mode_minimize_rigid_fire(_integrator):
             
     ## Asks if Energy Minimizer has converged
     #
-    # TODO: document me
     def has_converged(self):
         self.check_initialization();
         return self.cpp_integrator.hasConverged()

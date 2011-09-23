@@ -1458,6 +1458,7 @@ class table(force._force):
     ## Specify the Tabulated %pair %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
+    # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
     # \param name Name of the force instance
     #
     # \b Example:
