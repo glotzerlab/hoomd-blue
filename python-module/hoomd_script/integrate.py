@@ -1246,4 +1246,4 @@ class mode_minimize_rigid_fire(_integrator):
     def has_converged(self):
         self.check_initialization();
         return self.cpp_integrator.hasConverged()
- 
+

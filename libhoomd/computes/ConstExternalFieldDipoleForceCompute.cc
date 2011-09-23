@@ -101,23 +101,23 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
     // compute the torques
     for (unsigned int i=0; i<num_particles; i++)
         {
-	    // rotation operator for this particle
+        // rotation operator for this particle
         Scalar4 rot = h_orientation.data[i];
-    	//Hermitian conjugate
+        //Hermitian conjugate
         Scalar4 rot_H;
-    	// compute the Hermitian conjugate
+        // compute the Hermitian conjugate
         quatconj(rot,rot_H);
-    	// base particle orientation is in z direction
-    	//
+        // base particle orientation is in z direction
+        //
         Scalar4 base = {0,0,1,0};
-    	// to be filled by the actual moment
+        // to be filled by the actual moment
         Scalar4 moment;
-    	// a temporary variable
+        // a temporary variable
         Scalar4 temp;
-	    // do half the rotation
+        // do half the rotation
         quatvec(rot,base,temp);
-	    // do the other half
-    	quatquat(temp,rot_H,moment);
+        // do the other half
+        quatquat(temp,rot_H,moment);
 
         // tricky bit:
         // the resulting vector is the last three components of moment
@@ -151,3 +151,4 @@ void export_ConstExternalFieldDipoleForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

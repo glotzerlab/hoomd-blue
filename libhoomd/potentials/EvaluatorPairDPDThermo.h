@@ -313,3 +313,4 @@ class EvaluatorPairDPDThermo
 #undef SARU
 
 #endif // __PAIR_EVALUATOR_DPD_H__
+

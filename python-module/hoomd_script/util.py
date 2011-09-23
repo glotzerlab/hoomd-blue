@@ -76,20 +76,22 @@ def print_status_line():
 
     # piped input from stdin doesn't provide a code line, handle the situation 
     if not code:
-	message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  <unknown code>";
-	print message;    
+    message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  <unknown code>";
+    print message;    
     else:
-    	# build and print the message line
-    	# Go upwards in the source until you match the closing paren
-    	# dequote ensures we ignore literal parens
-    	dequote = lambda x: re.sub(r'[\'"].*?[\'"]','',x)
-    	balance = lambda y: y.count('(') - y.count(')')
-    	message = []
-    	while True:
-    		message.insert(0,linecache.getline(file_name,line))
-    		if sum(balance(dequote(x)) for x in message) == 0 or line == 0:
-    			break
-    		line = line - 1
-   	message.insert(0,os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  ")
-    	print ''.join(message).rstrip('\n')
-    	linecache.clearcache()
+        # build and print the message line
+        # Go upwards in the source until you match the closing paren
+        # dequote ensures we ignore literal parens
+        dequote = lambda x: re.sub(r'[\'"].*?[\'"]','',x)
+        balance = lambda y: y.count('(') - y.count(')')
+        message = []
+        while True:
+            message.insert(0,linecache.getline(file_name,line))
+            if sum(balance(dequote(x)) for x in message) == 0 or line == 0:
+                break
+            line = line - 1
+        
+        message.insert(0,os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  ")
+        print ''.join(message).rstrip('\n')
+        linecache.clearcache()
+

@@ -125,3 +125,4 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
             }
         }
     }
+

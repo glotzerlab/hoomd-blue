@@ -18,3 +18,4 @@ xml.set_params(all=True)
 xml.write(filename="restart_bin.xml")
 
 run(5000)
+

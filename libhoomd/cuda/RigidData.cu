@@ -329,3 +329,4 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
 
     return cudaSuccess;
     }
+

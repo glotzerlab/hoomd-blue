@@ -98,3 +98,4 @@ cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          bool clear);
 
 #endif
+

@@ -14,3 +14,4 @@ dcd = dump.dcd(filename='restart_xml.dcd', period=100, overwrite=True)
 log = analyze.log(filename="restart_xml.log", period=1, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
 
 run(5000)
+

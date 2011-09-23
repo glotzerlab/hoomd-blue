@@ -513,3 +513,4 @@ DEVICE inline void quatToR(const Scalar4& q, Scalar* R)
     }
 
 #endif
+

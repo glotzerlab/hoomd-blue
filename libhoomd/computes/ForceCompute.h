@@ -144,7 +144,7 @@ class ForceCompute : public Compute
             return m_virial;
             }
         
-	    //! Get the array of computed torques
+        //! Get the array of computed torques
         GPUArray<Scalar4>& getTorqueArray()
             {
             return m_torque;
@@ -171,7 +171,7 @@ class ForceCompute : public Compute
                             
         GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
         GPUArray<Scalar>  m_virial;           //!< per-particle virial (see ForceDataArrays for definition)
-        GPUArray<Scalar4> m_torque;	//!< per-particle torque
+        GPUArray<Scalar4> m_torque;    //!< per-particle torque
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
                 
         Scalar4* m_fdata_partial;  //!< Stores partial force/pe for each CPU thread

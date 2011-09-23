@@ -611,3 +611,4 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     
     return cudaSuccess;
     }
+
