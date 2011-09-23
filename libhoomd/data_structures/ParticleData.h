@@ -157,6 +157,7 @@ struct InertiaTensor
             components[i] = Scalar(0.0);
         }
     
+    //! Set the components of the tensor
     void set(Scalar c0, Scalar c1, Scalar c2, Scalar c3, Scalar c4, Scalar c5)
         {
         components[0] = c0;
@@ -395,7 +396,7 @@ class ParticleDataInitializer
         virtual void initOrientation(Scalar4 *orientation) const {}
         
         //! Initialize the inertia tensor data
-        /*! \param intertia_tensor Pointer to one inertia tensor per particle to be initialize (in tag order!)
+        /*! \param moment_inertia Pointer to one inertia tensor per particle to be initialize (in tag order!)
         */
         virtual void initMomentInertia(InertiaTensor *moment_inertia) const {}
             

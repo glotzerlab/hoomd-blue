@@ -178,10 +178,10 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
 
 // Sets R and v of particles of the rigid body on the GPU
 /*! \param pdata Particle data 
-    \param rigid_data Rigid body data 
+    \param rigid_data Rigid body data
+    \param d_pdata_orientation Particle orientations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate (all particles in rigid bodies)
     \param group_size Number of members in the group
-    \param d_net_force Particle net forces
     \param box Box dimensions for periodic boundary condition handling
     \param set_x boolean indicating whether the positions are changed or not (first or second step of integration)
 */
@@ -255,6 +255,7 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
         return cudaSuccess;
 }
 
+//! Kernel driven by gpu_compute_virial_correction_end()
 __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
                                                          const Scalar4 *d_net_force,
                                                          const Scalar4 *d_oldpos,

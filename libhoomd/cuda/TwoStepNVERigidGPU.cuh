@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel driver for the first part of the NVE update called by TwoStepNVERigidGPU
 cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays &pdata,
                              const gpu_rigid_data_arrays& rigid_data, 
-                             float4 *d_pdata_orientation,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
@@ -66,7 +65,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays &pdata,
 //! Kernel driver for the second part of the NVE update called by TwoStepNVERigidGPU
 cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                              const gpu_rigid_data_arrays& rigid_data,
-                             float4 *d_pdata_orientation,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,

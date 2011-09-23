@@ -79,8 +79,11 @@ __device__ void add_force_total(float4& net_force, float& net_virial, float4& ne
     }
 
 //! Kernel for summing forces on the GPU
-/*! \param d_net_force Output device array to hold the computed net force
+/*! The speicified forces and virials are summed for every particle into \a d_net_force and \a d_net_virial
+
+    \param d_net_force Output device array to hold the computed net force
     \param d_net_virial Output device array to hold the computed net virial
+    \param d_net_torque Output device array to hold the computed net torque
     \param force_list List of pointers to force data to sum
     \param nparticles Number of particles in the arrays
     \param clear When true, initializes the sums to 0 before adding. When false, reads in the current \a d_net_force
@@ -131,16 +134,6 @@ __global__ void gpu_integrator_sum_net_force_kernel(float4 *d_net_force,
         }
     }
 
-/*! The speicified forces and virials are summed for every particle into \a d_net_force and \a d_net_virial
-
-    \param d_net_force Output device array to hold the computed net force
-    \param d_net_virial Output device array to hold the computed net virial
-    \param force_list List of pointers to force data to sum
-    \param nparticles Number of particles in the arrays
-    \param clear When true, initializes the sums to 0 before adding. When false, reads in the current \a d_net_force
-           and \a d_net_virial and adds to that
-
-*/
 cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float *d_net_virial,
                                          float4 *d_net_torque,

@@ -71,7 +71,7 @@ class ConstExternalFieldDipoleForceCompute : public ForceCompute
         virtual void computeForces(unsigned int timestep);
 
     private:
-	Scalar4 field;
+	Scalar4 field;  //!< Electric field
     };
 
 //! Exports the ConstExternalFieldDipoleForceComputeClass to python

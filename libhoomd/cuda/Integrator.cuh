@@ -89,7 +89,7 @@ struct gpu_force_list
     float *v5;  //!< Pointer to virial array 5
  };
 
-//! Sums up the net force and virial on the GPU for Integrator
+//! Driver for gpu_integrator_sum_net_force_kernel()
 cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float *d_net_virial,
                                          float4 *d_net_torque,

@@ -61,7 +61,10 @@ using namespace std;
 */
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
-    \param f Scalar4 of force
+    \param field_x x component of field
+    \param field_y y component of field
+    \param field_z z component of field
+    \param p p component of field
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
 ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar field_x=0.0,Scalar field_y=0.0, Scalar field_z=0.0,Scalar p=0.0)
@@ -70,9 +73,13 @@ ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost
     setParams(field_x,field_y,field_z,p);
     }
 
-/*! \param f a Scalar4 with the field components
- *           f.{x,y,z} are components of the field, f.w is the magnitude of the
- *           moment in the z direction
+/*! \param field_x x component of field
+    \param field_y y component of field
+    \param field_z z component of field
+    \param p p component of field
+
+    f.{x,y,z} are components of the field, f.w is the magnitude of the
+    moment in the z direction
 */
 void ConstExternalFieldDipoleForceCompute::setParams(Scalar field_x,Scalar field_y, Scalar field_z,Scalar p)
     {

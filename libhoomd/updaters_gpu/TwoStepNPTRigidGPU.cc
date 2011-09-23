@@ -210,7 +210,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
-    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
     
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -286,7 +285,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     // perform the update on the GPU
     gpu_npt_rigid_step_one(d_pdata,
                            d_rdata,
-                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -369,7 +367,6 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
         m_prof->push(exec_conf, "NPT rigid step 2");
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
-    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
 
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -456,7 +453,6 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     // perform the update on the GPU
     gpu_npt_rigid_step_two(d_pdata,
                            d_rdata,
-                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,

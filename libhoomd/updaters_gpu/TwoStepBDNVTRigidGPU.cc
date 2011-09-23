@@ -108,7 +108,6 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     
     // access all the needed data
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
-    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -166,7 +165,6 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     // perform the update on the GPU
     gpu_nve_rigid_step_one(d_pdata,
                            d_rdata,
-                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -204,7 +202,6 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     const Scalar D = Scalar(m_sysdef->getNDimensions());
     
     gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
-    ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
@@ -293,7 +290,6 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     // perform the update on the GPU
     gpu_nve_rigid_step_two(d_pdata,
                            d_rdata,
-                           d_porientation.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,

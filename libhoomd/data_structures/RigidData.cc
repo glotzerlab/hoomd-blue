@@ -154,6 +154,7 @@ void RigidData::recalcIndices()
     #endif
     }
 
+//! Internal single use matrix multiply
 inline static void mat_multiply(Scalar a[3][3], Scalar b[3][3], Scalar c[3][3])
     {
     c[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0];
