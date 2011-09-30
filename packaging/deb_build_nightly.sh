@@ -1,13 +1,13 @@
 #update our codebase
 cd  ../
-svn up
+git pull
 
 #check  the previous version built
 export atrev="$(cat ../deb_old_version)"
-export old_ver="$(svnversion . )"
+export old_ver="$(git describe)"
 echo $atrev
 echo $old_ver
-if [ $atrev =  $old_ver ];then
+if [ "$atrev" =  "$old_ver" ];then
 	echo "up to date"
 else
 	echo "commence building"
@@ -30,11 +30,15 @@ else
 
 fi
 #set the version we just setup for in deb_old_version so it won't be built again
-	echo $(svnversion .) > ../deb_old_version
+	echo $(git describe) > ../deb_old_version
 
-#export the variables to set the version from svn
-	export HSVN_VERSION=$(svnversion . )
-	export HVERSION="0.9.2."${HSVN_VERSION}
+#export the variables to set the version from git
+	export HREVISION=$(git describe | awk 'BEGIN { FS = "-" } ; {print $2}')
+#set a zero revision if HREVISION is blank
+	if [ -z "${HREVISION}" ]; then
+		HREVISION="0"
+	fi
+	export HVERSION="0.9.2."${HREVISION}
 	echo $HVERSION
 #set our package version in changelog
 	sed s/HVERSION/${HVERSION}/ debian/changelog -i
