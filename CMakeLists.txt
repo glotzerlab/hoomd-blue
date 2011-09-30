@@ -15,12 +15,13 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 project (HOOMD)
-# setup the install directories and setup HOOMD_VERSION
-include (CMake_install_options.cmake)
-message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
 # bring in custom modules
 add_subdirectory (CMake)
+
+# setup the install directories and setup HOOMD_VERSION
+include (CMake_install_options.cmake)
+message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
 # Handle user build options
 include (CMake_build_options.cmake)

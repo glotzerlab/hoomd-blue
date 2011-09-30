@@ -42,15 +42,11 @@ set(HOOMD_VERSION_MINOR "9")
 set(HOOMD_VERSION_PATCH "2")
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
 
-# users may not have subversion installed, search for it and set a dummy version if that is
-# the case
-find_program(SVNVERSION_EXE NAMES "git-svnversion.sh" "svnversion" DOC "svnversion executable")
-mark_as_advanced(SVNVERSION_EXE)
-if (SVNVERSION_EXE)
-    exec_program(${SVNVERSION_EXE} ${HOOMD_SOURCE_DIR} ARGS ${HOOMD_SOURCE_DIR} OUTPUT_VARIABLE SVNVERSION)
-else (SVNVERSION_EXE)
-    set(SVNVERSION "0")
-endif (SVNVERSION_EXE)
-
-string(REGEX REPLACE ":" "_" SVNVERSION_UNDERSCORE ${SVNVERSION})
-set(HOOMD_VERSION_LONG "${HOOMD_VERSION}.${SVNVERSION_UNDERSCORE}")
+# users may not have git installed, or this may be a tarball build - set a dummy version if that is the case
+include(GetGitRevisionDescription)
+git_describe(HOOMD_GIT_VERSION)
+if (HOOMD_GIT_VERSION)
+    set(HOOMD_VERSION_LONG "${HOOMD_GIT_VERSION}")
+else (HOOMD_GIT_VERSION)
+    set(HOOMD_VERSION_LONG "${HOOMD_VERSION}-unknown")
+endif (HOOMD_GIT_VERSION)
