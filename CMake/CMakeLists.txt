@@ -14,6 +14,7 @@ set(CMAKE_MODULE_PATH
 if (NOT WIN32)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cuda
                   ${CMAKE_CURRENT_SOURCE_DIR}/hoomd
+                  ${CMAKE_CURRENT_SOURCE_DIR}/git
         DESTINATION ${DATA_INSTALL_DIR}/CMake
         PATTERN ".svn" EXCLUDE
         )
