@@ -9,18 +9,18 @@ rm -r debian/*
 cp -r packaging/debian ./
 #get what architecture we're building on.
 if [ `arch` = "x86_64" ]
-	then
+    then
 #patch debian folder for 64 bit
-	echo "patching 64bit"
-	export lib_suffix="64"
-	sed -i s/i386/amd64/ debian/control
-	sed -i s/i386/amd64/ debian/files
+    echo "patching 64bit"
+    export lib_suffix="64"
+    sed -i s/i386/amd64/ debian/control
+    sed -i s/i386/amd64/ debian/files
 else
 #patch debian folder for building on i386
-	echo "patching 32bit"
-	export lib_suffix=""
-	sed -i s/amd64/i386/ debian/control
-	sed -i s/amd64/i386/ debian/files
+    echo "patching 32bit"
+    export lib_suffix=""
+    sed -i s/amd64/i386/ debian/control
+    sed -i s/amd64/i386/ debian/files
 
 fi
 export HVERSION=$1

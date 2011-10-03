@@ -29,13 +29,13 @@ ifneq ($(origin QUIET),undefined)
 RPMBUILD_ARGS += --quiet
 endif
 
-rpm: 
-	#prepare build environment
-	mkdir -p rpmbuild/{SPECS,SOURCES,RPMS,SRPMS,BUILD}
-	cp SPECS/$(SPECFILE) rpmbuild/SPECS/
-	#call package builder
-	PATH=$$PATH:/usr/local/cuda/bin rpmbuild -ba $(RPMBUILD_ARGS) $(WD)/rpmbuild/SPECS/$(SPECFILE)
+rpm:
+    #prepare build environment
+    mkdir -p rpmbuild/{SPECS,SOURCES,RPMS,SRPMS,BUILD}
+    cp SPECS/$(SPECFILE) rpmbuild/SPECS/
+    #call package builder
+    PATH=$$PATH:/usr/local/cuda/bin rpmbuild -ba $(RPMBUILD_ARGS) $(WD)/rpmbuild/SPECS/$(SPECFILE)
 
 clean:
-	rm -rf rpmbuild
+    rm -rf rpmbuild
 

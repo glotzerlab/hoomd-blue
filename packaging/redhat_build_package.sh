@@ -27,8 +27,8 @@ QUIET='QUIET=true'
 UPDATE="true"
 while getopts fv OPT $@; do
  case $OPT in
-	'f') unset UPDATE ;;
-	'v') unset QUIET ;;
+    'f') unset UPDATE ;;
+    'v') unset QUIET ;;
  esac
 done
 
@@ -55,21 +55,21 @@ echo "Last revision built was $atrev"
 echo "Current repository revision is $new_rev"
 
 if [ "$atrev" =  "$new_rev" ];then
-	echo "up to date"
+    echo "up to date"
 else
-	echo "commence building"
-	# maybe some of this should be moved to cmake
-	mkdir -p $HOME/nightly-build
-	cp Makefile $HOME/nightly-build/
+    echo "commence building"
+    # maybe some of this should be moved to cmake
+    mkdir -p $HOME/nightly-build
+    cp Makefile $HOME/nightly-build/
     cp -R SPECS $HOME/nightly-build/
-	cd $HOME/nightly-build
+    cd $HOME/nightly-build
 
     make rpm VERSION=${HVERSION_BASE} RELEASE=${HREVISION} REFSPEC=master $QUIET || exit
-	#set the version we just built in rh_old_revsion so it won't be built again
-	echo $new_rev > $HOME/rh_old_revsion
-	#move files to be uploaded
-	destination="devel/incoming/"`/bin/cat /etc/redhat-release | /usr/bin/awk '{print $1}' | tr '[:upper:]' '[:lower:]'`
-	rsync -ue /usr/bin/ssh rpmbuild/RPMS/$ARCH/hoomd*.rpm joaander@foxx.engin.umich.edu:$destination/
+    #set the version we just built in rh_old_revsion so it won't be built again
+    echo $new_rev > $HOME/rh_old_revsion
+    #move files to be uploaded
+    destination="devel/incoming/"`/bin/cat /etc/redhat-release | /usr/bin/awk '{print $1}' | tr '[:upper:]' '[:lower:]'`
+    rsync -ue /usr/bin/ssh rpmbuild/RPMS/$ARCH/hoomd*.rpm joaander@foxx.engin.umich.edu:$destination/
 fi
 
 #clean up
@@ -77,5 +77,5 @@ cd $HOME/nightly-build/rpmbuild/RPMS/$ARCH
 rpmfiles=( `ls -td hoomd*.rpm` )
 numfiles=${#rpmfiles[*]}
 for ((  i=$(( $NRPMS )); $i < $numfiles ; i++ )); do
-	rm ${rpmfiles[$i]};
+    rm ${rpmfiles[$i]};
 done
