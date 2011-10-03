@@ -6,10 +6,10 @@
 # To perform automatic package builds, this script should be invoked from cron
 # with the following additions to crontab:
 # MAILTO=''
-# 0 0 * * * $HOME/packaging/redhat_build_package.sh >> $HOME/redhat_package_build.out 2>&1
+# 0 0 * * * $HOME/hoomd-blue/packaging/redhat_build_package.sh >> $HOME/redhat_package_build.out 2>&1
 #
-# If this script is invoked automatically (as via crontab) from $HOME/packaging/
-# then updates in hoomd-blue trunk will take two subsequent runs to take effect.
+# If this script is invoked automatically (as via crontab) from $HOME/hoomd-blue/packaging/
+# then updates in hoomd-blue master will take two subsequent runs to take effect.
 #
 # Use the -f flag to prevent the script from performing an automatic update
 # of itself and the Makefile.
@@ -34,20 +34,23 @@ done
 
 echo "$0 running at "`date`
 
-mkdir -p $HOME/packaging
-cd $HOME/packaging
-if [ "$UPDATE" ]; then
-  if ( svn checkout http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk/packaging . | grep -q $ME ) ; then
-	echo "This script had changed in source and has been updated."
-	echo "Re-exec'ing to avoid problems..."
-	sleep 10 # give us a chance to kill this script in case we've screwed up
-	exec $HOME/packaging/redhat_build_package.sh
-  fi
+cd $HOME/hoomd-blue
+git pull --ff-only
+git checkout master
+cd packaging
+
+# determine version and revision
+HVERSION_BASE=$(git describe | awk 'BEGIN { FS = "-" } ; {print $1}' | cut -c2-)
+
+HREVISION=$(git describe | awk 'BEGIN { FS = "-" } ; {print $2}')
+#set a zero revision if HREVISION is blank
+if [ -z "${HREVISION}" ]; then
+    HREVISION="0"
 fi
 
 #check the previous version built
 atrev=`cat $HOME/rh_old_revsion || echo 0`
-new_rev=`svn info http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk | grep "Last Changed Rev" | awk '{print $NF}'`
+new_rev=`git describe`
 echo "Last revision built was $atrev"
 echo "Current repository revision is $new_rev"
 
@@ -58,9 +61,10 @@ else
 	# maybe some of this should be moved to cmake
 	mkdir -p $HOME/nightly-build
 	cp Makefile $HOME/nightly-build/
+    cp -R SPECS $HOME/nightly-build/
 	cd $HOME/nightly-build
-	svn checkout http://codeblue.engin.umich.edu/hoomd-blue/svn/trunk/packaging/SPECS
-	make rpm $QUIET || exit
+
+    make rpm VERSION=${HVERSION_BASE} RELEASE=${HREVISION} REFSPEC=master $QUIET || exit
 	#set the version we just built in rh_old_revsion so it won't be built again
 	echo $new_rev > $HOME/rh_old_revsion
 	#move files to be uploaded
