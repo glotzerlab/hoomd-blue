@@ -130,8 +130,8 @@ class xml(analyze._analyzer):
     # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
     # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml 
     # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml 
-    # \param orientation (if set) Set to True/False to enable/disable the output of paritle orientations in the xml
-    # file
+    # \param orientation (if set) Set to True/False to enable/disable the output of paritle orientations in the xml file
+    # \param vizsigma (if set) Set to a floating point value to include as vizsigma in the xml file
     #
     # Using set_params() requires that the %dump was saved in a variable when it was specified.
     # \code
@@ -164,7 +164,8 @@ class xml(analyze._analyzer):
                    improper=None,
                    acceleration=None,
                    charge=None,
-                   orientation=None):
+                   orientation=None,
+                   vizsigma=None):
         util.print_status_line();
         self.check_initialization();
         
@@ -219,6 +220,9 @@ class xml(analyze._analyzer):
         
         if orientation is not None:
             self.cpp_analyzer.setOutputOrientation(orientation);
+
+        if vizsigma is not None:
+            self.cpp_analyzer.setVizSigma(vizsigma);
         
    ## Write a file at the current time step
     #

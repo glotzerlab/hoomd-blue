@@ -80,7 +80,7 @@ HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), 
         m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false), 
         m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_body(false),
-        m_output_charge(false), m_output_orientation(false)
+        m_output_charge(false), m_output_orientation(false), m_vizsigma_set(false)
     {
     }
 
@@ -216,8 +216,10 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f << "<hoomd_xml version=\"1.4\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
-      << "natoms=\"" << m_pdata->getN() << "\" "
-      << ">" << "\n";
+      << "natoms=\"" << m_pdata->getN() << "\" ";
+    if (m_vizsigma_set)
+        f << "vizsigma=\"" << m_vizsigma << "\" ";
+    f << ">" << "\n";
     f << "<box " << "lx=\"" << Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << "\n";
     
     f.precision(12);
@@ -606,6 +608,7 @@ void export_HOOMDDumpWriter()
     .def("setOutputAccel", &HOOMDDumpWriter::setOutputAccel)
     .def("setOutputCharge", &HOOMDDumpWriter::setOutputCharge)
     .def("setOutputOrientation", &HOOMDDumpWriter::setOutputOrientation)
+    .def("setVizSigma", &HOOMDDumpWriter::setVizSigma)
     .def("writeFile", &HOOMDDumpWriter::writeFile)
     ;
     }
