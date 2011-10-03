@@ -775,13 +775,9 @@ class bdnvt(_integration_method):
                 
 ## NVE Integration for rigid bodies
 #
-# integrate.nve_rigid performs constant volume, constant energy simulations using Velocity Verlet method extended
-# to operate on rigid bodies. It \b only operates on particles that belong to rigid bodies. Use integrate.nve on
-# particles that do not belong to rigid bodies.
+# integrate.nve_rigid performs constant volume, constant energy simulations on rigid bodies
 #
-# \b Limitataions:<br>
-# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
-# integrate.nve_rigid will still behave as if group.rigid() was specified.
+# integrate.nve_rigid \b only operates on particles that belong to rigid bodies.
 #
 # integrate.nve_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -813,12 +809,8 @@ class nve_rigid(_integration_method):
 #
 # integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
 # The Nose-Hoover method is used from references Miller et al. (JCP 2002, 116(20)) and Kamberaj et al. (JCP 2005, 112, 224114).
-# It \b only operates on particles that belong to rigid bodies. Use integrate.nvt on particles that do not belong to
-# rigid bodies.
 #
-# \b Limitataions:<br>
-# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
-# integrate.nvt_rigid will still behave as if group.rigid() was specified.
+# integrate.nvt_rigid \b only operates on particles that belong to rigid bodies.
 #
 # integrate.nvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -885,21 +877,16 @@ class nvt_rigid(_integration_method):
               
 ## NVT integration via Brownian dynamics for rigid bodies
 #
-# integrate.bdnvt_rigid performs constant volume, fixed average temperature simulation based on a 
+# integrate.bdnvt_rigid performs constant volume, constant temperature simulation based on a
 # NVE simulation with added damping and stochastic heat bath forces.
 #
-# The total added %force \f$ \vec{F}\f$ is
+# The total added %force \f$ \vec{F}\f$ <strong>applied to each constiuent particle</strong> is
 # \f[ \vec{F} = -\gamma \cdot \vec{v} + \vec{F}_{\mathrm{rand}} \f]
 # where \f$ \vec{v} \f$ is the particle's velocity and \f$ \vec{F}_{\mathrm{rand}} \f$
 # is a random force with magnitude chosen via the fluctuation-dissipation theorem
 # to be consistent with the specified drag (\a gamma) and temperature (\a T).
 #
-# integrate.bdnvt_rigid \b only operates on particles that belong to rigid bodies. Use integrate.bdnvt on particles
-# that do not belong to rigid bodies.
-#
-# \b Limitataions:<br>
-# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
-# integrate.bdnvt_rigid will still behave as if group.rigid() was specified.
+# integrate.bdnvt_rigid \b only operates on particles that belong to rigid bodies.
 #
 # integrate.bdnvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -1001,11 +988,8 @@ class bdnvt_rigid(_integration_method):
 #
 # integrate.npt_rigid performs constant pressure, constant temperature simulations of the rigid bodies in the system.
 # The Nose-Hoover method is used from references Miller et al. (JCP 2002, 116(20)) and Kamberaj et al. (JCP 2005, 112, 224114).
-# It \b only operates on particles that belong to rigid bodies. This integrator works with systems consisting of rigid bodies.
 #
-# \b Limitataions:<br>
-# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
-# integrate.npt_rigid will still behave as if group.rigid() was specified.
+# integrate.npt_rigid \b only operates on particles that belong to rigid bodies.
 #
 # integrate.npt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
