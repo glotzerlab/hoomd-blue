@@ -33,12 +33,14 @@ fi
 	echo $(git describe) > ../deb_old_version
 
 #export the variables to set the version from git
-	export HREVISION=$(git describe | awk 'BEGIN { FS = "-" } ; {print $2}')
+    export HVERSION_BASE=$(git describe | awk 'BEGIN { FS = "-" } ; {print $1}' | cut -c2-)
+
+    export HREVISION=$(git describe | awk 'BEGIN { FS = "-" } ; {print $2}')
 #set a zero revision if HREVISION is blank
 	if [ -z "${HREVISION}" ]; then
 		HREVISION="0"
 	fi
-	export HVERSION="0.9.2."${HREVISION}
+    export HVERSION="${HVERSION_BASE}-"${HREVISION}
 	echo $HVERSION
 #set our package version in changelog
 	sed s/HVERSION/${HVERSION}/ debian/changelog -i
