@@ -213,7 +213,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    f << "<hoomd_xml version=\"1.3\">" << "\n";
+    f << "<hoomd_xml version=\"1.4\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
       << "natoms=\"" << m_pdata->getN() << "\" "
