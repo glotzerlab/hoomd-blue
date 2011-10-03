@@ -76,8 +76,8 @@ def print_status_line():
 
     # piped input from stdin doesn't provide a code line, handle the situation 
     if not code:
-    message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  <unknown code>";
-    print message;    
+        message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  <unknown code>";
+        print message;
     else:
         # build and print the message line
         # Go upwards in the source until you match the closing paren
