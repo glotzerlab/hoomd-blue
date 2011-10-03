@@ -1,16 +1,11 @@
-%global	repository	http://codeblue.engin.umich.edu/hoomd-blue/svn/
-# A tagged hoomd release version number may be specified by defining %{version}.
-# A subversion revision number may be specified by defining %{release}.
-# Otherwise %{release} is the last revision affecting trunk.
-# Note that if both version and release are specified, the latter is ignored.
-%if %{?version:1}%{!?version:0}
-%global branch	tags/hoomd-%{version}
-%global release	%(svn info %{repository}%{branch} |grep 'Last Changed Rev' |awk '{print $NF}')
-%else
-%global	branch	trunk
-%endif
+%global	repository	https://codeblue.engin.umich.edu/git/hoomd-blue
+# The git refspec to build is specified by defining %{refspec}.
+# The version number to tag the build with is %{version}.
+# Both should be specified, as we cannot determine the version until we have checked out the code
+#  - if they are not speicified, then the most recent tag is built
 %global version	%{?version}%{!?version:0.9.2}
-%global release	%{?release}%{!?release:%(svn info %{repository}%{branch} |grep 'Last Changed Rev' |awk '{print $NF}')}
+%global refspec	%{?refspec}%{!?refspec:v0.9.2}
+%global release	%{?release}%{!?release:0}
 
 # the Red Hat convention is to put 64-bit libs in lib64
 %global libsuffix	%(uname -p |sed -n 's/.*64$/64/p')
@@ -45,10 +40,15 @@ HOOMD-blue is a direct continuation of the project HOOMD, originally developed a
 rm -rf $RPM_BUILD_DIR/%{name}-%{version}
 
 %setup -T -c
-svn checkout -r %{release} %{repository}%{branch} .
+git clone %{repository} .
 if [ $? -ne 0 ]; then
   exit $?
 fi
+git checkout %{refspec}
+if [ $? -ne 0 ]; then
+  exit $?
+fi
+
 
 cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DLIB_SUFFIX=%{libsuffix} -DENABLE_EMBED_CUDA=ON -DPYTHON_SITEDIR=$RPM_BUILD_ROOT/%{sitedir} -DPYTHON_EXECUTABLE=%{python}
 
