@@ -1,5 +1,5 @@
 /*! \page page_xml_file_format XML File Format
-<center><b>Version 1.3</b></center>
+<center><b>Version 1.4</b></center>
 
 \section sec_xml_overview Overview
 
@@ -11,7 +11,7 @@ XML is that it is also easily machine readable and commonly used, so many parser
 The basic outline of a HOOMD-blue xml file looks like this
 \code
 <?xml version="1.0" encoding="UTF-8"?>
-<hoomd_xml version="1.3">
+<hoomd_xml version="1.4">
 <!-- this is a comment, you can put as many of these in the file 
 	wherever you wish to. -->
 <configuration time_step="0">
@@ -27,7 +27,7 @@ The first line of the file
 is just something that \b must be there to identify that this is an XML file.
 
 \code
-<hoomd_xml version="1.3">
+<hoomd_xml version="1.4">
 	<!-- contents of root node -->
 </hoomd_xml>
 \endcode
@@ -43,7 +43,7 @@ reader will skip nodes that were not available at that time.
 
 Inside the root node is the configuration node.
 \code
-<configuration time_step="0" dimensions="3">
+<configuration time_step="0" dimensions="3" vizsigma="1.5">
 	<!-- data nodes go here -->
 </configuration>
 \endcode
@@ -53,10 +53,14 @@ by \link hoomd_script.init.read_xml init.read_xml\endlink. In files written by h
 will be set to the value of the time step when the system snapshot was taken.
 
 (Version 1.2 and newer)<br>
-\c dimensions="3" specifies the dimensionality of the system. Valid values are 2 and 3, the
+\c dimensions="#" specifies the dimensionality of the system. Valid values are 2 and 3, the
 default is 3 when \c dimensions is not specified. Setting dimensions="2" does \b NOT change anything else in the file.
 For example, you still must specify 3 components for position, velocity, et cetera, just set the 3rd component to 0
 for 2D simulations. Specify a small, but non-zero z-dimension for the box when specifying \c dimensions="2".
+
+(Version 1.4 and newer)<br>
+\c vizsigma="#" specifies a scaling factor for the radius of particles. It is used by VMD when no \c diameter node
+is present. It is ignored when read by \link hoomd_script.init.read_xml init.read_xml\endlink .
 
 <b>A note on case-sensitivity:</b> 
  - All node names and attributes are in all lower case. As XML is a case
@@ -310,7 +314,7 @@ particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink wil
 The \<body\> node specifies the rigid body (if any) in which each particles belongs.<br>
 \link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
 \link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
-Version: 1.3 and newer
+Version: 1.4 and newer
 
 \b Example:
 \code
@@ -339,7 +343,7 @@ particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink wil
 The \<orientation\> node specifies the orientation of each particle as a quaternion.<br>
 \link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
 \link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
-Version: 1.3 and newer
+Version: 1.4 and newer
 
 \b Example:
 \code
@@ -363,7 +367,7 @@ particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink wil
 The \<moment_inertia\> node specifies the moment of inertia of each particle as a tensor.<br>
 \link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
 \link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
-Version: 1.3 and newer
+Version: 1.4 and newer
 
 \b Example:
 \code
