@@ -45,6 +45,9 @@ class data_access_tests (unittest.TestCase):
             t = p.mass;
             t = p.diameter;
             t = p.type;
+            t = p.net_force;
+            t = p.net_energy;
+            t = p.orientation;
 
         # test setting properties for just one particle
         self.s.particles[0].position = (1,2,3);
@@ -74,6 +77,13 @@ class data_access_tests (unittest.TestCase):
         self.s.particles[0].diameter= 8.7;
         self.assertAlmostEqual(8.7, self.s.particles[0].diameter, 5)
     
+        self.s.particles[0].orientation = (1,2,3,5);
+        t = self.s.particles[0].orientation;
+        self.assertAlmostEqual(1, t[0], 5)
+        self.assertAlmostEqual(2, t[1], 5)
+        self.assertAlmostEqual(3, t[2], 5)
+        self.assertAlmostEqual(5, t[3], 5)
+
     def tearDown(self):
         del self.s
         init.reset();

@@ -79,7 +79,8 @@ HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), 
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), 
         m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false), 
-        m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_charge(false)
+        m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_body(false),
+        m_output_charge(false), m_output_orientation(false), m_vizsigma_set(false)
     {
     }
 
@@ -160,12 +161,32 @@ void HOOMDDumpWriter::setOutputAccel(bool enable)
     {
     m_output_accel = enable;
     }
+/*! \param enable Set to true to output body to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputBody(bool enable)
+    {
+    m_output_body = enable;
+    }
 
 /*! \param enable Set to true to output body to the XML file on the next call to analyze()
 */
 void HOOMDDumpWriter::setOutputCharge(bool enable)
     {
     m_output_charge = enable;
+    }
+
+/*! \param enable Set to true to output orientation to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputOrientation(bool enable)
+    {
+    m_output_orientation = enable;
+    }
+
+/*! \param enable Set to true to output moment_inertia to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputMomentInertia(bool enable)
+    {
+    m_output_moment_inertia = enable;
     }
 
 /*! \param fname File name to write
@@ -192,11 +213,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    f << "<hoomd_xml version=\"1.3\">" << "\n";
+    f << "<hoomd_xml version=\"1.4\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
-      << "natoms=\"" << m_pdata->getN() << "\" "
-      << ">" << "\n";
+      << "natoms=\"" << m_pdata->getN() << "\" ";
+    if (m_vizsigma_set)
+        f << "vizsigma=\"" << m_vizsigma << "\" ";
+    f << ">" << "\n";
     f << "<box " << "lx=\"" << Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << "\n";
     
     f.precision(12);
@@ -359,6 +382,28 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             }
         f <<"</type>" << "\n";
         }
+    
+    // If the body flag is true output the bodies of all particles to an xml file
+    if  (m_output_body)
+        {
+        f <<"<body num=\"" << m_pdata->getN() << "\">" << "\n";
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            unsigned int i;
+            i = arrays.rtag[j];
+            
+            unsigned int body;
+            int out;
+            body = arrays.body[i];
+            if (body == NO_BODY)
+                out = -1;
+            else
+                out = (int)body;
+            
+            f << out << "\n";
+            }
+        f <<"</body>" << "\n";
+        }
         
     // if the bond flag is true, output the bonds to the xml file
     if (m_output_bond)
@@ -465,6 +510,52 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f <<"</charge>" << "\n";
         }
 
+    // if the orientation flag is set, write out the orientation quaternion to the XML file
+    if (m_output_orientation)
+        {
+        f << "<orientation num=\"" << m_pdata->getN() << "\">" << "\n";
+        
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            // use the rtag data to output the particles in the order they were read in
+            int i;
+            i= arrays.rtag[j];
+            
+            Scalar4 orientation = h_orientation.data[i];
+            f << orientation.x << " " << orientation.y << " " << orientation.z << " " << orientation.w << "\n";
+            if (!f.good())
+                {
+                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
+            }
+        f << "</orientation>" << "\n";
+        }
+
+    // if the moment_inertia flag is set, write out the orientation quaternion to the XML file
+    if (m_output_moment_inertia)
+        {
+        f << "<moment_inertia num=\"" << m_pdata->getN() << "\">" << "\n";
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            {
+            // inertia tensors are stored by tag
+            InertiaTensor I = m_pdata->getInertiaTensor(i);
+            for (unsigned int c = 0; c < 5; c++)
+                f << I.components[c] << " ";
+            f << I.components[5] << "\n";
+            
+            if (!f.good())
+                {
+                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+                throw runtime_error("Error writting HOOMD dump file");
+                }
+            }
+        f << "</moment_inertia>" << "\n";
+        }
+
     f << "</configuration>" << "\n";
     f << "</hoomd_xml>" << "\n";
     
@@ -508,6 +599,7 @@ void export_HOOMDDumpWriter()
     .def("setOutputMass", &HOOMDDumpWriter::setOutputMass)
     .def("setOutputDiameter", &HOOMDDumpWriter::setOutputDiameter)
     .def("setOutputType", &HOOMDDumpWriter::setOutputType)
+    .def("setOutputBody", &HOOMDDumpWriter::setOutputBody)
     .def("setOutputBond", &HOOMDDumpWriter::setOutputBond)
     .def("setOutputAngle", &HOOMDDumpWriter::setOutputAngle)
     .def("setOutputDihedral", &HOOMDDumpWriter::setOutputDihedral)
@@ -515,6 +607,8 @@ void export_HOOMDDumpWriter()
     .def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
     .def("setOutputAccel", &HOOMDDumpWriter::setOutputAccel)
     .def("setOutputCharge", &HOOMDDumpWriter::setOutputCharge)
+    .def("setOutputOrientation", &HOOMDDumpWriter::setOutputOrientation)
+    .def("setVizSigma", &HOOMDDumpWriter::setVizSigma)
     .def("writeFile", &HOOMDDumpWriter::writeFile)
     ;
     }

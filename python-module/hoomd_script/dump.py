@@ -115,13 +115,15 @@ class xml(analyze._analyzer):
     ## Change xml write parameters
     #
     # \param all (if True) Enables the output of all optional parameters below
-    # \param vis (if True) Enables options commonly used for visualization
+    # \param vis (if True) Enables options commonly used for visualization.
+    # - Specifically, vis=True sets position, mass, diameter, type, body, bond, angle, dihedral, improper, charge
     # \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
     # \param image (if set) Set to True/False to enable/disable the output of particle images in the xml file
     # \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
     # \param mass (if set) Set to True/False to enable/disable the output of particle masses in the xml file
     # \param diameter (if set) Set to True/False to enable/disable the output of particle diameters in the xml file
     # \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
+    # \param body (if set) Set to True/False to enable/disable the output of the particle bodies in the xml file
     # \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
     # \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
     # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
@@ -129,7 +131,8 @@ class xml(analyze._analyzer):
     # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
     # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml 
     # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml 
-    # file
+    # \param orientation (if set) Set to True/False to enable/disable the output of paritle orientations in the xml file
+    # \param vizsigma (if set) Set to a floating point value to include as vizsigma in the xml file
     #
     # Using set_params() requires that the %dump was saved in a variable when it was specified.
     # \code
@@ -154,22 +157,25 @@ class xml(analyze._analyzer):
                    mass=None,
                    diameter=None,
                    type=None,
+                   body=None,
                    wall=None,
                    bond=None,
                    angle=None,
                    dihedral=None,
                    improper=None,
                    acceleration=None,
-                   charge=None):
+                   charge=None,
+                   orientation=None,
+                   vizsigma=None):
         util.print_status_line();
         self.check_initialization();
         
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
-            acceleration = charge = True;
+            acceleration = charge = body = orientation = True;
 
         if vis:
-            position = mass = diameter = type = bond = angle = dihedral = improper = charge = True;
+            position = mass = diameter = type = body = bond = angle = dihedral = improper = charge = True;
 
         if position is not None:
             self.cpp_analyzer.setOutputPosition(position);
@@ -188,7 +194,10 @@ class xml(analyze._analyzer):
             
         if type is not None:
             self.cpp_analyzer.setOutputType(type);
-            
+        
+        if body is not None:
+            self.cpp_analyzer.setOutputBody(body);
+        
         if wall is not None:
             self.cpp_analyzer.setOutputWall(wall);
             
@@ -209,8 +218,14 @@ class xml(analyze._analyzer):
             
         if charge is not None:
             self.cpp_analyzer.setOutputCharge(charge);
-    
-    ## Write a file at the current time step
+        
+        if orientation is not None:
+            self.cpp_analyzer.setOutputOrientation(orientation);
+
+        if vizsigma is not None:
+            self.cpp_analyzer.setVizSigma(vizsigma);
+        
+   ## Write a file at the current time step
     #
     # \param filename File name to write to
     #
@@ -444,8 +459,12 @@ class dcd(analyze._analyzer):
     # \param group Particle group to output to the dcd file. If left as None, all particles will be written
     # \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
     #        file \a filename will be overwritten.
-    # \param wrap When True, (the default) wrapped particle coordinates are written. When False, particles will be
-    #        unwrapped into their current box image before writing to the dcd file.
+    # \param unwrap_full When False, (the default) particle coordinates are always written inside the simulation box.
+    #        When True, particles will be unwrapped into their current box image before writing to the dcd file.
+    # \param unwrap_rigid When False, (the default) individual particles are written inside the simulation box which
+    #        breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
+    #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
+    #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
     # 
     # \b Examples:
     # \code
@@ -460,7 +479,7 @@ class dcd(analyze._analyzer):
     #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group=None, overwrite=False, wrap=True):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False):
         util.print_status_line();
         
         # initialize base class
@@ -477,7 +496,8 @@ class dcd(analyze._analyzer):
             util._disable_status_lines = False;
             
         self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
-        self.cpp_analyzer.setWrap(wrap);
+        self.cpp_analyzer.setUnwrapFull(unwrap_full);
+        self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.setupAnalyzer(period);
     
     def enable(self):

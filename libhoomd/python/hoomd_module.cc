@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
+#include "RigidData.h"
 #include "SystemDefinition.h"
 #include "BondData.h"
 #include "AngleData.h"
@@ -72,6 +73,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
+#include "ConstExternalFieldDipoleForceCompute.h"
 #include "HarmonicBondForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
@@ -103,9 +105,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVT.h"
 #include "TwoStepBDNVT.h"
 #include "TwoStepNPT.h"
+#include "TwoStepNVERigid.h" 
+#include "TwoStepNVTRigid.h"
+#include "TwoStepNPTRigid.h"  
+#include "TwoStepBDNVTRigid.h" 
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
 #include "FIREEnergyMinimizer.h"
+#include "FIREEnergyMinimizerRigid.h"
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
 #include "Enforce2DUpdater.h"
@@ -128,9 +135,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTGPU.h"
+#include "TwoStepNVERigidGPU.h" 
+#include "TwoStepNVTRigidGPU.h" 
+#include "TwoStepNPTRigidGPU.h" 
+#include "TwoStepBDNVTRigidGPU.h" 
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
 #include "CGCMMForceComputeGPU.h"
+//#include "ConstExternalFieldDipoleForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
@@ -139,6 +151,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMAngleForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
+#include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
@@ -303,6 +316,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BoxDim();
     export_ParticleDataInitializer();
     export_ParticleData();
+    export_RigidData();
     export_ExecutionConfiguration();
     export_BondData();
     export_SystemDefinition();
@@ -323,6 +337,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
+    export_ConstExternalFieldDipoleForceCompute();
     export_HarmonicBondForceCompute();
     export_HarmonicAngleForceCompute();
     export_HarmonicDihedralForceCompute();
@@ -373,6 +388,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_FENEBondForceComputeGPU();
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
+//    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
 #endif
     
@@ -401,15 +417,25 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVT();
     export_TwoStepBDNVT();
     export_TwoStepNPT();
+    export_TwoStepNVERigid();
+    export_TwoStepNVTRigid();
+    export_TwoStepNPTRigid();
+    export_TwoStepBDNVTRigid();
     export_Enforce2DUpdater();
     export_FIREEnergyMinimizer();
+    export_FIREEnergyMinimizerRigid();        
 #ifdef ENABLE_CUDA
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();
     export_TwoStepNPTGPU();
+    export_TwoStepNVERigidGPU();
+    export_TwoStepNVTRigidGPU();
+    export_TwoStepNPTRigidGPU();
+    export_TwoStepBDNVTRigidGPU();
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
+    export_FIREEnergyMinimizerRigidGPU();          
 #endif
     
     // system

@@ -86,30 +86,76 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     Scalar sum_px = 0.0;
     Scalar sum_py = 0.0;
     Scalar sum_pz = 0.0;
+    unsigned int n = 0;
     
+    // add up the momentum of every free particle
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
-        Scalar mass = arrays.mass[i];
-        sum_px += mass*arrays.vx[i];
-        sum_py += mass*arrays.vy[i];
-        sum_pz += mass*arrays.vz[i];
+        if (arrays.body[i] == NO_BODY)
+            {
+            Scalar mass = arrays.mass[i];
+            sum_px += mass*arrays.vx[i];
+            sum_py += mass*arrays.vy[i];
+            sum_pz += mass*arrays.vz[i];
+            n++;
+            }
         }
+
+    // add up the linear momentum of all bodies
+    boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+    unsigned int n_bodies = rigid_data->getNumBodies();
+    if (n_bodies > 0)
+        {
+        ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_body_mass(rigid_data->getBodyMass(), access_location::host, access_mode::read);
         
+        for (unsigned int body = 0; body < n_bodies; body++)
+            {
+            Scalar mass = h_body_mass.data[body];
+            Scalar4 vel = h_body_vel.data[body];
+            sum_px += mass * vel.x;
+            sum_py += mass * vel.y;
+            sum_pz += mass * vel.z;
+            n++;
+            }
+        }
+    
     // calculate the average
-    Scalar avg_px = sum_px / Scalar(arrays.nparticles);
-    Scalar avg_py = sum_py / Scalar(arrays.nparticles);
-    Scalar avg_pz = sum_pz / Scalar(arrays.nparticles);
+    Scalar avg_px = sum_px / Scalar(n);
+    Scalar avg_py = sum_py / Scalar(n);
+    Scalar avg_pz = sum_pz / Scalar(n);
     
-    // subtract this momentum from every partcile
+    // subtract this momentum from every free partcile
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
-        Scalar mass = arrays.mass[i];
-        arrays.vx[i] -= avg_px/mass;
-        arrays.vy[i] -= avg_py/mass;
-        arrays.vz[i] -= avg_pz/mass;
+        if (arrays.body[i] == NO_BODY)
+            {
+            Scalar mass = arrays.mass[i];
+            arrays.vx[i] -= avg_px/mass;
+            arrays.vy[i] -= avg_py/mass;
+            arrays.vz[i] -= avg_pz/mass;
+            }
         }
         
+    // subtract this momentum from every rigid body
+    if (n_bodies > 0)
+        {
+        ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_body_mass(rigid_data->getBodyMass(), access_location::host, access_mode::read);
+        
+        for (unsigned int body = 0; body < n_bodies; body++)
+            {
+            Scalar mass = h_body_mass.data[body];
+            h_body_vel.data[body].x -= avg_px/mass;
+            h_body_vel.data[body].y -= avg_py/mass;
+            h_body_vel.data[body].z -= avg_pz/mass;
+            }
+        }
+
     m_pdata->release();
+    
+    // update the body particle velocities to reflect the new body velocities
+    rigid_data->setRV(false);
     
     if (m_prof) m_prof->pop();
     }

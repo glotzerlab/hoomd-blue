@@ -133,3 +133,4 @@ cudaError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
     return gpu_compute_pair_forces<EvaluatorPairDPDLJThermo>(args,
                                                            d_params);
     }
+

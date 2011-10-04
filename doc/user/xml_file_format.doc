@@ -1,5 +1,5 @@
 /*! \page page_xml_file_format XML File Format
-<center><b>Version 1.3</b></center>
+<center><b>Version 1.4</b></center>
 
 \section sec_xml_overview Overview
 
@@ -11,7 +11,7 @@ XML is that it is also easily machine readable and commonly used, so many parser
 The basic outline of a HOOMD-blue xml file looks like this
 \code
 <?xml version="1.0" encoding="UTF-8"?>
-<hoomd_xml version="1.2">
+<hoomd_xml version="1.4">
 <!-- this is a comment, you can put as many of these in the file 
 	wherever you wish to. -->
 <configuration time_step="0">
@@ -27,7 +27,7 @@ The first line of the file
 is just something that \b must be there to identify that this is an XML file.
 
 \code
-<hoomd_xml version="1.3">
+<hoomd_xml version="1.4">
 	<!-- contents of root node -->
 </hoomd_xml>
 \endcode
@@ -43,7 +43,7 @@ reader will skip nodes that were not available at that time.
 
 Inside the root node is the configuration node.
 \code
-<configuration time_step="0" dimensions="3">
+<configuration time_step="0" dimensions="3" vizsigma="1.5">
 	<!-- data nodes go here -->
 </configuration>
 \endcode
@@ -53,10 +53,14 @@ by \link hoomd_script.init.read_xml init.read_xml\endlink. In files written by h
 will be set to the value of the time step when the system snapshot was taken.
 
 (Version 1.2 and newer)<br>
-\c dimensions="3" specifies the dimensionality of the system. Valid values are 2 and 3, the
+\c dimensions="#" specifies the dimensionality of the system. Valid values are 2 and 3, the
 default is 3 when \c dimensions is not specified. Setting dimensions="2" does \b NOT change anything else in the file.
 For example, you still must specify 3 components for position, velocity, et cetera, just set the 3rd component to 0
 for 2D simulations. Specify a small, but non-zero z-dimension for the box when specifying \c dimensions="2".
+
+(Version 1.4 and newer)<br>
+\c vizsigma="#" specifies a scaling factor for the radius of particles. It is used by VMD when no \c diameter node
+is present. It is ignored when read by \link hoomd_script.init.read_xml init.read_xml\endlink .
 
 <b>A note on case-sensitivity:</b> 
  - All node names and attributes are in all lower case. As XML is a case
@@ -76,6 +80,9 @@ A number of data nodes can be included inside the configuration node <b>in any o
  - \b diameter (\ref sec_xml_diameter)
  - \b charge (\ref sec_xml_charge)
  - \b type (\ref sec_xml_type)
+ - \b body (\ref sec_xml_body)
+ - \b orientation (\ref sec_xml_orientation)
+ - \b moment_inertia (\ref sec_xml_moment_inertia)
  - \b bond (\ref sec_xml_bond)
  - \b angle (\ref sec_xml_angle)
  - \b dihedral (\ref sec_xml_dihedral)
@@ -300,6 +307,86 @@ force, the type strings given are simply matched up to those specified in the xm
 
 If specifying both position and type in an input file, be certain to include the same number of
 particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
+
+<hr>
+
+\section sec_xml_body Rigid body assignments
+The \<body\> node specifies the rigid body (if any) in which each particles belongs.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
+Version: 1.4 and newer
+
+\b Example:
+\code
+<body>
+-1
+0
+0
+</body>
+\endcode
+\b Attributes:
+ - \a num (\b optional) number of particles coming in the node content. This attribute is written by
+	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
+
+The format of the node data is similar to that of \<position\> (see \ref sec_xml_position),
+except that only one integer is specified for each particle. Set a value of -1 for those particles that are not part
+of any rigid body. For all of the particles contained within each rigid body, set the same integer value for each
+of them. The value assigned also serves as the index of the rigid body in an array, so all rigid bodies must be numberd
+from 0 up to the number of rigid bodies minus one.
+
+When specifying both position and body in an input file, be certain to include the same number of
+particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
+
+<hr>
+
+\section sec_xml_orientation Particle orientation
+The \<orientation\> node specifies the orientation of each particle as a quaternion.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
+Version: 1.4 and newer
+
+\b Example:
+\code
+<orientation>
+1 0 0 0
+0.0333   -0.0667    0.1000    0.1333
+</orientation>
+\endcode
+\b Attributes:
+ - \a num (\b optional) number of particles coming in the node content. This attribute is written by
+	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
+
+The format of the node data is similar to that of \<position\> (see \ref sec_xml_position),
+except that four scalar values are specified for each particle. Each group of four values represents a quaternion,
+where (1 0 0 0) is the unit quaternion.
+
+When specifying both position and orientation in an input file, be certain to include the same number of
+particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
+
+\section sec_xml_moment_inertia Particle moment of inertia
+The \<moment_inertia\> node specifies the moment of inertia of each particle as a tensor.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
+Version: 1.4 and newer
+
+\b Example:
+\code
+<moment_inertia>
+1 0 0 2 0 3
+1 2 3 4 5 6
+</moment_inertia>
+\endcode
+\b Attributes:
+ - \a num (\b optional) number of particles coming in the node content. This attribute is written by
+	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
+
+The format of the node data is similar to that of \<position\> (see \ref sec_xml_position),
+except that only six scalar values are specified for each particle. Each group of six values represents a moment
+of inertia tensor elements (in order) \f$I_{xx}\f$ \f$I_{xy}\f$ \f$I_{xz}\f$ \f$I_{yy}\f$ \f$I_{yz}\f$ \f$I_{zz}\f$.
+
+When specifying both position and moment_inertia in an input file, be certain to include the same number of
+particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
+
 
 <hr>
 

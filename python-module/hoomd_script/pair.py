@@ -406,7 +406,7 @@ class nlist:
     def update_exclusions_defaults(self):
         if not self.is_exclusion_overridden:
             util._disable_status_lines = True;
-            self.reset_exclusions(exclusions=['bond']);
+            self.reset_exclusions(exclusions=['body', 'bond']);
             util._disable_status_lines = False;
     
     ## Change neighbor list parameters
@@ -479,7 +479,10 @@ class nlist:
     #
     # \param exclusions Select which interactions should be excluded from the %pair interaction calculation.
     #
-    # By default, only directly bonded particles are excluded from short range %pair interactions.
+    # By default, the following are excluded from short range %pair interactions.
+    # - Directly bonded particles
+    # - Particles that are in the same rigid body
+    #
     # reset_exclusions allows that setting to be overridden to add other exclusions or to remove
     # the exclusion for bonded particles.
     #
@@ -1458,6 +1461,7 @@ class table(force._force):
     ## Specify the Tabulated %pair %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
+    # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1478,14 +1482,14 @@ class table(force._force):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, width, name=None):
+    def __init__(self, width, r_cut=0, name=None):
         util.print_status_line();
         
         # initialize the base class
         force._force.__init__(self, name);
 
         # update the neighbor list with a dummy 0 r_cut. The r_cut will be properly updated before the first run()
-        neighbor_list = _update_global_nlist(0);
+        neighbor_list = _update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
@@ -1658,6 +1662,9 @@ class morse(pair):
 #
 # The command pair.dpd specifies that a DPD %pair %force and thermostat should be added to every
 # non-bonded particle %pair in the simulation.
+#
+# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Please cite it
+# if you utilize the DPD functionality in your work.
 #
 # \f{eqnarray*}  
 # F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
@@ -1958,6 +1965,9 @@ class eam(force._force):
 #
 # The command pair.dpdlj specifies that a DPD thermostat and a Lennard Jones (LJ) %pair %force should be added to every
 # non-bonded particle %pair in the simulation.
+#
+# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Please cite it
+# if you utilize the DPD functionality in your work.
 #
 # \f{eqnarray*}  
 # F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\

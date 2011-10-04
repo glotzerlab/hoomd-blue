@@ -48,6 +48,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/configure.ocelot ${CMAKE_CURRENT_BINA
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
     test_cell_list
+    test_const_external_field_dipole
     test_index1d
     test_molfile
     test_gpu_array
@@ -87,7 +88,8 @@ set(TEST_LIST
     set(TEST_LIST ${TEST_LIST}
     test_bdnvt_integrator
     test_npt_integrator
-    test_dpd_integrator)
+    test_dpd_integrator
+    test_bd_rigid_updater)
 
 foreach (CUR_TEST ${TEST_LIST})
     # add and link the unit test executable

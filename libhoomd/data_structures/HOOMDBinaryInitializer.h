@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
+#include "RigidData.h"
 #include "IntegratorData.h"
 #include "xmlParser.h"
 
@@ -139,6 +140,9 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         //! Initialize the improper data
         virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const;
         
+        //! Initialize the rigid data
+        virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const;
+        
         //! Initialize the integrator data
         virtual void initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data ) const;
 
@@ -174,6 +178,8 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         std::vector< Angle > m_angles;              //!< Angle read in from the file
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
         std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
+        std::vector< unsigned int > m_body_array;   //!< Body flag of the particles loaded
+        
         unsigned int m_timestep;                    //!< The time stamp
         unsigned int m_num_dimensions;              //!< Number of dimensions
         std::vector<IntegratorVariables> m_integrator_variables; //!< Integrator variables read in from file
@@ -184,6 +190,10 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
         
+        std::vector< Scalar4 > m_com;                    //!< n_bodies length 1D array of center of mass positions
+        std::vector< Scalar4 > m_vel;                    //!< n_bodies length 1D array of body velocities
+        std::vector< Scalar4 > m_angmom;                 //!< n_bodies length 1D array of angular momenta in the space frame
+        std::vector< int3 > m_body_image;                //!< n_bodies length 1D array of the body image
     };
 
 //! Exports HOOMDBinaryInitializer to python

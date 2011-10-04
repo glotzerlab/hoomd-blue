@@ -62,6 +62,7 @@ struct gpu_force_list
     //! Initializes to NULL
     gpu_force_list() 
         : f0(NULL), f1(NULL), f2(NULL), f3(NULL), f4(NULL), f5(NULL),
+          t0(NULL), t1(NULL), t2(NULL), t3(NULL), t4(NULL), t5(NULL),
           v0(NULL), v1(NULL), v2(NULL), v3(NULL), v4(NULL), v5(NULL)
           {
           }
@@ -72,17 +73,26 @@ struct gpu_force_list
     float4 *f3; //!< Pointer to force array 3
     float4 *f4; //!< Pointer to force array 4
     float4 *f5; //!< Pointer to force array 5
+    
+    float4 *t0; //!< Pointer to torque array 0
+    float4 *t1; //!< Pointer to torque array 1
+    float4 *t2; //!< Pointer to torque array 2
+    float4 *t3; //!< Pointer to torque array 3
+    float4 *t4; //!< Pointer to torque array 4
+    float4 *t5; //!< Pointer to torque array 5
+
     float *v0;  //!< Pointer to virial array 0
     float *v1;  //!< Pointer to virial array 1
     float *v2;  //!< Pointer to virial array 2
     float *v3;  //!< Pointer to virial array 3
     float *v4;  //!< Pointer to virial array 4
     float *v5;  //!< Pointer to virial array 5
-    };
+ };
 
-//! Sums up the net force and virial on the GPU for Integrator
+//! Driver for gpu_integrator_sum_net_force_kernel()
 cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float *d_net_virial,
+                                         float4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
                                          bool clear);

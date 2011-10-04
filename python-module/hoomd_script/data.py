@@ -166,6 +166,30 @@ import globals
 # \endcode
 #
 # <hr>
+# <h3>Rigid Body Data</h3>
+# Rigid Body data can be accessed via the body_data_proxy.  Here are examples
+#
+#\code
+#
+# >>> b = system.bodies[0]
+# >>> print b
+#num_particles    : 5
+#mass             : 5.0
+# COM              : (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
+# velocity         : (0.0, 0.0, 0.0)
+# orientation      : (0.9244732856750488, -0.3788720965385437, -0.029276784509420395, 0.0307924821972847)
+# angular_momentum (space frame) : (0.0, 0.0, 0.0)
+# moment of inertia: (10.000000953674316, 10.0, 0.0)
+# particle tags    : [0, 1, 2, 3, 4]
+# particle disp    : [[-3.725290298461914e-09, -4.172325134277344e-07, 2.0], [-2.421438694000244e-08, -2.086162567138672e-07, 0.9999998211860657], [-2.6206091519043184e-08, -2.073889504572435e-09, -3.361484459674102e-07], [-5.029141902923584e-08, 2.682209014892578e-07, -1.0000004768371582], [-3.3527612686157227e-08, -2.980232238769531e-07, -2.0]]
+# >>> print b.COM
+# (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
+# >>> b.particle_disp = [[0,0,0], [0,0,0], [0,0,0.0], [0,0,0], [0,0,0]]
+#
+#\endcode
+#
+#
+# <hr>
 # <h3>Forces</h3>
 # Forces can be accessed in a similar way. 
 # \code
@@ -240,8 +264,9 @@ class system_data:
     def __init__(self, sysdef):
         self.sysdef = sysdef;
         self.particles = particle_data(sysdef.getParticleData());
-        # Added to try to add defining Bond_data  CLP
+        # Added to try to add defining Bond_data  
         self.bonds = bond_data(sysdef.getBondData());
+        self.bodies = body_data(sysdef.getRigidData());
 
     ## \var sysdef
     # \internal
@@ -362,6 +387,10 @@ class particle_data:
 # - \c mass         : A single float (in mass units)
 # - \c diameter     : A single float (in distance units)
 # - \c type         : A string naming the type
+# - \c body         : Rigid body id integer (-1 for free particles)
+# - \c orientation  : Orientation of anisotropic particle (quaternion)
+# - \c net_force    : Net force on particle (x, y, z) (in force units)
+# - \c net_energy   : Net contribution of particle to the potential energy (in energy units)
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
@@ -390,6 +419,10 @@ class particle_data_proxy:
         result += "diameter    : " + str(self.diameter) + "\n";
         result += "type        : " + str(self.type) + "\n";
         result += "typeid      : " + str(self.typeid) + "\n";
+        result += "body        : " + str(self.body) + "\n";
+        result += "orientation : " + str(self.orientation) + "\n";
+        result += "net_force   : " + str(self.net_force) + "\n";
+        result += "net_energy  : " + str(self.net_energy) + "\n";
         return result;
     
     ## \internal
@@ -415,9 +448,20 @@ class particle_data_proxy:
             return self.pdata.getDiameter(self.tag);
         if name == "typeid":
             return self.pdata.getType(self.tag);
+        if name == "body":
+            return self.pdata.getBody(self.tag);
         if name == "type":
             typeid = self.pdata.getType(self.tag);
             return self.pdata.getNameByType(typeid);
+        if name == "orientation":
+            o = self.pdata.getOrientation(self.tag);
+            return (o.x, o.y, o.z, o.w);
+        if name == "net_force":
+            f = self.pdata.getPNetForce(self.tag);
+            return (f.x, f.y, f.z);
+        if name == "net_energy":
+            f = self.pdata.getPNetForce(self.tag);
+            return f.w;
         
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
@@ -455,6 +499,9 @@ class particle_data_proxy:
         if name == "diameter":
             self.pdata.setDiameter(self.tag, value);
             return;
+        if name == "body":
+            self.pdata.setBody(self.tag, value);
+            return;
         if name == "type":
             typeid = self.pdata.getTypeByName(value);
             self.pdata.setType(self.tag, typeid);
@@ -463,6 +510,18 @@ class particle_data_proxy:
             raise AttributeError;
         if name == "acceleration":
             raise AttributeError;
+        if name == "orientation":
+            o = hoomd.Scalar4();
+            o.x = int(value[0]);
+            o.y = int(value[1]);
+            o.z = int(value[2]);
+            o.w = int(value[3]);
+            self.pdata.setOrientation(self.tag, o);
+            return;
+        if name == "net_force":
+            raise AttributeError;
+        if name == "net_energy":
+            raise AttributeError;
  
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
@@ -470,7 +529,7 @@ class particle_data_proxy:
 ## \internal
 # Access force data
 #
-# particle_data provides access to the per-particle data of all particles in the system.
+# force_data provides access to the per-particle data of all forces in the system.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # force_data, documented by example.
 #
@@ -724,6 +783,223 @@ class bond_data_proxy:
         if name == "typeid":
             raise AttributeError;
  
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
+
+
+
+## Access body data
+#
+# body_data provides access to the per-body data of all bodies in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# body_data, documented by example.
+#
+class body_data:
+    ## \internal
+    # \brief bond_data iterator
+    class body_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+            
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+    
+    ## \internal
+    # \brief create a body_data
+    #
+    # \param bdata BodyData to connect
+    def __init__(self, bdata):
+        self.bdata = bdata;
+     
+    # \brief updates the v and x positions of a rigid body
+    # \note the second arguement is dt, but the value should not matter as long as not zero       
+    def updateRV(self):
+        self.bdata.setRV(True);
+   
+    ## \var bdata
+    # \internal
+    # \brief BodyData to which this instance is connected
+
+    ## \internal
+    # \brief Get a body_proxy reference to the body with body index \a tag
+    # \param tag Body tag to access
+    def __getitem__(self, tag):
+        if tag >= len(self) or tag < 0:
+            raise IndexError;
+        return body_data_proxy(self.bdata, tag);
+    
+    ## \internal
+    # \brief Set a body's properties
+    # \param tag Body tag to set
+    # \param p Value containing properties to set
+    def __setitem__(self, tag, p):
+        raise RuntimeError('__setitem__ not implemented');
+    
+    ## \internal
+    # \brief Get the number of bodies
+    def __len__(self):
+        return self.bdata.getNumBodies();
+    
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Body Data for %d bodies" % (self.bdata.getNumBodies());
+        return result
+    
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return body_data.body_data_iterator(self);
+        
+## Access a single body via a proxy
+#
+# body_data_proxy provides access to all of the properties of a single bond in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# body_data_proxy, documented by example.
+#
+# The following attributes are read only:
+# - \c num_particles : The number of particles (or interaction sites) composing the body
+# - \c particle_tags : the tags of the particles (or interaction sites) composing the body
+#
+# The following attributes can be both read and set
+# - \c mass          : The mass of the body
+# - \c COM           : The Center of Mass position of the body
+# - \c velocity      : The velocity vector of the center of mass of the body
+# - \c orientation   : The orientation of the body (quaternion)
+# - \c angular momentum : The angular momentum of the body in the space frame
+# - \c moment of inertia : the principle components of the moment of inertia
+# - \c particle displacements : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
+# - \c net_force     : Net force acting on the body (x, y, z) (in force units)
+# - \c net_torque    : Net torque acting on the body (x, y, z) (in units of force * distance)
+#
+class body_data_proxy:
+    ## \internal
+    # \brief create a body_data_proxy
+    #
+    # \param bdata RigidData to which this proxy belongs
+    # \param tag tag of this body in \a bdata
+    def __init__(self, bdata, tag):
+        self.bdata = bdata;
+        self.tag = tag;
+    
+    ## \internal
+    # \brief Get an informal string representing the object 
+    def __str__(self):
+        result = "";
+        result += "num_particles    : " + str(self.num_particles) + "\n"
+        result += "mass             : " + str(self.mass) + "\n"
+        result += "COM              : " + str(self.COM) + "\n"
+        result += "velocity         : " + str(self.velocity) + "\n"
+        result += "orientation      : " + str(self.orientation) + "\n"
+        result += "angular_momentum (space frame) : " + str(self.angular_momentum) + "\n"
+        result += "moment of inertia: " + str(self.moment_inertia) + "\n"
+        result += "particle tags    : " + str(self.particle_tags) + "\n"
+        result += "particle disp    : " + str(self.particle_disp) + "\n"
+        result += "net force        : " + str(self.net_force) + "\n"
+        result += "net torque       : " + str(self.net_torque) + "\n"
+                 
+        return result;
+    
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):        
+        if name == "COM":
+            COM = self.bdata.getBodyCOM(self.tag);
+            return (COM.x, COM.y, COM.z);
+        if name == "velocity":
+            velocity = self.bdata.getBodyVel(self.tag);
+            return (velocity.x, velocity.y, velocity.z);            
+        if name == "orientation":
+            orientation = self.bdata.getBodyOrientation(self.tag);
+            return (orientation.x, orientation.y, orientation.z, orientation.w);  
+        if name == "angular_momentum":
+            angular_momentum = self.bdata.getBodyAngMom(self.tag);
+            return (angular_momentum.x, angular_momentum.y, angular_momentum.z);
+        if name == "num_particles":
+            num_particles = self.bdata.getBodyNSize(self.tag);
+            return num_particles;    
+        if name == "mass":
+            mass = self.bdata.getMass(self.tag);
+            return mass;                     
+        if name == "moment_inertia":
+            moment_inertia = self.bdata.getBodyMomInertia(self.tag);
+            return (moment_inertia.x, moment_inertia.y, moment_inertia.z);
+        if name == "particle_tags":
+            particle_tags = [];
+            for i in range(0, self.num_particles):        
+               particle_tags.append(self.bdata.getParticleTag(self.tag, i));
+            return particle_tags; 
+        if name == "particle_disp":
+            particle_disp = [];
+            for i in range(0, self.num_particles):    
+               disp = self.bdata.getParticleDisp(self.tag, i);
+               particle_disp.append([disp.x, disp.y, disp.z]);
+            return particle_disp;                       
+        if name == "net_force":
+            f = self.bdata.getBodyNetForce(self.tag);
+            return (f.x, f.y, f.z);
+        if name == "net_torque":
+            t = self.bdata.getBodyNetTorque(self.tag);
+            return (t.x, t.y, t.z);
+            
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+    
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
+        if name == "COM":
+            p = hoomd.Scalar3();
+            p.x = float(value[0]);
+            p.y = float(value[1]);
+            p.z = float(value[2]);
+            self.bdata.setBodyCOM(self.tag, p);
+            return;
+        if name == "mass":
+            self.bdata.setMass(self.tag, value);
+            return;            
+        if name == "orientation":
+            q = hoomd.Scalar4();
+            q.x = float(value[0]);
+            q.y = float(value[1]);
+            q.z = float(value[2]);
+            q.w = float(value[3]);
+            self.bdata.setBodyOrientation(self.tag, q);
+            return;   
+        if name == "angular_momentum":
+            p = hoomd.Scalar3();
+            p.x = float(value[0]);
+            p.y = float(value[1]);
+            p.z = float(value[2]);
+            self.bdata.setAngMom(self.tag, p);
+            return;                    
+        if name == "momentum_inertia":
+            p = hoomd.Scalar3();
+            p.x = float(value[0]);
+            p.y = float(value[1]);
+            p.z = float(value[2]);
+            self.bdata.setBodyMomInertia(self.tag, p);
+            return; 
+        if name == "particle_disp":
+            p = hoomd.Scalar3();
+            for i in range(0, self.num_particles):    
+                p.x = float(value[i][0]);
+                p.y = float(value[i][1]);
+                p.z = float(value[i][2]);
+                self.bdata.setParticleDisp(self.tag, i, p);
+            return;         
+        if name == "net_force":
+            raise AttributeError;
+        if name == "net_torque":
+            raise AttributeError;
+                
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
 

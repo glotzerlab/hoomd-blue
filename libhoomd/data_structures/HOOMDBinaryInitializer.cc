@@ -166,6 +166,7 @@ void HOOMDBinaryInitializer::initArrays(const ParticleDataArrays &pdata) const
         pdata.type[i] = m_type_array[i];
         pdata.diameter[i] = m_diameter_array[i];
         pdata.charge[i] = m_charge_array[i];
+        pdata.body[i] = m_body_array[i];
         }        
     }
 
@@ -261,7 +262,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         throw runtime_error("Error reading binary file");
         }
     
-    int version = 2;
+    int version = 3;
     int file_version;
     f.read((char*)&file_version, sizeof(int));
     
@@ -303,6 +304,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_diameter_array.resize(np); 
     m_type_array.resize(np);
     m_charge_array.resize(np);
+    m_body_array.resize(np);
     
     //parse particle arrays
     f.read((char*)&(m_tag_array[0]), np*sizeof(unsigned int));
@@ -322,6 +324,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&(m_mass_array[0]), np*sizeof(Scalar));
     f.read((char*)&(m_diameter_array[0]), np*sizeof(Scalar));
     f.read((char*)&(m_charge_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_body_array[0]), np*sizeof(unsigned int));
 
     //parse types
     unsigned int ntypes = 0;
@@ -460,6 +463,42 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         }
     }
     
+    // parse rigid bodies
+    {
+    unsigned int n_bodies = 0;
+    f.read((char*)&n_bodies, sizeof(unsigned int));
+    
+    if (n_bodies == 0) return;
+       
+    m_com.resize(n_bodies);
+    m_vel.resize(n_bodies);
+    m_angmom.resize(n_bodies);
+    m_body_image.resize(n_bodies);
+        
+    for (unsigned int body = 0; body < n_bodies; body++)
+        {
+        f.read((char*)&(m_com[body].x), sizeof(Scalar));
+        f.read((char*)&(m_com[body].y), sizeof(Scalar));
+        f.read((char*)&(m_com[body].z), sizeof(Scalar));
+        f.read((char*)&(m_com[body].w), sizeof(Scalar));
+        
+        f.read((char*)&(m_vel[body].x), sizeof(Scalar));
+        f.read((char*)&(m_vel[body].y), sizeof(Scalar));
+        f.read((char*)&(m_vel[body].z), sizeof(Scalar));
+        f.read((char*)&(m_vel[body].w), sizeof(Scalar));
+        
+        f.read((char*)&(m_angmom[body].x), sizeof(Scalar));
+        f.read((char*)&(m_angmom[body].y), sizeof(Scalar));
+        f.read((char*)&(m_angmom[body].z), sizeof(Scalar));
+        f.read((char*)&(m_angmom[body].w), sizeof(Scalar));
+        
+        f.read((char*)&(m_body_image[body].x), sizeof(int));
+        f.read((char*)&(m_body_image[body].y), sizeof(int));
+        f.read((char*)&(m_body_image[body].z), sizeof(int));
+        }
+    
+    }
+    
     // check for required items in the file
     if (m_x_array.size() == 0)
         {
@@ -570,6 +609,41 @@ void HOOMDBinaryInitializer::initImproperData(boost::shared_ptr<DihedralData> im
         
     improper_data->setDihedralTypeMapping(m_improper_type_mapping);
     }
+
+/*! \param rigid_data Shared pointer to the ImproperData to be initialized
+    Adds all rigid bodies found in the XML file to the RigidData
+*/
+void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_data) const
+    {
+    ArrayHandle<Scalar4> r_com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> r_vel_handle(rigid_data->getVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> r_angmom_handle(rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> r_body_image_handle(rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
+    
+    // We don't need to restore force, torque and orientation because the setup will do the rest,
+    // and simulation still resumes smoothly.
+    unsigned int n_bodies = rigid_data->getNumBodies();
+    for (unsigned int body = 0; body < n_bodies; body++)
+        {
+        r_com_handle.data[body].x = m_com[body].x;
+        r_com_handle.data[body].y = m_com[body].y;
+        r_com_handle.data[body].z = m_com[body].z;
+        r_com_handle.data[body].w = m_com[body].w;
+        
+        r_vel_handle.data[body].x = m_vel[body].x;
+        r_vel_handle.data[body].y = m_vel[body].y;
+        r_vel_handle.data[body].z = m_vel[body].z;
+        r_vel_handle.data[body].w = m_vel[body].w;
+        
+        r_angmom_handle.data[body].x = m_angmom[body].x;
+        r_angmom_handle.data[body].y = m_angmom[body].y;
+        r_angmom_handle.data[body].z = m_angmom[body].z;
+        r_angmom_handle.data[body].w = m_angmom[body].w;
+        
+        r_body_image_handle.data[body] = m_body_image[body];
+        }
+    }
+
 
 /*! \returns A mapping of type ids to type names deteremined from the XML input file
 */

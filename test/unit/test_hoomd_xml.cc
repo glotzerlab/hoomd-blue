@@ -76,6 +76,8 @@ using namespace std;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
+    InertiaTensor I;
+    
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(3.5), Scalar(5.5), Scalar(12.5));
     int n_types = 5;
@@ -106,7 +108,12 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     array.diameter[0] = Scalar(3.5);
     
     array.type[0] = 3;
+
+    array.body[0] = NO_BODY;    
     
+    I.set(0, 1, 2, 3, 4, 5);
+    pdata->setInertiaTensor(0, I);
+
     array.x[1] = Scalar(1.5);
     array.y[1] = Scalar(2.5);
     array.z[1] = Scalar(-3.5);
@@ -125,6 +132,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     
     array.type[1] = 0;
     
+    array.body[1] = 1;
+
+    I.set(5, 4, 3, 2, 1, 0);
+    pdata->setInertiaTensor(1, I);
+
     array.x[2] = Scalar(-1.5);
     array.y[2] = Scalar(2.5);
     array.z[2] = Scalar(3.5);
@@ -143,6 +155,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     
     array.type[2] = 1;
     
+    array.body[2] = 1;
+    
+    I.set(1, 11, 21, 31, 41, 51);
+    pdata->setInertiaTensor(2, I);
+
     array.x[3] = Scalar(-1.5);
     array.y[3] = Scalar(2.5);
     array.z[3] = Scalar(3.5);
@@ -160,6 +177,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     array.diameter[3] = Scalar(4.5);
     
     array.type[3] = 1;
+    
+    array.body[3] = 0;
+    
+    I.set(51, 41, 31, 21, 11, 1);
+    pdata->setInertiaTensor(3, I);
     
     pdata->release();
     
@@ -207,7 +229,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.3\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.4\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -684,7 +706,97 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_CHECK_EQUAL(line, "</improper>");
         f.close();
         }
+    
+    // thirteenth test: the body array
+        {
+        writer->setOutputImproper(false);
+        writer->setOutputBody(true);
         
+        // make sure the first output file is deleted
+        remove_all("test.0000000120.xml");
+        BOOST_REQUIRE(!exists("test.0000000120.xml"));
+        
+        // write the file
+        writer->analyze(120);
+        
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f("test.0000000120.xml");
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<body num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "0");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</body>");
+        f.close();
+        }
+        
+    // fourteenth test: the moment_inertia array
+        {
+        writer->setOutputBody(false);
+        writer->setOutputMomentInertia(true);
+        
+        // make sure the first output file is deleted
+        remove_all("test.0000000130.xml");
+        BOOST_REQUIRE(!exists("test.0000000130.xml"));
+        
+        // write the file
+        writer->analyze(130);
+        
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f("test.0000000130.xml");
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<moment_inertia num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "0 1 2 3 4 5");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "5 4 3 2 1 0");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1 11 21 31 41 51");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "51 41 31 21 11 1");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</moment_inertia>");
+        f.close();
+        }
+
     remove_all("test.0000000000.xml");
     remove_all("test.0000000010.xml");
     remove_all("test.0000000020.xml");
@@ -697,6 +809,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     remove_all("test.0000000090.xml");
     remove_all("test.0000000100.xml");
     remove_all("test.0000000110.xml");
+    remove_all("test.0000000120.xml");
+    remove_all("test.0000000130.xml");
     }
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
@@ -765,7 +879,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.3\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.4\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -924,7 +1038,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     // create a test input file
     ofstream f("test_input.xml");
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
-<hoomd_xml version=\"1.2\">\n\
+<hoomd_xml version=\"1.3\">\n\
 <configuration time_step=\"150000000\" dimensions=\"2\">\n\
 <box lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" />\n\
 <position >\n\
@@ -967,6 +1081,14 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 11.0\n\
 12.0\n\
 </diameter>\n\
+<body>\n\
+-1\n\
+0\n\
+1\n\
+2\n\
+3\n\
+4\n\
+</body>\n\
 <type>\n\
 5\n\
 4\n\
@@ -983,6 +1105,14 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 40.0\n\
 50.0\n\
 </charge>\n\
+<moment_inertia>\n\
+0 1 2 3 4 5\n\
+10 11 12 13 14 15\n\
+20 21 22 23 24 25\n\
+30 31 32 33 34 35\n\
+40 41 42 43 44 45\n\
+50 51 52 53 54 55\n\
+</moment_inertia>\n\
 <wall>\n\
 <coord ox=\"1.0\" oy=\"2.0\" oz=\"3.0\" nx=\"4.0\" ny=\"5.0\" nz=\"6.0\"/>\n\
 <coord ox=\"7.0\" oy=\"8.0\" oz=\"9.0\" nx=\"10.0\" ny=\"11.0\" nz=\"-12.0\"/>\n\
@@ -1045,6 +1175,8 @@ im_b 5 4 3 2\n\
         
         MY_BOOST_CHECK_CLOSE(arrays.charge[i], Scalar(i)*Scalar(10.0), tol);
         
+        BOOST_CHECK_EQUAL(arrays.body[i], (unsigned int)(i-1));
+        
         // checking that the type is correct becomes tricky because types are identified by
         // string
         ostringstream type_name;
@@ -1052,6 +1184,14 @@ im_b 5 4 3 2\n\
         BOOST_CHECK_EQUAL(arrays.type[i], pdata->getTypeByName(type_name.str()));
         BOOST_CHECK_EQUAL(arrays.tag[i], (unsigned int)i);
         BOOST_CHECK_EQUAL(arrays.rtag[i], (unsigned int)i);
+
+        // check the moment_inertia values
+        InertiaTensor I;
+        I = pdata->getInertiaTensor(i);
+        for (unsigned int c = 0; c < 6; c++)
+            {
+            MY_BOOST_CHECK_CLOSE(I.components[c], i*10 + c, tol);
+            }
         }
     pdata->release();
     

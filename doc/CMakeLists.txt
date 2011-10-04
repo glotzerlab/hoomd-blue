@@ -123,4 +123,7 @@ add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
 add_custom_target (user ALL DEPENDS ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
                             SOURCES ${_user_doc_sources})
 
+# copy bibtex data into build directory (doxygen doesn't seem to like absolute refs to the bib file)
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/user/HOOMD.bib ${CMAKE_CURRENT_BINARY_DIR}/HOOMD.bib COPYONLY)
+
 endif (DOXYGEN)

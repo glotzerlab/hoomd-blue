@@ -136,7 +136,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     unsigned int magic = 0x444d4f48;
     f.write((char*)&magic, sizeof(unsigned int));
     // write the version of the binary format used
-    int version = 2;
+    int version = 3;
     f.write((char*)&version, sizeof(int));
 
     // acquire the particle data
@@ -175,7 +175,8 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f.write((char*)arrays.mass, np*sizeof(Scalar));
     f.write((char*)arrays.diameter, np*sizeof(Scalar));
     f.write((char*)arrays.charge, np*sizeof(Scalar));
-
+    f.write((char*)arrays.body, np*sizeof(unsigned int));
+    
     //write out types and type mapping
     unsigned int ntypes = m_pdata->getNTypes();
     f.write((char*)&ntypes, sizeof(unsigned int));
@@ -342,7 +343,49 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f.write((char*)&(wall.normal_z), sizeof(Scalar));
         }
     }
+    
+    // Output the rigid bodies to the binary file
+    {
+    shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+    
+    unsigned int n_bodies = rigid_data->getNumBodies();
+    f.write((char*)&n_bodies, sizeof(unsigned int));
+    
+    if (n_bodies <= 0) return;
+    
+    // We don't need to write forces, torques and orientation/quaternions because as the rigid bodies are constructed
+    // from restart files, the orientation is recalculated for the moment of inertia- using the old one will cause mismatches in angular velocities.
+    // Below are the minimal data required for a smooth restart with rigid bodies, assuming that RigidData::initializeData() already invoked.
+
+    ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::host, access_mode::read);
+    ArrayHandle<int3> body_image_handle(rigid_data->getBodyImage(), access_location::host, access_mode::read);
+    
+    for (unsigned int body = 0; body < n_bodies; body++)
+        {
+        f.write((char*)&(com_handle.data[body].x), sizeof(Scalar));
+        f.write((char*)&(com_handle.data[body].y), sizeof(Scalar));
+        f.write((char*)&(com_handle.data[body].z), sizeof(Scalar));
+        f.write((char*)&(com_handle.data[body].w), sizeof(Scalar));
         
+        f.write((char*)&(vel_handle.data[body].x), sizeof(Scalar));
+        f.write((char*)&(vel_handle.data[body].y), sizeof(Scalar));
+        f.write((char*)&(vel_handle.data[body].z), sizeof(Scalar));
+        f.write((char*)&(vel_handle.data[body].w), sizeof(Scalar));
+        
+        f.write((char*)&(angmom_handle.data[body].x), sizeof(Scalar));
+        f.write((char*)&(angmom_handle.data[body].y), sizeof(Scalar));
+        f.write((char*)&(angmom_handle.data[body].z), sizeof(Scalar));
+        f.write((char*)&(angmom_handle.data[body].w), sizeof(Scalar));
+        
+        f.write((char*)&(body_image_handle.data[body].x), sizeof(int));
+        f.write((char*)&(body_image_handle.data[body].y), sizeof(int));
+        f.write((char*)&(body_image_handle.data[body].z), sizeof(int));
+        
+        }
+    }    
+                
     if (!f.good())
         {
         cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;

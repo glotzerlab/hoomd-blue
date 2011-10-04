@@ -151,10 +151,33 @@ unsigned int IntegrationMethodTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> 
     return m_sysdef->getNDimensions() * intersect_size;
     }
 
+/*! Checks that every particle in the group is valid. This method may be called by anyone wishing to make this
+    error check.
+
+    The base class defines a valid particle as one that does not belong to a rigid body (as this is the common case).
+    Derived classes may override this method to perform custom checks.
+*/
+void IntegrationMethodTwoStep::validateGroup()
+    {
+    for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
+        {
+        unsigned int tag = m_group->getMemberTag(gidx);
+        if (m_pdata->getBody(tag) != (int)NO_BODY)
+            {
+            cerr << endl;
+            cerr << "***Error! Particle " << tag << " belongs to a rigid body. "
+                 << "This integration method does not operate on rigid bodies" << endl << endl;
+                
+            throw std::runtime_error("Error initializing integration method");
+            }
+        }
+    }
+
 void export_IntegrationMethodTwoStep()
     {
     class_<IntegrationMethodTwoStep, boost::shared_ptr<IntegrationMethodTwoStep>, boost::noncopyable>
         ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+        .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
         ;
     }
 

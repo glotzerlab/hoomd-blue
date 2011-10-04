@@ -137,6 +137,12 @@ sub wanted
         return;
         }
     
+    # skip processing if this file is in the microbenchmarks directory
+    if ($File::Find::name =~ /\/microbenchmarks\//)
+        {
+        return;
+        }
+    
     # skip processing if this file is in the share directory
     if ($File::Find::name =~ /\/share\//)
         {

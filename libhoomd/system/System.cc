@@ -389,15 +389,16 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     setupProfiling();
     
     resetStats();
+
+    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
+    // but set the flags before prepRun, as prepRun may remove some flags that it cannot generate on the first step
+    m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
     
     // Prepare the run
     if (!m_integrator)
         cout << "***Warning! You are running without an integrator." << endl;
     else
         m_integrator->prepRun(m_cur_tstep);
-    
-    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
-    m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
     
     // handle time steps
     for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)

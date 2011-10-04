@@ -111,8 +111,20 @@ class HOOMDDumpWriter : public Analyzer
         void setOutputWall(bool enable);
         //! Enables/disables the writing of acceleration
         void setOutputAccel(bool enable);
+        //! Enables/disables the writing of body
+        void setOutputBody(bool enable);
         //! Enables/disables the writing of charge
         void setOutputCharge(bool enable);
+        //! Enables/disables the writing of orientation
+        void setOutputOrientation(bool enable);
+        //! Enables/disables the writing of moment_inertia
+        void setOutputMomentInertia(bool enable);
+        //! Sets the vizsigma value to write
+        void setVizSigma(Scalar vizsigma)
+            {
+            m_vizsigma = vizsigma;
+            m_vizsigma_set = true;
+            }
         
         //! Writes a file at the current time step
         void writeFile(std::string fname, unsigned int timestep);
@@ -130,7 +142,12 @@ class HOOMDDumpWriter : public Analyzer
         bool m_output_dihedral;     //!< true if dihedrals should be written
         bool m_output_improper;     //!< true if impropers should be written
         bool m_output_accel;        //!< true if acceleration should be written
-        bool m_output_charge;         //!< true if body should be written
+        bool m_output_body;         //!< true if body should be written
+        bool m_output_charge;       //!< true if body should be written
+        bool m_output_orientation;  //!< true if orientation should be written
+        bool m_output_moment_inertia;  //!< true if moment_inertia should be written
+        Scalar m_vizsigma;          //!< vizsigma value to write out to xml files
+        bool m_vizsigma_set;        //!< true if vizsigma has been set
         };
 
 //! Exports the HOOMDDumpWriter class to python

@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "Initializers.h"
 #include "ParticleGroup.h"
+#include "RigidBodyGroup.h"
 
 using namespace std;
 using namespace boost;
@@ -81,19 +82,23 @@ shared_ptr<SystemDefinition> create_sysdef()
     arrays.x[0] = Scalar(0.0); arrays.y[0] = Scalar(0.0); arrays.z[0] = Scalar(0.0);
     arrays.ix[0] = 0; arrays.iy[0] = 0; arrays.iz[0] = 0;
     arrays.mass[0] = Scalar(1.0);
+    arrays.body[0] = 0;
     
     arrays.type[1] = 2;
     arrays.x[1] = Scalar(1.0); arrays.y[1] = Scalar(2.0); arrays.z[1] = Scalar(3.0);
     arrays.ix[1] = 1; arrays.iy[1] = -1; arrays.iz[1] = 2;
     arrays.mass[1] = Scalar(2.0);
+    arrays.body[1] = 0;
     
     arrays.type[2] = 0;
     arrays.x[2] = Scalar(-1.0); arrays.y[2] = Scalar(-2.0); arrays.z[2] = Scalar(-3.0);
     arrays.ix[2] = 0; arrays.iy[2] = 0; arrays.iz[2] = 0;
     arrays.mass[2] = Scalar(5.0);
+    arrays.body[2] = 1;
     
     arrays.type[3] = 1;
     arrays.x[3] = Scalar(-4.0); arrays.y[3] = Scalar(-4.0); arrays.z[3] = Scalar(-4.0);
+    arrays.body[3] = 1;
     
     arrays.type[4] = 3;
     arrays.x[4] = Scalar(-3.5); arrays.y[4] = Scalar(-4.5); arrays.z[4] = Scalar(-5.0);
@@ -113,6 +118,8 @@ shared_ptr<SystemDefinition> create_sysdef()
     arrays.type[9] = 3;
     arrays.x[9] = Scalar(5.0); arrays.y[9] = Scalar(5.0); arrays.z[9] = Scalar(5.0);
     pdata->release();
+    
+    sysdef->getRigidData()->initializeData();
     return sysdef;
     }
     
@@ -311,6 +318,77 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_empty_test )
     BOOST_REQUIRE_EQUAL_UINT(empty.getNumMembers(), 0);
     BOOST_CHECK_EQUAL_UINT(empty.getIndexArray().getNumElements(), 0);
     }
+
+//! Checks that ParticleGroup can initialize by particle body
+BOOST_AUTO_TEST_CASE( ParticleGroup_body_test )
+    {
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    // create a group of rigid bodies and check it
+    shared_ptr<ParticleSelector> selector_body_true(new ParticleSelectorRigid(sysdef, true));
+    ParticleGroup type_true(sysdef, selector_body_true);
+    BOOST_REQUIRE_EQUAL_UINT(type_true.getNumMembers(), 4);
+    BOOST_CHECK_EQUAL_UINT(type_true.getMemberTag(0), 0);
+    BOOST_CHECK_EQUAL_UINT(type_true.getMemberTag(1), 1);
+    BOOST_CHECK_EQUAL_UINT(type_true.getMemberTag(2), 2);
+    BOOST_CHECK_EQUAL_UINT(type_true.getMemberTag(3), 3);
+
+    // create a group of non rigid particles and check it
+    shared_ptr<ParticleSelector> selector_body_false(new ParticleSelectorRigid(sysdef, false));
+    ParticleGroup type_false(sysdef, selector_body_false);
+    BOOST_REQUIRE_EQUAL_UINT(type_false.getNumMembers(), 6);
+    BOOST_CHECK_EQUAL_UINT(type_false.getMemberTag(0), 4);
+    BOOST_CHECK_EQUAL_UINT(type_false.getMemberTag(1), 5);
+    BOOST_CHECK_EQUAL_UINT(type_false.getMemberTag(2), 6);
+    BOOST_CHECK_EQUAL_UINT(type_false.getMemberTag(3), 7);
+    BOOST_CHECK_EQUAL_UINT(type_false.getMemberTag(4), 8);
+    BOOST_CHECK_EQUAL_UINT(type_false.getMemberTag(5), 9);
+    }
+
+//! Checks that RigidBodyGroup can successfully initialize when given all bodies
+BOOST_AUTO_TEST_CASE( RigidBodyGroup_all_test )
+    {
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    // create a group of rigid bodies and check it
+    shared_ptr<ParticleSelector> selector_body_true(new ParticleSelectorRigid(sysdef, true));
+    boost::shared_ptr<ParticleGroup> body_true(new ParticleGroup(sysdef, selector_body_true));
+    
+    // create a rigid body group
+    RigidBodyGroup body_group(sysdef, body_true);
+    BOOST_CHECK_EQUAL_UINT(body_group.getNumMembers(), 2);
+    BOOST_CHECK(body_group.isMember(0));
+    BOOST_CHECK(body_group.isMember(1));
+    
+    ArrayHandle<unsigned int> h_member_idx(body_group.getIndexArray(), access_location::host, access_mode::read);
+    BOOST_CHECK_EQUAL_UINT(body_group.getIndexArray().getNumElements(), 2);
+    BOOST_CHECK_EQUAL_UINT(h_member_idx.data[0], 0);
+    BOOST_CHECK_EQUAL_UINT(h_member_idx.data[1], 1);
+    }
+
+//! Checks that RigidBodyGroup can successfully initialize when given all bodies
+BOOST_AUTO_TEST_CASE( RigidBodyGroup_one_test )
+    {
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    // create a group of rigid bodies and check it
+    shared_ptr<ParticleSelector> selector_body(new ParticleSelectorTag(sysdef, 2, 3));
+    boost::shared_ptr<ParticleGroup> body_particles(new ParticleGroup(sysdef, selector_body));
+    
+    // create a rigid body group
+    RigidBodyGroup body_group(sysdef, body_particles);
+    BOOST_CHECK_EQUAL_UINT(body_group.getNumMembers(), 1);
+    BOOST_CHECK(!body_group.isMember(0));
+    BOOST_CHECK(body_group.isMember(1));
+    
+    ArrayHandle<unsigned int> h_member_idx(body_group.getIndexArray(), access_location::host, access_mode::read);
+    BOOST_CHECK_EQUAL_UINT(body_group.getIndexArray().getNumElements(), 1);
+    BOOST_CHECK_EQUAL_UINT(h_member_idx.data[0], 1);
+    }
+
 
 //! Checks that ParticleGroup can initialize by particle tag
 BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )

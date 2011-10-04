@@ -96,23 +96,49 @@ void TempRescaleUpdater::update(unsigned int timestep)
         }
     else
         {
-        // calculate a fraction to scale the velocities by
+        // calculate a fraction to scale the momenta by
         Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
         
-        // scale the particles velocities
+        // scale the free particle velocities
         assert(m_pdata);
         ParticleDataArrays arrays = m_pdata->acquireReadWrite();
         
         for (unsigned int i = 0; i < arrays.nparticles; i++)
             {
-            arrays.vx[i] *= fraction;
-            arrays.vy[i] *= fraction;
-            arrays.vz[i] *= fraction;
+            if (arrays.body[i] == NO_BODY)
+                {
+                arrays.vx[i] *= fraction;
+                arrays.vy[i] *= fraction;
+                arrays.vz[i] *= fraction;
+                }
             }
-            
-        m_pdata->release();
-        }
         
+        m_pdata->release();
+        
+        // scale all the rigid body com velocities and angular momenta
+        boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+        unsigned int n_bodies = rigid_data->getNumBodies();
+        if (n_bodies > 0)
+            {
+            ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_body_angmom(rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+            
+            for (unsigned int body = 0; body < n_bodies; body++)
+                {
+                h_body_vel.data[body].x *= fraction;
+                h_body_vel.data[body].y *= fraction;
+                h_body_vel.data[body].z *= fraction;
+
+                h_body_angmom.data[body].x *= fraction;
+                h_body_angmom.data[body].y *= fraction;
+                h_body_angmom.data[body].z *= fraction;
+                }
+            }
+        
+        // ensure that the particle velocities are up to date
+        rigid_data->setRV(false);
+        }
+    
     if (m_prof) m_prof->pop();
     }
 

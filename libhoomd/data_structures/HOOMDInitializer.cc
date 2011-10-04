@@ -85,12 +85,15 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     m_parser_map["mass"] = bind(&HOOMDInitializer::parseMassNode, this, _1);
     m_parser_map["diameter"] = bind(&HOOMDInitializer::parseDiameterNode, this, _1);
     m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
+    m_parser_map["body"] = bind(&HOOMDInitializer::parseBodyNode, this, _1);
     m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
     m_parser_map["angle"] = bind(&HOOMDInitializer::parseAngleNode, this, _1);
     m_parser_map["dihedral"] = bind(&HOOMDInitializer::parseDihedralNode, this, _1);
     m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
     m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
+    m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
+    m_parser_map["moment_inertia"] = bind(&HOOMDInitializer::parseMomentInertiaNode, this, _1);
     
     // read in the file
     readFile(fname);
@@ -217,6 +220,15 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             pdata.type[i] = m_type_array[i];
         }
+    
+    if (m_body_array.size() != 0)
+        {
+        assert(m_body_array.size() == m_pos_array.size());
+        
+        for (unsigned int i = 0; i < m_pos_array.size(); i++)
+            pdata.body[i] = m_body_array[i];
+        }
+        
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -280,6 +292,7 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.1");
     valid_versions.push_back("1.2");
     valid_versions.push_back("1.3");
+	valid_versions.push_back("1.4");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
@@ -292,7 +305,7 @@ void HOOMDInitializer::readFile(const string &fname)
         }
     if (!valid)
         cout << endl
-             << "***Warning! hoomd_xml file with version not in the range 1.0-1.2  specified,"
+             << "***Warning! hoomd_xml file with version not in the range 1.0-1.3  specified,"
              << " I don't know how to read this. Continuing anyways." << endl << endl;
              
     // the file was parsed successfully by the XML reader. Extract the information now
@@ -397,7 +410,25 @@ void HOOMDInitializer::readFile(const string &fname)
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
-        
+    if (m_body_array.size() != 0 && m_body_array.size() != m_pos_array.size())
+        {
+        cerr << endl << "***Error! " << m_body_array.size() << " body values != " << m_pos_array.size()
+             << " positions" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_xml file");
+        }
+    if (m_orientation.size() != 0 && m_orientation.size() != m_pos_array.size())
+        {
+        cerr << endl << "***Error! " << m_orientation.size() << " orientation values != " << m_pos_array.size()
+             << " positions" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_xml file");
+        }
+    if (m_moment_inertia.size() != 0 && m_moment_inertia.size() != m_pos_array.size())
+        {
+        cerr << endl << "***Error! " << m_moment_inertia.size() << " moment_inertia values != " << m_pos_array.size()
+             << " positions" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_xml file");
+        }
+
     // notify the user of what we have accomplished
     cout << "--- hoomd_xml file read summary" << endl;
     cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
@@ -410,6 +441,8 @@ void HOOMDInitializer::readFile(const string &fname)
     if (m_diameter_array.size() > 0)
         cout << m_diameter_array.size() << " diameters" << endl;
     cout << getNumParticleTypes() <<  " particle types" << endl;
+    if (m_body_array.size() > 0)
+        cout << m_body_array.size() << " particle body values" << endl;        
     if (m_bonds.size() > 0)
         cout << m_bonds.size() << " bonds" << endl;
     if (m_angles.size() > 0)
@@ -422,6 +455,10 @@ void HOOMDInitializer::readFile(const string &fname)
         cout << m_charge_array.size() << " charges" << endl;
     if (m_walls.size() > 0)
         cout << m_walls.size() << " walls" << endl;
+    if (m_orientation.size() > 0)
+        cout << m_orientation.size() << " orientations" << endl;
+    if (m_moment_inertia.size() > 0)
+        cout << m_moment_inertia.size() << " moments of inertia" << endl;
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
@@ -635,6 +672,40 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b body node and fills out m_body_array. The number
+    of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseBodyNode(const XMLNode &node)
+    {
+    // check that this is actually a type node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("body"));
+    
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        // handle -1 as NO_BODY
+        int body;
+        parser >> body;
+        
+        if (parser.good())
+            {
+            if (body == -1)
+                m_body_array.push_back(NO_BODY);
+            else
+                m_body_array.push_back(body);
+            }
+        }
+    }
+
+/*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the data in a \b bond node and fills out m_bonds. The number
     of bonds in the array is determined dynamically.
 */
@@ -839,6 +910,62 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
         }
     }
 
+/*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b orientation node and fills out m_orientation. The number
+    of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseOrientationNode(const XMLNode &node)
+    {
+    // check that this is actually a charge node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("orientation"));
+    
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        Scalar ox, oy, oz, ow;
+        parser >> ox >> oy >> oz >> ow;
+        if (parser.good())
+            m_orientation.push_back(make_scalar4(ox, oy, oz, ow));
+        }
+    }
+
+/*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b moment_inertia node and fills out m_moment_inertia. The number
+    of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseMomentInertiaNode(const XMLNode &node)
+    {
+    // check that this is actually a charge node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("moment_inertia"));
+    
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        InertiaTensor I;
+        for (unsigned int i = 0; i < 6; i++)
+            parser >> I.components[i];
+        
+        if (parser.good())
+            m_moment_inertia.push_back(I);
+        }
+    }
+
 /*! \param name Name to get type id of
     If \a name has already been added, this returns the type index of that name.
     If \a name has not yet been added, it is added to the list and the new id is returned.
@@ -999,6 +1126,18 @@ void HOOMDInitializer::initImproperData(boost::shared_ptr<DihedralData> improper
         improper_data->addDihedral(m_impropers[i]);
         
     improper_data->setDihedralTypeMapping(m_improper_type_mapping);
+    }
+
+void HOOMDInitializer::initOrientation(Scalar4 *orientation) const
+    {
+    for (unsigned int i = 0; i < m_orientation.size(); i++)
+        orientation[i] = m_orientation[i];
+    }
+
+void HOOMDInitializer::initMomentInertia(InertiaTensor *moment_inertia) const
+    {
+    for (unsigned int i = 0; i < m_moment_inertia.size(); i++)
+        moment_inertia[i] = m_moment_inertia[i];
     }
 
 /*! \returns A mapping of type ids to type names deteremined from the XML input file

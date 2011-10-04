@@ -52,6 +52,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code and data structure functions used by ParticleData
 */
 
+#ifdef NVCC
+//! Sentinel value in \a body to signify that this particle does not belong to a rigid body
+const unsigned int NO_BODY = 0xffffffff;
+#endif
+
 //! Structure of arrays of the particle data as it resides on the GPU
 /*! Stores pointers to the particles positions, velocities, acceleartions, and particle tags.
     Particle type information is most likely needed along with the position, so the type

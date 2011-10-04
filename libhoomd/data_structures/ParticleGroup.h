@@ -132,6 +132,20 @@ class ParticleSelectorCuboid : public ParticleSelector
         Scalar3 m_max;     //!< Maximum type to select (exclusive)
     };
 
+//! Select particles based on their rigid body
+class ParticleSelectorRigid : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorRigid(boost::shared_ptr<SystemDefinition> sysdef, bool rigid);
+        virtual ~ParticleSelectorRigid() {}
+        
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    protected:
+        bool m_rigid;   //!< true if we should select rigid boides, false if we should select non-rigid particles
+    };
+
 //! Describes a group of particles
 /*! \b Overview
     

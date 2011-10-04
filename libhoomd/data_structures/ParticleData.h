@@ -108,6 +108,9 @@ class AngleData;
 // Forward declaration of DihedralData
 class DihedralData;
 
+// Forward declaration of RigidData
+class RigidData;
+
 // Forward declaration of IntegratorData
 class IntegratorData;
 
@@ -134,6 +137,38 @@ struct CScalar
     {
     Scalar r; //!< Real part
     Scalar i; //!< Imaginary part
+    };
+
+//! Defines a simple moment of inertia structure
+/*! This moment of interia is stored per particle. Because there are no per-particle body update steps in the
+    design of hoomd, these values are never read or used except at initialization. Thus, a simple descriptive
+    structure is used instead of an advanced and complicated GPUArray strided data array.
+    
+    The member variable components stores the 6 components of an upper-trianglar moment of inertia tensor.
+    The components are, in order, Ixx, Ixy, Ixz, Iyy, Iyz, Izz.
+    
+    They are initialized to 0 and left that way if not specified in an initialization file.
+*/
+struct InertiaTensor
+    {
+    InertiaTensor()
+        {
+        for (unsigned int i = 0; i < 6; i++)
+            components[i] = Scalar(0.0);
+        }
+    
+    //! Set the components of the tensor
+    void set(Scalar c0, Scalar c1, Scalar c2, Scalar c3, Scalar c4, Scalar c5)
+        {
+        components[0] = c0;
+        components[1] = c1;
+        components[2] = c2;
+        components[3] = c3;
+        components[4] = c4;
+        components[5] = c5;
+        }
+    
+    Scalar components[6];   //!< Stores the components of the inertia tensor
     };
 
 //! Stores box dimensions
@@ -349,6 +384,22 @@ class ParticleDataInitializer
         */
         virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const {}
         
+        //! Initialize the rigid data
+        /*! \param rigid_data Shared pointer to the RigidData to be initialized
+            Rigid bodies are optional: the base class does nothing
+        */
+        virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const {}
+        
+        //! Initialize the orientation data
+        /*! \param orientation Pointer to one orientation per particle to be initialized
+        */
+        virtual void initOrientation(Scalar4 *orientation) const {}
+        
+        //! Initialize the inertia tensor data
+        /*! \param moment_inertia Pointer to one inertia tensor per particle to be initialize (in tag order!)
+        */
+        virtual void initMomentInertia(InertiaTensor *moment_inertia) const {}
+            
     };
 
 //! Manages all of the data arrays for the particles
@@ -395,13 +446,35 @@ class ParticleDataInitializer
        
     If these flags are not set, these arrays can still be read but their values may be incorrect.
     
+    If any computation is unable to supply the appropriate values (i.e. rigid body virial can not be computed
+    until the second step of the simulation), then it should remove the flag to signify that the values are not valid.
+    Any analyzer/updater that expects the value to be set should 
+    
     \note When writing to the particle data, particles must not be moved outside the box.
     In debug builds, any aquire will fail an assertion if this is done.
     \ingroup data_structs
+    
+    Anisotropic particles are handled by storing an orientation quaternion for every particle in the simulation.
+    Similarly, a net torque is computed and stored for each particle. The design decision made is to not
+    duplicate efforts already made to enable composite bodies of anisotropic particles. So the particle orientation
+    is a read only quantity when used by most of HOOMD. To integrate this degree of freedom forward, the particle
+    must be part of a composite body (stored and handled by RigidData) (there can be single-particle bodies,
+    of course) where integration methods like NVERigid will handle updating the degrees of freedom of the composite
+    body and then set the constrained position, velocity, and orientation of the constituent particles.
+    
+    To enable correct initialization of the composite body moment of inertia, each particle is also assigned
+    an individual moment of inertia which is summed up correctly to determine the composite body's total moment of
+    inertia. As such, the initial particle moment of inertias are only ever used during initialization and do not
+    need to be stored in an efficient GPU data structure. Nor does the inertia tensor data need to be resorted,
+    so it will always remain in tag order.
+    
+    Access the orientation quaternion of each particle with the GPUArray gotten from getOrientationArray(), the net
+    torque with getTorqueArray(). Individual inertia tensor values can be accessed with getInertiaTensor() and
+    setInertiaTensor()
 */
 class ParticleData : boost::noncopyable
     {
-    public:    
+    public:
         //! Construct with N particles in the given box
         ParticleData(unsigned int N,
                      const BoxDim &box,
@@ -506,6 +579,12 @@ class ParticleData : boost::noncopyable
         //! Get the net virial array
         const GPUArray< Scalar >& getNetVirial() const { return m_net_virial; }
         
+        //! Get the net torque array
+        const GPUArray< Scalar4 >& getNetTorqueArray() const { return m_net_torque; }
+        
+        //! Get the orientation array
+        const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
+        
         //! Get the current position of a particle
         Scalar3 getPosition(unsigned int tag)
             {
@@ -577,12 +656,12 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current diameter of a particle
-        unsigned int getBody(unsigned int tag)
+        int getBody(unsigned int tag)
             {
             assert(tag < getN());
             acquireReadOnly();
             unsigned int idx = m_arrays.rtag[tag];
-            unsigned int result = m_arrays.body[idx];
+            int result = m_arrays.body[idx];
             release();
             return result;
             }
@@ -605,6 +684,31 @@ class ParticleData : boost::noncopyable
             unsigned int idx = m_arrays.rtag[tag];
             release();
             return idx;
+            }
+        //! Get the orientation of a particle with a given tag
+        Scalar4 getOrientation(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::read);
+            unsigned int idx = m_arrays.rtag[tag];
+            release();
+            return h_orientation.data[idx];
+            }
+        //! Get the inertia tensor of a particle with a given tag
+        const InertiaTensor& getInertiaTensor(unsigned int tag)
+            {
+            return m_inertia_tensor[tag];
+            }
+        //! Get the net force / energy on a given particle
+        Scalar4 getPNetForce(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            ArrayHandle< Scalar4 > h_net_force(m_net_force, access_location::host, access_mode::read);
+            unsigned int idx = m_arrays.rtag[tag];
+            release();
+            return h_net_force.data[idx];
             }
 
         //! Set the current position of a particle
@@ -662,12 +766,12 @@ class ParticleData : boost::noncopyable
             release();
             }
         //! Set the current diameter of a particle
-        void setBody(unsigned int tag, unsigned int body)
+        void setBody(unsigned int tag, int body)
             {
             assert(tag < getN());
             acquireReadWrite();
             unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.body[idx] = body;
+            m_arrays.body[idx] = (unsigned int)body;
             release();
             }
         //! Get the current type of a particle
@@ -680,16 +784,34 @@ class ParticleData : boost::noncopyable
             m_arrays.type[idx] = typ;
             release();
             }
+        //! Set the orientation of a particle with a given tag
+        void setOrientation(unsigned int tag, const Scalar4& orientation)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
+            unsigned int idx = m_arrays.rtag[tag];
+            release();
+            h_orientation.data[idx] = orientation;
+            }
+        //! Get the inertia tensor of a particle with a given tag
+        void setInertiaTensor(unsigned int tag, const InertiaTensor& tensor)
+            {
+            m_inertia_tensor[tag] = tensor;
+            }
             
-        //!< Get the particle data flags
+        //! Get the particle data flags
         PDataFlags getFlags() { return m_flags; }
         
-        //!< Set the particle data flags
+        //! Set the particle data flags
         /*! \note Setting the flags does not make the requested quantities immediately available. Only after the next
             set of compute() calls will the requested values be computed. The System class talks to the various
             analyzers and updaters to determine the value of the flags for any given time step.
         */
         void setFlags(const PDataFlags& flags) { m_flags = flags; }
+        
+        //! Remove the given flag
+        void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
     private:
         BoxDim m_box;                               //!< The simulation box
@@ -710,6 +832,9 @@ class ParticleData : boost::noncopyable
         
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle
+        GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
+        GPUArray< Scalar4 > m_orientation;           //!< Orientation quaternion for each particle (ignored if not anisotropic)
+        std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle
         
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         

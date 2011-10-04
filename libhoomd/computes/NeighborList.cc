@@ -385,6 +385,12 @@ void NeighborList::countExclusions()
         cout << "yes" << endl;
     else
         cout << "no" << endl;
+        
+    if (!m_filter_body && m_sysdef->getRigidData()->getNumBodies() > 0)
+        {
+        cout << "***Warning! Disabling the body exclusion will cause rigid bodies to behave erratically" << endl
+             << "            unless inter-body pair forces are very small." << endl;
+        }
     }
 
 /*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be

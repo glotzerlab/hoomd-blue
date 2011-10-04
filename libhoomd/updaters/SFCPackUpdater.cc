@@ -103,10 +103,10 @@ void SFCPackUpdater::update(unsigned int timestep)
     
     // apply that sort order to the particles
     applySortOrder();
+
+    m_pdata->notifyParticleSort();
     
     if (m_prof) m_prof->pop();
-    
-    m_pdata->notifyParticleSort();
     }
 
 void SFCPackUpdater::applySortOrder()
@@ -189,7 +189,46 @@ void SFCPackUpdater::applySortOrder()
         scal_tmp[i] = arrays.diameter[m_sort_order[i]];
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         arrays.diameter[i] = scal_tmp[i];
+    
+    // in case anyone access it from frame to frame, sort the net virial
+        {
+        ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
         
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            scal_tmp[i] = h_net_virial.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            h_net_virial.data[i] = scal_tmp[i];
+        }
+
+    // sort net force, net torque, and orientation
+    Scalar4 *scalar4_tmp = new Scalar4[m_pdata->getN()];
+        {
+        ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            scalar4_tmp[i] = h_net_force.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            h_net_force.data[i] = scalar4_tmp[i];
+        }
+
+        {
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            scalar4_tmp[i] = h_net_torque.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            h_net_torque.data[i] = scalar4_tmp[i];
+        }
+
+        {
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            scalar4_tmp[i] = h_orientation.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            h_orientation.data[i] = scalar4_tmp[i];
+        }
+
     // sort ix
     int *int_tmp = new int[m_pdata->getN()];
     for (unsigned int i = 0; i < arrays.nparticles; i++)
@@ -213,7 +252,13 @@ void SFCPackUpdater::applySortOrder()
         uint_tmp[i] = arrays.type[m_sort_order[i]];
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         arrays.type[i] = uint_tmp[i];
-        
+    
+    // sort body
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        uint_tmp[i] = arrays.body[m_sort_order[i]];
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        arrays.body[i] = uint_tmp[i];
+    
     // sort tag
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         uint_tmp[i] = arrays.tag[m_sort_order[i]];
@@ -225,6 +270,7 @@ void SFCPackUpdater::applySortOrder()
         arrays.rtag[arrays.tag[i]] = i;
         
     delete[] scal_tmp;
+    delete[] scalar4_tmp;
     delete[] uint_tmp;
     delete[] int_tmp;
     
@@ -530,10 +576,17 @@ void SFCPackUpdater::getSortedOrder3D()
     // for each particle
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
+        Scalar x, y, z;
+
+        // bin them by particle position if they are in no body
+        x = (arrays.x[n]-box.xlo)*scalex;
+        y = (arrays.y[n]-box.ylo)*scaley;
+        z = (arrays.z[n]-box.zlo)*scalez;
+        
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % m_grid;
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % m_grid;
-        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez) % m_grid;
+        unsigned int ib = (unsigned int)(x) % m_grid;
+        unsigned int jb = (unsigned int)(y) % m_grid;
+        unsigned int kb = (unsigned int)(z) % m_grid;
         
         // record its bin
         unsigned int bin = ib*(m_grid*m_grid) + jb * m_grid + kb;

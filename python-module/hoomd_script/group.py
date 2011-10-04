@@ -60,6 +60,8 @@ import init;
 # groups.
 # - group.all()
 # - group.cuboid()
+# - group.nonrigid()
+# - group.rigid()
 # - group.tags()
 # - group.tag_list()
 # - group.type()
@@ -278,6 +280,74 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     
     # create the group
     selector = hoomd.ParticleSelectorCuboid(globals.system_definition, ll, ur);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+## Groups particles that do not belong to rigid bodieis
+#
+# Creates a particle group from particles. \b All particles that <b>do not</b> belong to a rigid body will be added to
+# the group. The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles
+# should be operated on.
+#
+# The group is always named 'nonrigid'.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# examples.
+#
+# \b Examples:
+# \code
+# nonrigid = group.nonrigid()
+# \endcode
+def nonrigid():
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if not init.is_initialized():
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+
+    # create the group
+    name = 'nonrigid';
+    selector = hoomd.ParticleSelectorRigid(globals.system_definition, False);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+## Groups particles that belong to rigid bodieis
+#
+# Creates a particle group from particles. \b All particles that belong to a rigid body will be added to the group.
+# The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should
+# be operated on.
+#
+# The group is always named 'rigid'.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# examples.
+#
+# \b Examples:
+# \code
+# rigid = group.rigid()
+# \endcode
+def rigid():
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if not init.is_initialized():
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+
+    # create the group
+    name = 'rigid';
+    selector = hoomd.ParticleSelectorRigid(globals.system_definition, True);
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
