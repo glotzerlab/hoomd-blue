@@ -201,6 +201,14 @@ void ConstraintSphere::validate()
                  << " point on the sphere constraint" << endl;
             errors = true;
             }
+
+        if (arrays.body[j] != NO_BODY)
+            {
+            cerr << endl
+                 << "**Error! Particle " << arrays.tag[j] << " belongs to a rigid body - cannot constrain"
+                 << endl;
+            errors = true;
+            }
         }
         
     m_pdata->release();
