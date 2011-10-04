@@ -351,8 +351,8 @@ class mode_standard(_integrator):
 
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
 #
-# integrate.nvt performs constant volume, constant temperature simulations using the standard
-# Nos&eacute;-Hoover thermostat.
+# integrate.nvt performs constant volume, constant temperature simulations using the Nos&eacute;-Hoover thermostat.
+# Equation 13 in ref. \cite Bond1999 is used to integrate the equations of motion.
 #
 # integrate.nvt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -776,6 +776,10 @@ class bdnvt(_integration_method):
 ## NVE Integration for rigid bodies
 #
 # integrate.nve_rigid performs constant volume, constant energy simulations on rigid bodies
+# The integration scheme is implemented from \cite Miller2002 .
+#
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Please cite it
+# if you utilize rigid body functionality in your work.
 #
 # integrate.nve_rigid \b only operates on particles that belong to rigid bodies.
 #
@@ -808,7 +812,10 @@ class nve_rigid(_integration_method):
 ## NVT Integration for rigid bodies
 #
 # integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
-# The Nose-Hoover method is used from references Miller et al. (JCP 2002, 116(20)) and Kamberaj et al. (JCP 2005, 112, 224114).
+# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
+#
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Please cite it
+# if you utilize rigid body functionality in your work.
 #
 # integrate.nvt_rigid \b only operates on particles that belong to rigid bodies.
 #
@@ -878,7 +885,11 @@ class nvt_rigid(_integration_method):
 ## NVT integration via Brownian dynamics for rigid bodies
 #
 # integrate.bdnvt_rigid performs constant volume, constant temperature simulation based on a
-# NVE simulation with added damping and stochastic heat bath forces.
+# NVE simulation with added damping and stochastic heat bath forces. The NVE integration scheme
+# is implemented from ref \cite Miller2002.
+#
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Please cite it
+# if you utilize rigid body functionality in your work.
 #
 # The total added %force \f$ \vec{F}\f$ <strong>applied to each constiuent particle</strong> is
 # \f[ \vec{F} = -\gamma \cdot \vec{v} + \vec{F}_{\mathrm{rand}} \f]
@@ -987,7 +998,10 @@ class bdnvt_rigid(_integration_method):
 ## NPT Integration for rigid bodies
 #
 # integrate.npt_rigid performs constant pressure, constant temperature simulations of the rigid bodies in the system.
-# The Nose-Hoover method is used from references Miller et al. (JCP 2002, 116(20)) and Kamberaj et al. (JCP 2005, 112, 224114).
+# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
+#
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Please cite it
+# if you utilize rigid body functionality in your work.
 #
 # integrate.npt_rigid \b only operates on particles that belong to rigid bodies.
 #

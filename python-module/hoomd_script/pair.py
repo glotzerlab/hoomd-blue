@@ -1663,6 +1663,9 @@ class morse(pair):
 # The command pair.dpd specifies that a DPD %pair %force and thermostat should be added to every
 # non-bonded particle %pair in the simulation.
 #
+# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Please cite it
+# if you utilize the DPD functionality in your work.
+#
 # \f{eqnarray*}  
 # F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
 # \f}
@@ -1962,6 +1965,9 @@ class eam(force._force):
 #
 # The command pair.dpdlj specifies that a DPD thermostat and a Lennard Jones (LJ) %pair %force should be added to every
 # non-bonded particle %pair in the simulation.
+#
+# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Please cite it
+# if you utilize the DPD functionality in your work.
 #
 # \f{eqnarray*}  
 # F =   F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +  F_{\mathrm{D,ij}}(v_{ij}) \\
