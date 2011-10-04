@@ -1,6 +1,4 @@
 #! /usr/bin/env hoomd
-# $Id$
-# $URL$
 
 from hoomd_script import *
 import math

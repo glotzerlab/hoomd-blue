@@ -1,6 +1,4 @@
 #! /usr/bin/env hoomd
-# $Id: polymer_bmark.hoomd 1134 2008-08-06 22:26:28Z joaander $
-# $URL: https://svn2.assembla.com/svn/hoomd/trunk/src/share/hoomd/benchmarks/polymer_bmark.hoomd $
 
 from hoomd_script import *
 import math

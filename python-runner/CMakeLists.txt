@@ -1,5 +1,3 @@
-## $Id$
-## $URL$
 # Maintainer: joaander
 
 # handle native python installs separately from the others

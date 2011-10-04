@@ -1,8 +1,5 @@
 #! /usr/bin/env hoomd
 
-# $Id$
-# $URL$
-
 from hoomd_script import *
 
 init.create_random(N=64000, phi_p=0.2)

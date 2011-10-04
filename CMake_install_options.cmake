@@ -1,5 +1,3 @@
-# $Id$
-# $URL$
 # Maintainer: joaander
 
 # option to build Mac OS X .app packages

@@ -40,8 +40,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-// $Id$
-// $URL$
 // Maintainer: akohlmey
 
 /*! \file FileFormatManager.cc

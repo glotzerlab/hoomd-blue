@@ -1,5 +1,3 @@
-## $Id$
-## $URL$
 # Maintainer: joaander
 
 if (ENABLE_APP_BUNDLE_INSTALL)

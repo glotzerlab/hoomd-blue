@@ -1,5 +1,3 @@
-# $Id$
-# $URL$
 # Maintainer: joaander
 
 # install the hoomd_script python module

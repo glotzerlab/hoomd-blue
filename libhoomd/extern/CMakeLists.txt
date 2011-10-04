@@ -1,5 +1,3 @@
-## $Id$
-## $URL$
 # Maintainer: joaander
 
 # find all header files in this directory

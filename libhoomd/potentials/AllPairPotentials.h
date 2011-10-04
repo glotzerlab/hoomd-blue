@@ -39,8 +39,6 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
 // Maintainer: joaander / Anyone is free to add their own pair potentials here
 
 #ifndef __PAIR_POTENTIALS__H__

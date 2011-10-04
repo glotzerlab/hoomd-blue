@@ -1,5 +1,3 @@
-## $Id$
-## $URL$
 # Maintainer: joaander
 
 # generic CPack settings

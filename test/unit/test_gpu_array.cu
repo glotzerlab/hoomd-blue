@@ -41,8 +41,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "test_gpu_array.cuh"
 
-// $Id$
-// $URL$
 // Maintainer: joaander
 
 /*! \file gpu_array_test.cu

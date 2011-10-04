@@ -1,5 +1,3 @@
-## $Id$
-## $URL$
 # Maintainer: joaander
 
 # Specify cmake modules path to use our custom modules
