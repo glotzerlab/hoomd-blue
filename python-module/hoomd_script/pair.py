@@ -479,7 +479,10 @@ class nlist:
     #
     # \param exclusions Select which interactions should be excluded from the %pair interaction calculation.
     #
-    # By default, only directly bonded particles are excluded from short range %pair interactions.
+    # By default, the following are excluded from short range %pair interactions.
+    # - Directly bonded particles
+    # - Particles that are in the same rigid body
+    #
     # reset_exclusions allows that setting to be overridden to add other exclusions or to remove
     # the exclusion for bonded particles.
     #

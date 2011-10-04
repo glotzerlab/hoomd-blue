@@ -115,7 +115,8 @@ class xml(analyze._analyzer):
     ## Change xml write parameters
     #
     # \param all (if True) Enables the output of all optional parameters below
-    # \param vis (if True) Enables options commonly used for visualization
+    # \param vis (if True) Enables options commonly used for visualization.
+    # - Specifically, vis=True sets position, mass, diameter, type, body, bond, angle, dihedral, improper, charge
     # \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
     # \param image (if set) Set to True/False to enable/disable the output of particle images in the xml file
     # \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
