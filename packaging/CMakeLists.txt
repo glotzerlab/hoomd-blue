@@ -20,6 +20,3 @@ if (APPLE)
 add_subdirectory(mac)
 endif (APPLE)
 
-if (WIN32 AND NOT UNIX)
-add_subdirectory(win)
-endif (WIN32 AND NOT UNIX)

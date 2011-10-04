@@ -52,7 +52,6 @@ endif(ENABLE_STATIC)
 ################################
 ## Process subdirectories
 add_subdirectory (libhoomd)
-add_subdirectory (microbenchmarks EXCLUDE_FROM_ALL)
 add_subdirectory (share)
 add_subdirectory (python-module)
 add_subdirectory (python-runner)
@@ -82,3 +81,4 @@ if (BUILD_TESTING)
 endif (BUILD_TESTING)
 
 add_subdirectory (packaging)
+
