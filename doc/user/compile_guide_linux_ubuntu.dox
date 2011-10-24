@@ -59,10 +59,10 @@ You must be an administrator to install software.
 
 \section software_req_install_ubuntu_dev Development environment
 
-Install g++, boost, python headers, zlib headers, and subversion.
+Install g++, boost, python headers, zlib headers, and git.
 
 \code
- $ sudo apt-get install g++ libboost-dev zlib1g-dev python-dev subversion
+ $ sudo apt-get install g++ libboost-dev zlib1g-dev python-dev git-all
 \endcode
 
 Ubuntu 9.04 only offers CMake 2.6.2, which is too old to build hoomd. Download the latest

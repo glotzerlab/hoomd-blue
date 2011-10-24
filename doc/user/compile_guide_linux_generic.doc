@@ -252,20 +252,20 @@ the CUDA webpage linked to above for more information.
 If you wish, you can download the CUDA SDK from the same website and compile the example files to
 test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD-blue, however.
 
-\section software_req_install_linux_subversion Subversion
+\section software_req_install_linux_git Git
 
-Subversion is used for version control. You need to install it if you have commit access and are going to 
+Git is used for version control. You need to install it if you are going to 
 work on active development of HOOMD-blue, or if you just want to download and compile the latest and greatest
 version.
 
-First, see if you already have subversion installed.
+First, see if you already have git installed.
 \code
- $ svn --version
-svn, version 1.4.4 (r25188)
+ $ git --version
+git version 1.7.6.1
 \endcode
 If you get
 \code
--bash: svn: command not found
+-bash: git: command not found
 \endcode
 then you will need to install it with your distrubition's package manager.
 
@@ -274,27 +274,24 @@ then you will need to install it with your distrubition's package manager.
 Now that all of the prerequisite software is installed, you are ready to compile hoomd.
 
 <b>Step 1: Get a copy of the source code</b>
-There are many ways to get the source code for HOOMD-blue. 
- - You can download it (http://codeblue.umich.edu/hoomd-blue/download.html).
- - You could use subversion to check out a tagged release (list: https://codeblue.umich.edu/hoomd-blue/trac/browser/tags).
- - You could use subversion to check out a branch (list: https://codeblue.umich.edu/hoomd-blue/trac/browser/branches).
-
-Or you could check out the current mainline development version in trunk:
+There are two ways to get the source code for HOOMD-blue.  You can download it
+(http://codeblue.umich.edu/hoomd-blue/download.html) or you can clone the git repository:
 \code
- $ mkdir hoomd-trunk
- $ cd hoomd-trunk
- $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
+ $ mkdir hoomd
+ $ cd hoomd
+ $ git clone https://codeblue.umich.edu/git/hoomd-blue code
 \endcode
-<b>Note:</b> This example shows how to checkout the current mainline development version in trunk. Whatever method you
-use to get the source code, the instructions below assume that it has been extracted into the <i>hoomd</i> directory
-inside of the <b>hoomd-trunk</b> directory.
+By default, the \em master branch will be checked out. This branch includes new features tested and
+validated for the next feature release. Using the command <code>git checkout</code> \em branchname
+you can access bugfixes applied to the previous tagged release (\em maint) or experimental features
+still under development (\em next).
 
 <b>Step 2: Compile and install hoomd with makefiles</b>
 \code
- $ cd hoomd-trunk
+ $ cd hoomd
  $ mkdir build
  $ cd build
- $ cmake ../hoomd -DCMAKE_INSTALL_PREFIX=~/hoomd-install
+ $ cmake ../code -DCMAKE_INSTALL_PREFIX=~/hoomd-install
  $ make install -j4
 \endcode
 The -j4 option to make allows it to compile many files in parallel. Set the number to the number of CPU cores in your

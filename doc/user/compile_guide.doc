@@ -59,16 +59,12 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
 - Required to compile:
   - Python >= 2.3
   - boost >= 1.32.0
-  - CMake
-    - Version 2.6.2 or newer on Linux and Mac
-    - Version 2.8.0 or newer on Windows
+  - CMake >= 2.6.2
   - C++ Compiler (must be compatible with CUDA)
-  - CUDA Toolkit
-    - Version 2.0 or newer on Linux and Windows
-    - Version 3.0 or newer on Mac
+  - CUDA Toolkit >= 3.0
 - Useful developer tools
-  - Subversion >= 1.5.4
-  - Doxygen  >= 1.5.6
+  - Git >= 1.7.0
+  - Doxygen  >= 1.7.5
 
 <hr>
 \section sec_build_instructions Build instructions for Linux and Mac.
@@ -132,7 +128,6 @@ You really shouldn't change these from their defaults unless you really know wha
  		other libraries (i.e. boost) are linked statically if possible.
  	- When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
  		other libraries are linked dynamically if possible.
- 	- Note: \b ENABLE_STATIC=OFF is not supported on windows. 
  	- Note 2: \b ENABLE_STATIC defaults OFF and can only be set ON from the command line 
  		and when configuring a clean build directory.
 		Example:

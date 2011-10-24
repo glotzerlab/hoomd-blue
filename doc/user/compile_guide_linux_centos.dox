@@ -62,10 +62,10 @@ You must be the root user to install software. Become root by executing the foll
 
 \section software_req_install_centos_dev Development environment
 
-Install g++, boost, python headers, zlib headers, and subversion.
+Install g++, boost, python headers, zlib headers, and git.
 
 \code
- $ yum install gcc-c++ boost boost-devel python-devel zlib-devel subversion
+ $ yum install gcc-c++ boost boost-devel python-devel zlib-devel git-all
 \endcode
 
 CMake is not available via yum, so download cmake-?.?.?-Linux-i386.sh from http://www.cmake.org/ .

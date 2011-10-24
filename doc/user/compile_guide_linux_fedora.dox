@@ -62,10 +62,10 @@ You must be the root user to install software. Become root by executing the foll
 
 \section software_req_install_fedora_dev Development environment
 
-Install g++, boost, python headers, zlib headers, subversion, and cmake.
+Install g++, boost, python headers, zlib headers, git, and cmake.
 
 \code
- $ yum install gcc-c++ boost boost-devel python-devel zlib-devel subversion cmake
+ $ yum install gcc-c++ boost boost-devel python-devel zlib-devel git-all cmake
 \endcode
 
 \section software_req_install_fedora_cuda CUDA environment
