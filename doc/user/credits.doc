@@ -99,6 +99,9 @@ Peter Palm, Jens Glaser, Leipzig University
  - group functionality in force.constant
  - misc bug fixes
 
+Brandon D. Smith, University of Michigan
+ - integrate.berendsen
+
 While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is 
 responsible for numerous performance tweaks to the neighbor list and pair force code.
 

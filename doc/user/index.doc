@@ -115,6 +115,7 @@ Table of contents:
  - \link hoomd_script.integrate.mode_minimize_fire integrate.mode_minimize_fire\endlink - <i>Energy Minimizer (FIRE) </i>
  - \link hoomd_script.integrate.mode_minimize_rigid_fire integrate.mode_minimize_rigid_fire\endlink - <i>Energy Minimizer (rigid bodies) (FIRE)</i>
  - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>Enables a variety of standard integration methods </i>
+   - \link hoomd_script.integrate.berendsen integrate.berendsen\endlink - <i>NVT integration via the Berendsen thermostat</i> 
    - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>NVT integration via Brownian dynamics </i> 
    - \link hoomd_script.integrate.bdnvt_rigid integrate.bdnvt_rigid\endlink - <i>NVT integration of rigid bodies via Brownian Dynamics</i>
    - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>NPT Integration via the Nos&eacute;-Hoover thermostat, Anderson barostat</i>

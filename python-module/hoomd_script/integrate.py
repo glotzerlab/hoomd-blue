@@ -1244,3 +1244,43 @@ class mode_minimize_rigid_fire(_integrator):
         self.check_initialization();
         return self.cpp_integrator.hasConverged()
 
+## Applies the Berendsen thermostat.
+#
+# integrate.berendsen rescales the velocities of all particles on each time step. The rescaling is performed so that
+# the difference in the current temperature from the set point decays exponentially \cite Berendsen1984
+# \f[
+#     \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
+# \f]
+#
+class berendsen(_integration_method):
+    ## Initialize the Berendsen thermostat.
+    # \param group Group to which the Berendsen thermostat will be applied.
+    # \param T Temperature of thermostat. (in energy units)
+    # \param tau Time constant of thermostat. (in time units)
+    #
+    def __init__(self, group, T, tau):
+        util.print_status_line();
+
+        # initialize base class
+        _integration_method.__init__(self);
+
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+
+        # create the compute thermo
+        thermo = compute._get_unique_thermo(group = group);
+
+        # initialize the reflected c++ class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_method = hoomd.TwoStepBerendsen(globals.system_definition,
+                                                     group.cpp_group,
+                                                     thermo.cpp_compute,
+                                                     tau,
+                                                     T.cpp_variant);
+        else:
+            self.cpp_method = hoomd.TwoStepBerendsenGPU(globals.system_definition,
+                                                        group.cpp_group,
+                                                        thermo.cpp_compute,
+                                                        tau,
+                                                        T.cpp_variant);
+

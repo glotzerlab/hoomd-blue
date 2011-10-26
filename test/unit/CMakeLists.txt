@@ -70,6 +70,7 @@ set(TEST_LIST
     test_morse_force
     test_nve_integrator
     test_nvt_integrator
+    test_berendsen_integrator
     test_zero_momentum_updater
     test_temp_rescale_updater
     test_hoomd_xml
