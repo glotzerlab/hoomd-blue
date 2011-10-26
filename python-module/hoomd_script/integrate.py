@@ -1246,11 +1246,17 @@ class mode_minimize_rigid_fire(_integrator):
 
 ## Applies the Berendsen thermostat.
 #
+# integrate.berendsen rescales the velocities of all particles on each time step. The rescaling is performed so that
+# the difference in the current temperature from the set point decays exponentially \cite Berendsen1984
+# \f[
+#     \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
+# \f]
+#
 class berendsen(_integration_method):
     ## Initialize the Berendsen thermostat.
     # \param group Group to which the Berendsen thermostat will be applied.
-    # \param T Temperature of thermostat.
-    # \param tau Time constant of thermostat.
+    # \param T Temperature of thermostat. (in energy units)
+    # \param tau Time constant of thermostat. (in time units)
     #
     def __init__(self, group, T, tau):
         util.print_status_line();
