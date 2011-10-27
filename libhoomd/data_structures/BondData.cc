@@ -175,7 +175,6 @@ void BondData::addBond(const Bond& bond)
     m_bonds_dirty = true;
     }
 
-//! Get a bond by tag value
 /*! \param tag tag of the bond to access
  */
 const Bond& BondData::getBondByTag(unsigned int tag) const
@@ -193,7 +192,6 @@ const Bond& BondData::getBondByTag(unsigned int tag) const
     return m_bonds[id];
     }
 
-//! Remove a bond identified by unique tag value
 /*! \param tag tag of bond to remove
  * \note Bond removal changes the order of m_bonds. If a hole in the bond list
  * is generated, the last bond in the list is moved up to fill that hole.
