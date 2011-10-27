@@ -51,6 +51,9 @@ Examples:
 - \ref create_random_polymers "Initialize a system with randomly generated polymers" - demonstrates \link hoomd_script.init.create_random_polymers init.create_random_polymers\endlink<br>
     <i>initialize a random system of polymers given configurable parameters</i>
 
+- \ref init_xml "Initialize from an XML file" - demonstrates \link hoomd_script.init.read_xml init.read_xml\endlink<br>
+    <i>initialize a system with any configuration from a file</i>
+
 - \ref box_resize "Shrinking/expanding the simulation box" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
     <i>slowly change the simulation box dimensions</i>
 
@@ -165,6 +168,37 @@ $ hoomd -x create_random_polymers
 The results of this example may be visualized with VMD:
 \code
 $ vmd -hoomd create_random_polymers.xml create_random_polymers.dcd
+\endcode
+
+<hr>
+
+*/
+
+/*! \example init_xml
+
+HOOMD-blue is not limited by its built-in random initial condition generators. You can load in an arbitrary initial
+condition from a formatted xml file. Here is a simple example demonstrating most of the types of data that can be
+input (see \ref page_xml_file_format for full documentation of this format):
+
+\include init_xml.xml
+
+The initial conditions can be read into a simulation
+using the command \link hoomd_script.init.read_xml init.read_xml\endlink as shown in the example script below.
+
+To run this example, copy the examples directory from share/hoomd/examples your hoomd installation directory.
+\code
+cp -R HOOMD-INSTALL-DIR/share/hoomd/examples ~/hoomd-examples
+cd ~/hoomd-examples
+\endcode
+
+Then run:
+\code
+$ hoomd -x init_xml
+\endcode
+
+The results of this example may be visualized with VMD:
+\code
+$ vmd -hoomd init_xml.xml init_xml.dcd
 \endcode
 
 <hr>

@@ -1,4 +1,4 @@
-hoomd_script::init::create_random hoomd_script::analyze::imd hoomd_script::pair::lj
+hoomd_script::init::create_random hoomd_script::dump::xml hoomd_script::analyze::imd hoomd_script::pair::lj
 # Due to deficiencies in doxygen, the commands used in this example are listed explicitly here
 # run this script with "python -x filename" to skip the first line, or remove this header
 

@@ -1,4 +1,4 @@
-hoomd_script::init::create_random_polymers hoomd_script::dump::dcd hoomd_script::dump::dcd hoomd_script::pair::lj hoomd_script::bond::harmonic hoomd_script::integrate::mode_standard hoomd_script::integrate::nvt
+hoomd_script::init::create_random_polymers hoomd_script::dump::xml hoomd_script::dump::dcd hoomd_script::pair::lj hoomd_script::bond::harmonic hoomd_script::integrate::mode_standard hoomd_script::integrate::nvt
 # Due to deficiencies in doxygen, the commands used in this example are listed explicitly here
 # run this script with "python -x filename" to skip the first line, or remove this header
 
