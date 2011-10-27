@@ -192,6 +192,19 @@ const Bond& BondData::getBondByTag(unsigned int tag) const
     return m_bonds[id];
     }
 
+/*! \param id Index of bond (0 to N-1)
+    \returns Unique tag of bond (for use when calling removeBond())
+*/
+unsigned int BondData::getBondTag(unsigned int id) const
+    {
+    if (id >= getNumBonds())
+        {
+        cerr << endl << "***Error! Trying to get bond tag from id " << id << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting bond tag");
+        }
+    return m_tags[id];
+    }
+
 /*! \param tag tag of bond to remove
  * \note Bond removal changes the order of m_bonds. If a hole in the bond list
  * is generated, the last bond in the list is moved up to fill that hole.

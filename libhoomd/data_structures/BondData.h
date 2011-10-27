@@ -137,6 +137,9 @@ class BondData : boost::noncopyable
         //! Get bond by tag value
         const Bond& getBondByTag(unsigned int tag) const;
 
+        //! Get tag given an id
+        unsigned int getBondTag(unsigned int id) const;
+
         //! Get the number of bond types
         /*! \return Number of bond types in the list of bonds
         */
