@@ -60,6 +60,9 @@ Examples:
 - \ref box_resize_rigid "Shrinking/expanding the simulation box with rigid bodies" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
     <i>behavior of update.box_resize with rigid bodies in the system</i>
 
+- \ref init_reset "Run multiple simulations in one job script" - demonstrates \link hoomd_script.init.reset init.reset\endlink<br>
+    <i>use a python loop to run many simulations at different parameters in a single script</i>
+
 */
 
 /*! \example dump_dcd
@@ -263,5 +266,23 @@ $ vmd -hoomd box_resize_rigid.xml box_resize_rigid.dcd
 
 */
 
+/*! \example init_reset
 
+In a loop, this example performs a simulation of a Lennard-Jones liquid
+at different system sizes one after the other. It shows how the power of python
+code in a hoomd script can be utilized to accomplish complicated tasks. 
+For more information on python and a tutorial on the python language,
+check out http://www.python.org.
 
+To run this example, copy the examples directory from share/hoomd/examples your hoomd installation directory.
+\code
+cp -R HOOMD-INSTALL-DIR/share/hoomd/examples ~/hoomd-examples
+cd ~/hoomd-examples
+\endcode
+
+Then run:
+\code
+$ hoomd -x init_reset
+\endcode
+
+*/
