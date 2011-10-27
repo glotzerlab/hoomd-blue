@@ -2,3 +2,4 @@
 *.dcd
 share/hoomd/examples/analyze_imd.xml
 share/hoomd/examples/dump_dcd.xml
+share/hoomd/examples/create_random_polymers.xml

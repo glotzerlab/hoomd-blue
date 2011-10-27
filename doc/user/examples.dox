@@ -44,10 +44,16 @@ Examples:
 - \ref dump_dcd "Writing DCD trajectory files" - demonstrates \link hoomd_script.dump.dcd dump.dcd\endlink<br>
     <i>write a file which can be viewed in visualization
     software such as VMD</i>
+
 - \ref analyze_imd "Visualizing simulations in real time" - demonstrates \link hoomd_script.analyze.imd analyze.imd\endlink<br>
     <i>use VMD to view a running simulation update in real time</i>
+
+- \ref create_random_polymers "Initialize a system with randomly generated polymers" - demonstrates \link hoomd_script.init.create_random_polymers init.create_random_polymers\endlink<br>
+    <i>initialize a random system of polymers given configurable parameters</i>
+
 - \ref box_resize "Shrinking/expanding the simulation box" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
     <i>slowly change the simulation box dimensions</i>
+
 - \ref box_resize_rigid "Shrinking/expanding the simulation box with rigid bodies" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
     <i>behavior of update.box_resize with rigid bodies in the system</i>
 
@@ -128,6 +134,41 @@ simulation. It is set to run for an extremely long time on purpose to allow
 ample time to launch VMD and issue the \c imd command.
 
 <hr>
+*/
+
+/*! \example create_random_polymers
+Here is a script that generates a system of bead-spring polymers that self-assemble
+into a hex phase when run for a few million time steps. The polymers are A6B7A6 block copolymers
+in an implicit solvent. The script also shows a few examples of how writing python
+code in the script can be handy: here the concentration \c phi_P is a parameter and 
+math operations are performed to calculate the length of the box.
+
+For more information on the model in this script, see<br>
+"Micellar crystals in solution from molecular dynamics simulations"<br>
+J. Chem. Phys. \b 128, 184906 (2008); DOI:10.1063/1.2913522<br>
+http://link.aip.org/link/?JCPSA6/128/184906/1
+
+Any of the polymer systems in the paper could be easily run just by changing a few parameters in 
+this script.
+
+To run this example, copy the examples directory from share/hoomd/examples your hoomd installation directory.
+\code
+cp -R HOOMD-INSTALL-DIR/share/hoomd/examples ~/hoomd-examples
+cd ~/hoomd-examples
+\endcode
+
+Then run:
+\code
+$ hoomd -x create_random_polymers
+\endcode
+
+The results of this example may be visualized with VMD:
+\code
+$ vmd -hoomd create_random_polymers.xml create_random_polymers.dcd
+\endcode
+
+<hr>
+
 */
 
 /*! \example box_resize
