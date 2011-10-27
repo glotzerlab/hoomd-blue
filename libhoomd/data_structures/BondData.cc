@@ -67,7 +67,7 @@ using namespace std;
     \param n_bond_types Number of bond types in the list
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
-    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
+    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), m_last_added_tag(NO_BOND), exec_conf(m_pdata->getExecConf())
     {
     assert(pdata);
     
@@ -150,8 +150,85 @@ void BondData::addBond(const Bond& bond)
         cerr << endl << "***Error! Invalid bond type! " << bond.type << ", the number of types is " << m_n_bond_types << endl << endl;
         throw runtime_error("Error adding bond");
         }
-        
+
+    // first check if we can recycle a deleted tag
+    unsigned int tag = 0;
+    if (m_deleted_tags.size())
+        {
+        tag = m_deleted_tags.top();
+        m_deleted_tags.pop();
+        }
+    // Otherwise, generate a new tag
+    else tag = m_bonds.size();
+
+    assert(tag <= m_deleted_tags.size() + m_bonds.size());
+
+    m_last_added_tag = tag;
+
+    // add mapping pointing to last element in m_bonds
+    m_bond_map.insert(std::pair<unsigned int, unsigned int>(tag,m_bonds.size()));
+
     m_bonds.push_back(bond);
+    m_tags.push_back(tag);
+
+    m_bonds_dirty = true;
+    }
+
+//! Get a bond by tag value
+/*! \param tag tag of the bond to access
+ */
+const Bond& BondData::getBondByTag(unsigned int tag) const
+    {
+    // Find position of bond in bonds list
+    unsigned int id;
+    boost::unordered_map<unsigned int, unsigned int>::const_iterator it;
+    it = m_bond_map.find(tag);
+    if (it == m_bond_map.end())
+        {
+        cerr << endl << "***Error! Trying to get bond tag " << tag << " which does not exist!" << endl << endl;
+       throw runtime_error("Error getting bond");
+       }
+    id = it->second;
+    return m_bonds[id];
+    }
+
+//! Remove a bond identified by unique tag value
+/*! \param tag tag of bond to remove
+ * \note Bond removal changes the order of m_bonds. If a hole in the bond list
+ * is generated, the last bond in the list is moved up to fill that hole.
+ */
+void BondData::removeBond(unsigned int tag)
+    {
+    // Find position of bond in bonds list
+    unsigned int id;
+    boost::unordered_map<unsigned int, unsigned int>::iterator it;
+    it = m_bond_map.find(tag);
+    if (it == m_bond_map.end())
+        {
+        cerr << endl << "***Error! Trying to remove bond tag " << tag << " which does not exist!" << endl << endl;
+       throw runtime_error("Error removing bond");
+       }
+    id = it->second;
+
+    // delete from map
+    m_bond_map.erase(it);
+
+    // If the bond is in the middle of the list, move the last element to
+    // to the position of the removed element
+    if (id < (m_bonds.size()-1))
+        {
+        m_bonds[id] = m_bonds[m_bonds.size()-1];
+        unsigned int last_tag = m_tags[m_bonds.size()-1];
+        m_bond_map[last_tag] = id;
+        m_tags[id] = last_tag;
+        }
+    // delete last element
+    m_bonds.pop_back();
+    m_tags.pop_back();
+
+    // maintain a stack of deleted bond tags for future recycling
+    m_deleted_tags.push(tag);
+
     m_bonds_dirty = true;
     }
 

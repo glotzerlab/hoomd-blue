@@ -49,6 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __BONDDATA_H__
 
 #include <vector>
+#include <stack>
+#include <boost/unordered_map.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/signal.hpp>
 #include <boost/utility.hpp>
@@ -62,6 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
+
+//! Return value for getLastTag() if there are no bonds in the system
+const unsigned int NO_BOND = 0xffffffff;
 
 //! Stores a bond between two particles
 /*! Each bond is given an integer \c type from 0 to \c NBondTypes-1 and the \em tags
@@ -103,7 +108,16 @@ class BondData : boost::noncopyable
         
         //! Add a bond to the list
         void addBond(const Bond& bond);
-        
+
+        //! Get tag of last added bond
+        unsigned int getLastTag() const
+            {
+            return m_last_added_tag;
+            }
+
+        //! Remove a bond identified by its unique tag from the list
+        void removeBond(unsigned int tag);
+
         //! Get the number of bonds
         /*! \return Number of bonds present
         */
@@ -119,7 +133,10 @@ class BondData : boost::noncopyable
             {
             assert(i < m_bonds.size()); return m_bonds[i];
             }
-            
+
+        //! Get bond by tag value
+        const Bond& getBondByTag(unsigned int tag) const;
+
         //! Get the number of bond types
         /*! \return Number of bond types in the list of bonds
         */
@@ -147,6 +164,10 @@ class BondData : boost::noncopyable
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
         std::vector<Bond> m_bonds;                      //!< List of bonds on the CPU
+        unsigned int m_last_added_tag;                  //!< Tag of last bond added
+        std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
+        std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
+        boost::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
