@@ -187,6 +187,60 @@ import globals
 #
 #\endcode
 #
+# <hr>
+# <h3>Bond Data</h3>
+# Bonds may be added at any time in the job script.
+# \code
+# >>> system.bonds.add("bondA", 0, 1)
+# >>> system.bonds.add("bondA", 1, 2)
+# >>> system.bonds.add("bondA", 2, 3)
+# >>> system.bonds.add("bondA", 3, 4)
+# \endcode
+#
+# Individual bonds may be accessed by index.
+# \code
+# >>> bnd = system.bonds[0]
+# >>> print bnd
+# tag          : 0
+# typeid       : 0
+# a            : 0
+# b            : 1
+# type         : bondA
+# >>> print bnd.type
+# bondA
+# >>> print bnd.a
+# 0
+# >>> print bnd.b
+#1
+# \endcode
+# \note The order in which bonds appear by index is not static and may change at any time!
+#
+# Bonds may be deleted by index.
+# \code
+# >>> del system.bonds[0]
+# >>> print system.bonds[0]
+# tag          : 3
+# typeid       : 0
+# a            : 3
+# b            : 4
+# type         : bondA
+# \endcode
+# \note Regarding the previous note: see how the last bond added is now at index 0. No guarantee is made about how the
+# order of bonds by index will or will not change, so do not write any job scripts which assume a given ordering.
+#
+# To access bonds in an index-independent manner, use their tags. For example, to delete all bonds which connect to
+# particle 2, first loop through the bonds and build a list of bond tags that match the criteria.
+# \code
+# tags = []
+# for b in system.bonds:
+#     if b.a == 2 or b.b == 2:
+#         tags.append(b.tag)
+# \endcode
+# Then remove each of the bonds by their unique tag.
+# \code
+# for t in tags:
+#     system.bonds.remove(t)
+# \endcode
 #
 # <hr>
 # <h3>Forces</h3>
