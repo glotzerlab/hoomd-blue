@@ -642,7 +642,7 @@ class force_data_proxy:
 ## \internal
 # \brief Access bond data
 #
-# bond_data provides access to the per-bond data of all bonds in the system.
+# bond_data provides access to the bonds in the system.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # bond_data, documented by example.
 #
@@ -670,28 +670,51 @@ class bond_data:
     def __init__(self, bdata):
         self.bdata = bdata;
     
-    def addBond(self, type, tagA, tagB):
+    ## \internal
+    # \brief Add a new bond
+    # \param type Type name of the bond to add
+    # \param a Tag of the first particle in the bond
+    # \param b Tag of the second particle in the bond
+    # \returns Unique tag identifying this bond
+    def add(self, type, a, b):
         typeid = self.bdata.getTypeByName(type);
-        self.bdata.addBond(hoomd.Bond(typeid, tagA, tagB));
+        return self.bdata.addBond(hoomd.Bond(typeid, a, b));
+
+    ## \internal
+    # \brief Remove a bond by tag
+    # \param tag Unique tag of the bond to remove
+    def remove(self, tag):
+        self.bdata.removeBond(tag);
     
     ## \var bdata
     # \internal
     # \brief BondData to which this instance is connected
 
     ## \internal
-    # \brief Get a bond_proxy reference to the bond with tag \a tag
-    # \param typeid Bond tag to access
-    def __getitem__(self, tag):
-        if tag >= len(self) or tag < 0:
+    # \brief Get a bond_proxy reference to the bond with id \a id
+    # \param id Bond id to access
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
             raise IndexError;
-        return bond_data_proxy(self.bdata, tag);
+        return bond_data_proxy(self.bdata, id);
     
     ## \internal
     # \brief Set a bond's properties
-    # \param tag Bond tag to set
+    # \param id Bond id to set
     # \param b Value containing properties to set
-    def __setitem__(self, tag, b):
-        raise RuntimeError('__setitem__ not implemented');
+    def __setitem__(self, id, b):
+        raise RuntimeError('Cannot change bonds once they are created');
+
+    ## \internal
+    # \brief Delete a bond by id
+    # \param id Bond id to delete
+    def __delitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+
+        # Get the tag of the bond to delete
+        tag = self.bdata.getBondTag(id);
+        self.bdata.removeBond(tag);
     
     ## \internal
     # \brief Get the number of bonds
@@ -716,76 +739,71 @@ class bond_data:
 # bond_data_proxy, documented by example.
 #
 # The following attributes are read only:
-# - \c tag          : An integer indexing the bond in the system. Tags run from 0 to Nbonds-1;
+# - \c tag          : A unique integer attached to each bond (not in any particular range). A bond's tag remans fixed
+#                     during its lifetime. (Tags previously used by removed bonds may be recycled).
 # - \c typeid       : An integer indexing the bond type of the bond.
-#
-# The following attributes can be both read and set
-# - \c tagA         : An integer indexing the A particle in the system. Tags run from 0 to N-1;
-# - \c tagB         : An integer indexing the B particle in the system. Tags run from 0 to N-1;
+# - \c a            : An integer indexing the A particle in the bond. Particle tags run from 0 to N-1;
+# - \c b            : An integer indexing the B particle in the bond. Particle tags run from 0 to N-1;
 # - \c type         : A string naming the type
 #
-# In the current version of the API, only already defined tags can be used. A future improvement will allow 
-# dynamic creation of new tag names from within the python API.
+# In the current version of the API, only already defined type names can be used. A future improvement will allow 
+# dynamic creation of new type names from within the python API.
 #
 class bond_data_proxy:
     ## \internal
     # \brief create a bond_data_proxy
     #
     # \param bdata BondData to which this proxy belongs
-    # \param tag tag of this bond in \a bdata
-    def __init__(self, bdata, tag):
+    # \param id index of this bond in \a bdata (at time of proxy creation)
+    def __init__(self, bdata, id):
         self.bdata = bdata;
-        self.tag = tag;
+        self.tag = self.bdata.getBondTag(id);
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        result += "tagA         : " + str(self.tagA) + "\n"
-        result += "tagB         : " + str(self.tagB) + "\n"
-        result += "type         : " + str(self.type) + "\n";
+        result += "tag          : " + str(self.tag) + "\n";
         result += "typeid       : " + str(self.typeid) + "\n";
+        result += "a            : " + str(self.a) + "\n"
+        result += "b            : " + str(self.b) + "\n"
+        result += "type         : " + str(self.type) + "\n";
         return result;
     
     ## \internal
     # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):        
-        if name == "tagA":
-            Atag = self.bdata.getBond(self.tag).a;
-        if name == "tagB":
-            Btag = self.bdata.getBond(self.tag).b;            
-            return (Btag);
+    def __getattr__(self, name):
+        if name == "a":
+            bond = self.bdata.getBondByTag(self.tag);
+            return bond.a;
+        if name == "b":
+            bond = self.bdata.getBondByTag(self.tag);
+            return bond.b;
         if name == "typeid":
-            return self.bdata.getBond(self.tag).type;
+            bond = self.bdata.getBondByTag(self.tag);
+            return bond.type;
         if name == "type":
-            typeid = self.bdata.getBond(self.tag).type;
+            bond = self.bdata.getBondByTag(self.tag);
+            typeid = bond.type;
             return self.bdata.getNameByType(typeid);
-        
+
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
     
     ## \internal
     # \brief Translate attribute accesses into the low level API function calls
     def __setattr__(self, name, value):
-        if name == "tagA":
-            bond = self.bdata.getBond(self.tag)
-            bond.a = value
-            return;
-        if name == "tagB":
-            bond = self.bdata.getBond(self.tag)
-            bond.b = value
-            return;            
+        if name == "a":
+            raise AttributeError;
+        if name == "b":
+            raise AttributeError;
         if name == "type":
-            typeid = self.bdata.getTypeByName(value);
-            self.bdata.setType(self.tag, typeid);
-            return;
+            raise AttributeError;
         if name == "typeid":
             raise AttributeError;
- 
+
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
-
-
 
 ## Access body data
 #
