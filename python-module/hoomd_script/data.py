@@ -787,7 +787,8 @@ class bond_data_proxy:
 
 
 
-## Access body data
+## \internal
+# \brief Access body data
 #
 # body_data provides access to the per-body data of all bodies in the system.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
