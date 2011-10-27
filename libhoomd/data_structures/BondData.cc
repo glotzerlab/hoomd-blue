@@ -466,6 +466,10 @@ void export_BondData()
     .def("getTypeByName", &BondData::getTypeByName)
     .def("getNameByType", &BondData::getNameByType)
     .def("addBond", &BondData::addBond)
+    .def("removeBond", &BondData::removeBond)
+    .def("getBond", &BondData::getBond, return_value_policy<copy_const_reference>())
+    .def("getBondByTag", &BondData::getBondByTag, return_value_policy<copy_const_reference>())
+    .def("getBondTag", &BondData::getBondTag)
     ;
     
     }
