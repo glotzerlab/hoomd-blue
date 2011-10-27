@@ -65,9 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
 
-//! Return value for getLastTag() if there are no bonds in the system
-const unsigned int NO_BOND = 0xffffffff;
-
 //! Stores a bond between two particles
 /*! Each bond is given an integer \c type from 0 to \c NBondTypes-1 and the \em tags
     of the two bonded particles.
@@ -107,13 +104,7 @@ class BondData : boost::noncopyable
         ~BondData();
         
         //! Add a bond to the list
-        void addBond(const Bond& bond);
-
-        //! Get tag of last added bond
-        unsigned int getLastTag() const
-            {
-            return m_last_added_tag;
-            }
+        unsigned int addBond(const Bond& bond);
 
         //! Remove a bond identified by its unique tag from the list
         void removeBond(unsigned int tag);

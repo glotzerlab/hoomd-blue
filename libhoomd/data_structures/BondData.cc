@@ -67,7 +67,7 @@ using namespace std;
     \param n_bond_types Number of bond types in the list
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
-    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), m_last_added_tag(NO_BOND), exec_conf(m_pdata->getExecConf())
+    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
     {
     assert(pdata);
     
@@ -128,8 +128,9 @@ BondData::~BondData()
     \note If a bond is added with \c type=49, then there must be at least 50 bond types (0-49) total,
     even if not all values are used. So bonds should be added with small contiguous types.
     \param bond The Bond to add to the list
+    \returns The unique tag identifying the added bond
  */
-void BondData::addBond(const Bond& bond)
+unsigned int BondData::addBond(const Bond& bond)
     {
     // check for some silly errors a user could make
     if (bond.a >= m_pdata->getN() || bond.b >= m_pdata->getN())
@@ -164,8 +165,6 @@ void BondData::addBond(const Bond& bond)
 
     assert(tag <= m_deleted_tags.size() + m_bonds.size());
 
-    m_last_added_tag = tag;
-
     // add mapping pointing to last element in m_bonds
     m_bond_map.insert(std::pair<unsigned int, unsigned int>(tag,m_bonds.size()));
 
@@ -173,6 +172,7 @@ void BondData::addBond(const Bond& bond)
     m_tags.push_back(tag);
 
     m_bonds_dirty = true;
+    return tag;
     }
 
 /*! \param tag tag of the bond to access
