@@ -159,7 +159,8 @@ void BondData::addBond(const Bond& bond)
         m_deleted_tags.pop();
         }
     // Otherwise, generate a new tag
-    else tag = m_bonds.size();
+    else
+        tag = m_bonds.size();
 
     assert(tag <= m_deleted_tags.size() + m_bonds.size());
 
@@ -186,8 +187,8 @@ const Bond& BondData::getBondByTag(unsigned int tag) const
     if (it == m_bond_map.end())
         {
         cerr << endl << "***Error! Trying to get bond tag " << tag << " which does not exist!" << endl << endl;
-       throw runtime_error("Error getting bond");
-       }
+        throw runtime_error("Error getting bond");
+        }
     id = it->second;
     return m_bonds[id];
     }
@@ -206,8 +207,8 @@ void BondData::removeBond(unsigned int tag)
     if (it == m_bond_map.end())
         {
         cerr << endl << "***Error! Trying to remove bond tag " << tag << " which does not exist!" << endl << endl;
-       throw runtime_error("Error removing bond");
-       }
+        throw runtime_error("Error removing bond");
+        }
     id = it->second;
 
     // delete from map
