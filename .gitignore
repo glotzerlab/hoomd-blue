@@ -1,2 +1,4 @@
 *.kdev4
 *.dcd
+share/hoomd/examples/analyze_imd.xml
+share/hoomd/examples/dump_dcd.xml
