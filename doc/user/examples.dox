@@ -63,6 +63,10 @@ Examples:
 - \ref init_reset "Run multiple simulations in one job script" - demonstrates \link hoomd_script.init.reset init.reset\endlink<br>
     <i>use a python loop to run many simulations at different parameters in a single script</i>
 
+8. \ref init_create_empty "Set initial conditions directly from python code" - demonstrates \link hoomd_script.init.create_empty init.create_empty\endlink<br>
+    <i>use python code to create custom initial configurations without needing to write an xml file</i>
+
+
 */
 
 /*! \example dump_dcd
@@ -284,5 +288,38 @@ Then run:
 \code
 $ hoomd -x init_reset
 \endcode
+
+<hr>
+
+*/
+
+/*! \example init_create_empty
+
+This example performs a simulation of a Lennard-Jones liquid of two types of particles A and B. The initial condition
+is a simple cubic lattice, with the top half of the box containing particles of type B and the bottom half type A.
+
+It demonstrates several use-cases for accessing particle data from within python that could be easily copied
+and used in other scripts.
+ - Initialization of all particle positions
+ - Initialization of a thermal velocity distribution
+ - Changing the type of a group of particles
+
+For more information on python and a tutorial on the python language,
+check out http://www.python.org . Details about the relevant commands in hoomd_script can be found here:
+ - \link hoomd_script.init.create_empty init.create_empty\endlink
+ - hoomd_script.data
+
+To run this example, copy the examples directory from share/hoomd/examples your hoomd installation directory.
+\code
+cp -R HOOMD-INSTALL-DIR/share/hoomd/examples ~/hoomd-examples
+cd ~/hoomd-examples
+\endcode
+
+Then run:
+\code
+$ hoomd -x init_reset
+\endcode
+
+<hr>
 
 */
