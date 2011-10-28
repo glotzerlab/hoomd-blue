@@ -824,8 +824,8 @@ class nve_rigid(_integration_method):
 class nvt_rigid(_integration_method):
     ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature set point for the thermostat.
-    # \param tau Time constant for the thermostat
+    # \param T Temperature set point for the thermostat (in energy units)
+    # \param tau Time constant for the thermostat (in time units)
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
@@ -856,8 +856,8 @@ class nvt_rigid(_integration_method):
         self.cpp_method.validateGroup()
     
     ## Changes parameters of an existing integrator
-    # \param T New temperature (if set)
-    # \param tau New coupling constant (if set)
+    # \param T New temperature (if set) (in energy units)
+    # \param tau New coupling constant (if set) (in time units)
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -904,7 +904,7 @@ class nvt_rigid(_integration_method):
 class bdnvt_rigid(_integration_method):
     ## Specifies the BD NVT integrator for rigid bodies
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature of the simulation \a T
+    # \param T Temperature of the simulation \a T (in energy units)
     # \param seed Random seed to use for the run. Simulations that are identical, except for the seed, will follow 
     # different trajectories.
     # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
@@ -937,7 +937,7 @@ class bdnvt_rigid(_integration_method):
         self.cpp_method.validateGroup()
     
     ## Changes parameters of an existing integrator
-    # \param T New temperature (if set)
+    # \param T New temperature (if set) (in energy units)
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -961,7 +961,7 @@ class bdnvt_rigid(_integration_method):
 
     ## Sets gamma parameter for a particle type
     # \param a Particle type
-    # \param gamma \f$ \gamma \f$ for particle type (see below for examples)
+    # \param gamma \f$ \gamma \f$ for particle type (see below for examples) (in units of force/velocity)
     #
     # set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
     # by name.
@@ -1010,10 +1010,10 @@ class bdnvt_rigid(_integration_method):
 class npt_rigid(_integration_method):
     ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
-    # \param tau Time constant for the thermostat
-    # \param tauP Time constatnt for the barostat
-    # \param T Temperature set point for the thermostat.
-    # \param P Pressure set point for the barostat.
+    # \param tau Time constant for the thermostat (in time units)
+    # \param tauP Time constatnt for the barostat (in time units)
+    # \param T Temperature set point for the thermostat (in energy units)
+    # \param P Pressure set point for the barostat (in pressure units)
     #
     # \a T (and P) can be a variant type, allowing for temperature (and pressure) ramps in simulation runs.
     #
@@ -1046,10 +1046,10 @@ class npt_rigid(_integration_method):
         self.cpp_method.validateGroup()
     
     ## Changes parameters of an existing integrator
-    # \param T New temperature (if set)
-    # \param tau New coupling constant (if set)
-    # \param P New pressure (if set)
-    # \param tauP New coupling constant (if set)
+    # \param T New temperature (if set) (in energy units)
+    # \param tau New coupling constant (if set) (in time units)
+    # \param P New pressure (if set) (in pressure units)
+    # \param tauP New coupling constant (if set) (in time units)
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -1187,7 +1187,7 @@ class mode_minimize_rigid_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
     # \param group Group of particles in rigid bodies
-    # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting.
+    # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
     # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
     #   - <i>optional</i>: defaults to 5
     # \param finc Factor to increase \f$ \Delta t \f$ by 
