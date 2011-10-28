@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hoomd_xml>
+<configuration time_step="0">
+<box Lx="10" Ly="10" Lz="10"/>
+<!-- Setup the initial condition to place all particles in a line -->
+<position>
+-3 0 0
+-2 0 0
+-1 0 0
+0 0 0
+1 0 0
+2 0 0
+3 0 0
+</position>
+<!-- Name the first 3 particles A and the rest B -->
+<type>
+A
+A
+A
+B
+B
+B
+B
+</type>
+<!-- Bond the particles together into a polymer chain -->
+<bond>
+polymer 0 1
+polymer 1 2
+polymer 2 3
+polymer 3 4
+polymer 4 5
+polymer 5 6
+</bond>
+<!-- Give the particles a little kick with an initial velocity -->
+<velocity>
+1 2 3
+3 2 1
+1 0 0
+0 1 0
+0 0 1
+-1 -2 -3
+-3 -2 -1
+</velocity>
+</configuration>
+</hoomd_xml>

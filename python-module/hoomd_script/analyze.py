@@ -281,8 +281,6 @@ _analyzer.cur_id = 0;
 # analyze.imd
 #
 # \note If a period larger than 1 is set, the actual rate at which time steps are transmitted is \a rate * \a period.
-#
-# \sa \ref page_example_scripts
 class imd(_analyzer):
     ## Initialize the IMD interface
     #

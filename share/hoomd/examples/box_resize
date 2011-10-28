@@ -1,4 +1,4 @@
-hoomd_script::init::read_xml hoomd_script::dump::dcd hoomd_script::update::box_resize hoomd_script::variant::linear_interp hoomd_script::data::system_data
+hoomd_script::init::read_xml hoomd_script::dump::dcd hoomd_script::update::box_resize hoomd_script::variant::linear_interp
 # Due to deficiencies in doxygen, the commands used in this example are listed explicitly here
 # run this script with "python -x filename" to skip the first line, or remove this header
 

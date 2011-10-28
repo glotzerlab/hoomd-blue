@@ -1,8 +1,8 @@
-hoomd_script::init::create_random hoomd_script::dump::dcd hoomd_script::pair::lj
+hoomd_script::init::create_random hoomd_script::dump::xml hoomd_script::analyze::imd hoomd_script::pair::lj
 # Due to deficiencies in doxygen, the commands used in this example are listed explicitly here
 # run this script with "python -x filename" to skip the first line, or remove this header
 
-# ---- dump_dcd.py ----
+# ---- analyze_imd.py ----
 from hoomd_script import *
 
 # create 1000 random particles of name A
@@ -18,11 +18,11 @@ integrate.mode_standard(dt=0.005)
 integrate.nvt(group=all, T=1.2, tau=0.5)
 
 # dump an xmle file for the structure information
-xml = dump.xml(filename='dump_dcd.xml', vis=True)
+xml = dump.xml(filename='analyze_imd.xml', vis=True)
 
-# dump a .dcd file for the trajectory
-dump.dcd(filename='dump_dcd.dcd', period=100)
+# setup the IMD server
+analyze.imd(port=54321, period=500)
 
-# run 10,000 time steps
-run(10e3)
+# run a very long time so the simulation can be watched in VMD
+run(1e9)
 

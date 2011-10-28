@@ -1,0 +1,28 @@
+hoomd_script::init::read_xml hoomd_script::dump::dcd hoomd_script::pair::lj hoomd_script::bond::harmonic hoomd_script::integrate::mode_standard hoomd_script::integrate::nvt
+# Due to deficiencies in doxygen, the commands used in this example are listed explicitly here
+# run this script with "python -x filename" to skip the first line, or remove this header
+
+# ---- init_xml.py ----
+from hoomd_script import *
+import math
+
+# read in the file
+init.read_xml(filename="init_xml.xml")
+
+# example4.xml defines a single polymer: use the same force field as in example 3
+# force field setup
+harmonic = bond.harmonic()
+harmonic.set_coeff('polymer', k=330.0, r0=0.84)
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+
+# dump every few steps
+dump.dcd(filename="init_xml.dcd", period=10)
+
+# integrate NVT for a bunch of time steps
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(group=all, T=1.2, tau=0.5)
+run(2000)

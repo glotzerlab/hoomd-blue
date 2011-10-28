@@ -163,8 +163,6 @@ def reset():
 # initialized by the neighbor list would be so large that the memory allocation would fail.
 #
 # \sa hoomd_script.data
-# \sa \ref page_example_scripts
-#
 def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0):
     util.print_status_line();
     
