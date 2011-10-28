@@ -318,7 +318,7 @@ cd ~/hoomd-examples
 
 Then run:
 \code
-$ hoomd -x init_reset
+$ hoomd -x init_create_empty
 \endcode
 
 <hr>
