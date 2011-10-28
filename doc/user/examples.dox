@@ -40,27 +40,28 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*! \page page_example_scripts Example Scripts
-Examples:
-- \ref dump_dcd "Writing DCD trajectory files" - demonstrates \link hoomd_script.dump.dcd dump.dcd\endlink<br>
+\b Examples:
+
+1. \ref dump_dcd "Writing DCD trajectory files" - demonstrates \link hoomd_script.dump.dcd dump.dcd\endlink<br>
     <i>write a file which can be viewed in visualization
     software such as VMD</i>
 
-- \ref analyze_imd "Visualizing simulations in real time" - demonstrates \link hoomd_script.analyze.imd analyze.imd\endlink<br>
+2. \ref analyze_imd "Visualizing simulations in real time" - demonstrates \link hoomd_script.analyze.imd analyze.imd\endlink<br>
     <i>use VMD to view a running simulation update in real time</i>
 
-- \ref create_random_polymers "Initialize a system with randomly generated polymers" - demonstrates \link hoomd_script.init.create_random_polymers init.create_random_polymers\endlink<br>
+3. \ref create_random_polymers "Initialize a system with randomly generated polymers" - demonstrates \link hoomd_script.init.create_random_polymers init.create_random_polymers\endlink<br>
     <i>initialize a random system of polymers given configurable parameters</i>
 
-- \ref init_xml "Initialize from an XML file" - demonstrates \link hoomd_script.init.read_xml init.read_xml\endlink<br>
+4. \ref init_xml "Initialize from an XML file" - demonstrates \link hoomd_script.init.read_xml init.read_xml\endlink<br>
     <i>initialize a system with any configuration from a file</i>
 
-- \ref box_resize "Shrinking/expanding the simulation box" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
+5. \ref box_resize "Shrinking/expanding the simulation box" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
     <i>slowly change the simulation box dimensions</i>
 
-- \ref box_resize_rigid "Shrinking/expanding the simulation box with rigid bodies" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
+6. \ref box_resize_rigid "Shrinking/expanding the simulation box with rigid bodies" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
     <i>behavior of update.box_resize with rigid bodies in the system</i>
 
-- \ref init_reset "Run multiple simulations in one job script" - demonstrates \link hoomd_script.init.reset init.reset\endlink<br>
+7. \ref init_reset "Run multiple simulations in one job script" - demonstrates \link hoomd_script.init.reset init.reset\endlink<br>
     <i>use a python loop to run many simulations at different parameters in a single script</i>
 
 8. \ref init_create_empty "Set initial conditions directly from python code" - demonstrates \link hoomd_script.init.create_empty init.create_empty\endlink<br>
