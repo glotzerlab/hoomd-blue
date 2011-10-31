@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <stack>
-#include <boost/unordered_map.hpp>
+#include <tr1/unordered_map>
 #include <boost/shared_ptr.hpp>
 #include <boost/signal.hpp>
 #include <boost/utility.hpp>
@@ -161,7 +161,7 @@ class BondData : boost::noncopyable
         unsigned int m_last_added_tag;                  //!< Tag of last bond added
         std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
         std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
-        boost::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
+        std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData

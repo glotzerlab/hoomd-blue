@@ -181,7 +181,7 @@ const Bond& BondData::getBondByTag(unsigned int tag) const
     {
     // Find position of bond in bonds list
     unsigned int id;
-    boost::unordered_map<unsigned int, unsigned int>::const_iterator it;
+    std::tr1::unordered_map<unsigned int, unsigned int>::const_iterator it;
     it = m_bond_map.find(tag);
     if (it == m_bond_map.end())
         {
@@ -213,7 +213,7 @@ void BondData::removeBond(unsigned int tag)
     {
     // Find position of bond in bonds list
     unsigned int id;
-    boost::unordered_map<unsigned int, unsigned int>::iterator it;
+    std::tr1::unordered_map<unsigned int, unsigned int>::iterator it;
     it = m_bond_map.find(tag);
     if (it == m_bond_map.end())
         {
