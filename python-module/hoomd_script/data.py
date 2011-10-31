@@ -243,6 +243,19 @@ import globals
 # \endcode
 #
 # <hr>
+# <h3>Angle, Dihedral, and Improper Data</h3>
+# Angles, Dihedrals, and Impropers may be added at any time in the job script.
+# \code
+# >>> system.angles.add("angleA", 0, 1, 2)
+# >>> system.dihedrals.add("dihedralA", 1, 2, 3, 4)
+# >>> system.impropers.add("dihedralA", 2, 3, 4, 5)
+# \endcode
+#
+# Individual angles, dihedrals, and impropers may be accessed, deleted by index or removed by tag with the same syntax
+# as described for bonds, just replace \em bonds with \em angles, \em dihedrals, or, \em impropers and access the
+# appropriate number of tag elements (a,b,c for angles) (a,b,c,d for dihedrals/impropers).
+# <hr>
+#
 # <h3>Forces</h3>
 # Forces can be accessed in a similar way. 
 # \code
@@ -1143,7 +1156,7 @@ class dihedral_data:
 # - \c a            : An integer indexing the A particle in the angle. Particle tags run from 0 to N-1;
 # - \c b            : An integer indexing the B particle in the angle. Particle tags run from 0 to N-1;
 # - \c c            : An integer indexing the C particle in the angle. Particle tags run from 0 to N-1;
-# - \c D            : An integer indexing the D particle in the dihedral. Particle tags run from 0 to N-1;
+# - \c d            : An integer indexing the D particle in the dihedral. Particle tags run from 0 to N-1;
 # - \c type         : A string naming the type
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
