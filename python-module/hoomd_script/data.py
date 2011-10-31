@@ -319,6 +319,8 @@ class system_data:
         self.particles = particle_data(sysdef.getParticleData());
         self.bonds = bond_data(sysdef.getBondData());
         self.angles = angle_data(sysdef.getAngleData());
+        self.dihedrals = dihedral_data(sysdef.getDihedralData());
+        self.impropers = dihedral_data(sysdef.getImproperData());
         self.bodies = body_data(sysdef.getRigidData());
 
     ## \var sysdef
@@ -1033,6 +1035,187 @@ class angle_data_proxy:
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
 
+## \internal
+# \brief Access dihedral data
+#
+# dihedral_data provides access to the dihedrals in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# dihedral_data, documented by example.
+#
+class dihedral_data:
+    ## \internal
+    # \brief dihedral_data iterator
+    class dihedral_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+
+    ## \internal
+    # \brief create a dihedral_data
+    #
+    # \param bdata DihedralData to connect
+    def __init__(self, ddata):
+        self.ddata = ddata;
+
+    ## \internal
+    # \brief Add a new dihedral
+    # \param type Type name of the dihedral to add
+    # \param a Tag of the first particle in the dihedral
+    # \param b Tag of the second particle in the dihedral
+    # \param c Tag of the thrid particle in the dihedral
+    # \param d Tag of the fourth particle in the dihedral
+    # \returns Unique tag identifying this bond
+    def add(self, type, a, b, c, d):
+        typeid = self.ddata.getTypeByName(type);
+        return self.ddata.addDihedral(hoomd.Dihedral(typeid, a, b, c, d));
+
+    ## \internal
+    # \brief Remove an dihedral by tag
+    # \param tag Unique tag of the dihedral to remove
+    def remove(self, tag):
+        self.ddata.removeDihedral(tag);
+
+    ## \var ddata
+    # \internal
+    # \brief DihedralData to which this instance is connected
+
+    ## \internal
+    # \brief Get anm dihedral_proxy reference to the dihedral with id \a id
+    # \param id Dihedral id to access
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        return dihedral_data_proxy(self.ddata, id);
+
+    ## \internal
+    # \brief Set an dihedral's properties
+    # \param id dihedral id to set
+    # \param b Value containing properties to set
+    def __setitem__(self, id, b):
+        raise RuntimeError('Cannot change angles once they are created');
+
+    ## \internal
+    # \brief Delete an dihedral by id
+    # \param id Dihedral id to delete
+    def __delitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+
+        # Get the tag of the bond to delete
+        tag = self.ddata.getDihedralTag(id);
+        self.ddata.removeDihedral(tag);
+
+    ## \internal
+    # \brief Get the number of angles
+    def __len__(self):
+        return self.ddata.getNumDihedrals();
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Dihedral Data for %d angles of %d typeid(s)" % (self.ddata.getNumDihedrals(), self.ddata.getNDihedralTypes());
+        return result;
+
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return dihedral_data.dihedral_data_iterator(self);
+
+## Access a single dihedral via a proxy
+#
+# dihedral_data_proxy provides access to all of the properties of a single dihedral in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# dihedral_data_proxy, documented by example.
+#
+# The following attributes are read only:
+# - \c tag          : A unique integer attached to each dihedral (not in any particular range). A dihedral's tag remans fixed
+#                     during its lifetime. (Tags previously used by removed dihedral may be recycled).
+# - \c typeid       : An integer indexing the dihedral's type.
+# - \c a            : An integer indexing the A particle in the angle. Particle tags run from 0 to N-1;
+# - \c b            : An integer indexing the B particle in the angle. Particle tags run from 0 to N-1;
+# - \c c            : An integer indexing the C particle in the angle. Particle tags run from 0 to N-1;
+# - \c D            : An integer indexing the D particle in the dihedral. Particle tags run from 0 to N-1;
+# - \c type         : A string naming the type
+#
+# In the current version of the API, only already defined type names can be used. A future improvement will allow 
+# dynamic creation of new type names from within the python API.
+#
+class dihedral_data_proxy:
+    ## \internal
+    # \brief create a dihedral_data_proxy
+    #
+    # \param ddata DihedralData to which this proxy belongs
+    # \param id index of this dihedral in \a ddata (at time of proxy creation)
+    def __init__(self, ddata, id):
+        self.ddata = ddata;
+        self.tag = self.ddata.getDihedralTag(id);
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "";
+        result += "tag          : " + str(self.tag) + "\n";
+        result += "typeid       : " + str(self.typeid) + "\n";
+        result += "a            : " + str(self.a) + "\n"
+        result += "b            : " + str(self.b) + "\n"
+        result += "c            : " + str(self.c) + "\n"
+        result += "d            : " + str(self.d) + "\n"
+        result += "type         : " + str(self.type) + "\n";
+        return result;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):
+        if name == "a":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.a;
+        if name == "b":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.b;
+        if name == "c":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.c;
+        if name == "d":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.d;
+        if name == "typeid":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.type;
+        if name == "type":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            typeid = bond.type;
+            return self.ddata.getNameByType(typeid);
+
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
+        if name == "a":
+            raise AttributeError;
+        if name == "b":
+            raise AttributeError;
+        if name == "c":
+            raise AttributeError;
+        if name == "d":
+            raise AttributeError;
+        if name == "type":
+            raise AttributeError;
+        if name == "typeid":
+            raise AttributeError;
+
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
 
 ## Access body data
 #
