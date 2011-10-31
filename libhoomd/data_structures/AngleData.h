@@ -49,6 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __ANGLEDATA_H__
 
 #include <vector>
+#include <stack>
+#include <tr1/unordered_map>
 #include <boost/shared_ptr.hpp>
 #include <boost/signal.hpp>
 #include <boost/utility.hpp>
@@ -107,7 +109,10 @@ class AngleData : boost::noncopyable
         ~AngleData();
         
         //! Add an angle to the list
-        void addAngle(const Angle& angle);
+        unsigned int addAngle(const Angle& angle);
+
+        //! Remove an angle identified by its unique tag from the list
+        void removeAngle(unsigned int tag);
         
         //! Get the number of angles
         /*! \return Number of angles present
@@ -124,6 +129,13 @@ class AngleData : boost::noncopyable
             {
             assert(i < m_angles.size()); return m_angles[i];
             }
+
+        //! Get angle by tag value
+        const Angle& getAngleByTag(unsigned int tag) const;
+
+        //! Get tag given an id
+        unsigned int getAngleTag(unsigned int id) const;
+
             
         //! Get the number of angle types
         /*! \return Number of angle types in the list of angles
@@ -154,6 +166,9 @@ class AngleData : boost::noncopyable
         bool m_angles_dirty;                            //!< True if the angle list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these angles belong to
         std::vector<Angle> m_angles;                    //!< List of angles on the CPU
+        std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
+        std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
+        std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_angle_type_mapping;  //!< Mapping between angle type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData

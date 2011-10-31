@@ -128,7 +128,7 @@ AngleData::~AngleData()
     even if not all values are used. So angles should be added with small contiguous types.
     \param angle The Angle to add to the list
  */
-void AngleData::addAngle(const Angle& angle)
+unsigned int AngleData::addAngle(const Angle& angle)
     {
     
     // check for some silly errors a user could make
@@ -157,8 +157,96 @@ void AngleData::addAngle(const Angle& angle)
              << angle.type << ", the number of types is " << m_n_angle_types << endl << endl;
         throw runtime_error("Error adding angle");
         }
-        
+
+    // first check if we can recycle a deleted tag
+    unsigned int tag = 0;
+    if (m_deleted_tags.size())
+        {
+        tag = m_deleted_tags.top();
+        m_deleted_tags.pop();
+        }
+    // Otherwise, generate a new tag
+    else
+        tag = m_angles.size();
+
+    assert(tag <= m_deleted_tags.size() + m_angles.size());
+
+    // add mapping pointing to last element in m_angles
+    m_bond_map.insert(std::pair<unsigned int, unsigned int>(tag,m_angles.size()));
+
     m_angles.push_back(angle);
+    m_tags.push_back(tag);
+
+    m_angles_dirty = true;
+    return tag;
+    }
+
+/*! \param tag tag of the angle to access
+ */
+const Angle& AngleData::getAngleByTag(unsigned int tag) const
+    {
+    // Find position of angle in angles list
+    unsigned int id;
+    std::tr1::unordered_map<unsigned int, unsigned int>::const_iterator it;
+    it = m_bond_map.find(tag);
+    if (it == m_bond_map.end())
+        {
+        cerr << endl << "***Error! Trying to get bond tag " << tag << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting bond");
+        }
+    id = it->second;
+    return m_angles[id];
+    }
+
+/*! \param id Index of angle (0 to N-1)
+    \returns Unique tag of angle (for use when calling removeAngle())
+*/
+unsigned int AngleData::getAngleTag(unsigned int id) const
+    {
+    if (id >= getNumAngles())
+        {
+        cerr << endl << "***Error! Trying to get bond tag from id " << id << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting bond tag");
+        }
+    return m_tags[id];
+    }
+
+/*! \param tag tag of angle to remove
+ * \note Angle removal changes the order of m_angles. If a hole in the angle list
+ * is generated, the last angle in the list is moved up to fill that hole.
+ */
+void AngleData::removeAngle(unsigned int tag)
+    {
+    // Find position of angle in angles list
+    unsigned int id;
+    std::tr1::unordered_map<unsigned int, unsigned int>::iterator it;
+    it = m_bond_map.find(tag);
+    if (it == m_bond_map.end())
+        {
+        cerr << endl << "***Error! Trying to remove bond tag " << tag << " which does not exist!" << endl << endl;
+        throw runtime_error("Error removing bond");
+        }
+    id = it->second;
+
+    // delete from map
+    m_bond_map.erase(it);
+
+    // If the angle is in the middle of the list, move the last element to
+    // to the position of the removed element
+    if (id < (m_angles.size()-1))
+        {
+        m_angles[id] = m_angles[m_angles.size()-1];
+        unsigned int last_tag = m_tags[m_angles.size()-1];
+        m_bond_map[last_tag] = id;
+        m_tags[id] = last_tag;
+        }
+    // delete last element
+    m_angles.pop_back();
+    m_tags.pop_back();
+
+    // maintain a stack of deleted angle tags for future recycling
+    m_deleted_tags.push(tag);
+
     m_angles_dirty = true;
     }
 
@@ -171,7 +259,6 @@ void AngleData::setAngleTypeMapping(const std::vector<std::string>& angle_type_m
     assert(angle_type_mapping.size() == m_n_angle_types);
     m_angle_type_mapping = angle_type_mapping;
     }
-
 
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
@@ -395,6 +482,10 @@ void export_AngleData()
     .def("getNAngleTypes", &AngleData::getNAngleTypes)
     .def("getTypeByName", &AngleData::getTypeByName)
     .def("getNameByType", &AngleData::getNameByType)
+    .def("removeAngle", &AngleData::removeAngle)
+    .def("getAngle", &AngleData::getAngle, return_value_policy<copy_const_reference>())
+    .def("getAngleByTag", &AngleData::getAngleByTag, return_value_policy<copy_const_reference>())
+    .def("getAngleTag", &AngleData::getAngleTag)
     ;
     
     class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())
