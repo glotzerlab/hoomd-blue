@@ -158,7 +158,6 @@ class BondData : boost::noncopyable
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
         std::vector<Bond> m_bonds;                      //!< List of bonds on the CPU
-        unsigned int m_last_added_tag;                  //!< Tag of last bond added
         std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
         std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
         std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
