@@ -187,8 +187,75 @@ import globals
 #
 #\endcode
 #
+# <hr>
+# <h3>Bond Data</h3>
+# Bonds may be added at any time in the job script.
+# \code
+# >>> system.bonds.add("bondA", 0, 1)
+# >>> system.bonds.add("bondA", 1, 2)
+# >>> system.bonds.add("bondA", 2, 3)
+# >>> system.bonds.add("bondA", 3, 4)
+# \endcode
+#
+# Individual bonds may be accessed by index.
+# \code
+# >>> bnd = system.bonds[0]
+# >>> print bnd
+# tag          : 0
+# typeid       : 0
+# a            : 0
+# b            : 1
+# type         : bondA
+# >>> print bnd.type
+# bondA
+# >>> print bnd.a
+# 0
+# >>> print bnd.b
+#1
+# \endcode
+# \note The order in which bonds appear by index is not static and may change at any time!
+#
+# Bonds may be deleted by index.
+# \code
+# >>> del system.bonds[0]
+# >>> print system.bonds[0]
+# tag          : 3
+# typeid       : 0
+# a            : 3
+# b            : 4
+# type         : bondA
+# \endcode
+# \note Regarding the previous note: see how the last bond added is now at index 0. No guarantee is made about how the
+# order of bonds by index will or will not change, so do not write any job scripts which assume a given ordering.
+#
+# To access bonds in an index-independent manner, use their tags. For example, to delete all bonds which connect to
+# particle 2, first loop through the bonds and build a list of bond tags that match the criteria.
+# \code
+# tags = []
+# for b in system.bonds:
+#     if b.a == 2 or b.b == 2:
+#         tags.append(b.tag)
+# \endcode
+# Then remove each of the bonds by their unique tag.
+# \code
+# for t in tags:
+#     system.bonds.remove(t)
+# \endcode
 #
 # <hr>
+# <h3>Angle, Dihedral, and Improper Data</h3>
+# Angles, Dihedrals, and Impropers may be added at any time in the job script.
+# \code
+# >>> system.angles.add("angleA", 0, 1, 2)
+# >>> system.dihedrals.add("dihedralA", 1, 2, 3, 4)
+# >>> system.impropers.add("dihedralA", 2, 3, 4, 5)
+# \endcode
+#
+# Individual angles, dihedrals, and impropers may be accessed, deleted by index or removed by tag with the same syntax
+# as described for bonds, just replace \em bonds with \em angles, \em dihedrals, or, \em impropers and access the
+# appropriate number of tag elements (a,b,c for angles) (a,b,c,d for dihedrals/impropers).
+# <hr>
+#
 # <h3>Forces</h3>
 # Forces can be accessed in a similar way. 
 # \code
@@ -263,8 +330,10 @@ class system_data:
     def __init__(self, sysdef):
         self.sysdef = sysdef;
         self.particles = particle_data(sysdef.getParticleData());
-        # Added to try to add defining Bond_data  
         self.bonds = bond_data(sysdef.getBondData());
+        self.angles = angle_data(sysdef.getAngleData());
+        self.dihedrals = dihedral_data(sysdef.getDihedralData());
+        self.impropers = dihedral_data(sysdef.getImproperData());
         self.bodies = body_data(sysdef.getRigidData());
 
     ## \var sysdef
@@ -642,7 +711,7 @@ class force_data_proxy:
 ## \internal
 # \brief Access bond data
 #
-# bond_data provides access to the per-bond data of all bonds in the system.
+# bond_data provides access to the bonds in the system.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # bond_data, documented by example.
 #
@@ -670,28 +739,51 @@ class bond_data:
     def __init__(self, bdata):
         self.bdata = bdata;
     
-    def addBond(self, type, tagA, tagB):
+    ## \internal
+    # \brief Add a new bond
+    # \param type Type name of the bond to add
+    # \param a Tag of the first particle in the bond
+    # \param b Tag of the second particle in the bond
+    # \returns Unique tag identifying this bond
+    def add(self, type, a, b):
         typeid = self.bdata.getTypeByName(type);
-        self.bdata.addBond(hoomd.Bond(typeid, tagA, tagB));
+        return self.bdata.addBond(hoomd.Bond(typeid, a, b));
+
+    ## \internal
+    # \brief Remove a bond by tag
+    # \param tag Unique tag of the bond to remove
+    def remove(self, tag):
+        self.bdata.removeBond(tag);
     
     ## \var bdata
     # \internal
     # \brief BondData to which this instance is connected
 
     ## \internal
-    # \brief Get a bond_proxy reference to the bond with tag \a tag
-    # \param typeid Bond tag to access
-    def __getitem__(self, tag):
-        if tag >= len(self) or tag < 0:
+    # \brief Get a bond_proxy reference to the bond with id \a id
+    # \param id Bond id to access
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
             raise IndexError;
-        return bond_data_proxy(self.bdata, tag);
+        return bond_data_proxy(self.bdata, id);
     
     ## \internal
     # \brief Set a bond's properties
-    # \param tag Bond tag to set
+    # \param id Bond id to set
     # \param b Value containing properties to set
-    def __setitem__(self, tag, b):
-        raise RuntimeError('__setitem__ not implemented');
+    def __setitem__(self, id, b):
+        raise RuntimeError('Cannot change bonds once they are created');
+
+    ## \internal
+    # \brief Delete a bond by id
+    # \param id Bond id to delete
+    def __delitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+
+        # Get the tag of the bond to delete
+        tag = self.bdata.getBondTag(id);
+        self.bdata.removeBond(tag);
     
     ## \internal
     # \brief Get the number of bonds
@@ -716,76 +808,427 @@ class bond_data:
 # bond_data_proxy, documented by example.
 #
 # The following attributes are read only:
-# - \c tag          : An integer indexing the bond in the system. Tags run from 0 to Nbonds-1;
+# - \c tag          : A unique integer attached to each bond (not in any particular range). A bond's tag remans fixed
+#                     during its lifetime. (Tags previously used by removed bonds may be recycled).
 # - \c typeid       : An integer indexing the bond type of the bond.
-#
-# The following attributes can be both read and set
-# - \c tagA         : An integer indexing the A particle in the system. Tags run from 0 to N-1;
-# - \c tagB         : An integer indexing the B particle in the system. Tags run from 0 to N-1;
+# - \c a            : An integer indexing the A particle in the bond. Particle tags run from 0 to N-1;
+# - \c b            : An integer indexing the B particle in the bond. Particle tags run from 0 to N-1;
 # - \c type         : A string naming the type
 #
-# In the current version of the API, only already defined tags can be used. A future improvement will allow 
-# dynamic creation of new tag names from within the python API.
+# In the current version of the API, only already defined type names can be used. A future improvement will allow 
+# dynamic creation of new type names from within the python API.
 #
 class bond_data_proxy:
     ## \internal
     # \brief create a bond_data_proxy
     #
     # \param bdata BondData to which this proxy belongs
-    # \param tag tag of this bond in \a bdata
-    def __init__(self, bdata, tag):
+    # \param id index of this bond in \a bdata (at time of proxy creation)
+    def __init__(self, bdata, id):
         self.bdata = bdata;
-        self.tag = tag;
+        self.tag = self.bdata.getBondTag(id);
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        result += "tagA         : " + str(self.tagA) + "\n"
-        result += "tagB         : " + str(self.tagB) + "\n"
-        result += "type         : " + str(self.type) + "\n";
+        result += "tag          : " + str(self.tag) + "\n";
         result += "typeid       : " + str(self.typeid) + "\n";
+        result += "a            : " + str(self.a) + "\n"
+        result += "b            : " + str(self.b) + "\n"
+        result += "type         : " + str(self.type) + "\n";
         return result;
     
     ## \internal
     # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):        
-        if name == "tagA":
-            Atag = self.bdata.getBond(self.tag).a;
-        if name == "tagB":
-            Btag = self.bdata.getBond(self.tag).b;            
-            return (Btag);
+    def __getattr__(self, name):
+        if name == "a":
+            bond = self.bdata.getBondByTag(self.tag);
+            return bond.a;
+        if name == "b":
+            bond = self.bdata.getBondByTag(self.tag);
+            return bond.b;
         if name == "typeid":
-            return self.bdata.getBond(self.tag).type;
+            bond = self.bdata.getBondByTag(self.tag);
+            return bond.type;
         if name == "type":
-            typeid = self.bdata.getBond(self.tag).type;
+            bond = self.bdata.getBondByTag(self.tag);
+            typeid = bond.type;
             return self.bdata.getNameByType(typeid);
-        
+
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
     
     ## \internal
     # \brief Translate attribute accesses into the low level API function calls
     def __setattr__(self, name, value):
-        if name == "tagA":
-            bond = self.bdata.getBond(self.tag)
-            bond.a = value
-            return;
-        if name == "tagB":
-            bond = self.bdata.getBond(self.tag)
-            bond.b = value
-            return;            
+        if name == "a":
+            raise AttributeError;
+        if name == "b":
+            raise AttributeError;
         if name == "type":
-            typeid = self.bdata.getTypeByName(value);
-            self.bdata.setType(self.tag, typeid);
-            return;
+            raise AttributeError;
         if name == "typeid":
             raise AttributeError;
- 
+
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
 
+## \internal
+# \brief Access angle data
+#
+# angle_data provides access to the angles in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# angle_data, documented by example.
+#
+class angle_data:
+    ## \internal
+    # \brief angle_data iterator
+    class angle_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
 
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+
+    ## \internal
+    # \brief create a angle_data
+    #
+    # \param bdata AngleData to connect
+    def __init__(self, adata):
+        self.adata = adata;
+
+    ## \internal
+    # \brief Add a new angle
+    # \param type Type name of the angle to add
+    # \param a Tag of the first particle in the angle
+    # \param b Tag of the second particle in the angle
+    # \param c Tag of the thrid particle in the angle
+    # \returns Unique tag identifying this bond
+    def add(self, type, a, b, c):
+        typeid = self.adata.getTypeByName(type);
+        return self.adata.addAngle(hoomd.Angle(typeid, a, b, c));
+
+    ## \internal
+    # \brief Remove an angle by tag
+    # \param tag Unique tag of the angle to remove
+    def remove(self, tag):
+        self.adata.removeAngle(tag);
+
+    ## \var adata
+    # \internal
+    # \brief AngleData to which this instance is connected
+
+    ## \internal
+    # \brief Get anm angle_proxy reference to the bond with id \a id
+    # \param id Angle id to access
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        return angle_data_proxy(self.adata, id);
+
+    ## \internal
+    # \brief Set an angle's properties
+    # \param id Angle id to set
+    # \param b Value containing properties to set
+    def __setitem__(self, id, b):
+        raise RuntimeError('Cannot change angles once they are created');
+
+    ## \internal
+    # \brief Delete an angle by id
+    # \param id Angle id to delete
+    def __delitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+
+        # Get the tag of the bond to delete
+        tag = self.adata.getAngleTag(id);
+        self.adata.removeAngle(tag);
+
+    ## \internal
+    # \brief Get the number of angles
+    def __len__(self):
+        return self.adata.getNumAngles();
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Angle Data for %d angles of %d typeid(s)" % (self.adata.getNumAngles(), self.adata.getNAngleTypes());
+        return result;
+
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return angle_data.angle_data_iterator(self);
+
+## Access a single angle via a proxy
+#
+# angle_data_proxy provides access to all of the properties of a single angle in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# angle_data_proxy, documented by example.
+#
+# The following attributes are read only:
+# - \c tag          : A unique integer attached to each angle (not in any particular range). A angle's tag remans fixed
+#                     during its lifetime. (Tags previously used by removed angles may be recycled).
+# - \c typeid       : An integer indexing the angle's type.
+# - \c a            : An integer indexing the A particle in the angle. Particle tags run from 0 to N-1;
+# - \c b            : An integer indexing the B particle in the angle. Particle tags run from 0 to N-1;
+# - \c c            : An integer indexing the C particle in the angle. Particle tags run from 0 to N-1;
+# - \c type         : A string naming the type
+#
+# In the current version of the API, only already defined type names can be used. A future improvement will allow 
+# dynamic creation of new type names from within the python API.
+#
+class angle_data_proxy:
+    ## \internal
+    # \brief create a angle_data_proxy
+    #
+    # \param adata AngleData to which this proxy belongs
+    # \param id index of this angle in \a adata (at time of proxy creation)
+    def __init__(self, adata, id):
+        self.adata = adata;
+        self.tag = self.adata.getAngleTag(id);
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "";
+        result += "tag          : " + str(self.tag) + "\n";
+        result += "typeid       : " + str(self.typeid) + "\n";
+        result += "a            : " + str(self.a) + "\n"
+        result += "b            : " + str(self.b) + "\n"
+        result += "c            : " + str(self.c) + "\n"
+        result += "type         : " + str(self.type) + "\n";
+        return result;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):
+        if name == "a":
+            bond = self.adata.getAngleByTag(self.tag);
+            return bond.a;
+        if name == "b":
+            bond = self.adata.getAngleByTag(self.tag);
+            return bond.b;
+        if name == "c":
+            bond = self.adata.getAngleByTag(self.tag);
+            return bond.c;
+        if name == "typeid":
+            bond = self.adata.getAngleByTag(self.tag);
+            return bond.type;
+        if name == "type":
+            bond = self.adata.getAngleByTag(self.tag);
+            typeid = bond.type;
+            return self.adata.getNameByType(typeid);
+
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
+        if name == "a":
+            raise AttributeError;
+        if name == "b":
+            raise AttributeError;
+        if name == "c":
+            raise AttributeError;
+        if name == "type":
+            raise AttributeError;
+        if name == "typeid":
+            raise AttributeError;
+
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
+
+## \internal
+# \brief Access dihedral data
+#
+# dihedral_data provides access to the dihedrals in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# dihedral_data, documented by example.
+#
+class dihedral_data:
+    ## \internal
+    # \brief dihedral_data iterator
+    class dihedral_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+
+    ## \internal
+    # \brief create a dihedral_data
+    #
+    # \param bdata DihedralData to connect
+    def __init__(self, ddata):
+        self.ddata = ddata;
+
+    ## \internal
+    # \brief Add a new dihedral
+    # \param type Type name of the dihedral to add
+    # \param a Tag of the first particle in the dihedral
+    # \param b Tag of the second particle in the dihedral
+    # \param c Tag of the thrid particle in the dihedral
+    # \param d Tag of the fourth particle in the dihedral
+    # \returns Unique tag identifying this bond
+    def add(self, type, a, b, c, d):
+        typeid = self.ddata.getTypeByName(type);
+        return self.ddata.addDihedral(hoomd.Dihedral(typeid, a, b, c, d));
+
+    ## \internal
+    # \brief Remove an dihedral by tag
+    # \param tag Unique tag of the dihedral to remove
+    def remove(self, tag):
+        self.ddata.removeDihedral(tag);
+
+    ## \var ddata
+    # \internal
+    # \brief DihedralData to which this instance is connected
+
+    ## \internal
+    # \brief Get anm dihedral_proxy reference to the dihedral with id \a id
+    # \param id Dihedral id to access
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        return dihedral_data_proxy(self.ddata, id);
+
+    ## \internal
+    # \brief Set an dihedral's properties
+    # \param id dihedral id to set
+    # \param b Value containing properties to set
+    def __setitem__(self, id, b):
+        raise RuntimeError('Cannot change angles once they are created');
+
+    ## \internal
+    # \brief Delete an dihedral by id
+    # \param id Dihedral id to delete
+    def __delitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+
+        # Get the tag of the bond to delete
+        tag = self.ddata.getDihedralTag(id);
+        self.ddata.removeDihedral(tag);
+
+    ## \internal
+    # \brief Get the number of angles
+    def __len__(self):
+        return self.ddata.getNumDihedrals();
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Dihedral Data for %d angles of %d typeid(s)" % (self.ddata.getNumDihedrals(), self.ddata.getNDihedralTypes());
+        return result;
+
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return dihedral_data.dihedral_data_iterator(self);
+
+## Access a single dihedral via a proxy
+#
+# dihedral_data_proxy provides access to all of the properties of a single dihedral in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# dihedral_data_proxy, documented by example.
+#
+# The following attributes are read only:
+# - \c tag          : A unique integer attached to each dihedral (not in any particular range). A dihedral's tag remans fixed
+#                     during its lifetime. (Tags previously used by removed dihedral may be recycled).
+# - \c typeid       : An integer indexing the dihedral's type.
+# - \c a            : An integer indexing the A particle in the angle. Particle tags run from 0 to N-1;
+# - \c b            : An integer indexing the B particle in the angle. Particle tags run from 0 to N-1;
+# - \c c            : An integer indexing the C particle in the angle. Particle tags run from 0 to N-1;
+# - \c d            : An integer indexing the D particle in the dihedral. Particle tags run from 0 to N-1;
+# - \c type         : A string naming the type
+#
+# In the current version of the API, only already defined type names can be used. A future improvement will allow 
+# dynamic creation of new type names from within the python API.
+#
+class dihedral_data_proxy:
+    ## \internal
+    # \brief create a dihedral_data_proxy
+    #
+    # \param ddata DihedralData to which this proxy belongs
+    # \param id index of this dihedral in \a ddata (at time of proxy creation)
+    def __init__(self, ddata, id):
+        self.ddata = ddata;
+        self.tag = self.ddata.getDihedralTag(id);
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "";
+        result += "tag          : " + str(self.tag) + "\n";
+        result += "typeid       : " + str(self.typeid) + "\n";
+        result += "a            : " + str(self.a) + "\n"
+        result += "b            : " + str(self.b) + "\n"
+        result += "c            : " + str(self.c) + "\n"
+        result += "d            : " + str(self.d) + "\n"
+        result += "type         : " + str(self.type) + "\n";
+        return result;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):
+        if name == "a":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.a;
+        if name == "b":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.b;
+        if name == "c":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.c;
+        if name == "d":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.d;
+        if name == "typeid":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            return bond.type;
+        if name == "type":
+            bond = self.ddata.getDihedralByTag(self.tag);
+            typeid = bond.type;
+            return self.ddata.getNameByType(typeid);
+
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
+        if name == "a":
+            raise AttributeError;
+        if name == "b":
+            raise AttributeError;
+        if name == "c":
+            raise AttributeError;
+        if name == "d":
+            raise AttributeError;
+        if name == "type":
+            raise AttributeError;
+        if name == "typeid":
+            raise AttributeError;
+
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
 
 ## \internal
 # \brief Access body data

@@ -99,6 +99,9 @@ Peter Palm, Jens Glaser, Leipzig University
  - group functionality in force.constant
  - misc bug fixes
 
+Jens Glaser, University of Minnesota
+ - Dynamic addition/removal of bonds
+
 Brandon D. Smith, University of Michigan
  - integrate.berendsen
 

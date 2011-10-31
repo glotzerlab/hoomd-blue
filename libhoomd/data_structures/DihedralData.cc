@@ -130,7 +130,7 @@ DihedralData::~DihedralData()
     even if not all values are used. So dihedrals should be added with small contiguous types.
     \param dihedral The Dihedral to add to the list
  */
-void DihedralData::addDihedral(const Dihedral& dihedral)
+unsigned int DihedralData::addDihedral(const Dihedral& dihedral)
     {
     
     // check for some silly errors a user could make
@@ -152,8 +152,96 @@ void DihedralData::addDihedral(const Dihedral& dihedral)
         cerr << endl << "***Error! Invalid dihedral/improper type! " << dihedral.type << ", the number of types is " << m_n_dihedral_types << endl << endl;
         throw runtime_error("Error adding dihedral/improper");
         }
-        
+
+    // first check if we can recycle a deleted tag
+    unsigned int tag = 0;
+    if (m_deleted_tags.size())
+        {
+        tag = m_deleted_tags.top();
+        m_deleted_tags.pop();
+        }
+    // Otherwise, generate a new tag
+    else
+        tag = m_dihedrals.size();
+
+    assert(tag <= m_deleted_tags.size() + m_dihedrals.size());
+
+    // add mapping pointing to last element in m_dihedrals
+    m_bond_map.insert(std::pair<unsigned int, unsigned int>(tag,m_dihedrals.size()));
+
     m_dihedrals.push_back(dihedral);
+    m_tags.push_back(tag);
+
+    m_dihedrals_dirty = true;
+    return tag;
+    }
+
+/*! \param tag tag of the dihedral to access
+ */
+const Dihedral& DihedralData::getDihedralByTag(unsigned int tag) const
+    {
+    // Find position of dihedral in dihedralss list
+    unsigned int id;
+    std::tr1::unordered_map<unsigned int, unsigned int>::const_iterator it;
+    it = m_bond_map.find(tag);
+    if (it == m_bond_map.end())
+        {
+        cerr << endl << "***Error! Trying to get bond tag " << tag << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting bond");
+        }
+    id = it->second;
+    return m_dihedrals[id];
+    }
+
+/*! \param id Index of dihedral (0 to N-1)
+    \returns Unique tag of dihedral (for use when calling removeDihedral())
+*/
+unsigned int DihedralData::getDihedralTag(unsigned int id) const
+    {
+    if (id >= getNumDihedrals())
+        {
+        cerr << endl << "***Error! Trying to get bond tag from id " << id << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting bond tag");
+        }
+    return m_tags[id];
+    }
+
+/*! \param tag tag of dihedral to remove
+ * \note Dihedral removal changes the order of m_dihedrals. If a hole in the dihedral list
+ * is generated, the last dihedral in the list is moved up to fill that hole.
+ */
+void DihedralData::removeDihedral(unsigned int tag)
+    {
+    // Find position of bond in bonds list
+    unsigned int id;
+    std::tr1::unordered_map<unsigned int, unsigned int>::iterator it;
+    it = m_bond_map.find(tag);
+    if (it == m_bond_map.end())
+        {
+        cerr << endl << "***Error! Trying to remove bond tag " << tag << " which does not exist!" << endl << endl;
+        throw runtime_error("Error removing bond");
+        }
+    id = it->second;
+
+    // delete from map
+    m_bond_map.erase(it);
+
+    // If the bond is in the middle of the list, move the last element to
+    // to the position of the removed element
+    if (id < (m_dihedrals.size()-1))
+        {
+        m_dihedrals[id] = m_dihedrals[m_dihedrals.size()-1];
+        unsigned int last_tag = m_tags[m_dihedrals.size()-1];
+        m_bond_map[last_tag] = id;
+        m_tags[id] = last_tag;
+        }
+    // delete last element
+    m_dihedrals.pop_back();
+    m_tags.pop_back();
+
+    // maintain a stack of deleted bond tags for future recycling
+    m_deleted_tags.push(tag);
+
     m_dihedrals_dirty = true;
     }
 
@@ -417,6 +505,10 @@ void export_DihedralData()
     .def("getNDihedralTypes", &DihedralData::getNDihedralTypes)
     .def("getTypeByName", &DihedralData::getTypeByName)
     .def("getNameByType", &DihedralData::getNameByType)
+    .def("removeDihedral", &DihedralData::removeDihedral)
+    .def("getDihedral", &DihedralData::getDihedral, return_value_policy<copy_const_reference>())
+    .def("getDihedralByTag", &DihedralData::getDihedralByTag, return_value_policy<copy_const_reference>())
+    .def("getDihedralTag", &DihedralData::getDihedralTag)
     ;
     
     class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())

@@ -49,6 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __DIHEDRALDATA_H__
 
 #include <vector>
+#include <stack>
+#include <tr1/unordered_map>
 #include <boost/shared_ptr.hpp>
 #include <boost/signal.hpp>
 #include <boost/utility.hpp>
@@ -109,7 +111,10 @@ class DihedralData : boost::noncopyable
         ~DihedralData();
         
         //! Add an dihedral to the list
-        void addDihedral(const Dihedral& dihedral);
+        unsigned int addDihedral(const Dihedral& dihedral);
+
+        //! Remove a dihedral identified by its unique tag from the list
+        void removeDihedral(unsigned int tag);
         
         //! Get the number of dihedrals
         /*! \return Number of dihedrals present
@@ -126,6 +131,13 @@ class DihedralData : boost::noncopyable
             {
             assert(i < m_dihedrals.size()); return m_dihedrals[i];
             }
+
+        //! Get dihedral by tag value
+        const Dihedral& getDihedralByTag(unsigned int tag) const;
+
+        //! Get tag given an id
+        unsigned int getDihedralTag(unsigned int id) const;
+
             
         //! Get the number of dihedral types
         /*! \return Number of dihedral types in the list of dihedrals
@@ -156,6 +168,9 @@ class DihedralData : boost::noncopyable
         bool m_dihedrals_dirty;                             //!< True if the dihedral list has been changed
         boost::shared_ptr<ParticleData> m_pdata;            //!< Particle Data these dihedrals belong to
         std::vector<Dihedral> m_dihedrals;                  //!< List of dihedrals on the CPU
+        std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
+        std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
+        std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_dihedral_type_mapping;   //!< Mapping between dihedral type indices and names
         
         boost::signals::connection m_sort_connection;       //!< Connection to the resort signal from ParticleData

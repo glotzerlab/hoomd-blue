@@ -49,6 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __BONDDATA_H__
 
 #include <vector>
+#include <stack>
+#include <tr1/unordered_map>
 #include <boost/shared_ptr.hpp>
 #include <boost/signal.hpp>
 #include <boost/utility.hpp>
@@ -102,8 +104,11 @@ class BondData : boost::noncopyable
         ~BondData();
         
         //! Add a bond to the list
-        void addBond(const Bond& bond);
-        
+        unsigned int addBond(const Bond& bond);
+
+        //! Remove a bond identified by its unique tag from the list
+        void removeBond(unsigned int tag);
+
         //! Get the number of bonds
         /*! \return Number of bonds present
         */
@@ -119,7 +124,13 @@ class BondData : boost::noncopyable
             {
             assert(i < m_bonds.size()); return m_bonds[i];
             }
-            
+
+        //! Get bond by tag value
+        const Bond& getBondByTag(unsigned int tag) const;
+
+        //! Get tag given an id
+        unsigned int getBondTag(unsigned int id) const;
+
         //! Get the number of bond types
         /*! \return Number of bond types in the list of bonds
         */
@@ -147,6 +158,9 @@ class BondData : boost::noncopyable
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
         std::vector<Bond> m_bonds;                      //!< List of bonds on the CPU
+        std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
+        std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
+        std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
