@@ -59,7 +59,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <stack>
+
+// fall back on compiler tr1/unordered_map if boost doesn't have it
+#if (BOOST_VERSION <= 103600)
 #include <tr1/unordered_map>
+#else
+#include <boost/tr1/unordered_map.hpp>
+#endif
+
 #include <boost/shared_ptr.hpp>
 #include <boost/signal.hpp>
 #include <boost/utility.hpp>
