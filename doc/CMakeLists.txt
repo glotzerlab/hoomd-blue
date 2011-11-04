@@ -32,8 +32,9 @@ set (_dev_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_dev.in
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_centos.dox
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_fedora.dox
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc
-                       ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc
+                       ${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox
+                       ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/dev/DeveloperInfo.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/dev/Groups.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/dev/MainPage.doc
@@ -98,6 +99,7 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_fedora.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/DoxygenLayout.xml
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/stylesheet.css

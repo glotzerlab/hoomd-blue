@@ -1,0 +1,30 @@
+/*! \page page_citing Citing HOOMD-blue
+
+<p>Include <b>both</b> of the following citations in any work that uses HOOMD-blue.</p>
+<ul>
+<li>HOOMD-blue web page: http://codeblue.umich.edu/hoomd-blue</li>
+<li>J. A. Anderson, C. D. Lorenz, and A. Travesset. General purpose molecular dynamics simulations fully implemented on graphics processing units <em>Journal of Computational Physics</em> 227(10):5342-5359, May 2008.
+<a href="http://dx.doi.org/10.1016/j.jcp.2008.01.047">10.1016/j.jcp.2008.01.047</a></li>
+</ul>
+
+<p>If you utilize the rigid body functionality, also cite</p>
+<ul>
+<li>T. D. Nguyen, C. L. Phillips, J. A. Anderson, and S. C. Glotzer. Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units <em>Computer Physics Communications</em> 182(11):2313-2307, June 2011.
+<a href="http://dx.doi.org/10.1016/j.cpc.2011.06.005">10.1016/j.cpc.2011.06.005</a></li>
+</ul>
+
+<p>If you utilize the DPD functionality, also cite</p>
+<ul>
+<li>C. L. Phillips, J. A. Anderson, and S. C. Glotzer. Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices <em>Journal of Computational Physics</em> 230(19):7191-7201, Aug. 2011.
+<a href="http://dx.doi.org/10.1016/j.jcp.2011.05.021">10.1016/j.jcp.2011.05.021</a></li>
+</ul>
+
+<p>If you utilize the EAM functionality, also cite</p>
+<ul>
+<li>I.V. Morozov, A.M. Kazennova, R.G. Bystryia, G.E. Normana, V.V. Pisareva, and V.V. Stegailova. Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs <em>Computer Physics Communications</em> 182(9):1974-1978, 2011.
+<a href="http://dx.doi.org/10.1016/j.cpc.2010.12.026">10.1016/j.cpc.2010.12.026</a></li>
+</ul>
+
+<p>If you utilize the PPPM functionality, acknowledge Stephen Barr and A.Z. Panagiotopoulos at
+   Princeton University and Philipp Mertmann from Ruhr University Bochum.</p>
+*/
