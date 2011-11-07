@@ -77,8 +77,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  - \b GPU: (optional) A <a href=" http://www.nvidia.com/object/cuda_home.html">CUDA capable GPU</a> is required to run hoomd with
     GPU acceleration. Without one, hoomd will run on the CPU.
  -  GPU \b Driver software (install only on systems with NVIDIA GPUs -- needed to enable GPUs for use with hoomd):
-   - Linux - NVIDIA Drivers version 260.19.26 or newer (http://www.nvidia.com)
-   - Mac OS X NVIDIA CUDA Drivers version 3.2 or newer ( http://www.nvidia.com/object/mac-driver-archive.html )
+   - Linux - NVIDIA Drivers version 270.41.19 or newer (http://www.nvidia.com)
+   - Mac OS X NVIDIA CUDA Drivers version 4.0 or newer ( http://www.nvidia.com/object/mac-driver-archive.html )
 
      
 VMD 1.9 or newer (http://www.ks.uiuc.edu/Research/vmd/) is not a requirement to run HOOMD-blue, but you may find it
