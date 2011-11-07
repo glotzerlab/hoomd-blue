@@ -329,6 +329,9 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] = 0; arrays.body[5] = NO_BODY;
     pdata_6->release();
     
+    // this test uses rigid bodies, initialize them
+    sysdef_6->getRigidData()->initializeData();
+
     shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setFilterBody(true);
     nlist_6->setStorageMode(NeighborList::full);
