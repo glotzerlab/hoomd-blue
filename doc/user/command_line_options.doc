@@ -68,7 +68,7 @@ force hoomd to run either on the \a cpu or \a gpu
 
 <b>--gpu</b>={#}
 \par
-specify explicitly which GPU(s) on which hoomd will execute. Implies --mode=gpu.
+specify explicitly the GPU on which hoomd will execute. Implies --mode=gpu.
 
 <b>--ncpu</b>={#}
 \par
