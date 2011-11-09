@@ -833,7 +833,7 @@ class pair(force._force):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.lj is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# pair.lj is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd_script.pair.pair for a full
 # description of the various options.
 #
 # \b Example:
@@ -927,7 +927,7 @@ class lj(pair):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.gauss is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# pair.gauss is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd_script.pair.pair for a full
 # description of the various options.
 #
 # \b Example:
@@ -1015,7 +1015,7 @@ class gauss(pair):
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.slj is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# pair.slj is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd_script.pair.pair for a full
 # description of the various options.
 # \note Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of xplor is not supported.
 #
@@ -1159,7 +1159,7 @@ class slj(pair):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on (in units of distance)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.yukawa is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# pair.yukawa is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd_script.pair.pair for a full
 # description of the various options.
 #
 # \b Example:
@@ -1244,7 +1244,7 @@ class yukawa(pair):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.ewald is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# pair.ewald is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd_script.pair.pair for a full
 # description of the various options.
 #
 # \b Example:
@@ -1599,7 +1599,7 @@ class table(force._force):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.morse is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# pair.morse is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd_script.pair.pair for a full
 # description of the various options.
 #
 # \b Example:
@@ -2040,7 +2040,7 @@ class eam(force._force):
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
 #
-# pair.dpdlj is a standard %pair potential and supports a number of energy shift / smoothing modes for the conservative LJ potential. See pair for a full
+# pair.dpdlj is a standard %pair potential and supports a number of energy shift / smoothing modes for the conservative LJ potential. See hoomd_script.pair.pair for a full
 # description of the various options.
 #
 class dpdlj(pair):
