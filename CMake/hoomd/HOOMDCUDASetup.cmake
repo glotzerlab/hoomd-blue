@@ -28,9 +28,9 @@ endif (SINGLE_PRECISION)
 if (ENABLE_CUDA)
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
     if (CUDA_VERSION VERSION_GREATER 2.99) 
-        set(CUDA_ARCH_LIST 11 12 13 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        set(CUDA_ARCH_LIST 12 13 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     else (CUDA_VERSION VERSION_GREATER 2.99)
-        set(CUDA_ARCH_LIST 11 12 13 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        set(CUDA_ARCH_LIST 12 13 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     endif (CUDA_VERSION VERSION_GREATER 2.99)
     
     foreach(_cuda_arch ${CUDA_ARCH_LIST})

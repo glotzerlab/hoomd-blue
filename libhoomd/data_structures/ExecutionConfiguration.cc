@@ -311,6 +311,13 @@ void ExecutionConfiguration::printGPUStats()
         s << ", DIS";
             
     cout << s.str() << endl;
+    
+    // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
+    if (dev_prop.major <= 1 && dev_prop.minor <= 1)
+        {
+        cout << endl << "***Warning! HOOMD-blue is not supported on compute 1.1 and older GPUs"
+             << endl << endl;
+        }
     }
 
 //! Element in a priority sort of GPUs
