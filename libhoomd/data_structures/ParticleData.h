@@ -838,7 +838,7 @@ class ParticleData : boost::noncopyable
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
         
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
-        GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle
+        GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
         GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
         GPUArray< Scalar4 > m_orientation;           //!< Orientation quaternion for each particle (ignored if not anisotropic)
         std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle

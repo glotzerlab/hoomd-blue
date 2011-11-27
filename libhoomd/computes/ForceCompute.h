@@ -79,8 +79,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
 
-    The per particle virial is defined such that 
-    \f$ \sum_i^N \mathrm{virial}_i = \frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
+    The per particle virial is a symmetrized 3x3 matrix that is defined such
+    that
+    \f$ \sum_k^N \left(\mathrm{virial}_{ij}\right)_k = \sum_k^N \sum_{l>k} \frac{1}{2} \left( \vec{r}_{kl,i} \vec{f}_{kl,j} + \vec{r}_{kl,j} \vec{f}_{kl, i} \right) \f$
 
     \ingroup data_structs
 */
@@ -177,7 +178,15 @@ class ForceCompute : public Compute
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
                             
         GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
-        GPUArray<Scalar>  m_virial;           //!< per-particle virial (see ForceDataArrays for definition)
+
+        /*! per-particle virial, a 2D GPUArray with width=number
+            of particles and height=6. The elements of the (symmetrized)
+            3x3 virial matrix \f$ \left(\mathrm{virial}_{ij}\right),k \f$ for
+            particle \f$k\f$ are stored in the rows and are indexed in the
+            order xx, xy, xz, yy, yz, zz
+         */
+        GPUArray<Scalar>  m_virial;
+        unsigned int m_virial_pitch;    //!< The pitch of the 2D virial array
         GPUArray<Scalar4> m_torque;    //!< per-particle torque
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
                 

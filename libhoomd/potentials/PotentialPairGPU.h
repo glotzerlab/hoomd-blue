@@ -173,6 +173,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     
     gpu_cgpf(pair_args_t(d_force.data,
                          d_virial.data,
+                         this->m_virial.getPitch(),
                          pdata,
                          box,
                          d_n_neigh.data,

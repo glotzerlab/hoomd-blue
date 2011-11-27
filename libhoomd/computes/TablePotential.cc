@@ -257,11 +257,12 @@ void TablePotential::computeForces(unsigned int timestep)
 
     // need to start from a zero force, energy and virial
     memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
-    memset(&m_virial_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar)*arrays.nparticles);
+    memset(&m_virial_partial[m_index_thread_partial(0,tid)] , 0, 6*sizeof(Scalar)*arrays.nparticles);
     
+    unsigned int N = arrays.nparticles;
     // for each particle
 #pragma omp for schedule(guided)
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)N; i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar xi = arrays.x[i];
@@ -276,8 +277,13 @@ void TablePotential::computeForces(unsigned int timestep)
         Scalar fyi = 0.0;
         Scalar fzi = 0.0;
         Scalar pei = 0.0;
-        Scalar viriali = 0.0;
-        
+        Scalar virialxxi = 0.0;
+        Scalar virialxyi = 0.0;
+        Scalar virialxzi = 0.0;
+        Scalar virialyyi = 0.0;
+        Scalar virialyzi = 0.0;
+        Scalar virialzzi = 0.0;
+
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int j = 0; j < size; j++)
@@ -353,17 +359,20 @@ void TablePotential::computeForces(unsigned int timestep)
                     forcemag_divr = F / r;
                 Scalar pair_eng = Scalar(0.5) * V;
                 
-                // compute the virial (FLOPS: 2)
-                // note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
-                // there is no - in the 1/6 to compensate
-                Scalar pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
-                
+                // compute the virial
+                Scalar forcemag_div2r = Scalar(0.5) * forcemag_divr;
+                virialxxi += forcemag_div2r*dx*dx;
+                virialxyi += forcemag_div2r*dx*dy;
+                virialxzi += forcemag_div2r*dx*dz;
+                virialyyi += forcemag_div2r*dy*dy;
+                virialyzi += forcemag_div2r*dy*dz;
+                virialzzi += forcemag_div2r*dz*dz;
+
                 // add the force, potential energy and virial to the particle i
                 fxi += dx*forcemag_divr;
                 fyi += dy*forcemag_divr;
                 fzi += dz*forcemag_divr;
                 pei += pair_eng;
-                viriali += pair_virial;
                 
                 // add the force to particle j if we are using the third law
                 if (third_law)
@@ -373,7 +382,12 @@ void TablePotential::computeForces(unsigned int timestep)
                     m_fdata_partial[mem_idx].y -= dy*forcemag_divr;
                     m_fdata_partial[mem_idx].z -= dz*forcemag_divr;
                     m_fdata_partial[mem_idx].w += pair_eng;
-                    m_virial_partial[mem_idx] += pair_virial;
+                    m_virial_partial[N*0+mem_idx] += virialxxi;
+                    m_virial_partial[N*1+mem_idx] += virialxyi;
+                    m_virial_partial[N*2+mem_idx] += virialxzi;
+                    m_virial_partial[N*3+mem_idx] += virialyyi;
+                    m_virial_partial[N*4+mem_idx] += virialyzi;
+                    m_virial_partial[N*5+mem_idx] += virialzzi;
                     }
                 }
             }
@@ -384,7 +398,12 @@ void TablePotential::computeForces(unsigned int timestep)
         m_fdata_partial[mem_idx].y += fyi;
         m_fdata_partial[mem_idx].z += fzi;
         m_fdata_partial[mem_idx].w += pei;
-        m_virial_partial[mem_idx] += viriali;
+        m_virial_partial[N*0+mem_idx] += virialxxi;
+        m_virial_partial[N*1+mem_idx] += virialxyi;
+        m_virial_partial[N*2+mem_idx] += virialxzi;
+        m_virial_partial[N*3+mem_idx] += virialyyi;
+        m_virial_partial[N*4+mem_idx] += virialyzi;
+        m_virial_partial[N*5+mem_idx] += virialzzi;
         }
     
 #pragma omp barrier
@@ -398,7 +417,8 @@ void TablePotential::computeForces(unsigned int timestep)
         h_force.data[i].y = m_fdata_partial[i].y;
         h_force.data[i].z = m_fdata_partial[i].z;
         h_force.data[i].w = m_fdata_partial[i].w;
-        h_virial.data[i]  = m_virial_partial[i];
+        for (int j = 0; j < 6; j++)
+            h_virial.data[j*m_virial_pitch+i] = m_virial_partial[N*j+i];
 
         #ifdef ENABLE_OPENMP
         // add results from other threads
@@ -410,7 +430,8 @@ void TablePotential::computeForces(unsigned int timestep)
             h_force.data[i].y += m_fdata_partial[mem_idx].y;
             h_force.data[i].z += m_fdata_partial[mem_idx].z;
             h_force.data[i].w += m_fdata_partial[mem_idx].w;
-            h_virial.data[i]  += m_virial_partial[mem_idx];
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*m_virial_pitch+i] += m_virial_partial[N*j+mem_idx];
             }
         #endif
         }

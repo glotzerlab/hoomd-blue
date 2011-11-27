@@ -69,6 +69,7 @@ extern __shared__ float3 compute_thermo_sdata[];
 /*! \param d_scratch Scratch space to hold partial sums. One element is written per block
     \param d_net_force Net force / pe array from ParticleData
     \param d_net_virial Net virial array from ParticleData
+    \param virial_pitch pitch of 2D virial array
     \param d_mass Particle mass array from ParticleData
     \param d_velocity Particle velocity array from ParticleData
     \param d_group_members List of group members for which to sum properties
@@ -88,6 +89,7 @@ extern __shared__ float3 compute_thermo_sdata[];
 __global__ void gpu_compute_thermo_partial_sums(float4 *d_scratch,
                                                 float4 *d_net_force,
                                                 float *d_net_virial,
+                                                const unsigned int virial_pitch,
                                                 float *d_mass,
                                                 float4 *d_velocity,
                                                 unsigned int *d_group_members,
@@ -103,14 +105,19 @@ __global__ void gpu_compute_thermo_partial_sums(float4 *d_scratch,
    
         // update positions to the next timestep and update velocities to the next half step
         float4 net_force = d_net_force[idx];
-        float net_virial = d_net_virial[idx];
+        float net_isotropic_virial;
+        // (1/3)*trace of virial tensor
+        net_isotropic_virial = Scalar(1.0/3.0)*
+                               (d_net_virial[0*virial_pitch+idx]   // xx
+                               +d_net_virial[3*virial_pitch+idx]   // yy
+                               +d_net_virial[5*virial_pitch+idx]); // zz
         float4 vel = d_velocity[idx];
         float mass = d_mass[idx];
         
         // compute our contribution to the sum
         my_element.x = mass * (vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
         my_element.y = net_force.w;
-        my_element.z = net_virial;
+        my_element.z = net_isotropic_virial;
         }
     else
         {
@@ -275,6 +282,7 @@ cudaError_t gpu_compute_thermo(float *d_properties,
     gpu_compute_thermo_partial_sums<<<grid,threads, shared_bytes>>>(args.d_scratch,
                                                                     args.d_net_force,
                                                                     args.d_net_virial,
+                                                                    args.virial_pitch,
                                                                     pdata.mass,
                                                                     pdata.vel,
                                                                     d_group_members,

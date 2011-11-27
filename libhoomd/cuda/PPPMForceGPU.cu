@@ -275,20 +275,22 @@ __global__ void set_gpu_field_kernel(cufftComplex* E_x,
     }
 
 __global__
-void zero_forces(float4 *d_force, float *d_virial, gpu_pdata_arrays pdata)
+void zero_forces(float4 *d_force, float *d_virial, const unsigned int virial_pitch, gpu_pdata_arrays pdata)
     {  
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < pdata.N)
         {
         d_force[idx] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        d_virial[idx] = 0.0f;
+        for (unsigned int i = 0; i < 6; i++)
+            d_virial[i*virial_pitch+idx] = 0.0f;
         }
     }
 
 extern "C" __global__ 
 void calculate_forces_kernel(float4 *d_force,
                              float *d_virial,
+                             const unsigned int virial_pitch,
                              gpu_pdata_arrays pdata,
                              gpu_boxsize box,
                              float3 *E_field,
@@ -398,6 +400,7 @@ void calculate_forces_kernel(float4 *d_force,
 
 cudaError_t gpu_compute_pppm_forces(float4 *d_force,
                                     float *d_virial,
+                                    const unsigned int virial_pitch,
                                     const gpu_pdata_arrays &pdata,
                                     const gpu_boxsize &box,
                                     int Nx,
@@ -447,7 +450,7 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
     // zero the force arrays for all particles
     // zero_forces <<< grid, threads >>> (force_data, pdata);
     cudaMemset(d_force, 0, sizeof(float4)*pdata.N);
-    cudaMemset(d_virial, 0, sizeof(float)*pdata.N);
+    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
 
 
     // run the kernels
@@ -491,6 +494,7 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
     //calculate forces on particles, one thread per particles
     calculate_forces_kernel <<< P_grid, P_threads >>>(d_force,
                                                       d_virial, 
+                                                      virial_pitch,
                                                       pdata, 
                                                       box, 
                                                       E_field, 
@@ -901,6 +905,7 @@ cudaError_t reset_kvec_green_hat(const gpu_boxsize &box,
 
 __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                                           float *d_virial,
+                                          const unsigned int virial_pitch,
                                           const gpu_pdata_arrays pdata,
                                           const gpu_boxsize box,
                                           const unsigned int *d_n_neigh,
@@ -921,7 +926,9 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
         float  qi = tex1Dfetch(pdata_charge_tex, idx);
         // initialize the force to 0
         float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        float virial = 0.0f;
+        float virial[6];
+        for (unsigned int i = 0; i < 6; i++)
+            virial[i] = 0.0f;
         unsigned int cur_j = 0;
         // prefetch neighbor index
         unsigned int next_j = d_nlist[nli(idx, 0)];
@@ -964,7 +971,14 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                     float force_divr = qiqj * (-2.0f * exp(-rsq * kappa * kappa) * kappa / (sqrtpi * rsq) + erffac / rsq);
                     float pair_eng = qiqj * erffac; 
 
-                    virial += float(1.0/6.0) * rsq * force_divr;
+                    float force_div2r = float(0.5) * force_divr;
+                    virial[0] += dx * dx * force_div2r;
+                    virial[1] += dx * dy * force_div2r;
+                    virial[2] += dx * dz * force_div2r;
+                    virial[3] += dy * dy * force_div2r;
+                    virial[4] += dy * dz * force_div2r;
+                    virial[5] += dz * dz * force_div2r;
+
 #if (__CUDA_ARCH__ >= 200)
                     force.x += dx * force_divr;
                     force.y += dy * force_divr;
@@ -984,13 +998,15 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
         d_force[idx].y -= force.y;
         d_force[idx].z -= force.z;
         d_force[idx].w -= force.w;
-        d_virial[idx] = -virial;
+        for (unsigned int i = 0; i < 6; i++)
+            d_virial[i*virial_pitch+idx] = virial[i];
         }
     }
 
 
 cudaError_t fix_exclusions(float4 *d_force,
                            float *d_virial,
+                           const unsigned int virial_pitch,
                            const gpu_pdata_arrays &pdata,
                            const gpu_boxsize &box,
                            const unsigned int *d_n_ex,
@@ -1016,6 +1032,7 @@ cudaError_t fix_exclusions(float4 *d_force,
 
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,
+                                                      virial_pitch,
                                                       pdata,
                                                       box,
                                                       d_n_ex,

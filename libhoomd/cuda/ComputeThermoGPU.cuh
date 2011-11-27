@@ -68,6 +68,7 @@ struct compute_thermo_args
     {
     float4 *d_net_force;    //!< Net force / pe array to sum
     float *d_net_virial;    //!< Net virial array to sum
+    unsigned int virial_pitch; //!< Pitch of 2D net_virial array
     unsigned int ndof;      //!< Number of degrees of freedom for T calculation
     unsigned int D;         //!< Dimensionality of the system
     float4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums

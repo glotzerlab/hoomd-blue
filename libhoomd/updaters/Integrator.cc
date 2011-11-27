@@ -305,8 +305,9 @@ void Integrator::computeNetForce(unsigned int timestep)
         
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
+        unsigned int net_virial_pitch = net_virial.getPitch();
         assert(nparticles == net_force.getNumElements());
-        assert(nparticles == net_virial.getNumElements());
+        assert(6*nparticles <= net_virial.getNumElements());
         assert(nparticles == net_torque.getNumElements());
 
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
@@ -321,6 +322,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
 
+            unsigned int virial_pitch = h_virial_array.getPitch();
             for (unsigned int j = 0; j < nparticles; j++)
                 {
                 h_net_force.data[j].x += h_force.data[j].x;
@@ -332,8 +334,9 @@ void Integrator::computeNetForce(unsigned int timestep)
                 h_net_torque.data[j].y += h_torque.data[j].y;
                 h_net_torque.data[j].z += h_torque.data[j].z;
                 h_net_torque.data[j].w += h_torque.data[j].w;
-               
-                h_net_virial.data[j] += h_virial.data[j];
+
+                for (unsigned int k = 0; k < 6; k++)
+                    h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
                 }
             }
         }
@@ -366,6 +369,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
+        unsigned int net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
@@ -379,6 +383,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             GPUArray<Scalar>& h_virial_array =(*force_constraint)->getVirialArray();
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
+            unsigned int virial_pitch = h_virial_array.getPitch();
 
        
             for (unsigned int j = 0; j < nparticles; j++)
@@ -387,7 +392,8 @@ void Integrator::computeNetForce(unsigned int timestep)
                 h_net_force.data[j].y += h_force.data[j].y;
                 h_net_force.data[j].z += h_force.data[j].z;
                 h_net_force.data[j].w += h_force.data[j].w;
-                h_net_virial.data[j] += h_virial.data[j];
+                for (unsigned int k = 0; k < 6; k++)
+                    h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
                 }
             }
         }
@@ -428,6 +434,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         const GPUArray< Scalar4 >& net_force  = m_pdata->getNetForce();
         const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
         const GPUArray< Scalar >&  net_virial = m_pdata->getNetVirial();
+        unsigned int net_virial_pitch = net_virial.getPitch();
 
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar>  d_net_virial(net_virial, access_location::device, access_mode::overwrite);
@@ -435,7 +442,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles == net_force.getNumElements());
-        assert(nparticles == net_virial.getNumElements());
+        assert(nparticles*6 <= net_virial.getNumElements());
         assert(nparticles == net_torque.getNumElements());
 
         // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
@@ -446,7 +453,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             // start by zeroing the net force and virial arrays
             cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*nparticles);
             cudaMemset(d_net_torque.data, 0, sizeof(Scalar4)*nparticles);
-            cudaMemset(d_net_virial.data, 0, sizeof(Scalar)*nparticles);
+            cudaMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
@@ -535,6 +542,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
+                                         net_virial_pitch,
                                          d_net_torque.data,
                                          force_list,
                                          nparticles,
@@ -663,6 +671,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
+                                         net_virial.getPitch(),
                                          d_net_torque.data,
                                          force_list,
                                          nparticles,

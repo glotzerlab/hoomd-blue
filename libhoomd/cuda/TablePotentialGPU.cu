@@ -74,6 +74,7 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
 
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch Pitch of 2D virial array
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -92,6 +93,7 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
 */
 __global__ void gpu_compute_table_forces_kernel(float4* d_force,
                                                 float* d_virial,
+                                                const unsigned virial_pitch,
                                                 const gpu_pdata_arrays pdata,
                                                 const gpu_boxsize box,
                                                 const unsigned int *d_n_neigh,
@@ -129,8 +131,13 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
     
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float virial = 0.0f;
-    
+    float virialxx = 0.0f;
+    float virialxy = 0.0f;
+    float virialxz = 0.0f;
+    float virialyy = 0.0f;
+    float virialyz = 0.0f;
+    float virialzz = 0.0f;
+
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
     unsigned int next_neigh = d_nlist[nli(idx, 0)];
@@ -207,7 +214,13 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
                     forcemag_divr = F / r;
                 float pair_eng = V;
                 // calculate the virial
-                virial += float(1.0/6.0) * rsq * forcemag_divr;
+                float force_div2r = float(0.5) * forcemag_divr;
+                virialxx +=  dx * dx * force_div2r;
+                virialxy +=  dx * dy * force_div2r;
+                virialxz +=  dx * dz * force_div2r;
+                virialyy +=  dy * dy * force_div2r;
+                virialyz +=  dy * dz * force_div2r;
+                virialzz +=  dz * dz * force_div2r;
                 
                 // add up the force vector components (FLOPS: 7)
                 force.x += dx * forcemag_divr;
@@ -222,11 +235,17 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result
     d_force[idx] = force;
-    d_virial[idx] = virial;
+    d_virial[0*virial_pitch+idx] = virialxx;
+    d_virial[1*virial_pitch+idx] = virialxy;
+    d_virial[2*virial_pitch+idx] = virialxz;
+    d_virial[3*virial_pitch+idx] = virialyy;
+    d_virial[4*virial_pitch+idx] = virialyz;
+    d_virial[5*virial_pitch+idx] = virialzz;
     }
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -242,6 +261,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
 */
 cudaError_t gpu_compute_table_forces(float4* d_force,
                                      float* d_virial,
+                                     const unsigned int virial_pitch,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,
@@ -280,7 +300,7 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
         return error;
         
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(float4)*table_index.getNumElements() >>>
-            (d_force, d_virial, pdata, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
+            (d_force, d_virial, virial_pitch, pdata, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
     
     return cudaSuccess;
     }

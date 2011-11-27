@@ -75,12 +75,14 @@ texture<float2, 1, cudaReadModeElementType> angle_params_tex;
 //! Kernel for caculating harmonic angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch Pitch of 2D virial array
     \param pdata Particle data arrays to calculate forces on
     \param box Box dimensions for periodic boundary condition handling
     \param alist Angle data to use in calculating the forces
 */
 extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_force,
                                                                     float* d_virial,
+                                                                    const unsigned int virial_pitch,
                                                                     gpu_pdata_arrays pdata,
                                                                     gpu_boxsize box,
                                                                     gpu_angletable_array alist)
@@ -104,7 +106,9 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
     float fab[3], fcb[3];
     
     // initialize the virial to 0
-    float virial_idx = 0.0f;
+    float virial[6];
+    for (int i = 0; i < 6; i++)
+        virial[i] = 0.0f;
     
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
@@ -218,12 +222,19 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
         
         // do we really need a virial here for harmonic angles?
         // ... if not, this may be wrong...
-        float vx = dxab*fab[0] + dxcb*fcb[0];
-        float vy = dyab*fab[1] + dycb*fcb[1];
-        float vz = dzab*fab[2] + dzcb*fcb[2];
-        
-        float angle_virial = float(1.0f/6.0f)*(vx + vy + vz);
-        
+        // compute 1/3 of the virial, 1/3 for each atom in the angle
+        float angle_virial[6];
+        angle_virial[0] = float(1./3.) * ( dxab*fab[0] + dxcb*fcb[0] );
+        angle_virial[1] = float(1./6.) * ( dxab*fab[1] + dxcb*fcb[1]
+                                          + dyab*fab[0] + dycb*fcb[0] );
+        angle_virial[2] = float(1./6.) * ( dxab*fab[2] + dxcb*fcb[2]
+                                          + dzab*fab[0] + dzcb*fcb[0] );
+        angle_virial[3] = float(1./3.) * ( dyab*fab[1] + dycb*fcb[1] );
+        angle_virial[4] = float(1./6.) * ( dyab*fab[2] + dycb*fcb[2]
+                                          + dzab*fab[1] + dzcb*fcb[1] );
+        angle_virial[5] = float(1./3.) * ( dzab*fab[2] + dzcb*fcb[2] );
+
+
         if (cur_angle_abc == 0)
             {
             force_idx.x += fab[0];
@@ -244,16 +255,20 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
             }
             
         force_idx.w += angle_eng;
-        virial_idx += angle_virial;
+
+        for (int i = 0; i < 6; i++)
+            virial[i] += angle_virial[i];
         }
         
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force_idx;
-    d_virial[idx] = virial_idx;
+    for (int i = 0; i < 6; i++)
+        d_virial[i*virial_pitch+idx] = virial[idx];
     }
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial arary
     \param pdata Particle data on the GPU to perform the calculation on
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param atable List of angles stored on the GPU
@@ -269,6 +284,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
 */
 cudaError_t gpu_compute_harmonic_angle_forces(float4* d_force,
                                               float* d_virial,
+                                              const unsigned int virial_pitch,
                                               const gpu_pdata_arrays &pdata,
                                               const gpu_boxsize &box,
                                               const gpu_angletable_array &atable,
@@ -292,7 +308,7 @@ cudaError_t gpu_compute_harmonic_angle_forces(float4* d_force,
         return error;
         
     // run the kernel
-    gpu_compute_harmonic_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, pdata, box, atable);
+    gpu_compute_harmonic_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, pdata, box, atable);
     
     return cudaSuccess;
     }

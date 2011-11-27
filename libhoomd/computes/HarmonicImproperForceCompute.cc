@@ -171,6 +171,7 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    unsigned int virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -378,13 +379,18 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         Scalar ffcy = sy2 - ffdy;
         Scalar ffcz = sz2 - ffdz;
         
-        // and calculate the virial
-        Scalar vx = dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx;
-        Scalar vy = dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy;
-        Scalar vz = dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz;
-        
+        // and calculate the virial (symmetrized version)
         // compute 1/4 of the virial, 1/4 for each atom in the improper
-        Scalar improper_virial = Scalar(1.0/12.0)*(vx + vy + vz);
+        Scalar improper_virial[6];
+        improper_virial[0] = (1./4.)*(dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx);
+        improper_virial[1] = (1./8.)*((dxab*ffay + dxcb*ffcy + (dxdc+dxcb)*ffdy)
+                                     +(dyab*ffax + dycb*ffcx + (dydc+dycb)*ffdx));
+        improper_virial[2] = (1./8.)*((dxab*ffaz + dxcb*ffcz + (dxdc+dxcb)*ffdz)
+                                     +(dzab*ffax + dzcb*ffcx + (dzdc+dzcb)*ffdx));
+        improper_virial[3] = (1./4.)*(dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy);
+        improper_virial[4] = (1./8.)*((dyab*ffaz + dycb*ffcz + (dydc+dycb)*ffdz)
+                                     +(dzab*ffay + dzcb*ffcy + (dzdc+dzcb)*ffdy));
+        improper_virial[5] = (1./4.)*(dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz);
         
         
         // accumulate the forces
@@ -392,25 +398,29 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         h_force.data[idx_a].y += ffay; 
         h_force.data[idx_a].z += ffaz; 
         h_force.data[idx_a].w += improper_eng; 
-        h_virial.data[idx_a]  += improper_virial; 
+        for (int k = 0; k < 6; k++)
+            h_virial.data[k*virial_pitch+idx_a]  += improper_virial[k];
 
         h_force.data[idx_b].x += ffbx; 
         h_force.data[idx_b].y += ffby; 
         h_force.data[idx_b].z += ffbz; 
         h_force.data[idx_b].w += improper_eng; 
-        h_virial.data[idx_b]  += improper_virial; 
+        for (int k = 0; k < 6; k++)
+            h_virial.data[k*virial_pitch+idx_b]  += improper_virial[k];
 
         h_force.data[idx_c].x += ffcx; 
         h_force.data[idx_c].y += ffcy; 
         h_force.data[idx_c].z += ffcz; 
         h_force.data[idx_c].w += improper_eng; 
-        h_virial.data[idx_c]  += improper_virial; 
+        for (int k = 0; k < 6; k++)
+            h_virial.data[k*virial_pitch+idx_c]  += improper_virial[k];
 
         h_force.data[idx_d].x += ffdx; 
         h_force.data[idx_d].y += ffdy; 
         h_force.data[idx_d].z += ffdz; 
         h_force.data[idx_d].w += improper_eng; 
-        h_virial.data[idx_d]  += improper_virial; 
+        for (int k = 0; k < 6; k++)
+            h_virial.data[k*virial_pitch+idx_d]  += improper_virial[k];
         }
         
     m_pdata->release();

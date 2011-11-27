@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel driver that computes lj forces on the GPU for CGCMMForceComputeGPU
 cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
                                      float* d_virial,
+                                     const unsigned int virial_pitch,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,

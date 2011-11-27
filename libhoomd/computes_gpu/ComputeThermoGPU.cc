@@ -130,6 +130,7 @@ void ComputeThermoGPU::computeProperties()
     compute_thermo_args args;
     args.d_net_force = d_net_force.data;
     args.d_net_virial = d_net_virial.data;
+    args.virial_pitch = net_virial.getPitch();
     args.ndof = m_ndof;
     args.D = m_sysdef->getNDimensions();
     args.d_scratch = d_scratch.data;

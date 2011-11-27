@@ -200,11 +200,15 @@ void SFCPackUpdater::applySortOrder()
     // in case anyone access it from frame to frame, sort the net virial
         {
         ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
-        
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            scal_tmp[i] = h_net_virial.data[m_sort_order[i]];
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            h_net_virial.data[i] = scal_tmp[i];
+        unsigned int virial_pitch = m_pdata->getNetVirial().getPitch();
+
+        for (unsigned int j = 0; j < 6; j++)
+            {
+            for (unsigned int i = 0; i < arrays.nparticles; i++)
+                scal_tmp[i] = h_net_virial.data[j*virial_pitch+m_sort_order[i]];
+            for (unsigned int i = 0; i < arrays.nparticles; i++)
+                h_net_virial.data[j*virial_pitch+i] = scal_tmp[i];
+            }
         }
 
     // sort net force, net torque, and orientation

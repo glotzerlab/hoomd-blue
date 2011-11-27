@@ -73,6 +73,7 @@ struct pair_args_t
     //! Construct a pair_args_t
     pair_args_t(float4 *_d_force,
               float *_d_virial,
+              const unsigned int _virial_pitch,
               const gpu_pdata_arrays& _pdata,
               const gpu_boxsize &_box,
               const unsigned int *_d_n_neigh,
@@ -85,6 +86,7 @@ struct pair_args_t
               const unsigned int _shift_mode)
                 : d_force(_d_force),
                   d_virial(_d_virial),
+                  virial_pitch(_virial_pitch),
                   pdata(_pdata),
                   box(_box),
                   d_n_neigh(_d_n_neigh),
@@ -100,6 +102,7 @@ struct pair_args_t
 
     float4 *d_force;                //!< Force to write out
     float *d_virial;                //!< Virial to write out
+    const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const gpu_pdata_arrays& pdata;  //!< Particle data to compute forces over
     const gpu_boxsize &box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
@@ -156,6 +159,7 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
 template< class evaluator, unsigned int shift_mode >
 __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                                                float *d_virial,
+                                               const unsigned int virial_pitch,
                                                const gpu_pdata_arrays pdata,
                                                const gpu_boxsize box,
                                                const unsigned int *d_n_neigh,
@@ -216,7 +220,12 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
         
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float virial = 0.0f;
+    float virialxx = 0.0f;
+    float virialxy = 0.0f;
+    float virialxz = 0.0f;
+    float virialyy = 0.0f;
+    float virialyz = 0.0f;
+    float virialzz = 0.0f;
     
     // prefetch neighbor index
     unsigned int cur_j = 0;
@@ -324,8 +333,14 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                     }
                 }
             
-            // calculate the virial (FLOPS: 3)
-            virial += float(1.0/6.0) * rsq * force_divr;
+            // calculate the virial
+            float force_div2r = 0.5f * force_divr;
+            virialxx +=  dx * dx * force_div2r;
+            virialxy +=  dx * dy * force_div2r;
+            virialxz +=  dx * dz * force_div2r;
+            virialyy +=  dy * dy * force_div2r;
+            virialyz +=  dy * dz * force_div2r;
+            virialzz +=  dz * dz * force_div2r;
             
             // add up the force vector components (FLOPS: 7)
             #if (__CUDA_ARCH__ >= 200)
@@ -347,7 +362,12 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
-    d_virial[idx] = virial;
+    d_virial[0*virial_pitch+idx] = virialxx;
+    d_virial[1*virial_pitch+idx] = virialxy;
+    d_virial[2*virial_pitch+idx] = virialxz;
+    d_virial[3*virial_pitch+idx] = virialyy;
+    d_virial[4*virial_pitch+idx] = virialyz;
+    d_virial[5*virial_pitch+idx] = virialzz;
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
@@ -398,15 +418,15 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
         {
         case 0:
             gpu_compute_pair_forces_kernel<evaluator, 0>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
             break;
         case 1:
             gpu_compute_pair_forces_kernel<evaluator, 1>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
             break;
         case 2:
             gpu_compute_pair_forces_kernel<evaluator, 2>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
             break;
         default:
             return cudaErrorUnknown;

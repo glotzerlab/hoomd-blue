@@ -80,12 +80,14 @@ texture<float4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPS
 //! Kernel for caculating CGCMM angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data arrays to calculate forces on
     \param box Box dimensions for periodic boundary condition handling
     \param alist Angle data to use in calculating the forces
 */
 extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force,
                                                                  float* d_virial,
+                                                                 const unsigned int virial_pitch,
                                                                  gpu_pdata_arrays pdata,
                                                                  gpu_boxsize box,
                                                                  gpu_angletable_array alist)
@@ -107,10 +109,12 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
     float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     
     float fab[3], fcb[3];
-    float fac, eac, vacX, vacY, vacZ;
+    float fac, eac, vac[6];
     
     // initialize the virial to 0
-    float virial_idx = 0.0f;
+    float virial_idx[6];
+    for (int i = 0; i < 6; i++)
+        virial_idx[i] = 0.0f;
     
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
@@ -209,7 +213,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
         //////////////////////////////////////////////////////////////////////////////
         fac = 0.0f;
         eac = 0.0f;
-        vacX = vacY = vacZ = 0.0f;
+        for (int i=0; i < 6; i++)
+            vac[i] = 0.0f;
         
         // get the angle E-S-R parameters (MEM TRANSFER: 12 bytes)
         const float2 cgSR = tex1Dfetch(angle_CGCMMsr_tex, cur_angle_type);
@@ -234,9 +239,12 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
             fac = cgpref*cgeps / rsqac * (cgpow1*__powf(cgratio,cgpow1) - cgpow2*__powf(cgratio,cgpow2));
             eac = cgeps + cgpref*cgeps * (__powf(cgratio,cgpow1) - __powf(cgratio,cgpow2));
             
-            vacX = fac * dxac*dxac;
-            vacY = fac * dyac*dyac;
-            vacZ = fac * dzac*dzac;
+            vac[0] = fac * dxac*dxac;
+            vac[1] = fac * dxac*dyac;
+            vac[2] = fac * dxac*dzac;
+            vac[3] = fac * dyac*dyac;
+            vac[4] = fac * dyac*dzac;
+            vac[5] = fac * dzac*dzac;
             }
         //////////////////////////////////////////////////////////////////////////////
         
@@ -259,15 +267,21 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
         
         // compute 1/3 of the energy, 1/3 for each atom in the angle
         float angle_eng = (0.5f*tk*dth + eac)*float(1.0f/3.0f);
-        
-        // do we really need a virial here for harmonic angles?
-        // ... if not, this may be wrong...
-        float vx = dxab*fab[0] + dxcb*fcb[0] + vacX;
-        float vy = dyab*fab[1] + dycb*fcb[1] + vacY;
-        float vz = dzab*fab[2] + dzcb*fcb[2] + vacZ;
-        
-        float angle_virial = float(1.0f/6.0f)*(vx + vy + vz);
-        
+
+        float angle_virial[6];
+        angle_virial[0] = (1.f/3.f) * ( dxab*fab[0] + dxcb*fcb[0] );
+        angle_virial[1] = (1.f/6.f) * ( dxab*fab[1] + dxcb*fcb[1]
+                                      + dyab*fab[0] + dycb*fcb[0] );
+        angle_virial[2] = (1.f/6.f) * ( dxab*fab[2] + dxcb*fcb[2]
+                                      + dzab*fab[0] + dzcb*fcb[0] );
+        angle_virial[3] = (1.f/3.f) * ( dyab*fab[1] + dycb*fcb[1] );
+        angle_virial[4] = (1.f/6.f) * ( dyab*fab[2] + dycb*fcb[2]
+                                      + dzab*fab[1] + dzcb*fcb[1] );
+        angle_virial[5] = (1.f/3.f) * ( dzab*fab[2] + dzcb*fcb[2] );
+
+        for (int i = 0; i < 6; i++)
+            angle_virial[i] += (1.f/3.f)*vac[i];
+
         if (cur_angle_abc == 0)
             {
             force_idx.x += fab[0] + fac*dxac;
@@ -288,17 +302,20 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
             }
             
         force_idx.w += angle_eng;
-        virial_idx += angle_virial;
+        for (int i = 0; i < 6; i++)
+            virial_idx[i] += angle_virial[i];
         
         }
         
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force_idx;
-    d_virial[idx] = virial_idx;
+    for (int i = 0; i < 6; i++)
+        d_virial[i*virial_pitch+idx] = virial_idx[i];
     }
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to perform the calculation on
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param atable List of angles stored on the GPU
@@ -316,6 +333,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
 */
 cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
                                            float* d_virial,
+                                           const unsigned int virial_pitch,
                                            const gpu_pdata_arrays &pdata,
                                            const gpu_boxsize &box,
                                            const gpu_angletable_array &atable,
@@ -352,7 +370,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
         return error;
         
     // run the kernel
-    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, pdata, box, atable);
+    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, pdata, box, atable);
     
     return cudaSuccess;
     }

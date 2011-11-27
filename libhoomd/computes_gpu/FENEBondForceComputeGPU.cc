@@ -144,6 +144,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
         // run the kernel
         gpu_compute_fene_bond_forces(d_force.data,
                                      d_virial.data,
+                                     m_virial.getPitch(),
                                      pdata,
                                      box,
                                      gpu_bondtable,

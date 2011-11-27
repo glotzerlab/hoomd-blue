@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
     cudaError_t gpu_compute_pppm_forces(float4 *d_force,
                                         float *d_virial,
+                                        const unsigned int virial_pitch,
                                         const gpu_pdata_arrays &pdata,
                                         const gpu_boxsize &box,
                                         int Nx,
@@ -111,6 +112,7 @@ cudaError_t reset_kvec_green_hat(const gpu_boxsize &box,
 
 cudaError_t fix_exclusions(float4 *d_force,
                            float *d_virial,
+                           const unsigned int virial_pitch,
                            const gpu_pdata_arrays &pdata,
                            const gpu_boxsize &box,
                            const unsigned int *d_n_ex,

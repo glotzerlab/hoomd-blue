@@ -194,12 +194,16 @@ void ComputeThermo::computeProperties()
         pe_total += (double)h_net_force.data[j].w;
         }
 
-    // total the virial
+    // total the isotropic virial
     double W = 0.0;
+    unsigned int virial_pitch = net_virial.getPitch();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        W += (double)h_net_virial.data[j];
+        // 1/3 * trace of virial tensor
+        W += 1.0/3.0 * ( (double)h_net_virial.data[j+0*virial_pitch]   // xx
+                      +  (double)h_net_virial.data[j+3*virial_pitch]   // yy
+                      +  (double)h_net_virial.data[j+5*virial_pitch]); // zz
         }
 
     m_pdata->release();

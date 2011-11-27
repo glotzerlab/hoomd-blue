@@ -169,6 +169,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    unsigned int virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -327,32 +328,40 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
         // compute 1/3 of the energy, 1/3 for each atom in the angle
         Scalar angle_eng = (tk*dth)*Scalar(1.0/6.0);
         
-        // do we really need a virial here for harmonic angles?
-        // ... if not, this may be wrong...
-        Scalar vx = dxab*fab[0] + dxcb*fcb[0];
-        Scalar vy = dyab*fab[1] + dycb*fcb[1];
-        Scalar vz = dzab*fab[2] + dzcb*fcb[2];
-        
-        Scalar angle_virial = Scalar(1.0/6.0)*(vx + vy + vz);
+        // compute 1/3 of the virial, 1/3 for each atom in the angle
+        // symmetrized version of virial tensor
+        Scalar angle_virial[6];
+        angle_virial[0] = Scalar(1./3.) * ( dxab*fab[0] + dxcb*fcb[0] );
+        angle_virial[1] = Scalar(1./6.) * ( dxab*fab[1] + dxcb*fcb[1]
+                                          + dyab*fab[0] + dycb*fcb[0] );
+        angle_virial[2] = Scalar(1./6.) * ( dxab*fab[2] + dxcb*fcb[2]
+                                          + dzab*fab[0] + dzcb*fcb[0] );
+        angle_virial[3] = Scalar(1./3.) * ( dyab*fab[1] + dycb*fcb[1] );
+        angle_virial[4] = Scalar(1./6.) * ( dyab*fab[2] + dycb*fcb[2]
+                                          + dzab*fab[1] + dzcb*fcb[1] );
+        angle_virial[5] = Scalar(1./3.) * ( dzab*fab[2] + dzcb*fcb[2] );
         
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
         h_force.data[idx_a].x += fab[0];
         h_force.data[idx_a].y += fab[1];
         h_force.data[idx_a].z += fab[2];
         h_force.data[idx_a].w += angle_eng;
-        h_virial.data[idx_a]  += angle_virial;
+        for (int j = 0; j < 6; j++)
+            h_virial.data[j*virial_pitch+idx_a]  += angle_virial[j];
         
         h_force.data[idx_b].x -= fab[0] + fcb[0];
         h_force.data[idx_b].y -= fab[1] + fcb[1];
         h_force.data[idx_b].z -= fab[2] + fcb[2];
         h_force.data[idx_b].w += angle_eng;
-        h_virial.data[idx_b]  += angle_virial;
+        for (int j = 0; j < 6; j++)
+            h_virial.data[j*virial_pitch+idx_b]  += angle_virial[j];
         
         h_force.data[idx_c].x += fcb[0];
         h_force.data[idx_c].y += fcb[1];
         h_force.data[idx_c].z += fcb[2];
         h_force.data[idx_c].w += angle_eng;
-        h_virial.data[idx_c]  += angle_virial;
+        for (int j = 0; j < 6; j++)
+            h_virial.data[j*virial_pitch+idx_c]  += angle_virial[j];
         }
         
     m_pdata->release();

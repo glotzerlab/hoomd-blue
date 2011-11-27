@@ -816,7 +816,7 @@ void ParticleData::allocate(unsigned int N)
 #endif
     GPUArray< Scalar4 > net_force(getN(), m_exec_conf);
     m_net_force.swap(net_force);
-    GPUArray< Scalar > net_virial(getN(), m_exec_conf);
+    GPUArray< Scalar > net_virial(getN(),6, m_exec_conf);
     m_net_virial.swap(net_virial);
     GPUArray< Scalar4 > net_torque(getN(), m_exec_conf);
     m_net_torque.swap(net_torque);

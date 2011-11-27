@@ -99,6 +99,7 @@ struct gpu_force_list
 //! Driver for gpu_integrator_sum_net_force_kernel()
 cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float *d_net_virial,
+                                         const unsigned int virial_pitch,
                                          float4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,

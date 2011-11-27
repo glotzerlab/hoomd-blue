@@ -104,11 +104,11 @@ class EvaluatorConstraint
         
         //! Evaluate the additional constraint force
         /*! \param FC output parameter where the computed force is written
-            \param virial output paramter where the computed virial is written
+            \param array of six scalars the computed symmetrized virial tensor is written
             \param C constrained position particle will be moved to at the next step
             \return Additional force \a F needed to satisfy the constraint
         */
-        DEVICE void evalConstraintForce(Scalar3& FC, Scalar &virial, const Scalar3& C)
+        DEVICE void evalConstraintForce(Scalar3& FC, Scalar *virial, const Scalar3& C)
             {
             // subtract a constrained update from U and get that F = (C-U)*m/dt^2
             Scalar moverdtsq = m / (deltaT * deltaT);
@@ -117,7 +117,12 @@ class EvaluatorConstraint
             FC.z = (C.z - U.z) * moverdtsq;
             
             // compute virial
-            virial = Scalar(1.0/3.0)*(FC.x * X.x + FC.y + X.y + FC.z * X.z);
+            virial[0] = FC.x * X.x;
+            virial[1] = Scalar(1./2.)*(FC.y * X.x + FC.x * X.y);
+            virial[2] = Scalar(1./2.)*(FC.z * X.x + FC.x * X.z);
+            virial[3] = FC.y * X.y;
+            virial[4] = Scalar(1./2.)*(FC.z * X.y + FC.y * X.z);
+            virial[5] = FC.z * X.z;
             }
         
     protected:
