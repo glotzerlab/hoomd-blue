@@ -289,8 +289,6 @@ void zero_forces(float4 *d_force, float *d_virial, const unsigned int virial_pit
 
 extern "C" __global__ 
 void calculate_forces_kernel(float4 *d_force,
-                             float *d_virial,
-                             const unsigned int virial_pitch,
                              gpu_pdata_arrays pdata,
                              gpu_boxsize box,
                              float3 *E_field,
@@ -493,8 +491,6 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
 
     //calculate forces on particles, one thread per particles
     calculate_forces_kernel <<< P_grid, P_threads >>>(d_force,
-                                                      d_virial, 
-                                                      virial_pitch,
                                                       pdata, 
                                                       box, 
                                                       E_field, 
@@ -999,7 +995,7 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
         d_force[idx].z -= force.z;
         d_force[idx].w -= force.w;
         for (unsigned int i = 0; i < 6; i++)
-            d_virial[i*virial_pitch+idx] = virial[i];
+            d_virial[i*virial_pitch+idx] = - virial[i];
         }
     }
 

@@ -420,7 +420,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
         deltaf2 += double(h_force_7.data[i].y - h_force_6.data[i].y) * double(h_force_7.data[i].y - h_force_6.data[i].y);
         deltaf2 += double(h_force_7.data[i].z - h_force_6.data[i].z) * double(h_force_7.data[i].z - h_force_6.data[i].z);
         deltape2 += double(h_force_7.data[i].w - h_force_6.data[i].w) * double(h_force_7.data[i].w - h_force_6.data[i].w);
-        for (unsigned int j = 0; j < N; j++)
+        for (unsigned int j = 0; j < 6; j++)
             deltav2[j] += double(h_virial_7.data[j*pitch+i] - h_virial_6.data[j*pitch+i]) * double(h_virial_7.data[j*pitch+i] - h_virial_6.data[j*pitch+i]);
 
         // also check that each individual calculation is somewhat close
