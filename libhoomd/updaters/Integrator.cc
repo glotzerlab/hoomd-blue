@@ -474,6 +474,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             ArrayHandle<Scalar4> d_torque0(d_torque_array0,access_location::device,access_mode::read);
             force_list.f0 = d_force0.data;
             force_list.v0 = d_virial0.data;
+            force_list.vpitch0 = d_virial_array0.getPitch();
             force_list.t0 = d_torque0.data;
             
             if (cur_force+1 < m_forces.size())
@@ -486,6 +487,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 ArrayHandle<Scalar4> d_torque1(d_torque_array1,access_location::device,access_mode::read);
                 force_list.f1 = d_force1.data;
                 force_list.v1 = d_virial1.data;
+                force_list.vpitch1 = d_virial_array1.getPitch();
                 force_list.t1 = d_torque1.data;
                 }
             if (cur_force+2 < m_forces.size())
@@ -498,6 +500,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 ArrayHandle<Scalar4> d_torque2(d_torque_array2,access_location::device,access_mode::read);
                 force_list.f2 = d_force2.data;
                 force_list.v2 = d_virial2.data;
+                force_list.vpitch2 = d_virial_array2.getPitch();
                 force_list.t2 = d_torque2.data;
                 }
             if (cur_force+3 < m_forces.size())
@@ -510,6 +513,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 ArrayHandle<Scalar4> d_torque3(d_torque_array3,access_location::device,access_mode::read);
                 force_list.f3 = d_force3.data;
                 force_list.v3 = d_virial3.data;
+                force_list.vpitch3 = d_virial_array3.getPitch();
                 force_list.t3 = d_torque3.data;
                 }
             if (cur_force+4 < m_forces.size())
@@ -522,6 +526,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 ArrayHandle<Scalar4> d_torque4(d_torque_array4,access_location::device,access_mode::read);
                 force_list.f4 = d_force4.data;
                 force_list.v4 = d_virial4.data;
+                force_list.vpitch4 = d_virial_array4.getPitch();
                 force_list.t4 = d_torque4.data;
                 }
             if (cur_force+5 < m_forces.size())
@@ -534,6 +539,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 ArrayHandle<Scalar4> d_torque5(d_torque_array5,access_location::device,access_mode::read);
                 force_list.f5 = d_force5.data;
                 force_list.v5 = d_virial5.data;
+                force_list.vpitch5 = d_virial_array5.getPitch();
                 force_list.t5 = d_torque5.data;
                 }
             
@@ -604,6 +610,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             force_list.f0 = d_force0.data;
             force_list.t0=d_torque0.data;
             force_list.v0 = d_virial0.data;
+            force_list.vpitch0 = d_virial_array0.getPitch();
             
             if (cur_force+1 < m_constraint_forces.size())
                 {
@@ -616,6 +623,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 force_list.f1 = d_force1.data;
                 force_list.t1=d_torque1.data;
                 force_list.v1 = d_virial1.data;
+                force_list.vpitch1 = d_virial_array1.getPitch();
                 }
             if (cur_force+2 < m_constraint_forces.size())
                 {
@@ -628,6 +636,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 force_list.f2 = d_force2.data;
                 force_list.t2=d_torque2.data;
                 force_list.v2 = d_virial2.data;
+                force_list.vpitch2 = d_virial_array2.getPitch();
                 }
             if (cur_force+3 < m_constraint_forces.size())
                 {
@@ -640,6 +649,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 force_list.f3 = d_force3.data;
                 force_list.t3=d_torque3.data;
                 force_list.v3 = d_virial3.data;
+                force_list.vpitch3 = d_virial_array3.getPitch();
                 }
             if (cur_force+4 < m_constraint_forces.size())
                 {
@@ -652,6 +662,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 force_list.f4 = d_force4.data;
                 force_list.t4=d_torque4.data;
                 force_list.v4 = d_virial4.data;
+                force_list.vpitch4 = d_virial_array4.getPitch();
                 }
             if (cur_force+5 < m_constraint_forces.size())
                 {
@@ -664,6 +675,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 force_list.f5 = d_force5.data;
                 force_list.t5=d_torque5.data;
                 force_list.v5 = d_virial5.data;
+                force_list.vpitch5 = d_virial_array5.getPitch();
                 }
             
             // clear only on the first iteration AND if there are zero forces
