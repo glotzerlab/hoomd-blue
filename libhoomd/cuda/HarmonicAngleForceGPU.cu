@@ -222,17 +222,17 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
 
         // do we really need a virial here for harmonic angles?
         // ... if not, this may be wrong...
-        // symmetrized version of virial tensor
+        // compute 1/3 of the virial, 1/3 for each atom in the angle
         float angle_virial[6];
-        angle_virial[0] = float(1./3.)*(dxab*fab[0] + dxcb*fcb[0]);
-        angle_virial[1] = float(1./6.)*(dxab*fab[1] + dxcb*fcb[1]
-                                      + dyab*fab[0] + dycb*fcb[0]);
-        angle_virial[2] = float(1./6.)*(dxab*fab[2] + dxcb*fcb[2]
-                                      + dzab*fab[0] + dzcb*fcb[0]);
-        angle_virial[3] = float(1./3.)*(dyab*fab[1] + dycb*fcb[1]);
-        angle_virial[4] = float(1./6.)*(dyab*fab[2] + dycb*fcb[2]
-                                      + dzab*fab[1] + dzcb*fcb[1]);
-        angle_virial[5] = float(1./3.)*(dzab*fab[2] + dzcb*fcb[2]);
+        angle_virial[0] = float(1./3.) * ( dxab*fab[0] + dxcb*fcb[0] );
+        angle_virial[1] = float(1./6.) * ( dxab*fab[1] + dxcb*fcb[1]
+                                          + dyab*fab[0] + dycb*fcb[0] );
+        angle_virial[2] = float(1./6.) * ( dxab*fab[2] + dxcb*fcb[2]
+                                          + dzab*fab[0] + dzcb*fcb[0] );
+        angle_virial[3] = float(1./3.) * ( dyab*fab[1] + dycb*fcb[1] );
+        angle_virial[4] = float(1./6.) * ( dyab*fab[2] + dycb*fcb[2]
+                                          + dzab*fab[1] + dzcb*fcb[1] );
+        angle_virial[5] = float(1./3.) * ( dzab*fab[2] + dzcb*fcb[2] );
 
 
         if (cur_angle_abc == 0)
@@ -263,7 +263,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force_idx;
     for (int i = 0; i < 6; i++)
-        d_virial[i*virial_pitch+idx] = virial[i];
+        d_virial[i*virial_pitch+idx] = virial[idx];
     }
 
 /*! \param d_force Device memory to write computed forces

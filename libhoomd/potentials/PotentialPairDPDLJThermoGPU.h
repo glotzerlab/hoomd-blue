@@ -174,6 +174,7 @@ void PotentialPairDPDLJThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned 
 
     gpu_cpdf(dpdlj_pair_args_t(d_force.data,
                              d_virial.data,
+                             this->m_virial.getPitch(),
                              pdata,
                              box,
                              d_n_neigh.data,
