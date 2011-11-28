@@ -266,15 +266,15 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
         
         // and calculate the virial (symmetrized version)
         float improper_virial[6];
-        improper_virial[0] = (1./4.)*(dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx);
-        improper_virial[1] = (1./8.)*((dxab*ffay + dxcb*ffcy + (dxdc+dxcb)*ffdy)
+        improper_virial[0] = float(1./4.)*(dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx);
+        improper_virial[1] = float(1./8.)*((dxab*ffay + dxcb*ffcy + (dxdc+dxcb)*ffdy)
                                      +(dyab*ffax + dycb*ffcx + (dydc+dycb)*ffdx));
-        improper_virial[2] = (1./8.)*((dxab*ffaz + dxcb*ffcz + (dxdc+dxcb)*ffdz)
+        improper_virial[2] = float(1./8.)*((dxab*ffaz + dxcb*ffcz + (dxdc+dxcb)*ffdz)
                                      +(dzab*ffax + dzcb*ffcx + (dzdc+dzcb)*ffdx));
-        improper_virial[3] = (1./4.)*(dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy);
-        improper_virial[4] = (1./8.)*((dyab*ffaz + dycb*ffcz + (dydc+dycb)*ffdz)
+        improper_virial[3] = float(1./4.)*(dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy);
+        improper_virial[4] = float(1./8.)*((dyab*ffaz + dycb*ffcz + (dydc+dycb)*ffdz)
                                      +(dzab*ffay + dzcb*ffcy + (dzdc+dzcb)*ffdy));
-        improper_virial[5] = (1./4.)*(dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz);
+        improper_virial[5] = float(1./4.)*(dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz);
 
         
         if (cur_improper_abcd == 0)

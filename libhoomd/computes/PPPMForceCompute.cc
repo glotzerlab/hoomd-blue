@@ -1068,7 +1068,7 @@ void PPPMForceCompute::fix_exclusions_cpu()
         Scalar4 force = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
         Scalar virial[6];
         for (unsigned int k = 0; k < 6; k++)
-            virial[k] = Scalar(0.0);
+            virial[k] = 0.0f;
         unsigned int idx = d_group_members.data[i];
         Scalar4 posi;
         posi.x = arrays.x[idx];

@@ -113,6 +113,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     {
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     
@@ -121,7 +122,12 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_1.data[0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_1.data[1*pitch+0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_1.data[2*pitch+0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_1.data[3*pitch+0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_1.data[4*pitch+0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_1.data[5*pitch+0], tol);
     }
 
     // add an angle and check again
@@ -132,13 +138,16 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     {
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
+    unsigned int pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -0.061684, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].y, -0.313469, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, -0.195460, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].w, 0.158576, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_2.data[0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+0]
+                        +h_virial_2.data[3*pitch+0]
+                        +h_virial_2.data[5*pitch+0], tol);
     
     //MY_BOOST_CHECK_SMALL(h_force_2.data[0].y, tol);
     //MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, 0.564651,tol);
@@ -172,6 +181,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     {
     GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
+    unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     
@@ -179,7 +189,9 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, -0.3134695, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -0.195460, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, 0.158576, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_3.data[1], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+1]
+                        +h_virial_3.data[3*pitch+1]
+                        +h_virial_3.data[5*pitch+1], tol);
     }
 
     ////////////////////////////////////////////////////////////////////
@@ -216,6 +228,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     // check that the forces are correctly computed
     GPUArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
+    unsigned int pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
     
@@ -227,37 +240,49 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     MY_BOOST_CHECK_CLOSE(h_force_4.data[0].y, -1.55106342,tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[0].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[0].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+0]
+                        +h_virial_4.data[3*pitch+0]
+                        +h_virial_4.data[5*pitch+0], tol);
     
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, -0.0510595, loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 1.5760721,tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[1].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[1], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+1]
+                        +h_virial_4.data[3*pitch+1]
+                        +h_virial_4.data[5*pitch+1], tol);
     
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].x, 0.0510595,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -0.0250087, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[2].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].w, 0.256618, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[2], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+2]
+                        +h_virial_4.data[3*pitch+2]
+                        +h_virial_4.data[5*pitch+2], tol);
     
     MY_BOOST_CHECK_SMALL(h_force_4.data[3].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 0.05151510, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].z, -0.03411135,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[3], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+3]
+                        +h_virial_4.data[3*pitch+3]
+                        +h_virial_4.data[5*pitch+3], tol);
     
     MY_BOOST_CHECK_SMALL(h_force_4.data[4].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].y, -2.79330492,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].z, 0.034110874, loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[4], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+4]
+                        +h_virial_4.data[3*pitch+4]
+                        +h_virial_4.data[5*pitch+4], tol);
     
     MY_BOOST_CHECK_SMALL(h_force_4.data[5].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].y, 2.74179,tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[5].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].w, 0.400928, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_4.data[5], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+5]
+                        +h_virial_4.data[3*pitch+5]
+                        +h_virial_4.data[5*pitch+5], tol);
     }
     
     
@@ -297,6 +322,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     {
     GPUArray<Scalar4>& force_array_5 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_4->getVirialArray();
+    unsigned int pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
     
@@ -306,28 +332,36 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
     MY_BOOST_CHECK_SMALL(h_force_5.data[0].y, tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[0].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].w, 0.465228, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[0], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+0]
+                        +h_virial_5.data[3*pitch+0]
+                        +h_virial_5.data[5*pitch+0], tol);
     
     // and the bottom left particle should have a force pulling up and to the right
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, 0.2688054, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].y, -1.446902,tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[1].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].w, 0.240643, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[1], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+1]
+                        +h_virial_5.data[3*pitch+1]
+                        +h_virial_5.data[5*pitch+1], tol);
     
     // the bottom left particle should have a force pulling down
     MY_BOOST_CHECK_SMALL(h_force_5.data[2].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, 1.715708, tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[2].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].w, 0.240643,tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[2], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+2]
+                        +h_virial_5.data[3*pitch+2]
+                        +h_virial_5.data[5*pitch+2], tol);
     
     // and the top left particle should have a force pulling up and to the left
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].x, -1.715708, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, -0.268805, tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[3].z, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].w, 0.473257, tol);
-    MY_BOOST_CHECK_SMALL(h_virial_5.data[3], tol);
+    MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+3]
+                        +h_virial_5.data[3*pitch+3]
+                        +h_virial_5.data[5*pitch+3], tol);
     }
     }
 
@@ -363,6 +397,7 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     {
     GPUArray<Scalar4>& force_array_7 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
+    unsigned int pitch = virial_array_7.getPitch();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
     GPUArray<Scalar4>& force_array_8 =  fc2->getForceArray();
@@ -373,7 +408,10 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
-    double deltav2 = 0.0;
+    double deltav2[6];
+    for (unsigned int i = 0; i < 6; i++)
+        deltav2[i] = 0;
+
         
     for (unsigned int i = 0; i < N; i++)
         {
@@ -381,16 +419,23 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
         deltaf2 += double(h_force_8.data[i].y - h_force_7.data[i].y) * double(h_force_8.data[i].y - h_force_7.data[i].y);
         deltaf2 += double(h_force_8.data[i].z - h_force_7.data[i].z) * double(h_force_8.data[i].z - h_force_7.data[i].z);
         deltape2 += double(h_force_8.data[i].w - h_force_7.data[i].w) * double(h_force_8.data[i].w - h_force_7.data[i].w);
-        deltav2 += double(h_virial_8.data[i] - h_virial_7.data[i]) * double(h_virial_8.data[i] - h_virial_7.data[i]);
+        for (unsigned int j =0; j < 6; j++)
+            deltav2[j] += double(h_virial_8.data[j*pitch+i] - h_virial_7.data[j*pitch+i]) * double(h_virial_8.data[j*pitch+i] - h_virial_7.data[j*pitch+i]);
 
         // also check that each individual calculation is somewhat close
         }
     deltaf2 /= double(N);
     deltape2 /= double(N);
-    deltav2 /= double(N);
+    for (unsigned int i = 0; i < 6; i++)
+        deltav2[i] /= double(N);
     BOOST_CHECK_SMALL(deltaf2, double(tol_small));
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 

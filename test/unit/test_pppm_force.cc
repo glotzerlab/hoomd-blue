@@ -133,18 +133,23 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     
     ArrayHandle<Scalar4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
+    unsigned int pitch = fc_2->getVirialArray().getPitch();
 
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].z, 0.179186f, tol_small);
     MY_BOOST_CHECK_SMALL(h_force.data[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_virial.data[0], tol_small);
+    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+0]
+                        +h_virial.data[3*pitch+0]
+                        +h_virial.data[5*pitch+0], tol_small);
     
     MY_BOOST_CHECK_CLOSE(h_force.data[1].x, -0.151335f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[1].y, -0.172246f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[1].z, -0.179186f, tol_small);
     MY_BOOST_CHECK_SMALL(h_force.data[1].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_virial.data[1], tol_small);
+    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+1]
+                        +h_virial.data[3*pitch+1]
+                        +h_virial.data[5*pitch+1], tol_small);
 
     }
 

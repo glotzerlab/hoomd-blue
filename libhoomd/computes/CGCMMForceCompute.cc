@@ -339,8 +339,6 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
                                                          + Scalar(6.0)*lj6_row[typej]) + Scalar(4.0)*lj4_row[typej]);
                                                          
                 // compute the pair energy and virial (FLOPS: 6)
-                // note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
-                // there is no - in the 1/6 to compensate
                 Scalar pair_virial[6];
                 pair_virial[0] = Scalar(0.5) * dx * dx * forcemag_divr;
                 pair_virial[1] = Scalar(0.5) * dx * dy * forcemag_divr;
@@ -357,7 +355,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
                 fyi += dy*forcemag_divr;
                 fzi += dz*forcemag_divr;
                 pei += pair_eng;
-                for (int l = 0; k < 6; k++)
+                for (unsigned int l = 0; l < 6; l++)
                     viriali[l] += pair_virial[l];
                 
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
@@ -367,7 +365,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
                     h_force.data[k].y -= dy*forcemag_divr;
                     h_force.data[k].z -= dz*forcemag_divr;
                     h_force.data[k].w += pair_eng;
-                    for (int l = 0; l < 6; l++)
+                    for (unsigned int l = 0; l < 6; l++)
                         h_virial.data[l*virial_pitch+k] += pair_virial[l];
                     }
                 }
