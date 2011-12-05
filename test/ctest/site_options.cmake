@@ -17,7 +17,7 @@ SET (TEST_GROUP "Experimental")
 SET (SITE_NAME "sitename")
 
 # (name of hoomd branch you are testing)
-SET (HOOMD_BRANCH "trunk")
+SET (HOOMD_BRANCH "master")
 
 # (name of the system)
 set (SYSTEM_NAME "Gentoo")
@@ -28,6 +28,6 @@ SET (COMPILER_NAME "gcc434")
 ###################
 ## Usually, you don't need to modify the below, but they are site specific options
 # other stuff that you might want to modify
-SET (CTEST_SVN_COMMAND "svn")
+SET (CTEST_GIT_COMMAND "git")
 SET (CTEST_CMAKE_COMMAND "cmake")
 SET (CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
