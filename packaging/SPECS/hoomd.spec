@@ -1,4 +1,4 @@
-%global	repository	https://codeblue.engin.umich.edu/git/hoomd-blue
+%global	repository	https://codeblue.umich.edu/git/hoomd-blue
 # The git refspec to build is specified by defining %{refspec}.
 # The version number to tag the build with is %{version}.
 # Both should be specified, as we cannot determine the version until we have checked out the code
