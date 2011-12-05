@@ -5,9 +5,9 @@ cd ..
 cd ..
 
 # update to the latest rev
-svn update
+git pull origin master
 
-new_rev=`svnversion .`
+new_rev=`git describe`
 
 # up another level out of the source repository
 cd ..
@@ -27,7 +27,7 @@ else
     mkdir build
     cd build
 
-    cmake -DENABLE_DOXYGEN=OFF -DENABLE_APP_BUNDLE_INSTALL=ON -DBOOST_ROOT=/opt/boost-1.46.0/ -DBoost_NO_SYSTEM_PATHS=ON -DPYTHON_EXECUTABLE=/usr/bin/python ../hoomd/
+    cmake -DENABLE_DOXYGEN=OFF -DENABLE_APP_BUNDLE_INSTALL=ON -DBOOST_ROOT=/opt/boost-1.48.0/ -DBoost_NO_SYSTEM_PATHS=ON -DPYTHON_EXECUTABLE=/usr/bin/python ../code
 
     make package -j6
     mv hoomd-*.dmg /Users/joaander/devel/incoming/mac

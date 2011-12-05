@@ -19,8 +19,8 @@ SET (IGNORE_TESTS "-E \"test_bdnvt_integrator|test_npt_integrator\"")
 SET (MEMORYCHECK_COMMAND "")
 #SET (MEMORYCHECK_COMMAND "/usr/bin/valgrind")
 
-# (architecture to compile CUDA for 10=compute 1.0 11=compute 1.1, ...)
-SET (CUDA_ARCH "11")
+# (architectures to compile CUDA for 10=compute 1.0 11=compute 1.1, ...)
+SET (CUDA_ARCH_LIST 12 13 20)
 
 # (set to ON to enable coverage tests: these extensive tests don't really need to be done on every single build)
 SET (ENABLE_COVERAGE OFF)
