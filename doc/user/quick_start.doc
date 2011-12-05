@@ -19,13 +19,13 @@ prominently in any materials provided with the distribution.
 list of conditions, and the following disclaimer in the documentation and/or
 other materials provided with the distribution.
 
-* All publications based on HOOMD-blue, including any reports or published
-results obtained, in whole or in part, with HOOMD-blue, will acknowledge its use
-according to the terms posted at the time of submission on:
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
 http://codeblue.umich.edu/hoomd-blue/citations.html
 
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website
-at: http://codeblue.umich.edu/hoomd-blue/.
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
 
 * Apart from the above required attributions, neither the name of the copyright
 holder nor the names of HOOMD-blue's contributors may be used to endorse or
