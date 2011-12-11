@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Shared memory used in reducing the sums
 extern __shared__ float3 compute_thermo_sdata[];
+extern __shared__ float compute_pressure_tensor_sdata[];
 
 /*! \file ComputeThermoGPU.cu
     \brief Defines GPU kernel code for computing thermodynamic properties on the GPU. Used by ComputeThermoGPU.
@@ -150,7 +151,87 @@ __global__ void gpu_compute_thermo_partial_sums(float4 *d_scratch,
         }
     }
 
-//! Complete partial sums and compute final thermodynamic quantities
+//! Perform partial sums of the pressure tensor on the GPU
+/*! \param d_scratch Scratch space to hold partial sums. One element is written per block
+    \param d_net_force Net force / pe array from ParticleData
+    \param d_net_virial Net virial array from ParticleData
+    \param virial_pitch pitch of 2D virial array
+    \param d_mass Particle mass array from ParticleData
+    \param d_velocity Particle velocity array from ParticleData
+    \param d_group_members List of group members for which to sum properties
+    \param group_size Number of particles in the group
+
+    One thread is executed per group member. That thread reads in the six values (components of the presure tensor)
+    for its member into shared memory and then the block performs a reduction in parallel to produce a partial sum output for the block.
+    These partial sums are written to d_scratch[i*gridDim.x + blockIdx.x], where i=0..5 is the index of the component.
+    For this kernel to run, 6*sizeof(float)*block_size of dynamic shared memory are needed.
+*/
+
+__global__ void gpu_compute_pressure_tensor_partial_sums(float *d_scratch,
+                                                float4 *d_net_force,
+                                                float *d_net_virial,
+                                                const unsigned int virial_pitch,
+                                                float *d_mass,
+                                                float4 *d_velocity,
+                                                unsigned int *d_group_members,
+                                                unsigned int group_size)
+    {
+    // determine which particle this thread works on
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    float my_element[6]; // element of scratch space read in
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+
+        // compute contribution to pressure tensor and store it in my_element
+        float mass = d_mass[idx];
+        float4 vel = d_velocity[idx];
+        my_element[0] = mass*vel.x*vel.x + d_net_virial[0*virial_pitch+idx];   // xx
+        my_element[1] = mass*vel.x*vel.y + d_net_virial[1*virial_pitch+idx];   // xy
+        my_element[2] = mass*vel.x*vel.z + d_net_virial[2*virial_pitch+idx];   // xz
+        my_element[3] = mass*vel.y*vel.y + d_net_virial[3*virial_pitch+idx];   // yy
+        my_element[4] = mass*vel.y*vel.z + d_net_virial[4*virial_pitch+idx];   // yz
+        my_element[5] = mass*vel.z*vel.z + d_net_virial[5*virial_pitch+idx];   // zz
+        }
+    else
+        {
+        // non-participating thread: contribute 0 to the sum
+        my_element[0] = 0.0f;
+        my_element[1] = 0.0f;
+        my_element[2] = 0.0f;
+        my_element[3] = 0.0f;
+        my_element[4] = 0.0f;
+        my_element[5] = 0.0f;
+        }
+
+    for (unsigned int i = 0; i < 6; i++)
+        compute_pressure_tensor_sdata[i*blockDim.x+threadIdx.x] = my_element[i];
+
+    __syncthreads();
+
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            {
+            for (unsigned int i = 0; i < 6; i++)
+                compute_pressure_tensor_sdata[i*blockDim.x+threadIdx.x] += compute_pressure_tensor_sdata[i*blockDim.x + threadIdx.x + offs];
+            }
+        offs >>= 1;
+        __syncthreads();
+        }
+
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        for (unsigned int i = 0; i < 6; i++)
+            d_scratch[gridDim.x * i + blockIdx.x] = compute_pressure_tensor_sdata[i*blockDim.x];
+        }
+    }
+
+//! Complete partial sums and compute final thermodynamic quantities (for pressure, only isotropic contribution)
 /*! \param d_properties Property array to write final values
     \param d_scratch Partial sums
     \param ndof Number of degrees of freedom this group posesses
@@ -247,6 +328,80 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
         }
     }
 
+//! Complete partial sums and compute final pressure tensor
+/*! \param d_properties Property array to write final values
+    \param d_scratch Partial sums
+    \param ndof Number of degrees of freedom this group posesses
+    \param box Box the particles are in
+    \param D Dimensionality of the system
+    \param group_size Number of particles in the group
+    \param num_partial_sums Number of partial sums in \a d_scratch
+
+    Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
+    sums, the thermodynamic properties are computed and written to d_properties.
+
+    6*sizeof(float)*block_size bytes of shared memory are needed for this kernel to run.
+*/
+__global__ void gpu_compute_pressure_tensor_final_sums(float *d_properties,
+                                              float *d_scratch,
+                                              gpu_boxsize box,
+                                              unsigned int group_size,
+                                              unsigned int num_partial_sums)
+    {
+    float final_sum[6];
+
+    for (unsigned int i = 0; i < 6; i++)
+        final_sum[i] = 0.0f;
+
+    // sum up the values in the partial sum via a sliding window
+    for (int start = 0; start < num_partial_sums; start += blockDim.x)
+        {
+        __syncthreads();
+        if (start + threadIdx.x < num_partial_sums)
+            {
+            for (unsigned int i = 0; i < 6; i++)
+                compute_pressure_tensor_sdata[i * blockDim.x + threadIdx.x] = d_scratch[i*num_partial_sums + start + threadIdx.x];
+            }
+        else
+            for (unsigned int i = 0; i < 6; i++)
+                compute_pressure_tensor_sdata[i * blockDim.x + threadIdx.x] = 0.0f;
+        __syncthreads();
+
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                {
+                for (unsigned int i = 0; i < 6; i++)
+                    compute_pressure_tensor_sdata[i*blockDim.x + threadIdx.x] += compute_pressure_tensor_sdata[i*blockDim.x + threadIdx.x + offs];
+                }
+            offs >>= 1;
+            __syncthreads();
+            }
+
+        if (threadIdx.x == 0)
+            {
+            for (unsigned int i = 0; i < 6; i++)
+                final_sum[i] += compute_pressure_tensor_sdata[i*blockDim.x];
+            }
+        }
+
+    if (threadIdx.x == 0)
+        {
+        // fill out the GPUArray
+        // we have thus far calculated the sum of the kinetic part of the pressure tensor
+        // and the virial part, the definition includes an inverse factor of the box volume
+        float V = box.Lx * box.Ly * box.Lz;
+
+        d_properties[thermo_index::pressure_xx] = final_sum[0]/V;
+        d_properties[thermo_index::pressure_xy] = final_sum[1]/V;
+        d_properties[thermo_index::pressure_xz] = final_sum[2]/V;
+        d_properties[thermo_index::pressure_yy] = final_sum[3]/V;
+        d_properties[thermo_index::pressure_yz] = final_sum[4]/V;
+        d_properties[thermo_index::pressure_zz] = final_sum[5]/V;
+        }
+    }
 
 //! Compute thermodynamic properties of a group on the GPU
 /*! \param d_properties Array to write computed properties
@@ -264,7 +419,8 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                const gpu_boxsize &box,
-                               const compute_thermo_args& args
+                               const compute_thermo_args& args,
+                               const bool compute_pressure_tensor
                                )
     {
     assert(d_properties);
@@ -288,7 +444,23 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                     d_group_members,
                                                                     group_size);
 
-        
+
+    if (compute_pressure_tensor)
+        {
+        assert(args.d_scratch_pressure_tensor);
+
+        shared_bytes = 6 * sizeof(float) * args.block_size;
+        // run the kernel
+        gpu_compute_pressure_tensor_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch_pressure_tensor,
+                                                                                  args.d_net_force,
+                                                                                  args.d_net_virial,
+                                                                                  args.virial_pitch,
+                                                                                  pdata.mass,
+                                                                                  pdata.vel,
+                                                                                  d_group_members,
+                                                                                  group_size);
+        }
+
     // setup the grid to run the final kernel
     int final_block_size = 512;
     grid = dim3(1, 1, 1);
@@ -304,6 +476,17 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                    group_size,
                                                                    args.n_blocks);
     
+    if (compute_pressure_tensor)
+        {
+        shared_bytes = 6 * sizeof(float) * final_block_size;
+        // run the kernel
+        gpu_compute_pressure_tensor_final_sums<<<grid, threads, shared_bytes>>>(d_properties,
+                                                                               args.d_scratch_pressure_tensor,
+                                                                               box,
+                                                                               group_size,
+                                                                               args.n_blocks);
+        }
+
     return cudaSuccess;
     }
 

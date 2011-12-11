@@ -128,7 +128,8 @@ struct pdata_flag
     enum Enum
         {
         isotropic_virial=0,  //!< Bit id in PDataFlags for the isotropic virial
-        potential_energy     //!< Bit id in PDataFlags for the potential energy
+        potential_energy,    //!< Bit id in PDataFlags for the potential energy
+        pressure_tensor,     //!< Bit id in PDataFlags for the full virial
         };
     };
 

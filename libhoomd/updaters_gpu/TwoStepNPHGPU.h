@@ -50,42 +50,41 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifndef _COMPUTE_THERMO_GPU_CUH_
-#define _COMPUTE_THERMO_GPU_CUH_
+#include "TwoStepNPH.h"
 
-#include <cuda_runtime.h>
+#ifndef __TWO_STEP_NPH_GPU_H__
+#define __TWO_STEP_NPH_GPU_H__
 
-#include "ParticleData.cuh"
-#include "ComputeThermoTypes.h"
-#include "HOOMDMath.h"
+/*! \file TwoStepNPHGPU.h
+    \brief Declares the TwoStepNPHGPU class
+*/
 
-/*! \file ComputeThermoGPU.cuh
-    \brief Kernel driver function declarations for ComputeThermoGPU
-    */
+//! Integrates part of the system forward in two steps in the NPH ensemble on the GPU
+/*! Implements Andersen NPH integration through the IntegrationMethodTwoStep interface, runs on the GPU
 
-//! Holder for arguments to gpu_compute_thermo
-struct compute_thermo_args
+    \ingroup updaters
+*/
+class TwoStepNPHGPU : public TwoStepNPH
     {
-    float4 *d_net_force;    //!< Net force / pe array to sum
-    float *d_net_virial;    //!< Net virial array to sum
-    unsigned int virial_pitch; //!< Pitch of 2D net_virial array
-    unsigned int ndof;      //!< Number of degrees of freedom for T calculation
-    unsigned int D;         //!< Dimensionality of the system
-    float4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
-    float *d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch spaace for partial sums of the pressure tensor
-    unsigned int block_size;    //!< Block size to execute on the GPU
-    unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepNPHGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                   boost::shared_ptr<ParticleGroup> group,
+                   boost::shared_ptr<ComputeThermo> thermo,
+                   Scalar W,
+                   boost::shared_ptr<Variant> P,
+                   integrationMode mode,
+                   const std::string& suffix);
+        virtual ~TwoStepNPHGPU() {};
+
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
     };
 
-//! Computes the thermodynamic properties for ComputeThermo
-cudaError_t gpu_compute_thermo(float *d_properties,
-                               const gpu_pdata_arrays &pdata,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               const gpu_boxsize &box,
-                               const compute_thermo_args& args,
-                               const bool compute_pressure_tensor
-                               );
+//! Exports the TwoStepNPHGPU class to python
+void export_TwoStepNPHGPU();
 
-#endif
-
+#endif // #ifndef __TWO_STEP_NPH_GPU_H__
