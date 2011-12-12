@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Shared memory used in reducing the sums
 extern __shared__ float3 compute_thermo_sdata[];
+//! Shared memory used in reducing the sums of the pressure tensor
 extern __shared__ float compute_pressure_tensor_sdata[];
 
 /*! \file ComputeThermoGPU.cu
@@ -331,9 +332,7 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
 //! Complete partial sums and compute final pressure tensor
 /*! \param d_properties Property array to write final values
     \param d_scratch Partial sums
-    \param ndof Number of degrees of freedom this group posesses
     \param box Box the particles are in
-    \param D Dimensionality of the system
     \param group_size Number of particles in the group
     \param num_partial_sums Number of partial sums in \a d_scratch
 
@@ -410,6 +409,7 @@ __global__ void gpu_compute_pressure_tensor_final_sums(float *d_properties,
     \param group_size Number of group members
     \param box Box the particles are in
     \param args Additional arguments
+    \param compute_pressure_tensor whether to compute the full pressure tensor
     
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */

@@ -144,7 +144,7 @@ void gpu_nph_step_one_kernel(gpu_pdata_arrays pdata,
     \param group_size Number of members in the group
     \param L_old box lengths at beginning of time step
     \param L_halfstep box lengths at t+deltaT/2
-    \param L box box lengths at t+deltaT
+    \param L_final box box lengths at t+deltaT
     \param deltaT Time to move forward in one whole step
 
     This is just a kernel driver for gpu_nph_step_one_kernel(). See it for more details.

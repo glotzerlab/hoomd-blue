@@ -131,6 +131,7 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
 
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle

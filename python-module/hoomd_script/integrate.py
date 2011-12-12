@@ -570,7 +570,7 @@ class nph(_integration_method):
     #   box lengths \f$ L_x, \f$ \f$ L_y \f$, \f$ L_z \f$ can fluctuate indepently.
     #   The piston mass \a W has units of mass.
     # - \b tetragonal specifies tetragonal symmetry of the simulation box. Two independent box lengths,
-    #   \f $ L_x = L_\perp \f $ and \f $ L_y = L_z = L_\par \f $ can fluctuate independently.
+    #   \f$ L_x = L_\perp \f$ and \f$ L_y = L_z = L_\par \f$ can fluctuate independently.
     #   The piston mass \a W has units of mass.
     #
     # In
