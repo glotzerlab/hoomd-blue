@@ -82,7 +82,7 @@ _default_block_size_db['1.1'] = {'pair.ewald': 224, 'improper.harmonic': 64, 'pa
 # no longer independently tuning 1.0 devices, they are very old
 _default_block_size_db['1.0'] = _default_block_size_db['1.1'];
 
-_default_block_size_db['1.3'] = {'pair.ewald': 160, 'improper.harmonic': 64, 'pair.dpd_conservative': 352, 'dihedral.harmonic': 256, 'pair.dpd': 160, 'pair.dpdlj': 160, 'angle.cgcmm': 64, 'nlist.filter': 160, 'pair.lj': 352, 'pair.table': 96, 'pair.cgcmm': 352, 'pair.slj': 352, 'pair.morse': 352, 'nlist': 416, 'bond.harmonic': 416, 'pair.yukawa': 352, 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 352}
+_default_block_size_db['1.3'] = {'pair.ewald': 160, 'improper.harmonic': 320, 'pair.dpd_conservative': 352, 'dihedral.harmonic': 256, 'pair.dpd': 320, 'angle.cgcmm': 64, 'nlist.filter': 160, 'pair.lj': 352, 'pair.table': 96, 'pair.cgcmm': 352, 'pair.dpdlj': 320, 'pair.slj': 352, 'pair.morse': 352, 'nlist': 416, 'bond.harmonic': 416, 'pair.yukawa': 352, 'bond.fene': 160, 'angle.harmonic': 192, 'pair.gauss': 352}
 
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
