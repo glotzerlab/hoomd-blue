@@ -161,6 +161,25 @@ class TwoStepNPH : public IntegrationMethodTwoStep
             m_P = P;
             }
 
+        //! Set the initial state of the internal state variables
+        /*! \param etax momentum conjugate to box dimension in x direction
+            \param etay momentum conjugate to box dimension in y direction
+            \param etaz momentum conjugate to box dimension in x direction
+         */
+        void setEta(Scalar etax, Scalar etay, Scalar etaz)
+            {
+            if (m_state_initialized)
+                {
+                cerr << endl << "***Error! Trying to set eta after integrator has already been initialized! " <<  endl << endl;
+                throw runtime_error("Error setting params in TwoStepNPH");
+                }
+            IntegratorVariables v = getIntegratorVariables();
+            v.variable[0] = etax;
+            v.variable[1] = etay;
+            v.variable[2] = etaz;
+            setIntegratorVariables(v);
+            }
+
     protected:
         boost::shared_ptr<ComputeThermo> m_thermo;  //!< ComputeThermo for all particles
         Scalar m_W;                                 //!< the generalized mass of the barostat
