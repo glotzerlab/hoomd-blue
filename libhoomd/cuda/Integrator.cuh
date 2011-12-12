@@ -96,12 +96,12 @@ struct gpu_force_list
     float *v4;  //!< Pointer to virial array 4
     float *v5;  //!< Pointer to virial array 5
 
-    unsigned int vpitch0; // Pitch of virial array 0
-    unsigned int vpitch1; // Pitch of virial array 1
-    unsigned int vpitch2; // Pitch of virial array 2
-    unsigned int vpitch3; // Pitch of virial array 3
-    unsigned int vpitch4; // Pitch of virial array 4
-    unsigned int vpitch5; // Pitch of virial array 5
+    unsigned int vpitch0; //!< Pitch of virial array 0
+    unsigned int vpitch1; //!< Pitch of virial array 1
+    unsigned int vpitch2; //!< Pitch of virial array 2
+    unsigned int vpitch3; //!< Pitch of virial array 3
+    unsigned int vpitch4; //!< Pitch of virial array 4
+    unsigned int vpitch5; //!< Pitch of virial array 5
  };
 
 //! Driver for gpu_integrator_sum_net_force_kernel()

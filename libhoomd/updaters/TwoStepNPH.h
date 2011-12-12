@@ -71,7 +71,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     - anisotropic volume fluctuations, tetragonal box
       (two independent lengths, Ly = Lz)
 
-    The first mode is an implementation of the Anderson barostat,
+    The first mode is an implementation of the Andersen barostat,
     the second and the third mode are based on the adapted Parrinello-Rahman
     equations of motion.
 
@@ -91,6 +91,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class TwoStepNPH : public IntegrationMethodTwoStep
     {
     public:
+        //! Enum to specify possible integration modes
         enum integrationMode
             {
             cubic = 0,
@@ -137,7 +138,7 @@ class TwoStepNPH : public IntegrationMethodTwoStep
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
         //! Set the integration mode
-        /*! \param integrationMode the integration mode
+        /*! \param mode the integration mode
         */
         void setIntegrationMode(integrationMode mode)
             {
@@ -145,7 +146,7 @@ class TwoStepNPH : public IntegrationMethodTwoStep
             }
 
         //! Set the barostat mass
-        /*! \param mass the W parameter (barostat mass)
+        /*! \param W barostat mass
          */
         void setW(Scalar W)
             {

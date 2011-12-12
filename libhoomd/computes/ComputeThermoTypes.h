@@ -77,6 +77,7 @@ struct thermo_index
         };
     };
 
+//! structure for storing the components of the pressure tensor
 struct PressureTensor
     {
     //! The six components of the symmetrized pressure tensor

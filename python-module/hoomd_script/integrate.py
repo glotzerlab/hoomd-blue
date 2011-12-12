@@ -542,10 +542,11 @@ class npt(_integration_method):
         if partial_scale is not None:
             self.cpp_method.setPartialScale(partial_scale);
 
-## NPH Integration via Andersen barostat
+## NPH Integration via Andersen barostat or Parrinello-Rahman barostat restricted to anisotropic length fluctuations
 #
 # integrate.nph performs constant pressure (NPH) simulations using an Andersen barostat or a version of
-# the Rahman-Parinello barostat. An explicitly reversible and measure-preserving integration scheme is implemented.
+# the Rahman-Parrinello barostat for anisotropic box shape fluctuations.
+# An explicitly reversible and measure-preserving integration scheme is implemented.
 #
 # integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -565,13 +566,13 @@ class nph(_integration_method):
     #
     # Valid settings for \a mode are:
     # - \b cubic (default) specifies cubic symmetry of the simulation box. This corresponds to isotropic volume
-    #   fluctuations. The piston mass \a W has units of mass/length^4.
+    #   fluctuations. The barostat mass \a W has units of mass/length^4.
     # - \b orthorhombic specifies orthorhombic symmetry of the simulation box. All three
-    #   box lengths \f$ L_x, \f$ \f$ L_y \f$, \f$ L_z \f$ can fluctuate indepently.
-    #   The piston mass \a W has units of mass.
+    #   box lengths \f$ L_x, \f$ \f$ L_y \f$, and \f$ L_z \f$ fluctuate indepently.
+    #   The barostat mass \a W has units of mass.
     # - \b tetragonal specifies tetragonal symmetry of the simulation box. Two independent box lengths,
-    #   \f$ L_x = L_\perp \f$ and \f$ L_y = L_z = L_\par \f$ can fluctuate independently.
-    #   The piston mass \a W has units of mass.
+    #   \f$ L_x = L_\perp \f$ and \f$ L_y = L_z = L_\parallel \f$, fluctuate independently.
+    #   The barostat mass \a W has units of mass.
     #
     # In
     # \b Examples:
