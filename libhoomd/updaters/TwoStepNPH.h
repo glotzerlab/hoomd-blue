@@ -136,6 +136,30 @@ class TwoStepNPH : public IntegrationMethodTwoStep
         //! Returns logged values
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
+        //! Set the integration mode
+        /*! \param integrationMode the integration mode
+        */
+        void setIntegrationMode(integrationMode mode)
+            {
+            m_mode = mode;
+            }
+
+        //! Set the barostat mass
+        /*! \param mass the W parameter (barostat mass)
+         */
+        void setW(Scalar W)
+            {
+            m_W = W;
+            }
+
+        //! Set the pressure set point
+        /*! \param P pressure set point
+         */
+        void setP(boost::shared_ptr<Variant> P)
+            {
+            m_P = P;
+            }
+
     protected:
         boost::shared_ptr<ComputeThermo> m_thermo;  //!< ComputeThermo for all particles
         Scalar m_W;                                 //!< the generalized mass of the barostat

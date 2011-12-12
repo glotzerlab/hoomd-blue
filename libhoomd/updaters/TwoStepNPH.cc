@@ -501,6 +501,9 @@ void export_TwoStepNPH()
     {
     scope in_nph = class_<TwoStepNPH, boost::shared_ptr<TwoStepNPH>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
         ("TwoStepNPH", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, boost::shared_ptr<ComputeThermo>, Scalar, boost::shared_ptr<Variant>, TwoStepNPH::integrationMode, const std::string& >())
+        .def("setIntegrationMode", &TwoStepNPH::setIntegrationMode)
+        .def("setW", &TwoStepNPH::setW)
+        .def("setP", &TwoStepNPH::setP)
         ;
 
     enum_<TwoStepNPH::integrationMode>("integrationMode")

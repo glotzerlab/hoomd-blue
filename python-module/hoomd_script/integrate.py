@@ -312,6 +312,7 @@ class _integration_method:
 # - integrate.nvt
 # - integrate.nvt_rigid
 # - integrate.npt
+# - integrate.nph
 #
 # There can only be one integration mode active at a time. If there are more than one integrate.mode_* commands in
 # a hoomd script, only the most recent before a given run() will take effect.
@@ -540,6 +541,125 @@ class npt(_integration_method):
             self.cpp_method.setTauP(tauP);
         if partial_scale is not None:
             self.cpp_method.setPartialScale(partial_scale);
+
+## NPH Integration via Andersen barostat
+#
+# integrate.nph performs constant pressure (NPH) simulations using an Andersen barostat or a version of
+# the Rahman-Parinello barostat. An explicitly reversible and measure-preserving integration scheme is implemented.
+#
+# integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
+# the following modes are active:
+# - integrate.mode_standard
+#
+class nph(_integration_method):
+    ## Specifies the NPH integrator
+    # \param group Group of particles on which to apply this method.
+    # \param P isotropic pressure set point for the Andersen barostat (in pressure units)
+    # \param W generalized mass of the barostat (units: see below)
+    # \param mode mode for anisotropic volume fluctuations: cubic, orthorhombic or tetragonal
+    #
+    # \note it is limitation of the current implementation that only the particles in \a group are scaled but
+    #       the pressure tensor is calculated from the contribution of all particles in the simulation
+    #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
+    # Valid settings for \a mode are:
+    # - \b cubic (default) specifies cubic symmetry of the simulation box. This corresponds to isotropic volume
+    #   fluctuations. The piston mass \a W has units of mass/length^4.
+    # - \b orthorhombic specifies orthorhombic symmetry of the simulation box. All three
+    #   box lengths \f$ L_x, \f$ \f$ L_y \f$, \f$ L_z \f$ can fluctuate indepently.
+    #   The piston mass \a W has units of mass.
+    # - \b tetragonal specifies tetragonal symmetry of the simulation box. Two independent box lengths,
+    #   \f $ L_x = L_\perp \f $ and \f $ L_y = L_z = L_\par \f $ can fluctuate independently.
+    #   The piston mass \a W has units of mass.
+    #
+    # In
+    # \b Examples:
+    # \code
+    # integrate.nph(group=all, P=2.0, W=1.0, mode="orthorhombic")
+    # integrator = integrate.nph(group=all, P=2.0, W=1.0)
+    # \endcode
+    def __init__(self, group, P, W, mode="cubic"):
+        util.print_status_line();
+
+        # initialize base class
+        _integration_method.__init__(self);
+
+        # setup the variant inputs
+        P = variant._setup_variant_input(P);
+
+        # create the compute thermo
+        thermo_all = compute._get_unique_thermo(group=globals.group_all);
+
+        # setup suffix
+        suffix = '_' + group.name;
+
+        # set integration mode
+        # initialize the reflected c++ class
+        if not globals.exec_conf.isCUDAEnabled():
+            if (mode == "cubic"):
+                cpp_mode = hoomd.TwoStepNPH.integrationMode.cubic;
+            elif (mode == "orthorhombic"):
+                cpp_mode = hoomd.TwoStepNPH.integrationMode.orthorhombic;
+            elif (mode == "tetragonal"):
+                cpp_mode = hoomd.TwoStepNPH.integrationMode.tetragonal;
+            else:
+                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                raise RuntimeError("Error changing parameters in integrate.nph");
+            self.cpp_method = hoomd.TwoStepNPH(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
+        else:
+            if (mode == "cubic"):
+                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.cubic;
+            elif (mode == "orthorhombic"):
+                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.orthorhombic;
+            elif (mode == "tetragonal"):
+                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.tetragonal;
+            else:
+                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                raise RuntimeError("Error changing parameters in integrate.nph");
+            self.cpp_method = hoomd.TwoStepNPHGPU(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
+
+        self.cpp_method.validateGroup()
+
+    ## Changes parameters of an existing integrator
+    # \param P New pressure (if set) (in pressure units)
+    # \param W New barostat mass constant (if set) (in mass units for \a mode = orthogonal or \a mode = tetragonal,
+    #          or mass/length^4 for \a mode = cubic )
+    # \param mode integration mode (\b cubic, \b orthorhombic or \b tetragonal)
+    #
+    # To change the parameters of an existing integrator, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # integrator = integrate.nph(P=1.2)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # integrator.set_params(P=1.2)
+    # integrator.set_params(P=1.0, W=.01)
+    # integrator.set_params(mode="tetragonal")
+    # \endcode
+    def set_params(self, P=None, W=None, mode=None):
+        util.print_status_line();
+        self.check_initialization();
+
+        # change the parameters
+        if P is not None:
+            # setup the variant inputs
+            P = variant._setup_variant_input(P);
+            self.cpp_method.setP(P.cpp_variant);
+        if W is not None:
+            self.cpp_method.setW(W);
+        if mode is not None:
+            if (mode == "cubic"):
+                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.cubic);
+            elif (mode == "orthorhombic"):
+                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.orthorhombic);
+            elif (mode == "tetragonal"):
+                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.tetragonal);
+            else:
+                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                raise RuntimeError("Error changing parameters in integrate.nph");
 
 ## NVE Integration via Velocity-Verlet
 #
