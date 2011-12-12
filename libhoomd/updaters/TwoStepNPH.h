@@ -185,7 +185,6 @@ class TwoStepNPH : public IntegrationMethodTwoStep
         Scalar m_W;                                 //!< the generalized mass of the barostat
         boost::shared_ptr<Variant> m_P;             //!< isotropic Pressure set point
         std::string m_log_name;                     //!< Name of the barostat quantity that we log
-        Scalar m_volume;                            //!< current volume
         integrationMode m_mode;                     //!< integration mode
         Scalar3 m_curr_P_diag;                      //!< diagonal elements of the current pressure tensor
         bool m_state_initialized;                   //!< is the integrator initialized?

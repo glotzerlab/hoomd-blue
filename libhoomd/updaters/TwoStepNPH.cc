@@ -79,12 +79,8 @@ TwoStepNPH::TwoStepNPH(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<Variant> P,
                        integrationMode mode,
                        const std::string& suffix)
-    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_W(W), m_P(P), m_volume(0.0), m_mode(mode), m_state_initialized(false)
+    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_W(W), m_P(P), m_mode(mode), m_state_initialized(false)
     {
-    // precalculate volume
-    const BoxDim& box = m_pdata->getBox();
-    m_volume = (box.xhi - box.xlo) * (box.yhi - box.ylo) * (box.zhi - box.zlo);
-
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
 
@@ -199,21 +195,12 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
     Scalar Ly = Scalar(0.0);
     Scalar Lz = Scalar(0.0);
     Scalar volume = Scalar(0.0);
-    if (m_mode == orthorhombic || m_mode == tetragonal)
-        {
-        BoxDim box = m_pdata->getBox();
-        Lx = box.xhi - box.xlo;
-        Ly = box.yhi - box.ylo;
-        Lz = box.zhi - box.zlo;
-        volume = Lx*Ly*Lz;
-        }
-    else if (m_mode == cubic)
-        {
-        volume = m_volume;
-        Lx = pow(volume,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
-        Ly = Lx;
-        Lz = Lx;
-        }
+
+    BoxDim box = m_pdata->getBox();
+    Lx = box.xhi - box.xlo;
+    Ly = box.yhi - box.ylo;
+    Lz = box.zhi - box.zlo;
+    volume = Lx*Ly*Lz;
 
     Scalar extP = m_P->getValue(timestep);
 
@@ -248,8 +235,6 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
     Scalar Ly_final = Scalar(0.0);
     Scalar Lz_final = Scalar(0.0);
 
-    Scalar volume_final = Scalar(0.0);
-
     Scalar deltaThalfoverW = Scalar(1./2.)*m_deltaT/m_W;
 
     if (m_mode == orthorhombic)
@@ -260,7 +245,6 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         Lx_final = Lx + deltaThalfoverW*etax;
         Ly_final = Ly + deltaThalfoverW*etay;
         Lz_final = Lz + deltaThalfoverW*etaz;
-        volume_final = Lx_final * Ly_final * Lz_final;
         }
     else if (m_mode == tetragonal)
         {
@@ -270,7 +254,6 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         Lx_final = Lx + deltaThalfoverW*etax;
         Ly_final = Ly + Scalar(1./2.)*deltaThalfoverW*etay;
         Lz_final = Ly_final;
-        volume_final = Lx_final * Ly_final * Lz_final;
         }
     else if (m_mode == cubic)
         {
@@ -278,16 +261,14 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         Lx = pow(volume,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
         Ly = Lx;
         Lz = Lx;
-        volume_final = volume + deltaThalfoverW*etax;
+        Scalar volume_final = volume + deltaThalfoverW*etax;
         Lx_final = pow(volume_final,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
         Ly_final = Lx_final;
         Lz_final = Lx_final;
         }
 
-    m_volume = volume_final;
-
     // update the simulation box
-    const BoxDim &box = BoxDim(Lx_final, Ly_final, Lz_final);
+    box = BoxDim(Lx_final, Ly_final, Lz_final);
     m_pdata->setBox(box);
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
