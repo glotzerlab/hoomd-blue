@@ -151,6 +151,7 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
     Lx = box.xhi - box.xlo;
     Ly = box.yhi - box.ylo;
     Lz = box.zhi - box.zlo;
+    volume = Lx*Ly*Lz;
 
     Scalar extP = m_P->getValue(timestep);
 
