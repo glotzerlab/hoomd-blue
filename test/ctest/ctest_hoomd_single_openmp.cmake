@@ -5,10 +5,10 @@
 SET (ENABLE_CUDA "OFF")
 
 # (set to ON to enable OpenMP build)
-SET (ENABLE_OPENMP "OFF")
+SET (ENABLE_OPENMP "ON")
 
 # (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
-SET (SINGLE_PRECISION "OFF")
+SET (SINGLE_PRECISION "ON")
 
 # (set to OFF to enable shared library builds)
 SET (ENABLE_STATIC "OFF")

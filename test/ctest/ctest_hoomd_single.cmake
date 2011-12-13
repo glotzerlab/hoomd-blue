@@ -4,6 +4,9 @@
 # (set to ON to enable CUDA build)
 SET (ENABLE_CUDA "OFF")
 
+# (set to ON to enable OpenMP build)
+SET (ENABLE_OPENMP "OFF")
+
 # (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
 SET (SINGLE_PRECISION "ON")
 
