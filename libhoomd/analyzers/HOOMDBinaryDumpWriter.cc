@@ -358,7 +358,11 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     unsigned int n_bodies = rigid_data->getNumBodies();
     f.write((char*)&n_bodies, sizeof(unsigned int));
     
-    if (n_bodies <= 0) return;
+    if (n_bodies <= 0)
+        {
+        m_pdata->release();
+        return;
+        }
     
     // We don't need to write forces, torques and orientation/quaternions because as the rigid bodies are constructed
     // from restart files, the orientation is recalculated for the moment of inertia- using the old one will cause mismatches in angular velocities.
