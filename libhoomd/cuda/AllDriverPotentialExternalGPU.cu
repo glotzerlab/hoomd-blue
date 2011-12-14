@@ -58,7 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllDriverPotentialExternalGPU.cuh"
 
 cudaError_t gpu_compute_lamellar_forces(const external_potential_args_t& potential_args,
-                                      const float4 params)
+                                      const float4 *d_params)
     {
-    return gpu_compute_external_forces<EvaluatorExternalLamellar>(potential_args, params);
+    return gpu_compute_external_forces<EvaluatorExternalLamellar>(potential_args, d_params);
     }
+
+

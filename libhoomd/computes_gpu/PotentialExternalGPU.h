@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup computes
 */
 template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type params)>
+                                               const typename evaluator::param_type *d_params)>
 class PotentialExternalGPU : public PotentialExternal<evaluator>
     {
     public:
@@ -78,7 +78,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     \param sysdef system definition
  */
 template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type params)>
+                                               const typename evaluator::param_type *d_params)>
 PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef)
     : PotentialExternal<evaluator>(sysdef), m_block_size(512)
     {
@@ -88,7 +88,7 @@ PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_pt
     \caram timestep Current timestep
 */
 template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                                               const typename evaluator::param_type params)>
+                                               const typename evaluator::param_type *d_params)>
 void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int timestep)
     {
     // start the profile
@@ -100,13 +100,14 @@ void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int times
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
     gpu_cpef(external_potential_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
                          pdata,
                          box,
-                         m_block_size), this->m_params);
+                         m_block_size), d_params.data);
 
 
     }

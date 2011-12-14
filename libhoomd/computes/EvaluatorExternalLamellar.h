@@ -77,12 +77,14 @@ class EvaluatorExternalLamellar
         typedef Scalar4 param_type;
 
         //! Constructs the constraint evaluator
-        /*! \param _P Position of the sphere
-            \param _r   Radius of the sphere
+        /*! \param X position of particle
+            \param Lx length of simulation box in x direction
+            \param Ly length of simulation box in y direction
+            \param Lz length of simulation box in z direction
+            \param params per-type parameters of external potential
         */
-        DEVICE EvaluatorExternalLamellar(Scalar3 X, unsigned int type, const Scalar Lx, const Scalar Ly, const Scalar Lz, const param_type& params)
+        DEVICE EvaluatorExternalLamellar(Scalar3 X, const Scalar Lx, const Scalar Ly, const Scalar Lz, const param_type& params)
             : m_pos(X),
-              m_type(type),
               m_Lx(Lx),
               m_Ly(Ly),
               m_Lz(Lz),
@@ -93,10 +95,10 @@ class EvaluatorExternalLamellar
             {
             }
 
-        //! Evaluate the closest point on the sphere
-        /*! \param U unconstrained point
-
-            \return Nearest point on the sphere
+        //! Evaluate the force, energy and virial
+        /*! \param F force vector
+            \param energy value of the energy
+            \param virial array of six scalars for the symmetrized virial tensor
         */
         DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
             {
@@ -111,10 +113,6 @@ class EvaluatorExternalLamellar
             // For this potential, since it uses scaled positions, the virial is always zero.
             for (unsigned int i = 0; i < 6; i++)
                 virial[i] = Scalar(0.0);
-
-            // Assuming that the potential is used on diblocks with two particle types.
-            if (m_type != 0 && m_type != 1)
-                return;
 
             // compute the vector pointing from P to V
             if (m_index == 0)
@@ -143,16 +141,9 @@ class EvaluatorExternalLamellar
             sechSq = (Scalar(1.0) - tanH*tanH);
 
             Scalar force = Scalar(0.0);
-            if (m_type == 0)
-                {
-                force = m_orderParameter*sechSq*clipParameter*sinf(arg)*q;
-                energy = m_orderParameter*tanH;
-                }
-            else if (m_type == 1)
-                {
-                force = - m_orderParameter*sechSq*clipParameter*sinf(arg)*q;
-                energy = - m_orderParameter*tanH;
-                }
+            force = m_orderParameter*sechSq*clipParameter*sinf(arg)*q;
+            energy = m_orderParameter*tanH;
+
             if (m_index == 0)
                 F.x = force;
             else if (m_index == 1)
@@ -164,7 +155,6 @@ class EvaluatorExternalLamellar
 
     protected:
         Scalar3 m_pos;
-        unsigned int m_type;
         Scalar m_Lx;
         Scalar m_Ly;
         Scalar m_Lz;
@@ -175,4 +165,5 @@ class EvaluatorExternalLamellar
    };
 
 
-#endif // __PAIR_EVALUATOR_LJ_H__
+#endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__
+

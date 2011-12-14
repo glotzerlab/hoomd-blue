@@ -64,14 +64,15 @@ class PotentialExternal: public ForceCompute
         //! Constructs the compute
         PotentialExternal<evaluator>(boost::shared_ptr<SystemDefinition> sysdef);
 
+        //! type of external potential parameters
         typedef typename evaluator::param_type param_type;
 
         //! Sets parameters of the evaluator
-        void setParams(param_type params);
+        void setParams(unsigned int type, param_type params);
 
     protected:
 
-        param_type m_params;
+        GPUArray<param_type> m_params;        //!< Array of per-type parameters
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -85,6 +86,8 @@ template<class evaluator>
 PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
+    GPUArray<param_type> params(m_pdata->getNTypes(), exec_conf);
+    m_params.swap(params);
     }
 
 /*! Computes the specified constraint forces
@@ -103,6 +106,8 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
     const BoxDim& box = m_pdata->getBox();
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
@@ -118,7 +123,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
     assert(h_force.data);
     assert(h_virial.data);
 
-    // for each of the particles in the group
+    // for each of the particles
     for (unsigned int idx = 0; idx < nparticles; idx++)
         {
         // get the current particle properties
@@ -128,7 +133,8 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
         Scalar energy;
         Scalar virial[6];
 
-        evaluator eval(X, type, Lx, Ly, Lz, m_params);
+        param_type params = h_params.data[type];
+        evaluator eval(X, Lx, Ly, Lz, params);
         eval.evalForceEnergyAndVirial(F, energy, virial);
 
         // apply the constraint force
@@ -146,10 +152,22 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
         m_prof->pop();
     }
 
+//! Set the parameters for this potential
+/*! \param type type for which to set parameters
+    \param params value of parameters
+*/
 template<class evaluator>
-void PotentialExternal<evaluator>::setParams(param_type params)
+void PotentialExternal<evaluator>::setParams(unsigned int type, param_type params)
     {
-    m_params = params;
+    if (type >= m_pdata->getNTypes())
+        {
+        std::cerr << std::endl << "***Error! Trying to set external potential params for a non existant type! "
+                  << type << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialExternal");
+        }
+
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
+    h_params.data[type] = params;
     }
 
 //! Export this external potential to python

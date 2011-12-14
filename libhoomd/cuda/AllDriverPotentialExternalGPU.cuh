@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander / Everyone is free to add additional potentials
 
 /*! \file AllDriverPotentialExternalGPU.cuh
-    \brief Declares driver functions for computing all types of pair forces on the GPU
+    \brief Declares driver functions for computing all types of external forces on the GPU
 */
 
 #ifndef __ALL_DRIVER_POTENTIAL_EXTERNAL_GPU_CUH__
@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Compute lamellar potential forces on the GPU with EvaluatorExternalLamellar
 cudaError_t gpu_compute_lamellar_forces(const external_potential_args_t& potential_args,
-                                      const float4 params);
+                                      const float4 *d_params);
 
 #endif
+

@@ -87,16 +87,16 @@ void lamellar_force_particle_test(lamellarforce_creator lamellar_creator, boost:
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
-    // thus, this case tests the ability of the force summer to sum more than one force on
+    // types of the particles : 0, 1, 0
 
     // periodic boundary conditions will be handeled in another test
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(5.0), 1, 0, 0, 0, 0, exec_conf));
+    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = Scalar(1.7); arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(2.0); arrays.y[1] = arrays.z[1] = 0.0;
-    arrays.x[2] = Scalar(3.5); arrays.y[2] = arrays.z[2] = 0.0;
+    arrays.x[0] = Scalar(1.7); arrays.y[0] = arrays.z[0] = 0.0; arrays.type[0] = 0;
+    arrays.x[1] = Scalar(2.0); arrays.y[1] = arrays.z[1] = 0.0; arrays.type[1] = 1;
+    arrays.x[2] = Scalar(3.5); arrays.y[2] = arrays.z[2] = 0.0; arrays.type[2] = 0;
     pdata_3->release();
     shared_ptr<PotentialExternalLamellar> fc_3 = lamellar_creator(sysdef_3);
 
@@ -105,7 +105,8 @@ void lamellar_force_particle_test(lamellarforce_creator lamellar_creator, boost:
     Scalar orderParameter = 0.5;
     Scalar interfaceWidth = 0.5;
     unsigned int periodicity = 2;
-    fc_3->setParams(make_scalar4(__int_as_scalar(index),orderParameter,interfaceWidth,__int_as_scalar(periodicity)));
+    fc_3->setParams(0,make_scalar4(__int_as_scalar(index),orderParameter,interfaceWidth,__int_as_scalar(periodicity)));
+    fc_3->setParams(1,make_scalar4(__int_as_scalar(index),-orderParameter,interfaceWidth,__int_as_scalar(periodicity)));
 
     // compute the forces
     fc_3->compute(0);
@@ -125,10 +126,10 @@ void lamellar_force_particle_test(lamellarforce_creator lamellar_creator, boost:
                         +h_virial_1.data[5*pitch+0], tol_small);
 
 
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].x, -0.189752, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].x, 0.189752, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, 0.024571, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, -0.024571, tol);
     MY_BOOST_CHECK_SMALL(h_virial_1.data[0*pitch+1]
                         +h_virial_1.data[3*pitch+1]
                         +h_virial_1.data[5*pitch+1], tol_small);

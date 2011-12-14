@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /*! \file PotentialExternalGPU.cuh
-    \brief Defines templated GPU kernel code for calculating the pair forces.
+    \brief Defines templated GPU kernel code for calculating the external forces.
 */
 
 #ifndef __POTENTIAL_EXTERNAL_GPU_CUH__
@@ -97,16 +97,16 @@ struct external_potential_args_t
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
-//! Kernel for calculating pair forces
-/*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
-    forces for each pair is handled via the template class \a evaluator.
+//! Kernel for calculating external forces
+/*! This kernel is called to calculate the external forces on all N particles. Actual evaluation of the potentials and
+    forces for each particle is handled via the template class \a evaluator.
 
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
-    \param params Parameters for the potential
+    \param params per-type array of parameters for the potential
 
 */
 template< class evaluator >
@@ -115,7 +115,7 @@ __global__ void gpu_compute_external_forces_kernel(float4 *d_force,
                                                const unsigned int virial_pitch,
                                                const gpu_pdata_arrays pdata,
                                                const gpu_boxsize box,
-                                               const typename evaluator::param_type params)
+                                               const typename evaluator::param_type *params)
     {
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -134,10 +134,9 @@ __global__ void gpu_compute_external_forces_kernel(float4 *d_force,
         virial[k] = 0.0f;
     float energy = 0.0f;
 
-    // access the per type pair parameters
     unsigned int typei = __float_as_int(posi.w);
     float3 Xi = make_float3(posi.x, posi.y, posi.z);
-    evaluator eval(Xi, typei, box.Lx, box.Ly, box.Lz, params);
+    evaluator eval(Xi, box.Lx, box.Ly, box.Lz, params[typei]);
 
     eval.evalForceEnergyAndVirial(force, energy, virial);
 
@@ -159,7 +158,7 @@ __global__ void gpu_compute_external_forces_kernel(float4 *d_force,
 */
 template< class evaluator >
 cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args,
-                                    const typename evaluator::param_type params)
+                                    const typename evaluator::param_type *d_params)
     {
     // setup the grid to run the kernel
     dim3 grid( external_potential_args.pdata.N / external_potential_args.block_size + 1, 1, 1);
@@ -173,7 +172,7 @@ cudaError_t gpu_compute_external_forces(const external_potential_args_t& externa
         return error;
 
     gpu_compute_external_forces_kernel<evaluator>
-           <<<grid, threads>>>(external_potential_args.d_force, external_potential_args.d_virial, external_potential_args.virial_pitch, external_potential_args.pdata, external_potential_args.box, params);
+           <<<grid, threads>>>(external_potential_args.d_force, external_potential_args.d_virial, external_potential_args.virial_pitch, external_potential_args.pdata, external_potential_args.box, d_params);
 
     return cudaSuccess;
     }
