@@ -122,6 +122,7 @@ void export_hoomd_math_functions()
     def("make_int2", &make_int2);
     def("make_int3", &make_int3);
     def("make_int4", &make_int4);
+    def("int_as_scalar", &__int_as_scalar);
     }
 
 #ifdef WIN32

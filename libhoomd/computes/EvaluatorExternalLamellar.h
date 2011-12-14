@@ -39,17 +39,13 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: EvaluatorConstraintSphere.h 3289 2010-08-03 18:09:19Z joaander $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes/EvaluatorConstraintSphere.h $
-// Maintainer: joaander
-
 #ifndef __EVALUATOR_EXTERNAL_LAMELLAR_H__
 #define __EVALUATOR_EXTERNAL_LAMELLAR_H__
 
 #include "HOOMDMath.h"
 
-/*! \file EvaluatorConstraintSphere.h
-    \brief Defines the constraint evaluator class for spheres
+/*! \file EvaluatorExternalLamellar.h
+    \brief Defines the external potential evaluator to induce a lamellar ordered phase
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -60,15 +56,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-//! RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-
 const Scalar pi=Scalar(3.141592653589793238462643383279502884197169399375105820974944);
+
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
-    EvaluatorConstraintSphere is a low level computation helper class to aid in evaluating particle constraints on a
-    sphere. Given a sphere at a given position and radius, it will find the nearest point on the sphere to a given
-    point.
+    EvaluatorExternalLamellar is an evaluator to induce a periodic modulation on the composition
+    fluctuations in a two particle system, e.g. to generate a lamellar phase in a system of diblock
+    copolymers.
+
+    The external potential \f$V(\vec{r})\f$ is implemented using the following formula:
+
+    \f{equation*}
+    V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(\frac{2 \pi p r_i}{L_i}\right)\right]
+    \f}
+
+    where \f$A\f$ is the ordering parameter, \f$p\f$ the periodicity and \f$w\f$ the interface width
+    (relative to the box length \f$L_i\f$ in the \$i\f$-direction). The modulation is one-dimensional,
+    i.e. it extends along the cartesian coordinate $i$.
 */
 class EvaluatorExternalLamellar
     {
@@ -161,7 +165,7 @@ class EvaluatorExternalLamellar
         Scalar m_Lz;                  //!< box length in z direction
         unsigned int m_index;         //!< cartesian index of direction along which the lammellae should be orientied
         Scalar m_orderParameter;      //!< ordering parameter
-        Scalar m_interfaceWidth;      //!< width of interface between lamellae
+        Scalar m_interfaceWidth;      //!< width of interface between lamellae (relative to box length)
         unsigned int m_periodicity;   //!< number of lamellae of each type
    };
 

@@ -344,4 +344,92 @@ class const_external_field_dipole(_force):
     def update_coeffs(self):
         pass
 
+## External %force field to induce a periodic concentration modulation in the system
+#
+# The command force.external_concentration_modulation specifies that an external %force should be
+# added to every particle in the simulation to induce a periodic modulation
+# in the particle concentration at a given point $\f \vec{r}\f$ (e.g. an ordered structure in
+# a diblock copolymer melt)
+#
+# The external potential \f$V(\vec{r})\f$ is implemented using the following formula:
+#
+#    \f{equation*}
+#    V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(\frac{2 \pi p r_i}{L_i}\right)\right]
+#    \f}
+#
+#    where \f$A\f$ is the ordering parameter, \f$p\f$ the periodicity and \f$w\f$ the interface width
+#    (relative to the box length \f$L_i\f$ in the \$i\f$-direction). The modulation is one-dimensional,
+#    i.e. it extends along the cartesian coordinate $i$.
+class concentration_modulation(_force):
+    ## Specify the external %force
+    #
+    # \b Examples:
+    # \code
+    # modulation = force.concentration_modulation()
+    # modulation.coeff.set('A', A=1.0, i=1, w=0.02, p=3)
+    # modulation.coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
+    # \endcode
+    def __init__(self):
+        util.print_status_line();
+
+        # initialize the base class
+        _force.__init__(self);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialExternalLamellar(globals.system_definition);
+        else:
+            self.cpp_force = hoomd.PotentialExternalLamellarGPU(globals.system_definition);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # get a list of types from the particle data
+        self.ntypes = globals.system_definition.getParticleData().getNTypes();
+        self.type_list = [];
+        self.values = {};
+        for i in xrange(0,self.ntypes):
+            typename = globals.system_definition.getParticleData().getNameByType(i);
+            self.type_list.append(typename);
+            self.values[typename] = {};
+
+
+    ## Set the parameters for a particle type
+    #
+    # \param type particle type
+    # \param A the ordering parameter
+    # \param i the direction normal to the concentration modulations (i=1..3)
+    # \param w the interface width of the concentration modulations
+    # \param p the number of periods of the potential (integer number)
+    #
+    # \b Examples:
+    # modulation.coeff_set('A', A=1.0, i=1, w=0.02, p=3)
+    # \endcode
+    def coeff_set(self, type, A, i, w, p):
+        # validate input
+        if not type in self.type_list:
+            print >> sys.stderr, "\n***Error! Invalid particle type\n";
+            raise RuntimeError('Error setting external force coefficients');
+
+        if not (1 <= i <= 3):
+            print >> sys.stderr, "\n***Error! Invalid spatial direction\n";
+            raise RuntimeError('Error setting direction of a force.concentration_modulation.')
+
+        self.values[type]['A'] = A;
+        self.values[type]['i'] = i;
+        self.values[type]['w'] = w;
+        self.values[type]['p'] = p;
+        print self.values, "\n";
+
+    def update_coeffs(self):
+        # first verify that we have coefficients for every type in the system
+        for type in self.type_list:
+            if len(self.values[type])==0:
+                print >> sys.stderr, "\n***Error! Parameters need to be specified for all particle types in the system";
+                raise RuntimeError('Error updating coefficients in force.concentration_modulation');
+
+        # now set the parameters
+        for i in xrange(0,self.ntypes):
+            typename = globals.system_definition.getParticleData().getNameByType(i);
+            params = hoomd.make_scalar4(hoomd.int_as_scalar(self.values[typename]['i']), self.values[typename]['A'],self.values[typename]['w'],hoomd.int_as_scalar(self.values[typename]['p']));
+            self.cpp_force.setParams(i,params)
 

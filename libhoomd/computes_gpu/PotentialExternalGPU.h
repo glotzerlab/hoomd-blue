@@ -39,16 +39,12 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: ConstraintSphere.h 3167 2010-06-16 18:39:08Z joaander $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes/ConstraintSphere.h $
-// Maintainer: joaander
-
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include "PotentialExternal.h"
 
-/*! \file ConstraintSphere.h
-    \brief Declares a class for computing sphere constraint forces
+/*! \file PotentialExternalGPU.h
+    \brief Declares a class for computing an external potential field on the GPU
 */
 
 #ifndef __POTENTIAL_EXTERNAL_GPU_H__
