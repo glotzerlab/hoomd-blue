@@ -1,0 +1,129 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
+contributors may be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+// $Id: ConstraintSphere.h 3167 2010-06-16 18:39:08Z joaander $
+// $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes/ConstraintSphere.h $
+// Maintainer: joaander
+
+#include <boost/shared_ptr.hpp>
+
+/*! \file ConstraintSphere.h
+    \brief Declares a class for computing sphere constraint forces
+*/
+
+#ifndef __FORCE_EXTERNAL_H__
+#define __FORCE_EXTERNAL_H__
+
+//! Applys a constraint force to keep a group of particles on a sphere
+/*! \ingroup computes
+*/
+template<class evaluator>
+class ForceExternal<evaluator> : public ForceExternal
+    {
+    public:
+        //! Constructs the compute
+        ForceExternal<evaluator>(boost::shared_ptr<SystemDefinition> sysdef, evaluator::param_type params);
+
+    protected:
+
+        evaluator::param_type m_params;
+
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+
+    };
+
+/*! Computes the specified constraint forces
+    \param timestep Current timestep
+*/
+template<class evaluator>
+void ForceExternal<evaluator>::computeForces(unsigned int timestep)
+    {
+
+    if (m_prof) m_prof->push("ForceExternal");
+
+    assert(m_pdata);
+    // access the particle data arrays
+    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+
+   // there are enough other checks on the input data: but it doesn't hurt to be safe
+    assert(h_force.data);
+    assert(h_virial.data);
+
+    // for each of the particles in the group
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        // get the current particle properties
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        Scalar3 X = make_scalar3(arrays.x[j], arrays.y[j], arrays.z[j]);
+        Scalar3 V = make_scalar3(arrays.vx[j], arrays.vy[j], arrays.vz[j]);
+        Scalar m = arrays.mass[j];
+
+        evaluator eval(X, m);
+        Evavalforce_and_energy
+        Scalar3 C = sphere.evalClosest(constraint.evalU());
+
+        // evaluate the constraint force
+        Scalar3 FC;
+        Scalar virial;
+        constraint.evalConstraintForce(FC, virial, C);
+
+        // apply the constraint force
+        h_force.data[j].x = FC.x;
+        h_force.data[j].y = FC.y;
+        h_force.data[j].z = FC.z;
+        h_virial.data[j]  = virial;
+        }
+
+    m_pdata->release();
+
+    if (m_prof)
+        m_prof->pop();
+    }
+
+#endif
