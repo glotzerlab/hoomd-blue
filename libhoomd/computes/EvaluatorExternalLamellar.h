@@ -56,23 +56,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
+//! the constant pi
 const Scalar pi=Scalar(3.141592653589793238462643383279502884197169399375105820974944);
 
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
-    EvaluatorExternalLamellar is an evaluator to induce a periodic modulation on the composition
-    fluctuations in a two particle system, e.g. to generate a lamellar phase in a system of diblock
-    copolymers.
+    EvaluatorExternalLamellar is an evaluator to induce a periodic modulation on the concentration profile
+    in the system, e.g. to generate a lamellar phase in a system of diblock copolymers.
 
-    The external potential \f$V(\vec{r})\f$ is implemented using the following formula:
+    The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
 
-    \f{equation*}
+    \f[
     V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(\frac{2 \pi p r_i}{L_i}\right)\right]
-    \f}
+    \f]
 
     where \f$A\f$ is the ordering parameter, \f$p\f$ the periodicity and \f$w\f$ the interface width
-    (relative to the box length \f$L_i\f$ in the \$i\f$-direction). The modulation is one-dimensional,
-    i.e. it extends along the cartesian coordinate $i$.
+    (relative to the box length \f$L_i\f$ in the \f$i\f$-direction). The modulation is one-dimensional,
+    i.e. it extends along the cartesian coordinate \f$i\f$.
 */
 class EvaluatorExternalLamellar
     {

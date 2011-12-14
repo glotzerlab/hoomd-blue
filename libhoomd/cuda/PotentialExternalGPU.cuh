@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_EXTERNAL_GPU_CUH__
 #define __POTENTIAL_EXTERNAL_GPU_CUH__
 
-//! Wrapps arguments to gpu_cgpf
+//! Wraps arguments to gpu_cpef
 struct external_potential_args_t
     {
     //! Construct a external_potential_args_t

@@ -348,18 +348,16 @@ class const_external_field_dipole(_force):
 #
 # The command force.external_concentration_modulation specifies that an external %force should be
 # added to every particle in the simulation to induce a periodic modulation
-# in the particle concentration at a given point $\f \vec{r}\f$ (e.g. an ordered structure in
+# in the particle concentration at a given point \f$ \vec{r} \f$ (e.g. an ordered structure in
 # a diblock copolymer melt)
 #
-# The external potential \f$V(\vec{r})\f$ is implemented using the following formula:
+# The external potential \f$ V(\vec{r}) \f$ is implemented using the following formula:
 #
-#    \f{equation*}
-#    V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(\frac{2 \pi p r_i}{L_i}\right)\right]
-#    \f}
+# \f[ V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(\frac{2 \pi p r_i}{L_i}\right)\right] \f]
 #
-#    where \f$A\f$ is the ordering parameter, \f$p\f$ the periodicity and \f$w\f$ the interface width
-#    (relative to the box length \f$L_i\f$ in the \$i\f$-direction). The modulation is one-dimensional,
-#    i.e. it extends along the cartesian coordinate $i$.
+# where \f$ A \f$ is the ordering parameter, \f$p\f$ the periodicity and \f$w\f$ the interface width
+# (relative to the box length \f$ L_i \f$ in the \f$ i \f$ -direction). The modulation is one-dimensional,
+# i.e. it extends along the cartesian coordinate \f$ i \f$ .
 class concentration_modulation(_force):
     ## Specify the external %force
     #
@@ -402,6 +400,7 @@ class concentration_modulation(_force):
     # \param p the number of periods of the potential (integer number)
     #
     # \b Examples:
+    # \code
     # modulation.coeff_set('A', A=1.0, i=1, w=0.02, p=3)
     # \endcode
     def coeff_set(self, type, A, i, w, p):
