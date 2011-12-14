@@ -74,6 +74,7 @@ class EvaluatorExternalLamellar
     {
     public:
 
+        //! type of parameters this external potential accepts
         typedef Scalar4 param_type;
 
         //! Constructs the constraint evaluator
@@ -154,14 +155,14 @@ class EvaluatorExternalLamellar
             }
 
     protected:
-        Scalar3 m_pos;
-        Scalar m_Lx;
-        Scalar m_Ly;
-        Scalar m_Lz;
-        unsigned int m_index;
-        Scalar m_orderParameter;
-        Scalar m_interfaceWidth;
-        unsigned int m_periodicity;
+        Scalar3 m_pos;                //!< particle position
+        Scalar m_Lx;                  //!< box length in x direction
+        Scalar m_Ly;                  //!< box length in y direction
+        Scalar m_Lz;                  //!< box length in z direction
+        unsigned int m_index;         //!< cartesian index of direction along which the lammellae should be orientied
+        Scalar m_orderParameter;      //!< ordering parameter
+        Scalar m_interfaceWidth;      //!< width of interface between lamellae
+        unsigned int m_periodicity;   //!< number of lamellae of each type
    };
 
 

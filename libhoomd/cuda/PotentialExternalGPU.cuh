@@ -152,7 +152,7 @@ __global__ void gpu_compute_external_forces_kernel(float4 *d_force,
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param external_potential_args Other arugments to pass onto the kernel
-    \param params Parameters for the potential
+    \param d_params Parameters for the potential
 
     This is just a driver function for gpu_compute_external_forces(), see it for details.
 */

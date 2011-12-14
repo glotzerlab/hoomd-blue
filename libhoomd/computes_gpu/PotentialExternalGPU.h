@@ -85,7 +85,7 @@ PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_pt
     }
 
 /*! Computes the specified constraint forces
-    \caram timestep Current timestep
+    \param timestep Current timestep
 */
 template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
                                                const typename evaluator::param_type *d_params)>
