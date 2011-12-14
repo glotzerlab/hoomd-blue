@@ -417,7 +417,6 @@ class concentration_modulation(_force):
         self.values[type]['i'] = i;
         self.values[type]['w'] = w;
         self.values[type]['p'] = p;
-        print self.values, "\n";
 
     def update_coeffs(self):
         # first verify that we have coefficients for every type in the system
