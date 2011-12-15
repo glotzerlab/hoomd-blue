@@ -123,10 +123,7 @@ class TwoStepNPH : public IntegrationMethodTwoStep
             {
             PDataFlags flags;
 
-            if (m_mode == cubic)
-                flags[pdata_flag::isotropic_virial] = 1;
-            else if (m_mode == orthorhombic || m_mode == tetragonal)
-                flags[pdata_flag::pressure_tensor] = 1;
+            flags[pdata_flag::pressure_tensor] = 1;
 
             return flags;
             }
