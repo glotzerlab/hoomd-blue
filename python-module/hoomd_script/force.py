@@ -428,6 +428,6 @@ class concentration_modulation(_force):
         # now set the parameters
         for i in xrange(0,self.ntypes):
             typename = globals.system_definition.getParticleData().getNameByType(i);
-            params = hoomd.make_scalar4(hoomd.int_as_scalar(self.values[typename]['i']), self.values[typename]['A'],self.values[typename]['w'],hoomd.int_as_scalar(self.values[typename]['p']));
+            params = hoomd.make_scalar4(hoomd.int_as_scalar(self.values[typename]['i']-1), self.values[typename]['A'],self.values[typename]['w'],hoomd.int_as_scalar(self.values[typename]['p']));
             self.cpp_force.setParams(i,params)
 
