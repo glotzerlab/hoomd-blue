@@ -786,7 +786,7 @@ class bdnvt(_integration_method):
 # integrate.nve_rigid performs constant volume, constant energy simulations on rigid bodies
 # The integration scheme is implemented from \cite Miller2002 .
 #
-# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Please cite it
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
 # if you utilize rigid body functionality in your work.
 #
 # integrate.nve_rigid \b only operates on particles that belong to rigid bodies.
@@ -822,7 +822,7 @@ class nve_rigid(_integration_method):
 # integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
 # The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
 #
-# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Please cite it
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
 # if you utilize rigid body functionality in your work.
 #
 # integrate.nvt_rigid \b only operates on particles that belong to rigid bodies.
@@ -896,7 +896,7 @@ class nvt_rigid(_integration_method):
 # NVE simulation with added damping and stochastic heat bath forces. The NVE integration scheme
 # is implemented from ref \cite Miller2002.
 #
-# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Please cite it
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
 # if you utilize rigid body functionality in your work.
 #
 # The total added %force \f$ \vec{F}\f$ <strong>applied to each constiuent particle</strong> is
@@ -1008,7 +1008,7 @@ class bdnvt_rigid(_integration_method):
 # integrate.npt_rigid performs constant pressure, constant temperature simulations of the rigid bodies in the system.
 # The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
 #
-# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Please cite it
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
 # if you utilize rigid body functionality in your work.
 #
 # integrate.npt_rigid \b only operates on particles that belong to rigid bodies.

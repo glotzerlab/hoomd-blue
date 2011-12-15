@@ -163,6 +163,9 @@ class harmonic(force._force):
 # of particles in the simulation, but in addition in adds the repulsive part of a CGCMM pair potential
 # between the first and the third particle.
 #
+# Reference \cite Levine2011 describes the CGCMM implementation details in HOOMD-blue. Cite it
+# if you utilize the CGCMM potential in your work.
+#
 # The total potential is thus,
 # \f[ V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2 \f]
 # where \f$ \theta \f$ is the current angle between the three particles

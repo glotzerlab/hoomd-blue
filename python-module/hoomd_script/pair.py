@@ -1315,6 +1315,9 @@ class ewald(pair):
 # version is used in the CMM coarse grain model and uses a combination of Lennard-Jones
 # potentials with different exponent pairs between different atom pairs.
 #
+# Reference \cite Levine2011 describes the CGCMM implementation details in HOOMD-blue. Cite it
+# if you utilize the CGCMM potential in your work.
+#
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
 # \vec{F}  = & -\nabla V_{\mathrm{LJ}}(r) & r < r_{\mathrm{cut}} \\
@@ -1671,7 +1674,7 @@ class morse(pair):
 # The command pair.dpd specifies that a DPD %pair %force and thermostat should be added to every
 # non-bonded particle %pair in the simulation.
 #
-# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Please cite it
+# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Cite it
 # if you utilize the DPD functionality in your work.
 #
 # \f{eqnarray*}  
@@ -1974,7 +1977,7 @@ class eam(force._force):
 # The command pair.dpdlj specifies that a DPD thermostat and a Lennard Jones (LJ) %pair %force should be added to every
 # non-bonded particle %pair in the simulation.
 #
-# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Please cite it
+# Reference \cite Phillips2011 describes the DPD implementation details in HOOMD-blue. Cite it
 # if you utilize the DPD functionality in your work.
 #
 # \f{eqnarray*}  

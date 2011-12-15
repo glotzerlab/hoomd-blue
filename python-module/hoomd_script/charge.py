@@ -84,6 +84,9 @@ pppm_used = False;
 
 ## Long-range electrostatics computed with the PPPM method
 #
+# Reference \cite LeBard2012 describes the PPPM implementation details in HOOMD-blue. Cite it
+# if you utilize the PPPM functionality in your work.
+#
 # The command charge.pppm specifies that the \b both the long-ranged \b and short range parts of the electrostatic
 # force is computed between all charged particles in the simulation. In other words, charge.pppm() initializes and
 # sets all parameters for its own pair.ewald, so you do not need to specify an additional one.
