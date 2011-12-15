@@ -1,6 +1,8 @@
 #update our codebase
 cd  ../
-git pull
+git fetch
+git checkout master
+git pull --ff-only
 
 #check  the previous version built
 export atrev="$(cat ../deb_old_version)"

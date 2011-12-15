@@ -5,7 +5,9 @@ cd ..
 cd ..
 
 # update to the latest rev
-git pull origin master
+git fetch
+git checkout master
+git pull --ff-only
 
 new_rev=`git describe`
 

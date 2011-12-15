@@ -35,8 +35,9 @@ done
 echo "$0 running at "`date`
 
 cd $HOME/hoomd-blue
-git pull --ff-only
+git fetch
 git checkout master
+git pull --ff-only
 cd packaging
 
 # determine version and revision
