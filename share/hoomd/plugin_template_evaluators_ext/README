@@ -1,0 +1,24 @@
+See plugin_template_cpp for basic information on compiling and using plugins.
+What follows here is documentation specific to creating pair/bond
+potential plugins.
+
+
+To create a plugin that actually does something useful
+ - copy plugin_template_evaluators_ext to a new location
+ - change the PROJECT() line in CMakeLists.txt to the name of your new plugin. This is the name that it will install to
+ - change the BOOST_PYTHON_MODULE line in cppmodule/module.cc to include the name of your new plugin prefixed with an
+   underscore.
+ - Modify the source in cppmodule and pymodule. The existing files in those directories serve as examples and include
+   many of the details in comments. The LJ pair potential is included as an example.
+ - Specifically, adding a pair potential requires the following steps:
+   * in cppmodule
+     * Write an Evaluator that evaluates the potential. See EvaluatorPairLJ2.h for an example and full documentation.
+     * Add a gpu_compute_???_forces funtion to AllDriverPotentialPairExtGPU.cu (see comments in file for details)
+     * Add a declaration of gpu_compute_???_forces in AllDriverPotentialPairExtGPU.cuh
+     * Add #include "EvaluatorPair???.h" in AllPairExtPotentials where indicated.
+     * Add the appropriate typedefs in AllPairExtPotentials where indicated (see existing potentials for an example)
+     * Add the appropriate export_PotentialPair calls in module.cc (see existing lines for an example)
+    * in pymodule
+     * add a new class in pair.py that initializes the pair potential defined in module.cc and processes the
+       user specified coefficients into the proper form. See pair.lj2 in pair.py for an example.
+- Adding a bond potential is achieved along the same lines, by replacing the word pair with the word bond. See the EvaluatorBondHarmonicDPD and bond.harmonic_dpd for an example.
