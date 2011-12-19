@@ -107,9 +107,9 @@ class harmonic(force._force):
         
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.HarmonicBondForceCompute(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialBondHarmonic(globals.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.HarmonicBondForceComputeGPU(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialBondHarmonicGPU(globals.system_definition,self.name);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -140,7 +140,7 @@ class harmonic(force._force):
         util.print_status_line();
         
         # set the parameters for the appropriate type
-        self.cpp_force.setParams(globals.system_definition.getBondData().getTypeByName(bond_type), k, r0);
+        self.cpp_force.setParams(globals.system_definition.getBondData().getTypeByName(bond_type), hoomd.make_scalar2(k, r0));
         
         # track which particle types we have set
         if not bond_type in self.bond_types_set:
@@ -156,7 +156,7 @@ class harmonic(force._force):
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.bond_types_set:
-                print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in bond.harmonic\n";
+                print >> sys.stderr, "\n***Error:", cur_type, "coefficients missing in bond.harmonic\n";
                 raise RuntimeError("Error updating coefficients");
 
 
@@ -205,9 +205,9 @@ class fene(force._force):
         
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.FENEBondForceCompute(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialBondFENE(globals.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.FENEBondForceComputeGPU(globals.system_definition,self.name);
+            self.cpp_force = hoomd.PotentialBondFENEGPU(globals.system_definition,self.name);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.fene'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
@@ -238,8 +238,10 @@ class fene(force._force):
     # before the run() can be started.
     def set_coeff(self, bond_type, k, r0, sigma, epsilon):
         util.print_status_line();
-        
-        self.cpp_force.setParams(globals.system_definition.getBondData().getTypeByName(bond_type), k, r0, sigma, epsilon);
+
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = 4.0 * epsilon * math.pow(sigma, 6.0);
+        self.cpp_force.setParams(globals.system_definition.getBondData().getTypeByName(bond_type), hoomd.make_scalar4(k, r0, lj1, lj2));
         # track which particle types we have set
         if not bond_type in self.bond_types_set:
             self.bond_types_set.append(bond_type);

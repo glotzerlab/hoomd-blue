@@ -59,11 +59,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
-#include "HarmonicBondForceCompute.h"
+#include "AllBondPotentials.h"
 #include "ConstForceCompute.h"
-#ifdef ENABLE_CUDA
-#include "HarmonicBondForceComputeGPU.h"
-#endif
 
 #include "Initializers.h"
 
@@ -71,7 +68,8 @@ using namespace std;
 using namespace boost;
 
 /*! \file harmonic_bond_force_test.cc
-    \brief Implements unit tests for BondForceCompute and child classes
+    \brief Implements unit tests for PotentialBondHarmonic and
+           PotentialBondHarmonicGPU
     \ingroup unit_tests
 */
 
@@ -80,7 +78,7 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<HarmonicBondForceCompute>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
+typedef boost::function<shared_ptr<PotentialBondHarmonic>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -97,8 +95,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     pdata_2->release();
     
     // create the bond force compute to check
-    shared_ptr<HarmonicBondForceCompute> fc_2 = bf_creator(sysdef_2);
-    fc_2->setParams(0, 1.5, 0.75);
+    shared_ptr<PotentialBondHarmonic> fc_2 = bf_creator(sysdef_2);
+    fc_2->setParams(0, make_scalar2(1.5, 0.75));
     
     // compute the force and check the results
     fc_2->compute(0);
@@ -176,10 +174,10 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, 0.225, tol);
     }
 
-    // check r=0 behavior
+    // check r=r_0 behavior
     arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(0.0);
+    arrays.x[1] = Scalar(0.75);
     arrays.y[1] = arrays.z[1] = 0.0;
     pdata_2->release();
     
@@ -213,10 +211,10 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
     pdata_6->release();
     
-    shared_ptr<HarmonicBondForceCompute> fc_6 = bf_creator(sysdef_6);
-    fc_6->setParams(0, 1.5, 0.75);
-    fc_6->setParams(1, 2.0*1.5, 0.75);
-    fc_6->setParams(2, 1.5, 0.5);
+    shared_ptr<PotentialBondHarmonic> fc_6 = bf_creator(sysdef_6);
+    fc_6->setParams(0, make_scalar2( 1.5, 0.75));
+    fc_6->setParams(1, make_scalar2(2.0*1.5, 0.75));
+    fc_6->setParams(2, make_scalar2(1.5, 0.5));
     
     sysdef_6->getBondData()->addBond(Bond(0, 0,1));
     sysdef_6->getBondData()->addBond(Bond(1, 2,3));
@@ -304,8 +302,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     pdata_4->release();
     
     // build the bond force compute and try it out
-    shared_ptr<HarmonicBondForceCompute> fc_4 = bf_creator(sysdef_4);
-    fc_4->setParams(0, 1.5, 1.75);
+    shared_ptr<PotentialBondHarmonic> fc_4 = bf_creator(sysdef_4);
+    fc_4->setParams(0, make_scalar2(1.5, 1.75));
     // only add bonds on the left, top, and bottom of the square
     sysdef_4->getBondData()->addBond(Bond(0, 2,3));
     sysdef_4->getBondData()->addBond(Bond(0, 2,0));
@@ -356,7 +354,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
     }
 
-//! Compares the output of two HarmonicBondForceComputes
+//! Compares the output of two PotentialBondHarmonics
 void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
@@ -367,10 +365,10 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    shared_ptr<HarmonicBondForceCompute> fc1 = bf_creator1(sysdef);
-    shared_ptr<HarmonicBondForceCompute> fc2 = bf_creator2(sysdef);
-    fc1->setParams(0, Scalar(300.0), Scalar(1.6));
-    fc2->setParams(0, Scalar(300.0), Scalar(1.6));
+    shared_ptr<PotentialBondHarmonic> fc1 = bf_creator1(sysdef);
+    shared_ptr<PotentialBondHarmonic> fc2 = bf_creator2(sysdef);
+    fc1->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
+    fc2->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
     
     // add bonds
     for (unsigned int i = 0; i < N-1; i++)
@@ -491,22 +489,22 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     }
     }
 
-//! HarmonicBondForceCompute creator for bond_force_basic_tests()
-shared_ptr<HarmonicBondForceCompute> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
+//! PotentialBondHarmonic creator for bond_force_basic_tests()
+shared_ptr<PotentialBondHarmonic> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceCompute(sysdef));
+    return shared_ptr<PotentialBondHarmonic>(new PotentialBondHarmonic(sysdef));
     }
 
 #ifdef ENABLE_CUDA
-//! BondForceCompute creator for bond_force_basic_tests()
-shared_ptr<HarmonicBondForceCompute> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
+//! PotentialBondHarmonic creator for bond_force_basic_tests()
+shared_ptr<PotentialBondHarmonic> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceComputeGPU(sysdef));
+    return shared_ptr<PotentialBondHarmonic>(new PotentialBondHarmonicGPU(sysdef));
     }
 #endif
 
 //! boost test case for bond forces on the CPU
-BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
+BOOST_AUTO_TEST_CASE( PotentialBondHarmonic_basic )
     {
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
     bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -514,14 +512,14 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
 
 #ifdef ENABLE_CUDA
 //! boost test case for bond forces on the GPU
-BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_basic )
+BOOST_AUTO_TEST_CASE( PotentialBondHarmonicGPU_basic )
     {
     bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
     bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
-BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_compare )
+BOOST_AUTO_TEST_CASE( PotentialBondHarmonicGPU_compare )
     {
     bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
