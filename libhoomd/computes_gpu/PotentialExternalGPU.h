@@ -61,6 +61,16 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
         //! Constructs the compute
         PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef);
 
+        //! Set the block size to execute on the GPU
+        /*! \param block_size Size of the block to run on the device
+            Performance of the code may be dependant on the block size run
+            on the GPU. \a block_size should be set to be a multiple of 32.
+        */
+        void setBlockSize(int block_size)
+            {
+            m_block_size = block_size;
+            }
+
     protected:
 
         //! Actually compute the forces
@@ -118,6 +128,7 @@ void export_PotentialExternalGPU(const std::string& name)
     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition> >())
                   .def("setParams", &T::setParams)
+                  .def("setBlockSize", &T::setBlockSize)
                   ;
     }
 
