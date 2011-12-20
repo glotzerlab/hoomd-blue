@@ -48,7 +48,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
 #include "IntegrationMethodTwoStep.h"
 #include "Variant.h"
@@ -123,10 +123,7 @@ class TwoStepNPH : public IntegrationMethodTwoStep
             {
             PDataFlags flags;
 
-            if (m_mode == cubic)
-                flags[pdata_flag::isotropic_virial] = 1;
-            else if (m_mode == orthorhombic || m_mode == tetragonal)
-                flags[pdata_flag::pressure_tensor] = 1;
+            flags[pdata_flag::pressure_tensor] = 1;
 
             return flags;
             }
@@ -161,12 +158,30 @@ class TwoStepNPH : public IntegrationMethodTwoStep
             m_P = P;
             }
 
+        //! Set the initial state of the internal state variables
+        /*! \param etax momentum conjugate to box dimension in x direction
+            \param etay momentum conjugate to box dimension in y direction
+            \param etaz momentum conjugate to box dimension in x direction
+         */
+        void setEta(Scalar etax, Scalar etay, Scalar etaz)
+            {
+            if (m_state_initialized)
+                {
+                cerr << endl << "***Error! Trying to set eta after integrator has already been initialized! " <<  endl << endl;
+                throw runtime_error("Error setting params in TwoStepNPH");
+                }
+            IntegratorVariables v = getIntegratorVariables();
+            v.variable[0] = etax;
+            v.variable[1] = etay;
+            v.variable[2] = etaz;
+            setIntegratorVariables(v);
+            }
+
     protected:
         boost::shared_ptr<ComputeThermo> m_thermo;  //!< ComputeThermo for all particles
         Scalar m_W;                                 //!< the generalized mass of the barostat
         boost::shared_ptr<Variant> m_P;             //!< isotropic Pressure set point
         std::string m_log_name;                     //!< Name of the barostat quantity that we log
-        Scalar m_volume;                            //!< current volume
         integrationMode m_mode;                     //!< integration mode
         Scalar3 m_curr_P_diag;                      //!< diagonal elements of the current pressure tensor
         bool m_state_initialized;                   //!< is the integrator initialized?
@@ -176,3 +191,4 @@ class TwoStepNPH : public IntegrationMethodTwoStep
 void export_TwoStepNPH();
 
 #endif // #ifndef __TWO_STEP_NPH_H__
+
