@@ -83,7 +83,8 @@ using namespace std;
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
-      m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true)
+      m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
+      m_dist_check(true)
     {
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)
@@ -735,7 +736,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     // we are dangerous if m_every is greater than 1 and this is the first check after the
     // last build
     bool dangerous = false;
-    if (m_every > 1 && timestep == (m_last_updated_tstep + m_every))
+    if (m_dist_check && (m_every > 1 && timestep == (m_last_updated_tstep + m_every)))
         dangerous = true;
         
     // temporary storage for return result
@@ -757,10 +758,16 @@ bool NeighborList::needsUpdating(unsigned int timestep)
         {
         // not a forced update, perform the distance check to determine
         // if the list needs to be updated - no dist check needed if r_buff is tiny
-        if (m_r_buff < 1e-6)
+        // it also needs to be updated if m_every is 0, or the check period is hit when distance checks are disabled
+        if (m_r_buff < 1e-6 ||
+            (!m_dist_check && (m_every == 0 || (m_every > 1 && timestep == (m_last_updated_tstep + m_every)))))
+            {
             result = true;
+            }
         else
+            {
             result = distanceCheck();
+            }
         
         if (result)
             {
