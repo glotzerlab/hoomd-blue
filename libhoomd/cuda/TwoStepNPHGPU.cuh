@@ -82,3 +82,4 @@ cudaError_t gpu_nph_step_two(const gpu_pdata_arrays &pdata,
                              float deltaT);
 
 #endif
+

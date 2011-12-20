@@ -88,3 +88,4 @@ class TwoStepNPHGPU : public TwoStepNPH
 void export_TwoStepNPHGPU();
 
 #endif // #ifndef __TWO_STEP_NPH_GPU_H__
+

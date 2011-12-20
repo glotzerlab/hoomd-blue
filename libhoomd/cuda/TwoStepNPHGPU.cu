@@ -300,3 +300,4 @@ cudaError_t gpu_nph_step_two(const gpu_pdata_arrays &pdata,
     }
 
 // vim:syntax=cpp
+
