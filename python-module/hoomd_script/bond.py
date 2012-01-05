@@ -72,6 +72,7 @@ import sys;
 # specify a bond force (i.e. bond.harmonic), are forces actually calculated between the 
 # listed particles.
 
+## Defines %bond coefficients
 # \brief Defines bond potential coefficients
 # The coefficients for all %bond force are specified using this class. Coefficients are
 # specified per bond type.
@@ -122,7 +123,7 @@ class coeff:
 
     ## Sets parameters for one bond type
     # \param type Type of bond
-    # \param coeff Named coefficients (see below for examples)
+    # \param coeffs Named coefficients (see below for examples)
     #
     # Calling set() results in one or more parameters being set for a bond type. Types are identified
     # by name, and parameters are also added by name. Which parameters you need to specify depends on the %bond
@@ -139,9 +140,9 @@ class coeff:
     #
     # \b Examples:
     # \code
-    # coeff.set('polymer', k=330.0, r0=0.84)
-    # coeff.set('backbone', k=1000.0, r0=1.0)
-    # coeff.set(['bondA','bondB'], k=100, r0=0.0)
+    # my_bond_force.bond_coeff.set('polymer', k=330.0, r0=0.84)
+    # my_bond_force.bond_coeff.set('backbone', k=1000.0, r0=1.0)
+    # my_bond_force.bond_coeff.set(['bondA','bondB'], k=100, r0=0.0)
     # \endcode
     #
     # \note Single parameters can be updated. If both k and r0 have already been set for a particle type,
@@ -294,10 +295,6 @@ class _bond(force._force):
     # \internal
     # \brief Stores the C++ side ForceCompute managed by this class
 
-    ## \var force_name
-    # \internal
-    # \brief The Force's name as it is assigned to the System
-
     ## \internal
     # \brief Checks that proper initialization has completed
     def check_initialization(self):
@@ -397,7 +394,7 @@ class _bond(force._force):
         self.enabled = True;
 
 
-### Harmonic Harmonic %bond force
+## Harmonic %bond force
 #
 # The command bond.harmonic specifies a %harmonic potential energy between every bonded %pair of particles
 # in the simulation. 
@@ -409,10 +406,9 @@ class _bond(force._force):
 # - \f$ r_0 \f$ - %bond rest length (in distance units)
 #
 # Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of %bond in the simulation using
-# bond_coeff.set().
+# \link hoomd_script.bond.coeff.set bond_coeff.set()\endlink
 # \note For compatibility with older versions of HOOMD-blue, the syntax set_coeff() is also supported.
 #
-# \note Specifying the bond.harmonic command when no bonds are defined in the simulation results in an error.
 class harmonic(_bond):
     ## Specify the %harmonic %bond %force
     #
@@ -446,10 +442,9 @@ class harmonic(_bond):
         # setup the coefficient options
         self.required_coeffs = ['k','r0'];
 
-    ## Set parameters for %harmonic %bond %force (deprecated)
+    ## Set parameters for %harmonic %bond %force  (\b deprecated)
     # \param type bond type
-    # \param k %force constant (in units of energy/distance^2)
-    # \param r0 rest length (in distance units)
+    # \param coeffs named bond coefficients
     def set_coeff(self, type, **coeffs):
         print "*** Warning: Syntax bond.harmonic.set_coeff deprecated."
         self.bond_coeff.set(type,**coeffs)
@@ -481,10 +476,9 @@ class harmonic(_bond):
 # - \f$ \sigma \f$ - repulsive %force interaction distance (in distance units)
 #
 # Coefficients \f$ k \f$, \f$ r_0 \f$, \f$ \varepsilon \f$ and \f$ \sigma \f$  must be set for 
-# each type of %bond in the simulation using bond_coeff.set().
+# each type of %bond in the simulation using
+# \link bond.coeff.set bond_coeff.set()\endlink.
 # \note For compatibility with older versions of HOOMD-blue, the syntax set_coeff() is also supported.
-#
-# \note Specifying the bond.fene command when no bonds are defined in the simulation results in an error.
 class fene(_bond):
     ## Specify the %fene %bond %force
     #
@@ -493,6 +487,8 @@ class fene(_bond):
     # \b Example:
     # \code
     # fene = bond.fene()
+    # fene.bond_coeff.set('polymer', k=30.0, r0=1.5, sigma=1.0, epsilon= 2.0)
+    # fene.bond_coeff.set('backbone', k=100.0, r0=1.0, sigma=1.0, epsilon= 2.0)
     # \endcode
     def __init__(self, name=None):
         util.print_status_line();
@@ -517,13 +513,9 @@ class fene(_bond):
         # setup the coefficient options
         self.required_coeffs = ['k','r0','epsilon','sigma'];
 
-    ## Set parameters for %fene %bond %force (deprecated)
-    #
+    ## Set parameters for %fene %bond %force (\b deprecated)
     # \param type bond type
-    # \param k attractive %force strength (in units of energy/distance^2)
-    # \param r0 size parameter (in distance units)
-    # \param epsilon pulsive %force strength (in energy units)
-    # \param sigma repulsive %force interaction distance (in distance units)
+    # \param coeffs named bond coefficients
     def set_coeff(self, type, **coeffs):
         print "*** Warning: Syntax bond.fene.set_coeff deprecated."
         self.bond_coeff.set(type, **coeffs)
