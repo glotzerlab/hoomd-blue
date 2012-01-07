@@ -182,7 +182,9 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
     
     assert(m_pdata);
     // access the particle data arrays
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
@@ -191,10 +193,9 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
-    assert(arrays.x);
-    assert(arrays.y);
-    assert(arrays.z);
-    assert(arrays.diameter);
+    assert(h_pos.data);
+    assert(h_diameter.data);
+    assert(h_rtag.data);
     
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -224,18 +225,18 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
        
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = arrays.rtag[bond.a];
-        unsigned int idx_b = arrays.rtag[bond.b];
+        unsigned int idx_a = h_rtag.data[bond.a];
+        unsigned int idx_b = h_rtag.data[bond.b];
         assert(idx_a < m_pdata->getN());
         assert(idx_b < m_pdata->getN());
         
         // calculate d\vec{r}
         // (MEM TRANSFER: 6 Scalars / FLOPS: 3)
-        Scalar dx = arrays.x[idx_b] - arrays.x[idx_a];
-        Scalar dy = arrays.y[idx_b] - arrays.y[idx_a];
-        Scalar dz = arrays.z[idx_b] - arrays.z[idx_a];
-        Scalar diameter_a = arrays.diameter[idx_a];
-        Scalar diameter_b = arrays.diameter[idx_b];
+        Scalar dx = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+        Scalar dy = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+        Scalar dz = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        Scalar diameter_a = h_diameter.data[idx_a];
+        Scalar diameter_b = h_diameter.data[idx_b];
         
         // if the vector crosses the box, pull it back
         // (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done))
@@ -336,8 +337,6 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         h_virial.data[5*virial_pitch+idx_a] += bond_virialzz;
         }
         
-    m_pdata->release();
-    
     if (m_prof) m_prof->pop(m_bond_data->getNumBonds() * (3+9+5+13+2+16), 
                             m_pdata->getN() * 5 * sizeof(Scalar) + m_bond_data->getNumBonds() * 
                             ( (4) * sizeof(unsigned int) + (6+2+20) ) );

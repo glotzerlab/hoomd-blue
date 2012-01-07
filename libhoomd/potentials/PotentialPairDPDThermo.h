@@ -178,7 +178,8 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<unsigned int> h_nlist(this->m_nlist->getNListArray(), access_location::host, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
 
-    const ParticleDataArraysConst& arrays = this->m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(this->m_pdata->getVelocities(), access_location::host, access_mode::read);
  
     //force arrays
     ArrayHandle<Scalar4> h_force(this->m_force,access_location::host, access_mode::overwrite);
@@ -202,23 +203,23 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     #endif
 
     // need to start from a zero force, energy and virial
-    memset(&(this->m_fdata_partial[this->m_index_thread_partial(0,tid)]) , 0, sizeof(Scalar4)*arrays.nparticles);
-    memset(&(this->m_virial_partial[6*this->m_index_thread_partial(0,tid)]) , 0, 6*sizeof(Scalar)*arrays.nparticles);
+    memset(&(this->m_fdata_partial[this->m_index_thread_partial(0,tid)]) , 0, sizeof(Scalar4)*this->m_pdata->getN());
+    memset(&(this->m_virial_partial[6*this->m_index_thread_partial(0,tid)]) , 0, 6*sizeof(Scalar)*this->m_pdata->getN());
     
     // for each particle
 #pragma omp for schedule(guided)
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)this->m_pdata->getN(); i++)
         {
         // access the particle's position, velocity, and type (MEM TRANSFER: 7 scalars)
-        Scalar xi = arrays.x[i];
-        Scalar yi = arrays.y[i];
-        Scalar zi = arrays.z[i];
+        Scalar xi = h_pos.data[i].x;
+        Scalar yi = h_pos.data[i].y;
+        Scalar zi = h_pos.data[i].z;
 
-        Scalar vxi = arrays.vx[i];
-        Scalar vyi = arrays.vy[i];
-        Scalar vzi = arrays.vz[i];
+        Scalar vxi = h_vel.data[i].x;
+        Scalar vyi = h_vel.data[i].y;
+        Scalar vzi = h_vel.data[i].z;
 
-        unsigned int typei = arrays.type[i];
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
 
         // sanity check
         assert(typei < this->m_pdata->getNTypes());
@@ -241,17 +242,17 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             assert(j < this->m_pdata->getN());
             
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - arrays.x[j];
-            Scalar dy = yi - arrays.y[j];
-            Scalar dz = zi - arrays.z[j];
+            Scalar dx = xi - h_pos.data[j].x;
+            Scalar dy = yi - h_pos.data[j].y;
+            Scalar dz = zi - h_pos.data[j].z;
             
             // calculate dv_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dvx = vxi - arrays.vx[j];
-            Scalar dvy = vyi - arrays.vy[j];
-            Scalar dvz = vzi - arrays.vz[j];
+            Scalar dvx = vxi - h_vel.data[j].x;
+            Scalar dvy = vyi - h_vel.data[j].y;
+            Scalar dvz = vzi - h_vel.data[j].z;
                         
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
-            unsigned int typej = arrays.type[j];
+            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < this->m_pdata->getNTypes());
             
             // apply periodic boundary conditions (FLOPS: 9)
@@ -346,7 +347,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     
     // now that the partial sums are complete, sum up the results in parallel
 #pragma omp for
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)this->m_pdata->getN(); i++)
         {
         // assign result from thread 0
         h_force.data[i].x = this->m_fdata_partial[i].x;
@@ -373,8 +374,6 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
         }
     } // end omp parallel
 
-    this->m_pdata->release();
-    
     if (this->m_prof) this->m_prof->pop();
     }
 

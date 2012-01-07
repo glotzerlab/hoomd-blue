@@ -78,8 +78,7 @@ struct gpu_nvt_rigid_data
     };
 
 //! Kernel driver for the first part of the NVT update called by TwoStepNVTRigidGPU
-cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata, 
-                                        const gpu_rigid_data_arrays& rigid_data,
+cudaError_t gpu_nvt_rigid_step_one( const gpu_rigid_data_arrays& rigid_data,
                                         unsigned int *d_group_members,
                                         unsigned int group_size,
                                         float4 *d_net_force,
@@ -91,8 +90,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
 cudaError_t gpu_nvt_rigid_reduce_ksum(const gpu_nvt_rigid_data &nvt_rdata);
 
 //! Kernel driver for the second part of the NVT update called by TwoStepNVTRigidGPU
-cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata, 
-                                    const gpu_rigid_data_arrays& rigid_data,
+cudaError_t gpu_nvt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
                                     float4 *d_net_force,

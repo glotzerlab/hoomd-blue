@@ -74,7 +74,10 @@ struct pair_args_t
     pair_args_t(float4 *_d_force,
               float *_d_virial,
               const unsigned int _virial_pitch,
-              const gpu_pdata_arrays& _pdata,
+              const unsigned int _N,
+              const Scalar4 *_pos,
+              const Scalar *_diameter,
+              const Scalar *_charge,
               const gpu_boxsize &_box,
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
@@ -87,7 +90,10 @@ struct pair_args_t
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
-                  pdata(_pdata),
+                  N(_N),
+                  d_pos(_d_pos),
+                  d_diameter(_d_diameter),
+                  d_charge(_d_charge),
                   box(_box),
                   d_n_neigh(_d_n_neigh),
                   d_nlist(_d_nlist),
@@ -103,7 +109,10 @@ struct pair_args_t
     float4 *d_force;                //!< Force to write out
     float *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
-    const gpu_pdata_arrays& pdata;  //!< Particle data to compute forces over
+    const unsigned int N;           //!< number of particles
+    const Scalar4 *d_pos;           //!< particle positions
+    const Scalar *d_diameter;       //!< particle diameters
+    const Scalar *d_charge;         //!< particle charges
     const gpu_boxsize &box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
@@ -116,15 +125,6 @@ struct pair_args_t
     };
 
 #ifdef NVCC
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
-//! Texture for reading particle diameters
-texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
-
-//! Texture for reading particle charges
-texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
-
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
     forces for each pair is handled via the template class \a evaluator.
@@ -132,7 +132,10 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to calculate forces on
+    \param N number of particles in system
+    \param d_pos particle positions
+    \param d_diameter particle diameters
+    \param d_charge particle charges
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -161,7 +164,10 @@ template< class evaluator, unsigned int shift_mode >
 __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                                                float *d_virial,
                                                const unsigned int virial_pitch,
-                                               const gpu_pdata_arrays pdata,
+                                               const unsigned int N,
+                                               const Scalar4 *d_pos,
+                                               const Scalar *d_diameter,
+                                               const Scalar *d_charge,
                                                const gpu_boxsize box,
                                                const unsigned int *d_n_neigh,
                                                const unsigned int *d_nlist,
@@ -197,24 +203,24 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
         
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
     
-    // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
+    // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 posi = tex1Dfetch(pdata_pos_tex, idx);
+    float4 posi = d_pos[idx];
     
     float di;
     if (evaluator::needsDiameter())
-        di = tex1Dfetch(pdata_diam_tex, idx);
+        di = d_diameter[idx];
     else
         di += 1.0f; // shutup compiler warning
     float qi;
     if (evaluator::needsCharge())
-        qi = tex1Dfetch(pdata_charge_tex, idx);
+        qi = d_charge[idx];
     else
         qi += 1.0f; // shutup compiler warning
     
@@ -252,17 +258,17 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
             
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 posj = tex1Dfetch(pdata_pos_tex, cur_j);
+            float4 posj = d_pos[cur_j];
             
             float dj = 0.0f;
             if (evaluator::needsDiameter())
-                dj = tex1Dfetch(pdata_diam_tex, cur_j);
+                dj = d_diameter[cur_j];
             else
                 dj += 1.0f; // shutup compiler warning
                 
             float qj = 0.0f;
             if (evaluator::needsCharge())
-                qj = tex1Dfetch(pdata_charge_tex, cur_j);
+                qj = d_charge[cur_j];
             else
                 qj += 1.0f; // shutup compiler warning
                 
@@ -387,28 +393,8 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     assert(pair_args.ntypes > 0);
     
     // setup the grid to run the kernel
-    dim3 grid( pair_args.pdata.N / pair_args.block_size + 1, 1, 1);
+    dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
     dim3 threads(pair_args.block_size, 1, 1);
-    
-    // bind the position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.pdata.pos, sizeof(float4) * pair_args.pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
-    // bind the diamter texture
-    pdata_diam_tex.normalized = false;
-    pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, pair_args.pdata.diameter, sizeof(float) * pair_args.pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    pdata_charge_tex.normalized = false;
-    pdata_charge_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_charge_tex, pair_args.pdata.charge, sizeof(float) * pair_args.pdata.N);
-    if (error != cudaSuccess)
-        return error;
     
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
@@ -419,15 +405,15 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
         {
         case 0:
             gpu_compute_pair_forces_kernel<evaluator, 0>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
             break;
         case 1:
             gpu_compute_pair_forces_kernel<evaluator, 1>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
             break;
         case 2:
             gpu_compute_pair_forces_kernel<evaluator, 2>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
             break;
         default:
             return cudaErrorUnknown;

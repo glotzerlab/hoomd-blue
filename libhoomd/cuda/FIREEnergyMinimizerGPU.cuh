@@ -60,13 +60,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Kernel driver for zeroing velocities called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata,
+cudaError_t gpu_fire_zero_v(const unsigned int N,
+                            const Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size); 
 
 //! Kernel driver for summing the potential energy called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_compute_sum_pe(const gpu_pdata_arrays& pdata, 
-                            unsigned int *d_group_members,
+cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                             unsigned int group_size,
                             float4* d_net_force, 
                             float* d_sum_pe, 
@@ -75,7 +75,9 @@ cudaError_t gpu_fire_compute_sum_pe(const gpu_pdata_arrays& pdata,
                             unsigned int num_blocks);
 
 //! Kernel driver for summing over P, vsq, and asq called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_compute_sum_all(const gpu_pdata_arrays& pdata, 
+cudaError_t gpu_fire_compute_sum_all(const unsigned int N,
+                            const Scalar4 *d_vel,
+                            const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
                             float* d_sum_all, 
@@ -86,7 +88,9 @@ cudaError_t gpu_fire_compute_sum_all(const gpu_pdata_arrays& pdata,
                             unsigned int num_blocks);
                             
 //! Kernel driver for updating the velocities called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_update_v(gpu_pdata_arrays pdata, 
+cudaError_t gpu_fire_update_v(const unsigned int N,
+                            const Scalar4 *d_vel,
+                            const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
                             float alpha, 

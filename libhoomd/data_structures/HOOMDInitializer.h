@@ -111,10 +111,10 @@ class HOOMDInitializer : public ParticleDataInitializer
         
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
-        
-        //! Initializes the particle data arrays
-        virtual void initArrays(const ParticleDataArrays &pdata) const;
-        
+
+        //! returns a snapshot with the initial particle data
+        virtual SnapshotParticleData getSnapshot() const;
+
         //! Initialize the walls
         virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
         

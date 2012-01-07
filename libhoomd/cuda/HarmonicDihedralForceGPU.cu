@@ -66,9 +66,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the harmonic dihedral forces. Used by HarmonicDihedralForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
 //! Texture for reading dihedral parameters
 texture<float4, 1, cudaReadModeElementType> dihedral_params_tex;
 
@@ -76,7 +73,8 @@ texture<float4, 1, cudaReadModeElementType> dihedral_params_tex;
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data arrays to calculate forces on
+    \param N number of particles
+    \param d_pos particle positions on the device
     \param box Box dimensions for periodic boundary condition handling
     \param tlist Dihedral data to use in calculating the forces
 */
@@ -84,21 +82,22 @@ extern "C" __global__
 void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
                                                  float* d_virial,
                                                  const unsigned int virial_pitch,
-                                                 gpu_pdata_arrays pdata,
+                                                 const unsigned int N,
+                                                 const Scalar4 *d_pos,
                                                  gpu_boxsize box,
                                                  gpu_dihedraltable_array tlist)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;    
     
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_dihedrals = tlist.n_dihedrals[idx];
     
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx);  // we can be either a, b, or c in the a-b-c-d quartet
+    float4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
     float4 a_pos,b_pos,c_pos, d_pos; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
     
     // initialize the force to 0
@@ -129,11 +128,11 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
         int cur_dihedral_abcd = cur_ABCD.x;
         
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
-        float4 x_pos = tex1Dfetch(pdata_pos_tex, cur_dihedral_x_idx);
+        float4 x_pos = d_pos[cur_dihedral_x_idx];
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 y_pos = tex1Dfetch(pdata_pos_tex, cur_dihedral_y_idx);
+        float4 y_pos = d_pos[cur_dihedral_y_idx];
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 z_pos = tex1Dfetch(pdata_pos_tex, cur_dihedral_z_idx);
+        float4 z_pos = d_pos[cur_dihedral_z_idx];
         
         if (cur_dihedral_abcd == 0)
             {
@@ -356,7 +355,8 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to perform the calculation on
+    \param N number of particles
+    \param d_pos particle positions on the GPU
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param ttable List of dihedrals stored on the GPU
     \param d_params K, sign,multiplicity params packed as padded float4 variables
@@ -372,7 +372,8 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
 cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
                                                  float* d_virial,
                                                  const unsigned int virial_pitch,
-                                                 const gpu_pdata_arrays &pdata,
+                                                 const unsigned int N,
+                                                 const Scalar4 *d_pos,
                                                  const gpu_boxsize &box,
                                                  const gpu_dihedraltable_array &ttable,
                                                  float4 *d_params,
@@ -382,20 +383,16 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
     assert(d_params);
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
+    // bind the texture
     error = cudaBindTexture(0, dihedral_params_tex, d_params, sizeof(float4) * n_dihedral_types);
     if (error != cudaSuccess)
         return error;
         
     // run the kernel
-    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, pdata, box, ttable);
+    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, ttable);
     
     return cudaSuccess;
     }

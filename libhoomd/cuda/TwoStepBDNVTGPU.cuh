@@ -76,7 +76,11 @@ struct bdnvt_step_two_args
     };
 
 //! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
-cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
+                               const Scalar4 *d_vel,
+                               const Scalar3 *d_accel,
+                               const Scalar *d_diameter,
+                               const unsigned int *d_tag,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                float4 *d_net_force,

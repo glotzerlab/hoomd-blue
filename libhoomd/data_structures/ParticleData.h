@@ -205,96 +205,45 @@ struct BoxDim
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
 
-//! Structure of arrays containing the particle data
-/*! Once acquired, the user of the ParticleData gets access to the data arrays
-    through this structure.
-    Assumptions that the user of this data structure can make:
-        - None of the arrays alias each other
-        - No other code will be accessing these arrays in parallel (data arrays can
-            only be acquired once at a time).
-        - All particles are inside the box (see BoxDim)
-        - Each rtag element refers uniquely to a single particle (care should be taken
-            by the user not to to clobber this)
+//! Handy structure for passing around per-particle data
+//! data is stored in tag order, and restored in sorted order
+struct SnapshotParticleData {
+    //! constructor
+    //! \param N number of particles to allocate memory for
+    SnapshotParticleData(unsigned int N)
+       {
+       pos.resize(N);
+       vel.resize(N);
+       accel.resize(N);
+       type.resize(N);
+       mass.resize(N);
+       charge.resize(N);
+       diameter.resize(N);
+       image.resize(N);
+       rtag.resize(N);
+       body.resize(N);
+       size = N;
+       }
 
-    More importantly, there are some assumptions that cannot be made:
-        - Data may be in a different order next time the arrays are acquired
-        - Pointers may be in a different location in memory next time the arrays are acquired
-        - Anything updating these arrays CANNOT move particles outside the box
-
-    \note Most of the data structures store properties for each particle. For example
-          x[i] is the c-coordinate of particle i. The one exception is the rtag array.
-          Instead of rtag[i] being the tag of particle i, rtag[tag] is the index i itself.
-
-    Values in the type array can range from 0 to ParticleData->getNTypes()-1.
-    \ingroup data_structs
-*/
-struct ParticleDataArrays
-    {
-    //! Zeros pointers
-    ParticleDataArrays();
-    
-    unsigned int nparticles;    //!< Number of particles in the arrays
-    Scalar * __restrict__ x;    //!< array of x-coordinates
-    Scalar * __restrict__ y;    //!< array of y-coordinates
-    Scalar * __restrict__ z;    //!< array of z-coordinates
-    Scalar * __restrict__ vx;   //!< array of x-component of velocities
-    Scalar * __restrict__ vy;   //!< array of y-component of velocities
-    Scalar * __restrict__ vz;   //!< array of z-component of velocities
-    Scalar * __restrict__ ax;   //!< array of x-component of acceleration
-    Scalar * __restrict__ ay;   //!< array of y-component of acceleration
-    Scalar * __restrict__ az;   //!< array of z-component of acceleration
-    Scalar * __restrict__ charge;   //!< array of charges
-    Scalar * __restrict__ mass; //!< array of particle masses
-    Scalar * __restrict__ diameter; //!< array of particle diameters
-    int * __restrict__ ix;  //!< array of x-component of images
-    int * __restrict__ iy;  //!< array of x-component of images
-    int * __restrict__ iz;  //!< array of x-component of images
-    
-    unsigned int * __restrict__ body; //!< Rigid body index this particle belongs to (NO_BODY if not in a rigid body)
-    unsigned int * __restrict__ type; //!< Type index of each particle
-    unsigned int * __restrict__ rtag; //!< Reverse-lookup tag.
-    unsigned int * __restrict__ tag;  //!< Forward-lookup tag.
-    };
-
-//! Read only arrays
-/*! This is the same as ParticleDataArrays, but has const pointers to prevent
-    code with read-only access to write to the data arrays
-    \ingroup data_structs
- */
-struct ParticleDataArraysConst
-    {
-    //! Zeros pointers
-    ParticleDataArraysConst();
-    
-    unsigned int nparticles;    //!< Number of particles in the arrays
-    Scalar const * __restrict__ x;  //!< array of x-coordinates
-    Scalar const * __restrict__ y;  //!< array of y-coordinates
-    Scalar const * __restrict__ z;  //!< array of z-coordinates
-    Scalar const * __restrict__ vx; //!< array of x-component of velocities
-    Scalar const * __restrict__ vy; //!< array of y-component of velocities
-    Scalar const * __restrict__ vz; //!< array of z-component of velocities
-    Scalar const * __restrict__ ax; //!< array of x-component of acceleration
-    Scalar const * __restrict__ ay; //!< array of y-component of acceleration
-    Scalar const * __restrict__ az; //!< array of z-component of acceleration
-    Scalar const * __restrict__ charge; //!< array of charges
-    Scalar const * __restrict__ mass;   //!< array of particle masses
-    Scalar const * __restrict__ diameter;   //!< array of particle diameters
-    int const * __restrict__ ix;    //!< array of x-component of images
-    int const * __restrict__ iy;    //!< array of x-component of images
-    int const * __restrict__ iz;    //!< array of x-component of images
-    
-    unsigned int const * __restrict__ body; //!< Rigid body index this particle belongs to (NO_BODY if not in a rigid body)
-    unsigned int const * __restrict__ type; //!< Type index of each particle
-    unsigned int const * __restrict__ rtag; //!< Reverse-lookup tag.
-    unsigned int const * __restrict__ tag;  //!< Forward-lookup tag.
+    std::vector<Scalar3> pos;       //!< positions
+    std::vector<Scalar3> vel;       //!< velocities
+    std::vector<Scalar3> accel;     //!< accelerations
+    std::vector<unsigned int> type; //!< types
+    std::vector<Scalar> mass;       //!< masses
+    std::vector<Scalar> charge;     //!< charges
+    std::vector<Scalar> diameter;   //!< diameters
+    std::vector<int3> image;        //!< images
+    std::vector<unsigned int> rtag; //!< reverse-lookup tags
+    std::vector<unsigned int> body; //!< body ids
+    unsigned int size;              //!< number of particles in this snapshot
     };
 
 //! Abstract interface for initializing a ParticleData
 /*! A ParticleDataInitializer should only be used with the appropriate constructor
     of ParticleData(). That constructure calls the methods of this class to determine
     the number of particles, number of particle types, the simulation box, and then
-    initializes itself. Then initArrays() is called on a set of acquired
-    ParticleDataArrays which the initializer is to fill out.
+    initializes itself. Then getSnashot() is called whih returns a filled out ParticleDataSnapshot
+    to be used to initalize the particle data arrays
 
     \note This class is an abstract interface with pure virtual functions. Derived
     classes must implement these methods.
@@ -318,7 +267,7 @@ class ParticleDataInitializer
         virtual BoxDim getBox() const = 0;
         
         //! Initializes the particle data arrays
-        virtual void initArrays(const ParticleDataArrays &pdata) const = 0;
+        virtual SnapshotParticleData getSnapshot() const = 0;
         
         //! Initialize the simulation walls
         /*! \param wall_data Shared pointer to the WallData to initialize
@@ -421,10 +370,11 @@ class ParticleDataInitializer
     times without releasing it. Call release() to do so. An assert() will fail in debug
     builds if the ParticleData is acquired more than once without being released.
 
-    For performance reasons, data is stored as simple arrays. Once ParticleDataArrays
-    (or the const counterpart) has been acquired, the coordinates of the particle with
-    <em>index</em> \c i can be accessed with <code>arrays.x[i]</code>, <code>arrays.y[i]</code>,
-    and <code>arrays.z[i]</code> where \c i runs from 0 to <code>arrays.nparticles</code>.
+    For performance reasons, data is stored as simple arrays. Once a handle to the particle data
+    GPUArrays has been acquired, the coordinates of the particle with
+    <em>index</em> \c i can be accessed with <code>pos_array_handle.data[i].x</code>,
+    <code>pos_array_handle.data[i].y</code>, and <code>pos_array_handle.data[i].z</code>
+    where \c i runs from 0 to <code>getN()</code>.
 
     Velocities can similarly be accessed through the members vx,vy, and vz
 
@@ -494,7 +444,7 @@ class ParticleData : boost::noncopyable
                      boost::shared_ptr<ExecutionConfiguration> exec_conf);
         
         //! Destructor
-        virtual ~ParticleData();
+        virtual ~ParticleData() {}
         
         //! Get the simulation box
         const BoxDim& getBox() const;
@@ -510,9 +460,9 @@ class ParticleData : boost::noncopyable
         //! Get the number of particles
         /*! \return Number of particles in the box
         */
-        unsigned int getN() const
+        inline unsigned int getN() const
             {
-            return m_arrays.nparticles;
+            return m_nparticles;
             }
             
         //! Get the number of particle types
@@ -530,21 +480,39 @@ class ParticleData : boost::noncopyable
         Scalar getMaxDiameter() const
             {
             Scalar maxdiam = 0;
-            for (unsigned int i = 0; i < m_arrays.nparticles; i++) if (m_arrays.diameter[i] > maxdiam) maxdiam = m_arrays.diameter[i];
+            ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::read);
+            for (unsigned int i = 0; i < m_nparticles; i++) if (h_diameter.data[i] > maxdiam) maxdiam = h_diameter.data[i];
             return maxdiam;
             }
             
-        //! Acquire read access to the particle data
-        const ParticleDataArraysConst& acquireReadOnly();
-        //! Acquire read/write access to the particle data
-        const ParticleDataArrays& acquireReadWrite();
-                
-#ifdef ENABLE_CUDA
-        //! Acquire read access to the particle data on the GPU
-        gpu_pdata_arrays& acquireReadOnlyGPU();
-        //! Acquire read/write access to the particle data on the GPU
-        gpu_pdata_arrays& acquireReadWriteGPU();
+        //! return positions and types
+        const GPUArray< Scalar4 >& getPositions() const { return m_pos; }
+
+        //! return velocities and masses
+        const GPUArray< Scalar4 >& getVelocities() const { return m_vel; }
         
+        //! return accelerations
+        const GPUArray< Scalar3 >& getAccelerations() const { return m_accel; }
+
+        //! return charges
+        const GPUArray< Scalar >& getCharges() const { return m_charge; }
+
+        //! return diameters
+        const GPUArray< Scalar >& getDiameters() const { return m_diameter; }
+
+        //! return images
+        const GPUArray< int3 >& getImages() const { return m_image; }
+
+        //! return tags
+        const GPUArray< unsigned int >& getTags() const { return m_tag; }
+
+        //! return reverse-lookup tags
+        const GPUArray< unsigned int >& getRTags() const { return m_rtag; }
+
+        //! return body ids
+        const GPUArray< unsigned int >& getBodies() const { return m_body; }
+
+#ifdef ENABLE_CUDA
         //! Get the box for the GPU
         /*! \returns Box dimensions suitable for passing to the GPU code
         */
@@ -554,9 +522,6 @@ class ParticleData : boost::noncopyable
             }
             
 #endif
-        
-        //! Release the acquired data
-        void release();
         
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
@@ -597,90 +562,90 @@ class ParticleData : boost::noncopyable
         Scalar3 getPosition(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            Scalar3 result = make_scalar3(m_arrays.x[idx], m_arrays.y[idx], m_arrays.z[idx]);
-            release();
+            ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            Scalar3 result = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
             return result;
             }
         //! Get the current velocity of a particle
         Scalar3 getVelocity(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            Scalar3 result = make_scalar3(m_arrays.vx[idx], m_arrays.vy[idx], m_arrays.vz[idx]);
-            release();
+            ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            Scalar3 result = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             return result;
             }
         //! Get the current acceleration of a particle
         Scalar3 getAcceleration(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            Scalar3 result = make_scalar3(m_arrays.ax[idx], m_arrays.ay[idx], m_arrays.az[idx]);
-            release();
+            ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            Scalar3 result = make_scalar3(h_accel.data[idx].x, h_accel.data[idx].y, h_accel.data[idx].z);
             return result;
             }
         //! Get the current image flags of a particle
         int3 getImage(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            int3 result = make_int3(m_arrays.ix[idx], m_arrays.iy[idx], m_arrays.iz[idx]);
-            release();
+            ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            int3 result = make_int3(h_image.data[idx].x, h_image.data[idx].y, h_image.data[idx].z);
             return result;
             }
         //! Get the current charge of a particle
         Scalar getCharge(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            Scalar result = m_arrays.charge[idx];
-            release();
+            ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            Scalar result = h_charge.data[idx];
             return result;
             }
         //! Get the current mass of a particle
         Scalar getMass(unsigned int tag)
             {
+            ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            Scalar result = m_arrays.mass[idx];
-            release();
+            Scalar result = h_vel.data[idx].w;
             return result;
             }
         //! Get the current diameter of a particle
         Scalar getDiameter(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            Scalar result = m_arrays.diameter[idx];
-            release();
+            ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            Scalar result = h_diameter.data[idx];
             return result;
             }
         //! Get the current diameter of a particle
         int getBody(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            int result = m_arrays.body[idx];
-            release();
+            ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            Scalar result = h_body.data[idx];
             return result;
             }
         //! Get the current type of a particle
         unsigned int getType(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            unsigned int result = m_arrays.type[idx];
-            release();
+            ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            Scalar result = __scalar_as_int(h_pos.data[idx].w);
             return result;
             }
 
@@ -688,19 +653,17 @@ class ParticleData : boost::noncopyable
         unsigned int getRTag(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
-            unsigned int idx = m_arrays.rtag[tag];
-            release();
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
             return idx;
             }
         //! Get the orientation of a particle with a given tag
         Scalar4 getOrientation(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
             ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::read);
-            unsigned int idx = m_arrays.rtag[tag];
-            release();
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
             return h_orientation.data[idx];
             }
         //! Get the inertia tensor of a particle with a given tag
@@ -712,10 +675,9 @@ class ParticleData : boost::noncopyable
         Scalar4 getPNetForce(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
             ArrayHandle< Scalar4 > h_net_force(m_net_force, access_location::host, access_mode::read);
-            unsigned int idx = m_arrays.rtag[tag];
-            release();
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
             return h_net_force.data[idx];
             }
 
@@ -723,83 +685,82 @@ class ParticleData : boost::noncopyable
         void setPosition(unsigned int tag, const Scalar3& pos)
             {
             assert(tag < getN());
-            acquireReadWrite();
-            unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.x[idx] = pos.x; m_arrays.y[idx] = pos.y; m_arrays.z[idx] = pos.z;
-            release();
+            ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            h_pos.data[idx].x = pos.x; h_pos.data[idx].y = pos.y; h_pos.data[idx].z = pos.z;
             }
         //! Set the current velocity of a particle
         void setVelocity(unsigned int tag, const Scalar3& vel)
             {
             assert(tag < getN());
-            acquireReadWrite();
-            unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.vx[idx] = vel.x; m_arrays.vy[idx] = vel.y; m_arrays.vz[idx] = vel.z;
-            release();
+            ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::readwrite);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            h_vel.data[idx].x = vel.x; h_vel.data[idx].y = vel.y; h_vel.data[idx].z = vel.z;
             }
         //! Set the current image flags of a particle
         void setImage(unsigned int tag, const int3& image)
             {
             assert(tag < getN());
-            acquireReadWrite();
-            unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.ix[idx] = image.x; m_arrays.iy[idx] = image.y; m_arrays.iz[idx] = image.z;
-            release();
+            ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            h_image.data[idx] = image;
             }
         //! Set the current charge of a particle
         void setCharge(unsigned int tag, Scalar charge)
             {
             assert(tag < getN());
-            acquireReadWrite();
-            unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.charge[idx] = charge;
-            release();
+            ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::readwrite);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            h_charge.data[idx] = charge;
             }
         //! Set the current mass of a particle
         void setMass(unsigned int tag, Scalar mass)
             {
             assert(tag < getN());
-            acquireReadWrite();
-            unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.mass[idx] = mass;
-            release();
+            ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::readwrite);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            h_vel.data[idx].w = mass;
             }
         //! Set the current diameter of a particle
         void setDiameter(unsigned int tag, Scalar diameter)
             {
             assert(tag < getN());
-            acquireReadWrite();
-            unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.diameter[idx] = diameter;
-            release();
+            ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::readwrite);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            h_diameter.data[idx] = diameter;
             }
         //! Set the current diameter of a particle
         void setBody(unsigned int tag, int body)
             {
             assert(tag < getN());
-            acquireReadWrite();
-            unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.body[idx] = (unsigned int)body;
-            release();
+            ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::readwrite);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            h_body.data[idx] = body;
             }
-        //! Get the current type of a particle
+        //! Set the current type of a particle
         void setType(unsigned int tag, unsigned int typ)
             {
             assert(tag < getN());
             assert(typ < getNTypes());
-            acquireReadWrite();
-            unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.type[idx] = typ;
-            release();
+            ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
+            h_pos.data[idx].w = __int_as_scalar(typ);
             }
         //! Set the orientation of a particle with a given tag
         void setOrientation(unsigned int tag, const Scalar4& orientation)
             {
             assert(tag < getN());
-            acquireReadOnly();
             ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
-            unsigned int idx = m_arrays.rtag[tag];
-            release();
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
             h_orientation.data[idx] = orientation;
             }
         //! Get the inertia tensor of a particle with a given tag
@@ -821,6 +782,12 @@ class ParticleData : boost::noncopyable
         //! Remove the given flag
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
+        //! Initialize from a snapshot
+        void initializeFromSnapshot(const SnapshotParticleData & snapshot);
+
+        //! Take a snapshot
+        SnapshotParticleData takeSnapshot();
+
     private:
         BoxDim m_box;                               //!< The simulation box
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
@@ -828,14 +795,24 @@ class ParticleData : boost::noncopyable
         size_t m_nbytes;                            //!< Number of bytes allocated
         unsigned int m_ntypes;                      //!< Number of particle types
         
-        bool m_acquired;                            //!< Flag to track if data has been acquired
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
         
         boost::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
         boost::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
-        
-        ParticleDataArrays m_arrays;                //!< Pointers into m_data for particle access
-        ParticleDataArraysConst m_arrays_const;     //!< Pointers into m_data for const particle access
+
+        unsigned int m_nparticles;                  //!< number of particles
+
+        // per-particle data
+        GPUArray<Scalar4> m_pos;                    //!< particle positions and types
+        GPUArray<Scalar4> m_vel;                    //!< particle velocities and masses
+        GPUArray<Scalar3> m_accel;                  //!<  particle accelerations
+        GPUArray<Scalar> m_charge;                  //!<  particle charges
+        GPUArray<Scalar> m_diameter;                //!< particle diameters
+        GPUArray<int3> m_image;                     //!< particle images
+        GPUArray<unsigned int> m_tag;               //!< particle tags
+        GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
+        GPUArray<unsigned int> m_body;              //!< rigid body ids
+
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
         
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
@@ -847,38 +824,17 @@ class ParticleData : boost::noncopyable
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         
 #ifdef ENABLE_CUDA
-        
         //! Simple type for identifying where the most up to date particle data is
-        enum DataLocation
-            {
-            cpu,    //!< Particle data was last modified on the CPU
-            cpugpu, //!< CPU and GPU contain identical data
-            gpu     //!< Particle data was last modified on the GPU
-            };
-            
-        DataLocation m_data_location;       //!< Where the most recently modified particle data lives
-        bool m_readwrite_gpu;               //!< Flag to indicate the last acquire was readwriteGPU
-        gpu_pdata_arrays m_gpu_pdata;       //!< Stores the pointers to memory on the GPU
         gpu_boxsize m_gpu_box;              //!< Mirror structure of m_box for the GPU
-        float * m_d_staging;                //!< Staging array (device memory) where uninterleaved data is copied to/from.
-        float4 *m_h_staging;                //!< Staging array (host memory) to copy interleaved data to
-        unsigned int m_uninterleave_pitch;  //!< Remember the pitch between x,y,z,type in the uninterleaved data
-        unsigned int m_single_xarray_bytes; //!< Remember the number of bytes allocated for a single float array
-        
-        //! Helper function to move data from the host to the device
-        void hostToDeviceCopy();
-        //! Helper function to move data from the device to the host
-        void deviceToHostCopy();
-        
 #endif
         
         //! Helper function to allocate CPU data
         void allocate(unsigned int N);
-        //! Deallocates data
-        void deallocate();
+
         //! Helper function to check that particles are in the box
-        bool inBox(bool need_aquire);
+        bool inBox();
     };
+
 
 //! Exports the BoxDim class to python
 void export_BoxDim();
@@ -886,6 +842,8 @@ void export_BoxDim();
 void export_ParticleDataInitializer();
 //! Exports ParticleData to python
 void export_ParticleData();
+//! Export SnapshotParticleData to python
+void export_SnapshotParticleData();
 
 #endif
 

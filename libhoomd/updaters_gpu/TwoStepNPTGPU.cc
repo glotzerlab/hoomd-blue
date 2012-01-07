@@ -131,7 +131,11 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
         }
 
     // access all the needed data
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -144,7 +148,9 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
             *(m_curr_P - m_P->getValue(timestep))*m_deltaT; 
 
     // perform the particle update on the GPU
-    gpu_npt_step_one(d_pdata,
+    gpu_npt_step_one(d_pos.data,
+                     d_vel.data,
+                     d_accel.data,
                      d_index_array.data,
                      group_size,
                      m_partial_scale,
@@ -167,7 +173,9 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     // two things are done here
     // 1. particles may have been moved slightly outside the box by the above steps, wrap them back into place
     // 2. all particles in the box are rescaled to fit in the new box 
-    gpu_npt_boxscale(d_pdata,
+    gpu_npt_boxscale(m_pdata->getN(),
+                     d_pos,
+                     d_image,
                      box,
                      m_partial_scale,
                      eta,
@@ -180,7 +188,6 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop(exec_conf);
     
-    m_pdata->release();
     m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
     setIntegratorVariables(v);
     }
@@ -217,12 +224,15 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
 
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // perform the update on the GPU
-    gpu_npt_step_two(d_pdata,
+    gpu_npt_step_two(d_vel.data,
+                     d_accel.data,
                      d_index_array.data,
                      group_size,
                      d_net_force.data,
@@ -239,7 +249,6 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
                             *(m_curr_P - m_P->getValue(timestep))*m_deltaT;
     xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
 
-    m_pdata->release();
     setIntegratorVariables(v);
     
     // done profiling

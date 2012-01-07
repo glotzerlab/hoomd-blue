@@ -213,7 +213,7 @@ void TablePotential::computeForces(unsigned int timestep)
     Index2D nli = m_nlist->getNListIndexer();
     
     // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
@@ -221,9 +221,7 @@ void TablePotential::computeForces(unsigned int timestep)
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
-    assert(arrays.x);
-    assert(arrays.y);
-    assert(arrays.z);
+    assert(h_pos.data);
     
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -256,18 +254,18 @@ void TablePotential::computeForces(unsigned int timestep)
     #endif
 
     // need to start from a zero force, energy and virial
-    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
-    memset(&m_virial_partial[6*m_index_thread_partial(0,tid)] , 0, 6*sizeof(Scalar)*arrays.nparticles);
+    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*m_pdata->getN());
+    memset(&m_virial_partial[6*m_index_thread_partial(0,tid)] , 0, 6*sizeof(Scalar)*m_pdata->getN());
     
     // for each particle
 #pragma omp for schedule(guided)
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int) m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = arrays.x[i];
-        Scalar yi = arrays.y[i];
-        Scalar zi = arrays.z[i];
-        unsigned int typei = arrays.type[i];
+        Scalar xi = h_pos.data[i].x;
+        Scalar yi = h_pos.data[i].y;
+        Scalar zi = h_pos.data[i].z;
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
         
@@ -293,12 +291,12 @@ void TablePotential::computeForces(unsigned int timestep)
             assert(k < m_pdata->getN());
             
             // calculate dr
-            Scalar dx = xi - arrays.x[k];
-            Scalar dy = yi - arrays.y[k];
-            Scalar dz = zi - arrays.z[k];
+            Scalar dx = xi - h_pos.data[k].x;
+            Scalar dy = yi - h_pos.data[k].y;
+            Scalar dz = zi - h_pos.data[k].z;
             
             // access the type of the neighbor particle
-            unsigned int typej = arrays.type[k];
+            unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
             
@@ -409,7 +407,7 @@ void TablePotential::computeForces(unsigned int timestep)
     
     // now that the partial sums are complete, sum up the results in parallel
 #pragma omp for
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         // assign result from thread 0
         h_force.data[i].x = m_fdata_partial[i].x;
@@ -437,7 +435,6 @@ void TablePotential::computeForces(unsigned int timestep)
     } // end omp parallel
 
         
-    m_pdata->release();
     if (m_prof) m_prof->pop();
     }
 

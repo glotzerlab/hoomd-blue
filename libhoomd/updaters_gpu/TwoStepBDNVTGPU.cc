@@ -117,13 +117,20 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "NVE step 1");
     
     // access all the needed data
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
+
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
     // perform the update on the GPU
-    gpu_nve_step_one(d_pdata,
+    gpu_nve_step_one(d_pos.data,
+                     d_vel.data,
+                     d_accel.data,
+                     d_image.data,
                      d_index_array.data,
                      group_size,
                      box,
@@ -134,8 +141,6 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
-    m_pdata->release();
     
     // done profiling
     if (m_prof)
@@ -156,7 +161,6 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     // get the dimensionality of the system
     const Scalar D = Scalar(m_sysdef->getNDimensions());
     
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -164,6 +168,11 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         {
         ArrayHandle<float> d_partial_sumBD(m_partial_sum1, access_location::device, access_mode::overwrite);
         ArrayHandle<float> d_sumBD(m_sum, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
         
         // perform the update on the GPU
         bdnvt_step_two_args args;
@@ -181,7 +190,11 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         
         unsigned int group_size = m_group->getIndexArray().getNumElements();
    
-        gpu_bdnvt_step_two(d_pdata,
+        gpu_bdnvt_step_two(d_pos.data,
+                           d_vel.data,
+                           d_accel.data,
+                           d_diameter.data,
+                           d_tag.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -195,7 +208,6 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
             CHECK_CUDA_ERROR();
         
         }
-    m_pdata->release();
  
     if (m_tally)
         {

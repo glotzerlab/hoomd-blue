@@ -103,21 +103,24 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
 
     // access the particle data for writing on the CPU
     assert(m_pdata);
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
 
         // advance velocity forward by half a timestep and position forward by a full timestep
-        arrays.vx[j] = lambda * (arrays.vx[j] + arrays.ax[j] * m_deltaT * Scalar(1.0 / 2.0));
-        arrays.x[j] += arrays.vx[j] * m_deltaT;
+        h_vel.data[j].x = lambda * (h_vel.data[j].x + h_accel.data[j].x * m_deltaT * Scalar(1.0 / 2.0));
+        h_pos.data[j].x += h_vel.data[j].x * m_deltaT;
 
-        arrays.vy[j] = lambda * (arrays.vy[j] + arrays.ay[j] * m_deltaT * Scalar(1.0 / 2.0));
-        arrays.y[j] += arrays.vy[j] * m_deltaT;
+        h_vel.data[j].y = lambda * (h_vel.data[j].y + h_accel.data[j].y * m_deltaT * Scalar(1.0 / 2.0));
+        h_pos.data[j].y += h_vel.data[j].y * m_deltaT;
 
-        arrays.vz[j] = lambda * (arrays.vz[j] + arrays.az[j] * m_deltaT * Scalar(1.0 / 2.0));
-        arrays.z[j] += arrays.vz[j] * m_deltaT;
+        h_vel.data[j].z = lambda * (h_vel.data[j].z + h_accel.data[j].z * m_deltaT * Scalar(1.0 / 2.0));
+        h_pos.data[j].z += h_vel.data[j].z * m_deltaT;
         }
 
     /* particles may have been moved slightly outside the box by the above steps so we should wrap
@@ -129,46 +132,46 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
 
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
 
         // wrap the particles around the box
-        if (arrays.x[j] >= box.xhi)
+        if (h_pos.data[j].x >= box.xhi)
             {
-            arrays.x[j] -= Lx;
-            arrays.ix[j]++;
+            h_pos.data[j].x -= Lx;
+            h_image.data[j].x++;
             }
-        else if (arrays.x[j] < box.xlo)
+        else if (h_pos.data[j].x < box.xlo)
             {
-            arrays.x[j] += Lx;
-            arrays.ix[j]--;
-            }
-
-        if (arrays.y[j] >= box.yhi)
-            {
-            arrays.y[j] -= Ly;
-            arrays.iy[j]++;
-            }
-        else if (arrays.y[j] < box.ylo)
-            {
-            arrays.y[j] += Ly;
-            arrays.iy[j]--;
+            h_pos.data[j].x += Lx;
+            h_image.data[j].x--;
             }
 
-        if (arrays.z[j] >= box.zhi)
+        if (h_pos.data[j].y >= box.yhi)
             {
-            arrays.z[j] -= Lz;
-            arrays.iz[j]++;
+            h_pos.data[j].y -= Ly;
+            h_image.data[j].y++;
             }
-        else if (arrays.z[j] < box.zlo)
+        else if (h_pos.data[j].y < box.ylo)
             {
-            arrays.z[j] += Lz;
-            arrays.iz[j]--;
+            h_pos.data[j].y += Ly;
+            h_image.data[j].y--;
+            }
+
+        if (h_pos.data[j].z >= box.zhi)
+            {
+            h_pos.data[j].z -= Lz;
+            h_image.data[j].z++;
+            }
+        else if (h_pos.data[j].z < box.zlo)
+            {
+            h_pos.data[j].z += Lz;
+            h_image.data[j].z--;
             }
         }
-
-    m_pdata->release();
 
     if (m_prof)
         m_prof->pop();
@@ -185,7 +188,8 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
 
     // access the particle data for writing on the CPU
     assert(m_pdata);
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
     // access the force data
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -201,19 +205,17 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
         unsigned int j = m_group->getMemberIndex(group_idx);
 
         // calculate the acceleration from the net force
-        Scalar minv = Scalar(1.0) / arrays.mass[j];
-        arrays.ax[j] = h_net_force.data[j].x * minv;
-        arrays.ay[j] = h_net_force.data[j].y * minv;
-        arrays.az[j] = h_net_force.data[j].z * minv;
+        Scalar minv = Scalar(1.0) / h_vel.data[j].w;
+        h_accel.data[j].x = h_net_force.data[j].x * minv;
+        h_accel.data[j].y = h_net_force.data[j].y * minv;
+        h_accel.data[j].z = h_net_force.data[j].z * minv;
 
         // update the velocity
-        arrays.vx[j] += arrays.ax[j] * m_deltaT / Scalar(2.0);
-        arrays.vy[j] += arrays.ay[j] * m_deltaT / Scalar(2.0);
-        arrays.vz[j] += arrays.az[j] * m_deltaT / Scalar(2.0);
+        h_vel.data[j].x += h_accel.data[j].x * m_deltaT / Scalar(2.0);
+        h_vel.data[j].y += h_accel.data[j].y * m_deltaT / Scalar(2.0);
+        h_vel.data[j].z += h_accel.data[j].z * m_deltaT / Scalar(2.0);
         }
 
-    // release the particle data
-    m_pdata->release();
     }
 
 void export_Berendsen()

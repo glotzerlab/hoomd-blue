@@ -87,7 +87,9 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     
     // calculate the average momentum
     assert(m_pdata);
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
     
     // temp variables for holding the sums
     Scalar sum_px = 0.0;
@@ -96,14 +98,14 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     unsigned int n = 0;
     
     // add up the momentum of every free particle
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        if (arrays.body[i] == NO_BODY)
+        if (h_body.data[i] == NO_BODY)
             {
-            Scalar mass = arrays.mass[i];
-            sum_px += mass*arrays.vx[i];
-            sum_py += mass*arrays.vy[i];
-            sum_pz += mass*arrays.vz[i];
+            Scalar mass = h_vel.data[i].w;
+            sum_px += mass*h_vel.data[i].x;
+            sum_py += mass*h_vel.data[i].y;
+            sum_pz += mass*h_vel.data[i].z;
             n++;
             }
         }
@@ -133,14 +135,14 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     Scalar avg_pz = sum_pz / Scalar(n);
     
     // subtract this momentum from every free partcile
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        if (arrays.body[i] == NO_BODY)
+        if (h_body.data[i] == NO_BODY)
             {
-            Scalar mass = arrays.mass[i];
-            arrays.vx[i] -= avg_px/mass;
-            arrays.vy[i] -= avg_py/mass;
-            arrays.vz[i] -= avg_pz/mass;
+            Scalar mass = h_vel.data[i].w;
+            h_vel.data[i].x -= avg_px/mass;
+            h_vel.data[i].y -= avg_py/mass;
+            h_vel.data[i].z -= avg_pz/mass;
             }
         }
         
@@ -159,8 +161,6 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
             }
         }
 
-    m_pdata->release();
-    
     // update the body particle velocities to reflect the new body velocities
     rigid_data->setRV(false);
     

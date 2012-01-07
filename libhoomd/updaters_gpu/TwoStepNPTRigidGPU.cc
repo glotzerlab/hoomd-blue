@@ -216,8 +216,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "NPT rigid step 1");
     
     // access all the needed data
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
-    
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
@@ -290,8 +288,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     d_npt_rdata.dilation = dilation;
     
     // perform the update on the GPU
-    gpu_npt_rigid_step_one(d_pdata,
-                           d_rdata,
+    gpu_npt_rigid_step_one(d_rdata,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -302,7 +299,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
-    m_pdata->release();
     }
     
     // set new box
@@ -373,8 +369,6 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NPT rigid step 2");
     
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
-
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
@@ -445,8 +439,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
-    gpu_rigid_force(d_pdata,
-                    d_rdata, 
+    gpu_rigid_force(d_rdata,
                     d_index_array.data,
                     group_size,
                     d_net_force.data,
@@ -458,8 +451,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
         CHECK_CUDA_ERROR();
                                 
     // perform the update on the GPU
-    gpu_npt_rigid_step_two(d_pdata,
-                           d_rdata,
+    gpu_npt_rigid_step_two(d_rdata,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -471,7 +463,6 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
    
-    m_pdata->release();
     }
     
     // calculate current temperature and pressure

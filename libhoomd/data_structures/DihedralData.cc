@@ -332,17 +332,18 @@ void DihedralData::updateDihedralTable()
     
     // loop through the particles and count the number of dihedrals based on each particle index
     // however, only the b atom in the a-b-c dihedral is included in the count.
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
     for (unsigned int cur_dihedral = 0; cur_dihedral < m_dihedrals.size(); cur_dihedral++)
         {
         unsigned int tag1 = m_dihedrals[cur_dihedral].a; //
         unsigned int tag2 = m_dihedrals[cur_dihedral].b;
         unsigned int tag3 = m_dihedrals[cur_dihedral].c; //
         unsigned int tag4 = m_dihedrals[cur_dihedral].d; //
-        int idx1 = arrays.rtag[tag1]; //
-        int idx2 = arrays.rtag[tag2];
-        int idx3 = arrays.rtag[tag3]; //
-        int idx4 = arrays.rtag[tag4]; //
+        int idx1 = h_rtag[tag1]; //
+        int idx2 = h_rtag[tag2];
+        int idx3 = h_rtag[tag3]; //
+        int idx4 = h_rtag[tag4]; //
         
         m_host_n_dihedrals[idx1]++; //
         m_host_n_dihedrals[idx2]++;
@@ -352,7 +353,8 @@ void DihedralData::updateDihedralTable()
         
     // find the maximum number of dihedrals
     unsigned int num_dihedrals_max = 0;
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    unsigned int nparticles = m_pdata->getN();
+    for (unsigned int i = 0; i < nparticles; i++)
         {
         if (m_host_n_dihedrals[i] > num_dihedrals_max)
             num_dihedrals_max = m_host_n_dihedrals[i];
@@ -377,10 +379,10 @@ void DihedralData::updateDihedralTable()
         unsigned int tag3 = m_dihedrals[cur_dihedral].c;
         unsigned int tag4 = m_dihedrals[cur_dihedral].d;
         unsigned int type = m_dihedrals[cur_dihedral].type;
-        int idx1 = arrays.rtag[tag1];
-        int idx2 = arrays.rtag[tag2];
-        int idx3 = arrays.rtag[tag3];
-        int idx4 = arrays.rtag[tag4];
+        int idx1 = h_rtag[tag1];
+        int idx2 = h_rtag[tag2];
+        int idx3 = h_rtag[tag3];
+        int idx4 = h_rtag[tag4];
         dihedralABCD dihedral_type_abcd;
         
         // get the number of dihedrals for the b in a-b-c triplet
@@ -415,8 +417,6 @@ void DihedralData::updateDihedralTable()
         m_host_n_dihedrals[idx4]++; //
         }
         
-    m_pdata->release();
-    
     // copy the dihedral table to the device
     copyDihedralTable();
     }

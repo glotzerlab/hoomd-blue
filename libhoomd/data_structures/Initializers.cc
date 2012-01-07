@@ -107,16 +107,10 @@ BoxDim SimpleCubicInitializer::getBox() const
     }
 
 
-/*! Initializes the particles
-    \param pdata Particle data arrays to write the cubic crystal into
-*/
-void SimpleCubicInitializer::initArrays(const ParticleDataArrays &pdata) const
+/*! \returns a snapshot of the cubic crystal */
+SnapshotParticleData SimpleCubicInitializer::getSnapshot() const
     {
-    assert(pdata.nparticles > 0);
-    assert(pdata.x != NULL);
-    assert(pdata.y != NULL);
-    assert(pdata.z != NULL);
-    
+    SnapshotParticleData snap(m_M);
     
     // just do a simple triple for loop to fill the space
     unsigned int c = 0;
@@ -126,16 +120,14 @@ void SimpleCubicInitializer::initArrays(const ParticleDataArrays &pdata) const
             {
             for (unsigned int i = 0; i < m_M; i++)
                 {
-                pdata.x[c] = i * m_spacing + box.xlo;
-                pdata.y[c] = j * m_spacing + box.ylo;
-                pdata.z[c] = k * m_spacing + box.zlo;
+                snap.pos[c].x = i * m_spacing + box.xlo;
+                snap.pos[c].y = j * m_spacing + box.ylo;
+                snap.pos[c].z = k * m_spacing + box.zlo;
                 c++;
                 }
             }
         }
-        
-    // sanity check, make sure c didn't overrun the array
-    assert(c == pdata.nparticles);
+    return snap;
     }
 
 /*! \returns A type mapping with a single particle m_type_name
@@ -217,17 +209,17 @@ void RandomInitializer::setSeed(unsigned int seed)
     srand(seed);
     }
 
-/*! \param pdata Particle data arrays to write particles in to
-    \post \a N particles are randomly placed in the box
+/*  \post \a N particles are randomly placed in the box
     \note An exception is thrown if too many tries are made to find a spot where
         min_dist can be satisfied.
+    \returns snapshot of the new particle data
 */
-void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
+SnapshotParticleData RandomInitializer::getSnapshot() const
     {
-    assert(pdata.nparticles == m_N);
-    
+    SnapshotParticleData snap(m_N);
+
     Scalar L = m_box.xhi*Scalar(2.0);
-    for (unsigned int i = 0; i < pdata.nparticles; i++)
+    for (unsigned int i = 0; i < m_N; i++)
         {
         // generate random particles until we find a suitable one meating the min_dist
         // criteria
@@ -247,19 +239,19 @@ void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
                 {
                 for (unsigned int j = 0; j < i; j++)
                     {
-                    Scalar dx = pdata.x[j] - x;
+                    Scalar dx = snap.pos[j].x - x;
                     if (dx < -L/Scalar(2.0))
                         dx += L;
                     if (dx > L/Scalar(2.0))
                         dx -= L;
                         
-                    Scalar dy = pdata.y[j] - y;
+                    Scalar dy = snap.pos[j].y - y;
                     if (dy < -L/Scalar(2.0))
                         dy += L;
                     if (dy > L/Scalar(2.0))
                         dy -= L;
                         
-                    Scalar dz = pdata.z[j] - z;
+                    Scalar dz = snap.pos[j].z - z;
                     if (dz < -L/Scalar(2.0))
                         dz += L;
                     if (dz > L/Scalar(2.0))
@@ -271,7 +263,7 @@ void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
                     }
                 }
             tries++;
-            if (tries > pdata.nparticles*100)
+            if (tries > m_N*100)
                 {
                 cerr << endl 
                      << "***Error! RandomInitializer: Unable to find location for particle after trying many times"
@@ -280,10 +272,10 @@ void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
                 }
             }
             
-        pdata.x[i] = x;
-        pdata.y[i] = y;
-        pdata.z[i] = z;
+        snap.pos[i] = make_scalar3(x,y,z);
         }
+
+    return snap;
     }
 
 /*! \returns A type mapping with a single particle m_type_name

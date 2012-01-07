@@ -80,7 +80,11 @@ void CellListGPU::computeCellList()
                                  Scalar(1.0) / m_width.z);
     
     // acquire the particle data
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_diameter(m_pdata->getBodies(), access_location::device, access_mode::read);
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // access the cell list data arrays
@@ -96,10 +100,10 @@ void CellListGPU::computeCellList()
                               d_xyzf.data,
                               d_tdb.data,
                               d_conditions.data,
-                              d_pdata.pos,
-                              d_pdata.charge,
-                              d_pdata.diameter,
-                              d_pdata.body,
+                              d_pos.data,
+                              d_charge.data
+                              d_diameter.data,
+                              d_body.data,
                               m_pdata->getN(),
                               m_Nmax,
                               m_flag_charge,
@@ -129,8 +133,6 @@ void CellListGPU::computeCellList()
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
-    m_pdata->release();
     
     if (m_prof)
         m_prof->pop(exec_conf);

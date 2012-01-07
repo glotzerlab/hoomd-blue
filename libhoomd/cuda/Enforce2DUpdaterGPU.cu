@@ -65,54 +65,49 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     the GPU. Used by Enforce2DUpdaterGPU.
 */
 
-//! The texture for reading the pdata vel array
-texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
-//! The texture for reading the pdata accel array
-texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
-
 //! Constrains partcles to the xy plane on the GPU
-/*! \param pdata Particle data to constrain to xy plane
+/*! \param N number of particles in system
+    \param d_vel Particle velocities to constrain to xy plane
+    \param d_accel Particle accelerations to constrain to xy plane
 */
 extern "C" __global__ 
-void gpu_enforce2d_kernel(gpu_pdata_arrays pdata)
+void gpu_enforce2d_kernel(const unsigned int N,
+                          const Scalar4 *d_vel,
+                          const Scalar3 *d_accel)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx < pdata.N)
+    if (idx < N)
         {        
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
-        float4 accel = tex1Dfetch(pdata_accel_tex, idx);
+        float4 vel = d_vel[idx];
+        float4 accel = d_accel[idx];
                 
         // zero the z-velocity and z-acceleration(FLOPS: ?)
         vel.z = 0.0f;
         accel.z = 0.0f;
                 
         // write out the results (MEM_TRANSFER: 32 bytes)
-        pdata.vel[idx] = vel;
-        pdata.accel[idx] = accel;
+        d_vel[idx] = vel;
+        d_accel[idx] = accel;
         }
     }
 
-/*! \param pdata Particle data to constrain to xy plane
+/*! \param N number of particles in system
+    \param d_vel Particle velocities to constrain to xy plane
+    \param d_accel Particle accelerations to constrain to xy plane
 */
-cudaError_t gpu_enforce2d(const gpu_pdata_arrays &pdata)
+cudaError_t gpu_enforce2d(const unsigned int N,
+                          const Scalar4 *d_vel,
+                          const Scalar3 *d_accel)
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (pdata.N/block_size) + 1, 1, 1);
+    dim3 grid( (N/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
             
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-                
     // run the kernel
-    gpu_enforce2d_kernel<<< grid, threads >>>(pdata);
+    gpu_enforce2d_kernel<<< grid, threads >>>(N, d_vel, d_accel);
     
     return cudaSuccess;
     }

@@ -171,7 +171,12 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push("NVE step 2");
     
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     
@@ -199,42 +204,45 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         
         Scalar gamma;
         if (m_gamma_diam)
-            gamma = arrays.diameter[j];
+            gamma = h_diameter.data[j];
         else
-            gamma = h_gamma.data[arrays.type[j]];
+            {
+            unsigned int type = __scalar_as_int(h_pos.data[j].w);
+            gamma = h_gamma.data[type];
+            }
         
         // compute the bd force
         Scalar coeff = sqrt(Scalar(6.0) *gamma*currentTemp/m_deltaT);
-        Scalar bd_fx = rx*coeff - gamma*arrays.vx[j];
-        Scalar bd_fy = ry*coeff - gamma*arrays.vy[j];
-        Scalar bd_fz = rz*coeff - gamma*arrays.vz[j];
+        Scalar bd_fx = rx*coeff - gamma*h_vel.data[j].x;
+        Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
+        Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
         
         if (D < 3.0)
             bd_fz = Scalar(0.0);
         
         // then, calculate acceleration from the net force
-        Scalar minv = Scalar(1.0) / arrays.mass[j];
-        arrays.ax[j] = (h_net_force.data[j].x + bd_fx)*minv;
-        arrays.ay[j] = (h_net_force.data[j].y + bd_fy)*minv;
-        arrays.az[j] = (h_net_force.data[j].z + bd_fz)*minv;
+        Scalar minv = Scalar(1.0) / h_vel.data[j].w;
+        h_accel.data[j].x = (h_net_force.data[j].x + bd_fx)*minv;
+        h_accel.data[j].y = (h_net_force.data[j].y + bd_fy)*minv;
+        h_accel.data[j].z = (h_net_force.data[j].z + bd_fz)*minv;
         
         // then, update the velocity
-        arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-        arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-        arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
+        h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
+        h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
+        h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
         
         // tally the energy transfer from the bd thermal reservor to the particles
-        if (m_tally) bd_energy_transfer += bd_fx * arrays.vx[j] + bd_fy * arrays.vy[j] + bd_fz * arrays.vz[j];
+        if (m_tally) bd_energy_transfer += bd_fx * h_vel.data[j].x + bd_fy * h_vel.data[j].y + bd_fz * h_vel.data[j].z;
         
         // limit the movement of the particles
         if (m_limit)
             {
-            Scalar vel = sqrt(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            Scalar vel = sqrt(h_vel.data[j].x*h_vel.data[j].x + h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z );
             if ( (vel*m_deltaT) > m_limit_val)
                 {
-                arrays.vx[j] = arrays.vx[j] / vel * m_limit_val / m_deltaT;
-                arrays.vy[j] = arrays.vy[j] / vel * m_limit_val / m_deltaT;
-                arrays.vz[j] = arrays.vz[j] / vel * m_limit_val / m_deltaT;
+                h_vel.data[j].x = h_vel.data[j].x / vel * m_limit_val / m_deltaT;
+                h_vel.data[j].y = h_vel.data[j].y / vel * m_limit_val / m_deltaT;
+                h_vel.data[j].z = h_vel.data[j].z / vel * m_limit_val / m_deltaT;
                 }
             }
         }
@@ -245,8 +253,6 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         m_extra_energy_overdeltaT = 0.5*bd_energy_transfer;
         }
         
-    m_pdata->release();
-    
     // done profiling
     if (m_prof)
         m_prof->pop();

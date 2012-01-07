@@ -64,6 +64,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+bool operator== (const Scalar3 &a, const Scalar3 &b)
+{
+    return (a.x == b.x &&
+            a.y == b.y &&
+            a.z == b.z);
+}
 void export_hoomd_math_functions()
     {
     class_<Scalar2>("Scalar2", init<>())

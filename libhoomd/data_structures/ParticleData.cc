@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file ParticleData.cc
-    \brief Contains all code for BoxDim, ParticleData, and ParticleDataArrays.
+    \brief Contains all code for BoxDim, ParticleData, and SnapshotParticleData.
  */
 
 #ifdef WIN32
@@ -125,25 +125,6 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
     }
 
 ////////////////////////////////////////////////////////////////////////////
-// ParticleDataArrays constructors
-/*! \post All pointers are NULL
-*/
-ParticleDataArrays::ParticleDataArrays() : nparticles(0), x(NULL), y(NULL), z(NULL),
-        vx(NULL), vy(NULL), vz(NULL), ax(NULL), ay(NULL), az(NULL), charge(NULL), mass(NULL), diameter(NULL), ix(NULL),
-        iy(NULL), iz(NULL), body(NULL), type(NULL), rtag(NULL)
-    {
-    }
-
-/*! \post All pointers are NULL
-*/
-ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(NULL), z(NULL),
-        vx(NULL), vy(NULL), vz(NULL), ax(NULL), ay(NULL), az(NULL), charge(NULL), mass(NULL), diameter(NULL), ix(NULL),
-        iy(NULL), iz(NULL), body(NULL), type(NULL), rtag(NULL)
-    {
-    }
-
-
-////////////////////////////////////////////////////////////////////////////
 // ParticleData members
 
 /*! \param N Number of particles to allocate memory for
@@ -165,7 +146,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
     Type mappings assign particle types "A", "B", "C", ....
 */
 ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf)
-        : m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
+        : m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types)
     {
     // check the input for errors
     if (m_ntypes == 0)
@@ -176,33 +157,25 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         
     // allocate memory
     allocate(N);
-    
-    // sanity check
-    assert(m_arrays.x != NULL && m_arrays.y != NULL && m_arrays.z != NULL);
-    assert(m_arrays.vx != NULL && m_arrays.vy != NULL && m_arrays.vz != NULL);
-    assert(m_arrays.ax != NULL && m_arrays.ay != NULL && m_arrays.az != NULL);
-    assert(m_arrays.ix != NULL && m_arrays.iy != NULL && m_arrays.iz != NULL);
-    assert(m_arrays.mass != NULL && m_arrays.diameter != NULL);
-    assert(m_arrays.type != NULL && m_arrays.rtag != NULL && m_arrays.tag != NULL && m_arrays.charge != NULL);
-    assert(m_arrays.body != NULL);
-    
+
+    ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
+    ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
     ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
     
     // set default values
+    // all values not explicitly set here have been initialized to zero upon allocation
     for (unsigned int i = 0; i < N; i++)
         {
-        m_arrays.x[i] = m_arrays.y[i] = m_arrays.z[i] = 0.0;
-        m_arrays.vx[i] = m_arrays.vy[i] = m_arrays.vz[i] = 0.0;
-        m_arrays.ax[i] = m_arrays.ay[i] = m_arrays.az[i] = 0.0;
-        m_arrays.charge[i] = 0.0;
-        m_arrays.mass[i] = 1.0;
-        m_arrays.diameter[i] = 1.0;
-        m_arrays.ix[i] = m_arrays.iy[i] = m_arrays.iz[i] = 0;
+        h_vel.data[i].w = 1.0; // mass
+
+        h_diameter.data[i] = 1.0;
         
-        m_arrays.body[i] = NO_BODY;
-        m_arrays.type[i] = 0;
-        m_arrays.rtag[i] = i;
-        m_arrays.tag[i] = i;
+        h_body.data[i] = NO_BODY;
+        h_rtag.data[i] = i;
+        h_tag.data[i] = i;
         h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
         }
         
@@ -222,10 +195,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         {
-        hostToDeviceCopy();
-        // now the data is copied to both the cpu and gpu and is unmodified, set the initial state
-        m_data_location = cpugpu;
-        
         // setup the box
         m_gpu_box.Lx = m_box.xhi - m_box.xlo;
         m_gpu_box.Ly = m_box.yhi - m_box.ylo;
@@ -234,11 +203,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
         m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
         }
-    else
-        {
-        m_data_location = cpu;
-        }
-        
 #endif
     }
 
@@ -247,7 +211,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
     \param init Initializer to use
     \param exec_conf Execution configuration to run on
 */
-ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
+ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0)
     {
     m_ntypes = init.getNumParticleTypes();
     // check the input for errors
@@ -260,44 +224,34 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     // allocate memory
     allocate(init.getNumParticles());
     
-    // sanity check
-    assert(m_arrays.x != NULL && m_arrays.y != NULL && m_arrays.z != NULL);
-    assert(m_arrays.vx != NULL && m_arrays.vy != NULL && m_arrays.vz != NULL);
-    assert(m_arrays.ax != NULL && m_arrays.ay != NULL && m_arrays.az != NULL);
-    assert(m_arrays.ix != NULL && m_arrays.iy != NULL && m_arrays.iz != NULL);
-    assert(m_arrays.mass != NULL && m_arrays.diameter != NULL);
-    assert(m_arrays.type != NULL && m_arrays.rtag != NULL && m_arrays.tag != NULL && m_arrays.charge != NULL);
-    assert(m_arrays.body != NULL);
-    
         {
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
         
+        ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
+
         // set default values
-        for (unsigned int i = 0; i < m_arrays.nparticles; i++)
+        // all values not explicitly set here have been initialized to zero upon allocation
+        for (unsigned int i = 0; i < getN(); i++)
             {
-            m_arrays.x[i] = m_arrays.y[i] = m_arrays.z[i] = 0.0;
-            m_arrays.vx[i] = m_arrays.vy[i] = m_arrays.vz[i] = 0.0;
-            m_arrays.ax[i] = m_arrays.ay[i] = m_arrays.az[i] = 0.0;
-            m_arrays.charge[i] = 0.0;
-            m_arrays.mass[i] = 1.0;
-            m_arrays.diameter[i] = 1.0;
-            m_arrays.ix[i] = m_arrays.iy[i] = m_arrays.iz[i] = 0;
+            h_vel.data[i].w = 1.0; // mass
+
+            h_diameter.data[i] = 1.0;
             
-            m_arrays.body[i] = NO_BODY;
-            m_arrays.type[i] = 0;
-            m_arrays.rtag[i] = i;
-            m_arrays.tag[i] = i;
+            h_body.data[i] = NO_BODY;
+            h_rtag.data[i] = i;
+            h_tag.data[i] = i;
             h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
             }
         }
         
-    // need to set m_data_location before any call to setBox
-#ifdef ENABLE_CUDA
-    m_data_location = cpu;
-#endif
-    
     setBox(init.getBox());        
-    init.initArrays(m_arrays);
+    SnapshotParticleData snapshot = init.getSnapshot();
+    initializeFromSnapshot(snapshot);
+
         {
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::overwrite);
         init.initOrientation(h_orientation.data);
@@ -305,7 +259,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
         }
             
     // it is an error for particles to be initialized outside of their box
-    if (!inBox(false))
+    if (!inBox())
         {
         cerr << endl << "***Error! Not all particles were found inside the given box" << endl << endl;
         throw runtime_error("Error initializing ParticleData");
@@ -316,27 +270,6 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
-    
-    // if this is a GPU build, initialize the graphics card mirror data structure
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        hostToDeviceCopy();
-        // now the data is copied to both the cpu and gpu and is unmodified, set the initial state
-        m_data_location = cpugpu;
-        }
-    else
-        {
-        m_data_location = cpu;
-        }
-#endif
-    }
-
-/*! Frees all allocated memory
- */
-ParticleData::~ParticleData()
-    {
-    deallocate();
     }
 
 /*! \return Simulation box dimensions
@@ -354,7 +287,7 @@ const BoxDim & ParticleData::getBox() const
 void ParticleData::setBox(const BoxDim &box)
     {
     m_box = box;
-    assert(inBox(true));
+    assert(inBox());
     
 #ifdef ENABLE_CUDA
     // setup the box
@@ -367,250 +300,6 @@ void ParticleData::setBox(const BoxDim &box)
 #endif
     
     m_boxchange_signal();
-    }
-
-/*! Access to the particle data is granted only when acquired. The data may be living
-    in the graphics card memory, so accesses may be expensive as they involve copying
-    over the PCI-Express connection. Access should only be acquired when needed and as few
-    times as possible.
-
-    This method gives read-only access to the particle data. If the data is not to be
-    written to, this is preferred as it will avoid copying the data back to the
-    graphics card.
-
-    \note There are NO sophisticated mulithreaded syncronization routines. Only one
-        thread may acquire the particle data at a time, and it may not acquire it twice
-        without releasing it first.
-
-    \note Debug builds enforce the acquire/release pairing with asserts.
-
-    \return Pointers that can be used to access the particle data on the CPU
-
-    \sa release()
-*/
-const ParticleDataArraysConst & ParticleData::acquireReadOnly()
-    {
-    // sanity check
-    assert(m_data);
-    assert(!m_acquired);
-    assert(inBox(true));
-    m_acquired = true;
-    
-#ifdef ENABLE_CUDA
-    
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is solely on the cpu, life is easy, return the data arrays
-            // and stay in the same state
-            return m_arrays_const;
-            break;
-        case cpugpu:
-            // if the data is up to date on both the cpu and gpu, life is easy, return
-            // the data arrays and stay in the same state
-            return m_arrays_const;
-            break;
-        case gpu:
-            // if the data resides on the gpu, it needs to be copied back to the cpu
-            // this changes to the cpugpu state since the data is now fully up to date on
-            // both
-            deviceToHostCopy();
-            m_data_location = cpugpu;
-            return m_arrays_const;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_arrays_const;
-            break;
-        }
-    
-    // should never get here, but the compiler cannot seem to tell that
-    assert(false);
-    return m_arrays_const;
-#else
-    // this is just a simple CPU implementation, no graphics card involved.
-    // So, just return the data arrays
-    return m_arrays_const;
-#endif
-    }
-
-/*! Acquire access to the particle data, allowing both read and write access.
-    \sa acquireReadOnly
-    \sa release
-*/
-const ParticleDataArrays & ParticleData::acquireReadWrite()
-    {
-    // sanity check
-    assert(m_data);
-    assert(!m_acquired);
-    assert(inBox(true));
-    m_acquired = true;
-    
-#ifdef ENABLE_CUDA
-    
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is solely on the cpu, life is easy, return the data arrays
-            // and stay in the same state
-            return m_arrays;
-            break;
-        case cpugpu:
-            // if the data is up to date on both the cpu and gpu, it is about to be modified
-            // on the cpu, so change states to that and then return the data
-            m_data_location = cpu;
-            return m_arrays;
-            break;
-        case gpu:
-            // if the data resides on the gpu, it needs to be copied back to the cpu
-            // this changes to the cpu state since the data is about to be modified
-            // on the cpu
-            deviceToHostCopy();
-            m_data_location = cpu;
-            return m_arrays;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_arrays;
-            break;
-        }
-
-    // should never get here, but the compiler cannot seem to tell that
-    assert(false);
-    return m_arrays;
-#else
-    // this is just a simple CPU implementation, no graphics card involved.
-    // So, just return the data arrays
-    return m_arrays;
-#endif
-    }
-
-#ifdef ENABLE_CUDA
-
-/*! Acquire access to the particle data, for read only access on the gpu.
-
-    \return Pointers to GPU device memory where the particle data can be accessed
-    \sa acquireReadOnly
-    \sa release
-*/
-gpu_pdata_arrays& ParticleData::acquireReadOnlyGPU()
-    {
-    // sanity check
-    assert(!m_acquired);
-    m_acquired = true;
-    
-    if (!m_exec_conf->isCUDAEnabled())
-        {
-        cerr << endl << "***Error! Reqesting GPU pdata, but no GPU in the Execution Configuration" << endl << endl;
-        throw runtime_error("Error acquiring GPU data");
-        }
-        
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is on the cpu, we need to copy it over to the gpu
-            hostToDeviceCopy();
-            
-            // now we are in the cpugpu state
-            m_data_location = cpugpu;
-            return m_gpu_pdata;
-            break;
-        case cpugpu:
-            // state remains the same
-            return m_gpu_pdata;
-            break;
-        case gpu:
-            // state remains the same
-            return m_gpu_pdata;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_gpu_pdata;
-            break;
-        }
-    }
-
-/*! Acquire access to the particle data, for read/write access on the gpu.
-
-    \return Pointers to GPU device memory where the particle data can be accessed
-    \sa acquireReadOnly
-    \sa release
-*/
-gpu_pdata_arrays& ParticleData::acquireReadWriteGPU()
-    {
-    // sanity check
-    assert(!m_acquired);
-    m_acquired = true;
-    
-    if (!m_exec_conf->isCUDAEnabled())
-        {
-        cerr << endl << "Reqesting GPU pdata, but no GPU in the Execution Configuration" << endl << endl;
-        throw runtime_error("Error acquiring GPU data");
-        }
-        
-    // flag that we have done a read/write on the GPU
-    m_readwrite_gpu = true;
-    
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is on the cpu, we need to copy it over to the gpu and
-            hostToDeviceCopy();
-            
-            // now we are in the gpu state
-            m_data_location = gpu;
-            return m_gpu_pdata;
-            break;
-        case cpugpu:
-            // state goes to gpu
-            m_data_location = gpu;
-            return m_gpu_pdata;
-            break;
-        case gpu:
-            // state remains the same
-            return m_gpu_pdata;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_gpu_pdata;
-            break;
-        }
-    }
-
-
-#endif
-
-
-/*! When a caller is done with the data from either acquireReadOnly or acquireReadWrite, it
-    needs to release it so that it can be acquired again further down the line.
-
-    After calling realease, the caller has no buisiness dereferencing the pointers
-    it got from acquire any more. Data may be moved around in memory when it is not
-    acquired.
-
-    \warning No caller should move particles outside the simulation box. In debug builds, release()
-    checks to make sure this is the case.
-*/
-void ParticleData::release()
-    {
-    // sanity checks
-    assert(m_acquired);
-    
-    // this is just a simple CPU implementation, no graphics card involved.
-    // all memory mods were direct into the pointers, so just flip the acquired bit
-    m_acquired = false;
     }
 
 /*! \param func Function to call when the particles are resorted
@@ -685,14 +374,8 @@ std::string ParticleData::getNameByType(unsigned int type)
 
 
 /*! \param N Number of particles to allocate memory for
-    \pre No memory is allocated and the pointers in m_arrays point nowhere
-    \post All memory is allocated and the pointers in m_arrays are set properly
-    \note As per the requirements, this method is implemented to allocate all of the
-        many arrays in one big chunk.
-    \note For efficiency copying to/from the GPU, arrays are 256 byte aligned and x,y,z,type are
-        next to each other in memory in that order. Similarly, vx,vy,vz are next to
-        each other and ax,ay,az are next to each other. The pitch between starts of
-        these arrays is stored in m_uninterleave_pitch.
+    \pre No memory is allocated and the per-particle GPUArrays are unitialized
+    \post All per-perticle GPUArrays are allocated
 */
 void ParticleData::allocate(unsigned int N)
     {
@@ -702,118 +385,46 @@ void ParticleData::allocate(unsigned int N)
         cerr << endl << "***Error! ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever" << endl << endl;
         throw runtime_error("Error allocating ParticleData");
         }
-        
-    m_nbytes = 0;
-    
-    /////////////////////////////////////////////////////
-    // Count bytes needed by the main data structures
-#ifdef ENABLE_CUDA
-    // 256 byte aligned version for GPU
-    
-    // start by adding up the number of bytes needed for the Scalar arrays, rounding up by 16
-    unsigned int single_xarray_bytes = sizeof(Scalar) * N;
-    if ((single_xarray_bytes & 255) != 0)
-        single_xarray_bytes += 256 - (single_xarray_bytes & 255);
-        
-    // total all bytes from scalar arrays
-    m_nbytes += single_xarray_bytes * 12;
-    
-    // now add up the number of bytes for the int arrays, rounding up to 16 bytes
-    unsigned int single_iarray_bytes = sizeof(unsigned int) * N;
-    if ((single_iarray_bytes & 255) != 0)
-        single_iarray_bytes += 256 - (single_iarray_bytes & 255);
-        
-    m_nbytes += single_iarray_bytes * 7;
-    
-#else
-    
-    // allocation on the CPU
-    // start by adding up the number of bytes needed for the Scalar arrays
-    unsigned int single_xarray_bytes = sizeof(Scalar) * N;
-    
-    // total all bytes from scalar arrays
-    m_nbytes += single_xarray_bytes * 12;
-    
-    // now add up the number of bytes for the int arrays
-    unsigned int single_iarray_bytes = sizeof(unsigned int) * N;
-    
-    m_nbytes += single_iarray_bytes * 7;
-#endif
-    
-    //////////////////////////////////////////////////////
-    // allocate the memory on the CPU, use pinned memory if compiling for the GPU
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        cudaHostAlloc(&m_data, m_nbytes, cudaHostAllocPortable);
-        }
-    else
-        {
-        m_data = malloc(m_nbytes);
-        }
-#else
-    m_data = malloc(m_nbytes);
-#endif
-        
-    // Now that m_data is allocated, we need to play some pointer games to assign
-    // the x,y,z, etc... pointers
-    char *cur_byte = (char *)m_data;
-    m_arrays_const.x = m_arrays.x = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.y = m_arrays.y = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.z = m_arrays.z = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.type = m_arrays.type = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
-    m_arrays_const.vx = m_arrays.vx = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.vy = m_arrays.vy = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.vz = m_arrays.vz = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.ax = m_arrays.ax = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.ay = m_arrays.ay = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.az = m_arrays.az = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.charge = m_arrays.charge = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.mass = m_arrays.mass = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.diameter = m_arrays.diameter = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-    m_arrays_const.ix = m_arrays.ix = (int *)cur_byte;  cur_byte += single_iarray_bytes;
-    m_arrays_const.iy = m_arrays.iy = (int *)cur_byte;  cur_byte += single_iarray_bytes;
-    m_arrays_const.iz = m_arrays.iz = (int *)cur_byte;  cur_byte += single_iarray_bytes;
-    m_arrays_const.rtag = m_arrays.rtag = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
-    m_arrays_const.tag = m_arrays.tag = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
-    m_arrays_const.body = m_arrays.body = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
-    m_arrays_const.nparticles = m_arrays.nparticles = N;
-    
-    // sanity check
-    assert(cur_byte == ((char*)m_data) + m_nbytes);
-    
-#ifdef ENABLE_CUDA
-    //////////////////////////////////////////////////////////
-    // allocate memory on each GPU
-    
-    // calculate pitch values for swizzling memory on the GPU
-    m_uninterleave_pitch = single_xarray_bytes/4;
-    m_single_xarray_bytes = single_xarray_bytes;
-    
-    // setup staging array
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        m_gpu_pdata.N = N;
-        
-        cudaMalloc(&m_gpu_pdata.pos, single_xarray_bytes * 4);
-        cudaMalloc(&m_gpu_pdata.vel, single_xarray_bytes * 4);
-        cudaMalloc(&m_gpu_pdata.accel, single_xarray_bytes * 4);
-        cudaMalloc(&m_gpu_pdata.charge, single_xarray_bytes);
-        cudaMalloc(&m_gpu_pdata.mass, single_xarray_bytes);
-        cudaMalloc(&m_gpu_pdata.diameter, single_xarray_bytes);
-        cudaMalloc(&m_gpu_pdata.image, single_xarray_bytes * 4);
-        cudaMalloc(&m_gpu_pdata.tag, sizeof(unsigned int)*N);
-        cudaMalloc(&m_gpu_pdata.rtag, sizeof(unsigned int)*N);
-        cudaMalloc(&m_gpu_pdata.body, sizeof(unsigned int)*N);
-        
-        // allocate temporary holding area for uninterleaved data
-        cudaMalloc(&m_d_staging, single_xarray_bytes*4);
-        
-        cudaHostAlloc(&m_h_staging, sizeof(float4)*N, cudaHostAllocPortable);
-        CHECK_CUDA_ERROR();
-        }
-        
-#endif
+
+    // set particle number
+    m_nparticles = N;
+
+    // positions
+    GPUArray< Scalar4 > pos(getN(), m_exec_conf);
+    m_pos.swap(pos);
+
+    // velocities
+    GPUArray< Scalar4 > vel(getN(), m_exec_conf);
+    m_vel.swap(vel);
+
+    // accelerations
+    GPUArray< Scalar3 > accel(getN(), m_exec_conf);
+    m_accel.swap(accel);
+
+    // charge
+    GPUArray< Scalar > charge(getN(), m_exec_conf);
+    m_charge.swap(charge);
+
+    // diameter
+    GPUArray< Scalar > diameter(getN(), m_exec_conf);
+    m_diameter.swap(diameter);
+
+    // image
+    GPUArray< int3 > image(getN(), m_exec_conf);
+    m_image.swap(image);
+
+    // tag
+    GPUArray< unsigned int > tag(getN(), m_exec_conf);
+    m_tag.swap(tag);
+
+    // reverse-lookup tag
+    GPUArray< unsigned int > rtag(getN(), m_exec_conf);
+    m_tag.swap(rtag);
+
+    // body ID
+    GPUArray< unsigned int > body(getN(), m_exec_conf);
+    m_body.swap(body);
+
     GPUArray< Scalar4 > net_force(getN(), m_exec_conf);
     m_net_force.swap(net_force);
     GPUArray< Scalar > net_virial(getN(),6, m_exec_conf);
@@ -825,107 +436,32 @@ void ParticleData::allocate(unsigned int N)
     m_inertia_tensor.resize(getN());
     }
 
-/*! \pre Memory has been allocated
-    \post Memory is deallocated and pointers are set to NULL
-*/
-void ParticleData::deallocate()
-    {
-    assert(m_data);
-    
-    // free the data
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        cudaFreeHost(m_data);
-        cudaFreeHost(m_h_staging);
-        
-        cudaFree(m_gpu_pdata.pos);
-        cudaFree(m_gpu_pdata.vel);
-        cudaFree(m_gpu_pdata.accel);
-        cudaFree(m_gpu_pdata.charge);
-        cudaFree(m_gpu_pdata.mass);
-        cudaFree(m_gpu_pdata.diameter);
-        cudaFree(m_gpu_pdata.image);
-        cudaFree(m_gpu_pdata.tag);
-        cudaFree(m_gpu_pdata.rtag);
-        cudaFree(m_gpu_pdata.body);
-        
-        cudaFree(m_d_staging);
-        
-        // zero pointers
-        m_gpu_pdata.pos = NULL;
-        m_gpu_pdata.vel = NULL;
-        m_gpu_pdata.accel = NULL;
-        m_gpu_pdata.charge = NULL;
-        m_gpu_pdata.mass = NULL;
-        m_gpu_pdata.diameter = NULL;
-        m_gpu_pdata.image = NULL;
-        m_gpu_pdata.tag = NULL;
-        m_gpu_pdata.rtag = NULL;
-        m_gpu_pdata.body = NULL;
-        m_d_staging = NULL;
-        }
-    else
-        {
-        free(m_data);
-        }
-        
-#else
-    free(m_data);
-#endif
-        
-    // zero the pointers
-    m_data = 0;
-    m_arrays_const.x = m_arrays.x = 0;
-    m_arrays_const.y = m_arrays.y = 0;
-    m_arrays_const.z = m_arrays.z = 0;
-    m_arrays_const.vx = m_arrays.vx = 0;
-    m_arrays_const.vy = m_arrays.vy = 0;
-    m_arrays_const.vz = m_arrays.vz = 0;
-    m_arrays_const.ax = m_arrays.ax = 0;
-    m_arrays_const.ay = m_arrays.ay = 0;
-    m_arrays_const.az = m_arrays.az = 0;
-    m_arrays_const.charge = m_arrays.charge = 0;
-    m_arrays_const.mass = m_arrays.mass = 0;
-    m_arrays_const.diameter = m_arrays.diameter = 0;
-    m_arrays_const.ix = m_arrays.ix = 0;
-    m_arrays_const.iy = m_arrays.iy = 0;
-    m_arrays_const.iz = m_arrays.iz = 0;
-    m_arrays_const.type = m_arrays.type = 0;
-    m_arrays_const.rtag = m_arrays.rtag = 0;
-    m_arrays_const.tag = m_arrays.tag = 0;
-    m_arrays_const.body = m_arrays.body = 0;
-    }
-
-/*! \param need_aquire set to true if the inBox check should aquire the data before checking
-    \return true If and only if all particles are in the simulation box
+/*! \return true If and only if all particles are in the simulation box
     \note This function is only called in debug builds
 */
-bool ParticleData::inBox(bool need_aquire)
+bool ParticleData::inBox()
     {
-#ifdef ENABLE_CUDA
-    if (need_aquire && m_data_location == gpu)
-        deviceToHostCopy();
-#endif
-    for (unsigned int i = 0; i < m_arrays.nparticles; i++)
+
+    ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
+    for (unsigned int i = 0; i < getN(); i++)
         {
-        if (m_arrays.x[i] < m_box.xlo-Scalar(1e-5) || m_arrays.x[i] > m_box.xhi+Scalar(1e-5))
+        if (h_pos.data[i].x < m_box.xlo-Scalar(1e-5) || h_pos.data[i].x > m_box.xhi+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << m_arrays.x[i] << " " << m_arrays.y[i] << " " << m_arrays.z[i] << endl;
+            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
             cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
             cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
             return false;
             }
-        if (m_arrays.y[i] < m_box.ylo-Scalar(1e-5) || m_arrays.y[i] > m_box.yhi+Scalar(1e-5))
+        if (h_pos.data[i].y < m_box.ylo-Scalar(1e-5) || h_pos.data[i].y > m_box.yhi+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << m_arrays.x[i] << " " << m_arrays.y[i] << " " << m_arrays.z[i] << endl;
+            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
             cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
             cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
             return false;
             }
-        if (m_arrays.z[i] < m_box.zlo-Scalar(1e-5) || m_arrays.z[i] > m_box.zhi+Scalar(1e-5))
+        if (h_pos.data[i].z < m_box.zlo-Scalar(1e-5) || h_pos.data[i].z > m_box.zhi+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << m_arrays.x[i] << " " << m_arrays.y[i] << " " << m_arrays.z[i] << endl;
+            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
             cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
             cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
             return false;
@@ -934,152 +470,94 @@ bool ParticleData::inBox(bool need_aquire)
     return true;
     }
 
-#ifdef ENABLE_CUDA
-/*! \post Particle data is copied from the GPU to the CPU
-*/
-void ParticleData::hostToDeviceCopy()
+//! Initialize from a snapshot
+//! \param snapshot the initial particle data
+//! \post the particle data arrays are initialized from the snapshot, in sorted order
+void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
-    // we should never be called unless 1 or more gpus is in the exec conf... verify
-    assert(m_exec_conf->isCUDAEnabled());
-    
-    // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-    if (m_prof) m_prof->push(m_exec_conf, "PDATA C2G");
-    
-    const int N = m_arrays.nparticles;
-    
-    // because of the way memory was allocated, we can copy lots of pieces in huge chunks
-    // the number of bytes copied and where depend highly on the order of allocation
-    // inside allocate
-    
-    // copy position data to the staging area
-    cudaMemcpy(m_d_staging, m_arrays.x, m_single_xarray_bytes*4, cudaMemcpyHostToDevice);
-    // interleave the data
-    gpu_interleave_float4(m_gpu_pdata.pos, m_d_staging, N, m_uninterleave_pitch);
-    
-    // copy velocity data to the staging area
-    cudaMemcpy(m_d_staging, m_arrays.vx, m_single_xarray_bytes*3, cudaMemcpyHostToDevice);
-    //interleave the data
-    gpu_interleave_float4(m_gpu_pdata.vel, m_d_staging, N, m_uninterleave_pitch);
-    
-    // copy acceleration data to the staging area
-    cudaMemcpy(m_d_staging, m_arrays.ax, m_single_xarray_bytes*3, cudaMemcpyHostToDevice);
-    //interleave the data
-    gpu_interleave_float4(m_gpu_pdata.accel, m_d_staging, N, m_uninterleave_pitch);
-    
-    // copy charge
-    cudaMemcpy(m_gpu_pdata.charge, m_arrays.charge, m_single_xarray_bytes, cudaMemcpyHostToDevice);
-    
-    // copy mass
-    cudaMemcpy(m_gpu_pdata.mass, m_arrays.mass, m_single_xarray_bytes, cudaMemcpyHostToDevice);
-    
-    // copy diameter
-    cudaMemcpy(m_gpu_pdata.diameter, m_arrays.diameter, m_single_xarray_bytes, cudaMemcpyHostToDevice);
-    
-    // copy image
-    cudaMemcpy(m_d_staging, m_arrays.ix, m_single_xarray_bytes*3, cudaMemcpyHostToDevice);
-    //interleave the data
-    gpu_interleave_float4((float4*)m_gpu_pdata.image, m_d_staging, N, m_uninterleave_pitch);
-    
-    // copy the tag and rtag data
-    cudaMemcpy(m_gpu_pdata.tag, m_arrays.tag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice);
-    cudaMemcpy(m_gpu_pdata.rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice);
-    cudaMemcpy(m_gpu_pdata.body, m_arrays.body, sizeof(unsigned int)*N, cudaMemcpyHostToDevice);
-    
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+    ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
+    ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::overwrite);
+    ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::overwrite);
+    ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::overwrite);
+    ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::overwrite);
+    ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::overwrite);
+
+    // make sure the snapshot has the right size
+    if (snapshot.size != m_nparticles)
+        {
+        cerr << endl << "***Error! Snapshot size (" << snapshot.size << " particles) not equal"
+             << endl << "          not equal number of particles in system." << endl << endl;
+        throw runtime_error("Error initializing ParticleData");
+        }
+
+    for (unsigned int tag = 0; tag < m_nparticles; tag++)
+        {
+        // particle index in sorted order
+        unsigned int idx = snapshot.rtag[tag];
+
+        h_pos.data[idx].x = snapshot.pos[tag].x;
+        h_pos.data[idx].y = snapshot.pos[tag].y;
+        h_pos.data[idx].z = snapshot.pos[tag].z;
+        h_pos.data[idx].w = __int_as_scalar(snapshot.type[tag]);
+
+        h_vel.data[idx].x = snapshot.vel[tag].x;
+        h_vel.data[idx].y = snapshot.vel[tag].y;
+        h_vel.data[idx].z = snapshot.vel[tag].z;
+        h_vel.data[idx].w = snapshot.mass[tag];
+
+        h_accel.data[idx] = snapshot.accel[tag];
         
-    if (m_prof) m_prof->pop(m_exec_conf, 0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 3);
+        h_charge.data[idx] = snapshot.charge[tag];
+
+        h_diameter.data[idx] = snapshot.diameter[tag];
+
+        h_image.data[idx] = snapshot.image[tag];
+
+        h_tag.data[idx] = tag;
+        h_rtag.data[idx] = idx;
+
+        h_body.data[idx] = snapshot.body[tag];
+        }
     }
 
-//! Basic union for coverting ints <-> floats
-union floatint
+//! take a particle data snapshot
+//! \returns the snapshot
+SnapshotParticleData ParticleData::takeSnapshot()
     {
-    float f;        //!< float to read/write
-    int i;  //!< int to read/write at the same memory location
-    };
+    SnapshotParticleData snapshot(m_nparticles);
 
-/*! Particle data is copied from the GPU to the CPU
-*/
-void ParticleData::deviceToHostCopy()
-    {
-    // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-    if (m_prof) m_prof->push(m_exec_conf, "PDATA G2C");
-    const int N = m_arrays.nparticles;
-    
-    // we should never be called unless 1 or more gpus is in the exec conf... verify
-    assert(m_exec_conf->isCUDAEnabled());
-    
-    // because of the way memory was allocated, we can copy lots of pieces in huge chunks
-    // the number of bytes copied and where depend highly on the order of allocation
-    // inside allocate
-    
-    // copy position
-    cudaMemcpy(m_h_staging, m_gpu_pdata.pos, N*sizeof(float4), cudaMemcpyDeviceToHost);
-    // fill out position/type
-    for (int i = 0; i < N; i++)
+    ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
+    ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
+    ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::read);
+    ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::read);
+    ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::read);
+    ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::read);
+
+    for (unsigned int idx = 0; idx < m_nparticles; idx++)
         {
-        m_arrays.x[i] = m_h_staging[i].x;
-        m_arrays.y[i] = m_h_staging[i].y;
-        m_arrays.z[i] = m_h_staging[i].z;
-        floatint fi;
-        fi.f = m_h_staging[i].w;
-        m_arrays.type[i] = (unsigned int)fi.i;
+        unsigned int tag = h_tag.data[idx];
+
+        snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        snapshot.vel[tag] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+        snapshot.accel[tag] = h_accel.data[idx];
+        snapshot.type[tag] = __scalar_as_int(h_pos.data[idx].w);
+        snapshot.mass[tag] = h_vel.data[idx].w;
+        snapshot.charge[tag] = h_charge.data[idx];
+        snapshot.diameter[tag] = h_diameter.data[idx];
+        snapshot.image[tag] = h_image.data[idx];
+        snapshot.rtag[tag] = idx;
+        snapshot.body[tag] = h_body.data[idx];
         }
-        
-    // copy velocity
-    cudaMemcpy(m_h_staging, m_gpu_pdata.vel, N*sizeof(float4), cudaMemcpyDeviceToHost);
-    // fill out velocity
-    for (int i = 0; i < N; i++)
-        {
-        m_arrays.vx[i] = m_h_staging[i].x;
-        m_arrays.vy[i] = m_h_staging[i].y;
-        m_arrays.vz[i] = m_h_staging[i].z;
-        }
-        
-    // copy acceleration
-    cudaMemcpy(m_h_staging, m_gpu_pdata.accel, N*sizeof(float4), cudaMemcpyDeviceToHost);
-    // fill out acceleartion
-    for (int i = 0; i < N; i++)
-        {
-        m_arrays.ax[i] = m_h_staging[i].x;
-        m_arrays.ay[i] = m_h_staging[i].y;
-        m_arrays.az[i] = m_h_staging[i].z;
-        }
-        
-    // copy charge
-    cudaMemcpy(m_arrays.charge, m_gpu_pdata.charge, N*sizeof(float), cudaMemcpyDeviceToHost);
-    
-    // copy mass
-    cudaMemcpy(m_arrays.mass, m_gpu_pdata.mass, N*sizeof(float), cudaMemcpyDeviceToHost);
-    
-    // copy diameter
-    cudaMemcpy(m_arrays.diameter, m_gpu_pdata.diameter, N*sizeof(float), cudaMemcpyDeviceToHost);
-    
-    // copy image
-    cudaMemcpy(m_h_staging, m_gpu_pdata.image, N*sizeof(uint4), cudaMemcpyDeviceToHost);
-    // fill out position/type
-    for (int i = 0; i < N; i++)
-        {
-        floatint fi;
-        fi.f = m_h_staging[i].x;
-        m_arrays.ix[i] = fi.i;
-        
-        fi.f = m_h_staging[i].y;
-        m_arrays.iy[i] = fi.i;
-        
-        fi.f = m_h_staging[i].z;
-        m_arrays.iz[i] = fi.i;
-        }
-        
-    // copy the tag and rtag data
-    cudaMemcpy(m_arrays.tag, m_gpu_pdata.tag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost);
-    cudaMemcpy(m_arrays.rtag, m_gpu_pdata.rtag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost);
-    cudaMemcpy(m_arrays.body, m_gpu_pdata.body, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost);
-        
-    if (m_prof) m_prof->pop(m_exec_conf, 0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 3);
+
+    return snapshot;
     }
 
-#endif
 
 //! Helper for python __str__ for BoxDim
 /*! Formats the box dim into a nice string
@@ -1132,12 +610,10 @@ class ParticleDataInitializerWrap : public ParticleDataInitializer, public wrapp
             return this->get_override("getBox")();
             }
             
-        //! Calls the overidden ParticleDataInitialzier::initArrays()
-        /*! \param pdata Arrays data structure to pass on to the overridden method
-        */
-        void initArrays(const ParticleDataArrays &pdata) const
+        //! Calls the overidden ParticleDataInitializer::getSnapshot()
+        SnapshotParticleData getSnapshot() const
             {
-            this->get_override("initArrays")(pdata);
+            return this->get_override("getSnapshot")();
             }
             
         //! Calls the overidden ParticleDataInitializer::getTypeMapping()
@@ -1154,8 +630,7 @@ void export_ParticleDataInitializer()
     .def("getNumParticles", pure_virtual(&ParticleDataInitializer::getNumParticles))
     .def("getNumParticleTypes", pure_virtual(&ParticleDataInitializer::getNumParticleTypes))
     .def("getBox", pure_virtual(&ParticleDataInitializer::getBox))
-    .def("initArrays", pure_virtual(&ParticleDataInitializer::initArrays))
-    //^^-- needs a python definition of ParticleDataArrays to be of any use
+    .def("getSnapshot", pure_virtual(&ParticleDataInitializer::getSnapshot))
     ;
     }
 
@@ -1183,9 +658,6 @@ void export_ParticleData()
     .def("getMaximumDiameter", &ParticleData::getMaxDiameter)
     .def("getNameByType", &ParticleData::getNameByType)
     .def("getTypeByName", &ParticleData::getTypeByName)
-    .def("acquireReadOnly", &ParticleData::acquireReadOnly, return_value_policy<copy_const_reference>())
-    .def("acquireReadWrite", &ParticleData::acquireReadWrite, return_value_policy<copy_const_reference>())
-    .def("release", &ParticleData::release)
     .def("setProfiler", &ParticleData::setProfiler)
     .def("getExecConf", &ParticleData::getExecConf)
     .def("__str__", &print_ParticleData)
@@ -1211,6 +683,22 @@ void export_ParticleData()
     .def("setType", &ParticleData::setType)
     .def("setOrientation", &ParticleData::setOrientation)
     .def("setInertiaTensor", &ParticleData::setInertiaTensor)
+    ;
+    }
+
+void export_SnapshotParticleData()
+    {
+    class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData>, boost::noncopyable>("SnapshotParticleData", init<unsigned int>())
+    .def_readwrite("pos", &SnapshotParticleData::pos)
+    .def_readwrite("vel", &SnapshotParticleData::vel)
+    .def_readwrite("accel", &SnapshotParticleData::accel)
+    .def_readwrite("type", &SnapshotParticleData::type)
+    .def_readwrite("mass", &SnapshotParticleData::mass)
+    .def_readwrite("charge", &SnapshotParticleData::charge)
+    .def_readwrite("diameter", &SnapshotParticleData::diameter)
+    .def_readwrite("image", &SnapshotParticleData::image)
+    .def_readwrite("rtag", &SnapshotParticleData::rtag)
+    .def_readwrite("body", &SnapshotParticleData::body)
     ;
     }
 

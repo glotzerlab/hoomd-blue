@@ -61,7 +61,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 
 //! Kernel driver for the enforce 2D update called by Enforce2DUpdaterGPU
-cudaError_t gpu_enforce2d(const gpu_pdata_arrays &pdata);
+cudaError_t gpu_enforce2d(const unsigned int N,
+                          const Scalar4 *d_vel,
+                          const Scalar3 *d_accel);
 
 #endif
 

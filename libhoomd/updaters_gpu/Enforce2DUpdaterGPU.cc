@@ -94,16 +94,17 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
         m_prof->push(exec_conf, "Enforce2D");
         
     // access the particle data arrays
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
     
     // call the enforce 2d kernel
-    gpu_enforce2d(d_pdata);
+    gpu_enforce2d(m_pdata->getN(),
+                  d_vel.data,
+                  d_accel.data);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_pdata->release();
-    
     if (m_prof)
         m_prof->pop(exec_conf);
     }

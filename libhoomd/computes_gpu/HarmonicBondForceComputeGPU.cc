@@ -122,7 +122,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
     gpu_bondtable_array& gpu_bondtable = m_bond_data->acquireGPU();
     
     // the bond table is up to date: we are good to go. Call the kernel
-    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     gpu_boxsize box = m_pdata->getBoxGPU();
       
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
@@ -133,7 +133,8 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_harmonic_bond_forces(d_force.data,
                                      d_virial.data,
                                      m_virial.getPitch(),
-                                     pdata,
+                                     m_pdata->getN(),
+                                     d_pos.data,
                                      box,
                                      gpu_bondtable,
                                      d_params.data,
@@ -142,8 +143,6 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
        
-    m_pdata->release();
-    
     int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
     int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+3+7);
     if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);

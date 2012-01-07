@@ -141,7 +141,9 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     gpu_bondtable_array& gpu_bondtable = this->m_bond_data->acquireGPU();
 
     // access the particle data
-    gpu_pdata_arrays& pdata = this->m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
     gpu_boxsize box = this->m_pdata->getBoxGPU();
 
     // access parameters
@@ -158,7 +160,10 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
         gpu_cgbf(bond_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
-                             pdata,
+                             m_pdata->getN(),
+                             d_pos.data,
+                             d_charge.data,
+                             d_diameter.data,
                              box,
                              gpu_bondtable,
                              this->m_bond_data->getNBondTypes(),
@@ -180,8 +185,6 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
             throw std::runtime_error("Error in bond calculation");
             }
         }
-
-    this->m_pdata->release();
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }

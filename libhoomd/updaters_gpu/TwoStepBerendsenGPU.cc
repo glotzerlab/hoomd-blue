@@ -99,12 +99,19 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
     Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * (m_T->getValue(timestep) / curr_T - Scalar(1.0)));
 
     // access the particle data arrays for writing on the GPU
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the integration on the GPU
-    gpu_berendsen_step_one(d_pdata,
+    gpu_berendsen_step_one(d_pos.data,
+                           d_vel.data,
+                           d_accel.data,
+                           d_image.data,
                            d_index_array.data,
                            group_size,
                            box,
@@ -114,8 +121,6 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    m_pdata->release();
 
     if (m_prof)
         m_prof->pop();
@@ -135,11 +140,14 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
 
     // access the aprticle data rrays for use on the GPU
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the second step of the integration on the GPU
-    gpu_berendsen_step_two(d_pdata,
+    gpu_berendsen_step_two(d_vel.data,
+                           d_accel.data,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
@@ -149,9 +157,6 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
     // check if an error occurred
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    // release the particle data
-    m_pdata->release();
 
     if (m_prof)
         m_prof->pop();

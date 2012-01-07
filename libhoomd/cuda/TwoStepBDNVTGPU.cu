@@ -70,8 +70,12 @@ extern __shared__ float s_gammas[];
 //! Shared memory used in reducing sums for bd energy tally
 extern __shared__ float bdtally_sdata[];
 
-//! Takes the first half-step forward in the BDNVT integration on a group of particles with
-/*! \param pdata Particle data to step forward in time
+//! Takes the second half-step forward in the BDNVT integration on a group of particles with
+/*! \param d_pos array of particle positions and types
+    \param d_vel array of particle positions and masses
+    \param d_accel array of particle accelerations
+    \param d_diameter array of particle diameters
+    \param d_tag array of particle tags
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
@@ -99,7 +103,11 @@ extern __shared__ float bdtally_sdata[];
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
 extern "C" __global__ 
-void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
+void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
+                              const Scalar4 *d_vel,
+                              const Scalar3 *d_accel,
+                              const Scalar *d_diameter,
+                              const unsigned int *d_tag,
                               unsigned int *d_group_members,
                               unsigned int group_size,
                               float4 *d_net_force,
@@ -138,10 +146,10 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         
         // ******** first, calculate the additional BD force
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = pdata.vel[idx];
+        float4 vel = d_vel[idx];
         // read in the tag of our particle.
         // (MEM TRANSFER: 4 bytes)
-        unsigned int ptag = pdata.tag[idx];
+        unsigned int ptag = d_tag[idx];
         
         // calculate the magnitude of the random force
         float gamma;
@@ -149,13 +157,13 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
             {
             // read in the tag of our particle.
             // (MEM TRANSFER: 4 bytes)
-            gamma = pdata.diameter[idx];
+            gamma = d_diameter[idx];
             }
         else
             {
             // read in the type of our particle. A texture read of only the fourth part of the position float4
             // (where type is stored) is used.
-            unsigned int typ = __float_as_int(pdata.pos[idx].w);
+            unsigned int typ = __float_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
         
@@ -177,7 +185,7 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
         float4 accel = d_net_force[idx];
         // MEM TRANSFER: 4 bytes   FLOPS: 3
-        float mass = pdata.mass[idx];
+        float mass = d_vel[idx].w;
         float minv = 1.0f / mass;
         accel.x = (accel.x + bd_force.x) * minv;
         accel.y = (accel.y + bd_force.y) * minv;
@@ -204,9 +212,9 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
             }
             
         // write out data (MEM TRANSFER: 32 bytes)
-        pdata.vel[idx] = vel;
+        d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
-        pdata.accel[idx] = accel;
+        d_accel[idx] = accel;
         }
 
     if (tally)
@@ -277,7 +285,11 @@ extern "C" __global__
     }
     
 
-/*! \param pdata Particle data to step forward in time
+/*! \param d_pos array of particle positions and types
+    \param d_vel array of particle positions and masses
+    \param d_accel array of particle accelerations
+    \param d_diameter array of particle diameters
+    \param d_tag array of particle tags
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
@@ -290,7 +302,11 @@ extern "C" __global__
         
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
+                              const Scalar4 *d_vel,
+                              const Scalar3 *d_accel,
+                              const Scalar *d_diameter,
+                              const unsigned int *d_tag,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                float4 *d_net_force,
@@ -312,7 +328,11 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                  threads,
                                  max((unsigned int)(sizeof(float)*bdnvt_args.n_types),
                                      (unsigned int)(bdnvt_args.block_size*sizeof(float))) 
-                             >>>(pdata,
+                             >>>(d_pos,
+                                 d_vel,
+                                 d_accel,
+                                 d_diameter,
+                                 d_tag,
                                  d_group_members,
                                  group_size,
                                  d_net_force,

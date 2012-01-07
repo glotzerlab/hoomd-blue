@@ -63,7 +63,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
-/*! \param pdata Particle data to step forward 1/2 step
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
+    \param d_image array of particle images
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
@@ -83,7 +86,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     contiguous as possible leading to fewer memory transactions on compute 1.3 hardware and more cache hits on Fermi.
 */
 extern "C" __global__ 
-void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
+void gpu_nve_step_one_kernel(const Scalar4 *d_pos,
+                             const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
+                             const int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              gpu_boxsize box,
@@ -104,7 +110,7 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
         // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 
         // read the particle's posision (MEM TRANSFER: 16 bytes)
-        float4 pos = pdata.pos[idx];
+        float4 pos = d_pos[idx];
         
         float px = pos.x;
         float py = pos.y;
@@ -112,10 +118,10 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
         float pw = pos.w;
         
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 vel = pdata.vel[idx];
+        float4 vel = d_vel[idx];
         float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         if (!zero_force)
-            accel = pdata.accel[idx];
+            accel = d_accel[idx];
         
         // update the position (FLOPS: 15)
         float dx = vel.x * deltaT + (1.0f/2.0f) * accel.x * deltaT * deltaT;
@@ -145,7 +151,7 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
         vel.z += (1.0f/2.0f) * accel.z * deltaT;
         
         // read in the particle's image (MEM TRANSFER: 16 bytes)
-        int4 image = pdata.image[idx];
+        int4 image = d_image[idx];
         
         // fix the periodic boundary conditions (FLOPS: 15)
         float x_shift = rintf(px * box.Lxinv);
@@ -167,13 +173,16 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
         pos2.w = pw;
         
         // write out the results (MEM_TRANSFER: 48 bytes)
-        pdata.pos[idx] = pos2;
-        pdata.vel[idx] = vel;
-        pdata.image[idx] = image;
+        d_pos[idx] = pos2;
+        d_vel[idx] = vel;
+        d_image[idx] = image;
         }
     }
 
-/*! \param pdata Particle data to step forward 1/2 step
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
+    \param d_image array of particle images
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
@@ -185,7 +194,10 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
     
     See gpu_nve_step_one_kernel() for full documentation, this function is just a driver.
 */
-cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nve_step_one(const Scalar4 *d_pos,
+                             const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
+                             const int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const gpu_boxsize &box,
@@ -200,13 +212,14 @@ cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_nve_step_one_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
+    gpu_nve_step_one_kernel<<< grid, threads >>>(N, d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
     
     return cudaSuccess;
     }
 
-//! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
-/*! \param pdata Particle data to step forward in time
+//! Takes the second half-step forward in the velocity-verlet NVE integration on a group of particles
+/*! \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
@@ -219,7 +232,9 @@ cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
 */
 extern "C" __global__ 
-void gpu_nve_step_two_kernel(gpu_pdata_arrays pdata,
+void gpu_nve_step_two_kernel(
+                            const Scalar4 *d_vel,
+                            const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
                             float4 *d_net_force,
@@ -237,19 +252,21 @@ void gpu_nve_step_two_kernel(gpu_pdata_arrays pdata,
         
         // read in the net forc and calculate the acceleration MEM TRANSFER: 16 bytes
         float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+        // read the current particle velocity (MEM TRANSFER: 16 bytes)
+        float4 vel = vel[idx];
+
         if (!zero_force)
             {
             accel = d_net_force[idx];
             // MEM TRANSFER: 4 bytes   FLOPS: 3
-            float mass = pdata.mass[idx];
+            float mass = vel.w;
             accel.x /= mass;
             accel.y /= mass;
             accel.z /= mass;
             }
         
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-        // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = pdata.vel[idx];
         
         // update the velocity (FLOPS: 6)
         vel.x += (1.0f/2.0f) * accel.x * deltaT;
@@ -268,13 +285,14 @@ void gpu_nve_step_two_kernel(gpu_pdata_arrays pdata,
             }
             
         // write out data (MEM TRANSFER: 32 bytes)
-        pdata.vel[idx] = vel;
+        d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
-        pdata.accel[idx] = accel;
+        d_accel[idx] = accel;
         }
     }
 
-/*! \param pdata Particle data to step forward in time
+/*! \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
@@ -286,7 +304,8 @@ void gpu_nve_step_two_kernel(gpu_pdata_arrays pdata,
 
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nve_step_two(const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
@@ -302,7 +321,9 @@ cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_nve_step_two_kernel<<< grid, threads >>>(pdata,
+    gpu_nve_step_two_kernel<<< grid, threads >>>(N,
+                                                 d_vel,
+                                                 d_accel,
                                                  d_group_members,
                                                  group_size,
                                                  d_net_force,

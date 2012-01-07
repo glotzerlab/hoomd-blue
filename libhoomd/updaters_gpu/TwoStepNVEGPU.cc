@@ -97,12 +97,19 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "NVE step 1");
     
     // access all the needed data
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
-    gpu_nve_step_one(d_pdata,
+    gpu_nve_step_one(d_pos.data,
+                     d_vel.data,
+                     d_accel.data,
+                     d_image.data,
                      d_index_array.data,
                      group_size,
                      box,
@@ -113,8 +120,6 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
-    m_pdata->release();
     
     // done profiling
     if (m_prof)
@@ -135,13 +140,16 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVE step 2");
-    
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
-    gpu_nve_step_two(d_pdata,
+    gpu_nve_step_two(d_vel.data,
+                     d_accel.data,
                      d_index_array.data,
                      group_size,
                      d_net_force.data,
@@ -152,8 +160,6 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
-    m_pdata->release();
     
     // done profiling
     if (m_prof)

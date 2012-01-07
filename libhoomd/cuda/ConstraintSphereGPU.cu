@@ -70,7 +70,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param virial_pitch pitch of 2D virial array
     \param d_group_members List of members in the group
     \param group_size number of members in the group
-    \param pdata Particle data arrays to calculate forces on
+    \param N number of particles in system
+    \param d_pos particle positions on device
+    \param d_vel particle velocities and masses on device
     \param d_net_force Total unconstrained net force on the particles
     \param P Position of the sphere
     \param r radius of the sphere
@@ -82,7 +84,9 @@ void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
-                                                 gpu_pdata_arrays pdata,
+                                                 const unsigned int N,
+                                                 const Scalar4 *d_pos,
+                                                 const Scalar4 *d_vel,
                                                  const float4 *d_net_force,
                                                  Scalar3 P,
                                                  Scalar r,
@@ -98,10 +102,10 @@ void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
     unsigned int idx = d_group_members[group_idx];
                 
     // read in position, velocity, net force, and mass
-    float4 pos = pdata.pos[idx];
-    float4 vel = pdata.vel[idx];
+    float4 pos = d_pos[idx];
+    float4 vel = d_vel[idx];
     float4 net_force = d_net_force[idx];
-    Scalar m = pdata.mass[idx];
+    Scalar m = vel.w;
     
     // convert to Scalar3's for passing to the evaluators
     Scalar3 X = make_scalar3(pos.x, pos.y, pos.z);
@@ -130,7 +134,9 @@ void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
     \param virial_pitch pitch of 2D virial array
     \param d_group_members List of members in the group
     \param group_size number of members in the group
-    \param pdata Particle data arrays to calculate forces on
+    \param N nunmber of particles
+    \param d_pos particle positions on the device
+    \param d_vel particle velocities on the device
     \param d_net_force Total unconstrained net force on the particles
     \param P Position of the sphere
     \param r radius of the sphere
@@ -145,7 +151,9 @@ cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
-                                                 const gpu_pdata_arrays &pdata,
+                                                 const unsigned int N,
+                                                 const Scalar4 *d_pos,
+                                                 const Scalar4 *d_vel,
                                                  const float4 *d_net_force,
                                                  const Scalar3& P,
                                                  Scalar r,
@@ -160,14 +168,16 @@ cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    cudaMemset(d_force, 0, sizeof(float4)*pdata.N);
+    cudaMemset(d_force, 0, sizeof(float4)*N);
     cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
     gpu_compute_constraint_sphere_forces_kernel<<< grid, threads>>>(d_force,
                                                                     d_virial,
                                                                     virial_pitch,
                                                                     d_group_members,
                                                                     group_size,
-                                                                    pdata,
+                                                                    N,
+                                                                    d_pos,
+                                                                    d_vel,
                                                                     d_net_force,
                                                                     P,
                                                                     r,

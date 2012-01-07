@@ -62,7 +62,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTGPU.
 */
 
-/*! \param pdata Particle data arrays to integrate forward 1/2 step
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param L_old box lengths at beginning of time step
@@ -71,7 +73,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param deltaT Time to advance (for one full step)
 */
 extern "C" __global__
-void gpu_nph_step_one_kernel(gpu_pdata_arrays pdata,
+void gpu_nph_step_one_kernel(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float3 L_old,
@@ -83,13 +87,12 @@ void gpu_nph_step_one_kernel(gpu_pdata_arrays pdata,
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     // propagate velocity from t to t+1/2*deltaT and position from t to t+deltaT
-    // according to the Nose-Hoover barostat
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
 
         // fetch particle position
-        float4 pos = pdata.pos[idx];
+        float4 pos = d_pos[idx];
 
         float px = pos.x;
         float py = pos.y;
@@ -97,8 +100,8 @@ void gpu_nph_step_one_kernel(gpu_pdata_arrays pdata,
         float pw = pos.w;
 
         // fetch particle velocity and acceleration
-        float4 vel = pdata.vel[idx];
-        float4 accel = pdata.accel[idx];
+        float4 vel = d_vel[idx];
+        float4 accel = d_accel[idx];
 
         float4 veltmp;
 
@@ -123,12 +126,14 @@ void gpu_nph_step_one_kernel(gpu_pdata_arrays pdata,
         pos2.w = pw;
 
         // write out the results
-        pdata.pos[idx] = pos2;
-        pdata.vel[idx] = vel;
+        d_pos[idx] = pos2;
+        d_vel[idx] = vel;
         }
     }
 
-/*! \param pdata Particle Data to operate on
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param L_old box lengths at beginning of time step
@@ -138,7 +143,9 @@ void gpu_nph_step_one_kernel(gpu_pdata_arrays pdata,
 
     This is just a kernel driver for gpu_nph_step_one_kernel(). See it for more details.
 */
-cudaError_t gpu_nph_step_one(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nph_step_one(const Scalar4 *d_pos,
+                             const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float3 L_old,
@@ -152,7 +159,9 @@ cudaError_t gpu_nph_step_one(const gpu_pdata_arrays &pdata,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_nph_step_one_kernel<<< grid, threads >>>(pdata,
+    gpu_nph_step_one_kernel<<< grid, threads >>>(d_pos,
+                                                 d_vel,
+                                                 d_accel,
                                                  d_group_members,
                                                  group_size,
                                                  L_old,
@@ -163,23 +172,27 @@ cudaError_t gpu_nph_step_one(const gpu_pdata_arrays &pdata,
     return cudaSuccess;
     }
 
-/*! \param pdata Particle data arrays to integrate forward 1/2 step
+/*! \param N number of particles
+    \param d_pos array of particle positions
+    \param d_image array of particle images
     \param box The new box the particles where the particles now reside
 
     Wrap particles into new box
 */
 extern "C" __global__
-void gpu_nph_wrap_particles_kernel(gpu_pdata_arrays pdata,
+void gpu_nph_wrap_particles_kernel(const unsigned int N,
+                             const Scalar4 *d_pos,
+                             const int3 *d_image,
                              gpu_boxsize box)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     // scale ALL particles in the box
-    if (idx < pdata.N)
+    if (idx < N)
         {
         // fetch particle position
-        float4 pos = pdata.pos[idx];
+        float4 pos = d_pos[idx];
 
         float px = pos.x;
         float py = pos.y;
@@ -187,7 +200,7 @@ void gpu_nph_wrap_particles_kernel(gpu_pdata_arrays pdata,
         float pw = pos.w;
 
         // read in the image flags
-        int4 image = pdata.image[idx];
+        int4 image = d_image[idx];
 
         // fix periodic boundary conditions
         float x_shift = rintf(px * box.Lxinv);
@@ -209,37 +222,44 @@ void gpu_nph_wrap_particles_kernel(gpu_pdata_arrays pdata,
         pos2.w = pw;
 
         // write out the results
-        pdata.pos[idx] = pos2;
-        pdata.image[idx] = image;
+        d_pos[idx] = pos2;
+        d_image[idx] = image;
         }
     }
 
-/*! \param pdata Particle data arrays to integrate forward 1/2 step
+/*! \param N number of particles
+    \param d_pos array of particle positions
+    \param d_image array of particle images
     \param box The new box the particles where the particles now reside
 
     This is just a kernel driver for gpu_nph_wrap_particles_kernel(). See it for more details.
 */
-cudaError_t gpu_nph_wrap_particles(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nph_wrap_particles(const unsigned int N,
+                             const Scalar4 *d_pos,
+                             const int3 *d_image,
                              const gpu_boxsize& box)
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;
-    dim3 grid( (pdata.N / block_size) + 1, 1, 1);
+    dim3 grid( (N / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_nph_wrap_particles_kernel<<< grid, threads >>>(pdata, box);
+    gpu_nph_wrap_particles_kernel<<< grid, threads >>>(N, d_pos, d_image, box);
 
     return cudaSuccess;
     }
 
-/*! \param pdata Particle data arrays to integrate forward 1/2 step
+/*! \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
+    \param net_force array of net forces
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param deltaT Time to advance (for one full step)
 */
 extern "C" __global__
-void gpu_nph_step_two_kernel(gpu_pdata_arrays pdata,
+void gpu_nph_step_two_kernel(const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              float4 *net_force,
                              unsigned int *d_group_members,
                              unsigned int group_size,
@@ -252,15 +272,15 @@ void gpu_nph_step_two_kernel(gpu_pdata_arrays pdata,
         {
         unsigned int idx = d_group_members[group_idx];
 
+        // fetch velocities
+        float4 vel = d_vel[idx];
+
         // read in the net force and compute the acceleration
         float4 accel = net_force[idx];
-        float mass = pdata.mass[idx];
+        float mass = vel.w;
         accel.x /= mass;
         accel.y /= mass;
         accel.z /= mass;
-
-        // fetch velocities
-        float4 vel = pdata.vel[idx];
 
         // propagate velocities from t+1/2*deltaT to t+deltaT
         vel.x +=  (1.0f/2.0f)*deltaT*accel.x;
@@ -268,13 +288,14 @@ void gpu_nph_step_two_kernel(gpu_pdata_arrays pdata,
         vel.z +=  (1.0f/2.0f)*deltaT*accel.z;
 
         // write out data
-        pdata.vel[idx] = vel;
+        d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
-        pdata.accel[idx] = accel;
+        d_accel[idx] = make_scalar3(accel.x,accel.y,accel.z);
         }
     }
 
-/*! \param pdata Particle Data to operate on
+/*! \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
@@ -282,7 +303,8 @@ void gpu_nph_step_two_kernel(gpu_pdata_arrays pdata,
 
     This is just a kernel driver for gpu_nph_step_two_kernel(). See it for more details.
 */
-cudaError_t gpu_nph_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nph_step_two(const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
@@ -294,7 +316,7 @@ cudaError_t gpu_nph_step_two(const gpu_pdata_arrays &pdata,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_nph_step_two_kernel<<< grid, threads >>>(pdata, d_net_force, d_group_members, group_size, deltaT);
+    gpu_nph_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_net_force, d_group_members, group_size, deltaT);
 
     return cudaSuccess;
     }

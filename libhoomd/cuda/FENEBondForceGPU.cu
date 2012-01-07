@@ -63,20 +63,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the FENE bond forces. Used by FENEBondForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
 //! Texture for reading bond parameters
 texture<float4, 1, cudaReadModeElementType> bond_params_tex;
-
-//! Texture for reading particle diameters
-texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
 
 //! Kernel for caculating FENE bond forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data arrays to calculate forces on
+    \param N number of particles
+    \param d_pos device array of particle positions
+    \param d_diameter device array of particle diameters
     \param box Box dimensions for periodic boundary condition handling
     \param blist Bond data to use in calculating the forces
     \param d_checkr Flag allocated on the device for use in checking for bonds that are too long
@@ -85,7 +81,9 @@ extern "C" __global__
 void gpu_compute_fene_bond_forces_kernel(float4* d_force,
                                          float* d_virial,
                                          const unsigned int virial_pitch,
-                                         gpu_pdata_arrays pdata,
+                                         const unsigned int N,
+                                         const Scalar4 *d_pos,
+                                         const Scalar *d_diameter,
                                          gpu_boxsize box,
                                          gpu_bondtable_array blist,
                                          unsigned int *d_checkr)
@@ -93,17 +91,17 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_bonds = blist.n_bonds[idx];
     
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
-    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
+    float4 pos = d_pos[idx];
     
     // read in the diameter of our particle.
-    float diam = tex1Dfetch(pdata_diam_tex, idx);
+    float diam = d_diameter[idx];
     
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -132,10 +130,10 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
         int cur_bond_type = cur_bond.y;
         
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
-        float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
+        float4 neigh_pos = d_pos[cur_bond_idx];
         
         // get the bonded particle's diameter
-        float neigh_diam = tex1Dfetch(pdata_diam_tex, cur_bond_idx);
+        float neigh_diam = d_diameter[cur_bond_idx];
         
         // calculate dr (FLOPS: 3)
         float dx = pos.x - neigh_pos.x;
@@ -233,7 +231,9 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to perform the calculation on
+    \param N number of particles
+    \param d_pos device array of particle positions
+    \param d_diameter device array of particle diameters
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param btable List of bonds stored on the GPU
     \param d_params K, r_0, lj1, and lj2 params packed as float4 variables
@@ -250,7 +250,9 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
 cudaError_t gpu_compute_fene_bond_forces(float4* d_force,
                                          float* d_virial,
                                          const unsigned int virial_pitch,
-                                         const gpu_pdata_arrays &pdata,
+                                         const unsigned int N,
+                                         const Scalar4 *d_pos,
+                                         const Scalar *d_diameter,
                                          const gpu_boxsize &box,
                                          const gpu_bondtable_array &btable,
                                          float4 *d_params,
@@ -263,24 +265,15 @@ cudaError_t gpu_compute_fene_bond_forces(float4* d_force,
     assert(block_size != 0);
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_diam_tex, pdata.diameter, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
     error = cudaBindTexture(0, bond_params_tex, d_params, sizeof(float4) * n_bond_types);
     if (error != cudaSuccess)
         return error;
         
     // run the kernel
-    gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, pdata, box, btable, d_flags);
+    gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_diameter, box, btable, d_flags);
     
     return cudaSuccess;
     }

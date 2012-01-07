@@ -62,7 +62,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Kernel driver for the the first step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_npt_step_one(const Scalar4 *d_pos,
+                             const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              bool partial_scale,
@@ -71,14 +73,17 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
                              float deltaT);
 
 //! Kernel driver to scale the particles into a new box on the GPU
-cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_npt_boxscale(const unsigned int N,
+                             const Scalar4 *d_pos,
+                             const int3 *d_image,
                              const gpu_boxsize& box,
                              bool partial_scale,
                              float Eta,
                              float deltaT);
 
 //! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_npt_step_two(const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,

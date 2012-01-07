@@ -246,6 +246,18 @@ template<class T> class GPUArray
             {
             return m_height;
             }
+
+        //! Resize the GPUArray
+        /*! This method resizes the array by allocating a new array and copying over the elements
+            from the old array. This is a slow process.
+            Only data from the currently active memory location (gpu/cpu) is copied over to the resized
+            memory area.
+        */
+        void resize(unsigned int num_elements);
+
+        //! Resize a 2D GPUArray
+        void resize(unsigned int width, unsigned int height);
+
     private:
         unsigned int m_num_elements;            //!< Number of elements
         unsigned int m_pitch;                   //!< Pitch of the rows in elements
@@ -275,7 +287,13 @@ template<class T> class GPUArray
         inline void memcpyDeviceToHost() const;
         //! Helper function to copy memory from the host to device
         inline void memcpyHostToDevice() const;
-        
+
+        //! Helper function to resize host array
+        inline T* resizeHostArray(unsigned int num_elements);
+
+        //! Helper function to resize host array
+        inline T* resizeDeviceArray(unsigned int num_elements);
+
         // need to be frineds of all the implementations of ArrayHandle
         friend class ArrayHandle<T>;
     };
@@ -721,5 +739,117 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
         }
     }
 
+/*! \post Memory on the host is resized, the newly allocated part of the array
+ *        is reset to zero
+ *! \returns a pointer to the newly allocated memory area
+*/
+template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
+    {
+    // if not allocated, do nothing
+    if (isNull()) return NULL;
+
+    // do not resize unless array is extended
+    if (num_elements <= m_num_elements)
+        return NULL;
+
+    // allocate resized array
+    T *h_tmp;
+#ifdef ENABLE_CUDA
+    if (m_exec_conf && m_exec_conf->isCUDAEnabled())
+        {
+        cudaHostAlloc(&h_tmp, num_elements*sizeof(T), cudaHostAllocDefault);
+        }
+    else
+        {
+        h_tmp = new T[num_elements];
+        }
+#else
+    h_tmp = new T[num_elements];
+#endif
+
+    // clear memory
+    memset(h_tmp, 0, sizeof(T)*num_elements);
+    // copy over data
+    memcpy(h_tmp, h_data, sizeof(T)*m_num_elements);
+
+    // free old memory location
+#ifdef ENABLE_CUDA
+    if (m_exec_conf && m_exec_conf->isCUDAEnabled())
+        {
+        cudaFreeHost(h_data);
+        }
+    else
+        {
+        delete h_data;
+        }
+#else
+    delete h_data;
+#endif
+
+    h_data = h_tmp;
+    return h_data;
+    }
+
+/*! \post Memory on the device is resized, the newly allocated part of the array
+ *        is reset to zero
+ *! \returns a device pointer to the newly allocated memory area
+*/
+template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
+    {
+#ifdef ENABLE_CUDA
+    // if not allocated, do nothing
+    if (isNull()) return NULL;
+
+    // do not resize unless array is extended
+    if (num_elements <= m_num_elements)
+        return NULL;
+
+    // allocate resized array
+    T *d_tmp;
+    cudaMalloc(&d_tmp, m_num_elements*sizeof(T));
+    CHECK_CUDA_ERROR();
+
+    // clear memory
+    cudaMemset(d_tmp, 0, num_elements*sizeof(T));
+    CHECK_CUDA_ERROR();
+
+    // copy over data
+    cudaMemcpy(d_tmp, d_data, sizeof(T)*m_num_elements,cudaMemcpyDeviceToDevice);
+    CHECK_CUDA_ERROR();
+
+    // free old memory location
+    cudaFree(d_data);
+    CHECK_CUDA_ERROR();
+
+    d_data = d_tmp;
+    return d_data;
+#else
+    return NULL;
+#endif
+    }
+
+/*! \param num_elements new size of array
+*/
+template<class T> void GPUArray<T>::resize(unsigned int num_elements)
+    {
+    resizeHostArray(num_elements);
+#ifdef ENABLE_CUDA
+    if (m_exec_conf || m_exec_conf->isCUDAEnabled())
+        resizeDevice(num_elements);
+#endif
+    m_num_elements = num_elements;
+    }
+
+/*! \param width new width of array
+*   \param height new height of array
+*/
+template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int height)
+    {
+    // make m_pitch the next multiple of 16 larger or equal to the given width
+    m_pitch = (width + (16 - (width & 15)));
+
+    // resize 1D array
+    resize(m_pitch * m_height);
+    }
 #endif
 

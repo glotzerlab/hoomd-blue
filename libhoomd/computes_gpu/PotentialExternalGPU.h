@@ -101,7 +101,7 @@ void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int times
     if (this->m_prof) this->m_prof->push(this->exec_conf, "PotentialExternalGPU");
 
     // access the particle data
-    gpu_pdata_arrays& pdata = this->m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     const gpu_boxsize &box = this->m_pdata->getBoxGPU();
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
@@ -111,7 +111,8 @@ void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int times
     gpu_cpef(external_potential_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
-                         pdata,
+                         m_pdata->getN(),
+                         d_pos.data,
                          box,
                          m_block_size), d_params.data);
 

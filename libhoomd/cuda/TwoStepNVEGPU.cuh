@@ -60,7 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TWO_STEP_NVE_GPU_CUH__
 
 //! Kernel driver for the first part of the NVE update called by TwoStepNVEGPU
-cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nve_step_one(const Scalar4 *d_pos,
+                             const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
+                             const int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const gpu_boxsize &box,
@@ -70,7 +73,8 @@ cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
                              bool zero_force);
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVEGPU
-cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nve_step_two(const Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,

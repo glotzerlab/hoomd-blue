@@ -146,8 +146,10 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
 
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-    
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+
     // precompute loop invariant quantities
     Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * xi);
     
@@ -155,14 +157,14 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         
-        arrays.vx[j] = (arrays.vx[j] + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT) * denominv;
-        arrays.x[j] += m_deltaT * arrays.vx[j];
+        h_vel.data[j].x = (h_vel.data[j].x + Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT) * denominv;
+        h_pos.data[j].x += m_deltaT * h_vel.data[j].x;
         
-        arrays.vy[j] = (arrays.vy[j] + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT) * denominv;
-        arrays.y[j] += m_deltaT * arrays.vy[j];
-        
-        arrays.vz[j] = (arrays.vz[j] + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT) * denominv;
-        arrays.z[j] += m_deltaT * arrays.vz[j];
+        h_vel.data[j].y = (h_vel.data[j].y + Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT) * denominv;
+        h_pos.data[j].y += m_deltaT * h_vel.data[j].y;
+
+        h_vel.data[j].z = (h_vel.data[j].z + Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT) * denominv;
+        h_pos.data[j].z += m_deltaT * h_vel.data[j].z;
         }
     
     // particles may have been moved slightly outside the box by the above steps, wrap them back into place
@@ -172,46 +174,46 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    
+
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        // wrap the particle around the box
-        if (arrays.x[j] >= box.xhi)
+        // wrap the particles around the box
+        if (h_pos.data[j].x >= box.xhi)
             {
-            arrays.x[j] -= Lx;
-            arrays.ix[j]++;
+            h_pos.data[j].x -= Lx;
+            h_image.data[j].x++;
             }
-        else if (arrays.x[j] < box.xlo)
+        else if (h_pos.data[j].x < box.xlo)
             {
-            arrays.x[j] += Lx;
-            arrays.ix[j]--;
+            h_pos.data[j].x += Lx;
+            h_image.data[j].x--;
             }
-            
-        if (arrays.y[j] >= box.yhi)
+
+        if (h_pos.data[j].y >= box.yhi)
             {
-            arrays.y[j] -= Ly;
-            arrays.iy[j]++;
+            h_pos.data[j].y -= Ly;
+            h_image.data[j].y++;
             }
-        else if (arrays.y[j] < box.ylo)
+        else if (h_pos.data[j].y < box.ylo)
             {
-            arrays.y[j] += Ly;
-            arrays.iy[j]--;
+            h_pos.data[j].y += Ly;
+            h_image.data[j].y--;
             }
-            
-        if (arrays.z[j] >= box.zhi)
+
+        if (h_pos.data[j].z >= box.zhi)
             {
-            arrays.z[j] -= Lz;
-            arrays.iz[j]++;
+            h_pos.data[j].z -= Lz;
+            h_image.data[j].z++;
             }
-        else if (arrays.z[j] < box.zlo)
+        else if (h_pos.data[j].z < box.zlo)
             {
-            arrays.z[j] += Lz;
-            arrays.iz[j]--;
+            h_pos.data[j].z += Lz;
+            h_image.data[j].z--;
             }
         }
-    
-    m_pdata->release();
     
     // done profiling
     if (m_prof)
@@ -245,8 +247,10 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 2");
-    
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
     // perform second half step of Nose-Hoover integration
@@ -255,18 +259,17 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
         unsigned int j = m_group->getMemberIndex(group_idx);
         
         // first, calculate acceleration from the net force
-        Scalar minv = Scalar(1.0) / arrays.mass[j];
-        arrays.ax[j] = h_net_force.data[j].x*minv;
-        arrays.ay[j] = h_net_force.data[j].y*minv;
-        arrays.az[j] = h_net_force.data[j].z*minv;
+        Scalar minv = Scalar(1.0) / h_vel.data[j].w;
+        h_accel.data[j].x = h_net_force.data[j].x*minv;
+        h_accel.data[j].y = h_net_force.data[j].y*minv;
+        h_accel.data[j].z = h_net_force.data[j].z*minv;
         
         // then, update the velocity
-        arrays.vx[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ax[j] - xi * arrays.vx[j]);
-        arrays.vy[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ay[j] - xi * arrays.vy[j]);
-        arrays.vz[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.az[j] - xi * arrays.vz[j]);
+        h_vel.data[j].x += Scalar(1.0/2.0) * m_deltaT * (h_accel.data[j].x - xi * h_vel.data[j].x);
+        h_vel.data[j].y += Scalar(1.0/2.0) * m_deltaT * (h_accel.data[j].y - xi * h_vel.data[j].y);
+        h_vel.data[j].z += Scalar(1.0/2.0) * m_deltaT * (h_accel.data[j].z - xi * h_vel.data[j].z);
         }
     
-    m_pdata->release();
     setIntegratorVariables(v);
 
     

@@ -113,7 +113,8 @@ void ConstraintSphere::computeForces(unsigned int timestep)
     
     assert(m_pdata);
     // access the particle data arrays
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
@@ -136,10 +137,10 @@ void ConstraintSphere::computeForces(unsigned int timestep)
         {
         // get the current particle properties
         unsigned int j = m_group->getMemberIndex(group_idx);
-        Scalar3 X = make_scalar3(arrays.x[j], arrays.y[j], arrays.z[j]);
-        Scalar3 V = make_scalar3(arrays.vx[j], arrays.vy[j], arrays.vz[j]);
+        Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 V = make_scalar3(h_vel.data[j].y, h_vel.data[j].y, h_vel.data[j].z);
         Scalar3 F = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
-        Scalar m = arrays.mass[j];
+        Scalar m = h_vel.data[j].w;
         
         // evaluate the constraint position
         EvaluatorConstraint constraint(X, V, F, m, m_deltaT);
@@ -159,8 +160,6 @@ void ConstraintSphere::computeForces(unsigned int timestep)
             h_virial.data[k*virial_pitch+j]  = virial[k];
         }
         
-    m_pdata->release();
-
     if (m_prof)
         m_prof->pop();
     }
@@ -184,7 +183,9 @@ void ConstraintSphere::validate()
     if (group_size == 0)
         return;
 
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
 
     // for each of the particles in the group
     bool errors = false;
@@ -192,7 +193,7 @@ void ConstraintSphere::validate()
         {
         // get the current particle properties
         unsigned int j = m_group->getMemberIndex(group_idx);
-        Scalar3 X = make_scalar3(arrays.x[j], arrays.y[j], arrays.z[j]);
+        Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
         
         // evaluate the constraint position
         EvaluatorConstraintSphere sphere(m_P, m_r);
@@ -206,22 +207,20 @@ void ConstraintSphere::validate()
         if (dist > 1.0f)
             {
             cerr << endl
-                 << "**Error! Particle " << arrays.tag[j] << " is more than 1 unit of distance away from the closest"
+                 << "**Error! Particle " << h_tag.data[j] << " is more than 1 unit of distance away from the closest"
                  << " point on the sphere constraint" << endl;
             errors = true;
             }
 
-        if (arrays.body[j] != NO_BODY)
+        if (h_body.data[j] != NO_BODY)
             {
             cerr << endl
-                 << "**Error! Particle " << arrays.tag[j] << " belongs to a rigid body - cannot constrain"
+                 << "**Error! Particle " << h_tag.data[j] << " belongs to a rigid body - cannot constrain"
                  << endl;
             errors = true;
             }
         }
         
-    m_pdata->release();
-    
     if (errors)
         {
         cout << endl;

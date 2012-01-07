@@ -194,15 +194,15 @@ void FIREEnergyMinimizer::reset()
     m_alpha = m_alpha_start;
     m_was_reset = true;
 
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-    unsigned int n = arrays.nparticles;
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+
+    unsigned int n = m_pdata->getN();
     for (unsigned int i=0; i<n; i++)
         {
-        arrays.vx[i] = Scalar(0.0);
-        arrays.vy[i] = Scalar(0.0);
-        arrays.vz[i] = Scalar(0.0);
+        h_vel.data[i].x = Scalar(0.0);
+        h_vel.data[i].y = Scalar(0.0);
+        h_vel.data[i].z = Scalar(0.0);
         }
-    m_pdata->release();
     setDeltaT(m_deltaT_set);
     m_pdata->notifyParticleSort();
     }
@@ -248,14 +248,15 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         m_old_energy = energy + Scalar(100000)*m_etol;
         }
 
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        P += arrays.ax[j]*arrays.vx[j] + arrays.ay[j]*arrays.vy[j] + arrays.az[j]*arrays.vz[j];
-        fnorm += arrays.ax[j]*arrays.ax[j] + arrays.ay[j]*arrays.ay[j] + arrays.az[j]*arrays.az[j];
-        vnorm += arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j];
+        P += h_accel.data[j].x*h_vel.data[j].x + h_accel.data[j].y*h_vel.data[j].y + h_accel.data[j].z*h_vel.data[j].z;
+        fnorm += h_accel.data[j].x*h_accel.data[j].x+h_accel.data[j].y*h_accel.data[j].y+h_accel.data[j].z*h_accel.data[j].z;
+        vnorm += h_vel.data[j].x*h_vel.data[j].x+ h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z;
         }
         
     fnorm = sqrt(fnorm);
@@ -264,7 +265,6 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
-        m_pdata->release();
         return;
         }
 
@@ -272,9 +272,9 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        arrays.vx[j] = arrays.vx[j]*(1.0-m_alpha) + m_alpha*arrays.ax[j]*invfnorm*vnorm;
-        arrays.vy[j] = arrays.vy[j]*(1.0-m_alpha) + m_alpha*arrays.ay[j]*invfnorm*vnorm;
-        arrays.vz[j] = arrays.vz[j]*(1.0-m_alpha) + m_alpha*arrays.az[j]*invfnorm*vnorm;
+        h_vel.data[j].x = h_vel.data[j].x*(1.0-m_alpha) + m_alpha*h_accel.data[j].x*invfnorm*vnorm;
+        h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + m_alpha*h_accel.data[j].y*invfnorm*vnorm;
+        h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + m_alpha*h_accel.data[j].z*invfnorm*vnorm;
         }
              
     if (P > Scalar(0.0))
@@ -294,14 +294,13 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            arrays.vx[j] = Scalar(0.0);
-            arrays.vy[j] = Scalar(0.0);
-            arrays.vz[j] = Scalar(0.0);
+            h_vel.data[j].x = Scalar(0.0);
+            h_vel.data[j].y = Scalar(0.0);
+            h_vel.data[j].z = Scalar(0.0);
             }
         }
     m_n_since_start++;    
     m_old_energy = energy;
-    m_pdata->release();   
 
     }
 

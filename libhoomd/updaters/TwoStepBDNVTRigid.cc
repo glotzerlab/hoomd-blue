@@ -139,9 +139,14 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
 
     {
     // Modify the net forces with the random and drag forces
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
+
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
@@ -165,15 +170,19 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         
         Scalar gamma;
         if (m_gamma_diam)
-            gamma = arrays.diameter[j];
+            gamma = h_diameter.data[j];
         else
-            gamma = h_gamma.data[arrays.type[j]];
+            {
+            unsigned int type = __scalar_as_int(h_pos.data[j].w);
+            gamma = h_gamma.data[type];
+            }
         
         // compute the bd force
         Scalar coeff = sqrt(Scalar(6.0)*gamma*currentTemp/m_deltaT);
-        Scalar bd_fx = rx*coeff - gamma*arrays.vx[j];
-        Scalar bd_fy = ry*coeff - gamma*arrays.vy[j];
-        Scalar bd_fz = rz*coeff - gamma*arrays.vz[j];
+        Scalar bd_fx = rx*coeff - gamma*h_vel.data[j].x;
+        Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
+        Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
+
         
         if (D < 3.0)
             bd_fz = Scalar(0.0);
@@ -183,7 +192,6 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         h_net_force.data[j].z += bd_fz;
         }
         
-    m_pdata->release();
     }
         
     // Perform the second step like in TwoStepNVERigid

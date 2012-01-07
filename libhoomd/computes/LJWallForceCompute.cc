@@ -173,7 +173,7 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
     Scalar Lz = box.zhi - box.zlo;
     
     // access the particle data
-    const ParticleDataArraysConst &particles=  m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
@@ -198,10 +198,10 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
         Scalar pe = 0.0;
         
         // Grab particle data from all the arrays for this loop
-        Scalar px = particles.x[i];
-        Scalar py = particles.y[i];
-        Scalar pz = particles.z[i];
-        unsigned int type = particles.type[i];
+        Scalar px = h_pos.data[i].x;
+        Scalar py = h_pos.data[i].y;
+        Scalar pz = h_pos.data[i].z;
+        unsigned int type = __scalar_as_int(h_pos.data[i].w);
         
         // for each wall that exists in the simulation
         // calculate the force that it exerts on a particle
@@ -265,8 +265,6 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
         h_force.data[i].w = pe;
         }
      
-    m_pdata->release();
-    
     if (m_prof) m_prof->pop();
     }
 

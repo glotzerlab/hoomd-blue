@@ -240,9 +240,9 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     Index2D nli = m_nlist->getNListIndexer();
     
     // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     // sanity check
-    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+    assert(h_pos.data != NULL);
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -261,13 +261,13 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     int64_t n_calc = 0;
     
     // for each particle
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = arrays.x[i];
-        Scalar yi = arrays.y[i];
-        Scalar zi = arrays.z[i];
-        unsigned int typei = arrays.type[i];
+        Scalar xi = h_pos.data[i].x;
+        Scalar yi = h_pos.data[i].y;
+        Scalar zi = h_pos.data[i].z;
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
         
@@ -299,12 +299,12 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             assert(k < m_pdata->getN());
             
             // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - arrays.x[k];
-            Scalar dy = yi - arrays.y[k];
-            Scalar dz = zi - arrays.z[k];
+            Scalar dx = xi - h_pos.data[k].x;
+            Scalar dy = yi - h_pos.data[k].y;
+            Scalar dz = zi - h_pos.data[k].z;
             
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar
-            unsigned int typej = arrays.type[k];
+            unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
             
@@ -382,8 +382,6 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             h_virial.data[l*virial_pitch+i] += viriali[l];
         }
         
-    m_pdata->release();
-       
     int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+14+6+8);
     if (third_law) flops += n_calc * 8;
     int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);

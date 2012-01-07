@@ -65,10 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     minimization iteration on the GPU. Used by FIREEnergyMinimizerGPU.
 */
 
-//! The texture for reading the pdata vel array
-texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
-//! The texture for reading the pdata accel array
-texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 //! The texture for reading the pdata force array
 texture<float4, 1, cudaReadModeElementType> net_force_tex;
 
@@ -82,12 +78,12 @@ extern __shared__ float fire_sdata2[];
 extern __shared__ float fire_sdata3[];
 
 //! The kernel function to zeros velocities, called by gpu_fire_zero_v()
-/*! \param pdata Particle data to zero velocities for
+/*! \param d_vel device array of particle velocities
     \param d_group_members Device array listing the indicies of the mebers of the group to zero
     \param group_size Number of members in the group
 */
 extern "C" __global__ 
-void gpu_fire_zero_v_kernel(gpu_pdata_arrays pdata,
+void gpu_fire_zero_v_kernel(const Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size)
     {
@@ -99,7 +95,7 @@ void gpu_fire_zero_v_kernel(gpu_pdata_arrays pdata,
         unsigned int idx = d_group_members[group_idx];
      
         // read the particle's velocity (MEM TRANSFER: 32 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
+        float4 vel = d_vel[idx];
                 
         // zero the velocity(FLOPS: ?)
         vel.x = 0.0f;
@@ -108,19 +104,21 @@ void gpu_fire_zero_v_kernel(gpu_pdata_arrays pdata,
         vel.w = 0.0f;
                 
         // write out the results (MEM_TRANSFER: 32 bytes)
-        pdata.vel[idx] = vel;
+        d_vel[idx] = vel;
         }
     }
 
 
-/*! \param pdata Particle data to zero velocities for
+/*! \param N number of particles in system
+    \param d_vel device array of particle velocities
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
 
 This function is just the driver for gpu_fire_zero_v_kernel(), see that function
 for details.
 */
-cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata,
+cudaError_t gpu_fire_zero_v(const unsigned int N,
+                            const Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size)
     {
@@ -129,12 +127,9 @@ cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata,
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
             
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
     // run the kernel
-    gpu_fire_zero_v_kernel<<< grid, threads >>>(pdata,
+    gpu_fire_zero_v_kernel<<< grid, threads >>>(N,
+                                                d_vel,
                                                 d_group_members,
                                                 group_size);
     
@@ -142,15 +137,13 @@ cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata,
     }
 
 //! Kernel function for reducing the potential energy to a partial sum
-/*! \param pdata Particle data 
-    \param d_group_members Device array listing the indicies of the mebers of the group to sum
+/*! \param d_group_members Device array listing the indicies of the mebers of the group to sum
     \param group_size Number of members in the group
     \param d_net_force Pointer to the force array for all particles
     \param d_partial_sum_pe Placeholder for the partial sum
 */
 extern "C" __global__ 
-    void gpu_fire_reduce_pe_partial_kernel(gpu_pdata_arrays pdata, 
-                                           unsigned int *d_group_members,
+    void gpu_fire_reduce_pe_partial_kernel(unsigned int *d_group_members,
                                            unsigned int group_size,
                                            float4* d_net_force, 
                                            float* d_partial_sum_pe)
@@ -165,7 +158,7 @@ extern "C" __global__
         unsigned int idx = d_group_members[group_idx];
         // read the particle's force and extract the pe from w component (MEM TRANSFER: 32 bytes)
         
-        float4 force = tex1Dfetch(net_force_tex, idx);
+        float4 force = d_net_force[idx];
         pe = force.w;
         
         // Uncoalesced Memory Read replace by Texture Read above.  floats4* d_net_force still being passed to support this
@@ -234,8 +227,7 @@ extern "C" __global__
         *d_sum = sum;
     }
 
-/*! \param pdata Particle data to sum the PE for
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+/*!  \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Array containing the net forces
     \param d_sum_pe Placeholder for the sum of the PE
@@ -246,9 +238,7 @@ extern "C" __global__
     This is a driver for gpu_fire_reduce_pe_partial_kernel() and 
     gpu_fire_reduce_partial_sum_kernel(), see them for details
 */
-cudaError_t gpu_fire_compute_sum_pe(
-                                    const gpu_pdata_arrays& pdata, 
-                                    unsigned int *d_group_members,
+cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                                     unsigned int group_size,
                                     float4* d_net_force, 
                                     float* d_sum_pe, 
@@ -262,13 +252,8 @@ cudaError_t gpu_fire_compute_sum_pe(
     dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    cudaError_t    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;    
-    
     // run the kernel
-    gpu_fire_reduce_pe_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(pdata, 
-                                                                                     d_group_members,
+    gpu_fire_reduce_pe_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_group_members,
                                                                                      group_size,
                                                                                      d_net_force, 
                                                                                      d_partial_sum_pe);
@@ -281,13 +266,15 @@ cudaError_t gpu_fire_compute_sum_pe(
     }
 
 //! Kernel function to compute the partial sum over the P term in the FIRE algorithm
-/*! \param pdata Particle data to compute P for
+/*! \param d_vel particle velocities and masses on the device
+    \param d_accel particle accelerations on the device
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_partial_sum_P Array to hold the partial sum
 */
 extern "C" __global__ 
-    void gpu_fire_reduce_P_partial_kernel(gpu_pdata_arrays pdata, 
+    void gpu_fire_reduce_P_partial_kernel(const Scalar4 *d_vel,
+                                          const Scalar3 *d_accel,
                                           unsigned int *d_group_members,
                                           unsigned int group_size,    
                                           float* d_partial_sum_P)
@@ -301,8 +288,8 @@ extern "C" __global__
         {
         unsigned int idx = d_group_members[group_idx];
      
-        float4 a = tex1Dfetch(pdata_accel_tex, idx);
-        float4 v = tex1Dfetch(pdata_vel_tex, idx);
+        float3 a = d_accel[idx];
+        float4 v = d_vel[idx];
         P = a.x*v.x + a.y*v.y + a.z*v.z;
         }
     
@@ -326,13 +313,13 @@ extern "C" __global__
     }
     
 //! Kernel function to compute the partial sum over the vsq term in the FIRE algorithm
-/*! \param pdata Particle data to compute vsq for
+/*! \param d_vel device array of particle velocities
     \param d_group_members Array listing members of the group
     \param group_size Number of members in the group
     \param d_partial_sum_vsq Array to hold the partial sum
 */
 extern "C" __global__ 
-    void gpu_fire_reduce_vsq_partial_kernel(gpu_pdata_arrays pdata,
+    void gpu_fire_reduce_vsq_partial_kernel(const Scalar4 *d_vel,
                                             unsigned int *d_group_members,
                                             unsigned int group_size,
                                             float* d_partial_sum_vsq)
@@ -346,7 +333,7 @@ extern "C" __global__
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float4 v = tex1Dfetch(pdata_vel_tex, idx);
+        float4 v = d_vel[idx];
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
         }
     
@@ -370,13 +357,13 @@ extern "C" __global__
     }
     
 //! Kernel function to compute the partial sum over the asq term in the FIRE algorithm
-/*! \param pdata Particle data to compute asq for
+/*! \param d_accel device array of particle accelerations
     \param d_group_members Array listing members of the group
     \param group_size Number of members in the group
     \param d_partial_sum_asq Array to hold the partial sum
 */
 extern "C" __global__ 
-    void gpu_fire_reduce_asq_partial_kernel(gpu_pdata_arrays pdata,
+    void gpu_fire_reduce_asq_partial_kernel(const Scalar3 *d_accel,
                                             unsigned int *d_group_members,
                                             unsigned int group_size,
                                             float* d_partial_sum_asq)
@@ -390,7 +377,7 @@ extern "C" __global__
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float4 a = tex1Dfetch(pdata_accel_tex, idx);
+        float3 a = d_accel[idx];
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
         }
 
@@ -414,7 +401,8 @@ extern "C" __global__
     }
 
 //! Kernel function to simultaneously compute the partial sum over P, vsq and asq for the FIRE algorithm
-/*! \param pdata Particle data to compute P, vsq and asq for
+/*! \param d_vel device array of particle velocities
+    \param d_accel device array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_partial_sum_P Array to hold the partial sum over P (v*a)
@@ -423,8 +411,8 @@ extern "C" __global__
     \note this function is never used, but could be implemented to improve performance
 */
 extern "C" __global__ 
-    void gpu_fire_reduce_all_partial_kernel(
-                                            gpu_pdata_arrays pdata, 
+    void gpu_fire_reduce_all_partial_kernel(const Scalar4 *d_vel,
+                                            const Scalar4 *d_accel,
                                             unsigned int *d_group_members,
                                             unsigned int group_size,
                                             float* d_partial_sum_P, 
@@ -443,8 +431,8 @@ extern "C" __global__
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float4 a = tex1Dfetch(pdata_accel_tex, idx);
-        float4 v = tex1Dfetch(pdata_vel_tex, idx);
+        float3 a = d_accel[idx];
+        float4 v = d_vel[idx];
         P = a.x*v.x + a.y*v.y + a.z*v.z;
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
@@ -543,7 +531,9 @@ extern "C" __global__
         }
     }
 
-/*! \param pdata Particle data to compute the sum of P, vsq and asq for
+/*! \param N number of particles in system
+    \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_sum_all Array to hold the sum over P, vsq, and asq
@@ -558,7 +548,9 @@ extern "C" __global__
     and gpu_fire_reduce_partial_sum_kernel(), see them for details
 */
 cudaError_t gpu_fire_compute_sum_all(
-                                    const gpu_pdata_arrays& pdata, 
+                                    const unsigned int N,
+                                    const Scalar4 *d_vel,
+                                    const Scalar3 *d_accel,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
                                     float* d_sum_all, 
@@ -574,16 +566,10 @@ cudaError_t gpu_fire_compute_sum_all(
     dim3 threads(block_size, 1, 1);
     dim3 threads1(256, 1, 1);
 
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
-    error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
     // run the kernels
-    gpu_fire_reduce_P_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(  pdata, 
+    gpu_fire_reduce_P_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(  d_vel,
+
+      d_accel,
                                                                                       d_group_members,
                                                                                       group_size,
                                                                                       d_partial_sum_P);
@@ -592,7 +578,7 @@ cudaError_t gpu_fire_compute_sum_all(
                                                                                       d_partial_sum_P, 
                                                                                       num_blocks);
 
-    gpu_fire_reduce_vsq_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(pdata, 
+    gpu_fire_reduce_vsq_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_vel,
                                                                                       d_group_members,
                                                                                       group_size,
                                                                                       d_partial_sum_vsq);
@@ -601,7 +587,7 @@ cudaError_t gpu_fire_compute_sum_all(
                                                                                       d_partial_sum_vsq, 
                                                                                       num_blocks);
 
-    gpu_fire_reduce_asq_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(pdata, 
+    gpu_fire_reduce_asq_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_accel,
                                                                                       d_group_members,
                                                                                       group_size,
                                                                                       d_partial_sum_asq);
@@ -612,7 +598,7 @@ cudaError_t gpu_fire_compute_sum_all(
 
     /*
     //do all three sums at once:
-    gpu_fire_reduce_all_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(pdata, d_partial_sum_P, d_partial_sum_vsq, d_partial_sum_asq);
+    gpu_fire_reduce_all_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_vel, d_accel, d_partial_sum_P, d_partial_sum_vsq, d_partial_sum_asq);
     gpu_fire_reduce_partial_sum_3_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_sum_all, d_partial_sum_P, d_partial_sum_vsq, d_partial_sum_asq, num_blocks);
     */
     
@@ -621,7 +607,8 @@ cudaError_t gpu_fire_compute_sum_all(
 
 
 //! Kernel function to update the velocties used by the FIRE algorithm
-/*! \param pdata Particle data to update the velocities for
+/*! \param d_vel Array of velocities to update
+    \param d_accel Array of accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to update
     \param group_size Number of members in the grou
     \param alpha Alpha coupling parameter used by the FIRE algorithm
@@ -629,7 +616,8 @@ cudaError_t gpu_fire_compute_sum_all(
     \param invfnorm 1 over the magnitude of the (3*N) dimensional force vector
 */
 extern "C" __global__ 
-    void gpu_fire_update_v_kernel(gpu_pdata_arrays pdata, 
+    void gpu_fire_update_v_kernel(const Scalar4 *d_vel,
+                                  const Scalar3 *d_accel,
                                   unsigned int *d_group_members,
                                   unsigned int group_size,
                                   float alpha, 
@@ -643,20 +631,22 @@ extern "C" __global__
         {
         unsigned int idx = d_group_members[group_idx];       
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 v = tex1Dfetch(pdata_vel_tex, idx);
-        float4 a = tex1Dfetch(pdata_accel_tex, idx);
+        float4 v = d_vel[idx];
+        float3 a = d_accel[idx];
                         
         v.x = v.x*(1.0f-alpha) + alpha*a.x*invfnorm*vnorm;
         v.y = v.y*(1.0f-alpha) + alpha*a.y*invfnorm*vnorm;
         v.z = v.z*(1.0f-alpha) + alpha*a.z*invfnorm*vnorm;
                         
         // write out the results (MEM_TRANSFER: 32 bytes)
-        pdata.vel[idx] = v;
+        d_vel[idx] = v;
         }
     }
 
 
-/*! \param pdata Particle data to update the velocities for
+/*! \param N number of particles in system
+    \param d_vel array of particle velocities to update
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param alpha Alpha coupling parameter used by the FIRE algorithm
@@ -665,7 +655,9 @@ extern "C" __global__
     
     This function is a driver for gpu_fire_update_v_kernel(), see it for details.
 */
-cudaError_t gpu_fire_update_v(gpu_pdata_arrays pdata,
+cudaError_t gpu_fire_update_v(const unsigned int N,
+                              const Scalar4 *d_vel,
+                              const Scalar3 *d_accel,
                               unsigned int *d_group_members,
                               unsigned int group_size,
                               float alpha, 
@@ -677,17 +669,9 @@ cudaError_t gpu_fire_update_v(gpu_pdata_arrays pdata,
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
             
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
-    error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
-    
     // run the kernel
-    gpu_fire_update_v_kernel<<< grid, threads >>>(pdata,
+    gpu_fire_update_v_kernel<<< grid, threads >>>(d_vel,
+                                                  d_accel,
                                                   d_group_members,
                                                   group_size,
                                                   alpha, 

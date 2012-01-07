@@ -110,25 +110,27 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     m_initial_x.resize(m_pdata->getN());
     m_initial_y.resize(m_pdata->getN());
     m_initial_z.resize(m_pdata->getN());
-    
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+
     BoxDim box = m_pdata->getBox();
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
     // for each particle in the data
-    for (unsigned int tag = 0; tag < arrays.nparticles; tag++)
+    for (unsigned int tag = 0; tag < m_pdata->getN(); tag++)
         {
         // identify the index of the current particle tag
-        unsigned int idx = arrays.rtag[tag];
+        unsigned int idx = h_rtag.data[tag];
         
         // save its initial position
-        m_initial_x[tag] = arrays.x[idx] + Scalar(arrays.ix[idx]) * Lx;
-        m_initial_y[tag] = arrays.y[idx] + Scalar(arrays.iy[idx]) * Ly;
-        m_initial_z[tag] = arrays.z[idx] + Scalar(arrays.iz[idx]) * Lz;
+        m_initial_x[tag] = h_pos.data[idx].x + Scalar(h_image.data[idx].x) * Lx;
+        m_initial_y[tag] = h_pos.data[idx].y + Scalar(h_image.data[idx].y) * Ly;
+        m_initial_z[tag] = h_pos.data[idx].z + Scalar(h_image.data[idx].z) * Lz;
         }
-    m_pdata->release();
     }
 
 /*!\param timestep Current time step of the simulation
@@ -277,7 +279,10 @@ void MSDAnalyzer::writeHeader()
 */
 Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
     {
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+
     BoxDim box = m_pdata->getBox();
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
@@ -300,16 +305,15 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
         unsigned int tag = group->getMemberTag(group_idx);
         
         // identify the index of the current particle tag
-        unsigned int idx = arrays.rtag[tag];
+        unsigned int idx = h_rtag.data[tag];
         
         // save its initial position
-        Scalar dx = arrays.x[idx] + Scalar(arrays.ix[idx]) * Lx - m_initial_x[tag];
-        Scalar dy = arrays.y[idx] + Scalar(arrays.iy[idx]) * Ly - m_initial_y[tag];
-        Scalar dz = arrays.z[idx] + Scalar(arrays.iz[idx]) * Lz - m_initial_z[tag];
+        Scalar dx = h_pos.data[idx].x + Scalar(h_image.data[idx].x) * Lx - m_initial_x[tag];
+        Scalar dy = h_pos.data[idx].y + Scalar(h_image.data[idx].y) * Ly - m_initial_y[tag];
+        Scalar dz = h_pos.data[idx].z + Scalar(h_image.data[idx].z) * Lz - m_initial_z[tag];
         
         msd += dx*dx + dy*dy + dz*dz;
         }
-    m_pdata->release();
     
     // divide to complete the average
     msd /= Scalar(group->getNumMembers());

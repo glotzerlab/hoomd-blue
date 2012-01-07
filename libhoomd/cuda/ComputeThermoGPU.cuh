@@ -79,7 +79,7 @@ struct compute_thermo_args
 
 //! Computes the thermodynamic properties for ComputeThermo
 cudaError_t gpu_compute_thermo(float *d_properties,
-                               const gpu_pdata_arrays &pdata,
+                               const Scalar4 *d_vel,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                const gpu_boxsize &box,

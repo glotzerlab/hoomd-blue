@@ -173,6 +173,9 @@ HOSTDEVICE inline int __scalar_as_int(Scalar b)
     return u.a;
     }
 
+//! Comparison operator needed for export of std::vector<Scalar3>
+bool operator== (const Scalar3 &a, const Scalar3 &b);
+
 //! Export relevant hoomd math functions to python
 void export_hoomd_math_functions();
 

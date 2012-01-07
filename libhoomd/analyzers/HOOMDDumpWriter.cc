@@ -211,7 +211,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         }
         
     // acquire the particle data
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+
     BoxDim box = m_pdata->getBox();
     Scalar Lx,Ly,Lz;
     Lx=Scalar(box.xhi-box.xlo);
@@ -235,15 +244,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_position)
         {
         f << "<position num=\"" << m_pdata->getN() << "\">" << "\n";
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             int i;
-            i= arrays.rtag[j];
+            i= h_rtag.data[j];
             
-            Scalar x = (arrays.x[i]);
-            Scalar y = (arrays.y[i]);
-            Scalar z = (arrays.z[i]);
+            Scalar x = (h_pos.data[i].x);
+            Scalar y = (h_pos.data[i].y);
+            Scalar z = (h_pos.data[i].z);
             
             f << x << " " << y << " "<< z << "\n";
             
@@ -260,15 +269,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_image)
         {
         f << "<image num=\"" << m_pdata->getN() << "\">" << "\n";
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             int i;
-            i= arrays.rtag[j];
+            i= h_rtag.data[j];
             
-            int x = (arrays.ix[i]);
-            int y = (arrays.iy[i]);
-            int z = (arrays.iz[i]);
+            int x = (h_image.data[i].x);
+            int y = (h_image.data[i].y);
+            int z = (h_image.data[i].z);
             
             f << x << " " << y << " "<< z << "\n";
             
@@ -286,15 +295,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         f <<"<velocity num=\"" << m_pdata->getN() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             int i;
-            i= arrays.rtag[j];
+            i= h_rtag.data[j];
             
-            Scalar vx = arrays.vx[i];
-            Scalar vy = arrays.vy[i];
-            Scalar vz = arrays.vz[i];
+            Scalar vx = h_vel.data[i].x;
+            Scalar vy = h_vel.data[i].y;
+            Scalar vz = h_vel.data[i].z;
             f << vx << " " << vy << " " << vz << "\n";
             if (!f.good())
                 {
@@ -311,15 +320,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         f <<"<acceleration num=\"" << m_pdata->getN() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             int i;
-            i= arrays.rtag[j];
+            i= h_rtag.data[j];
             
-            Scalar ax = arrays.ax[i];
-            Scalar ay = arrays.ay[i];
-            Scalar az = arrays.az[i];
+            Scalar ax = h_accel.data[i].x;
+            Scalar ay = h_accel.data[i].y;
+            Scalar az = h_accel.data[i].z;
             f << ax << " " << ay << " " << az << "\n";
             if (!f.good())
                 {
@@ -336,13 +345,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         f <<"<mass num=\"" << m_pdata->getN() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             int i;
-            i= arrays.rtag[j];
+            i= h_rtag.data[j];
             
-            Scalar mass = arrays.mass[i];
+            Scalar mass = h_vel.data[i].w;
             f << mass << "\n";
             if (!f.good())
                 {
@@ -359,13 +368,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         f <<"<diameter num=\"" << m_pdata->getN() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             int i;
-            i= arrays.rtag[j];
+            i= h_rtag.data[j];
             
-            Scalar diameter = arrays.diameter[i];
+            Scalar diameter = h_diameter.data[i];
             f << diameter << "\n";
             if (!f.good())
                 {
@@ -381,11 +390,11 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if  (m_output_type)
         {
         f <<"<type num=\"" << m_pdata->getN() << "\">" << "\n";
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             int i;
-            i= arrays.rtag[j];
-            f << m_pdata->getNameByType(arrays.type[i]) << "\n";
+            i= h_rtag.data[j];
+            f << m_pdata->getNameByType(__scalar_as_int(h_pos.data[i].w)) << "\n";
             }
         f <<"</type>" << "\n";
         }
@@ -394,14 +403,14 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if  (m_output_body)
         {
         f <<"<body num=\"" << m_pdata->getN() << "\">" << "\n";
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             unsigned int i;
-            i = arrays.rtag[j];
+            i = h_rtag.data[j];
             
             unsigned int body;
             int out;
-            body = arrays.body[i];
+            body = h_body.data[i];
             if (body == NO_BODY)
                 out = -1;
             else
@@ -499,13 +508,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         f <<"<charge num=\"" << m_pdata->getN() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             int i;
-            i= arrays.rtag[j];
+            i= h_rtag.data[j];
             
-            Scalar charge = arrays.charge[i];
+            Scalar charge = h_charge.data[i];
             f << charge << "\n";
             if (!f.good())
                 {
@@ -524,11 +533,11 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             int i;
-            i= arrays.rtag[j];
+            i= h_rtag.data[j];
             
             Scalar4 orientation = h_orientation.data[i];
             f << orientation.x << " " << orientation.y << " " << orientation.z << " " << orientation.w << "\n";
@@ -546,7 +555,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         f << "<moment_inertia num=\"" << m_pdata->getN() << "\">" << "\n";
         
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             // inertia tensors are stored by tag
             InertiaTensor I = m_pdata->getInertiaTensor(i);
@@ -573,7 +582,6 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         }
         
     f.close();
-    m_pdata->release();
     
     }
 

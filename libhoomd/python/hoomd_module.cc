@@ -317,6 +317,12 @@ BOOST_PYTHON_MODULE(hoomd)
     // data structures
     class_<std::vector<int> >("std_vector_int")
     .def(vector_indexing_suite<std::vector<int> >());
+
+    class_<std::vector<int> >("std_vector_Scalar")
+    .def(vector_indexing_suite<std::vector<Scalar> >());
+
+    class_<std::vector<int> >("std_vector_Scalar")
+    .def(vector_indexing_suite<std::vector<Scalar3> >());
     
     InstallSIGINTHandler();
     
@@ -329,6 +335,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BoxDim();
     export_ParticleDataInitializer();
     export_ParticleData();
+    export_SnapshotParticleData();
     export_RigidData();
     export_ExecutionConfiguration();
     export_BondData();

@@ -86,12 +86,6 @@ float2 *o_data, *idat;
   \brief Defines GPU kernel code for calculating the harmonic bond forces. Used by HarmonicBondForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
-//! Texture for reading charge parameters
-texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
-
 __device__ inline void atomicFloatAdd(float* address, float value)
     {
 #if (__CUDA_ARCH__ < 200)
@@ -115,7 +109,9 @@ __device__ inline void AddToGridpoint(int X, int Y, int Z, cufftComplex* array, 
 
 
 extern "C" __global__
-void assign_charges_to_grid_kernel(gpu_pdata_arrays pdata, 
+void assign_charges_to_grid_kernel(const unsigned int N,
+                                   const Scalar4 *d_pos,
+                                   const Scalar4 *d_charge,
                                    gpu_boxsize box, 
                                    cufftComplex *rho_real_space, 
                                    int Nx, 
@@ -131,9 +127,9 @@ void assign_charges_to_grid_kernel(gpu_pdata_arrays pdata,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
-        float qi = tex1Dfetch(pdata_charge_tex, idx);
+        float qi = d_charge[idx];
         if(fabs(qi) > 0.0f) {
-            float4 posi = tex1Dfetch(pdata_pos_tex, idx);
+            float4 posi = d_pos[idx];
             //calculate dx, dy, dz for the charge density grid:
             float box_dx = box.Lx / ((float)Nx);
             float box_dy = box.Ly / ((float)Ny);
@@ -275,11 +271,11 @@ __global__ void set_gpu_field_kernel(cufftComplex* E_x,
     }
 
 __global__
-void zero_forces(float4 *d_force, float *d_virial, const unsigned int virial_pitch, gpu_pdata_arrays pdata)
+void zero_forces(float4 *d_force, float *d_virial, const unsigned int virial_pitch, const unsigned int N)
     {  
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx < pdata.N)
+    if (idx < N)
         {
         d_force[idx] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         for (unsigned int i = 0; i < 6; i++)
@@ -289,7 +285,9 @@ void zero_forces(float4 *d_force, float *d_virial, const unsigned int virial_pit
 
 extern "C" __global__ 
 void calculate_forces_kernel(float4 *d_force,
-                             gpu_pdata_arrays pdata,
+                             const unsigned int N,
+                             const Scalar4 *d_pos,
+                             const Scalar *d_charge,
                              gpu_boxsize box,
                              float3 *E_field,
                              int Nx,
@@ -305,9 +303,9 @@ void calculate_forces_kernel(float4 *d_force,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
-        float qi = tex1Dfetch(pdata_charge_tex, idx);
+        float qi = d_charge[idx];
         if(fabs(qi) > 0.0f) {
-            float4 posi = tex1Dfetch(pdata_pos_tex, idx);
+            float4 posi = d_pos[idx];
     
             //calculate dx, dy, dz for the charge density grid:
             float box_dx = box.Lx / ((float)Nx);
@@ -399,7 +397,9 @@ void calculate_forces_kernel(float4 *d_force,
 cudaError_t gpu_compute_pppm_forces(float4 *d_force,
                                     float *d_virial,
                                     const unsigned int virial_pitch,
-                                    const gpu_pdata_arrays &pdata,
+                                    const unsigned int N,
+                                    const Scalar4 *d_pos,
+                                    const Scalar *d_charge,
                                     const gpu_boxsize &box,
                                     int Nx,
                                     int Ny,
@@ -433,27 +433,20 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
     dim3 N_grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 N_threads(block_size, 1, 1);
 
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_charge_tex, pdata.charge, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
     // set the grid charge to zero
     cudaMemset(GPU_rho_real_space, 0, sizeof(cufftComplex)*Nx*Ny*Nz);
 
     // zero the force arrays for all particles
-    // zero_forces <<< grid, threads >>> (force_data, pdata);
-    cudaMemset(d_force, 0, sizeof(float4)*pdata.N);
+    // zero_forces <<< grid, threads >>> (force_data, N);
+    cudaMemset(d_force, 0, sizeof(float4)*N);
     cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
 
 
     // run the kernels
     // assign charges to the grid points, one thread per particles
-    assign_charges_to_grid_kernel <<< P_grid, P_threads >>> (pdata, 
+    assign_charges_to_grid_kernel <<< P_grid, P_threads >>> (N,
+                                                             d_pos,
+                                                             d_charge,
                                                              box, 
                                                              GPU_rho_real_space, 
                                                              Nx, 
@@ -491,7 +484,9 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
 
     //calculate forces on particles, one thread per particles
     calculate_forces_kernel <<< P_grid, P_threads >>>(d_force,
-                                                      pdata,
+                                                      N,
+                                                      d_pos,
+                                                      d_charge,
                                                       box,
                                                       E_field,
                                                       Nx, 
@@ -902,7 +897,9 @@ cudaError_t reset_kvec_green_hat(const gpu_boxsize &box,
 __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                                           float *d_virial,
                                           const unsigned int virial_pitch,
-                                          const gpu_pdata_arrays pdata,
+                                          const unsigned int N,
+                                          const Scalar4 *d_pos,
+                                          const Scalar *d_charge,
                                           const gpu_boxsize box,
                                           const unsigned int *d_n_neigh,
                                           const unsigned int *d_nlist,
@@ -918,8 +915,8 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
         unsigned int idx = d_group_members[group_idx];
         const float sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
-        float4 posi = tex1Dfetch(pdata_pos_tex, idx);
-        float  qi = tex1Dfetch(pdata_charge_tex, idx);
+        float4 posi = d_pos[idx];
+        float  qi = d_charge[idx];
         // initialize the force to 0
         float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         float virial[6];
@@ -945,9 +942,9 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                     next_j = d_nlist[nli(idx, neigh_idx+1)];
             
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                    float4 posj = tex1Dfetch(pdata_pos_tex, cur_j);
+                    float4 posj = d_pos[cur_j];
             
-                    float qj = tex1Dfetch(pdata_charge_tex, cur_j);
+                    float qj = d_charge[cur_j]);
                 
                     // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                     float dx = posi.x - posj.x;
@@ -1003,7 +1000,9 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
 cudaError_t fix_exclusions(float4 *d_force,
                            float *d_virial,
                            const unsigned int virial_pitch,
-                           const gpu_pdata_arrays &pdata,
+                           const unsigned int N,
+                           const Scalar4 *d_pos,
+                           const Scalar *d_charge,
                            const gpu_boxsize &box,
                            const unsigned int *d_n_ex,
                            const unsigned int *d_exlist,
@@ -1017,19 +1016,12 @@ cudaError_t fix_exclusions(float4 *d_force,
     dim3 threads(block_size, 1, 1);
     
 
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_charge_tex, pdata.charge, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,
                                                       virial_pitch,
-                                                      pdata,
+                                                      N,
+                                                      d_pos,
+                                                      d_charge,
                                                       box,
                                                       d_n_ex,
                                                       d_exlist,

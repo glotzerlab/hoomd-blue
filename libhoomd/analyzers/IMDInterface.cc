@@ -320,17 +320,16 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
     
     if (m_force)
         {
-        const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+        ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
         m_force->setForce(0,0,0);
         for (unsigned int i = 0; i < n; i++)
             {
-            unsigned int j = arrays.rtag[indices[i]];
+            unsigned int j = h_rtag.data[indices[i]];
             m_force->setParticleForce(j,
                                       forces[3*i+0]*m_force_scale,
                                       forces[3*i+1]*m_force_scale,
                                       forces[3*i+2]*m_force_scale);
             }
-        m_pdata->release();
         }
     else
         {
@@ -441,17 +440,16 @@ void IMDInterface::sendCoords(unsigned int timestep)
         }
         
     // copy the particle data to the holding array and send it
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        unsigned int tag = arrays.tag[i];
-        m_tmp_coords[tag*3] = float(arrays.x[i]);
-        m_tmp_coords[tag*3 + 1] = float(arrays.y[i]);
-        m_tmp_coords[tag*3 + 2] = float(arrays.z[i]);
+        unsigned int tag = h_tag.data[i];
+        m_tmp_coords[tag*3] = float(h_pos.data[i].x);
+        m_tmp_coords[tag*3 + 1] = float(h_pos.data[i].y);
+        m_tmp_coords[tag*3 + 2] = float(h_pos.data[i].z);
         }
-    m_pdata->release();
-    
-    err = imd_send_fcoords(m_connected_sock, arrays.nparticles, m_tmp_coords);
+    err = imd_send_fcoords(m_connected_sock, m_pdata->getN(), m_tmp_coords);
     
     if (err)
         {

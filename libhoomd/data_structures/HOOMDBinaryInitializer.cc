@@ -138,43 +138,31 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
     m_timestep = ts;
     }
 
-/*! \param pdata The particle data
-
-    initArrays takes the internally stored copy of the particle data and copies it
-    into the provided particle data arrays for storage in ParticleData.
-*/
-void HOOMDBinaryInitializer::initArrays(const ParticleDataArrays &pdata) const
+/*! \returns a snapshot of the internally stored copy of the particle data */
+SnapshotParticleData HOOMDBinaryInitializer::getSnapshot() const
     {
-    assert(m_x_array.size() > 0 && m_x_array.size() == pdata.nparticles);
-        
+    assert(m_x_array.size() > 0);
+
+    SnapshotParticleData snap(m_x_array.size());
+
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < m_x_array.size(); i++)
         {
-        pdata.tag[i] = m_tag_array[i];
-        pdata.rtag[i] = m_rtag_array[i];
+        unsigned int tag = m_tag_array[i];
+        snap.rtag[tag] = i;
 
-        pdata.x[i] = m_x_array[i];
-        pdata.y[i] = m_y_array[i];
-        pdata.z[i] = m_z_array[i];
-
-        pdata.ix[i] = m_ix_array[i];
-        pdata.iy[i] = m_iy_array[i];
-        pdata.iz[i] = m_iz_array[i];
-        
-        pdata.vx[i] = m_vx_array[i];
-        pdata.vy[i] = m_vy_array[i];
-        pdata.vz[i] = m_vz_array[i];
-
-        pdata.ax[i] = m_ax_array[i];
-        pdata.ay[i] = m_ay_array[i];
-        pdata.az[i] = m_az_array[i];
-
-        pdata.mass[i] = m_mass_array[i];
-        pdata.type[i] = m_type_array[i];
-        pdata.diameter[i] = m_diameter_array[i];
-        pdata.charge[i] = m_charge_array[i];
-        pdata.body[i] = m_body_array[i];
+        snap.pos[i] = make_scalar3(m_x_array[i], m_y_array[i], m_z_array[i]);
+        snap.image[i] = make_int3(m_ix_array[i], m_iy_array[i], m_iz_array[i]);
+        snap.vel[i] = make_scalar3(m_vx_array[i], m_vy_array[i], m_vz_array[i]);
+        snap.accel[i] = make_scalar3(m_ax_array[i], m_ay_array[i], m_az_array[i]);
+        snap.mass[i] = m_mass_array[i];
+        snap.type[i] = m_type_array[i];
+        snap.diameter[i] = m_diameter_array[i];
+        snap.charge[i] = m_charge_array[i];
+        snap.body[i] = m_body_array[i];
         }        
+
+    return snap;
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -214,8 +202,8 @@ static string read_string(istream &f)
     }
 
 /*! \param fname File name of the hoomd_binary file to read in
-    \post Internal data arrays and members are filled out from which futre calls
-    like initArrays will use to intialize the ParticleData
+    \post Internal data arrays and members are filled out from which future calls
+    like getSnapshot() will use to initialize the ParticleData
 
     This function implements the main parser loop. It reads in XML nodes from the
     file one by one and passes them of to parsers registered in \c m_parser_map.

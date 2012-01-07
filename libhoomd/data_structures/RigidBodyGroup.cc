@@ -76,12 +76,13 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
     vector<unsigned int> particle_count(m_rdata->getNumBodies());
     particle_count.assign(m_rdata->getNumBodies(), 0);
 
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
+    {
+    ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+
     for (unsigned int group_idx = 0; group_idx < group->getNumMembers(); group_idx++)
         {
         unsigned int p_index = group->getMemberIndex(group_idx);
-        unsigned int b_index = arrays.body[p_index];
+        unsigned int b_index = h_body.data[p_index];
         if (b_index == NO_INDEX)
             {
             cout << "***Warning! Attempting to include a free particle in a rigid body group, ignoring particle" << endl
@@ -93,8 +94,8 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
             particle_count[b_index]++;
             }
         }
-    
-    m_pdata->release();
+
+    }
     
     // validate that all bodies are completely selected
     // also count up the number of selected bodies

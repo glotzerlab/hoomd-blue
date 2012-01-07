@@ -130,20 +130,18 @@ void BoxResizeUpdater::update(unsigned int timestep)
             Scalar sz = Lz / (curBox.zhi - curBox.zlo);
             
             // move the particles to be inside the new box
-            ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-            
-            for (unsigned int i = 0; i < arrays.nparticles; i++)
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 // intentionally scale both rigid body and free particles, this may waste a few cycles but it enables
                 // the debug inBox checks to be left as is (otherwise, setRV cannot fixup rigid body positions without
                 // failing the check)
-                arrays.x[i] = (arrays.x[i] - curBox.xlo) * sx + newBox.xlo;
-                arrays.y[i] = (arrays.y[i] - curBox.ylo) * sy + newBox.ylo;
-                arrays.z[i] = (arrays.z[i] - curBox.zlo) * sz + newBox.zlo;
+                h_pos.data[i].x = (h_pos.data[i].x - curBox.xlo) * sx + newBox.xlo;
+                h_pos.data[i].y = (h_pos.data[i].y - curBox.ylo) * sy + newBox.ylo;
+                h_pos.data[i].z = (h_pos.data[i].z - curBox.zlo) * sz + newBox.zlo;
                 }
                 
-            m_pdata->release();
-            
             // also rescale rigid body COMs
             unsigned int n_bodies = rigid_data->getNumBodies();
             if (n_bodies > 0)
@@ -163,30 +161,28 @@ void BoxResizeUpdater::update(unsigned int timestep)
             {
             // otherwise, we need to ensure that the particles are still in the box if it is smaller
             // move the particles to be inside the new box
-            ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             
-            for (unsigned int i = 0; i < arrays.nparticles; i++)
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 // intentionally scale both rigid body and free particles, this may waste a few cycles but it enables
                 // the debug inBox checks to be left as is (otherwise, setRV cannot fixup rigid body positions without
                 // failing the check)
                 
                 // need to update the image if we move particles from one side of the box to the other
-                float x_shift = rintf(arrays.x[i] / Lx);
-                arrays.x[i] -= Lx * x_shift;
-                arrays.ix[i] += (int)x_shift;
+                float x_shift = rintf(h_pos.data[i].x / Lx);
+                h_pos.data[i].x -= Lx * x_shift;
+                h_pos.data[i].x += (int)x_shift;
 
-                float y_shift = rintf(arrays.y[i] / Ly);
-                arrays.y[i] -= Ly * y_shift;
-                arrays.iy[i] += (int)y_shift;
+                float y_shift = rintf(h_pos.data[i].y / Ly);
+                h_pos.data[i].y -= Ly * y_shift;
+                h_pos.data[i].y += (int)y_shift;
                 
-                float z_shift = rintf(arrays.z[i] / Lz);
-                arrays.z[i] -= Lz * z_shift;
-                arrays.iz[i] += (int)z_shift;
+                float z_shift = rintf(h_pos.data[i].z / Lz);
+                h_pos.data[i].z -= Lz * z_shift;
+                h_pos.data[i].z += (int)z_shift;
                 }
 
-            m_pdata->release();
-            
             // do the same for rigid body COMs
             unsigned int n_bodies = rigid_data->getNumBodies();
             if (n_bodies > 0)

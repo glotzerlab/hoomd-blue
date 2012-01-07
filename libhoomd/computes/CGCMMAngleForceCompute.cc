@@ -224,8 +224,8 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     
     assert(m_pdata);
     // access the particle data arrays
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-     
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
    
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
@@ -238,9 +238,8 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
-    assert(arrays.x);
-    assert(arrays.y);
-    assert(arrays.z);
+    assert(h_pos.data);
+    assert(h_rtag.data);
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -273,26 +272,26 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
-        unsigned int idx_a = arrays.rtag[angle.a];
-        unsigned int idx_b = arrays.rtag[angle.b];
-        unsigned int idx_c = arrays.rtag[angle.c];
+        unsigned int idx_a = h_rtag.data[angle.a];
+        unsigned int idx_b = h_rtag.data[angle.b];
+        unsigned int idx_c = h_rtag.data[angle.c];
         assert(idx_a < m_pdata->getN());
         assert(idx_b < m_pdata->getN());
         assert(idx_c < m_pdata->getN());
         
         // calculate d\vec{r}
         // MEM_TRANSFER: 18 Scalars / FLOPS 9
-        Scalar dxab = arrays.x[idx_a] - arrays.x[idx_b];
-        Scalar dyab = arrays.y[idx_a] - arrays.y[idx_b];
-        Scalar dzab = arrays.z[idx_a] - arrays.z[idx_b];
+        Scalar dxab = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+        Scalar dyab = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+        Scalar dzab = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
         
-        Scalar dxcb = arrays.x[idx_c] - arrays.x[idx_b];
-        Scalar dycb = arrays.y[idx_c] - arrays.y[idx_b];
-        Scalar dzcb = arrays.z[idx_c] - arrays.z[idx_b];
+        Scalar dxcb = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
+        Scalar dycb = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
+        Scalar dzcb = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
         
-        Scalar dxac = arrays.x[idx_a] - arrays.x[idx_c]; // used for the 1-3 JL interaction
-        Scalar dyac = arrays.y[idx_a] - arrays.y[idx_c];
-        Scalar dzac = arrays.z[idx_a] - arrays.z[idx_c];
+        Scalar dxac = h_pos.data[idx_a].x - h_pos.data[idx_c].x; // used for the 1-3 JL interaction
+        Scalar dyac = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        Scalar dzac = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
         
         // if the a->b vector crosses the box, pull it back
         // (total FLOPS: 27 (worst case: first branch is missed, the 2nd is taken and the add is done, for each))
@@ -463,8 +462,6 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
             h_virial.data[k*virial_pitch+idx_c] += virial[k];
         }
         
-    m_pdata->release();
-   
     if (m_prof) m_prof->pop();
     }
 

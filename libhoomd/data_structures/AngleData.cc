@@ -335,15 +335,16 @@ void AngleData::updateAngleTable()
     
     // loop through the particles and count the number of angles based on each particle index
     // however, only the b atom in the a-b-c angle is included in the count.
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read)
+
     for (unsigned int cur_angle = 0; cur_angle < m_angles.size(); cur_angle++)
         {
         unsigned int tag1 = m_angles[cur_angle].a; //
         unsigned int tagb = m_angles[cur_angle].b;
         unsigned int tag3 = m_angles[cur_angle].c; //
-        int idx1 = arrays.rtag[tag1]; //
-        int idxb = arrays.rtag[tagb];
-        int idx3 = arrays.rtag[tag3]; //
+        int idx1 = h_rtag[tag1]; //
+        int idxb = h_rtag[tagb];
+        int idx3 = h_rtag[tag3]; //
         
         m_host_n_angles[idx1]++; //
         m_host_n_angles[idxb]++;
@@ -352,7 +353,8 @@ void AngleData::updateAngleTable()
         
     // find the maximum number of angles
     unsigned int num_angles_max = 0;
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    unsigned int nparticles = m_pdata->getN();
+    for (unsigned int i = 0; i < nparticles; i++)
         {
         if (m_host_n_angles[i] > num_angles_max)
             num_angles_max = m_host_n_angles[i];
@@ -376,9 +378,9 @@ void AngleData::updateAngleTable()
         unsigned int tag2 = m_angles[cur_angle].b;
         unsigned int tag3 = m_angles[cur_angle].c;
         unsigned int type = m_angles[cur_angle].type;
-        int idx1 = arrays.rtag[tag1];
-        int idx2 = arrays.rtag[tag2];
-        int idx3 = arrays.rtag[tag3];
+        int idx1 = h_tag[tag1];
+        int idx2 = h_rtag[tag2];
+        int idx3 = h_rtag[tag3];
         angleABC angle_type_abc;
         
         // get the number of angles for the b in a-b-c triplet
@@ -405,8 +407,6 @@ void AngleData::updateAngleTable()
         m_host_n_angles[idx3]++; //
         }
         
-    m_pdata->release();
-    
     // copy the angle table to the device
     copyAngleTable();
     }

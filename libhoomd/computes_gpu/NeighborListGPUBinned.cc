@@ -168,7 +168,10 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  Scalar(1.0) / width.z);
     
     // acquire the particle data
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter<m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body<m_pdata->getBodies(), access_location::device, access_mode::read);
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // access the cell list data arrays
@@ -197,9 +200,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  d_last_pos.data,
                                  d_conditions.data,
                                  m_nlist_indexer,
-                                 d_pdata.pos,
-                                 d_pdata.body,
-                                 d_pdata.diameter,
+                                 d_pos.data,
+                                 d_body.data,
+                                 d_diameter.data,
                                  m_pdata->getN(),
                                  d_cell_size.data,
                                  d_cell_xyzf.data,
@@ -243,9 +246,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     d_last_pos.data,
                                     d_conditions.data,
                                     m_nlist_indexer,
-                                    d_pdata.pos,
-                                    d_pdata.body,
-                                    d_pdata.diameter,
+                                    d_pos.data,
+                                    d_body.data,
+                                    d_diameter.data,
                                     m_pdata->getN(),
                                     d_cell_size.data,
                                     dca_cell_xyzf,
@@ -264,8 +267,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_pdata->release();
-    
     if (m_prof)
         m_prof->pop(exec_conf);
     }

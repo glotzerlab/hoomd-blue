@@ -64,9 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
 //! Texture for reading table values
 texture<float2, 1, cudaReadModeElementType> tables_tex;
 
@@ -75,7 +72,8 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch Pitch of 2D virial array
-    \param pdata Particle data on the GPU to calculate forces on
+    \param N number of particles in system
+    \param d_pos device array of particle positions
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -87,14 +85,14 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     See TablePotential for information on the memory layout.
 
     \b Details:
-    * Particle posisitions are read from pdata_pos_tex.
     * Table entries are read from tables_tex. Note that currently this is bound to a 1D memory region. Performance tests
       at a later date may result in this changing.
 */
 __global__ void gpu_compute_table_forces_kernel(float4* d_force,
                                                 float* d_virial,
                                                 const unsigned virial_pitch,
-                                                const gpu_pdata_arrays pdata,
+                                                const unsigned int N,
+                                                const Scalar4 *d_pos,
                                                 const gpu_boxsize box,
                                                 const unsigned int *d_n_neigh,
                                                 const unsigned int *d_nlist,
@@ -119,14 +117,14 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
     
     // load in the length of the list
     unsigned int n_neigh = d_n_neigh[idx];
     
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
-    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
+    float4 pos = d_pos[idx]
     unsigned int typei = __float_as_int(pos.w);
     
     // initialize the force to 0
@@ -162,7 +160,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
             next_neigh = d_nlist[nli(idx, (neigh_idx+1))];
             
             // get the neighbor's position
-            float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+            float4 neigh_pos = d_pos[cur_neigh];
             
             // calculate dr (with periodic boundary conditions)
             float dx = pos.x - neigh_pos.x;
@@ -246,7 +244,8 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to calculate forces on
+    \param N number of particles
+    \param d_pos particle positions on the device
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -262,7 +261,8 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
 cudaError_t gpu_compute_table_forces(float4* d_force,
                                      float* d_virial,
                                      const unsigned int virial_pitch,
-                                     const gpu_pdata_arrays &pdata,
+                                     const unsigned int N,
+                                     const Scalar4 *d_pos,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
@@ -282,16 +282,9 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
     Index2DUpperTriangular table_index(ntypes);
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    // bind the pdata position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
     // bind the tables texture
     tables_tex.normalized = false;
     tables_tex.filterMode = cudaFilterModePoint;
@@ -300,7 +293,7 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
         return error;
         
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(float4)*table_index.getNumElements() >>>
-            (d_force, d_virial, virial_pitch, pdata, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
+            (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
     
     return cudaSuccess;
     }
