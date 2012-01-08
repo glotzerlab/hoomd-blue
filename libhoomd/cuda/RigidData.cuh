@@ -101,10 +101,10 @@ struct gpu_rigid_data_arrays
 
 
 //! sets RV on the GPU for rigid bodies
-cudaError_t gpu_rigid_setRV(const Scalar4 *d_pos,
-                            const Scalar4 *d_vel,
-                            const int3 *d_image,
-                            const unsigned int *d_body,
+cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
+                            Scalar4 *d_vel,
+                            int3 *d_image,
+                            unsigned int *d_body,
                                    const gpu_rigid_data_arrays& rigid_data,
                                    float4 *d_pdata_orientation,
                                    unsigned int *d_group_members,

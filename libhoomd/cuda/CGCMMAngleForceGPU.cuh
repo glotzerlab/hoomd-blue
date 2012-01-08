@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AngleData.cuh"
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 /*! \file CGCMMAngleForceGPU.cuh
     \brief Declares GPU kernel code for calculating the CGCMM angle forces. Used by CGCMMAngleForceComputeGPU.

@@ -97,8 +97,8 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
     int n_dihedrals = tlist.n_dihedrals[idx];
     
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
-    float4 a_pos,b_pos,c_pos, d_pos; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
+    Scalar4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
+    Scalar4 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
     
     // initialize the force to 0
     float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -136,45 +136,45 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
         
         if (cur_dihedral_abcd == 0)
             {
-            a_pos = idx_pos;
-            b_pos = x_pos;
-            c_pos = y_pos;
-            d_pos = z_pos;
+            pos_a = idx_pos;
+            pos_b = x_pos;
+            pos_c = y_pos;
+            pos_d = z_pos;
             }
         if (cur_dihedral_abcd == 1)
             {
-            b_pos = idx_pos;
-            a_pos = x_pos;
-            c_pos = y_pos;
-            d_pos = z_pos;
+            pos_b = idx_pos;
+            pos_a = x_pos;
+            pos_c = y_pos;
+            pos_d = z_pos;
             }
         if (cur_dihedral_abcd == 2)
             {
-            c_pos = idx_pos;
-            a_pos = x_pos;
-            b_pos = y_pos;
-            d_pos = z_pos;
+            pos_c = idx_pos;
+            pos_a = x_pos;
+            pos_b = y_pos;
+            pos_d = z_pos;
             }
         if (cur_dihedral_abcd == 3)
             {
-            d_pos = idx_pos;
-            a_pos = x_pos;
-            b_pos = y_pos;
-            c_pos = z_pos;
+            pos_d = idx_pos;
+            pos_a = x_pos;
+            pos_b = y_pos;
+            pos_c = z_pos;
             }
             
         // calculate dr for a-b,c-b,and a-c(FLOPS: 9)
-        float dxab = a_pos.x - b_pos.x;
-        float dyab = a_pos.y - b_pos.y;
-        float dzab = a_pos.z - b_pos.z;
+        float dxab = pos_a.x - pos_b.x;
+        float dyab = pos_a.y - pos_b.y;
+        float dzab = pos_a.z - pos_b.z;
         
-        float dxcb = c_pos.x - b_pos.x;
-        float dycb = c_pos.y - b_pos.y;
-        float dzcb = c_pos.z - b_pos.z;
+        float dxcb = pos_c.x - pos_b.x;
+        float dycb = pos_c.y - pos_b.y;
+        float dzcb = pos_c.z - pos_b.z;
         
-        float dxdc = d_pos.x - c_pos.x;
-        float dydc = d_pos.y - c_pos.y;
-        float dzdc = d_pos.z - c_pos.z;
+        float dxdc = pos_d.x - pos_c.x;
+        float dydc = pos_d.y - pos_c.y;
+        float dzdc = pos_d.z - pos_c.z;
         
         dxab -= box.Lx * rintf(dxab * box.Lxinv);
         dxcb -= box.Lx * rintf(dxcb * box.Lxinv);
@@ -387,7 +387,7 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
     dim3 threads(block_size, 1, 1);
     
     // bind the texture
-    error = cudaBindTexture(0, dihedral_params_tex, d_params, sizeof(float4) * n_dihedral_types);
+    cudaError_t error = cudaBindTexture(0, dihedral_params_tex, d_params, sizeof(float4) * n_dihedral_types);
     if (error != cudaSuccess)
         return error;
         

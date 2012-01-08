@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BondData.cuh"
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 /*! \file HarmonicBondForceGPU.cuh
     \brief Declares GPU kernel code for calculating the harmonic bond forces. Used by HarmonicBondForceComputeGPU.

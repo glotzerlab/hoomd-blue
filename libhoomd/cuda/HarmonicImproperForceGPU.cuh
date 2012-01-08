@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "DihedralData.cuh"
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 /*! \file HarmonicImproperForceGPU.cuh
     \brief Declares GPU kernel code for calculating the harmonic improper forces. Used by HarmonicImproperForceComputeGPU.

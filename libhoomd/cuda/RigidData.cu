@@ -69,8 +69,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*!
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
-    \param pdata_orientation Particle orientation
     \param pdata_image Particle image
+    \param pdata_orientation Particle orientation
     \param d_pgroup_idx Particle index
     \param n_pgroup Number of particles in the group
     \param d_particle_offset Local index of a particle in the body
@@ -86,10 +86,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Box dimensions for periodic boundary condition handling
 */
 template<bool set_x>
-__global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
-                                       float4* pdata_vel,
+__global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
+                                       Scalar4* pdata_vel,
+                                       int3* pdata_image,
                                        float4* pdata_orientation,
-                                       int4* pdata_image,
                                        unsigned int *d_pgroup_idx,
                                        unsigned int n_pgroup,
                                        unsigned int *d_particle_offset,
@@ -137,8 +137,8 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
     ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
     ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
     
-    float4 ppos;
-    int4 image;
+    Scalar4 ppos;
+    int3 image;
     float4 porientation;
     if (set_x)
         {
@@ -171,7 +171,7 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
         }
     
     // v_particle = vel + angvel x ri
-    float4 pvel;
+    Scalar4 pvel;
     pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
     pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
     pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
@@ -200,10 +200,10 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
     \param box Box dimensions for periodic boundary condition handling
     \param set_x boolean indicating whether the positions are changed or not (first or second step of integration)
 */
-cudaError_t gpu_rigid_setRV(const Scalar4 *d_pos,
-                            const Scalar4 *d_vel,
-                            const int3 *d_image,
-                            const unsigned int *d_body,
+cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
+                            Scalar4 *d_vel,
+                            int3 *d_image,
+                            unsigned int *d_body,
                                    const gpu_rigid_data_arrays& rigid_data,
                                    float4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
@@ -237,8 +237,8 @@ cudaError_t gpu_rigid_setRV(const Scalar4 *d_pos,
     if (set_x)
         gpu_rigid_setRV_kernel<true><<< particle_grid, particle_threads >>>(d_pos,
                                                                         d_vel,
-                                                                        d_pdata_orientation,
                                                                         d_image,
+                                                                        d_pdata_orientation,
                                                                         d_group_members,
                                                                         group_size,
                                                                         rigid_data.particle_offset,
@@ -255,8 +255,8 @@ cudaError_t gpu_rigid_setRV(const Scalar4 *d_pos,
      else
         gpu_rigid_setRV_kernel<false><<< particle_grid, particle_threads >>>(d_pos,
                                                                         d_vel,
-                                                                        d_pdata_orientation,
                                                                         d_image,
+                                                                        d_pdata_orientation,
                                                                         d_group_members,
                                                                         group_size,
                                                                         rigid_data.particle_offset,

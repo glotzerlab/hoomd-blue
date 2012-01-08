@@ -72,16 +72,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 extern "C" __global__ 
 void gpu_enforce2d_kernel(const unsigned int N,
-                          const Scalar4 *d_vel,
-                          const Scalar3 *d_accel)
+                          Scalar4 *d_vel,
+                          Scalar3 *d_accel)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (idx < N)
         {        
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 vel = d_vel[idx];
-        float4 accel = d_accel[idx];
+        Scalar4 vel = d_vel[idx];
+        Scalar3 accel = d_accel[idx];
                 
         // zero the z-velocity and z-acceleration(FLOPS: ?)
         vel.z = 0.0f;
@@ -98,8 +98,8 @@ void gpu_enforce2d_kernel(const unsigned int N,
     \param d_accel Particle accelerations to constrain to xy plane
 */
 cudaError_t gpu_enforce2d(const unsigned int N,
-                          const Scalar4 *d_vel,
-                          const Scalar3 *d_accel)
+                          Scalar4 *d_vel,
+                          Scalar3 *d_accel)
     {
     // setup the grid to run the kernel
     int block_size = 256;

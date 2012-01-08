@@ -83,7 +83,7 @@ void CellListGPU::computeCellList()
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_diameter(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     gpu_boxsize box = m_pdata->getBoxGPU();
     
@@ -101,7 +101,7 @@ void CellListGPU::computeCellList()
                               d_tdb.data,
                               d_conditions.data,
                               d_pos.data,
-                              d_charge.data
+                              d_charge.data,
                               d_diameter.data,
                               d_body.data,
                               m_pdata->getN(),
@@ -118,10 +118,10 @@ void CellListGPU::computeCellList()
                                  d_xyzf.data,
                                  d_tdb.data,
                                  d_conditions.data,
-                                 d_pdata.pos,
-                                 d_pdata.charge,
-                                 d_pdata.diameter,
-                                 d_pdata.body,
+                                 d_pos.data,
+                                 d_charge.data,
+                                 d_diameter.data,
+                                 d_body.data,
                                  m_pdata->getN(),
                                  m_Nmax,
                                  m_flag_charge,

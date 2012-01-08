@@ -72,10 +72,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
 extern "C" __global__
-void gpu_berendsen_step_one_kernel(const Scalar4 *d_pos,
-                                   const Scalar4 *d_vel,
+void gpu_berendsen_step_one_kernel(Scalar4 *d_pos,
+                                   Scalar4 *d_vel,
                                    const Scalar3 *d_accel,
-                                   const int3 *d_image,
+                                   int3 *d_image,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    gpu_boxsize box,
@@ -113,7 +113,7 @@ void gpu_berendsen_step_one_kernel(const Scalar4 *d_pos,
         pz += vel.z * deltaT;
 
         // read in the image flags
-        int4 image = d_image[idx];
+        int3 image = d_image[idx];
 
         // apply the periodic boundary conditions
         float x_shift = rintf(px * box.Lxinv);
@@ -129,7 +129,7 @@ void gpu_berendsen_step_one_kernel(const Scalar4 *d_pos,
         image.z += (int)z_shift;
 
         // another temporary variable
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
@@ -154,8 +154,8 @@ void gpu_berendsen_step_one_kernel(const Scalar4 *d_pos,
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
 extern "C" __global__
-void gpu_berendsen_step_two_kernel(const Scalar4 *d_vel,
-                                   const Scalar3 *d_accel,
+void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
+                                   Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
@@ -169,10 +169,10 @@ void gpu_berendsen_step_two_kernel(const Scalar4 *d_vel,
         unsigned int idx = d_group_members[group_idx];
 
         // read in the velocity
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
 
         // read in the net force and calculate the acceleration
-        float4 accel = d_net_force[idx];
+        Scalar4 accel = d_net_force[idx];
         float mass = vel.w;
         accel.x /= mass;
         accel.y /= mass;
@@ -185,14 +185,14 @@ void gpu_berendsen_step_two_kernel(const Scalar4 *d_vel,
 
         // write out the velocity and acceleration
         d_vel[idx] = vel;
-        d_accel[idx] = accel;
+        d_accel[idx] = make_scalar3(accel.x, accel.y, accel.z);
         }
     }
 
-cudaError_t gpu_berendsen_step_one(const Scalar4 *d_pos,
-                                   const Scalar4 *d_vel,
+cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
+                                   Scalar4 *d_vel,
                                    const Scalar3 *d_accel,
-                                   const int3 *d_image,
+                                   int3 *d_image,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    const gpu_boxsize &box,
@@ -218,8 +218,8 @@ cudaError_t gpu_berendsen_step_one(const Scalar4 *d_pos,
     return cudaSuccess;
     }
 
-cudaError_t gpu_berendsen_step_two(const Scalar4 *d_pos,
-                                   const Scalar3 *d_accel,
+cudaError_t gpu_berendsen_step_two(Scalar4 *d_vel,
+                                   Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,

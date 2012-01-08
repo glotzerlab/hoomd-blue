@@ -161,8 +161,8 @@ void PotentialPairDPDLJThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned 
     Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::read);
 
     gpu_boxsize box = this->m_pdata->getBoxGPU();
     
@@ -177,7 +177,7 @@ void PotentialPairDPDLJThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned 
     gpu_cpdf(dpdlj_pair_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
-                             m_pdata->getN(),
+                             this->m_pdata->getN(),
                              d_pos.data,
                              d_vel.data,
                              box,

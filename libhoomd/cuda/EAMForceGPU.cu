@@ -290,7 +290,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     // bind the texture
     electronDensity_tex.normalized = false;
     electronDensity_tex.filterMode = cudaFilterModeLinear ;
-    error = cudaBindTextureToArray(electronDensity_tex, eam_tex.electronDensity);
+    cudaError_t error = cudaBindTextureToArray(electronDensity_tex, eam_tex.electronDensity);
     if (error != cudaSuccess)
         return error;
 

@@ -78,10 +78,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     See gpu_nve_step_one_kernel() for some performance notes on how to handle the group data reads efficiently.
 */
 extern "C" __global__ 
-void gpu_nvt_step_one_kernel(const Scalar4 *d_pos,
-                             const Scalar4 *d_vel,
+void gpu_nvt_step_one_kernel(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
                              const Scalar3 *d_accel,
-                             const int3 *d_image,
+                             int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              gpu_boxsize box,
@@ -103,7 +103,7 @@ void gpu_nvt_step_one_kernel(const Scalar4 *d_pos,
         float pz = pos.z;
         float pw = pos.w;
         
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
         float3 accel = d_accel[idx];
         
         vel.x = (vel.x + (1.0f/2.0f) * accel.x * deltaT) * denominv;
@@ -131,7 +131,7 @@ void gpu_nvt_step_one_kernel(const Scalar4 *d_pos,
         pz -= box.Lz * z_shift;
         image.z += (int)z_shift;
         
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
@@ -155,10 +155,10 @@ void gpu_nvt_step_one_kernel(const Scalar4 *d_pos,
     \param Xi Current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
 */
-cudaError_t gpu_nvt_step_one(const Scalar4 *d_pos,
-                             const Scalar4 *d_vel,
+cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
                              const Scalar3 *d_accel,
-                             const int3 *d_image,
+                             int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const gpu_boxsize &box,
@@ -191,10 +191,10 @@ cudaError_t gpu_nvt_step_one(const Scalar4 *d_pos,
     \param d_net_force Net force on each particle
     \param Xi current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
-*$/
+*/
 extern "C" __global__ 
-void gpu_nvt_step_two_kernel(const Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
+void gpu_nvt_step_two_kernel(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
@@ -207,9 +207,10 @@ void gpu_nvt_step_two_kernel(const Scalar4 *d_vel,
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-   
+
         // read in the net force and calculate the acceleration
-        float4 accel = d_net_force[idx];
+        Scalar4 net_force = d_net_force[idx];
+        Scalar3 accel = make_scalar3(net_force.x,net_force.y,net_force.z);
 
         float4 vel = d_vel[idx];
 
@@ -225,7 +226,7 @@ void gpu_nvt_step_two_kernel(const Scalar4 *d_vel,
         // write out data
         d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
-        d_accel[idx] = make_scalar3(accel.x, accel.y, accel.z);
+        d_accel[idx] = accel;
         }
     }
 
@@ -238,8 +239,8 @@ void gpu_nvt_step_two_kernel(const Scalar4 *d_vel,
     \param Xi current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
 */
-cudaError_t gpu_nvt_step_two(const Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
+cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,

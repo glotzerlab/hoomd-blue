@@ -333,8 +333,8 @@ void BondData::updateBondTable()
         {
         unsigned int tag1 = m_bonds[cur_bond].a;
         unsigned int tag2 = m_bonds[cur_bond].b;
-        int idx1 = h_rtag[tag1];
-        int idx2 = h_rtag[tag2];
+        int idx1 = h_rtag.data[tag1];
+        int idx2 = h_rtag.data[tag2];
         
         m_host_n_bonds[idx1]++;
         m_host_n_bonds[idx2]++;
@@ -366,8 +366,8 @@ void BondData::updateBondTable()
         unsigned int tag1 = m_bonds[cur_bond].a;
         unsigned int tag2 = m_bonds[cur_bond].b;
         unsigned int type = m_bonds[cur_bond].type;
-        int idx1 = h_rtag[tag1];
-        int idx2 = h_rtag[tag2];
+        int idx1 = h_rtag.data[tag1];
+        int idx2 = h_rtag.data[tag2];
         
         // get the number of bonds for each particle
         int num1 = m_host_n_bonds[idx1];

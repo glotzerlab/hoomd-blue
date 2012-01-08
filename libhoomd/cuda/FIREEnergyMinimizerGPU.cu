@@ -83,7 +83,7 @@ extern __shared__ float fire_sdata3[];
     \param group_size Number of members in the group
 */
 extern "C" __global__ 
-void gpu_fire_zero_v_kernel(const Scalar4 *d_vel,
+void gpu_fire_zero_v_kernel(Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size)
     {
@@ -95,7 +95,7 @@ void gpu_fire_zero_v_kernel(const Scalar4 *d_vel,
         unsigned int idx = d_group_members[group_idx];
      
         // read the particle's velocity (MEM TRANSFER: 32 bytes)
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
                 
         // zero the velocity(FLOPS: ?)
         vel.x = 0.0f;
@@ -117,8 +117,7 @@ void gpu_fire_zero_v_kernel(const Scalar4 *d_vel,
 This function is just the driver for gpu_fire_zero_v_kernel(), see that function
 for details.
 */
-cudaError_t gpu_fire_zero_v(const unsigned int N,
-                            const Scalar4 *d_vel,
+cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size)
     {
@@ -128,8 +127,7 @@ cudaError_t gpu_fire_zero_v(const unsigned int N,
     dim3 threads(block_size, 1, 1);
             
     // run the kernel
-    gpu_fire_zero_v_kernel<<< grid, threads >>>(N,
-                                                d_vel,
+    gpu_fire_zero_v_kernel<<< grid, threads >>>(d_vel,
                                                 d_group_members,
                                                 group_size);
     
@@ -412,7 +410,7 @@ extern "C" __global__
 */
 extern "C" __global__ 
     void gpu_fire_reduce_all_partial_kernel(const Scalar4 *d_vel,
-                                            const Scalar4 *d_accel,
+                                            const Scalar3 *d_accel,
                                             unsigned int *d_group_members,
                                             unsigned int group_size,
                                             float* d_partial_sum_P, 
@@ -431,7 +429,7 @@ extern "C" __global__
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float3 a = d_accel[idx];
+        Scalar3 a = d_accel[idx];
         float4 v = d_vel[idx];
         P = a.x*v.x + a.y*v.y + a.z*v.z;
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
@@ -616,7 +614,7 @@ cudaError_t gpu_fire_compute_sum_all(
     \param invfnorm 1 over the magnitude of the (3*N) dimensional force vector
 */
 extern "C" __global__ 
-    void gpu_fire_update_v_kernel(const Scalar4 *d_vel,
+    void gpu_fire_update_v_kernel(Scalar4 *d_vel,
                                   const Scalar3 *d_accel,
                                   unsigned int *d_group_members,
                                   unsigned int group_size,
@@ -631,8 +629,8 @@ extern "C" __global__
         {
         unsigned int idx = d_group_members[group_idx];       
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 v = d_vel[idx];
-        float3 a = d_accel[idx];
+        Scalar4 v = d_vel[idx];
+        Scalar3 a = d_accel[idx];
                         
         v.x = v.x*(1.0f-alpha) + alpha*a.x*invfnorm*vnorm;
         v.y = v.y*(1.0f-alpha) + alpha*a.y*invfnorm*vnorm;
@@ -655,8 +653,7 @@ extern "C" __global__
     
     This function is a driver for gpu_fire_update_v_kernel(), see it for details.
 */
-cudaError_t gpu_fire_update_v(const unsigned int N,
-                              const Scalar4 *d_vel,
+cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
                               const Scalar3 *d_accel,
                               unsigned int *d_group_members,
                               unsigned int group_size,

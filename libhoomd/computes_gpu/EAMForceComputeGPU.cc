@@ -197,7 +197,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_eam_tex_inter_forces(d_force.data,
                                      d_virial.data,
                                      m_virial.getPitch(),
-                                     const unsigned int N,
+                                     m_pdata->getN(),
                                      d_pos.data,
                                      box,
                                      d_n_neigh.data,

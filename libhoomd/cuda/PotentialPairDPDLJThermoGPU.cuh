@@ -110,7 +110,7 @@ struct dpdlj_pair_args_t
     float4 *d_force;                //!< Force to write out
     float *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< Pitch of 2D virial array
-    const unsgned int N;            //!< number of particles
+    const unsigned int N;           //!< number of particles
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar4 *d_vel;           //!< particle velocities
     const gpu_boxsize &box;         //!< Simulation box in GPU format

@@ -104,8 +104,8 @@ extern __shared__ float bdtally_sdata[];
 */
 extern "C" __global__ 
 void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
-                              const Scalar4 *d_vel,
-                              const Scalar3 *d_accel,
+                              Scalar4 *d_vel,
+                              Scalar3 *d_accel,
                               const Scalar *d_diameter,
                               const unsigned int *d_tag,
                               unsigned int *d_group_members,
@@ -146,7 +146,7 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
         
         // ******** first, calculate the additional BD force
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
         // read in the tag of our particle.
         // (MEM TRANSFER: 4 bytes)
         unsigned int ptag = d_tag[idx];
@@ -183,7 +183,8 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
             bd_force.z = randomz*coeff - gamma*vel.z;
         
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
-        float4 accel = d_net_force[idx];
+        float4 net_force = d_net_force[idx];
+        Scalar3 accel = make_scalar3(net_force.x,net_force.y,net_force.z);
         // MEM TRANSFER: 4 bytes   FLOPS: 3
         float mass = d_vel[idx].w;
         float minv = 1.0f / mass;
@@ -303,8 +304,8 @@ extern "C" __global__
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
 cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
-                              const Scalar4 *d_vel,
-                              const Scalar3 *d_accel,
+                              Scalar4 *d_vel,
+                              Scalar3 *d_accel,
                               const Scalar *d_diameter,
                               const unsigned int *d_tag,
                                unsigned int *d_group_members,

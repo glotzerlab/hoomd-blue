@@ -340,10 +340,10 @@ void DihedralData::updateDihedralTable()
         unsigned int tag2 = m_dihedrals[cur_dihedral].b;
         unsigned int tag3 = m_dihedrals[cur_dihedral].c; //
         unsigned int tag4 = m_dihedrals[cur_dihedral].d; //
-        int idx1 = h_rtag[tag1]; //
-        int idx2 = h_rtag[tag2];
-        int idx3 = h_rtag[tag3]; //
-        int idx4 = h_rtag[tag4]; //
+        int idx1 = h_rtag.data[tag1]; //
+        int idx2 = h_rtag.data[tag2];
+        int idx3 = h_rtag.data[tag3]; //
+        int idx4 = h_rtag.data[tag4]; //
         
         m_host_n_dihedrals[idx1]++; //
         m_host_n_dihedrals[idx2]++;
@@ -379,10 +379,10 @@ void DihedralData::updateDihedralTable()
         unsigned int tag3 = m_dihedrals[cur_dihedral].c;
         unsigned int tag4 = m_dihedrals[cur_dihedral].d;
         unsigned int type = m_dihedrals[cur_dihedral].type;
-        int idx1 = h_rtag[tag1];
-        int idx2 = h_rtag[tag2];
-        int idx3 = h_rtag[tag3];
-        int idx4 = h_rtag[tag4];
+        int idx1 = h_rtag.data[tag1];
+        int idx2 = h_rtag.data[tag2];
+        int idx3 = h_rtag.data[tag3];
+        int idx4 = h_rtag.data[tag4];
         dihedralABCD dihedral_type_abcd;
         
         // get the number of dihedrals for the b in a-b-c triplet

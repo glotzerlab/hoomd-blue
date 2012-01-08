@@ -335,16 +335,16 @@ void AngleData::updateAngleTable()
     
     // loop through the particles and count the number of angles based on each particle index
     // however, only the b atom in the a-b-c angle is included in the count.
-    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read)
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     for (unsigned int cur_angle = 0; cur_angle < m_angles.size(); cur_angle++)
         {
         unsigned int tag1 = m_angles[cur_angle].a; //
         unsigned int tagb = m_angles[cur_angle].b;
         unsigned int tag3 = m_angles[cur_angle].c; //
-        int idx1 = h_rtag[tag1]; //
-        int idxb = h_rtag[tagb];
-        int idx3 = h_rtag[tag3]; //
+        int idx1 = h_rtag.data[tag1]; //
+        int idxb = h_rtag.data[tagb];
+        int idx3 = h_rtag.data[tag3]; //
         
         m_host_n_angles[idx1]++; //
         m_host_n_angles[idxb]++;
@@ -378,9 +378,9 @@ void AngleData::updateAngleTable()
         unsigned int tag2 = m_angles[cur_angle].b;
         unsigned int tag3 = m_angles[cur_angle].c;
         unsigned int type = m_angles[cur_angle].type;
-        int idx1 = h_tag[tag1];
-        int idx2 = h_rtag[tag2];
-        int idx3 = h_rtag[tag3];
+        int idx1 = h_rtag.data[tag1];
+        int idx2 = h_rtag.data[tag2];
+        int idx3 = h_rtag.data[tag3];
         angleABC angle_type_abc;
         
         // get the number of angles for the b in a-b-c triplet

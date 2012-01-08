@@ -86,10 +86,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     contiguous as possible leading to fewer memory transactions on compute 1.3 hardware and more cache hits on Fermi.
 */
 extern "C" __global__ 
-void gpu_nve_step_one_kernel(const Scalar4 *d_pos,
-                             const Scalar4 *d_vel,
+void gpu_nve_step_one_kernel(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
                              const Scalar3 *d_accel,
-                             const int3 *d_image,
+                             int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              gpu_boxsize box,
@@ -110,7 +110,7 @@ void gpu_nve_step_one_kernel(const Scalar4 *d_pos,
         // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 
         // read the particle's posision (MEM TRANSFER: 16 bytes)
-        float4 pos = d_pos[idx];
+        Scalar4 pos = d_pos[idx];
         
         float px = pos.x;
         float py = pos.y;
@@ -119,7 +119,7 @@ void gpu_nve_step_one_kernel(const Scalar4 *d_pos,
         
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
         float4 vel = d_vel[idx];
-        float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        Scalar3 accel = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         if (!zero_force)
             accel = d_accel[idx];
         
@@ -151,7 +151,7 @@ void gpu_nve_step_one_kernel(const Scalar4 *d_pos,
         vel.z += (1.0f/2.0f) * accel.z * deltaT;
         
         // read in the particle's image (MEM TRANSFER: 16 bytes)
-        int4 image = d_image[idx];
+        int3 image = d_image[idx];
         
         // fix the periodic boundary conditions (FLOPS: 15)
         float x_shift = rintf(px * box.Lxinv);
@@ -166,7 +166,7 @@ void gpu_nve_step_one_kernel(const Scalar4 *d_pos,
         pz -= box.Lz * z_shift;
         image.z += (int)z_shift;
         
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
@@ -194,10 +194,10 @@ void gpu_nve_step_one_kernel(const Scalar4 *d_pos,
     
     See gpu_nve_step_one_kernel() for full documentation, this function is just a driver.
 */
-cudaError_t gpu_nve_step_one(const Scalar4 *d_pos,
-                             const Scalar4 *d_vel,
+cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
                              const Scalar3 *d_accel,
-                             const int3 *d_image,
+                             int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const gpu_boxsize &box,
@@ -212,7 +212,7 @@ cudaError_t gpu_nve_step_one(const Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_nve_step_one_kernel<<< grid, threads >>>(N, d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
+    gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
     
     return cudaSuccess;
     }
@@ -233,8 +233,8 @@ cudaError_t gpu_nve_step_one(const Scalar4 *d_pos,
 */
 extern "C" __global__ 
 void gpu_nve_step_two_kernel(
-                            const Scalar4 *d_vel,
-                            const Scalar3 *d_accel,
+                            Scalar4 *d_vel,
+                            Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
                             float4 *d_net_force,
@@ -251,14 +251,15 @@ void gpu_nve_step_two_kernel(
         unsigned int idx = d_group_members[group_idx];
         
         // read in the net forc and calculate the acceleration MEM TRANSFER: 16 bytes
-        float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        Scalar3 accel = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = vel[idx];
+        Scalar4 vel = d_vel[idx];
 
         if (!zero_force)
             {
-            accel = d_net_force[idx];
+            Scalar4 net_force = d_net_force[idx];
+            accel = make_scalar3(net_force.x, net_force.y, net_force.z);
             // MEM TRANSFER: 4 bytes   FLOPS: 3
             float mass = vel.w;
             accel.x /= mass;
@@ -304,8 +305,8 @@ void gpu_nve_step_two_kernel(
 
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_nve_step_two(const Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
+cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
@@ -321,8 +322,7 @@ cudaError_t gpu_nve_step_two(const Scalar4 *d_vel,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_nve_step_two_kernel<<< grid, threads >>>(N,
-                                                 d_vel,
+    gpu_nve_step_two_kernel<<< grid, threads >>>(d_vel,
                                                  d_accel,
                                                  d_group_members,
                                                  group_size,

@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 #ifndef __TWO_STEP_BDNVT_GPU_CUH__
 #define __TWO_STEP_BDNVT_GPU_CUH__
@@ -77,8 +78,8 @@ struct bdnvt_step_two_args
 
 //! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
 cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
-                               const Scalar4 *d_vel,
-                               const Scalar3 *d_accel,
+                               Scalar4 *d_vel,
+                               Scalar3 *d_accel,
                                const Scalar *d_diameter,
                                const unsigned int *d_tag,
                                unsigned int *d_group_members,

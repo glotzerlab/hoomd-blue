@@ -135,8 +135,7 @@ void FIREEnergyMinimizerGPU::reset()
 
         ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
         unsigned int group_size = m_group->getIndexArray().getNumElements();    
-        gpu_fire_zero_v(m_pdata->getN(),
-                    d_vel.data,
+        gpu_fire_zero_v( d_vel.data,
                     d_index_array.data,
                     group_size);
     
@@ -255,21 +254,20 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     if (m_prof)
         m_prof->push(exec_conf, "FIRE update velocities");
 
-    Scalar invfnorm = 1.0/fnorm;        
+    Scalar invfnorm = 1.0/fnorm;
 
-    {
+
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
 
-    gpu_fire_update_v(m_pdata->getN(),
-                      d_vel.data,
+    gpu_fire_update_v(d_vel.data,
                       d_accel.data,
                       d_index_array.data,
                       group_size,
-                      m_alpha, 
-                      vnorm, 
+                      m_alpha,
+                      vnorm,
                       invfnorm);
-    }
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
@@ -294,7 +292,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         if (m_prof)
             m_prof->push(exec_conf, "FIRE zero velocities");
 
-        gpu_fire_zero_v(d_pdata,
+        gpu_fire_zero_v(d_vel.data,
                         d_index_array.data,
                         group_size);
 
@@ -304,7 +302,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         if (m_prof)
             m_prof->pop(exec_conf);        
         }
-    
+
     m_n_since_start++;            
     m_old_energy = energy;
     }

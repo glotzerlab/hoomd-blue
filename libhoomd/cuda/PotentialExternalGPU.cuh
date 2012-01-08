@@ -80,9 +80,9 @@ struct external_potential_args_t
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
+                  box(_box),
                   N(_N),
                   d_pos(_d_pos),
-                  box(_box),
                   block_size(_block_size)
         {
         };

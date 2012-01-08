@@ -124,7 +124,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
     unsigned int n_neigh = d_n_neigh[idx];
     
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
-    float4 pos = d_pos[idx]
+    Scalar4 pos = d_pos[idx];
     unsigned int typei = __float_as_int(pos.w);
     
     // initialize the force to 0
@@ -288,7 +288,7 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
     // bind the tables texture
     tables_tex.normalized = false;
     tables_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_width * table_index.getNumElements());
+    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_width * table_index.getNumElements());
     if (error != cudaSuccess)
         return error;
         

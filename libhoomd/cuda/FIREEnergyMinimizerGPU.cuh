@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: askeys
 
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 #ifndef __FIRE_ENERGY_MINIMIZER_GPU_CUH__
 #define __FIRE_ENERGY_MINIMIZER_GPU_CUH__
@@ -60,8 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Kernel driver for zeroing velocities called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_zero_v(const unsigned int N,
-                            const Scalar4 *d_vel,
+cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size); 
 
@@ -88,8 +88,7 @@ cudaError_t gpu_fire_compute_sum_all(const unsigned int N,
                             unsigned int num_blocks);
                             
 //! Kernel driver for updating the velocities called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_update_v(const unsigned int N,
-                            const Scalar4 *d_vel,
+cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
                             const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,

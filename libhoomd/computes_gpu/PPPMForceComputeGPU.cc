@@ -199,7 +199,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_pppm_forces(d_force.data,
                             d_virial.data,
                             m_virial.getPitch(),
-                            m_pdata->getN()
+                            m_pdata->getN(),
                             d_pos.data,
                             d_charge.data,
                             box,

@@ -141,9 +141,9 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     gpu_bondtable_array& gpu_bondtable = this->m_bond_data->acquireGPU();
 
     // access the particle data
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
     gpu_boxsize box = this->m_pdata->getBoxGPU();
 
     // access parameters
@@ -160,7 +160,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
         gpu_cgbf(bond_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
-                             m_pdata->getN(),
+                             this->m_pdata->getN(),
                              d_pos.data,
                              d_charge.data,
                              d_diameter.data,

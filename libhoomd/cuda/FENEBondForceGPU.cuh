@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BondData.cuh"
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 /*! \file FENEBondForceGPU.cuh
     \brief Declares GPU kernel code for calculating the FENE bond forces. Used by FENEBondForceComputeGPU.

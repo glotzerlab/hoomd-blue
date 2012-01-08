@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 #include "Index1D.h"
+#include "HOOMDMath.h"
 
 #ifndef __TABLEPOTENTIALGPU_CUH__
 #define __TABLEPOTENTIALGPU_CUH__

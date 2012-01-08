@@ -268,7 +268,7 @@ cudaError_t gpu_compute_fene_bond_forces(float4* d_force,
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    error = cudaBindTexture(0, bond_params_tex, d_params, sizeof(float4) * n_bond_types);
+    cudaError_t error = cudaBindTexture(0, bond_params_tex, d_params, sizeof(float4) * n_bond_types);
     if (error != cudaSuccess)
         return error;
         

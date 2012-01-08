@@ -78,8 +78,8 @@ position update and is a result of coupling to the thermo/barostat
     \param deltaT Time to advance (for one full step)
 */
 extern "C" __global__ 
-void gpu_npt_step_one_kernel(const Scalar4 *d_pos,
-                             const Scalar4 *d_vel,
+void gpu_npt_step_one_kernel(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
@@ -110,7 +110,7 @@ void gpu_npt_step_one_kernel(const Scalar4 *d_pos,
         
         // fetch particle velocity and acceleration
         float4 vel = d_vel[idx];
-        float4 accel = d_accel[idx];
+        Scalar3 accel = d_accel[idx];
         
         // propagate velocity by half a time step and position by the full time step
         // according to the Nose-Hoover barostat
@@ -130,7 +130,7 @@ void gpu_npt_step_one_kernel(const Scalar4 *d_pos,
             pz *= exp_r_fac*exp_r_fac;
             }
         
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
@@ -154,8 +154,8 @@ void gpu_npt_step_one_kernel(const Scalar4 *d_pos,
 
     This is just a kernel driver for gpu_npt_step_one_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_step_one(const Scalar4 *d_pos,
-                             const Scalar4 *d_vel,
+cudaError_t gpu_npt_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
@@ -200,8 +200,8 @@ cudaError_t gpu_npt_step_one(const Scalar4 *d_pos,
 */
 extern "C" __global__ 
 void gpu_npt_boxscale_kernel(const unsigned int N,
-                             const Scalar4 *d_pos,
-                             const int3 *d_image,
+                             Scalar4 *d_pos,
+                             int3 *d_image,
                              gpu_boxsize box,
                              bool partial_scale,
                              float box_len_scale)
@@ -243,7 +243,7 @@ void gpu_npt_boxscale_kernel(const unsigned int N,
         pz -= box.Lz * z_shift;
         image.z += (int)z_shift;
         
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
@@ -266,8 +266,8 @@ void gpu_npt_boxscale_kernel(const unsigned int N,
     This is just a kernel driver for gpu_npt_boxscale_kernel(). See it for more details.
 */
 cudaError_t gpu_npt_boxscale(const unsigned int N,
-                             const Scalar4 *d_pos,
-                             const int3 *d_image,
+                             Scalar4 *d_pos,
+                             int3 *d_image,
                              const gpu_boxsize& box,
                              bool partial_scale,
                              float Eta,
@@ -305,8 +305,8 @@ velocity update and is a result of coupling to the thermo/barostat
     \param deltaT Time to advance (for one full step)
 */
 extern "C" __global__ 
-void gpu_npt_step_two_kernel(const Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
+void gpu_npt_step_two_kernel( Scalar4 *d_vel,
+                              Scalar3 *d_accel,
                              const float4 *d_net_force,
                              unsigned int *d_group_members,
                              unsigned int group_size,
@@ -324,7 +324,7 @@ void gpu_npt_step_two_kernel(const Scalar4 *d_vel,
         float4 accel = d_net_force[idx];
 
         // fetch velocities
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
 
         float mass = vel.w;
         accel.x /= mass;
@@ -355,8 +355,8 @@ void gpu_npt_step_two_kernel(const Scalar4 *d_vel,
 
     This is just a kernel driver for gpu_npt_step_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_step_two(const Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
+cudaError_t gpu_npt_step_two(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,

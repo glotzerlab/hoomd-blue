@@ -69,7 +69,7 @@ struct dpd_pair_args_t
     dpd_pair_args_t(float4 *_d_force,
                     float *_d_virial,
                     const unsigned int _virial_pitch,
-                    const unsigned int N,
+                    const unsigned int _N,
                     const Scalar4 *_d_pos,
                     const Scalar4 *_d_vel,
                     const gpu_boxsize &_box,
@@ -165,8 +165,8 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
                                               float *d_virial,
                                               const unsigned int virial_pitch,
                                               const unsigned int N,
-                                              Scalar4 *d_pos,
-                                              Scalar4 *d_vel,
+                                              const Scalar4 *d_pos,
+                                              const Scalar4 *d_vel,
                                               gpu_boxsize box,
                                               const unsigned int *d_n_neigh,
                                               const unsigned int *d_nlist,
@@ -246,10 +246,10 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
             
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 posj = d_pos[posj];
+            Scalar4 posj = d_pos[cur_j];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 velj = d_vel[curj];
+            float4 velj = d_vel[cur_j];
                         
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
             float dx = posi.x - posj.x;

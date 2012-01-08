@@ -75,7 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" __global__
 void gpu_nph_step_one_kernel(Scalar4 *d_pos,
                              Scalar4 *d_vel,
-                             Scalar3 *d_accel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float3 L_old,
@@ -101,7 +101,7 @@ void gpu_nph_step_one_kernel(Scalar4 *d_pos,
 
         // fetch particle velocity and acceleration
         float4 vel = d_vel[idx];
-        float4 accel = d_accel[idx];
+        Scalar3 accel = d_accel[idx];
 
         float4 veltmp;
 
@@ -119,7 +119,7 @@ void gpu_nph_step_one_kernel(Scalar4 *d_pos,
         pz = (L_final.z/L_old.z) *(pz + veltmp.z*deltaT*L_old.z*L_old.z/L_halfstep.z/L_halfstep.z);
         vel.z = L_old.z/L_final.z*veltmp.z;
 
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
@@ -143,8 +143,8 @@ void gpu_nph_step_one_kernel(Scalar4 *d_pos,
 
     This is just a kernel driver for gpu_nph_step_one_kernel(). See it for more details.
 */
-cudaError_t gpu_nph_step_one(const Scalar4 *d_pos,
-                             const Scalar4 *d_vel,
+cudaError_t gpu_nph_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
@@ -181,8 +181,8 @@ cudaError_t gpu_nph_step_one(const Scalar4 *d_pos,
 */
 extern "C" __global__
 void gpu_nph_wrap_particles_kernel(const unsigned int N,
-                             const Scalar4 *d_pos,
-                             const int3 *d_image,
+                             Scalar4 *d_pos,
+                             int3 *d_image,
                              gpu_boxsize box)
     {
     // determine which particle this thread works on
@@ -200,7 +200,7 @@ void gpu_nph_wrap_particles_kernel(const unsigned int N,
         float pw = pos.w;
 
         // read in the image flags
-        int4 image = d_image[idx];
+        int3 image = d_image[idx];
 
         // fix periodic boundary conditions
         float x_shift = rintf(px * box.Lxinv);
@@ -215,7 +215,7 @@ void gpu_nph_wrap_particles_kernel(const unsigned int N,
         pz -= box.Lz * z_shift;
         image.z += (int)z_shift;
 
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
@@ -235,8 +235,8 @@ void gpu_nph_wrap_particles_kernel(const unsigned int N,
     This is just a kernel driver for gpu_nph_wrap_particles_kernel(). See it for more details.
 */
 cudaError_t gpu_nph_wrap_particles(const unsigned int N,
-                             const Scalar4 *d_pos,
-                             const int3 *d_image,
+                             Scalar4 *d_pos,
+                             int3 *d_image,
                              const gpu_boxsize& box)
     {
     // setup the grid to run the kernel
@@ -258,8 +258,8 @@ cudaError_t gpu_nph_wrap_particles(const unsigned int N,
     \param deltaT Time to advance (for one full step)
 */
 extern "C" __global__
-void gpu_nph_step_two_kernel(const Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
+void gpu_nph_step_two_kernel(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              float4 *net_force,
                              unsigned int *d_group_members,
                              unsigned int group_size,
@@ -303,8 +303,8 @@ void gpu_nph_step_two_kernel(const Scalar4 *d_vel,
 
     This is just a kernel driver for gpu_nph_step_two_kernel(). See it for more details.
 */
-cudaError_t gpu_nph_step_two(const Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
+cudaError_t gpu_nph_step_two(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,

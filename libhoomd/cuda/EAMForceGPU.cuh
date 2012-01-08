@@ -58,6 +58,7 @@ Moscow group.
 
 #include "ParticleData.cuh"
 #include "Index1D.h"
+#include "HOOMDMath.h"
 
 /*! \file EAMForceGPU.cuh
     \brief Declares GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.

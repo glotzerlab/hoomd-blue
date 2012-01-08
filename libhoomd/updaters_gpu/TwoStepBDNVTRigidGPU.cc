@@ -272,16 +272,17 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     args.timestep = timestep;
     args.seed = m_seed;
     
-    gpu_bdnvt_force(d_pos,
-                    d_vel,
-                    d_diameter,
-                    d_tag,
+    gpu_bdnvt_force(d_pos.data,
+                    d_vel.data,
+                    d_diameter.data,
+                    d_tag.data,
                     d_index_array.data,
                     group_size,
                     d_net_force.data,
                     args,
                     m_deltaT,
                     D);
+
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

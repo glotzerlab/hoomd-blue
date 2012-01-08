@@ -174,8 +174,8 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     // 1. particles may have been moved slightly outside the box by the above steps, wrap them back into place
     // 2. all particles in the box are rescaled to fit in the new box 
     gpu_npt_boxscale(m_pdata->getN(),
-                     d_pos,
-                     d_image,
+                     d_pos.data,
+                     d_image.data,
                      box,
                      m_partial_scale,
                      eta,

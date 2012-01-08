@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 #include "Index1D.h"
+#include "HOOMDMath.h"
 
 /*! \file CGCMMForceGPU.cuh
     \brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.

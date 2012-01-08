@@ -91,7 +91,7 @@ __global__ void gpu_compute_thermo_partial_sums(float4 *d_scratch,
                                                 float4 *d_net_force,
                                                 float *d_net_virial,
                                                 const unsigned int virial_pitch,
-                                                float4 *d_velocity,
+                                                Scalar4 *d_velocity,
                                                 unsigned int *d_group_members,
                                                 unsigned int group_size)
     {
@@ -411,7 +411,7 @@ __global__ void gpu_compute_pressure_tensor_final_sums(float *d_properties,
 */
 
 cudaError_t gpu_compute_thermo(float *d_properties,
-                               const Scalar4 *d_vel,
+                               Scalar4 *d_vel,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                const gpu_boxsize &box,

@@ -169,8 +169,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter<m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_body<m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     gpu_boxsize box = m_pdata->getBoxGPU();
     

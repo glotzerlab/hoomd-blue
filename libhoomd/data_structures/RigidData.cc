@@ -781,10 +781,10 @@ void RigidData::setRVGPU(bool set_x)
     if (m_n_bodies <= 0)
         return;
 
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities, access_location::device, access_mode::readwrite);
-    ArrayHandle<int3> d_image(m_pdata->getImages, access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     // Acquire handles
     ArrayHandle<unsigned int> rigid_particle_indices(m_rigid_particle_indices, access_location::device, access_mode::read);
@@ -1169,7 +1169,7 @@ void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
     {
     // get access to the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_oldpos(m_particle_oldpos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::read); 
 

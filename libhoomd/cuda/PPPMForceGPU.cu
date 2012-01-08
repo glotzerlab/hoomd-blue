@@ -111,7 +111,7 @@ __device__ inline void AddToGridpoint(int X, int Y, int Z, cufftComplex* array, 
 extern "C" __global__
 void assign_charges_to_grid_kernel(const unsigned int N,
                                    const Scalar4 *d_pos,
-                                   const Scalar4 *d_charge,
+                                   const Scalar *d_charge,
                                    gpu_boxsize box, 
                                    cufftComplex *rho_real_space, 
                                    int Nx, 
@@ -944,7 +944,7 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
                     float4 posj = d_pos[cur_j];
             
-                    float qj = d_charge[cur_j]);
+                    float qj = d_charge[cur_j];
                 
                     // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                     float dx = posi.x - posj.x;
