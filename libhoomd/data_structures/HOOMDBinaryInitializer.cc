@@ -138,31 +138,29 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
     m_timestep = ts;
     }
 
-/*! \returns a snapshot of the internally stored copy of the particle data */
-SnapshotParticleData HOOMDBinaryInitializer::getSnapshot() const
+/*! initializes a snapshot with the internally stored copy of the particle data */
+void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     {
-    assert(m_x_array.size() > 0);
-
-    SnapshotParticleData snap(m_x_array.size());
+    assert(snapshot.size > 0);
+    assert(snapshot.size == m_x_array.size());
 
     // loop through all the particles and set them up
-    for (unsigned int i = 0; i < m_x_array.size(); i++)
+    for (unsigned int i = 0; i < snapshot.size; i++)
         {
         unsigned int tag = m_tag_array[i];
-        snap.rtag[tag] = i;
+        snapshot.rtag[tag] = i;
 
-        snap.pos[i] = make_scalar3(m_x_array[i], m_y_array[i], m_z_array[i]);
-        snap.image[i] = make_int3(m_ix_array[i], m_iy_array[i], m_iz_array[i]);
-        snap.vel[i] = make_scalar3(m_vx_array[i], m_vy_array[i], m_vz_array[i]);
-        snap.accel[i] = make_scalar3(m_ax_array[i], m_ay_array[i], m_az_array[i]);
-        snap.mass[i] = m_mass_array[i];
-        snap.type[i] = m_type_array[i];
-        snap.diameter[i] = m_diameter_array[i];
-        snap.charge[i] = m_charge_array[i];
-        snap.body[i] = m_body_array[i];
+        snapshot.pos[i] = make_scalar3(m_x_array[i], m_y_array[i], m_z_array[i]);
+        snapshot.image[i] = make_int3(m_ix_array[i], m_iy_array[i], m_iz_array[i]);
+        snapshot.vel[i] = make_scalar3(m_vx_array[i], m_vy_array[i], m_vz_array[i]);
+        snapshot.accel[i] = make_scalar3(m_ax_array[i], m_ay_array[i], m_az_array[i]);
+        snapshot.mass[i] = m_mass_array[i];
+        snapshot.type[i] = m_type_array[i];
+        snapshot.diameter[i] = m_diameter_array[i];
+        snapshot.charge[i] = m_charge_array[i];
+        snapshot.body[i] = m_body_array[i];
         }        
 
-    return snap;
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file

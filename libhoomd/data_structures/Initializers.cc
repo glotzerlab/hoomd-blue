@@ -107,11 +107,11 @@ BoxDim SimpleCubicInitializer::getBox() const
     }
 
 
-/*! \returns a snapshot of the cubic crystal */
-SnapshotParticleData SimpleCubicInitializer::getSnapshot() const
+/*! initialize a snapshot with a cubic crystal */
+void SimpleCubicInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     {
-    SnapshotParticleData snap(m_M);
-    
+    assert(snapshot.size == getNumParticles());
+
     // just do a simple triple for loop to fill the space
     unsigned int c = 0;
     for (unsigned int k = 0; k < m_M; k++)
@@ -120,14 +120,13 @@ SnapshotParticleData SimpleCubicInitializer::getSnapshot() const
             {
             for (unsigned int i = 0; i < m_M; i++)
                 {
-                snap.pos[c].x = i * m_spacing + box.xlo;
-                snap.pos[c].y = j * m_spacing + box.ylo;
-                snap.pos[c].z = k * m_spacing + box.zlo;
+                snapshot.pos[c].x = i * m_spacing + box.xlo;
+                snapshot.pos[c].y = j * m_spacing + box.ylo;
+                snapshot.pos[c].z = k * m_spacing + box.zlo;
                 c++;
                 }
             }
         }
-    return snap;
     }
 
 /*! \returns A type mapping with a single particle m_type_name
@@ -212,11 +211,10 @@ void RandomInitializer::setSeed(unsigned int seed)
 /*  \post \a N particles are randomly placed in the box
     \note An exception is thrown if too many tries are made to find a spot where
         min_dist can be satisfied.
-    \returns snapshot of the new particle data
 */
-SnapshotParticleData RandomInitializer::getSnapshot() const
+void RandomInitializer::initSnapshot(SnapshotParticleData& snapshot) const
     {
-    SnapshotParticleData snap(m_N);
+    assert(snapshot.size == m_N);
 
     Scalar L = m_box.xhi*Scalar(2.0);
     for (unsigned int i = 0; i < m_N; i++)
@@ -239,19 +237,19 @@ SnapshotParticleData RandomInitializer::getSnapshot() const
                 {
                 for (unsigned int j = 0; j < i; j++)
                     {
-                    Scalar dx = snap.pos[j].x - x;
+                    Scalar dx = snapshot.pos[j].x - x;
                     if (dx < -L/Scalar(2.0))
                         dx += L;
                     if (dx > L/Scalar(2.0))
                         dx -= L;
                         
-                    Scalar dy = snap.pos[j].y - y;
+                    Scalar dy = snapshot.pos[j].y - y;
                     if (dy < -L/Scalar(2.0))
                         dy += L;
                     if (dy > L/Scalar(2.0))
                         dy -= L;
                         
-                    Scalar dz = snap.pos[j].z - z;
+                    Scalar dz = snapshot.pos[j].z - z;
                     if (dz < -L/Scalar(2.0))
                         dz += L;
                     if (dz > L/Scalar(2.0))
@@ -271,11 +269,10 @@ SnapshotParticleData RandomInitializer::getSnapshot() const
                 throw runtime_error("Unable to init system in RandomInitializer");
                 }
             }
-            
-        snap.pos[i] = make_scalar3(x,y,z);
+
+        snapshot.pos[i] = make_scalar3(x,y,z);
         }
 
-    return snap;
     }
 
 /*! \returns A type mapping with a single particle m_type_name

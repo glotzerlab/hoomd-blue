@@ -178,7 +178,7 @@ bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     {
     assert(tag < m_pdata->getN());
     
-    // identify the index of the current particle tag
+    // get body id of current particle tag
     unsigned int body = m_pdata->getBody(tag);
     
     // see if it matches the criteria

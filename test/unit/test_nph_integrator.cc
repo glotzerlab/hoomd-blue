@@ -126,8 +126,6 @@ void nph_updater_test(twostepnph_creator nph_creator, boost::shared_ptr<Executio
 
     // give the particles velocities according to a Maxwell-Boltzmann distribution
     Saru saru(54321);
-    {
-    const ParticleDataArrays& arrays = pdata->acquireReadWrite();
 
     // total up the system momentum
     Scalar3 total_momentum = make_scalar3(0.0, 0.0, 0.0);
@@ -137,7 +135,7 @@ void nph_updater_test(twostepnph_creator nph_creator, boost::shared_ptr<Executio
     for (unsigned int idx = 0; idx < nparticles; idx++)
     {
         // generate gaussian velocities
-        Scalar mass = arrays.mass[idx];
+        Scalar mass = pdata->getMass(idx);
         Scalar sigma = T0 / mass;
         Scalar vx = gaussianRand(saru, sigma);
         Scalar vy = gaussianRand(saru, sigma);
@@ -149,26 +147,24 @@ void nph_updater_test(twostepnph_creator nph_creator, boost::shared_ptr<Executio
         total_momentum.z += vz * mass;
 
         // assign the velocities
-        arrays.vx[idx] = vx;
-        arrays.vy[idx] = vy;
-        arrays.vz[idx] = vz;
+        pdata->setVelocity(idx,make_scalar3(vx,vy,vz));
     }
 
     // loop through the particles again and remove the system momentum
     total_momentum.x /= nparticles;
     total_momentum.y /= nparticles;
     total_momentum.z /= nparticles;
+    {
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     for (unsigned int idx = 0; idx < nparticles; idx++)
     {
-        Scalar mass = arrays.mass[idx];
-        arrays.vx[idx] -= total_momentum.x / mass;
-        arrays.vy[idx] -= total_momentum.y / mass;
-        arrays.vz[idx] -= total_momentum.z / mass;
+        Scalar mass = h_vel.data[idx].w;
+        h_vel.data[idx].x -= total_momentum.x / mass;
+        h_vel.data[idx].y -= total_momentum.y / mass;
+        h_vel.data[idx].z -= total_momentum.z / mass;
     }
 
     }
-    // done with the data
-    pdata->release();
 
 
     // enable the energy computation

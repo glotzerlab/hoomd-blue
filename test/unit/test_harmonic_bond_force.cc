@@ -88,12 +88,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(0.9);
-    arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
-    
+    pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));
+
     // create the bond force compute to check
     shared_ptr<PotentialBondHarmonic> fc_2 = bf_creator(sysdef_2);
     fc_2->setParams(0, make_scalar2(1.5, 0.75));
@@ -150,15 +147,19 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
 
     // rearrange the two particles in memory and see if they are properly updated
-    arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = Scalar(0.9);
-    arrays.x[1] = Scalar(0.0);
-    arrays.tag[0] = 1;
-    arrays.tag[1] = 0;
-    arrays.rtag[0] = 1;
-    arrays.rtag[1] = 0;
-    pdata_2->release();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_2->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_2->getRTags(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = Scalar(0.9);
+    h_pos.data[1].x = Scalar(0.0);
+    h_tag.data[0] = 1;
+    h_tag.data[1] = 0;
+    h_rtag.data[0] = 1;
+    h_rtag.data[1] = 0;
+    }
+
     // notify that we made the sort
     pdata_2->notifyParticleSort();
     // recompute at the same timestep, the forces should still be updated
@@ -175,11 +176,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
 
     // check r=r_0 behavior
-    arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(0.75);
-    arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
+    pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata_2->setPosition(1,make_scalar3(0.75,0.0,0.0));
     
     fc_2->compute(2);
     
@@ -202,15 +200,13 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     
-    arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
-    pdata_6->release();
-    
+    pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
+    pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
+    pdata_6->setPosition(2, make_scalar3(0.0,-19.6,0.0));
+    pdata_6->setPosition(3, make_scalar3(0.0,19.6,0.0));
+    pdata_6->setPosition(4, make_scalar3(0.0,0.0,-29.6));
+    pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
+
     shared_ptr<PotentialBondHarmonic> fc_6 = bf_creator(sysdef_6);
     fc_6->setParams(0, make_scalar2( 1.5, 0.75));
     fc_6->setParams(1, make_scalar2(2.0*1.5, 0.75));
@@ -284,23 +280,27 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
     
-    arrays = pdata_4->acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_4->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_4->getRTags(), access_location::host, access_mode::readwrite);
+
     // make a square of particles
-    arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;
-    arrays.x[1] = 1.0; arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = 1.0; arrays.z[2] = 0.0;
-    arrays.x[3] = 1.0; arrays.y[3] = 1.0; arrays.z[3] = 0.0;
-    
-    arrays.tag[0] = 2;
-    arrays.tag[1] = 3;
-    arrays.tag[2] = 0;
-    arrays.tag[3] = 1;
-    arrays.rtag[arrays.tag[0]] = 0;
-    arrays.rtag[arrays.tag[1]] = 1;
-    arrays.rtag[arrays.tag[2]] = 2;
-    arrays.rtag[arrays.tag[3]] = 3;
-    pdata_4->release();
-    
+    h_pos.data[0].x = 0.0; h_pos.data[0].y = 0.0; h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = 1.0; h_pos.data[1].y = 0; h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = 1.0; h_pos.data[2].z = 0.0;
+    h_pos.data[3].x = 1.0; h_pos.data[3].y = 1.0; h_pos.data[3].z = 0.0;
+
+    h_tag.data[0] = 2;
+    h_tag.data[1] = 3;
+    h_tag.data[2] = 0;
+    h_tag.data[3] = 1;
+    h_rtag.data[h_tag.data[0]] = 0;
+    h_rtag.data[h_tag.data[1]] = 1;
+    h_rtag.data[h_tag.data[2]] = 2;
+    h_rtag.data[h_tag.data[3]] = 3;
+    }
+
     // build the bond force compute and try it out
     shared_ptr<PotentialBondHarmonic> fc_4 = bf_creator(sysdef_4);
     fc_4->setParams(0, make_scalar2(1.5, 1.75));
@@ -431,12 +431,9 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     // Generate a simple test particle data
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(0.9);
-    arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
+
+    pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));
     
     // Create the ConstForceCompute and check that it works properly
     ConstForceCompute fc(sysdef_2, Scalar(-1.3), Scalar(2.5), Scalar(45.67));

@@ -152,26 +152,25 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
     m_timestep = ts;
     }
 
-/*! \returns a snapshot of the internally stored copy of the particle data */
-SnapshotParticleData HOOMDInitializer::getSnapshot() const
+/*! initializes a snapshot with the internally stored copy of the particle data */
+void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     {
     assert(m_pos_array.size() > 0);
-
-    SnapshotParticleData snap(m_pos_array.size());
+    assert(snapshot.size == m_pos_array.size());
 
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < m_pos_array.size(); i++)
         {
-        snap.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
-        snap.rtag[i] = i;
+        snapshot.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
+        snapshot.rtag[i] = i;
         }
-        
+
     if (m_image_array.size() != 0)
         {
         assert(m_image_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snap.image[i] = make_int3(m_image_array[i].x, m_image_array[i].y, m_image_array[i].z);
+            snapshot.image[i] = make_int3(m_image_array[i].x, m_image_array[i].y, m_image_array[i].z);
         }
         
     if (m_vel_array.size() != 0)
@@ -179,7 +178,7 @@ SnapshotParticleData HOOMDInitializer::getSnapshot() const
         assert(m_vel_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snap.vel[i] = make_scalar3(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
+            snapshot.vel[i] = make_scalar3(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
         }
         
     if (m_mass_array.size() != 0)
@@ -187,7 +186,7 @@ SnapshotParticleData HOOMDInitializer::getSnapshot() const
         assert(m_mass_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snap.mass[i] = m_mass_array[i];
+            snapshot.mass[i] = m_mass_array[i];
         }
         
     if (m_diameter_array.size() != 0)
@@ -195,7 +194,7 @@ SnapshotParticleData HOOMDInitializer::getSnapshot() const
         assert(m_diameter_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snap.diameter[i] = m_diameter_array[i];
+            snapshot.diameter[i] = m_diameter_array[i];
         }
         
     if (m_charge_array.size() != 0)
@@ -203,7 +202,7 @@ SnapshotParticleData HOOMDInitializer::getSnapshot() const
         assert(m_charge_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snap.charge[i] = m_charge_array[i];
+            snapshot.charge[i] = m_charge_array[i];
         }
         
     if (m_type_array.size() != 0)
@@ -211,18 +210,17 @@ SnapshotParticleData HOOMDInitializer::getSnapshot() const
         assert(m_type_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snap.type[i] = m_type_array[i];
+            snapshot.type[i] = m_type_array[i];
         }
     
     if (m_body_array.size() != 0)
         {
         assert(m_body_array.size() == m_pos_array.size());
-        
+
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snap.body[i] = m_body_array[i];
+            snapshot.body[i] = m_body_array[i];
         }
 
-    return snap;
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file

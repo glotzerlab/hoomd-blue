@@ -138,7 +138,7 @@ void ConstraintSphere::computeForces(unsigned int timestep)
         // get the current particle properties
         unsigned int j = m_group->getMemberIndex(group_idx);
         Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-        Scalar3 V = make_scalar3(h_vel.data[j].y, h_vel.data[j].y, h_vel.data[j].z);
+        Scalar3 V = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
         Scalar3 F = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
         Scalar m = h_vel.data[j].w;
         

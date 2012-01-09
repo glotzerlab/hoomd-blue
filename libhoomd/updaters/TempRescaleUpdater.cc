@@ -105,22 +105,24 @@ void TempRescaleUpdater::update(unsigned int timestep)
         {
         // calculate a fraction to scale the momenta by
         Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
-        
+
         // scale the free particle velocities
         assert(m_pdata);
-        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+        {
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
 
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            if (h_body.data[i] == NO_BODY)
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
-                h_vel.data[i].x *= fraction;
-                h_vel.data[i].y *= fraction;
-                h_vel.data[i].z *= fraction;
+                    if (h_body.data[i] == NO_BODY)
+                    {
+                    h_vel.data[i].x *= fraction;
+                    h_vel.data[i].y *= fraction;
+                    h_vel.data[i].z *= fraction;
+                    }
                 }
-            }
-        
+        }
+
         // scale all the rigid body com velocities and angular momenta
         boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
         unsigned int n_bodies = rigid_data->getNumBodies();

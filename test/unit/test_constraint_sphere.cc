@@ -100,17 +100,17 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    
-    // set the particle initial positions
-    arrays.x[0] = P.x - r;
-    arrays.x[1] = P.x + r;
-    arrays.y[2] = P.y - r;
-    arrays.y[3] = P.y + r;
-    arrays.z[4] = P.z - r;
-    arrays.z[5] = P.z + r;
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
 
-    pdata->release();
+    // set the particle initial positions
+    h_pos.data[0].x = P.x - r;
+    h_pos.data[1].x = P.x + r;
+    h_pos.data[2].y = P.y - r;
+    h_pos.data[3].y = P.y + r;
+    h_pos.data[4].z = P.z - r;
+    h_pos.data[5].z = P.z + r;
+    }
     
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(2.0);
@@ -130,20 +130,19 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
         {
         bdnvt_up->update(i);
         
-        arrays = pdata->acquireReadWrite();
         
         for (unsigned int j = 0; j < 6; j++)
             {
             Scalar3 V;
-            V.x = arrays.x[j] - P.x;
-            V.y = arrays.y[j] - P.y;
-            V.z = arrays.z[j] - P.z;
+            Scalar3 pos = pdata->getPosition(j);
+            V.x = pos.x - P.x;
+            V.y = pos.y - P.y;
+            V.z = pos.z - P.z;
             
             Scalar current_r = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
             MY_BOOST_CHECK_CLOSE(current_r, r, loose_tol);
             }
         
-        pdata->release();
         }
     }
 

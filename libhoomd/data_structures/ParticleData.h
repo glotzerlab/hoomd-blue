@@ -242,7 +242,7 @@ struct SnapshotParticleData {
 /*! A ParticleDataInitializer should only be used with the appropriate constructor
     of ParticleData(). That constructure calls the methods of this class to determine
     the number of particles, number of particle types, the simulation box, and then
-    initializes itself. Then getSnashot() is called whih returns a filled out ParticleDataSnapshot
+    initializes itself. Then initSnapshot() is called to fill out the ParticleDataSnapshot
     to be used to initalize the particle data arrays
 
     \note This class is an abstract interface with pure virtual functions. Derived
@@ -266,8 +266,10 @@ class ParticleDataInitializer
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const = 0;
         
-        //! Initializes the particle data arrays
-        virtual SnapshotParticleData getSnapshot() const = 0;
+        //! Initializes the snapshot of the particle data arrays
+        /*! \param snapshot snapshot to initialize
+        */
+        virtual void initSnapshot(SnapshotParticleData& snapshot) const = 0;
         
         //! Initialize the simulation walls
         /*! \param wall_data Shared pointer to the WallData to initialize
@@ -452,7 +454,7 @@ class ParticleData : boost::noncopyable
         void setBox(const BoxDim &box);
 
         //! Access the execution configuration
-        boost::shared_ptr<const ExecutionConfiguration> getExecConf()
+        boost::shared_ptr<const ExecutionConfiguration> getExecConf() const
             {
             return m_exec_conf;
             }
@@ -516,7 +518,7 @@ class ParticleData : boost::noncopyable
         //! Get the box for the GPU
         /*! \returns Box dimensions suitable for passing to the GPU code
         */
-        const gpu_boxsize& getBoxGPU()
+        const gpu_boxsize& getBoxGPU() const
             {
             return m_gpu_box;
             }
@@ -541,10 +543,10 @@ class ParticleData : boost::noncopyable
         boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
         
         //! Gets the particle type index given a name
-        unsigned int getTypeByName(const std::string &name);
+        unsigned int getTypeByName(const std::string &name) const;
         
         //! Gets the name of a given particle type index
-        std::string getNameByType(unsigned int type);
+        std::string getNameByType(unsigned int type) const;
         
         //! Get the net force array
         const GPUArray< Scalar4 >& getNetForce() const { return m_net_force; }
@@ -559,7 +561,7 @@ class ParticleData : boost::noncopyable
         const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
         
         //! Get the current position of a particle
-        Scalar3 getPosition(unsigned int tag)
+        Scalar3 getPosition(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
@@ -569,7 +571,7 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current velocity of a particle
-        Scalar3 getVelocity(unsigned int tag)
+        Scalar3 getVelocity(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
@@ -579,7 +581,7 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current acceleration of a particle
-        Scalar3 getAcceleration(unsigned int tag)
+        Scalar3 getAcceleration(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::read);
@@ -589,7 +591,7 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current image flags of a particle
-        int3 getImage(unsigned int tag)
+        int3 getImage(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::read);
@@ -599,7 +601,7 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current charge of a particle
-        Scalar getCharge(unsigned int tag)
+        Scalar getCharge(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::read);
@@ -609,7 +611,7 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current mass of a particle
-        Scalar getMass(unsigned int tag)
+        Scalar getMass(unsigned int tag) const
             {
             ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
             ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
@@ -619,7 +621,7 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current diameter of a particle
-        Scalar getDiameter(unsigned int tag)
+        Scalar getDiameter(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::read);
@@ -629,28 +631,28 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current diameter of a particle
-        int getBody(unsigned int tag)
+        unsigned int getBody(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
             ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
             unsigned int idx = h_rtag.data[tag];
-            Scalar result = h_body.data[idx];
+            unsigned int result = h_body.data[idx];
             return result;
             }
         //! Get the current type of a particle
-        unsigned int getType(unsigned int tag)
+        unsigned int getType(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
             ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
             unsigned int idx = h_rtag.data[tag];
-            Scalar result = __scalar_as_int(h_pos.data[idx].w);
+            unsigned int result = __scalar_as_int(h_pos.data[idx].w);
             return result;
             }
 
         //! Get the current index of a particle with a given tag
-        unsigned int getRTag(unsigned int tag)
+        unsigned int getRTag(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
@@ -658,7 +660,7 @@ class ParticleData : boost::noncopyable
             return idx;
             }
         //! Get the orientation of a particle with a given tag
-        Scalar4 getOrientation(unsigned int tag)
+        Scalar4 getOrientation(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::read);
@@ -667,12 +669,12 @@ class ParticleData : boost::noncopyable
             return h_orientation.data[idx];
             }
         //! Get the inertia tensor of a particle with a given tag
-        const InertiaTensor& getInertiaTensor(unsigned int tag)
+        const InertiaTensor& getInertiaTensor(unsigned int tag) const
             {
             return m_inertia_tensor[tag];
             }
         //! Get the net force / energy on a given particle
-        Scalar4 getPNetForce(unsigned int tag)
+        Scalar4 getPNetForce(unsigned int tag) const
             {
             assert(tag < getN());
             ArrayHandle< Scalar4 > h_net_force(m_net_force, access_location::host, access_mode::read);
@@ -786,7 +788,7 @@ class ParticleData : boost::noncopyable
         void initializeFromSnapshot(const SnapshotParticleData & snapshot);
 
         //! Take a snapshot
-        SnapshotParticleData takeSnapshot();
+        void takeSnapshot(SnapshotParticleData &snapshot);
 
     private:
         BoxDim m_box;                               //!< The simulation box

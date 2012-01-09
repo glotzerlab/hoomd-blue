@@ -86,13 +86,16 @@ BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
     // create a simple particle data to test with
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
-    arrays.x[1] = arrays.y[1] = arrays.z[1] = 1.0;
-    arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
-    pdata->release();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
+    h_vel.data[0].x = 1.0; h_vel.data[0].y = 2.0; h_vel.data[0].z = 3.0;
+    h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
+    h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
+    }
     
     // construct a TempCompute and see that everything is set properly
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
@@ -114,12 +117,14 @@ BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
-    arrays.x[1] = arrays.y[1] = arrays.z[1] = 1.0;
-    arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
-    pdata->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
+    h_vel.data[0].x = 1.0; h_vel.data[0].y = 2.0; h_vel.data[0].z = 3.0;
+    h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
+    h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
+    }
     
     // construct a TempCompute and see that everything is set properly
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
@@ -140,12 +145,14 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
-    arrays.x[1] = arrays.y[1] = arrays.z[1] = 1.0;
-    arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
-    pdata->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
+    h_vel.data[0].x = 1.0; h_vel.data[0].y = 2.0; h_vel.data[0].z = 3.0;
+    h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
+    h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
+    }
     
     // construct a Computethermo for the updater
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));

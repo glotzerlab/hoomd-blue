@@ -169,7 +169,7 @@ void IntegrationMethodTwoStep::validateGroup()
     for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
         {
         unsigned int tag = m_group->getMemberTag(gidx);
-        if (m_pdata->getBody(tag) != (int)NO_BODY)
+        if (m_pdata->getBody(tag) != NO_BODY)
             {
             cerr << endl;
             cerr << "***Error! Particle " << tag << " belongs to a rigid body. "

@@ -84,13 +84,14 @@ ZeroMomentumUpdater::ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sys
 void ZeroMomentumUpdater::update(unsigned int timestep)
     {
     if (m_prof) m_prof->push("ZeroMomentum");
-    
+
     // calculate the average momentum
     assert(m_pdata);
 
+    {
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
-    
+
     // temp variables for holding the sums
     Scalar sum_px = 0.0;
     Scalar sum_py = 0.0;
@@ -160,9 +161,10 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
             h_body_vel.data[body].z -= avg_pz/mass;
             }
         }
+    } // end GPUArray scope
 
     // update the body particle velocities to reflect the new body velocities
-    rigid_data->setRV(false);
+    m_sysdef->getRigidData()->setRV(false);
     
     if (m_prof) m_prof->pop();
     }

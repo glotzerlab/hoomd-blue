@@ -101,24 +101,24 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     // setup a simple initial state
-    arrays.x[0] = 0.0;
-    arrays.y[0] = 1.0;
-    arrays.z[0] = 2.0;
-    arrays.vx[0] = 3.0;
-    arrays.vy[0] = 2.0;
-    arrays.vz[0] = 1.0;
-    
-    arrays.x[1] = 10.0;
-    arrays.y[1] = 11.0;
-    arrays.z[1] = 12.0;
-    arrays.vx[1] = 13.0;
-    arrays.vy[1] = 12.0;
-    arrays.vz[1] = 11.0;
-    
-    pdata->release();
+    h_pos.data[0].x = 0.0;
+    h_pos.data[0].y = 1.0;
+    h_pos.data[0].z = 2.0;
+    h_vel.data[0].x = 3.0;
+    h_vel.data[0].y = 2.0;
+    h_vel.data[0].z = 1.0;
+
+    h_pos.data[1].x = 10.0;
+    h_pos.data[1].y = 11.0;
+    h_pos.data[1].z = 12.0;
+    h_vel.data[1].x = 13.0;
+    h_vel.data[1].y = 12.0;
+    h_vel.data[1].z = 11.0;
+    }
     
     Scalar deltaT = Scalar(0.0001);
     shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef, group_all);
@@ -137,29 +137,30 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
     // roundoff errors prevent this from keeping within 0.1% error for long
     for (int i = 0; i < 500; i++)
         {
-        arrays = pdata->acquireReadWrite();
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
         
         Scalar t = Scalar(i) * deltaT;
-        MY_BOOST_CHECK_CLOSE(arrays.x[0], 0.0 + 3.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vx[0], 3.0 + 1.5 * t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 0.0 + 3.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[0].x, 3.0 + 1.5 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.y[0], 1.0 + 2.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vy[0], 2.0 + 2.5 * t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 1.0 + 2.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[0].y, 2.0 + 2.5 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.z[0], 2.0 + 1.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vz[0], 1.0 + 0 * t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, 2.0 + 1.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[0].z, 1.0 + 0 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.x[1], 10.0 + 13.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vx[1], 13.0 + 1.5 * t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[1].x, 10.0 + 13.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[1].x, 13.0 + 1.5 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.y[1], 11.0 + 12.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vy[1], 12.0 + 2.5 * t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[1].y, 11.0 + 12.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[1].y, 12.0 + 2.5 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.z[1], 12.0 + 11.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vz[1], 11.0 + 0 * t, loose_tol);
-        
-        pdata->release();
-        
+        MY_BOOST_CHECK_CLOSE(h_pos.data[1].z, 12.0 + 11.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[1].z, 11.0 + 0 * t, loose_tol);
+        }
+
         nve_up->update(i);
         }
     }
@@ -173,17 +174,18 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<E
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     
     // setup a simple initial state
-    arrays.x[0] = 0.0;
-    arrays.y[0] = 1.0;
-    arrays.z[0] = 2.0;
-    arrays.vx[0] = 0.0;
-    arrays.vy[0] = 0.0;
-    arrays.vz[0] = 0.0;
-    
-    pdata->release();
+    h_pos.data[0].x = 0.0;
+    h_pos.data[0].y = 1.0;
+    h_pos.data[0].z = 2.0;
+    h_vel.data[0].x = 0.0;
+    h_vel.data[0].y = 0.0;
+    h_vel.data[0].z = 0.0;
+    }
     
     Scalar deltaT = Scalar(0.0001);
     shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef, group_all);
@@ -213,18 +215,19 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<E
     nve_up->update(0);
     for (int i = 1; i < 500; i++)
         {
-        arrays = pdata->acquireReadWrite();
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
         
-        MY_BOOST_CHECK_CLOSE(arrays.x[0], 0.0 + dx * Scalar(i), tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vx[0], vx, tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 0.0 + dx * Scalar(i), tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[0].x, vx, tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.y[0], 1.0 + dy * Scalar(i), tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vy[0], vy, tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 1.0 + dy * Scalar(i), tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[0].y, vy, tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.z[0], 2.0 + dz * Scalar(i), tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vz[0], vz, tol);
-        
-        pdata->release();
+        MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, 2.0 + dz * Scalar(i), tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[0].z, vz, tol);
+        }
         
         nve_up->update(i);
         }
@@ -244,20 +247,22 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, boost::shared_pt
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_6, 0, pdata_6->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_6, selector_all));
     
-    ParticleDataArrays arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.vx[0] = Scalar(-0.5);
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.vx[1] = Scalar(0.6);
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.vy[2] = Scalar(-0.5);
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
-    arrays.vy[3] = Scalar(0.6);
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
-    arrays.vz[4] = Scalar(-0.5);
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
-    arrays.vz[5] = Scalar(0.6);
-    pdata_6->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata_6->getVelocities(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = Scalar(-9.6); h_pos.data[0].y = 0; h_pos.data[0].z = 0.0;
+    h_vel.data[0].x = Scalar(-0.5);
+    h_pos.data[1].x =  Scalar(9.6); h_pos.data[1].y = 0; h_pos.data[1].z = 0.0;
+    h_vel.data[1].x = Scalar(0.6);
+    h_pos.data[2].x = 0; h_pos.data[2].y = Scalar(-19.6); h_pos.data[2].z = 0.0;
+    h_vel.data[2].y = Scalar(-0.5);
+    h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 0.0;
+    h_vel.data[3].y = Scalar(0.6);
+    h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = Scalar(-29.6);
+    h_vel.data[4].z = Scalar(-0.5);
+    h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  Scalar(29.6);
+    h_vel.data[5].z = Scalar(0.6);
+    }
     
     Scalar deltaT = 1.0;
     shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef_6, group_all);
@@ -274,21 +279,22 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, boost::shared_pt
     nve_up->update(0);
     
     // check that they go to the proper final position
-    arrays = pdata_6->acquireReadWrite();
-    MY_BOOST_CHECK_CLOSE(arrays.x[0], 9.9, tol);
-    BOOST_CHECK_EQUAL(arrays.ix[0], -1);
-    MY_BOOST_CHECK_CLOSE(arrays.x[1], -9.8, tol);
-    BOOST_CHECK_EQUAL(arrays.ix[1], 1);
-    MY_BOOST_CHECK_CLOSE(arrays.y[2], 19.9, tol);
-    BOOST_CHECK_EQUAL(arrays.iy[2], -1);
-    MY_BOOST_CHECK_CLOSE(arrays.y[3], -19.8, tol);
-    BOOST_CHECK_EQUAL(arrays.iy[3], 1);
-    MY_BOOST_CHECK_CLOSE(arrays.z[4], 29.9, tol);
-    BOOST_CHECK_EQUAL(arrays.iz[4], -1);
-    MY_BOOST_CHECK_CLOSE(arrays.z[5], -29.8, tol);
-    BOOST_CHECK_EQUAL(arrays.iz[5], 1);
-    
-    pdata_6->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(pdata_6->getImages(), access_location::host, access_mode::read);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 9.9, tol);
+    BOOST_CHECK_EQUAL(h_image.data[0].x, -1);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[1].x, -9.8, tol);
+    BOOST_CHECK_EQUAL(h_image.data[1].x, 1);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[2].y, 19.9, tol);
+    BOOST_CHECK_EQUAL(h_image.data[2].y, -1);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[3].y, -19.8, tol);
+    BOOST_CHECK_EQUAL(h_image.data[3].y, 1);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[4].z, 29.9, tol);
+    BOOST_CHECK_EQUAL(h_image.data[4].z, -1);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[5].z, -29.8, tol);
+    BOOST_CHECK_EQUAL(h_image.data[5].z, 1);
+    }
     }
 
 //! Compares the output from one TwoStepNVE to another
@@ -351,31 +357,35 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     // we can't do much more because these things are chaotic and diverge quickly
     for (int i = 0; i < 5; i++)
         {
-        const ParticleDataArraysConst& arrays1 = pdata1->acquireReadOnly();
-        const ParticleDataArraysConst& arrays2 = pdata2->acquireReadOnly();
-        
+        std::cout << "i = " << i << std::endl;
+        {
+        ArrayHandle<Scalar4> h_pos1(pdata1->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel1(pdata1->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_accel1(pdata1->getAccelerations(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos2(pdata2->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel2(pdata2->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_accel2(pdata2->getAccelerations(), access_location::host, access_mode::read);
+
         Scalar rough_tol = 2.0;
         //cout << arrays1.x[100] << " " << arrays2.x[100] << endl;
         
         // check position, velocity and acceleration
         for (unsigned int j = 0; j < N; j++)
             {
-            MY_BOOST_CHECK_CLOSE(arrays1.x[j], arrays2.x[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.y[j], arrays2.y[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.z[j], arrays2.z[j], rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
             
-            MY_BOOST_CHECK_CLOSE(arrays1.vx[j], arrays2.vx[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.vy[j], arrays2.vy[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.vz[j], arrays2.vz[j], rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
             
-            MY_BOOST_CHECK_CLOSE(arrays1.ax[j], arrays2.ax[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.ay[j], arrays2.ay[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.az[j], arrays2.az[j], rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
             }
             
-        pdata1->release();
-        pdata2->release();
-        
+        }
         nve1->update(i);
         nve2->update(i);
         }

@@ -145,8 +145,6 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     /* perform the first half step of the explicitly reversible NPH integration scheme.
 
@@ -270,9 +268,9 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         Lz_final = Lx_final;
         }
 
-    // update the simulation box
-    box = BoxDim(Lx_final, Ly_final, Lz_final);
-    m_pdata->setBox(box);
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
@@ -296,6 +294,7 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
     Lx = Lx_final;
     Ly = Ly_final;
     Lz = Lz_final;
+    box = BoxDim(Lx_final, Ly_final, Lz_final);
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
@@ -333,6 +332,10 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
             h_image.data[j].z--;
             }
         }
+    }
+
+    // update the simulation box
+    m_pdata->setBox(box);
 
     setIntegratorVariables(v);
 

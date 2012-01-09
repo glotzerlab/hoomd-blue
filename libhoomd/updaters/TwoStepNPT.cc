@@ -155,6 +155,7 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
 
+    {
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -252,7 +253,8 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
             h_image.data[j].z--;
             }
         }
-    
+
+    } // end of GPUArray scope
     setIntegratorVariables(v);
         
     // done profiling

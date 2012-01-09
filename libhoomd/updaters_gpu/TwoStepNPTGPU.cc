@@ -131,6 +131,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
         }
 
     // access all the needed data
+    {
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
@@ -187,7 +188,9 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
-    
+
+    } //end of GPUArray scope
+
     m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
     setIntegratorVariables(v);
     }

@@ -81,8 +81,8 @@ class SimpleCubicInitializer : public ParticleDataInitializer
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
         
-        //! returns a snapshot with the initial particle data
-        virtual SnapshotParticleData getSnapshot() const;
+        //! initializes a snapshot with the particle data
+        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
         
         //! Initialize the type name mapping
         std::vector<std::string> getTypeMapping() const;
@@ -114,9 +114,9 @@ class RandomInitializer : public ParticleDataInitializer
         
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
-        
-        //! returns a snapshot with the initial particle data
-        virtual SnapshotParticleData getSnapshot() const;
+
+        //! initializes a snapshot with the particle data
+        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
         
         //! Sets the random seed to use in the generation
         void setSeed(unsigned int seed);

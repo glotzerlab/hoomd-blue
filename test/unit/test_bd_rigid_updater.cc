@@ -185,27 +185,30 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
     Scalar AvgT = Scalar(0);
     
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::readwrite);
     
     // initialize bodies in a cubic lattice with some velocity profile
     for (unsigned int i = 0; i < nbodies; i++)
         {
         for (unsigned int j = 0; j < nparticlesperbuildingblock; j++)
             {
-            arrays.x[iparticle] = x0 + buildingBlock.atoms[j].x;
-            arrays.y[iparticle] = y0 + buildingBlock.atoms[j].y;
-            arrays.z[iparticle] = z0 + buildingBlock.atoms[j].z;
+            h_pos.data[iparticle].x = x0 + buildingBlock.atoms[j].x;
+            h_pos.data[iparticle].y = y0 + buildingBlock.atoms[j].y;
+            h_pos.data[iparticle].z = z0 + buildingBlock.atoms[j].z;
 
-            arrays.vx[iparticle] = random->d();
-            arrays.vy[iparticle] = random->d();
-            arrays.vz[iparticle] = random->d();
+            h_vel.data[iparticle].x = random->d();
+            h_vel.data[iparticle].y = random->d();
+            h_vel.data[iparticle].z = random->d();
             
-            KE += Scalar(0.5) * (arrays.vx[iparticle]*arrays.vx[iparticle] + arrays.vy[iparticle]*arrays.vy[iparticle] + arrays.vz[iparticle]*arrays.vz[iparticle]);
+            KE += Scalar(0.5) * (h_vel.data[iparticle].x*h_vel.data[iparticle].x + h_vel.data[iparticle].y*h_vel.data[iparticle].y + h_vel.data[iparticle].z*h_vel.data[iparticle].z);
             
-            arrays.type[iparticle] = buildingBlock.atoms[j].type;
+            h_pos.data[iparticle].w = __int_as_scalar(buildingBlock.atoms[j].type);
                     
             if (buildingBlock.atoms[j].body > 0)
-                arrays.body[iparticle] = ibody;
+                h_body.data[iparticle] = ibody;
                         
             unsigned int head = i * nparticlesperbuildingblock;
             for (unsigned int j = 0; j < nbondsperbuildingblock; j++)
@@ -240,7 +243,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
         
     assert(iparticle == N);
     
-    pdata->release();
+    }
     
     shared_ptr<RigidData> rdata = sysdef->getRigidData();
     // Initialize rigid bodies
@@ -304,18 +307,15 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
         if (i % sampling == 0)
             {
 
-  
-            arrays = pdata->acquireReadWrite();
-            KE = Scalar(0.0);
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+            KE = Scalar(0);
             for (unsigned int j = 0; j < N; j++)
-                KE += Scalar(0.5) * (arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             PE = fc->calcEnergySum();
             
             current_temp = 2.0 * KE / (nrigid_dof + nnonrigid_dof);
             if (i > averaging_delay)
                 AvgT += current_temp;
-            
-            pdata->release();
             
             }
         }

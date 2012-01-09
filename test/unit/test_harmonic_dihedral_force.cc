@@ -85,31 +85,19 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type !!!! NO DIHEDRALS
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
     shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
-    
-    ParticleDataArrays arrays = pdata_4->acquireReadWrite();
-    arrays.x[0] = Scalar(10.0); // put atom a at (10,1,2)
-    arrays.y[0] = Scalar(1.0);
-    arrays.z[0] = Scalar(2.0);
-    
-    arrays.x[1] = arrays.y[1] = arrays.z[1] = Scalar(1.0); // put atom b at (1,1,1)
-    
-    
-    arrays.x[2] = Scalar(6.0); // put atom c at (6,-7,8)
-    arrays.y[2] = Scalar(-7.0);
-    arrays.z[2] = Scalar(8.0);
-    
-    arrays.x[3] = Scalar(9.0); // put atom d at (9,50,11)
-    arrays.y[3] = Scalar(50.0);
-    arrays.z[3] = Scalar(11.0);
+
+    pdata_4->setPosition(0,make_scalar3(10.0,1.0,2.0));
+    pdata_4->setPosition(1,make_scalar3(1.0,1.0,1.0));
+    pdata_4->setPosition(2,make_scalar3(6.0,-7.0,8.0));
+    pdata_4->setPosition(3,make_scalar3(9.0,50.0,11.0));
     
     /*
-        printf(" Particle 1: x = %f  y = %f  z = %f \n", arrays.x[0], arrays.y[0], arrays.z[0]);
-        printf(" Particle 2: x = %f  y = %f  z = %f \n", arrays.x[1], arrays.y[1], arrays.z[1]);
-        printf(" Particle 3: x = %f  y = %f  z = %f \n", arrays.x[2], arrays.y[2], arrays.z[2]);
-        printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], arrays.z[3]);
+        printf(" Particle 1: x = %f  y = %f  z = %f \n", h_pos.data[0].x, h_pos.data[0].y, h_pos.data[0].z);
+        printf(" Particle 2: x = %f  y = %f  z = %f \n", h_pos.data[1].x, h_pos.data[1].y, h_pos.data[1].z);
+        printf(" Particle 3: x = %f  y = %f  z = %f \n", h_pos.data[2].x, h_pos.data[2].y, h_pos.data[2].z);
+        printf(" Particle 4: x = %f  y = %f  z = %f \n", h_pos.data[3].x, h_pos.data[3].y, h_pos.data[3].z);
         printf("\n");
     */
-    pdata_4->release();
     
     // create the dihedral force compute to check
     shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
@@ -191,20 +179,23 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     */
     
     // rearrange the two particles in memory and see if they are properly updated
-    arrays = pdata_4->acquireReadWrite();
-    
-    arrays.x[1] = Scalar(10.0); // put atom b at (10,1,2)
-    arrays.y[1] = Scalar(1.0);
-    arrays.z[1] = Scalar(2.0);
-    
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = Scalar(1.0); // put atom a at (1,1,1)
-    
-    arrays.tag[0] = 1;
-    arrays.tag[1] = 0;
-    arrays.rtag[0] = 1;
-    arrays.rtag[1] = 0;
-    pdata_4->release();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_4->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_4->getRTags(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[1].x = Scalar(10.0); // put atom b at (10,1,2)
+    h_pos.data[1].y = Scalar(1.0);
+    h_pos.data[1].z = Scalar(2.0);
+
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = Scalar(1.0); // put atom a at (1,1,1)
+
+    h_tag.data[0] = 1;
+    h_tag.data[1] = 0;
+    h_rtag.data[0] = 1;
+    h_rtag.data[1] = 0;
+    }
+
     // notify that we made the sort
     pdata_4->notifyParticleSort();
     // recompute at the same timestep, the forces should still be updated
@@ -242,18 +233,20 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     // also test more than one type of dihedral
     shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, exec_conf));
     shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
-    
-    arrays = pdata_8->acquireReadWrite();
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = -9.0; arrays.z[0] = 0.0;
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 1.0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 10.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
-    arrays.x[6] = 3; arrays.y[6] = 3; arrays.z[6] =  Scalar(29.6);
-    arrays.x[7] = 3; arrays.y[7] = 0; arrays.z[7] =  Scalar(31.0);
-    pdata_8->release();
-    
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_8->getPositions(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = Scalar(-9.6); h_pos.data[0].y = -9.0; h_pos.data[0].z = 0.0;
+    h_pos.data[1].x =  Scalar(9.6); h_pos.data[1].y = 1.0; h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = Scalar(-19.6); h_pos.data[2].z = 0.0;
+    h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 10.0;
+    h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = Scalar(-29.6);
+    h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  Scalar(29.6);
+    h_pos.data[6].x = 3; h_pos.data[6].y = 3; h_pos.data[6].z =  Scalar(29.6);
+    h_pos.data[7].x = 3; h_pos.data[7].y = 0; h_pos.data[7].z =  Scalar(31.0);
+    }
+
     shared_ptr<HarmonicDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
     fc_8->setParams(0, 50.0, -1, 3);
     fc_8->setParams(1, 30.0,  1, 4);
@@ -342,23 +335,26 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, exec_conf));
     shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
     
-    arrays = pdata_5->acquireReadWrite();
-    
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = -9.0; arrays.z[0] = 0.0;
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 1.0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 10.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
-    
-    arrays.tag[0] = 2;
-    arrays.tag[1] = 3;
-    arrays.tag[2] = 0;
-    arrays.tag[3] = 1;
-    arrays.rtag[arrays.tag[0]] = 0;
-    arrays.rtag[arrays.tag[1]] = 1;
-    arrays.rtag[arrays.tag[2]] = 2;
-    arrays.rtag[arrays.tag[3]] = 3;
-    pdata_5->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_5->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_5->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_5->getRTags(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = Scalar(-9.6); h_pos.data[0].y = -9.0; h_pos.data[0].z = 0.0;
+    h_pos.data[1].x =  Scalar(9.6); h_pos.data[1].y = 1.0; h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = Scalar(-19.6); h_pos.data[2].z = 0.0;
+    h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 10.0;
+    h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = Scalar(-29.6);
+
+    h_tag.data[0] = 2;
+    h_tag.data[1] = 3;
+    h_tag.data[2] = 0;
+    h_tag.data[3] = 1;
+    h_rtag.data[h_tag.data[0]] = 0;
+    h_rtag.data[h_tag.data[1]] = 1;
+    h_rtag.data[h_tag.data[2]] = 2;
+    h_rtag.data[h_tag.data[3]] = 3;
+    }
     
     // build the dihedral force compute and try it out
     shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(sysdef_5);

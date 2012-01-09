@@ -249,7 +249,12 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
         }
         
     setBox(init.getBox());        
-    SnapshotParticleData snapshot = init.getSnapshot();
+    SnapshotParticleData snapshot(getN());
+    // initialize the snapshot with default values
+    takeSnapshot(snapshot);
+    // pass snapshot to initializer
+    init.initSnapshot(snapshot);
+    // initialize particle data with updated values
     initializeFromSnapshot(snapshot);
 
         {
@@ -339,7 +344,7 @@ boost::signals::connection ParticleData::connectBoxChange(const boost::function<
     \return Type index of the corresponding type name
     \note Throws an exception if the type name is not found
 */
-unsigned int ParticleData::getTypeByName(const std::string &name)
+unsigned int ParticleData::getTypeByName(const std::string &name) const
     {
     assert(m_type_mapping.size() == m_ntypes);
     // search for the name
@@ -358,7 +363,7 @@ unsigned int ParticleData::getTypeByName(const std::string &name)
     \returns Type name of the requested type
     \note Type indices must range from 0 to getNTypes or this method throws an exception.
 */
-std::string ParticleData::getNameByType(unsigned int type)
+std::string ParticleData::getNameByType(unsigned int type) const
     {
     assert(m_type_mapping.size() == m_ntypes);
     // check for an invalid request
@@ -419,7 +424,7 @@ void ParticleData::allocate(unsigned int N)
 
     // reverse-lookup tag
     GPUArray< unsigned int > rtag(getN(), m_exec_conf);
-    m_tag.swap(rtag);
+    m_rtag.swap(rtag);
 
     // body ID
     GPUArray< unsigned int > body(getN(), m_exec_conf);
@@ -524,10 +529,12 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     }
 
 //! take a particle data snapshot
-//! \returns the snapshot
-SnapshotParticleData ParticleData::takeSnapshot()
+/* \param snapshot the snapshot to write to
+ * \pre snapshot has to be allocated with a number of elements equal or greater than the number of particles)
+*/
+void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     {
-    SnapshotParticleData snapshot(m_nparticles);
+    assert(snapshot.size >= getN());
 
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
@@ -555,7 +562,6 @@ SnapshotParticleData ParticleData::takeSnapshot()
         snapshot.body[tag] = h_body.data[idx];
         }
 
-    return snapshot;
     }
 
 
@@ -610,10 +616,10 @@ class ParticleDataInitializerWrap : public ParticleDataInitializer, public wrapp
             return this->get_override("getBox")();
             }
             
-        //! Calls the overidden ParticleDataInitializer::getSnapshot()
-        SnapshotParticleData getSnapshot() const
+        //! Calls the overidden ParticleDataInitializer::initSnapshot()
+        void initSnapshot(SnapshotParticleData& snapshot) const
             {
-            return this->get_override("getSnapshot")();
+            this->get_override("initSnapshot")(snapshot);
             }
             
         //! Calls the overidden ParticleDataInitializer::getTypeMapping()
@@ -630,7 +636,7 @@ void export_ParticleDataInitializer()
     .def("getNumParticles", pure_virtual(&ParticleDataInitializer::getNumParticles))
     .def("getNumParticleTypes", pure_virtual(&ParticleDataInitializer::getNumParticleTypes))
     .def("getBox", pure_virtual(&ParticleDataInitializer::getBox))
-    .def("getSnapshot", pure_virtual(&ParticleDataInitializer::getSnapshot))
+    .def("initSnapshot", pure_virtual(&ParticleDataInitializer::initSnapshot))
     ;
     }
 

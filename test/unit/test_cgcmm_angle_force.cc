@@ -85,19 +85,10 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     // start with the simplest possible test: 3 particles in a huge box with only one angle type !!!! NO ANGLES
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0,  exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = Scalar(-1.23); // put atom a at (-1,0,0.1)
-    arrays.y[0] = Scalar(2.0);
-    arrays.z[0] = Scalar(0.1);
-    
-    arrays.x[1] = arrays.y[1] = arrays.z[1] = Scalar(1.0); // put atom b at (0,0,0)
-    
-    arrays.x[2] = Scalar(1.0); // put atom c at (1,0,0.5)
-    arrays.y[2] = 0.0;
-    arrays.z[2] = Scalar(0.500);
-    
-    pdata_3->release();
+
+    pdata_3->setPosition(0,make_scalar3(-1.23,2.0,0.1)); // put atom a at (-1,0,0.1)
+    pdata_3->setPosition(1,make_scalar3(1.0,1.0,1.0)); // put atom b at (0,0,0)
+    pdata_3->setPosition(2,make_scalar3(1.0,0.0,0.5)); // put atom c at (1,0,0.5)
     
     // create the angle force compute to check
     shared_ptr<CGCMMAngleForceCompute> fc_3 = af_creator(sysdef_3);
@@ -146,21 +137,24 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     }
     
     // rearrange the two particles in memory and see if they are properly updated
-    arrays = pdata_3->acquireReadWrite();
-    
-    
-    arrays.x[1] = Scalar(-1.23); // put atom a at (-1,0,0.1)
-    arrays.y[1] = Scalar(2.0);
-    arrays.z[1] = Scalar(0.1);
-    
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = Scalar(1.0); // put atom b at (0,0,0)
-    
-    arrays.tag[0] = 1;
-    arrays.tag[1] = 0;
-    arrays.rtag[0] = 1;
-    arrays.rtag[1] = 0;
-    pdata_3->release();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_3->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_3->getRTags(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[1].x = -1.23;
+    h_pos.data[1].y = 2.0;
+    h_pos.data[1].z = 0.1;
+
+    h_pos.data[0].x = 1.0;
+    h_pos.data[0].y = 1.0;
+    h_pos.data[0].z = 1.0;
+
+    h_tag.data[0] = 1;
+    h_tag.data[1] = 0;
+    h_rtag.data[0] = 1;
+    h_rtag.data[1] = 0;
+    }
     // notify that we made the sort
     pdata_3->notifyParticleSort();
     // recompute at the same timestep, the forces should still be updated
@@ -192,14 +186,12 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     
-    arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
-    pdata_6->release();
+    pdata_6->setPosition(0,make_scalar3(-9.6, 0.0, 0.0));
+    pdata_6->setPosition(1,make_scalar3( 9.6, 0.0, 0.0));
+    pdata_6->setPosition(2,make_scalar3( 0.0, -19.6, 0.0));
+    pdata_6->setPosition(3,make_scalar3( 0.0, 19.6, 0.0));
+    pdata_6->setPosition(4,make_scalar3( 0.0, 0.0, -29.6));
+    pdata_6->setPosition(5,make_scalar3( 0.0, 0.0,  29.6));
     
     shared_ptr<CGCMMAngleForceCompute> fc_6 = af_creator(sysdef_6);
     fc_6->setParams(0, 1.0, 0.785398, 1, 1.0, 2.0);
@@ -276,22 +268,25 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 3, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
     
-    arrays = pdata_4->acquireReadWrite();
     // make a square of particles
-    arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;
-    arrays.x[1] = 1.0; arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = 1.0; arrays.z[2] = 0.0;
-    arrays.x[3] = 1.0; arrays.y[3] = 1.0; arrays.z[3] = 0.0;
-    
-    arrays.tag[0] = 2;
-    arrays.tag[1] = 3;
-    arrays.tag[2] = 0;
-    arrays.tag[3] = 1;
-    arrays.rtag[arrays.tag[0]] = 0;
-    arrays.rtag[arrays.tag[1]] = 1;
-    arrays.rtag[arrays.tag[2]] = 2;
-    arrays.rtag[arrays.tag[3]] = 3;
-    pdata_4->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_4->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_4->getRTags(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = 0.0; h_pos.data[0].y = 0.0; h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = 1.0; h_pos.data[1].y = 0; h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = 0.0; h_pos.data[2].y = 1.0; h_pos.data[2].z = 0.0;
+    h_pos.data[3].x = 1.0; h_pos.data[3].y = 1.0; h_pos.data[3].z = 0.0;
+
+    h_tag.data[0] = 2;
+    h_tag.data[1] = 3;
+    h_tag.data[2] = 0;
+    h_tag.data[3] = 1;
+    h_rtag.data[h_tag.data[0]] = 0;
+    h_rtag.data[h_tag.data[1]] = 1;
+    h_rtag.data[h_tag.data[2]] = 2;
+    h_rtag.data[h_tag.data[3]] = 3;
+    }
     
     // build the angle force compute and try it out
     shared_ptr<CGCMMAngleForceCompute> fc_4 = af_creator(sysdef_4);

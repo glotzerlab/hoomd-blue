@@ -86,12 +86,13 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     // this 3 particle test will check proper wall force computation among all 3 axes
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = 0.0; arrays.y[0] = Scalar(1.2); arrays.z[0] = 0.0;    // particle to test wall at pos 0,0,0
-    arrays.x[1] = Scalar(12.2); arrays.y[1] = Scalar(-10.0); arrays.z[1] = 0.0; // particle to test wall at pos 10,0,0
-    arrays.x[2] = 0.0; arrays.y[2] = Scalar(10.0); arrays.z[2] = Scalar(-12.9); // particle to test wall at pos 0,0,-10
-    pdata_3->release();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = 0.0; h_pos.data[0].y = Scalar(1.2); h_pos.data[0].z = 0.0;    // particle to test wall at pos 0,0,0
+    h_pos.data[1].x = Scalar(12.2); h_pos.data[1].y = Scalar(-10.0); h_pos.data[1].z = 0.0; // particle to test wall at pos 10,0,0
+    h_pos.data[2].x = 0.0; h_pos.data[2].y = Scalar(10.0); h_pos.data[2].z = Scalar(-12.9); // particle to test wall at pos 0,0,-10
+    }
     
     // create the wall force compute with a default cuttoff of 1.0 => all forces should be 0 for the first round
     shared_ptr<LJWallForceCompute> fc_3 = ljwall_creator(sysdef_3, Scalar(1.0));

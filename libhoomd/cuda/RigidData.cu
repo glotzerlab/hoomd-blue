@@ -171,11 +171,10 @@ __global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
         }
     
     // v_particle = vel + angvel x ri
-    Scalar4 pvel;
+    Scalar4 pvel = pdata_vel[pidx];
     pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
     pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
     pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-    pvel.w = 0.0f;
     
     // write out the results
     if (set_x)

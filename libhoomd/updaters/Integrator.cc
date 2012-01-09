@@ -373,7 +373,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles == net_force.getNumElements());
-        assert(nparticles == net_virial.getNumElements());
+        assert(6*nparticles <= net_virial.getNumElements());
         for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
             {
             //phasing out ForceDataArrays
@@ -594,7 +594,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles == net_force.getNumElements());
-        assert(nparticles == net_virial.getNumElements());
+        assert(6*nparticles <= net_virial.getNumElements());
         assert(nparticles == net_torque.getNumElements());
 
         // now, add up the accelerations

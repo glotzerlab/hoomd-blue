@@ -92,11 +92,9 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = 0.0; arrays.y[0] = Scalar(1.2); arrays.z[0] = 0.0;    // particle to test wall at pos 0,0,0
-    arrays.x[1] = Scalar(12.2); arrays.y[1] = Scalar(-10.0); arrays.z[1] = 0.0; // particle to test wall at pos 10,0,0
-    arrays.x[2] = 0.0; arrays.y[2] = Scalar(10.0); arrays.z[2] = Scalar(-12.9); // particle to test wall at pos 0,0,-10
-    pdata_3->release();
+    pdata_3->setPosition(0,make_scalar3(0.0,1.2,0.0));
+    pdata_3->setPosition(1,make_scalar3(12.2,-10.0,0.0));
+    pdata_3->setPosition(2,make_scalar3(0.0,10.0,-12.9));
 
     {   
     ArrayHandle<Scalar4> h_orientation(pdata_3->getOrientationArray());

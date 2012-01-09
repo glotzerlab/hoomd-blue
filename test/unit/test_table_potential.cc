@@ -85,11 +85,12 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     // perform a basic test to see of the potential and force can be interpolated between two particles
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
+    }
     
     shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
     shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
@@ -167,10 +168,11 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     }
 
     // now go to rmin and check for the correct force value
-    arrays = pdata_2->acquireReadWrite();
-    arrays.x[1] = Scalar(2.0);
-    pdata_2->release();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
+    h_pos.data[1].x = Scalar(2.0);
+    }
+
     fc_2->compute(2);
     
     {
@@ -197,10 +199,11 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     }
 
     // go halfway in-between two points
-    arrays = pdata_2->acquireReadWrite();
-    arrays.y[1] = Scalar(3.5);
-    arrays.x[1] = Scalar(0.0);
-    pdata_2->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
+    h_pos.data[1].y = Scalar(3.5);
+    h_pos.data[1].x = Scalar(0.0);
+    }
     
     // check the forces
     fc_2->compute(3);
@@ -229,9 +232,10 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     }
 
     // and now check for when r > rmax
-    arrays = pdata_2->acquireReadWrite();
-    arrays.z[1] = Scalar(4.0);
-    pdata_2->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
+    h_pos.data[1].z = Scalar(4.0);
+    }
     
     // compute and check
     fc_2->compute(4);
@@ -272,13 +276,14 @@ void table_potential_type_test(table_potential_creator table_creator, boost::sha
     // perform a basic test to see of the potential and force can be interpolated between two particles
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0; arrays.type[0] = 0;
-    arrays.x[1] = Scalar(1.5); arrays.y[1] = arrays.z[1] = 0.0; arrays.type[1] = 1;
-    arrays.x[2] = 0.0; arrays.y[2] = Scalar(1.5); arrays.z[2] = 0.0; arrays.type[2] = 0;
-    arrays.x[3] = Scalar(1.5); arrays.y[3] = Scalar(1.5); arrays.z[3] = 0.0; arrays.type[3] = 1;
-    pdata->release();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0; h_pos.data[0].w= __int_as_scalar(0);
+    h_pos.data[1].x = Scalar(1.5); h_pos.data[1].y = h_pos.data[1].z = 0.0; h_pos.data[1].w = __int_as_scalar(1);
+    h_pos.data[2].x = 0.0; h_pos.data[2].y = Scalar(1.5); h_pos.data[2].z = 0.0; h_pos.data[2].w = __int_as_scalar(0);
+    h_pos.data[3].x = Scalar(1.5); h_pos.data[3].y = Scalar(1.5); h_pos.data[3].z = 0.0; h_pos.data[3].w = __int_as_scalar(1);
+    }
     
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
     shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);

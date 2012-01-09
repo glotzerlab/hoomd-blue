@@ -493,21 +493,20 @@ BoxDim RandomGenerator::getBox() const
     }
 
 
-/*! \returns a snapshot of the internally stored copy of the particle data */
-SnapshotParticleData RandomGenerator::getSnapshot() const
+/*! initializes a snapshot with the internally stored copy of the particle data */
+void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
     {
     unsigned int nparticles = m_data.m_particles.size();
-    SnapshotParticleData snap(nparticles);
+    assert(snapshot.size == nparticles);
 
     for (unsigned int i = 0; i < nparticles; i++)
         {
-        snap.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
-        snap.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
-        snap.type[i] = m_data.m_particles[i].type_id;
+        snapshot.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
+        snapshot.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
+        snapshot.type[i] = m_data.m_particles[i].type_id;
         
-        snap.rtag[i] = i;
+        snapshot.rtag[i] = i;
         }
-    return snap;
     }
 
 std::vector<std::string> RandomGenerator::getTypeMapping() const

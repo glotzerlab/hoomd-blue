@@ -97,23 +97,11 @@ void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    
     // setup a simple initial system
-    arrays.x[0] = 0;
-    arrays.y[0] = 0;
-    arrays.z[0] = 0;
-    arrays.vx[0] = 0.0;
-    arrays.vy[0] = 0.0;
-    arrays.vz[0] = 0.0;    
-    arrays.x[1] = 0.1;
-    arrays.y[1] = 0;
-    arrays.z[1] = 0;
-    arrays.vx[1] = 0.0;
-    arrays.vy[1] = 0.0;
-    arrays.vz[1] = 0.0;  
-    pdata->release();
-    
+    pdata->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata->setVelocity(0,make_scalar3(0.0,0.0,0.0));
+    pdata->setPosition(1,make_scalar3(0.1,0.0,0.0));
+    pdata->setVelocity(1,make_scalar3(0.0,0.0,0.0));
     
     // Construction of the Force Compute
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));   
@@ -155,21 +143,15 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    
     // setup a simple initial dense state
     for (int j = 0; j < 1000; j++)
         {
-        arrays.x[j] = -2.0 + 0.3*(j %10);
-        arrays.y[j] = -2.0 + 0.3*(j/10 %10);
-        arrays.z[j] = -2.0 + 0.3*(j/100);
-        arrays.vx[j] = 0.0;
-        arrays.vy[j] = 0.0;
-        arrays.vz[j] = 0.0;
+        pdata->setPosition(j,make_scalar3(-2.0 + 0.3*(j %10),
+                                         -2.0 + 0.3*(j/10 %10),
+                                          -2.0 + 0.3*(j/100)));
+        pdata->setVelocity(j,make_scalar3(0.0,0.0,0.0));
         }
         
-    pdata->release();
-    
     Scalar deltaT = Scalar(0.02);
     Scalar Temp = Scalar(2.0);
     shared_ptr<VariantConst> T_variant(new VariantConst(Temp));    
@@ -219,18 +201,15 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     Scalar(Mom_y) = 0;
     Scalar(Mom_z) = 0;
     
-    arrays = pdata->acquireReadWrite();
-    
     // get momentum
     for (int j = 0; j < 1000; j++)
         {
-        Mom_x += arrays.vx[j] ;
-        Mom_y += arrays.vy[j];
-        Mom_z += arrays.vz[j];
+        Scalar3 vel = pdata->getVelocity(j);
+        Mom_x += vel.x;
+        Mom_y += vel.y;
+        Mom_z += vel.z;
         }
         
-    pdata->release();   
-    
     MY_BOOST_CHECK_SMALL(Mom_x, 1e-3);
     MY_BOOST_CHECK_SMALL(Mom_y, 1e-3);
     MY_BOOST_CHECK_SMALL(Mom_z, 1e-3);

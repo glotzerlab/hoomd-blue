@@ -101,7 +101,6 @@ void gpu_fire_zero_v_kernel(Scalar4 *d_vel,
         vel.x = 0.0f;
         vel.y = 0.0f;
         vel.z = 0.0f;
-        vel.w = 0.0f;
                 
         // write out the results (MEM_TRANSFER: 32 bytes)
         d_vel[idx] = vel;

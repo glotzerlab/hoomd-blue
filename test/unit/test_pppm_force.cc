@@ -108,13 +108,16 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 1.0;
-    arrays.charge[0] = 1.0;
-    arrays.x[1] = arrays.y[1] = arrays.z[1] = 2.0;
-    arrays.charge[1] = -1.0;
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_charge(pdata_2->getCharges(), access_location::host, access_mode::readwrite);
 
-    pdata_2->release();
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 1.0;
+    h_charge.data[0] = 1.0;
+    h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 2.0;
+    h_charge.data[1] = -1.0;
+
+    }
 
     shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
     

@@ -93,11 +93,10 @@ void lamellar_force_particle_test(lamellarforce_creator lamellar_creator, boost:
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = Scalar(1.7); arrays.y[0] = arrays.z[0] = 0.0; arrays.type[0] = 0;
-    arrays.x[1] = Scalar(2.0); arrays.y[1] = arrays.z[1] = 0.0; arrays.type[1] = 1;
-    arrays.x[2] = Scalar(3.5); arrays.y[2] = arrays.z[2] = 0.0; arrays.type[2] = 0;
-    pdata_3->release();
+    pdata_3->setPosition(0,make_scalar3(1.7,0.0,0.0));
+    pdata_3->setPosition(1,make_scalar3(2.0,0.0,0.0));
+    pdata_3->setPosition(2,make_scalar3(3.5,0.0,0.0));
+    pdata_3->setType(1,1);
     shared_ptr<PotentialExternalLamellar> fc_3 = lamellar_creator(sysdef_3);
 
     // first test: setup a sigma of 1.0 so that all forces will be 0

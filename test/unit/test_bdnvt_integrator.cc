@@ -103,22 +103,23 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+
     // setup a simple initial state
     for (int j = 0; j < 1000; j++)
         {
-        arrays.x[j] = 0.0;
-        arrays.y[j] = 0.0;
-        arrays.z[j] = 0.0;
-        arrays.vx[j] = 0.0;
-        arrays.vy[j] = 0.0;
-        arrays.vz[j] = 0.0;
+        h_pos.data[j].x = 0.0;
+        h_pos.data[j].y = 0.0;
+        h_pos.data[j].z = 0.0;
+        h_vel.data[j].x = 0.0;
+        h_vel.data[j].y = 0.0;
+        h_vel.data[j].z = 0.0;
         }
         
-    pdata->release();
-    
+    }
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(2.0);
     
@@ -140,27 +141,27 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
         {
         if (i % 100 == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
             for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             //VarianceE += pow((KE-Scalar(1.5)*1000*Temp),2);
             AvgT += Scalar(2.0)*KE/(3*1000);
             //cout << "Average Temperature at time step " << i << " is " << AvgT << endl;
-            pdata->release();
             }
             
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
     VarianceE /= Scalar(50000.0/100.0);
-    
-    arrays = pdata->acquireReadWrite();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
     Scalar MSD = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
     
-    for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+    for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D = MSD/(6*t*1000);
     
     cout << "Calculating Diffusion Coefficient " << D << endl;
@@ -173,7 +174,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 2.0, 3);
     MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 2.5);
-    pdata->release();
+    }
     
     // Resetting the Temperature to 1.0
     shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
@@ -181,39 +182,42 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     two_step_bdnvt->setT(T_variant);
     
     //Restoring the position of the particles to the origin for simplicity of calculating diffusion
-    arrays = pdata->acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
     for (int j = 0; j < 1000; j++)
         {
-        arrays.x[j] = 0.0;
-        arrays.y[j] = 0.0;
-        arrays.z[j] = 0.0;
+        h_pos.data[j].x = 0.0;
+        h_pos.data[j].y = 0.0;
+        h_pos.data[j].z = 0.0;
         }
-    pdata->release();
+    }
     
     AvgT = Scalar(0);
     for (i = 0; i < 50000; i++)
         {
         if (i % 100 == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
             for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5)*(h_vel.data[j].x*h_vel.data[j].x + h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
-            pdata->release();
             }
             
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+    Scalar MSD = Scalar(0);
+    Scalar t = Scalar(i) * deltaT;
     
-    arrays = pdata->acquireReadWrite();
-    MSD = Scalar(0);
-    t = Scalar(i) * deltaT;
-    
-    for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
-    D = MSD/(6*t*1000);
+    for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
+
+    Scalar D = MSD/(6*t*1000);
     
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
@@ -221,45 +225,47 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 1.0, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
-    pdata->release();
+    }
     
     // Setting Gamma to 0.5
     cout << "Gamma set at 0.5" << endl;
     two_step_bdnvt->setGamma(0, Scalar(0.5));
     
     //Restoring the position of the particles to the origin for simplicity of calculating diffusion
-    arrays = pdata->acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
     for (int j = 0; j < 1000; j++)
         {
-        arrays.x[j] = 0.0;
-        arrays.y[j] = 0.0;
-        arrays.z[j] = 0.0;
+        h_pos.data[j].x = 0.0;
+        h_pos.data[j].y = 0.0;
+        h_pos.data[j].z = 0.0;
         }
-    pdata->release();
+    }
     
     AvgT = Scalar(0);
     for (i = 0; i < 50000; i++)
         {
         if (i % 100 == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
             for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5)*(h_vel.data[j].x*h_vel.data[j].x + h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
-            pdata->release();
             }
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+    Scalar MSD = Scalar(0);
+    Scalar t = Scalar(i) * deltaT;
     
-    arrays = pdata->acquireReadWrite();
-    MSD = Scalar(0);
-    t = Scalar(i) * deltaT;
-    
-    for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
-    D = MSD/(6*t*1000);
+    for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
+    Scalar D = MSD/(6*t*1000);
     
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
@@ -267,7 +273,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 2.0, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
-    pdata->release();
+    }
     }
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas with gamma set by diameters
@@ -286,21 +292,23 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     
     // setup a simple initial state
     for (int j = 0; j < 1000; j++)
         {
-        arrays.x[j] = 0.0;
-        arrays.y[j] = 0.0;
-        arrays.z[j] = 0.0;
-        arrays.vx[j] = 0.0;
-        arrays.vy[j] = 0.0;
-        arrays.vz[j] = 0.0;
+        h_pos.data[j].x = 0.0;
+        h_pos.data[j].y = 0.0;
+        h_pos.data[j].z = 0.0;
+        h_vel.data[j].x = 0.0;
+        h_vel.data[j].y = 0.0;
+        h_vel.data[j].z = 0.0;
         }
         
-    pdata->release();
+    }
     
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(1.0);
@@ -317,24 +325,24 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
         {
         if (i % 100 == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
             for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
-            pdata->release();
             }
             
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
-    
-    arrays = pdata->acquireReadWrite();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
     Scalar MSD = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
     
-    for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+    for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D = MSD/(6*t*1000);
     
     cout << "Calculating Diffusion Coefficient " << D << endl;
@@ -343,47 +351,51 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 1.0, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
-    pdata->release();
-    
+    }
+
     // Setting Diameters to 0.5
     cout << "Diameters set at 0.5" << endl;
-    arrays = pdata->acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::readwrite);
     for (int j = 0; j < 1000; j++)
         {
-        arrays.diameter[j] = 0.5;
+        h_diameter.data[j] = 0.5;
         }
     //Restoring the position of the particles to the origin for simplicity of calculating diffusion
     for (int j = 0; j < 1000; j++)
         {
-        arrays.x[j] = 0.0;
-        arrays.y[j] = 0.0;
-        arrays.z[j] = 0.0;
+        h_pos.data[j].x = 0.0;
+        h_pos.data[j].y = 0.0;
+        h_pos.data[j].z = 0.0;
         }
-    pdata->release();
+    }
     
     AvgT = Scalar(0);
     for (i = 0; i < 50000; i++)
         {
         if (i % 100 == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
             for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
-            pdata->release();
             }
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
     
-    arrays = pdata->acquireReadWrite();
-    MSD = Scalar(0);
-    t = Scalar(i) * deltaT;
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+
+    Scalar MSD = Scalar(0);
+    Scalar t = Scalar(i) * deltaT;
     
-    for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
-    D = MSD/(6*t*1000);
+    for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
+
+    Scalar D = MSD/(6*t*1000);
     
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
@@ -391,7 +403,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 2.0, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
-    pdata->release();
+    }
     }
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
@@ -405,23 +417,25 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     
     // setup a simple initial state
     for (int j = 0; j < 1000; j++)
         {
-        arrays.x[j] = 0.0;
-        arrays.y[j] = 0.0;
-        arrays.z[j] = 0.0;
-        arrays.vx[j] = 0.0;
-        arrays.vy[j] = 0.0;
-        arrays.vz[j] = 0.0;
-        if (j < 500) arrays.type[j] = 0;
-        else arrays.type[j] = 1;
+        h_pos.data[j].x = 0.0;
+        h_pos.data[j].y = 0.0;
+        h_pos.data[j].z = 0.0;
+        h_vel.data[j].x = 0.0;
+        h_vel.data[j].y = 0.0;
+        h_vel.data[j].z = 0.0;
+        if (j < 500) h_pos.data[j].w = __int_as_scalar(0); //type = 0
+        else h_pos.data[j].w = __int_as_scalar(1); // type = 1
         }
         
-    pdata->release();
+    }
     
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(1.0);
@@ -450,26 +464,27 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
         {
         if (i % 100 == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
             for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
-            pdata->release();
             }
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
-    
-    arrays = pdata->acquireReadWrite();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+
     Scalar MSD1 = Scalar(0);
     Scalar MSD2 = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
     
-    for (int j = 0; j < 500; j++) MSD1 += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+    for (int j = 0; j < 500; j++) MSD1 += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D1 = MSD1/(6*t*500);
-    for (int j = 500; j < 1000; j++) MSD2 += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+    for (int j = 500; j < 1000; j++) MSD2 += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D2 = MSD2/(6*t*500);
     
     cout << "Calculating Diffusion Coefficient 1 and 2 " << endl << D1 << endl << D2 << endl;
@@ -479,7 +494,7 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
     MY_BOOST_CHECK_CLOSE(D1, 1.0, 8);
     MY_BOOST_CHECK_CLOSE(D2, 0.5, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
-    pdata->release();
+    }
     }
 
 //! Apply the Stochastic BD Bath to 1000 LJ Particles
@@ -491,21 +506,23 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     
     // setup a simple initial state
     for (int j = 0; j < 1000; j++)
         {
-        arrays.x[j] = (j % 100)*pow(Scalar(-1.0),Scalar(j));
-        arrays.y[j] = (j/100)*pow(Scalar(-1.0),Scalar(j));
-        arrays.z[j] = pow(Scalar(-1.0),Scalar(j));
-        arrays.vx[j] = 0.0;
-        arrays.vy[j] = 0.0;
-        arrays.vz[j] = 0.0;
+        h_pos.data[j].x = (j % 100)*pow(Scalar(-1.0),Scalar(j));
+        h_pos.data[j].y = (j/100)*pow(Scalar(-1.0),Scalar(j));
+        h_pos.data[j].z = pow(Scalar(-1.0),Scalar(j));
+        h_vel.data[j].x = 0.0;
+        h_vel.data[j].y = 0.0;
+        h_vel.data[j].z = 0.0;
         }
         
-    pdata->release();
+    }
     
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(2.0);
@@ -540,24 +557,21 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
         {
         if (i % 10 == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
             for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
-            pdata->release();
             }
             
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/10.0);
     
-    arrays = pdata->acquireReadWrite();
     cout << "Average Temperature " << AvgT << endl;
     
     MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 1);
-    pdata->release();
     
     // Resetting the Temperature to 1.0
     shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
@@ -569,24 +583,21 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
         {
         if (i % 10 == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
             for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
-            pdata->release();
             }
             
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/10.0);
     
-    arrays = pdata->acquireReadWrite();
     cout << "Average Temperature " << AvgT << endl;
     
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
-    pdata->release();
     
     }
 
