@@ -64,6 +64,7 @@ Rastko Sknepnek, Northwestern
  - pair.morse
 
 Carolyn Phillips, University of Michigan
+ - pair.dpdlj
  - pair.dpd
  - pair.dpd_conservative
  - integrate.bdnvt
@@ -75,6 +76,7 @@ Aaron Keys, University of Michigan
   - update.enforce2d and other updates enabling to 2D simulations
   - hoomd c++ compilation helper script
   - binary restart files
+  - integrate.mode_minimize_fire
   
 Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple University
   - pair.cgcmm
@@ -113,6 +115,17 @@ Jens Glaser, University of Minnesota
 
 Brandon D. Smith, University of Michigan
  - integrate.berendsen
+
+Trung Dac Nguyen
+ - integreate.nve_rigid
+ - integrate.bdnvt_rigid
+ - integrate.nvt_rigid
+ - integrate.npt_rigid
+ - integrate.mode_minimize_rigid_fire
+ - associated rigid body data structures and helper functions
+ 
+Ryan Marson
+ - unwrap_rigid option to dump.dcd
 
 While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is 
 responsible for numerous performance tweaks to the neighbor list and pair force code.
