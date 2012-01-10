@@ -25,7 +25,7 @@ class bond_fene_tests (unittest.TestCase):
     # test setting coefficients
     def test_set_coeff(self):
         fene = bond.fene();
-        fene.set_coeff('polymer', k=30.0, r0=1.5, sigma=1.0, epsilon=2.0)
+        fene.bond_coeff.set('polymer', k=30.0, r0=1.5, sigma=1.0, epsilon=2.0)
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);

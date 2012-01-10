@@ -25,7 +25,7 @@ class bond_harmonic_tests (unittest.TestCase):
     # test setting coefficients
     def test_set_coeff(self):
         harmonic = bond.harmonic();
-        harmonic.set_coeff('polymer', k=1.0, r0=1.0)
+        harmonic.bond_coeff.set('polymer', k=1.0, r0=1.0)
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);

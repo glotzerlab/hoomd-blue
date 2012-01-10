@@ -59,11 +59,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
-#include "FENEBondForceCompute.h"
+#include "AllBondPotentials.h"
 #include "ConstForceCompute.h"
-#ifdef ENABLE_CUDA
-#include "FENEBondForceComputeGPU.h"
-#endif
 
 #include "Initializers.h"
 
@@ -80,7 +77,7 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<FENEBondForceCompute>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
+typedef boost::function<shared_ptr<PotentialBondFENE>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -97,8 +94,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     pdata_2->release();
     
     // create the bond force compute to check
-    shared_ptr<FENEBondForceCompute> fc_2 = bf_creator(sysdef_2);
-    fc_2->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
+    shared_ptr<PotentialBondFENE> fc_2 = bf_creator(sysdef_2);
+    fc_2->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
     
     // compute the force and check the results
     fc_2->compute(0);
@@ -194,10 +191,10 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
     pdata_6->release();
     
-    shared_ptr<FENEBondForceCompute> fc_6 = bf_creator(sysdef_6);
-    fc_6->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
-    fc_6->setParams(1, Scalar(2.0*1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
-    fc_6->setParams(2, Scalar(1.5), Scalar(1.0), Scalar(1.0), Scalar(1.0/4.0));
+    shared_ptr<PotentialBondFENE> fc_6 = bf_creator(sysdef_6);
+    fc_6->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
+    fc_6->setParams(1, make_scalar4(Scalar(2.0*1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
+    fc_6->setParams(2, make_scalar4(Scalar(1.5), Scalar(1.0), Scalar(1.0), Scalar(1.0)));
     
     sysdef_6->getBondData()->addBond(Bond(0, 0,1));
     sysdef_6->getBondData()->addBond(Bond(1, 2,3));
@@ -285,8 +282,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     pdata_4->release();
     
     // build the bond force compute and try it out
-    shared_ptr<FENEBondForceCompute> fc_4 = bf_creator(sysdef_4);
-    fc_4->setParams(0, Scalar(1.5), Scalar(1.75), Scalar(1.2), Scalar(1.0/4.0));
+    shared_ptr<PotentialBondFENE> fc_4 = bf_creator(sysdef_4);
+    fc_4->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.75), Scalar(pow(1.2,12.0)), Scalar(pow(1.2,6.0))));
     // only add bonds on the left, top, and bottom of the square
     sysdef_4->getBondData()->addBond(Bond(0, 2,3));
     sysdef_4->getBondData()->addBond(Bond(0, 2,0));
@@ -337,7 +334,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
     }
 
-//! Compares the output of two FENEBondForceComputes
+//! Compares the output of two PotentialBondFENEs
 void bond_force_comparison_tests(bondforce_creator bf_creator1,
                                  bondforce_creator bf_creator2,
                                  boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -352,10 +349,10 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(sc_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    shared_ptr<FENEBondForceCompute> fc1 = bf_creator1(sysdef);
-    shared_ptr<FENEBondForceCompute> fc2 = bf_creator2(sysdef);
-    fc1->setParams(0, Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0/4.0));
-    fc2->setParams(0, Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0/4.0));
+    shared_ptr<PotentialBondFENE> fc1 = bf_creator1(sysdef);
+    shared_ptr<PotentialBondFENE> fc2 = bf_creator2(sysdef);
+    fc1->setParams(0, make_scalar4(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
+    fc2->setParams(0, make_scalar4(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
     
     // displace particles a little so all forces aren't alike
     ParticleDataArrays arrays = pdata->acquireReadWrite();
@@ -440,22 +437,22 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     }
     }
 
-//! FEBEBondForceCompute creator for bond_force_basic_tests()
-shared_ptr<FENEBondForceCompute> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
+//! PotentialBondFENE creator for bond_force_basic_tests()
+shared_ptr<PotentialBondFENE> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(sysdef));
+    return shared_ptr<PotentialBondFENE>(new PotentialBondFENE(sysdef));
     }
 
 #ifdef ENABLE_CUDA
-//! FENEBondForceCompute creator for bond_force_basic_tests()
-shared_ptr<FENEBondForceCompute> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
+//! PotentialBondFENE creator for bond_force_basic_tests()
+shared_ptr<PotentialBondFENE> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<FENEBondForceCompute>(new FENEBondForceComputeGPU(sysdef));
+    return shared_ptr<PotentialBondFENE>(new PotentialBondFENEGPU(sysdef));
     }
 #endif
 
 //! boost test case for bond forces on the CPU
-BOOST_AUTO_TEST_CASE( FENEBondForceCompute_basic )
+BOOST_AUTO_TEST_CASE( PotentialBondFENE_basic )
     {
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
     bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -463,14 +460,14 @@ BOOST_AUTO_TEST_CASE( FENEBondForceCompute_basic )
 
 #ifdef ENABLE_CUDA
 //! boost test case for bond forces on the GPU
-BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_basic )
+BOOST_AUTO_TEST_CASE( PotentialBondFENEGPU_basic )
     {
     bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
     bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
-BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_compare )
+BOOST_AUTO_TEST_CASE( PotentialBondFENEGPU_compare )
     {
     bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);

@@ -91,6 +91,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TablePotential.h"
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
+#include "AllBondPotentials.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoGPU.h"
 #include "NeighborList.h"
@@ -367,6 +368,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");   
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
     export_PotentialPairDPDLJThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>("PotentialPairDPDLJThermoDPD");
+    export_PotentialBond<PotentialBondHarmonic>("PotentialBondHarmonic");
+    export_PotentialBond<PotentialBondFENE>("PotentialBondFENE");
     export_EAMForceCompute();
     export_LJWallForceCompute();
     export_ComputeThermo();
@@ -389,6 +392,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");    
     export_PotentialPairDPDLJThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");    
+    export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>("PotentialBondHarmonicGPU");
+    export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>("PotentialBondFENEGPU");
     export_TablePotentialGPU();
     export_EAMForceComputeGPU();
     export_HarmonicBondForceComputeGPU();
