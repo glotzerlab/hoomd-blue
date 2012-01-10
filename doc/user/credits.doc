@@ -107,6 +107,7 @@ Ross Smith, University of Michigan
 Peter Palm, Jens Glaser, Leipzig University
  - group functionality in force.constant
  - misc bug fixes
+ - conversion of bond forces to template evaluator implementation
 
 Jens Glaser, University of Minnesota
  - Dynamic addition/removal of bonds
