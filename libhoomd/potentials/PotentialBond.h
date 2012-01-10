@@ -281,9 +281,9 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             dz += Lz;
 
         // sanity check
-        assert(dx >= box.xlo && dx < box.xhi);
-        assert(dy >= box.ylo && dx < box.yhi);
-        assert(dz >= box.zlo && dx < box.zhi);
+        assert(dx >= -Lx2 && dx < Lx2);
+        assert(dy >= -Ly2 && dy < Ly2);
+        assert(dz >= -Lz2 && dz < Lz2);
 
         // calculate r_ab squared
         Scalar rsq = dx*dx+dy*dy+dz*dz;

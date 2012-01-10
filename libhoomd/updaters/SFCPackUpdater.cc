@@ -127,8 +127,8 @@ void SFCPackUpdater::applySortOrder()
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_tag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
 
     // construct a temporary holding array for the sorted data
     Scalar4 *scal4_tmp = new Scalar4[m_pdata->getN()];

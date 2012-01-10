@@ -86,8 +86,8 @@ struct bond_args_t
                   virial_pitch(_virial_pitch),
                   N(_N),
                   d_pos(_d_pos),
-                  d_diameter(_d_diameter),
                   d_charge(_d_charge),
+                  d_diameter(_d_diameter),
                   box(_box),
                   btable(_btable),
                   n_bond_types(_n_bond_types),
@@ -100,8 +100,8 @@ struct bond_args_t
     const unsigned int virial_pitch;   //!< pitch of 2D array of virial matrix elements
     unsigned int N;                    //!< number of particles
     const Scalar4 *d_pos;              //!< particle positions
-    const Scalar *d_diameter;          //!< particle diameters
     const Scalar *d_charge;            //!< particle charges
+    const Scalar *d_diameter;          //!< particle diameters
     const gpu_boxsize &box;            //!< Simulation box in GPU format
     const gpu_bondtable_array &btable; //!< List of bonds stored on the GPU
     const unsigned int n_bond_types;   //!< Number of bond types in the simulation
@@ -117,8 +117,8 @@ struct bond_args_t
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
     \param d_pos particle positions on the GPU
-    \param d_diameter particle diameters
     \param d_charge particle charges
+    \param d_diameter particle diameters
     \param box Box dimensions used to implement periodic boundary conditions
     \param blist List of bonds stored on the GPU
     \param n_bond_type number of bond types
@@ -136,8 +136,8 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
                                                const unsigned int virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
-                                               const Scalar *d_diameter,
                                                const Scalar *d_charge,
+                                               const Scalar *d_diameter,
                                                const gpu_boxsize box,
                                                gpu_bondtable_array blist,
                                                const unsigned int n_bond_type,
@@ -294,7 +294,7 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     // run the kernel
     gpu_compute_bond_forces_kernel<evaluator><<<grid, threads, shared_bytes>>>(
         bond_args.d_force, bond_args.d_virial, bond_args.virial_pitch, bond_args.N,
-        bond_args.d_pos, bond_args.d_diameter, bond_args.d_charge, bond_args.box, bond_args.btable,
+        bond_args.d_pos, bond_args.d_charge, bond_args.d_diameter, bond_args.box, bond_args.btable,
         bond_args.n_bond_types, d_params, d_flags);
 
     return cudaSuccess;
