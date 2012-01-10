@@ -111,7 +111,8 @@ cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
-                                         bool clear);
+                                         bool clear,
+                                         bool compute_virial);
 
 #endif
 

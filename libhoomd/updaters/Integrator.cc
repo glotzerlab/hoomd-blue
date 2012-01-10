@@ -546,13 +546,17 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             // clear on the first iteration only
             bool clear = (cur_force == 0);
             
+            // access flags
+            PDataFlags flags = this->m_pdata->getFlags();
+
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
                                          net_virial_pitch,
                                          d_net_torque.data,
                                          force_list,
                                          nparticles,
-                                         clear);
+                                         clear,
+                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]);
 
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -680,6 +684,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             
             // clear only on the first iteration AND if there are zero forces
             bool clear = (cur_force == 0) && (m_forces.size() == 0);
+
+            // access flags
+            PDataFlags flags = this->m_pdata->getFlags();
             
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
@@ -687,7 +694,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          d_net_torque.data,
                                          force_list,
                                          nparticles,
-                                         clear);
+                                         clear,
+                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]);
             
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
