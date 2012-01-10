@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! helper to add a given force/virial pointer pair
+template< unsigned int compute_virial >
 __device__ void add_force_total(float4& net_force, float *net_virial, float4& net_torque, float4* d_f, float* d_v, const unsigned int virial_pitch, float4* d_t, int idx)
     {
     if (d_f != NULL && d_v != NULL && d_t != NULL)
@@ -75,8 +76,11 @@ __device__ void add_force_total(float4& net_force, float *net_virial, float4& ne
         net_force.z += f.z;
         net_force.w += f.w;
 
-        for (int i=0; i < 6; i++)
-            net_virial[i] += d_v[i*virial_pitch+idx];
+        if (compute_virial)
+            {
+            for (int i=0; i < 6; i++)
+                net_virial[i] += d_v[i*virial_pitch+idx];
+            }
         
         net_torque.x += t.x;
         net_torque.y += t.y;
@@ -96,7 +100,10 @@ __device__ void add_force_total(float4& net_force, float *net_virial, float4& ne
     \param nparticles Number of particles in the arrays
     \param clear When true, initializes the sums to 0 before adding. When false, reads in the current \a d_net_force
            and \a d_net_virial and adds to that
+
+    \tparam compute_virial When set to 0, the virial sum is not computed
 */
+template< unsigned int compute_virial >
 __global__ void gpu_integrator_sum_net_force_kernel(float4 *d_net_force,
                                                     float *d_net_virial,
                                                     const unsigned int net_virial_pitch,
@@ -117,31 +124,40 @@ __global__ void gpu_integrator_sum_net_force_kernel(float4 *d_net_force,
         if (clear)
             {
             net_force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-            for (int i=0; i<6; i++)
-                net_virial[i] = 0.0f;
+            if (compute_virial)
+                {
+                for (int i=0; i<6; i++)
+                    net_virial[i] = 0.0f;
+                }
             net_torque = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
             }
         else
             {
             // if clear is false, intialize to the current d_net_force and d_net_virial
             net_force = d_net_force[idx];
-            for (int i=0; i<6; i++)
-                net_virial[i] = d_net_virial[i*net_virial_pitch+idx];
+            if (compute_virial)
+                {
+                for (int i=0; i<6; i++)
+                    net_virial[i] = d_net_virial[i*net_virial_pitch+idx];
+                }
             net_torque = d_net_torque[idx];
             }
         
         // sum up the totals
-        add_force_total(net_force, net_virial, net_torque, force_list.f0, force_list.v0, force_list.vpitch0, force_list.t0, idx);
-        add_force_total(net_force, net_virial, net_torque, force_list.f1, force_list.v1, force_list.vpitch1, force_list.t1, idx);
-        add_force_total(net_force, net_virial, net_torque, force_list.f2, force_list.v2, force_list.vpitch2, force_list.t2, idx);
-        add_force_total(net_force, net_virial, net_torque, force_list.f3, force_list.v3, force_list.vpitch3, force_list.t3, idx);
-        add_force_total(net_force, net_virial, net_torque, force_list.f4, force_list.v4, force_list.vpitch4, force_list.t4, idx);
-        add_force_total(net_force, net_virial, net_torque, force_list.f5, force_list.v5, force_list.vpitch5, force_list.t5, idx);
+        add_force_total<compute_virial>(net_force, net_virial, net_torque, force_list.f0, force_list.v0, force_list.vpitch0, force_list.t0, idx);
+        add_force_total<compute_virial>(net_force, net_virial, net_torque, force_list.f1, force_list.v1, force_list.vpitch1, force_list.t1, idx);
+        add_force_total<compute_virial>(net_force, net_virial, net_torque, force_list.f2, force_list.v2, force_list.vpitch2, force_list.t2, idx);
+        add_force_total<compute_virial>(net_force, net_virial, net_torque, force_list.f3, force_list.v3, force_list.vpitch3, force_list.t3, idx);
+        add_force_total<compute_virial>(net_force, net_virial, net_torque, force_list.f4, force_list.v4, force_list.vpitch4, force_list.t4, idx);
+        add_force_total<compute_virial>(net_force, net_virial, net_torque, force_list.f5, force_list.v5, force_list.vpitch5, force_list.t5, idx);
         
         // write out the final result
         d_net_force[idx] = net_force;
-        for (int i=0; i < 6; i++)
-            d_net_virial[i*net_virial_pitch+idx] = net_virial[i];
+        if (compute_virial)
+            {
+            for (int i=0; i < 6; i++)
+                d_net_virial[i*net_virial_pitch+idx] = net_virial[i];
+            }
         d_net_torque[idx] = net_torque;
         }
     }
@@ -152,7 +168,8 @@ cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
-                                         bool clear)
+                                         bool clear,
+                                         bool compute_virial)
     {
     // sanity check
     assert(d_net_force);
@@ -161,8 +178,26 @@ cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
     
     const int block_size = 256;
     
-    gpu_integrator_sum_net_force_kernel<<< nparticles/block_size+1, block_size >>>
-        (d_net_force, d_net_virial, net_virial_pitch, d_net_torque, force_list, nparticles, clear);
+    if (compute_virial)
+        {
+        gpu_integrator_sum_net_force_kernel<1><<< nparticles/block_size+1, block_size >>>(d_net_force,
+                                                                                          d_net_virial,
+                                                                                          net_virial_pitch,
+                                                                                          d_net_torque,
+                                                                                          force_list,
+                                                                                          nparticles,
+                                                                                          clear);
+        }
+    else
+        {
+        gpu_integrator_sum_net_force_kernel<0><<< nparticles/block_size+1, block_size >>>(d_net_force,
+                                                                                          d_net_virial,
+                                                                                          net_virial_pitch,
+                                                                                          d_net_torque,
+                                                                                          force_list,
+                                                                                          nparticles,
+                                                                                          clear);
+        }
     
     return cudaSuccess;
     }
