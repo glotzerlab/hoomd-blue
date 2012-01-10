@@ -77,6 +77,9 @@ forces = [];
 ## Global variable that tracks the all of the constraint force computes specified in the script so far
 constraint_forces = [];
 
+## Global variable that tracks the all of the external force computes
+external_forces = [];
+
 ## Global variable that tracks all the integration methods that have been specified in the script so far
 integration_methods = [];
 
@@ -99,7 +102,7 @@ group_all = None;
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
 def clear():
-    global system_definition, system, forces, constraint_forces, integration_methods, integrator, neighbor_list, loggers, thermos;
+    global system_definition, system, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, loggers, thermos;
     global group_all, exec_conf;
     
     exec_conf = None;
@@ -107,6 +110,7 @@ def clear():
     system = None;
     forces = [];
     constraint_forces = [];
+    external_forces = [];
     integration_methods = [];
     integrator = None;
     neighbor_list = None;

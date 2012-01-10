@@ -148,7 +148,7 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
     }
 
 //! Stuff an integer inside a Scalar
-inline Scalar __int_as_scalar(int a)
+HOSTDEVICE inline Scalar __int_as_scalar(int a)
     {
     volatile union
         {
@@ -161,7 +161,7 @@ inline Scalar __int_as_scalar(int a)
     }
 
 //! Extract an integer from a Scalar stuffed by __int_as_scalar()
-inline int __scalar_as_int(Scalar b)
+HOSTDEVICE inline int __scalar_as_int(Scalar b)
     {
     volatile union
         {
