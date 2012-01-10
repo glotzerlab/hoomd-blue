@@ -129,6 +129,13 @@ struct dpdlj_pair_args_t
     };
 
 #ifdef NVCC
+//! Texture for reading particle positions
+texture<float4, 1, cudaReadModeElementType> pdata_dpdlj_pos_tex;
+
+//! Texture for reading particle velocities
+texture<float4, 1, cudaReadModeElementType> pdata_dpdlj_vel_tex;
+
+
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
     forces for each pair is handled via the template class \a evaluator.
@@ -218,15 +225,15 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
         
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
-    
+
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 posi = d_pos[idx];
-    
+    float4 posi = tex1Dfetch(pdata_dpdlj_pos_tex, idx);
+
     // read in the velocity of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 veli = d_vel[idx];
-    
+    float4 veli = tex1Dfetch(pdata_dpdlj_vel_tex, idx);
+
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float virial[6];
@@ -257,10 +264,10 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
             
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 posj = d_pos[cur_j];
+            float4 posj = tex1Dfetch(pdata_dpdlj_pos_tex, cur_j);
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 velj = d_pos[cur_j];
+            float4 velj = tex1Dfetch(pdata_dpdlj_vel_tex, cur_j);
                         
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
             float dx = posi.x - posj.x;
@@ -394,7 +401,21 @@ cudaError_t gpu_compute_dpdlj_forces(const dpdlj_pair_args_t& args,
     // setup the grid to run the kernel
     dim3 grid( args.N / args.block_size + 1, 1, 1);
     dim3 threads(args.block_size, 1, 1);
-    
+
+    // bind the position texture
+    pdata_dpdlj_pos_tex.normalized = false;
+    pdata_dpdlj_pos_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, pdata_dpdlj_pos_tex, args.d_pos, sizeof(float4)*args.N);
+    if (error != cudaSuccess)
+        return error;
+
+    // bind the velocity texture
+    pdata_dpdlj_vel_tex.normalized = false;
+    pdata_dpdlj_vel_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_dpdlj_vel_tex, args.d_vel,  sizeof(float4)*args.N);
+    if (error != cudaSuccess)
+        return error;
+
     Index2D typpair_idx(args.ntypes);
     unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
                                 * typpair_idx.getNumElements();

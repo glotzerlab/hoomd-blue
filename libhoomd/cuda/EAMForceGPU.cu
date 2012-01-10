@@ -68,6 +68,8 @@ Moscow group.
     \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
+//!< Texture for reading particle positions
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading electron density
 texture<float, 1, cudaReadModeElementType> electronDensity_tex;
 //! Texture for reading EAM pair potential
@@ -108,7 +110,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    float4 pos = d_pos[idx];
+    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
 
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -130,7 +132,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        float4 neigh_pos = d_pos[cur_neigh];
+        float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
         float dx = pos.x - neigh_pos.x;
@@ -184,7 +186,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    float4 pos = d_pos[idx];
+    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
     int typei = __float_as_int(pos.w);
     // prefetch neighbor index
     float position;
@@ -212,7 +214,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        float4 neigh_pos = d_pos[cur_neigh];
+        float4 neigh_pos = tex1Dfetch(pdata_pos_tex,cur_neigh);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
         float dx = pos.x - neigh_pos.x;
@@ -288,9 +290,15 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     dim3 threads(eam_data.block_size, 1, 1);
 
     // bind the texture
+    pdata_pos_tex.normalized = false;
+    pdata_pos_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4)*N);
+    if (error != cudaSuccess)
+        return error;
+
     electronDensity_tex.normalized = false;
     electronDensity_tex.filterMode = cudaFilterModeLinear ;
-    cudaError_t error = cudaBindTextureToArray(electronDensity_tex, eam_tex.electronDensity);
+    error = cudaBindTextureToArray(electronDensity_tex, eam_tex.electronDensity);
     if (error != cudaSuccess)
         return error;
 

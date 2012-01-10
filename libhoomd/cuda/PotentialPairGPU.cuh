@@ -125,6 +125,15 @@ struct pair_args_t
     };
 
 #ifdef NVCC
+//! Texture for reading particle positions
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+
+//! Texture for reading particle diameters
+texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
+
+//! Texture for reading particle charges
+texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
+
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
     forces for each pair is handled via the template class \a evaluator.
@@ -211,16 +220,16 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
     
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 posi = d_pos[idx];
+    float4 posi = tex1Dfetch(pdata_pos_tex, idx);
     
     float di;
     if (evaluator::needsDiameter())
-        di = d_diameter[idx];
+        di = tex1Dfetch(pdata_diam_tex, idx);
     else
         di += 1.0f; // shutup compiler warning
     float qi;
     if (evaluator::needsCharge())
-        qi = d_charge[idx];
+        qi = tex1Dfetch(pdata_charge_tex, idx);
     else
         qi += 1.0f; // shutup compiler warning
     
@@ -258,17 +267,17 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
             
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 posj = d_pos[cur_j];
+            float4 posj = tex1Dfetch(pdata_pos_tex, cur_j);
             
             float dj = 0.0f;
             if (evaluator::needsDiameter())
-                dj = d_diameter[cur_j];
+                dj = tex1Dfetch(pdata_diam_tex, cur_j);
             else
                 dj += 1.0f; // shutup compiler warning
                 
             float qj = 0.0f;
             if (evaluator::needsCharge())
-                qj = d_charge[cur_j];
+                qj = tex1Dfetch(pdata_charge_tex, cur_j);
             else
                 qj += 1.0f; // shutup compiler warning
                 
@@ -395,7 +404,27 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     // setup the grid to run the kernel
     dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
     dim3 threads(pair_args.block_size, 1, 1);
+
+    // bind the position texture
+    pdata_pos_tex.normalized = false;
+    pdata_pos_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.N);
+    if (error != cudaSuccess)
+        return error;
+
+    // bind the diamter texture
+    pdata_diam_tex.normalized = false;
+    pdata_diam_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) *pair_args.N);
+    if (error != cudaSuccess)
+        return error;
     
+    pdata_charge_tex.normalized = false;
+    pdata_charge_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.N);
+    if (error != cudaSuccess)
+        return error;
+
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
                                 * typpair_idx.getNumElements();

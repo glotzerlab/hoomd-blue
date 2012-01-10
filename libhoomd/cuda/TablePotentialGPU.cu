@@ -64,6 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
+//! Texture for reading particle positions
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+
 //! Texture for reading table values
 texture<float2, 1, cudaReadModeElementType> tables_tex;
 
@@ -124,7 +127,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
     unsigned int n_neigh = d_n_neigh[idx];
     
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
-    Scalar4 pos = d_pos[idx];
+    Scalar4 pos = tex1Dfetch(pdata_pos_tex, idx);
     unsigned int typei = __float_as_int(pos.w);
     
     // initialize the force to 0
@@ -160,7 +163,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
             next_neigh = d_nlist[nli(idx, (neigh_idx+1))];
             
             // get the neighbor's position
-            float4 neigh_pos = d_pos[cur_neigh];
+            float4 neigh_pos =  tex1Dfetch(pdata_pos_tex, cur_neigh);
             
             // calculate dr (with periodic boundary conditions)
             float dx = pos.x - neigh_pos.x;
@@ -284,11 +287,18 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
+    // bind the pdata position texture
+    pdata_pos_tex.normalized = false;
+    pdata_pos_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4) * N);
+    if (error != cudaSuccess)
+        return error;
+
     // bind the tables texture
     tables_tex.normalized = false;
     tables_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_width * table_index.getNumElements());
+    error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_width * table_index.getNumElements());
     if (error != cudaSuccess)
         return error;
         
