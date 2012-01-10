@@ -83,7 +83,8 @@ struct pair_args_t
               const float *_d_ronsq,
               const unsigned int _ntypes,
               const unsigned int _block_size,
-              const unsigned int _shift_mode)
+              const unsigned int _shift_mode,
+              const unsigned int _compute_virial)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
@@ -96,7 +97,8 @@ struct pair_args_t
                   d_ronsq(_d_ronsq),
                   ntypes(_ntypes),
                   block_size(_block_size),
-                  shift_mode(_shift_mode)
+                  shift_mode(_shift_mode),
+                  compute_virial(_compute_virial)
         {
         };
 
@@ -113,6 +115,7 @@ struct pair_args_t
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int shift_mode;  //!< The potential energy shift mode
+    const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     };
 
 #ifdef NVCC
@@ -151,13 +154,14 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
+    \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
     
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator, unsigned int shift_mode >
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial >
 __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                                                float *d_virial,
                                                const unsigned int virial_pitch,
@@ -335,13 +339,16 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                 }
             
             // calculate the virial
-            float force_div2r = 0.5f * force_divr;
-            virialxx +=  dx * dx * force_div2r;
-            virialxy +=  dx * dy * force_div2r;
-            virialxz +=  dx * dz * force_div2r;
-            virialyy +=  dy * dy * force_div2r;
-            virialyz +=  dy * dz * force_div2r;
-            virialzz +=  dz * dz * force_div2r;
+            if (compute_virial)
+                {
+                float force_div2r = 0.5f * force_divr;
+                virialxx +=  dx * dx * force_div2r;
+                virialxy +=  dx * dy * force_div2r;
+                virialxz +=  dx * dz * force_div2r;
+                virialyy +=  dy * dy * force_div2r;
+                virialyz +=  dy * dz * force_div2r;
+                virialzz +=  dz * dz * force_div2r;
+                }
             
             // add up the force vector components (FLOPS: 7)
             #if (__CUDA_ARCH__ >= 200)
@@ -363,12 +370,16 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
-    d_virial[0*virial_pitch+idx] = virialxx;
-    d_virial[1*virial_pitch+idx] = virialxy;
-    d_virial[2*virial_pitch+idx] = virialxz;
-    d_virial[3*virial_pitch+idx] = virialyy;
-    d_virial[4*virial_pitch+idx] = virialyz;
-    d_virial[5*virial_pitch+idx] = virialzz;
+
+    if (compute_virial)
+        {
+        d_virial[0*virial_pitch+idx] = virialxx;
+        d_virial[1*virial_pitch+idx] = virialxy;
+        d_virial[2*virial_pitch+idx] = virialxz;
+        d_virial[3*virial_pitch+idx] = virialyy;
+        d_virial[4*virial_pitch+idx] = virialyz;
+        d_virial[5*virial_pitch+idx] = virialzz;
+        }
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
@@ -415,23 +426,47 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                                 * typpair_idx.getNumElements();
     
     // run the kernel
-    switch (pair_args.shift_mode)
+    if (pair_args.compute_virial)
         {
-        case 0:
-            gpu_compute_pair_forces_kernel<evaluator, 0>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-            break;
-        case 1:
-            gpu_compute_pair_forces_kernel<evaluator, 1>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-            break;
-        case 2:
-            gpu_compute_pair_forces_kernel<evaluator, 2>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-            break;
-        default:
-            return cudaErrorUnknown;
+        switch (pair_args.shift_mode)
+            {
+            case 0:
+                gpu_compute_pair_forces_kernel<evaluator, 0, 1>
+                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+                break;
+            case 1:
+                gpu_compute_pair_forces_kernel<evaluator, 1, 1>
+                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+                break;
+            case 2:
+                gpu_compute_pair_forces_kernel<evaluator, 2, 1>
+                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+                break;
+            default:
+                return cudaErrorUnknown;
+            }
         }
+    else
+        {
+        switch (pair_args.shift_mode)
+            {
+            case 0:
+                gpu_compute_pair_forces_kernel<evaluator, 0, 0>
+                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+                break;
+            case 1:
+                gpu_compute_pair_forces_kernel<evaluator, 1, 0>
+                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+                break;
+            case 2:
+                gpu_compute_pair_forces_kernel<evaluator, 2, 0>
+                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.pdata, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
+                break;
+            default:
+                return cudaErrorUnknown;
+            }
+        }
+
         
     return cudaSuccess;
     }
