@@ -296,6 +296,12 @@ int get_num_procs()
     #endif
     }
 
+//! Get the hoomd version as a tuple
+object get_version_tuple()
+    {
+    return make_tuple(HOOMD_VERSION_MAJOR, HOOMD_VERSION_MINOR, HOOMD_VERSION_PATCH);
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -309,6 +315,7 @@ BOOST_PYTHON_MODULE(hoomd)
 
     def("set_num_threads", &set_num_threads);
     def("get_num_procs", &get_num_procs);
+    scope().attr("__version__") = get_version_tuple();
 
     // data structures
     class_<std::vector<int> >("std_vector_int")

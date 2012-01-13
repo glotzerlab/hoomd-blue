@@ -52,6 +52,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Set to the src dir to be used as the root to read data files from
 #define HOOMD_SOURCE_DIR "${HOOMD_SOURCE_DIR}"
 
+//! hoomd major version
+#define HOOMD_VERSION_MAJOR ${HOOMD_VERSION_MAJOR}
+//! hoomd minor version
+#define HOOMD_VERSION_MINOR ${HOOMD_VERSION_MINOR}
+//! hoomd patch version
+#define HOOMD_VERSION_PATCH ${HOOMD_VERSION_PATCH}
+
 /*! \file HOOMDVersion.h.in
 	\brief Functions and variables for printing compile time build information of HOOMD
 	\details This file is configured to HOOMDVersion.h by CMake, that is the file that should
