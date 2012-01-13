@@ -1,4 +1,4 @@
-/*
+ /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
 (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
 Iowa State University and The Regents of the University of Michigan All rights
@@ -124,6 +124,9 @@ struct ExecutionConfiguration : boost::noncopyable
         m_cuda_error_checking = cuda_error_checking;
         }
 
+    //! Get the name of the executing GPU (or the empty string)
+    std::string getGPUName() const;
+    
 #ifdef ENABLE_CUDA
     cudaDeviceProp dev_prop;    //!< Cached device properties
     
