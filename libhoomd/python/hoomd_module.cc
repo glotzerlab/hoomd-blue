@@ -53,9 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
 
-//! Enable old boost::filesystem API (temporary fix)
-#define BOOST_FILESYSTEM_VERSION 2
-
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 4267 )
@@ -254,11 +251,11 @@ string find_vmd()
         return "/usr/local/bin/vmd";
     if (exists("/opt/vmd/bin/vmd"))
         return "/opt/vmd/bin/vmd";
-    if (exists(path("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+    if (exists(path("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-    if (exists(path("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+    if (exists(path("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-    if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+    if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
 #endif
         

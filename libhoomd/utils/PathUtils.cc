@@ -53,9 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Simple functions for dealing with paths
 */
 
-//! Enable old boost::filesystem API (temporary fix)
-#define BOOST_FILESYSTEM_VERSION 2
-
 #include <stdlib.h>
 #include <string>
 #include <stdexcept>
@@ -69,6 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #endif
 
+#include <boost/version.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 
@@ -125,7 +123,9 @@ std::string getExePath()
     #endif
 
     // the above routines get the actual executable. Return the path to it
-    #if (BOOST_VERSION <= 103500)
+    #if (BOOST_VERSION >= 104400)
+    return boost::filesystem::path(result).parent_path().string();
+    #elif (BOOST_VERSION <= 103500)
     return boost::filesystem::path(result).branch_path().native_file_string();
     #else
     return boost::filesystem::path(result).parent_path().native_file_string();
