@@ -6,7 +6,7 @@ import unittest
 import os
 
 # tests for data access
-class data_access_tests (unittest.TestCase):
+class particle_data_access_tests (unittest.TestCase):
     def setUp(self):
         print
         self.s = init.create_random(N=100, phi_p=0.05);
@@ -46,6 +46,7 @@ class data_access_tests (unittest.TestCase):
             t = p.net_force;
             t = p.net_energy;
             t = p.orientation;
+            t = p.net_torque;
 
         # test setting properties for just one particle
         self.s.particles[0].position = (1,2,3);
@@ -87,7 +88,7 @@ class data_access_tests (unittest.TestCase):
         init.reset();
 
 # tests for bond, angle, dihedral, and improper data access
-class data_access_tests (unittest.TestCase):
+class bond_data_access_tests (unittest.TestCase):
     def setUp(self):
         print
         self.s = init.create_empty(N=100, box=(10,10,10), n_bond_types=2, n_angle_types=2, n_dihedral_types=2, n_improper_types=2);
@@ -247,6 +248,29 @@ class data_access_tests (unittest.TestCase):
     def tearDown(self):
         del self.s
         init.reset();
+
+# pair.lj
+class particle_data_access_tests (unittest.TestCase):
+    def setUp(self):
+        print
+        init.create_random(N=100, phi_p=0.05);
+        import __main__;
+        __main__.sorter.set_params(grid=8)
+        
+    # basic test of creation
+    def test(self):
+        lj = pair.lj(r_cut=3.0);
+        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
+        lj.update_coeffs();
+        for p in lj.forces:
+            f = p.force;
+            f = p.energy;
+            f = p.virial;
+            f = p.torque;
+    
+    def tearDown(self):
+        init.reset();
+
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
