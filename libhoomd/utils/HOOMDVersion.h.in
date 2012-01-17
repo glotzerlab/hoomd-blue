@@ -51,6 +51,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define COMPILE_DATE "${COMPILE_DATE}"
 //! Set to the src dir to be used as the root to read data files from
 #define HOOMD_SOURCE_DIR "${HOOMD_SOURCE_DIR}"
+//! Current git refspec checked out
+#define HOOMD_GIT_REFSPEC "${HOOMD_GIT_REFSPEC}"
+//! Current git hash
+#define HOOMD_GIT_SHA1 "${HOOMD_GIT_SHA1}"
 
 //! hoomd major version
 #define HOOMD_VERSION_MAJOR ${HOOMD_VERSION_MAJOR}
