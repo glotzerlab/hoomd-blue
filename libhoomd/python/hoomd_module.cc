@@ -312,6 +312,18 @@ object get_cuda_version_tuple()
     #endif
     }
 
+//! Get the compiler version
+string get_compiler_version()
+    {
+    #ifdef __GNUC__
+    ostringstream o;
+    o << "gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." <<  __GNUC_PATCHLEVEL__;
+    return o.str();
+    #else
+    return string("unknown");
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -329,6 +341,7 @@ BOOST_PYTHON_MODULE(hoomd)
     scope().attr("__git_sha1__") = HOOMD_GIT_SHA1;
     scope().attr("__git_refspec__") = HOOMD_GIT_REFSPEC;
     scope().attr("__cuda_version__") = get_cuda_version_tuple();
+    scope().attr("__compiler_version__") = get_compiler_version();
 
     // data structures
     class_<std::vector<int> >("std_vector_int")
