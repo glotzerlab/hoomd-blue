@@ -135,6 +135,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // include GPU classes
 #ifdef ENABLE_CUDA
+#include <cuda.h>
 #include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
@@ -294,9 +295,21 @@ int get_num_procs()
     }
 
 //! Get the hoomd version as a tuple
-object get_version_tuple()
+object get_hoomd_version_tuple()
     {
     return make_tuple(HOOMD_VERSION_MAJOR, HOOMD_VERSION_MINOR, HOOMD_VERSION_PATCH);
+    }
+
+//! Get the CUDA version as a tuple
+object get_cuda_version_tuple()
+    {
+    #ifdef ENABLE_CUDA
+    int major = CUDA_VERSION / 1000;
+    int minor = CUDA_VERSION / 10 % 100;
+    return make_tuple(major, minor);
+    #else
+    return make_tuple(0,0);
+    #endif
     }
 
 //! Create the python module
@@ -312,9 +325,10 @@ BOOST_PYTHON_MODULE(hoomd)
 
     def("set_num_threads", &set_num_threads);
     def("get_num_procs", &get_num_procs);
-    scope().attr("__version__") = get_version_tuple();
+    scope().attr("__version__") = get_hoomd_version_tuple();
     scope().attr("__git_sha1__") = HOOMD_GIT_SHA1;
     scope().attr("__git_refspec__") = HOOMD_GIT_REFSPEC;
+    scope().attr("__cuda_version__") = get_cuda_version_tuple();
 
     // data structures
     class_<std::vector<int> >("std_vector_int")
