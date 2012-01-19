@@ -556,6 +556,7 @@ void ExecutionConfiguration::setupStats()
         cudaGetDevice(&dev);
         cudaGetDeviceProperties(&dev_prop, dev);
         printGPUStats();
+        n_cpu = 1;  // GPU runs only use 1 CPU core
         }
     #endif
     
@@ -584,6 +585,7 @@ void export_ExecutionConfiguration()
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
                          .def("getGPUName", &ExecutionConfiguration::getGPUName)
+                         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
 #ifdef ENABLE_CUDA
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
