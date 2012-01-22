@@ -97,6 +97,9 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
   
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
+
+    // connect to the ParticleData to receive notifications when the maximum number of particles changes
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ForceCompute::reallocate, this));
     }
 
 /*! \post m_fdata and virial _partial are both allocated, and m_index_thread_partial is intiialized for indexing them
@@ -104,11 +107,40 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 void ForceCompute::allocateThreadPartial()
     {
     assert(exec_conf->n_cpu >= 1);
-    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
+    m_index_thread_partial = Index2D(m_pdata->getMaxN(), exec_conf->n_cpu);
     //Don't use GPU arrays here, *_partial's only used on CPU
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     m_virial_partial = new Scalar[6*m_index_thread_partial.getNumElements()];
     m_torque_partial = new Scalar4[m_index_thread_partial.getNumElements()];
+    }
+
+/*! \post m_force, m_virial and m_torque are resized to the current maximum particle number
+ */
+void ForceCompute::reallocate()
+    {
+    m_force.resize(m_pdata->getMaxN());
+    m_virial.resize(m_pdata->getMaxN(),6);
+    m_torque.resize(m_pdata->getMaxN());
+
+    // the pitch of the virial array may have changed
+    m_virial_pitch = m_virial.getPitch();
+
+    reallocateThreadPartial();
+    }
+
+/*! \post m_fdata and virial _partial are both reallocated, and m_index_thread_partial is intiialized for indexing them
+*/
+void ForceCompute::reallocateThreadPartial()
+    {
+    assert(exec_conf->n_cpu >= 1);
+
+    // never allocated ? do nothing.
+    if (! m_fdata_partial || ! m_virial_partial || ! m_torque_partial) return;
+
+    delete m_fdata_partial;
+    delete m_virial_partial;
+    delete m_torque_partial;
+    allocateThreadPartial();
     }
 
 /*! Frees allocated memory
@@ -125,6 +157,7 @@ ForceCompute::~ForceCompute()
         m_torque_partial=NULL;
         }
     m_sort_connection.disconnect();
+    m_max_particle_num_change_connection.disconnect();
     }
 
 /*! Sums the total potential energy calculated by the last call to compute() and returns it.

@@ -209,7 +209,14 @@ class IntegrationMethodTwoStep : boost::noncopyable
 
         //! Validate that all members in the particle group are valid (throw an exception if they are not)
         virtual void validateGroup();
-        
+
+        //! Sets the no_wrap_particles option
+        /*! \param no_wrap_particles Set to true if particles should not be wrapped across boundaries */
+        void setNoWrapParticles(bool no_wrap_particles)
+            {
+            m_no_wrap_particles = no_wrap_particles;
+            }
+
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
         const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
@@ -235,7 +242,10 @@ class IntegrationMethodTwoStep : boost::noncopyable
         
         //! Set whether this restart is valid
         void setValidRestart(bool b) { m_valid_restart = b; }
-    
+
+    protected:
+        bool m_no_wrap_particles;                           //!< True if particles should not be wrapped across boundaries
+
     private:
         unsigned int m_integrator_id;                       //!< Registered integrator id to access the state variables
         bool m_valid_restart;                               //!< True if the restart info was valid when loading

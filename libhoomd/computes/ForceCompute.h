@@ -172,8 +172,14 @@ class ForceCompute : public Compute
             m_particles_sorted = true;
             }
 
+        //! Reallocate internal arrays
+        void reallocate();
+
         //! Allocates the force and virial partial data
         void allocateThreadPartial();
+
+        //! Re-allocates the force and virial partial data
+        void reallocateThreadPartial();
         
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
                             
@@ -198,6 +204,9 @@ class ForceCompute : public Compute
 
         //! Connection to the signal notifying when particles are resorted
         boost::signals::connection m_sort_connection;   
+
+        //! Connection to the signal notifying when maximum number of particles changes
+        boost::signals::connection m_max_particle_num_change_connection;
         
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by

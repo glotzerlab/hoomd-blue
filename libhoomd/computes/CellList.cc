@@ -64,7 +64,7 @@ using namespace std;
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0f)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
-      m_flag_charge(false)
+      m_flag_charge(false), m_has_ghost_layer(false)
     {
     // allocation is deferred until the first compute() call - initialize values to dummy variables
     m_width = make_scalar3(0.0, 0.0, 0.0);
@@ -95,9 +95,16 @@ uint3 CellList::computeDimensions()
     // calculate the bin dimensions
     const BoxDim& box = m_pdata->getBox();
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+
     dim.x = (unsigned int)((box.xhi - box.xlo) / (m_nominal_width));
     dim.y = (unsigned int)((box.yhi - box.ylo) / (m_nominal_width));
-    
+
+    if (m_has_ghost_layer)
+        {
+        dim.x += 2;
+        dim.y += 2;
+        }
+
     if (m_sysdef->getNDimensions() == 2)
         {
         dim.z = 3;
@@ -113,6 +120,9 @@ uint3 CellList::computeDimensions()
     else
         {
         dim.z = (unsigned int)((box.zhi - box.zlo) / (m_nominal_width));
+
+        if (m_has_ghost_layer)
+            dim.z += 2;
 
         // decrease the number of bins if it exceeds the max
         if (dim.x * dim.y * dim.z > m_max_cells)
@@ -243,9 +253,21 @@ void CellList::initializeWidth()
     m_dim = computeDimensions();
 
     const BoxDim& box = m_pdata->getBox();
-    m_width.x = (box.xhi - box.xlo) / Scalar(m_dim.x);
-    m_width.y = (box.yhi - box.ylo) / Scalar(m_dim.y);
-    m_width.z = (box.zhi - box.zlo) / Scalar(m_dim.z);
+
+    uint3 inner_dim;
+    if (m_has_ghost_layer)
+        {
+        if (m_sysdef->getNDimensions() == 2)
+            inner_dim = make_uint3(m_dim.x-2, m_dim.y-2, m_dim.z);
+        else
+            inner_dim = make_uint3(m_dim.x-2, m_dim.y-2, m_dim.z-2);
+        }
+    else
+        inner_dim = m_dim;
+
+    m_width.x = (box.xhi - box.xlo) / Scalar(inner_dim.x);
+    m_width.y = (box.yhi - box.ylo) / Scalar(inner_dim.y);
+    m_width.z = (box.zhi - box.zlo) / Scalar(inner_dim.z);
 
     if (m_prof)
         m_prof->pop();
@@ -260,7 +282,7 @@ void CellList::initializeMemory()
     // if it is still set at 0, estimate Nmax
     if (m_Nmax == 0)
         {
-        unsigned int estim_Nmax = (unsigned int)(ceilf(float(m_pdata->getN()*1.0f / float(m_dim.x*m_dim.y*m_dim.z))));
+        unsigned int estim_Nmax = (unsigned int)(ceilf(float((m_pdata->getN()+m_pdata->getNGhosts())*1.0f / float(m_dim.x*m_dim.y*m_dim.z))));
         m_Nmax = estim_Nmax + 8 - (estim_Nmax & 7);
         }
     else
@@ -363,7 +385,20 @@ void CellList::computeCellList()
     Scalar3 scale = make_scalar3(Scalar(1.0) / m_width.x,
                                  Scalar(1.0) / m_width.y,
                                  Scalar(1.0) / m_width.z);
-    
+
+    // the ghost layer width in every direction is given by the cell width
+    Scalar3 ghost_width;
+
+    if (m_has_ghost_layer)
+        {
+        if (m_sysdef->getNDimensions() == 2)
+            ghost_width = make_scalar3(m_width.x, m_width.y, 0.0);
+        else
+            ghost_width = m_width;
+        }
+    else
+        ghost_width = make_scalar3(0.0,0.0,0.0);
+
     // acquire the particle data
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
@@ -385,7 +420,8 @@ void CellList::computeCellList()
     memset(h_cell_size.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
     
     // for each particle
-    for (unsigned int n = 0; n < m_pdata->getN(); n++)
+    unsigned n_tot_particles = m_pdata->getN() + m_pdata->getNGhosts();
+    for (unsigned int n = 0; n < n_tot_particles; n++)
         {
         if (isnan(h_pos.data[n].x) || isnan(h_pos.data[n].y) || isnan(h_pos.data[n].z))
             {
@@ -394,10 +430,10 @@ void CellList::computeCellList()
             }
             
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((h_pos.data[n].x-box.xlo)*scale.x);
-        unsigned int jb = (unsigned int)((h_pos.data[n].y-box.ylo)*scale.y);
-        unsigned int kb = (unsigned int)((h_pos.data[n].z-box.zlo)*scale.z);
-        
+        unsigned int ib = (unsigned int)((h_pos.data[n].x-box.xlo+ghost_width.x)*scale.x);
+        unsigned int jb = (unsigned int)((h_pos.data[n].y-box.ylo+ghost_width.y)*scale.y);
+        unsigned int kb = (unsigned int)((h_pos.data[n].z-box.zlo+ghost_width.z)*scale.z);
+
         // need to handle the case where the particle is exactly at the box hi
         if (ib == m_dim.x)
             ib = 0;
@@ -405,7 +441,7 @@ void CellList::computeCellList()
             jb = 0;
         if (kb == m_dim.z)
             kb = 0;
-            
+
         // sanity check
         assert(ib < (unsigned int)(m_dim.x) && jb < (unsigned int)(m_dim.y) && kb < (unsigned int)(m_dim.z));
         
@@ -477,8 +513,15 @@ bool CellList::checkConditions()
     if (h_conditions.data[2])
         {
         unsigned int n = h_conditions.data[2] - 1;
+        const BoxDim& box =  m_pdata->getBox();
+        Scalar3 pos = m_pdata->getPosition(n);
+        cout << "pos " << n << ": " << pos.x << " " << pos.y << " " << pos.z << endl;
+        cout << "lo: " << box.xlo << " " << box.ylo << " " << box.zlo << endl;
+        cout << "hi: " << box.xhi << " " << box.yhi << " " << box.zhi << endl;
+
         cerr << endl << "***Error! Particle " << n << " is no longer in the simulation box." << endl
              << endl;
+
         throw runtime_error("Error computing cell list");
         }
 

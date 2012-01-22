@@ -90,6 +90,11 @@ void NeighborListBinned::setMaximumDiameter(Scalar d_max)
     m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
     }
 
+void NeighborListBinned::setGhostLayer(bool has_ghost_layer)
+    {
+    m_cl->setGhostLayer(has_ghost_layer);
+    }
+
 void NeighborListBinned::buildNlist(unsigned int timestep)
     {
     m_cl->compute(timestep);
@@ -110,7 +115,18 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     Scalar3 scale = make_scalar3(Scalar(1.0) / width.x,
                                  Scalar(1.0) / width.y,
                                  Scalar(1.0) / width.z);
-    
+
+    Scalar3 ghost_width;
+    if (m_cl->hasGhostLayer())
+        {
+        if (m_sysdef->getNDimensions() == 2)
+            ghost_width = make_scalar3(width.x,width.y, 0.0);
+        else
+            ghost_width = width;
+        }
+    else
+        ghost_width = make_scalar3(0.0,0.0,0.0);
+
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
@@ -144,7 +160,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     Index2D cli = m_cl->getCellListIndexer();
     Index2D cadji = m_cl->getCellAdjIndexer();
 
-    // for each particle
+    // for each local particle
 #pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
@@ -155,9 +171,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         Scalar di = h_diameter.data[i];
         
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((my_pos.x-box.xlo)*scale.x);
-        unsigned int jb = (unsigned int)((my_pos.y-box.ylo)*scale.y);
-        unsigned int kb = (unsigned int)((my_pos.z-box.zlo)*scale.z);
+        unsigned int ib = (unsigned int)((my_pos.x-box.xlo+ghost_width.x)*scale.x);
+        unsigned int jb = (unsigned int)((my_pos.y-box.ylo+ghost_width.y)*scale.y);
+        unsigned int kb = (unsigned int)((my_pos.z-box.zlo+ghost_width.z)*scale.z);
         
         // need to handle the case where the particle is exactly at the box hi
         if (ib == dim.x)
@@ -185,22 +201,36 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
                 
                 Scalar dx = my_pos.x - neigh_pos.x;
-                if (dx >= Lx/2.0)
-                    dx -= Lx;
-                if (dx <= -Lx/2.0)
-                    dx += Lx;
-                    
                 Scalar dy = my_pos.y - neigh_pos.y;
-                if (dy >= Ly/2.0)
-                    dy -= Ly;
-                if (dy <= -Ly/2.0)
-                    dy += Ly;
-                    
                 Scalar dz = my_pos.z - neigh_pos.z;
-                if (dz >= Lz/2.0)
-                    dz -= Lz;
-                if (dz <= -Lz/2.0)
-                    dz += Lz;
+
+                if (! m_cl->hasGhostLayer())
+                    {
+                    if (dx >= Lx/2.0)
+                        dx -= Lx;
+                    if (dx <= -Lx/2.0)
+                        dx += Lx;
+
+                    if (dy >= Ly/2.0)
+                        dy -= Ly;
+                    if (dy <= -Ly/2.0)
+                        dy += Ly;
+
+                    if (dz >= Lz/2.0)
+                        dz -= Lz;
+                    if (dz <= -Lz/2.0)
+                        dz += Lz;
+                    }
+                else
+                    {
+                    if (dx >= Lx/2.0 || dx <= -Lx/2.0 ||
+                        dy >= Ly/2.0 || dy <= -Ly/2.0 ||
+                        dz >= Lz/2.0 || dz <= -Lz/2.0)
+                        {
+                        // discard atom pairs that wrap around the local box
+                        continue;
+                        }
+                     }
 
                 bool excluded = (i == (int)cur_neigh);
                 

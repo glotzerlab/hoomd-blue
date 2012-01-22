@@ -131,15 +131,33 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
 
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&NeighborList::reallocate, this));
+
     // allocate m_update_periods tracking info
     m_update_periods.resize(100);
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
         m_update_periods[i] = 0;
     }
 
+/*! Reallocate internal data structures
+ */
+void NeighborList::reallocate()
+    {
+    m_n_neigh.resize(m_pdata->getMaxN());
+    m_last_pos.resize(m_pdata->getMaxN());
+    m_n_ex_tag.resize(m_pdata->getMaxN());
+    m_n_ex_idx.resize(m_pdata->getMaxN());
+    m_ex_list_tag.resize(m_pdata->getMaxN(),1);
+    m_ex_list_idx.resize(m_pdata->getMaxN(),1);
+    m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), 1);
+
+    reallocateNlist();
+    }
+
 NeighborList::~NeighborList()
     {
     m_sort_connection.disconnect();
+    m_max_particle_num_change_connection.disconnect();
     }
 
 /*! Updates the neighborlist if it has not yet been updated this times step
@@ -152,7 +170,7 @@ void NeighborList::compute(unsigned int timestep)
         return;
         
     if (m_prof) m_prof->push("Neighbor");
-    
+
     // update the exclusion data if this is a forced update
     if (m_force_update)
         {
@@ -173,7 +191,7 @@ void NeighborList::compute(unsigned int timestep)
             // if we overflowed, need to reallocate memory and reset the conditions
             if (overflowed)
                 {
-                allocateNlist();
+                reallocateNlist();
                 // cout << "Notice: neighbor list overflow, allocating " << m_Nmax << " slots per particle" << endl;
                 resetConditions();
                 }
@@ -184,7 +202,7 @@ void NeighborList::compute(unsigned int timestep)
         
         setLastUpdatedPos();
         }
-        
+
     if (m_prof) m_prof->pop();
     }
 
@@ -659,7 +677,11 @@ bool NeighborList::distanceCheck()
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    
+
+    Scalar Lx2 = Lx/Scalar(2.0);
+    Scalar Ly2 = Ly/Scalar(2.0);
+    Scalar Lz2 = Lz/Scalar(2.0);
+
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     
     // actually scan the array looking for values over 1/2 the buffer distance
@@ -671,19 +693,19 @@ bool NeighborList::distanceCheck()
         Scalar dz = h_pos.data[i].z - h_last_pos.data[i].z;
         
         // if the vector crosses the box, pull it back
-        if (dx >= box.xhi)
+        if (dx >= Lx2)
             dx -= Lx;
-        else if (dx < box.xlo)
+        else if (dx < -Lx2)
             dx += Lx;
             
-        if (dy >= box.yhi)
+        if (dy >= Ly2)
             dy -= Ly;
-        else if (dy < box.ylo)
+        else if (dy < -Ly2)
             dy += Ly;
             
-        if (dz >= box.zhi)
+        if (dz >= Lz2)
             dz -= Lz;
-        else if (dz < box.zlo)
+        else if (dz < -Lz2)
             dz += Lz;
             
         if (dx*dx + dy*dy + dz*dz >= maxsq)
@@ -1102,9 +1124,6 @@ void NeighborList::filterNlist()
 
 void NeighborList::allocateNlist()
     {
-    // the neighbor list might be large, filling the device memory - maybe we should deallocate the old nlist first
-    // freing a gpu array isn't easy ... oh well, wait until a user complains
-    
     // round up to the nearest multiple of 8
     m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
     
@@ -1113,6 +1132,15 @@ void NeighborList::allocateNlist()
     m_nlist.swap(nlist);
     
     // update the indexer
+    m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
+    }
+
+void NeighborList::reallocateNlist()
+    {
+    // round up to the nearest multiple of 8
+    m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
+
+    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
     }
 

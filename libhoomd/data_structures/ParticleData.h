@@ -469,7 +469,24 @@ class ParticleData : boost::noncopyable
             {
             return m_nparticles;
             }
-            
+
+        //! Get the currrent maximum number of particles
+        /*\ return Maximum number of particles that can be stored in the particle array
+        * this number has to be larger than getN() + getNGhosts()
+        */
+        inline unsigned int getMaxN() const
+            {
+            return m_max_nparticles;
+            }
+
+        //! Get current number of ghost particles
+        /*\ return Number of ghost particles
+        */
+        inline unsigned int getNGhosts() const
+            {
+            return m_nghosts;
+            }
+
         //! Get the number of particle types
         /*! \return Number of particle types
             \note Particle types are indexed from 0 to NTypes-1
@@ -544,7 +561,10 @@ class ParticleData : boost::noncopyable
         
         //! Connects a function to be called every time the box size is changed
         boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
-        
+
+        //! Connects a function to be called every time the maximum particle number changes
+        boost::signals::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
+
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
         
@@ -802,19 +822,29 @@ class ParticleData : boost::noncopyable
         //! Take a snapshot
         void takeSnapshot(SnapshotParticleData &snapshot);
 
+        //! Remove particles from the domain
+        void removeParticles(unsigned int *indices, const unsigned int n);
+
+        //! Add particles to the domain
+        void addParticles(const unsigned int n);
+
+        //! Add ghost particles to system
+        void addGhostParticles(const unsigned int nghosts);
+
     private:
         BoxDim m_box;                               //!< The simulation box
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
-        void *m_data;                               //!< Raw data allocated
-        size_t m_nbytes;                            //!< Number of bytes allocated
         unsigned int m_ntypes;                      //!< Number of particle types
         
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
         
         boost::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
         boost::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
+        boost::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
 
         unsigned int m_nparticles;                  //!< number of particles
+        unsigned int m_nghosts;                     //!< number of ghost particles
+        unsigned int m_max_nparticles;              //!< maximum number of particles
 
         // per-particle data
         GPUArray<Scalar4> m_pos;                    //!< particle positions and types
@@ -842,8 +872,11 @@ class ParticleData : boost::noncopyable
         gpu_boxsize m_gpu_box;              //!< Mirror structure of m_box for the GPU
 #endif
         
-        //! Helper function to allocate CPU data
+        //! Helper function to allocate particle data
         void allocate(unsigned int N);
+
+        //! Helper function to reallocate particle data
+        void reallocate(unsigned int max_n);
 
         //! Helper function to check that particles are in the box
         bool inBox();

@@ -146,7 +146,7 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
     Type mappings assign particle types "A", "B", "C", ....
 */
 ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf)
-        : m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types)
+        : m_box(box), m_exec_conf(exec_conf), m_ntypes(n_types), m_nghosts(0)
     {
     // check the input for errors
     if (m_ntypes == 0)
@@ -211,7 +211,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
     \param init Initializer to use
     \param exec_conf Execution configuration to run on
 */
-ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0)
+ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_ntypes(0), m_nghosts(0)
     {
     m_ntypes = init.getNumParticleTypes();
     // check the input for errors
@@ -340,6 +340,20 @@ boost::signals::connection ParticleData::connectBoxChange(const boost::function<
     return m_boxchange_signal.connect(func);
     }
 
+/*! \param func Function to be called when the particle number changes
+    \return Connection to manage signal/slot connection
+
+    \note If the caller class is destroyed, it needs to disconnect the signal connection
+    via \b con.disconnect where \b con is the return value of this function.
+
+    \note A change in particle number implies a change in sort order, and no extra
+          notifyParticleSort() is called
+*/
+boost::signals::connection ParticleData::connectMaxParticleNumberChange(const boost::function<void ()> &func)
+    {
+    return m_max_particle_num_signal.connect(func);
+    }
+
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
     \note Throws an exception if the type name is not found
@@ -394,6 +408,9 @@ void ParticleData::allocate(unsigned int N)
     // set particle number
     m_nparticles = N;
 
+    // maximum number is the current particle number
+    m_max_nparticles = N;
+
     // positions
     GPUArray< Scalar4 > pos(getN(), m_exec_conf);
     m_pos.swap(pos);
@@ -439,6 +456,41 @@ void ParticleData::allocate(unsigned int N)
     GPUArray< Scalar4 > orientation(getN(), m_exec_conf);
     m_orientation.swap(orientation);
     m_inertia_tensor.resize(getN());
+    }
+
+/*! \param max_n new maximum size of particle data arrays (has to be greater than the current maximum size)
+ *  To inform classes that allocate arrays for per-particle information of the change of the particle data size,
+ *  this method issues a m_max_particle_num_signal().
+ */
+void ParticleData::reallocate(unsigned int max_n)
+    {
+    // check the input
+    if (max_n <= getN())
+        {
+        cerr << endl << "***Error! New particle data array size has to be greater than the present maximum size" << endl << endl;
+        throw runtime_error("Error reallocating ParticleData");
+        }
+
+    m_max_nparticles = max_n;
+
+    m_pos.resize(max_n);
+    m_vel.resize(max_n);
+    m_accel.resize(max_n);
+    m_charge.resize(max_n);
+    m_diameter.resize(max_n);
+    m_image.resize(max_n);
+    m_tag.resize(max_n);
+    m_rtag.resize(max_n);
+    m_body.resize(max_n);
+
+    m_net_force.resize(max_n);
+    m_net_virial.resize(max_n,6); // need to check that the virial is recalculated after resizing
+    m_net_torque.resize(max_n);
+    m_orientation.resize(max_n);
+    m_inertia_tensor.resize(max_n);
+
+    // notify observers
+    m_max_particle_num_signal();
     }
 
 /*! \return true If and only if all particles are in the simulation box
@@ -564,6 +616,118 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
     }
 
+//! Remove particles from the simulation domain
+/*! \param indices array of particle indices to remove
+ *  \param n number of particles to remove
+ * \post particle order and tag labels are changed, since the last particle of the array
+ * is moved up to fill the hole created by the removed particle
+ * and since it is given the tag of the removed particle.
+ * Particle tags are adjusted such that always 0 <= tag < getN().
+ */
+void ParticleData::removeParticles(unsigned int *indices, const unsigned int n)
+    {
+
+        {
+        ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::readwrite);
+        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::readwrite);
+        ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::readwrite);
+        ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::readwrite);
+        ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
+
+        for (unsigned int i = 0; i < n; i++)
+            {
+            unsigned int idx = indices[i];
+            assert(idx < getN());
+            unsigned int last_idx = getN() - 1;
+
+            // move the last particle up to the hole created in the particle data arrays
+            h_pos.data[idx] = h_pos.data[last_idx];
+            h_vel.data[idx] = h_vel.data[last_idx];
+            h_accel.data[idx] = h_accel.data[last_idx];
+            h_image.data[idx] = h_image.data[last_idx];
+            h_charge.data[idx] = h_charge.data[last_idx];
+            h_diameter.data[idx] = h_diameter.data[last_idx];
+            h_body.data[idx] = h_body.data[last_idx];
+
+            // the last particle in the array gets assigned the tag of the removed particle,
+            // hence tag[idx] and rtag[tag[idx]] is unchanged
+
+            // assign the free'ed particle tag of the last particle in the array to the
+            // particle with tag=last_idx
+            h_tag.data[h_rtag.data[last_idx]] = h_tag.data[last_idx];
+            h_rtag.data[h_tag.data[last_idx]] = h_rtag.data[last_idx];
+
+            // also need to change subsequent references in the delete buffer
+            for (unsigned int j=i+1; j < n; j++)
+                if (indices[j] == last_idx) indices[j] = idx;
+
+            m_nparticles--;
+            }
+        }
+    }
+
+//! Add a number of particles to the system
+/*! This function uses amortized doubling of the particle data structures in the system
+    to accomodate the new partices.
+
+    \post The new particle values are assigned tags starting from the previously highest
+          tag + 1, but are otherwise uninitialized
+*/
+void ParticleData::addParticles(const unsigned int n)
+    {
+    if (n<=0)
+        {
+        cerr << endl << "***Error! ParticleData is being asked to add zero or less particles to the system. This"
+             << endl << "          makes no sense whatsoever." << endl << endl;
+        throw runtime_error("Error adding particles");
+        }
+
+    unsigned int max_nparticles = m_max_nparticles;
+    if (m_nparticles + n > max_nparticles)
+        {
+        while (m_nparticles + n > max_nparticles) max_nparticles *= 2;
+
+        // actually reallocate particle data arrays
+        reallocate(max_nparticles);
+        }
+
+    // initialize tags
+    ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::readwrite);
+    ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
+
+    for (unsigned int idx = m_nparticles; idx < m_nparticles + n; idx++)
+        h_tag.data[idx] = h_rtag.data[idx] = idx;
+
+    m_nparticles += n;
+    }
+
+//! Add ghost particles to the system.
+/*! Ghost ptls are appended at the end of the particle data. The number of ghost particles
+  is reset whenever this method is called. Ghost particles have only incomplete particle
+  information (position, charge, diameter) and don't need tags.
+  \post the particle data arrays are resized if necessary to accomodate the ghost particles,
+        the number of ghost particles is updated
+*/
+void ParticleData::addGhostParticles(const unsigned int nghosts)
+    {
+    assert(nghosts > 0);
+
+    unsigned int max_nparticles = m_max_nparticles;
+
+    if (m_nparticles + nghosts > max_nparticles)
+        {
+        while (m_nparticles + nghosts > max_nparticles) max_nparticles *= 2;
+
+        // reallocate particle data arrays
+        reallocate(max_nparticles);
+        }
+
+    m_nghosts = nghosts;
+    }
 
 //! Helper for python __str__ for BoxDim
 /*! Formats the box dim into a nice string

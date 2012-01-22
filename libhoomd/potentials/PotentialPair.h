@@ -346,6 +346,10 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
+    Scalar Lx2 = Lx/Scalar(2.0);
+    Scalar Ly2 = Ly/Scalar(2.0);
+    Scalar Lz2 = Lz/Scalar(2.0);
+
 #pragma omp parallel
     {
     #ifdef ENABLE_OPENMP
@@ -396,7 +400,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[nli(i, k)];
-            assert(j < m_pdata->getN());
+            assert(j < m_pdata->getN() + m_pdata->getNGhosts());
             
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar dx = xi - h_pos.data[j].x;
@@ -414,21 +418,21 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 dj = h_diameter.data[j];
             if (evaluator::needsCharge())
                 qj = h_charge.data[j];
-            
+
             // apply periodic boundary conditions (FLOPS: 9)
-            if (dx >= box.xhi)
+            if (dx >= Lx2)
                 dx -= Lx;
-            else if (dx < box.xlo)
+            else if (dx < -Lx2)
                 dx += Lx;
                 
-            if (dy >= box.yhi)
+            if (dy >= Ly2)
                 dy -= Ly;
-            else if (dy < box.ylo)
+            else if (dy < -Ly2)
                 dy += Ly;
                 
-            if (dz >= box.zhi)
+            if (dz >= Lz2)
                 dz -= Lz;
-            else if (dz < box.zlo)
+            else if (dz < -Lz2)
                 dz += Lz;
                 
             // calculate r_ij squared (FLOPS: 5)

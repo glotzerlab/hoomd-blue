@@ -145,7 +145,14 @@ class CellList : public Compute
             m_nominal_width = width;
             m_params_changed = true;
             }
-        
+
+        //! Set to true if ghost layer is present
+        void setGhostLayer(bool has_ghost_layer)
+            {
+            m_has_ghost_layer = has_ghost_layer;
+            m_params_changed = true;
+            }
+
         //! Set the radius of cells to include in the adjacency list
         void setRadius(unsigned int radius)
             {
@@ -232,7 +239,13 @@ class CellList : public Compute
             {
             return m_Nmax;
             }
-        
+
+        //! Returns true if simulation box has a ghost layer
+        const bool hasGhostLayer() const
+            {
+            return m_has_ghost_layer;
+            }
+
         // @}
         //! \name Get data
         // @{
@@ -279,6 +292,7 @@ class CellList : public Compute
         bool m_params_changed;       //!< Set to true when parameters are changed
         bool m_particles_sorted;     //!< Set to true when the particles have been sorted
         bool m_box_changed;          //!< Set to ttrue when the box size has changed
+        bool m_has_ghost_layer;      //!< true if ghost layer is present
         
         // parameters determined by initialize
         Scalar3 m_width;             //!< Actual width

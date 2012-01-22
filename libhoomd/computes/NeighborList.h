@@ -333,7 +333,7 @@ class NeighborList : public Compute
             {
             m_force_update = true;
             }
-            
+
     protected:
         Scalar m_r_cut;             //!< The cuttoff radius
         Scalar m_r_buff;            //!< The buffer around the cuttoff
@@ -357,7 +357,8 @@ class NeighborList : public Compute
         bool m_exclusions_set;                 //!< True if any exclusions have been set
 
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
+
         //! Performs the distance check
         virtual bool distanceCheck();
         
@@ -386,10 +387,16 @@ class NeighborList : public Compute
         
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
-        
+
+        //! Reallocate internal data structures
+        void reallocate();
+
         //! Allocate the nlist array
         void allocateNlist();
         
+        //! Re-allocate the nlist array
+        void reallocateNlist();
+
         //! Check the status of the conditions
         bool checkConditions();
 
