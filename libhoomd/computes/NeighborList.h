@@ -358,6 +358,7 @@ class NeighborList : public Compute
 
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
+        bool m_no_minimum_image;           //!< True if minimum image convention should be ignored
 
         //! Performs the distance check
         virtual bool distanceCheck();
@@ -373,7 +374,13 @@ class NeighborList : public Compute
         
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
-        
+
+        //! Switch for minimum image convention
+        void setMinimumImage(bool minimum_image)
+            {
+            m_no_minimum_image = ! minimum_image;
+            }
+
     private:
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
         int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated
@@ -384,7 +391,8 @@ class NeighborList : public Compute
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
         vector<unsigned int> m_update_periods;    //!< Steps between updates
-        
+
+
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
 

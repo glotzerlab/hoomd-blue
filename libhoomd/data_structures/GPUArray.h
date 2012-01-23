@@ -780,10 +780,10 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         }
     else
         {
-        delete h_data;
+        delete[] h_data;
         }
 #else
-    delete h_data;
+    delete[] h_data;
 #endif
 
     h_data = h_tmp;
@@ -806,8 +806,10 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
 
     // allocate resized array
     T *d_tmp;
-    cudaMalloc(&d_tmp, m_num_elements*sizeof(T));
+    cudaMalloc(&d_tmp, num_elements*sizeof(T));
     CHECK_CUDA_ERROR();
+
+    assert(d_tmp);
 
     // clear memory
     cudaMemset(d_tmp, 0, num_elements*sizeof(T));
@@ -834,7 +836,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
     {
     resizeHostArray(num_elements);
 #ifdef ENABLE_CUDA
-    if (m_exec_conf || m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         resizeDeviceArray(num_elements);
 #endif
     m_num_elements = num_elements;

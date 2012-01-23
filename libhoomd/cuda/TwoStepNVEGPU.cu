@@ -96,7 +96,8 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
                              float deltaT,
                              bool limit,
                              float limit_val,
-                             bool zero_force)
+                             bool zero_force,
+                             bool no_wrap_particles)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -149,23 +150,26 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
         vel.x += (1.0f/2.0f) * accel.x * deltaT;
         vel.y += (1.0f/2.0f) * accel.y * deltaT;
         vel.z += (1.0f/2.0f) * accel.z * deltaT;
-        
+
         // read in the particle's image (MEM TRANSFER: 16 bytes)
         int3 image = d_image[idx];
         
-        // fix the periodic boundary conditions (FLOPS: 15)
-        float x_shift = rintf(px * box.Lxinv);
-        px -= box.Lx * x_shift;
-        image.x += (int)x_shift;
+        if (! no_wrap_particles)
+            {
+            // fix the periodic boundary conditions (FLOPS: 15)
+            float x_shift = rintf(px * box.Lxinv);
+            px -= box.Lx * x_shift;
+            image.x += (int)x_shift;
         
-        float y_shift = rintf(py * box.Lyinv);
-        py -= box.Ly * y_shift;
-        image.y += (int)y_shift;
+            float y_shift = rintf(py * box.Lyinv);
+            py -= box.Ly * y_shift;
+            image.y += (int)y_shift;
         
-        float z_shift = rintf(pz * box.Lzinv);
-        pz -= box.Lz * z_shift;
-        image.z += (int)z_shift;
-        
+            float z_shift = rintf(pz * box.Lzinv);
+            pz -= box.Lz * z_shift;
+            image.z += (int)z_shift;
+            }
+
         Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
@@ -204,7 +208,8 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              float deltaT,
                              bool limit,
                              float limit_val,
-                             bool zero_force)
+                             bool zero_force,
+                             bool no_wrap_particles)
     {
     // setup the grid to run the kernel
     int block_size = 256;
@@ -212,7 +217,7 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
+    gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force, no_wrap_particles);
     
     return cudaSuccess;
     }

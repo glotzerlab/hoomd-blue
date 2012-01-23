@@ -305,9 +305,9 @@ void Integrator::computeNetForce(unsigned int timestep)
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
         unsigned int net_virial_pitch = net_virial.getPitch();
-        assert(nparticles == net_force.getNumElements());
+        assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
-        assert(nparticles == net_torque.getNumElements());
+        assert(nparticles <= net_torque.getNumElements());
 
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
             {
@@ -440,9 +440,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
 
         unsigned int nparticles = m_pdata->getN();
-        assert(nparticles == net_force.getNumElements());
+        assert(nparticles <= net_force.getNumElements());
         assert(nparticles*6 <= net_virial.getNumElements());
-        assert(nparticles == net_torque.getNumElements());
+        assert(nparticles <= net_torque.getNumElements());
 
         // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
         // will do that
@@ -450,8 +450,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         if (m_forces.size() == 0)
             {
             // start by zeroing the net force and virial arrays
-            cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*nparticles);
-            cudaMemset(d_net_torque.data, 0, sizeof(Scalar4)*nparticles);
+            cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
+            cudaMemset(d_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
             cudaMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();

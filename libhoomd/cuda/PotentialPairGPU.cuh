@@ -75,6 +75,7 @@ struct pair_args_t
               float *_d_virial,
               const unsigned int _virial_pitch,
               const unsigned int _N,
+              const unsigned int _Ntot,
               const Scalar4 *_d_pos,
               const Scalar *_d_diameter,
               const Scalar *_d_charge,
@@ -92,6 +93,7 @@ struct pair_args_t
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
                   N(_N),
+                  Ntot(_Ntot),
                   d_pos(_d_pos),
                   d_diameter(_d_diameter),
                   d_charge(_d_charge),
@@ -112,6 +114,7 @@ struct pair_args_t
     float *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const unsigned int N;           //!< number of particles
+    const unsigned int Ntot;        //!< total number of particles including ghost particles
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar *d_diameter;       //!< particle diameters
     const Scalar *d_charge;         //!< particle charges
@@ -419,20 +422,20 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     // bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.Ntot);
     if (error != cudaSuccess)
         return error;
 
     // bind the diamter texture
     pdata_diam_tex.normalized = false;
     pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) *pair_args.N);
+    error = cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) *pair_args.Ntot);
     if (error != cudaSuccess)
         return error;
     
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.N);
+    error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.Ntot);
     if (error != cudaSuccess)
         return error;
 

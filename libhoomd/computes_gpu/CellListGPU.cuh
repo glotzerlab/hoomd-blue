@@ -78,7 +78,8 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Scalar3& scale,
                                   const gpu_boxsize& box,
                                   const Index3D& ci,
-                                  const Index2D& cli);
+                                  const Index2D& cli,
+                                  float3 ghost_width);
 
 //! Kernel driver for gpu_compute_cell_list_1x_kernel()
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
@@ -95,7 +96,8 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const Scalar3& scale,
                                      const gpu_boxsize& box,
                                      const Index3D& ci,
-                                     const Index2D& cli);
+                                     const Index2D& cli,
+                                     float3 ghost_width);
 
 #endif
 

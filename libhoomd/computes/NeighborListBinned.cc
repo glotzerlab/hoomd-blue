@@ -204,7 +204,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 Scalar dy = my_pos.y - neigh_pos.y;
                 Scalar dz = my_pos.z - neigh_pos.z;
 
-                if (! m_cl->hasGhostLayer())
+                if (! m_no_minimum_image)
                     {
                     if (dx >= Lx/2.0)
                         dx -= Lx;

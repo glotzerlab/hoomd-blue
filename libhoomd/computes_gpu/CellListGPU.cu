@@ -72,6 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
+    \param ghost_width width of ghost layer
     
     \note Optimized for Fermi
 */
@@ -89,7 +90,8 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              const Scalar3 scale,
                                              const gpu_boxsize box,
                                              const Index3D ci,
-                                             const Index2D cli)
+                                             const Index2D cli,
+                                             float3 ghost_width)
     {
     // read in the particle that belongs to this thread
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -121,9 +123,9 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         }
     
     // determine which bin it belongs in
-    unsigned int ib = (unsigned int)((pos.x+box.Lx/2.0f)*scale.x);
-    unsigned int jb = (unsigned int)((pos.y+box.Ly/2.0f)*scale.y);
-    unsigned int kb = (unsigned int)((pos.z+box.Lz/2.0f)*scale.z);
+    unsigned int ib = (unsigned int)((pos.x+ghost_width.x-box.xlo)*scale.x);
+    unsigned int jb = (unsigned int)((pos.y+ghost_width.y-box.ylo)*scale.y);
+    unsigned int kb = (unsigned int)((pos.z+ghost_width.z-box.zlo)*scale.z);
     
     // need to handle the case where the particle is exactly at the box hi
     if (ib == ci.getW())
@@ -171,7 +173,8 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Scalar3& scale,
                                   const gpu_boxsize& box,
                                   const Index3D& ci,
-                                  const Index2D& cli)
+                                  const Index2D& cli,
+                                  float3 ghost_width)
     {
     unsigned int block_size = 256;
     int n_blocks = (int)ceil(float(N)/(float)block_size);
@@ -196,7 +199,8 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                                            scale,
                                                            box,
                                                            ci,
-                                                           cli);
+                                                           cli,
+                                                           ghost_width);
     
     return cudaSuccess;
     }
@@ -348,6 +352,7 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
+    \param ghost_width width of ghost layer
     
     \note Optimized for compute 1.x hardware
 */
@@ -366,7 +371,8 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
                                                 const Scalar3 scale,
                                                 const gpu_boxsize box,
                                                 const Index3D ci,
-                                                const Index2D cli)
+                                                const Index2D cli,
+                                                float3 ghost_width)
     {
     // sentinel to label a bin as invalid
     const unsigned int INVALID_BIN = 0xffffffff;
@@ -379,9 +385,9 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
         pos = d_pos[idx];
 
     // determine which bin it belongs in
-    unsigned int ib = (unsigned int)((pos.x+box.Lx/2.0f)*scale.x);
-    unsigned int jb = (unsigned int)((pos.y+box.Ly/2.0f)*scale.y);
-    unsigned int kb = (unsigned int)((pos.z+box.Lz/2.0f)*scale.z);
+    unsigned int ib = (unsigned int)((pos.x+ghost_width.x-box.xlo)*scale.x);
+    unsigned int jb = (unsigned int)((pos.y+ghost_width.y-box.ylo)*scale.y);
+    unsigned int kb = (unsigned int)((pos.z+ghost_width.z-box.zlo)*scale.z);
     
     // need to handle the case where the particle is exactly at the box hi
     if (ib == ci.getW())
@@ -515,7 +521,8 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const Scalar3& scale,
                                      const gpu_boxsize& box,
                                      const Index3D& ci,
-                                     const Index2D& cli)
+                                     const Index2D& cli,
+                                     float3 ghost_width)
     {
     const unsigned int block_size = 64;
     int n_blocks = (int)ceil(float(N)/(float)block_size);
@@ -541,7 +548,8 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                                               scale,
                                                               box,
                                                               ci,
-                                                              cli);
+                                                              cli,
+                                                              ghost_width);
     
     return cudaSuccess;
     }

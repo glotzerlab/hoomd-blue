@@ -65,10 +65,7 @@ const unsigned int NO_BODY = 0xffffffff;
 #endif
 
 //! Store the box size on the GPU
-/*! \note For performance reasons, the GPU code is allowed to assume that the box goes
-    from -L/2 to L/2, and the box dimensions in this structure must reflect that.
-
-    \ingroup gpu_data_structs
+/*!  \ingroup gpu_data_structs
 */
 struct gpu_boxsize
     {
@@ -78,6 +75,12 @@ struct gpu_boxsize
     float Lxinv;//!< 1.0f/Lx
     float Lyinv;//!< 1.0f/Ly
     float Lzinv;//!< 1.0f/Lz
+    float xlo;  //!< minimum value of x-position
+    float ylo;  //!< minimum value of y-position
+    float zlo;  //!< minimum value of z-position
+    float xhi;  //!< maximum value of x-position
+    float yhi;  //!< maximum value of y-position
+    float zhi;  //!< maximum value of z-position
     };
 
 #endif

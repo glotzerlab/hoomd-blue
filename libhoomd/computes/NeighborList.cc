@@ -83,7 +83,7 @@ using namespace std;
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
-      m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
+      m_storage_mode(half), m_no_minimum_image(false), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
       m_dist_check(true)
     {
     // check for two sensless errors the user could make
@@ -952,26 +952,39 @@ void NeighborList::buildNlist(unsigned int timestep)
             Scalar dy = h_pos.data[j].y - yi;
             Scalar dz = h_pos.data[j].z - zi;
             
-            // if the vector crosses the box, pull it back
-            if (dx >= Lx2)
-                dx -= Lx;
-            else if (dx < -Lx2)
-                dx += Lx;
-                
-            if (dy >= Ly2)
-                dy -= Ly;
-            else if (dy < -Ly2)
-                dy += Ly;
-                
-            if (dz >= Lz2)
-                dz -= Lz;
-            else if (dz < -Lz2)
-                dz += Lz;
-                
-            // sanity check
-            assert(dx >= box.xlo && dx <= box.xhi);
-            assert(dy >= box.ylo && dy <= box.yhi);
-            assert(dz >= box.zlo && dz <= box.zhi);
+            if (! m_no_minimum_image)
+                {
+                // if the vector crosses the box, pull it back
+                if (dx >= Lx2)
+                    dx -= Lx;
+                else if (dx < -Lx2)
+                    dx += Lx;
+
+                if (dy >= Ly2)
+                    dy -= Ly;
+                else if (dy < -Ly2)
+                    dy += Ly;
+
+                if (dz >= Lz2)
+                    dz -= Lz;
+                else if (dz < -Lz2)
+                    dz += Lz;
+
+                // sanity check
+                assert(dx >= box.xlo && dx <= box.xhi);
+                assert(dy >= box.ylo && dy <= box.yhi);
+                assert(dz >= box.zlo && dz <= box.zhi);
+                }
+            else
+                {
+                if (dx >= Lx/2.0 || dx <= -Lx/2.0 ||
+                    dy >= Ly/2.0 || dy <= -Ly/2.0 ||
+                    dz >= Lz/2.0 || dz <= -Lz/2.0)
+                    {
+                    // discard atom pairs that wrap around the local box
+                    continue;
+                    }
+                }
 
             bool excluded = false;
             

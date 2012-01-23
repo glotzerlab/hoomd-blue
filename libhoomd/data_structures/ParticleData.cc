@@ -202,6 +202,12 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
         m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
         m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
+        m_gpu_box.xlo = m_box.xlo;
+        m_gpu_box.ylo = m_box.ylo;
+        m_gpu_box.zlo = m_box.zlo;
+        m_gpu_box.xhi = m_box.xhi;
+        m_gpu_box.yhi = m_box.yhi;
+        m_gpu_box.zhi = m_box.zhi;
         }
 #endif
     }
@@ -248,7 +254,6 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             }
         }
         
-    setBox(init.getBox());        
     SnapshotParticleData snapshot(getN());
     // initialize the snapshot with default values
     takeSnapshot(snapshot);
@@ -256,6 +261,8 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     init.initSnapshot(snapshot);
     // initialize particle data with updated values
     initializeFromSnapshot(snapshot);
+
+    setBox(init.getBox());
 
         {
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::overwrite);
@@ -302,6 +309,12 @@ void ParticleData::setBox(const BoxDim &box)
     m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
     m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
     m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
+    m_gpu_box.xlo = m_box.xlo;
+    m_gpu_box.ylo = m_box.ylo;
+    m_gpu_box.zlo = m_box.zlo;
+    m_gpu_box.xhi = m_box.xhi;
+    m_gpu_box.yhi = m_box.yhi;
+    m_gpu_box.zhi = m_box.zhi;
 #endif
     
     m_boxchange_signal();
@@ -340,18 +353,51 @@ boost::signals::connection ParticleData::connectBoxChange(const boost::function<
     return m_boxchange_signal.connect(func);
     }
 
-/*! \param func Function to be called when the particle number changes
-    \return Connection to manage signal/slot connection
+/*! \param func Function to be called when the particle data arrays are resized
+    \return Connection to manage the signal
+
+    The maximum particle number is the size of the particle data arrays in memory. This
+    can be larger than the current particle number. The arrays are infrequently
+    resized (e.g. by doubling the size if necessary), to keep the amount of data
+    copied to a minimum.
 
     \note If the caller class is destroyed, it needs to disconnect the signal connection
     via \b con.disconnect where \b con is the return value of this function.
 
-    \note A change in particle number implies a change in sort order, and no extra
-          notifyParticleSort() is called
+    \note A change in maximum particle number does not necessarily imply a change in sort order,
+          and no extra notifyParticleSort() is called.
 */
 boost::signals::connection ParticleData::connectMaxParticleNumberChange(const boost::function<void ()> &func)
     {
     return m_max_particle_num_signal.connect(func);
+    }
+
+/*! \param func Function to be called when the current particle number changes
+    \return Connection to manage the signal
+
+    This signal is triggered every time the actual particle number changes. This is assumed
+    to occur frequently e.g. in a parallel simulation (with particles entering or leaving the box),
+    so classes should only to subscribe to the signal if it is absolutely necssary to keep
+    the internal data structures current.
+
+    \note If the caller class is destroyed, it needs to disconnect the signal connection
+    via \b con.disconnect where \b con is the return value of this function.
+
+    \note By convention, a change in particle number does not imply a change in sort order. Classes that
+    neeed to rearrange internal data both when the particle number changes AND when the sort order changes,
+    should listen to both signals.
+*/
+boost::signals::connection ParticleData::connectParticleNumberChange(const boost::function<void ()> &func)
+    {
+    return m_particle_num_signal.connect(func);
+    }
+
+/*! \b ANY time particles are added or removed from the system, this function must be called.
+    \note The call after particle data GPUArrays have been released.
+*/
+void ParticleData::notifyParticleNumberChange()
+    {
+    m_particle_num_signal();
     }
 
 /*! \param name Type name to get the index of
@@ -674,6 +720,7 @@ void ParticleData::removeParticles(unsigned int *indices, const unsigned int n)
 /*! This function uses amortized doubling of the particle data structures in the system
     to accomodate the new partices.
 
+    \param n number of particles to add
     \post The new particle values are assigned tags starting from the previously highest
           tag + 1, but are otherwise uninitialized
 */
@@ -706,27 +753,30 @@ void ParticleData::addParticles(const unsigned int n)
     }
 
 //! Add ghost particles to the system.
-/*! Ghost ptls are appended at the end of the particle data. The number of ghost particles
-  is reset whenever this method is called. Ghost particles have only incomplete particle
-  information (position, charge, diameter) and don't need tags.
+/*! Ghost ptls are appended at the end of the particle data.
+  Ghost particles have only incomplete particle information (position, charge, diameter) and
+  don't need tags.
+
+  \param n ghosts number of ghost particles to add
   \post the particle data arrays are resized if necessary to accomodate the ghost particles,
         the number of ghost particles is updated
 */
 void ParticleData::addGhostParticles(const unsigned int nghosts)
     {
-    assert(nghosts > 0);
+    assert(nghosts >= 0);
 
     unsigned int max_nparticles = m_max_nparticles;
 
-    if (m_nparticles + nghosts > max_nparticles)
+    m_nghosts += nghosts;
+
+    if (m_nparticles + m_nghosts > max_nparticles)
         {
-        while (m_nparticles + nghosts > max_nparticles) max_nparticles *= 2;
+        while (m_nparticles + m_nghosts > max_nparticles) max_nparticles *= 2;
 
         // reallocate particle data arrays
         reallocate(max_nparticles);
         }
 
-    m_nghosts = nghosts;
     }
 
 //! Helper for python __str__ for BoxDim

@@ -140,6 +140,11 @@ void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
         m_cl->setComputeTDB(false);
     }
 
+void NeighborListGPUBinned::setGhostLayer(bool has_ghost_layer)
+    {
+    m_cl->setGhostLayer(has_ghost_layer);
+    }
+
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
@@ -172,7 +177,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    const gpu_boxsize& box = m_pdata->getBoxGPU();
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -191,6 +196,19 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
+
+    // If the cell list has a ghost layer, we need to take it into accout when
+    // determining a particle's bin
+    Scalar3 ghost_width;
+    if (m_cl->hasGhostLayer())
+        {
+        if (m_sysdef->getNDimensions() == 2)
+            ghost_width = make_scalar3(width.x,width.y, 0.0);
+        else
+            ghost_width = width;
+        }
+    else
+        ghost_width = make_scalar3(0.0,0.0,0.0);
 
     // take optimized code paths for different GPU generations
     if (exec_conf->getComputeCapability() >= 200)
@@ -217,7 +235,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  rmaxsq,
                                  m_block_size,
                                  m_filter_body,
-                                 m_filter_diameter);
+                                 m_filter_diameter,
+                                 ghost_width,
+                                 m_no_minimum_image);
         }
     else
         {
@@ -261,7 +281,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     rmaxsq,
                                     m_block_size,
                                     m_filter_body,
-                                    m_filter_diameter);
+                                    m_filter_diameter,
+                                    ghost_width);
         }
 
     if (exec_conf->isCUDAErrorCheckingEnabled())

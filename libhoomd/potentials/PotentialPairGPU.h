@@ -182,6 +182,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          d_virial.data,
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),
+                         this->m_pdata->getN() + this->m_pdata->getNGhosts(),
                          d_pos.data,
                          d_diameter.data,
                          d_charge.data,

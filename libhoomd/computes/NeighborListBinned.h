@@ -83,14 +83,15 @@ class NeighborListBinned : public NeighborList
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
 
-        //! set to true if layer of ghost cells should be present around simulation box
-        virtual void setGhostLayer(bool has_ghost_layer);
 
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
+
+        //! set to true if layer of ghost cells should be present around the simulation box
+        virtual void setGhostLayer(bool has_ghost_layer);
 
         Scalar3 m_ghost_width;               //!< width of the ghost layer
     };

@@ -103,7 +103,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     const uint3 cell_dim,
                                                     const gpu_boxsize box,
                                                     const float r_maxsq,
-                                                    const float r_max)
+                                                    const float r_max,
+                                                    float3 ghost_width,
+                                                    bool no_minimum_image)
     {
     bool filter_body = filter_flags & 1;
     bool filter_diameter = filter_flags & 2;
@@ -124,9 +126,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     float my_diameter = d_diameter[my_pidx];
     
     // FLOPS: 9
-    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*cell_scale.x);
-    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*cell_scale.y);
-    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*cell_scale.z);
+    unsigned int ib = (unsigned int)((my_pos.x+ghost_width.x-box.xlo)*cell_scale.x);
+    unsigned int jb = (unsigned int)((my_pos.y+ghost_width.y-box.ylo)*cell_scale.y);
+    unsigned int kb = (unsigned int)((my_pos.z+ghost_width.z-box.zlo)*cell_scale.z);
     
     // need to handle the case where the particle is exactly at the box hi
     if (ib == cell_dim.x)
@@ -169,15 +171,25 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
             float dy = my_pos.y - neigh_pos.y;
             float dz = my_pos.z - neigh_pos.z;
             
-            // wrap the periodic boundary conditions
-            dx = dx - box.Lx * rintf(dx * box.Lxinv);
-            dy = dy - box.Ly * rintf(dy * box.Lyinv);
-            dz = dz - box.Lz * rintf(dz * box.Lzinv);
+            bool excluded = (my_pidx == cur_neigh);
             
+            // wrap the periodic boundary conditions
+            if (! no_minimum_image)
+                {
+                dx = dx - box.Lx * rintf(dx * box.Lxinv);
+                dy = dy - box.Ly * rintf(dy * box.Lyinv);
+                dz = dz - box.Lz * rintf(dz * box.Lzinv);
+                }
+            else
+                {
+                if (dx >= box.Lx/2.0f || dx <= -box.Lx/2.0f ||
+                   dy >= box.Ly/2.0f || dy <= -box.Ly/2.0f ||
+                   dz >= box.Lz/2.0f || dz <= -box.Lz/2.0f)
+                   excluded = true;
+                }
+
             // compute dr squared
             float drsq = dx*dx + dy*dy + dz*dz;
-            
-            bool excluded = (my_pidx == cur_neigh);
             
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
@@ -233,7 +245,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const float r_maxsq,
                                      const unsigned int block_size,
                                      bool filter_body,
-                                     bool filter_diameter)
+                                     bool filter_diameter,
+                                     float3 ghost_width,
+                                     bool no_minimum_image)
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
     if (!filter_diameter && !filter_body)
@@ -258,7 +272,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cell_dim,
                                                                          box,
                                                                          r_maxsq,
-                                                                         sqrtf(r_maxsq));
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width,
+                                                                         no_minimum_image);
         }
     if (!filter_diameter && filter_body)
         {
@@ -282,7 +298,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cell_dim,
                                                                          box,
                                                                          r_maxsq,
-                                                                         sqrtf(r_maxsq));
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width,
+                                                                         no_minimum_image);
         }
     if (filter_diameter && !filter_body)
         {
@@ -306,7 +324,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cell_dim,
                                                                          box,
                                                                          r_maxsq,
-                                                                         sqrtf(r_maxsq));
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width,
+                                                                         no_minimum_image);
         }
     if (filter_diameter && filter_body)
         {
@@ -330,7 +350,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cell_dim,
                                                                          box,
                                                                          r_maxsq,
-                                                                         sqrtf(r_maxsq));
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width,
+                                                                         no_minimum_image);
         }
 
     return cudaSuccess;
@@ -380,7 +402,8 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
                                                    const uint3 cell_dim,
                                                    const gpu_boxsize box,
                                                    const float r_maxsq,
-                                                   const float r_max)
+                                                   const float r_max,
+                                                   float3 ghost_width)
     {
     bool filter_body = filter_flags & 1;
     bool filter_diameter = filter_flags & 2;
@@ -401,9 +424,9 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
     float my_diameter = d_diameter[my_pidx];
 
     // FLOPS: 9
-    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*cell_scale.x);
-    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*cell_scale.y);
-    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*cell_scale.z);
+    unsigned int ib = (unsigned int)((my_pos.x+ghost_width.x-box.xlo)*cell_scale.x);
+    unsigned int jb = (unsigned int)((my_pos.y+ghost_width.y-box.ylo)*cell_scale.y);
+    unsigned int kb = (unsigned int)((my_pos.z+ghost_width.z-box.zlo)*cell_scale.z);
     
     // need to handle the case where the particle is exactly at the box hi
     if (ib == cell_dim.x)
@@ -511,7 +534,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         const float r_maxsq,
                                         const unsigned int block_size,
                                         bool filter_body,
-                                        bool filter_diameter)
+                                        bool filter_diameter,
+                                        float3 ghost_width)
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
     
@@ -547,7 +571,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         cell_dim,
                                                                         box,
                                                                         r_maxsq,
-                                                                        sqrtf(r_maxsq));
+                                                                        sqrtf(r_maxsq),
+                                                                        ghost_width);
         }
     if (!filter_diameter && filter_body)
         {
@@ -565,7 +590,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         cell_dim,
                                                                         box,
                                                                         r_maxsq,
-                                                                        sqrtf(r_maxsq));
+                                                                        sqrtf(r_maxsq),
+                                                                        ghost_width);
         }
     if (filter_diameter && !filter_body)
         {
@@ -583,7 +609,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         cell_dim,
                                                                         box,
                                                                         r_maxsq,
-                                                                        sqrtf(r_maxsq));
+                                                                        sqrtf(r_maxsq),
+                                                                        ghost_width);
         }
     if (filter_diameter && filter_body)
         {
@@ -601,7 +628,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         cell_dim,
                                                                         box,
                                                                         r_maxsq,
-                                                                        sqrtf(r_maxsq));
+                                                                        sqrtf(r_maxsq),
+                                                                        ghost_width);
         }
     return cudaSuccess;
     }

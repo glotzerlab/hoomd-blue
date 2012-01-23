@@ -137,9 +137,9 @@ void ForceCompute::reallocateThreadPartial()
     // never allocated ? do nothing.
     if (! m_fdata_partial || ! m_virial_partial || ! m_torque_partial) return;
 
-    delete m_fdata_partial;
-    delete m_virial_partial;
-    delete m_torque_partial;
+    delete[] m_fdata_partial;
+    delete[] m_virial_partial;
+    delete[] m_torque_partial;
     allocateThreadPartial();
     }
 

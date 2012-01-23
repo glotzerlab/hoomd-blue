@@ -565,9 +565,15 @@ class ParticleData : boost::noncopyable
         //! Connects a function to be called every time the maximum particle number changes
         boost::signals::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
 
+        //! Connects a function to be called every time particles are added or deleted from the system
+        boost::signals::connection connectParticleNumberChange(const boost::function< void() > &func);
+
+        //! Notify listeners that the current particle number has changed
+        void notifyParticleNumberChange();
+
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
-        
+
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type) const;
         
@@ -831,6 +837,12 @@ class ParticleData : boost::noncopyable
         //! Add ghost particles to system
         void addGhostParticles(const unsigned int nghosts);
 
+        //! Remove all ghost particles from system
+        void removeAllGhostParticles()
+            {
+            m_nghosts = 0;
+            }
+
     private:
         BoxDim m_box;                               //!< The simulation box
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
@@ -841,6 +853,7 @@ class ParticleData : boost::noncopyable
         boost::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
         boost::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
         boost::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
+        boost::signal<void ()> m_particle_num_signal; //!< Signal that is triggered when the current particle number changes
 
         unsigned int m_nparticles;                  //!< number of particles
         unsigned int m_nghosts;                     //!< number of ghost particles
