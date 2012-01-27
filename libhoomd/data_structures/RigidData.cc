@@ -226,7 +226,8 @@ void RigidData::initializeData()
     GPUArray<Scalar4> ey_space(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> ez_space(m_n_bodies, m_pdata->getExecConf());
     GPUArray<int3> body_image(m_n_bodies, m_pdata->getExecConf());
-    
+    GPUArray<Scalar4> conjqm_alloc(m_n_bodies, m_pdata->getExecConf());
+
     GPUArray<Scalar4> com(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> vel(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> angmom(m_n_bodies, m_pdata->getExecConf());
@@ -245,7 +246,8 @@ void RigidData::initializeData()
     m_ey_space.swap(ey_space);
     m_ez_space.swap(ez_space);
     m_body_image.swap(body_image);
-    
+    m_conjqm.swap(conjqm_alloc);
+
     m_com.swap(com);
     m_vel.swap(vel);
     m_angmom.swap(angmom);

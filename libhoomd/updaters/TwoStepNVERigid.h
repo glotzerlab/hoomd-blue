@@ -114,8 +114,6 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         boost::shared_ptr<RigidBodyGroup> m_body_group; //!< Group of rigid bodies to work with
         
         bool m_first_step;                  //!< True if first step
-        
-        GPUArray<Scalar4>   m_conjqm;      //!< Conjugate quaternion momentum
     };
 
 //! Exports the TwoStepNVERigid class to python
