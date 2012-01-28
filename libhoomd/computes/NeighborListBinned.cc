@@ -90,9 +90,9 @@ void NeighborListBinned::setMaximumDiameter(Scalar d_max)
     m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
     }
 
-void NeighborListBinned::setGhostLayer(bool has_ghost_layer)
+void NeighborListBinned::setGhostLayer(unsigned int dir, bool has_ghost_layer)
     {
-    m_cl->setGhostLayer(has_ghost_layer);
+    m_cl->setGhostLayer(dir, has_ghost_layer);
     }
 
 void NeighborListBinned::buildNlist(unsigned int timestep)
@@ -117,15 +117,15 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                                  Scalar(1.0) / width.z);
 
     Scalar3 ghost_width;
-    if (m_cl->hasGhostLayer())
-        {
-        if (m_sysdef->getNDimensions() == 2)
-            ghost_width = make_scalar3(width.x,width.y, 0.0);
-        else
-            ghost_width = width;
-        }
+    if (m_sysdef->getNDimensions() == 2)
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
+                                   0.0);
     else
-        ghost_width = make_scalar3(0.0,0.0,0.0);
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
+                                   m_cl->hasGhostLayer(2) ? width.z : Scalar(0.0));
+
 
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);

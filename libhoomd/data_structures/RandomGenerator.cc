@@ -482,6 +482,11 @@ unsigned int RandomGenerator::getNumParticles() const
     return (unsigned int)m_data.m_particles.size();
     }
 
+unsigned int RandomGenerator::getNumGlobalParticles() const
+    {
+    return getNumParticles();
+    }
+
 unsigned int RandomGenerator::getNumParticleTypes() const
     {
     return (unsigned int)m_type_mapping.size();

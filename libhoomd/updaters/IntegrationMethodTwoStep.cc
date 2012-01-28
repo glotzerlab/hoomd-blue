@@ -77,7 +77,10 @@ IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefin
     assert(m_sysdef);
     assert(m_pdata);
     assert(m_group);
-    
+
+    for (unsigned int i = 0; i < 3; i++)
+        m_no_wrap_particles[i] = false;
+
     m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
     }
 

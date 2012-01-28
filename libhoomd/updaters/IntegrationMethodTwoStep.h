@@ -211,10 +211,13 @@ class IntegrationMethodTwoStep : boost::noncopyable
         virtual void validateGroup();
 
         //! Sets the no_wrap_particles option
-        /*! \param no_wrap_particles Set to true if particles should not be wrapped across boundaries */
-        void setNoWrapParticles(bool no_wrap_particles)
+        /*! \param dir the direction to which the setting applies
+            \param no_wrap_particles Set to true if particles should not be wrapped across the boundary
+         */
+        void setNoWrapParticles(unsigned int dir, bool no_wrap_particles)
             {
-            m_no_wrap_particles = no_wrap_particles;
+            assert(dir < 3);
+            m_no_wrap_particles[dir] = no_wrap_particles;
             }
 
     protected:
@@ -244,7 +247,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
         void setValidRestart(bool b) { m_valid_restart = b; }
 
     protected:
-        bool m_no_wrap_particles;                           //!< True if particles should not be wrapped across boundaries
+        bool m_no_wrap_particles[3];                           //!< True if particles should not be wrapped across boundaries in a given direction
 
     private:
         unsigned int m_integrator_id;                       //!< Registered integrator id to access the state variables

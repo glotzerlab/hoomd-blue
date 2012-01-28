@@ -140,9 +140,10 @@ void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
         m_cl->setComputeTDB(false);
     }
 
-void NeighborListGPUBinned::setGhostLayer(bool has_ghost_layer)
+void NeighborListGPUBinned::setGhostLayer(unsigned int dir, bool has_ghost_layer)
     {
-    m_cl->setGhostLayer(has_ghost_layer);
+    assert(dir < 3);
+    m_cl->setGhostLayer(dir, has_ghost_layer);
     }
 
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
@@ -200,17 +201,16 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     // If the cell list has a ghost layer, we need to take it into accout when
     // determining a particle's bin
     Scalar3 ghost_width;
-    if (m_cl->hasGhostLayer())
-        {
-        if (m_sysdef->getNDimensions() == 2)
-            ghost_width = make_scalar3(width.x,width.y, 0.0);
-        else
-            ghost_width = width;
-        }
-    else
-        ghost_width = make_scalar3(0.0,0.0,0.0);
 
-    // take optimized code paths for different GPU generations
+    if (m_sysdef->getNDimensions() == 2)
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
+                                   0.0);
+    else
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
+                                   m_cl->hasGhostLayer(2) ? width.z : Scalar(0.0));
+
     if (exec_conf->getComputeCapability() >= 200)
         {
         gpu_compute_nlist_binned(d_nlist.data,

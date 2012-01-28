@@ -124,6 +124,13 @@ unsigned int HOOMDInitializer::getNumParticles() const
     return (unsigned int)m_pos_array.size();
     }
 
+/*! \return Number of global particles in the simulation
+*/
+unsigned int HOOMDInitializer::getNumGlobalParticles() const
+    {
+    return getNumParticles();
+    }
+
 /*! \returns Number of particle types parsed from the XML file
 */
 unsigned int HOOMDInitializer::getNumParticleTypes() const

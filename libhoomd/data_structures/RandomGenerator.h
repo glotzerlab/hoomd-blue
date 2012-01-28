@@ -263,6 +263,9 @@ class RandomGenerator : public ParticleDataInitializer
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
         
+        //! Returns the total number of particles in the simulation
+        virtual unsigned int getNumGlobalParticles() const;
+
         //! Returns the number of particle types to be initialized
         virtual unsigned int getNumParticleTypes() const;
         

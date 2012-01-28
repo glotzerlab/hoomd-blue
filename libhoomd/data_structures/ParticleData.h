@@ -75,6 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/signals.hpp>
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 #include <stdlib.h>
 #include <vector>
@@ -222,6 +223,7 @@ struct SnapshotParticleData {
        diameter.resize(N);
        image.resize(N);
        rtag.resize(N);
+       global_tag.resize(N);
        body.resize(N);
        size = N;
        }
@@ -235,6 +237,7 @@ struct SnapshotParticleData {
     std::vector<Scalar> diameter;   //!< diameters
     std::vector<int3> image;        //!< images
     std::vector<unsigned int> rtag; //!< reverse-lookup tags
+    std::vector<unsigned int> global_tag; //! global tag
     std::vector<unsigned int> body; //!< body ids
     unsigned int size;              //!< number of particles in this snapshot
     };
@@ -258,9 +261,12 @@ class ParticleDataInitializer
         //! Empty Destructor
         virtual ~ParticleDataInitializer() { }
         
-        //! Returns the number of particles to be initialized
+        //! Returns the number of local particles to be initialized
         virtual unsigned int getNumParticles() const = 0;
         
+        //! Returns the number of global particles in the simulation
+        virtual unsigned int getNumGlobalParticles() const = 0;
+
         //! Returns the number of particles types to be initialized
         virtual unsigned int getNumParticleTypes() const = 0;
         
@@ -382,11 +388,16 @@ class ParticleDataInitializer
     \note Velocity and mass are combined into a single Scalar4 quantity. x,y,z specifies the velocity and w specifies
     the mass.
 
-    \warning Particles can and will be rearranged in the arrays throughout a simulation.
+    \warning Local particles can and will be rearranged in the arrays throughout a simulation.
     So, a particle that was once at index 5 may be at index 123 the next time the data
-    is acquired. Individual particles can be tracked through all these changes by their tag.
-    <code>tag[i]</code> identifies the tag of the particle that currently has index
-    \c i, and the index of a particle with tag \c tag can be read from <code>rtag[tag]</code>.
+    is acquired. Individual particles can be tracked through all these changes by their local tag.
+    The tag of a particle is stored in the \c m_tag array, and the ith element contains the tag of the particle
+    with index i. Conversely, the the index of a particle with tag \c tag can be read from
+    the element at position \c tag in the a \c m_rtag array.
+
+    In additon to a local tag, there is also a global tag that is unique among all processors in a parallel
+    simulation. The tag of a particle with index i is stored in the \c m_global_tag array.
+>>>>>>> Partial set of changes to enable domain decomposition
 
     In order to help other classes deal with particles changing indices, any class that
     changes the order must call notifyParticleSort(). Any class interested in being notified
@@ -487,6 +498,14 @@ class ParticleData : boost::noncopyable
             return m_nghosts;
             }
 
+        //! Get the global number of particles in the simulation
+        /*!\ return Global number of particles
+         */
+        inline unsigned int getNGlobal() const
+            {
+            return m_nglobal;
+            }
+
         //! Get the number of particle types
         /*! \return Number of particle types
             \note Particle types are indexed from 0 to NTypes-1
@@ -533,6 +552,12 @@ class ParticleData : boost::noncopyable
 
         //! return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
+
+        //! return global tags
+        const GPUArray< unsigned int >& getGlobalTags() const { return m_global_tag; }
+
+        //! return map of global reverse lookup tags
+        const GPUArray< unsigned int >& getGlobalRTags() { return m_global_rtag; }
 
 #ifdef ENABLE_CUDA
         //! Get the box for the GPU
@@ -588,99 +613,111 @@ class ParticleData : boost::noncopyable
         
         //! Get the orientation array
         const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
-        
-        //! Get the current position of a particle
-        Scalar3 getPosition(unsigned int tag) const
+
+        //! Find out if the particle identified by a global tag is stored in the local ParticleData
+        /*! By definition, it is local if there exists a reverse lookup entry for that global
+            tag and it points to a particle with idx < getN(), i.e. it is not a ghost particle
+         */
+        inline bool isLocal(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            return m_is_local[global_tag];
+            }
+
+        //! Set a flag to indicate that a particle with a specified global tag is local
+        void setLocal(unsigned int global_tag)
+            {
+            m_is_local[global_tag] = true;
+            }
+
+        //! Get the current position of a particle
+        Scalar3 getPosition(unsigned int global_tag) const
+            {
+            unsigned int idx = getGlobalRTag(global_tag);
+
             ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             Scalar3 result = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
             return result;
             }
+
         //! Get the current velocity of a particle
-        Scalar3 getVelocity(unsigned int tag) const
+        Scalar3 getVelocity(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
+
             ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             Scalar3 result = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             return result;
             }
         //! Get the current acceleration of a particle
-        Scalar3 getAcceleration(unsigned int tag) const
+        Scalar3 getAcceleration(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
+
             ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             Scalar3 result = make_scalar3(h_accel.data[idx].x, h_accel.data[idx].y, h_accel.data[idx].z);
             return result;
             }
         //! Get the current image flags of a particle
-        int3 getImage(unsigned int tag) const
+        int3 getImage(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
+
             ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             int3 result = make_int3(h_image.data[idx].x, h_image.data[idx].y, h_image.data[idx].z);
             return result;
             }
         //! Get the current charge of a particle
-        Scalar getCharge(unsigned int tag) const
+        Scalar getCharge(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+
             ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             Scalar result = h_charge.data[idx];
             return result;
             }
         //! Get the current mass of a particle
-        Scalar getMass(unsigned int tag) const
+        Scalar getMass(unsigned int global_tag) const
             {
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
+
             ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
-            assert(tag < getN());
             Scalar result = h_vel.data[idx].w;
             return result;
             }
         //! Get the current diameter of a particle
-        Scalar getDiameter(unsigned int tag) const
+        Scalar getDiameter(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+
             ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             Scalar result = h_diameter.data[idx];
             return result;
             }
         //! Get the current diameter of a particle
-        unsigned int getBody(unsigned int tag) const
+        unsigned int getBody(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
+
             ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             unsigned int result = h_body.data[idx];
             return result;
             }
         //! Get the current type of a particle
-        unsigned int getType(unsigned int tag) const
+        unsigned int getType(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+
             ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             unsigned int result = __scalar_as_int(h_pos.data[idx].w);
             return result;
             }
 
-        //! Get the current index of a particle with a given tag
+        //! Get the current index of a particle with a given local tag
         unsigned int getRTag(unsigned int tag) const
             {
             assert(tag < getN());
@@ -688,13 +725,23 @@ class ParticleData : boost::noncopyable
             unsigned int idx = h_rtag.data[tag];
             return idx;
             }
-        //! Get the orientation of a particle with a given tag
-        Scalar4 getOrientation(unsigned int tag) const
+
+        //! Get the current index of a particle with a given global tag
+        inline unsigned int getGlobalRTag(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            assert(global_tag < m_nglobal);
+            ArrayHandle< unsigned int> h_global_rtag(m_global_rtag,access_location::host, access_mode::read);
+            unsigned int idx = h_global_rtag.data[global_tag];
+            assert(idx < getN() + getNGhosts());
+            return idx;
+            }
+
+        //! Get the orientation of a particle with a given tag
+        Scalar4 getOrientation(unsigned int global_tag) const
+            {
             ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             return h_orientation.data[idx];
             }
         //! Get the inertia tensor of a particle with a given tag
@@ -703,12 +750,11 @@ class ParticleData : boost::noncopyable
             return m_inertia_tensor[tag];
             }
         //! Get the net force / energy on a given particle
-        Scalar4 getPNetForce(unsigned int tag) const
+        Scalar4 getPNetForce(unsigned int global_tag) const
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< Scalar4 > h_net_force(m_net_force, access_location::host, access_mode::read);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             return h_net_force.data[idx];
             }
         //! Get the net torque on a given particle
@@ -722,90 +768,85 @@ class ParticleData : boost::noncopyable
             }
 
         //! Set the current position of a particle
-        void setPosition(unsigned int tag, const Scalar3& pos)
+        void setPosition(unsigned int global_tag, const Scalar3& pos)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_pos.data[idx].x = pos.x; h_pos.data[idx].y = pos.y; h_pos.data[idx].z = pos.z;
             }
         //! Set the current velocity of a particle
-        void setVelocity(unsigned int tag, const Scalar3& vel)
+        void setVelocity(unsigned int global_tag, const Scalar3& vel)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_vel.data[idx].x = vel.x; h_vel.data[idx].y = vel.y; h_vel.data[idx].z = vel.z;
             }
         //! Set the current image flags of a particle
-        void setImage(unsigned int tag, const int3& image)
+        void setImage(unsigned int global_tag, const int3& image)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_image.data[idx] = image;
             }
         //! Set the current charge of a particle
-        void setCharge(unsigned int tag, Scalar charge)
+        void setCharge(unsigned int global_tag, Scalar charge)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_charge.data[idx] = charge;
             }
         //! Set the current mass of a particle
-        void setMass(unsigned int tag, Scalar mass)
+        void setMass(unsigned int global_tag, Scalar mass)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_vel.data[idx].w = mass;
             }
         //! Set the current diameter of a particle
-        void setDiameter(unsigned int tag, Scalar diameter)
+        void setDiameter(unsigned int global_tag, Scalar diameter)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_diameter.data[idx] = diameter;
             }
         //! Set the current diameter of a particle
-        void setBody(unsigned int tag, int body)
+        void setBody(unsigned int global_tag, int body)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_body.data[idx] = body;
             }
         //! Set the current type of a particle
-        void setType(unsigned int tag, unsigned int typ)
+        void setType(unsigned int global_tag, unsigned int typ)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             assert(typ < getNTypes());
             ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_pos.data[idx].w = __int_as_scalar(typ);
             }
         //! Set the orientation of a particle with a given tag
-        void setOrientation(unsigned int tag, const Scalar4& orientation)
+        void setOrientation(unsigned int global_tag, const Scalar4& orientation)
             {
-            assert(tag < getN());
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
             ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
             h_orientation.data[idx] = orientation;
             }
         //! Get the inertia tensor of a particle with a given tag
-        void setInertiaTensor(unsigned int tag, const InertiaTensor& tensor)
+        void setInertiaTensor(unsigned int global_tag, const InertiaTensor& tensor)
             {
+            unsigned int idx = getGlobalRTag(global_tag);
+            assert(idx < getN());
+            ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::read);
+            unsigned int tag = h_tag.data[idx];
             m_inertia_tensor[tag] = tensor;
             }
             
@@ -858,6 +899,7 @@ class ParticleData : boost::noncopyable
         unsigned int m_nparticles;                  //!< number of particles
         unsigned int m_nghosts;                     //!< number of ghost particles
         unsigned int m_max_nparticles;              //!< maximum number of particles
+        unsigned int m_nglobal;                     //!< global number of particles
 
         // per-particle data
         GPUArray<Scalar4> m_pos;                    //!< particle positions and types
@@ -868,7 +910,10 @@ class ParticleData : boost::noncopyable
         GPUArray<int3> m_image;                     //!< particle images
         GPUArray<unsigned int> m_tag;               //!< particle tags
         GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
+        GPUArray<unsigned int> m_global_tag;        //!< global particle tags
+        GPUArray<unsigned int> m_global_rtag;       //! reverse lookup of local particle indices from global tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
+        boost::dynamic_bitset<> m_is_local;         //!< One bit per global tag, indicates whether a particle is local
 
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
         
@@ -886,7 +931,7 @@ class ParticleData : boost::noncopyable
 #endif
         
         //! Helper function to allocate particle data
-        void allocate(unsigned int N);
+        void allocate(unsigned int N, unsigned int nglobal);
 
         //! Helper function to reallocate particle data
         void reallocate(unsigned int max_n);

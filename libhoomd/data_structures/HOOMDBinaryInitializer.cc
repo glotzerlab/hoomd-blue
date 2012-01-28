@@ -110,6 +110,13 @@ unsigned int HOOMDBinaryInitializer::getNumParticles() const
     return (unsigned int)m_x_array.size();
     }
 
+/*! \returns Total number of particles in the global simulation
+*/
+unsigned int HOOMDBinaryInitializer::getNumGlobalParticles() const
+    {
+    return getNumParticles();
+    }
+
 /*! \returns Numer of particle types parsed from the binary file
 */
 unsigned int HOOMDBinaryInitializer::getNumParticleTypes() const

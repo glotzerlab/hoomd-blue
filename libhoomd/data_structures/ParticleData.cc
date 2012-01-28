@@ -139,6 +139,8 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
     \post \c ix, \c iy, \c iz are allocated and initialized to values of 0.0
     \post \c rtag is allocated and given the default initialization rtag[i] = i
     \post \c tag is allocated and given the default initialization tag[i] = i
+    \post \c global_tag is allocated and given the default initialization global_tag[i] = i
+    \post \c the reverse lookup map global_rtag is initialized with the identity mapping
     \post \c type is allocated and given the default value of type[i] = 0
     \post \c body is allocated and given the devault value of type[i] = NO_BODY
     \post Arrays are not currently acquired
@@ -156,12 +158,16 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         }
         
     // allocate memory
-    allocate(N);
+    // we are allocating for the number of global particles equal to the number of local particles,
+    // since this constructor is only called for initializing a single-processor simulation
+    allocate(N,N);
 
     ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
     ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_global_tag(getGlobalTags(), access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_global_rtag(getGlobalRTags(), access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
     ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
     
@@ -177,8 +183,12 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         h_rtag.data[i] = i;
         h_tag.data[i] = i;
         h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
+
+        h_global_tag.data[i] = i;
+        h_global_rtag.data[i] = i;
+        m_is_local[i] = true;
         }
-        
+
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
     
@@ -228,7 +238,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
         }
         
     // allocate memory
-    allocate(init.getNumParticles());
+    allocate(init.getNumParticles(), init.getNumGlobalParticles());
     
         {
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
@@ -253,7 +263,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
             }
         }
-        
+
     SnapshotParticleData snapshot(getN());
     // initialize the snapshot with default values
     takeSnapshot(snapshot);
@@ -393,7 +403,8 @@ boost::signals::connection ParticleData::connectParticleNumberChange(const boost
     }
 
 /*! \b ANY time particles are added or removed from the system, this function must be called.
-    \note The call after particle data GPUArrays have been released.
+    \note The method must be called after all new particle positions etc. has been written to the particle data
+    arrays and after the particle data GPUArrays have been released.
 */
 void ParticleData::notifyParticleNumberChange()
     {
@@ -442,7 +453,7 @@ std::string ParticleData::getNameByType(unsigned int type) const
     \pre No memory is allocated and the per-particle GPUArrays are unitialized
     \post All per-perticle GPUArrays are allocated
 */
-void ParticleData::allocate(unsigned int N)
+void ParticleData::allocate(unsigned int N, unsigned int nglobal)
     {
     // check the input
     if (N == 0)
@@ -456,6 +467,9 @@ void ParticleData::allocate(unsigned int N)
 
     // maximum number is the current particle number
     m_max_nparticles = N;
+
+    // set global particle number
+    m_nglobal = nglobal;
 
     // positions
     GPUArray< Scalar4 > pos(getN(), m_exec_conf);
@@ -489,6 +503,17 @@ void ParticleData::allocate(unsigned int N)
     GPUArray< unsigned int > rtag(getN(), m_exec_conf);
     m_rtag.swap(rtag);
 
+    // global tag
+    GPUArray< unsigned int> global_tag(getN(), m_exec_conf);
+    m_global_tag.swap(global_tag);
+
+    // global rtag
+    GPUArray< unsigned int> global_rtag(getNGlobal(), m_exec_conf);
+    m_global_rtag.swap(global_rtag);
+
+    // resize bitset of locality flags
+    m_is_local.resize(getNGlobal());
+
     // body ID
     GPUArray< unsigned int > body(getN(), m_exec_conf);
     m_body.swap(body);
@@ -507,6 +532,9 @@ void ParticleData::allocate(unsigned int N)
 /*! \param max_n new maximum size of particle data arrays (has to be greater than the current maximum size)
  *  To inform classes that allocate arrays for per-particle information of the change of the particle data size,
  *  this method issues a m_max_particle_num_signal().
+ *
+ * \post The contents of the net_virial array are not guaranteed to be valid after reallocation. It has to be ensured that
+ *       reallocate is called before that array is recalculated.
  */
 void ParticleData::reallocate(unsigned int max_n)
     {
@@ -527,10 +555,11 @@ void ParticleData::reallocate(unsigned int max_n)
     m_image.resize(max_n);
     m_tag.resize(max_n);
     m_rtag.resize(max_n);
+    m_global_tag.resize(max_n);
     m_body.resize(max_n);
 
     m_net_force.resize(max_n);
-    m_net_virial.resize(max_n,6); // need to check that the virial is recalculated after resizing
+    m_net_virial.resize(max_n,6);
     m_net_torque.resize(max_n);
     m_orientation.resize(max_n);
     m_inertia_tensor.resize(max_n);
@@ -587,6 +616,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::overwrite);
+    ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::overwrite);
 
     // make sure the snapshot has the right size
     if (snapshot.size != m_nparticles)
@@ -622,8 +653,13 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         h_tag.data[idx] = tag;
         h_rtag.data[idx] = idx;
 
+        h_global_tag.data[idx] = snapshot.global_tag[tag];
+        h_global_rtag.data[snapshot.global_tag[tag]] = idx;
+        m_is_local[snapshot.global_tag[tag]] = true;
+
         h_body.data[idx] = snapshot.body[tag];
         }
+
     }
 
 //! take a particle data snapshot
@@ -643,6 +679,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::read);
 
     for (unsigned int idx = 0; idx < m_nparticles; idx++)
         {
@@ -657,6 +694,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         snapshot.diameter[tag] = h_diameter.data[idx];
         snapshot.image[tag] = h_image.data[idx];
         snapshot.rtag[tag] = idx;
+        snapshot.global_tag[tag] = h_global_tag.data[idx];
         snapshot.body[tag] = h_body.data[idx];
         }
 
@@ -665,10 +703,20 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 //! Remove particles from the simulation domain
 /*! \param indices array of particle indices to remove
  *  \param n number of particles to remove
+ *
+ * \pre this method is supposed to be called \b before the calculation of the net force,
+ * virial, torque and orientation arrays. These are assumed to be overwritten by
+ * the subsequent part of the timestep anyway, so they are not rearranged along with the
+ * particle deletion.
+ *
  * \post particle order and tag labels are changed, since the last particle of the array
  * is moved up to fill the hole created by the removed particle
  * and since it is given the tag of the removed particle.
+ *
  * Particle tags are adjusted such that always 0 <= tag < getN().
+ *
+ * TODO We still need to change the bond table such that it stores bonds using global tags
+ * and that it is reconstructed after add/remove particles
  */
 void ParticleData::removeParticles(unsigned int *indices, const unsigned int n)
     {
@@ -683,12 +731,17 @@ void ParticleData::removeParticles(unsigned int *indices, const unsigned int n)
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::readwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::readwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
+        ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::readwrite);
+        ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::readwrite);
 
         for (unsigned int i = 0; i < n; i++)
             {
             unsigned int idx = indices[i];
             assert(idx < getN());
             unsigned int last_idx = getN() - 1;
+
+            // remove deleted particle from set of local particles
+            m_is_local[h_global_tag.data[idx]] = false;
 
             // move the last particle up to the hole created in the particle data arrays
             h_pos.data[idx] = h_pos.data[last_idx];
@@ -698,14 +751,19 @@ void ParticleData::removeParticles(unsigned int *indices, const unsigned int n)
             h_charge.data[idx] = h_charge.data[last_idx];
             h_diameter.data[idx] = h_diameter.data[last_idx];
             h_body.data[idx] = h_body.data[last_idx];
+            h_global_tag.data[idx] = h_global_tag.data[last_idx];
 
             // the last particle in the array gets assigned the tag of the removed particle,
             // hence tag[idx] and rtag[tag[idx]] is unchanged
 
             // assign the free'ed particle tag of the last particle in the array to the
-            // particle with tag=last_idx
+            // particle with tag=last_idx (which will no longer be part of the local domain)
             h_tag.data[h_rtag.data[last_idx]] = h_tag.data[last_idx];
             h_rtag.data[h_tag.data[last_idx]] = h_rtag.data[last_idx];
+
+            // update global tag reverse lookup for moved particle
+            assert(h_global_rtag.data[h_global_tag.data[last_idx]] == last_idx);
+            h_global_rtag.data[h_global_tag.data[last_idx]] = idx;
 
             // also need to change subsequent references in the delete buffer
             for (unsigned int j=i+1; j < n; j++)
@@ -742,13 +800,14 @@ void ParticleData::addParticles(const unsigned int n)
         reallocate(max_nparticles);
         }
 
-    // initialize tags
+    // initialize local and global tags
     ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::readwrite);
     ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
 
     for (unsigned int idx = m_nparticles; idx < m_nparticles + n; idx++)
+        {
         h_tag.data[idx] = h_rtag.data[idx] = idx;
-
+        }
     m_nparticles += n;
     }
 
@@ -818,6 +877,12 @@ class ParticleDataInitializerWrap : public ParticleDataInitializer, public wrapp
             return this->get_override("getNumParticles")();
             }
             
+        //! Calls the overidden ParticleDataInitializer::getNumGlobalParticles()
+        unsigned int getNumGlobalParticles() const
+            {
+            return this->get_override("getNumGlobalParticles")();
+            }
+
         //! Calls the overidden ParticleDataInitializer::getNumParticleTypes()
         unsigned int getNumParticleTypes() const
             {
@@ -848,6 +913,7 @@ void export_ParticleDataInitializer()
     {
     class_<ParticleDataInitializerWrap, boost::noncopyable>("ParticleDataInitializer")
     .def("getNumParticles", pure_virtual(&ParticleDataInitializer::getNumParticles))
+    .def("getNumGlobalParticles", pure_virtual(&ParticleDataInitializer::getNumGlobalParticles))
     .def("getNumParticleTypes", pure_virtual(&ParticleDataInitializer::getNumParticleTypes))
     .def("getBox", pure_virtual(&ParticleDataInitializer::getBox))
     .def("initSnapshot", pure_virtual(&ParticleDataInitializer::initSnapshot))

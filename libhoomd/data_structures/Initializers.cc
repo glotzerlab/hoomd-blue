@@ -94,6 +94,13 @@ unsigned int SimpleCubicInitializer::getNumParticles() const
     return m_M * m_M * m_M;
     }
 
+/*! \return Number of global particles in the simulation
+*/
+unsigned int SimpleCubicInitializer::getNumGlobalParticles() const
+    {
+    return getNumParticles();
+    }
+
 unsigned int SimpleCubicInitializer::getNumParticleTypes() const
     {
     return 1;
@@ -179,6 +186,13 @@ RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_di
 unsigned int RandomInitializer::getNumParticles() const
     {
     return m_N;
+    }
+
+/*! \return Number of global particles in the simulation
+*/
+unsigned int RandomInitializer::getNumGlobalParticles() const
+    {
+    return getNumParticles();
     }
 
 /*! \return Number of particle types that will be initialized

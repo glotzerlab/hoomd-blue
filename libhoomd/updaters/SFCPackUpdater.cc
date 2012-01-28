@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 using namespace boost::python;
+using namespace boost;
 
 #include <math.h>
 #include <stdexcept>
@@ -80,8 +81,8 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
     // perform lots of sanity checks
     assert(m_pdata);
     
-    m_sort_order.resize(m_pdata->getN());
-    m_particle_bins.resize(m_pdata->getN());
+    m_sort_order.resize(m_pdata->getMaxN());
+    m_particle_bins.resize(m_pdata->getMaxN());
     
     // set the default grid
     // Grid dimension must always be a power of 2 and determines the memory usage for m_traversal_order
@@ -90,6 +91,24 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
         m_grid = 4096;
     else
         m_grid = 256;
+
+    // register reallocate method with particle data maximum particle number change signal
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&SFCPackUpdater::reallocate, this));
+    }
+
+/*! reallocate the internal arrays
+ */
+void SFCPackUpdater::reallocate()
+    {
+    m_sort_order.resize(m_pdata->getMaxN());
+    m_particle_bins.resize(m_pdata->getMaxN());
+    }
+
+/*! Destructor
+ */
+SFCPackUpdater::~SFCPackUpdater()
+    {
+    m_max_particle_num_change_connection.disconnect();
     }
 
 /*! Performs the sort.
@@ -119,7 +138,7 @@ void SFCPackUpdater::update(unsigned int timestep)
 void SFCPackUpdater::applySortOrder()
     {
     assert(m_pdata);
-    assert(m_sort_order.size() == m_pdata->getN());
+    assert(m_sort_order.size() >= m_pdata->getN());
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
@@ -129,6 +148,8 @@ void SFCPackUpdater::applySortOrder()
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
 
     // construct a temporary holding array for the sorted data
     Scalar4 *scal4_tmp = new Scalar4[m_pdata->getN()];
@@ -227,10 +248,22 @@ void SFCPackUpdater::applySortOrder()
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_tag.data[i] = uint_tmp[i];
         
+    // sort global tag
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        uint_tmp[i] = h_global_tag.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_global_tag.data[i] = uint_tmp[i];
+
     // rebuild rtag
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_rtag.data[h_tag.data[i]] = i;
         
+    // rebuild global rtag
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        h_global_rtag.data[h_global_tag.data[i]] = i;
+        }
+
     delete[] scal_tmp;
     delete[] scal4_tmp;
     delete[] scal3_tmp;
@@ -436,7 +469,7 @@ void SFCPackUpdater::getSortedOrder2D()
     {
     // start by checking the saneness of some member variables
     assert(m_pdata);
-    assert(m_sort_order.size() == m_pdata->getN());
+    assert(m_sort_order.size() >= m_pdata->getN());
     
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
@@ -467,7 +500,7 @@ void SFCPackUpdater::getSortedOrder2D()
     }
 
     // sort the tuples
-    sort(m_particle_bins.begin(), m_particle_bins.end());
+    sort(m_particle_bins.begin(), m_particle_bins.begin() + m_pdata->getN());
     
     // translate the sorted order
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
@@ -480,7 +513,7 @@ void SFCPackUpdater::getSortedOrder3D()
     {
     // start by checking the saneness of some member variables
     assert(m_pdata);
-    assert(m_sort_order.size() == m_pdata->getN());
+    assert(m_sort_order.size() >= m_pdata->getN());
     
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
@@ -532,7 +565,7 @@ void SFCPackUpdater::getSortedOrder3D()
         }
         
     // sanity checks
-    assert(m_particle_bins.size() == m_pdata->getN());
+    assert(m_particle_bins.size() >= m_pdata->getN());
     assert(m_traversal_order.size() == m_grid*m_grid*m_grid);
     
     // put the particles in the bins
@@ -560,7 +593,7 @@ void SFCPackUpdater::getSortedOrder3D()
         }
     
     // sort the tuples
-    sort(m_particle_bins.begin(), m_particle_bins.end());
+    sort(m_particle_bins.begin(), m_particle_bins.begin() + m_pdata->getN());
     
     // translate the sorted order
     for (unsigned int j = 0; j < m_pdata->getN(); j++)

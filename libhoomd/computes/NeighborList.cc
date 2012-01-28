@@ -83,7 +83,7 @@ using namespace std;
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
-      m_storage_mode(half), m_no_minimum_image(false), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
+      m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
       m_dist_check(true)
     {
     // check for two sensless errors the user could make
@@ -104,7 +104,10 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_every = 0;
     m_Nmax = 0;
     m_exclusions_set = false;
-    
+
+    for (int i = 0; i < 3; i++)
+        m_no_minimum_image[i] = false;
+
     // allocate m_n_neigh and m_last_pos
     GPUArray<unsigned int> n_neigh(m_pdata->getN(), exec_conf);
     m_n_neigh.swap(n_neigh);
@@ -951,46 +954,43 @@ void NeighborList::buildNlist(unsigned int timestep)
             Scalar dx = h_pos.data[j].x - xi;
             Scalar dy = h_pos.data[j].y - yi;
             Scalar dz = h_pos.data[j].z - zi;
-            
-            if (! m_no_minimum_image)
+
+            bool excluded = false;
+
+            // if the vector crosses the box, pull it back
+            if (! m_no_minimum_image[0])
                 {
-                // if the vector crosses the box, pull it back
                 if (dx >= Lx2)
                     dx -= Lx;
                 else if (dx < -Lx2)
                     dx += Lx;
+                assert(dx >= box.xlo && dx <= box.xhi);
+                }
+            else if (dx >= Lx/2.0 || dx <= -Lx/2.0) excluded = true;
 
+            if (! m_no_minimum_image[1])
+                {
                 if (dy >= Ly2)
                     dy -= Ly;
                 else if (dy < -Ly2)
                     dy += Ly;
+                assert(dy >= box.ylo && dy <= box.yhi);
+                }
+            else if (dy >= Ly/2.0 || dy <= -Ly/2.0) excluded = true;
 
+            if (! m_no_minimum_image[2])
+                {
                 if (dz >= Lz2)
                     dz -= Lz;
                 else if (dz < -Lz2)
                     dz += Lz;
-
-                // sanity check
-                assert(dx >= box.xlo && dx <= box.xhi);
-                assert(dy >= box.ylo && dy <= box.yhi);
                 assert(dz >= box.zlo && dz <= box.zhi);
                 }
-            else
-                {
-                if (dx >= Lx/2.0 || dx <= -Lx/2.0 ||
-                    dy >= Ly/2.0 || dy <= -Ly/2.0 ||
-                    dz >= Lz/2.0 || dz <= -Lz/2.0)
-                    {
-                    // discard atom pairs that wrap around the local box
-                    continue;
-                    }
-                }
+            else if (dz >= Lz/2.0 || dz <= -Lz/2.0) excluded = true;
 
-            bool excluded = false;
-            
             if (m_filter_body && bodyi != NO_BODY)
                 excluded = (bodyi == h_body.data[j]);
-            
+
             Scalar sqshift = Scalar(0.0);
             if (m_filter_diameter)
                 {

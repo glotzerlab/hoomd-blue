@@ -64,7 +64,7 @@ using namespace std;
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0f)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
-      m_flag_charge(false), m_has_ghost_layer(false)
+      m_flag_charge(false)
     {
     // allocation is deferred until the first compute() call - initialize values to dummy variables
     m_width = make_scalar3(0.0, 0.0, 0.0);
@@ -78,6 +78,10 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
+
+    for (unsigned int i = 0; i < 3; i++)
+        m_has_ghost_layer[i] = false;
+
     }
 
 CellList::~CellList()
@@ -99,11 +103,10 @@ uint3 CellList::computeDimensions()
     dim.x = (unsigned int)((box.xhi - box.xlo) / (m_nominal_width));
     dim.y = (unsigned int)((box.yhi - box.ylo) / (m_nominal_width));
 
-    if (m_has_ghost_layer)
-        {
+    if (m_has_ghost_layer[0])
         dim.x += 2;
+    if (m_has_ghost_layer[1])
         dim.y += 2;
-        }
 
     if (m_sysdef->getNDimensions() == 2)
         {
@@ -121,7 +124,7 @@ uint3 CellList::computeDimensions()
         {
         dim.z = (unsigned int)((box.zhi - box.zlo) / (m_nominal_width));
 
-        if (m_has_ghost_layer)
+        if (m_has_ghost_layer[2])
             dim.z += 2;
 
         // decrease the number of bins if it exceeds the max
@@ -255,15 +258,14 @@ void CellList::initializeWidth()
     const BoxDim& box = m_pdata->getBox();
 
     uint3 inner_dim;
-    if (m_has_ghost_layer)
-        {
-        if (m_sysdef->getNDimensions() == 2)
-            inner_dim = make_uint3(m_dim.x-2, m_dim.y-2, m_dim.z);
-        else
-            inner_dim = make_uint3(m_dim.x-2, m_dim.y-2, m_dim.z-2);
-        }
+    if (m_sysdef->getNDimensions() == 2)
+        inner_dim = make_uint3(m_has_ghost_layer[0] ? m_dim.x-2 : m_dim.x,
+                               m_has_ghost_layer[1] ? m_dim.y-2 : m_dim.y,
+                               m_dim.z);
     else
-        inner_dim = m_dim;
+        inner_dim = make_uint3(m_has_ghost_layer[0] ? m_dim.x-2 : m_dim.x,
+                               m_has_ghost_layer[1] ? m_dim.y-2 : m_dim.y,
+                               m_has_ghost_layer[2] ? m_dim.z-2 : m_dim.z);
 
     m_width.x = (box.xhi - box.xlo) / Scalar(inner_dim.x);
     m_width.y = (box.yhi - box.ylo) / Scalar(inner_dim.y);
@@ -389,15 +391,14 @@ void CellList::computeCellList()
     // the ghost layer width in every direction is given by the cell width
     Scalar3 ghost_width;
 
-    if (m_has_ghost_layer)
-        {
-        if (m_sysdef->getNDimensions() == 2)
-            ghost_width = make_scalar3(m_width.x, m_width.y, 0.0);
-        else
-            ghost_width = m_width;
-        }
+    if (m_sysdef->getNDimensions() == 2)
+        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
+                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
+                                   0.0);
     else
-        ghost_width = make_scalar3(0.0,0.0,0.0);
+        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
+                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
+                                   m_has_ghost_layer[2] ? m_width.z : Scalar(0.0));
 
     // acquire the particle data
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);

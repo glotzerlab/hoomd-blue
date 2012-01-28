@@ -91,7 +91,7 @@ class NeighborListBinned : public NeighborList
         virtual void buildNlist(unsigned int timestep);
 
         //! set to true if layer of ghost cells should be present around the simulation box
-        virtual void setGhostLayer(bool has_ghost_layer);
+        virtual void setGhostLayer(unsigned int dir, bool has_ghost_layer);
 
         Scalar3 m_ghost_width;               //!< width of the ghost layer
     };

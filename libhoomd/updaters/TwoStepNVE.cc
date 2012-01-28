@@ -160,23 +160,24 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
         }
-    
-    if (! m_no_wrap_particles) {
-        // particles may have been moved slightly outside the box by the above steps, wrap them back into place
-        const BoxDim& box = m_pdata->getBox();
-    
-        // precalculate box lenghts
-        Scalar Lx = box.xhi - box.xlo;
-        Scalar Ly = box.yhi - box.ylo;
-        Scalar Lz = box.zhi - box.zlo;
 
-        ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+    // particles may have been moved slightly outside the box by the above steps, wrap them back into place
+    const BoxDim& box = m_pdata->getBox();
 
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    // precalculate box lenghts
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+
+        // wrap the particles around the box
+        if (! m_no_wrap_particles[0])
             {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-
-            // wrap the particles around the box
             if (h_pos.data[j].x >= box.xhi)
                 {
                 h_pos.data[j].x -= Lx;
@@ -187,7 +188,10 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 h_pos.data[j].x += Lx;
                 h_image.data[j].x--;
                 }
+            }
 
+        if (! m_no_wrap_particles[1])
+            {
             if (h_pos.data[j].y >= box.yhi)
                 {
                 h_pos.data[j].y -= Ly;
@@ -198,7 +202,10 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 h_pos.data[j].y += Ly;
                 h_image.data[j].y--;
                 }
+            }
 
+        if (! m_no_wrap_particles[2])
+            {
             if (h_pos.data[j].z >= box.zhi)
                 {
                 h_pos.data[j].z -= Lz;

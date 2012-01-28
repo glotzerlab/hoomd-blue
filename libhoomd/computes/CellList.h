@@ -147,9 +147,9 @@ class CellList : public Compute
             }
 
         //! Set to true if ghost layer is present
-        void setGhostLayer(bool has_ghost_layer)
+        void setGhostLayer(unsigned int dir, bool has_ghost_layer)
             {
-            m_has_ghost_layer = has_ghost_layer;
+            m_has_ghost_layer[dir] = has_ghost_layer;
             m_params_changed = true;
             }
 
@@ -241,9 +241,12 @@ class CellList : public Compute
             }
 
         //! Returns true if simulation box has a ghost layer
-        const bool hasGhostLayer() const
+        /*! \param dir direction to check
+         */
+        const bool hasGhostLayer(unsigned int dir) const
             {
-            return m_has_ghost_layer;
+            assert(dir < 3);
+            return m_has_ghost_layer[dir];
             }
 
         // @}
@@ -292,7 +295,7 @@ class CellList : public Compute
         bool m_params_changed;       //!< Set to true when parameters are changed
         bool m_particles_sorted;     //!< Set to true when the particles have been sorted
         bool m_box_changed;          //!< Set to ttrue when the box size has changed
-        bool m_has_ghost_layer;      //!< true if ghost layer is present
+        bool m_has_ghost_layer[3];   //!< true if ghost layer is present in a certain direction
         
         // parameters determined by initialize
         Scalar3 m_width;             //!< Actual width

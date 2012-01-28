@@ -88,7 +88,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      bool filter_body,
                                      bool filter_diameter,
                                      float3 ghost_width,
-                                     bool no_minimum_image);
+                                     bool no_minimum_image[]);
 
 //! Kernel driver for gpu_compute_nlist_binned_1x_kernel()
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
