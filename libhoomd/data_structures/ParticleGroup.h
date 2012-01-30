@@ -59,6 +59,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/dynamic_bitset.hpp>
 
 #include "SystemDefinition.h"
+#include "ParticleSelectorRules.h"
+
+#ifdef ENABLE_CUDA
+#include "AllParticleSelectors.cuh"
+#endif
 
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__
@@ -147,7 +152,7 @@ class ParticleSelectorRule : public ParticleSelector
     protected:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
-    private:
+
         typename T::param_type m_params; //!< rule parameters
     };
 
@@ -195,72 +200,6 @@ void ParticleSelectorRule<T>::setParams(typename T::param_type params)
     m_params = params;
     }
 
-//! Rule to select particles based on their global tag
-class GlobalTagRule
-    {
-    public:
-        typedef uint2 param_type; //!< parameter type for storing minimum and maximum tag
-
-        //! Constructor
-        //! \param params parameters for this rule
-        GlobalTagRule(param_type params);
-
-        //! Method to determine whether a particle is selected
-        /*!\param global_tag global particle tag
-           \param body body id
-           \param type particle type
-           \return true if a particle is selected
-        */
-        bool isSelected(unsigned int global_tag, unsigned int body, unsigned int type);
-
-    private:
-        unsigned int _tag_min;     //! Minimum global tag to select
-        unsigned int _tag_max;     //! Maximum global tag to select
-    };
-
-//! Rule to select particles based on their type
-class TypeRule
-    {
-    public:
-        typedef uint2 param_type; //!< parameter type for storing minimum and maximum particle type
-
-        //! Constructor
-        //! \param params parameters for this rule
-        TypeRule(param_type params);
-
-        //! Method to determine whether a particle is selected
-        /*!\param global_tag global particle tag
-           \param body body id
-           \param type particle type
-           \return true if a particle is selected
-        */
-        bool isSelected(unsigned int global_tag, unsigned int body, unsigned int type);
-
-    private:
-        unsigned int _type_min;     //! Minimum particle tag to select
-        unsigned int _type_max;     //! Maximum particle tag to select
-    };
-
-//! Rule to select particles that are in rigid bodies
-class RigidRule
-    {
-    public:
-        typedef bool param_type;   //!< parameter type
-
-        //! Constructor
-        //! \param param parameter for this rule
-        RigidRule(param_type param);
-
-        //! Method to determine whether a particle is selected
-        /*!\param global_tag global particle tag
-           \param body body id
-           \param type particle type
-           \return true if a particle is selected
-        */
-        bool isSelected(unsigned int global_tag, unsigned int body, unsigned int type);
-    private:
-        bool _rigid; //!<true selects particles that are in rigid bodies, false selects particles that are not part of a body
-    };
 
 //! ParticleSelector to select particles based on the tag rule
 class ParticleSelectorTag : public ParticleSelectorRule<GlobalTagRule>
@@ -489,7 +428,8 @@ class ParticleGroup
         */
         bool isMember(unsigned int idx) const
             {
-            return m_is_member[idx];
+            ArrayHandle<unsigned char> h_is_member(m_is_member, access_location::host, access_mode::read);
+            return (h_is_member.data[idx] == 1);
             }
         
         //! Direct access to the index list
@@ -538,7 +478,7 @@ class ParticleGroup
     private:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
-        boost::dynamic_bitset<> m_is_member;            //!< One bit per particle, true if index is a member of the group
+        GPUArray<unsigned char> m_is_member;            //!< One byte per particle, =1 if index is a member of the group, =0 otherwise
         boost::shared_ptr<ParticleSelector> m_selector; //!< The particle selector associated with this particle group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
@@ -552,6 +492,11 @@ class ParticleGroup
 
         //! Helper function to rebuild the index lists afer the particles have been sorted
         void rebuildIndexList();
+
+#ifdef ENABLE_CUDA
+        //! Helper function to rebuild the index lists afer the particles have been sorted
+        void rebuildIndexListGPU();
+#endif
 
         //! Helper function called when rebuilding the tag list is necessary
         void rebuildTagList();

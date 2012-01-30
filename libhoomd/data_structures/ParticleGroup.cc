@@ -67,54 +67,13 @@ using namespace boost;
 #include <iostream>
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "ParticleGroup.cuh"
+#endif
+
 /*! \file ParticleGroup.cc
     \brief Defines the ParticleGroup and related classes
 */
-
-//////////////////////////////////////////////////////////////////////////////
-// Particle selection rules
-
-//! Selection by global particle tag
-GlobalTagRule::GlobalTagRule(uint2 params)
-    : _tag_min(params.x), _tag_max(params.y)
-    {
-    }
-
-//! Apply criterium for selection by global tag
-bool GlobalTagRule::isSelected(unsigned int global_tag, unsigned int body, unsigned int type)
-    {
-    return (_tag_min <= global_tag && global_tag <= _tag_max);
-    }
-
-//! Selection by particle type
-TypeRule::TypeRule(uint2 params)
-    : _type_min(params.x), _type_max(params.y)
-    {
-    }
-
-//! Apply criterium for selection by local tag
-bool TypeRule::isSelected(unsigned int global_tag, unsigned int body, unsigned int type)
-    {
-    return (_type_min <= type && type <= _type_max);
-    }
-
-//! Selection by being part of a rigid body
-RigidRule::RigidRule(bool rigid)
-    : _rigid(rigid)
-    {
-    }
-
-//! Apply criteria to select according to rigid body property
-bool RigidRule::isSelected(unsigned int global_tag, unsigned int body, unsigned int type)
-    {
-    bool result = false;
-    if (_rigid && body != NO_BODY)
-        result = true;
-    if (!_rigid && body == NO_BODY)
-        result = true;
-    return result;
-    }
-
 
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorTag
@@ -397,7 +356,6 @@ unsigned int ParticleSelectorDifference::getMemberTags(const GPUArray<unsigned i
 ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
-      m_is_member(m_pdata->getN()),
       m_selector(selector)
     {
     // we use the number of loal particles as the maximum size for the member tags array
@@ -405,6 +363,10 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
     m_member_tags.swap(member_tags);
 
     m_num_members = m_selector->getMemberTags(m_member_tags);
+
+    // one byte per particle to indicate membership in the group
+    GPUArray<unsigned char> is_member(m_pdata->getN(), m_pdata->getExecConf());
+    m_is_member.swap(is_member);
 
     GPUArray<unsigned int> member_idx(m_num_members, m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
@@ -428,12 +390,15 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
 ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& global_tag_list)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
-      m_is_member(m_pdata->getN()),
       m_selector(boost::shared_ptr<ParticleSelectorGlobalTagList>(new ParticleSelectorGlobalTagList(sysdef, global_tag_list)))
     {
     // we use the number of loal particles as the maximum size for the member tags array
     GPUArray<unsigned int> member_tags(m_pdata->getN(), m_pdata->getExecConf());
     m_member_tags.swap(member_tags);
+
+    // one byte per particle to indicate membership in the group
+    GPUArray<unsigned char> is_member(m_pdata->getN(), m_pdata->getExecConf());
+    m_is_member.swap(is_member);
 
     m_num_members = m_selector->getMemberTags(m_member_tags);
 
@@ -475,6 +440,7 @@ void ParticleGroup::reallocate()
         // only resize if needed
         while (max_particle_num < m_pdata->getMaxN()) max_particle_num *= 2;
         m_member_tags.resize(max_particle_num);
+        m_is_member.resize(max_particle_num);
         }
     }
 
@@ -606,44 +572,72 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
 void ParticleGroup::rebuildIndexList()
     {
     // start by rebuilding the bitset of member indices in the group
-    // it needs to be cleared first
-    m_is_member.reset();
 
-    // resize bitset if necessary
-    while (m_pdata->getN() > m_is_member.size())
-        m_is_member.resize(2*m_is_member.size());
 
     // resize indices array if necessary
     while (m_num_members > m_member_idx.getNumElements())
         m_member_idx.resize(2*m_member_idx.getNumElements());
 
-    // then loop through every particle in the group and set its bit
+#ifdef ENABLE_CUDA
+    if (m_pdata->getExecConf()->isCUDAEnabled() )
         {
-        ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
-        for (unsigned int member_idx = 0; member_idx < m_num_members; member_idx++)
-            {
-            unsigned int idx = m_pdata->getGlobalRTag(h_member_tags.data[member_idx]);
-            assert(idx < m_pdata->getN());
-            m_is_member[idx] = true;
-            }
+        rebuildIndexListGPU();
         }
+    else
+#endif
+        {
 
-    // then loop through the bitset and add indices to the index list
-    ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::readwrite);
-    unsigned int cur_member = 0;
-    unsigned int nparticles = m_pdata->getN();
-    for (unsigned int idx = 0; idx < nparticles; idx++)
-        {
-        if (isMember(idx))
+        // clear the flag array
+        ArrayHandle<unsigned char> h_is_member(m_is_member, access_location::host, access_mode::readwrite);
+        for (unsigned int idx = 0; idx < m_pdata->getN(); idx ++)
+            h_is_member.data[idx] = 0;
+
+        // then loop through every particle in the group and set its bit
             {
-            h_handle.data[cur_member] = idx;
-            cur_member++;
+            ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
+            for (unsigned int member_idx = 0; member_idx < m_num_members; member_idx++)
+                {
+                unsigned int idx = m_pdata->getGlobalRTag(h_member_tags.data[member_idx]);
+                assert(idx < m_pdata->getN());
+                h_is_member.data[idx] = 1;
+                }
             }
+
+        // then loop through the bitset and add indices to the index list
+        ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::readwrite);
+        unsigned int cur_member = 0;
+        unsigned int nparticles = m_pdata->getN();
+        for (unsigned int idx = 0; idx < nparticles; idx++)
+            {
+            if (isMember(idx))
+                {
+                h_handle.data[cur_member] = idx;
+                cur_member++;
+                }
+            }
+
+        // sanity check, the number of indices added to m_member_idx must be the same as the number of members in the group
+        assert(cur_member == m_num_elements);
         }
-    
-    // sanity check, the number of indices added to m_member_idx must be the same as the number of members in the group
-    assert(cur_member == m_num_elements);
     }
+
+#ifdef ENABLE_CUDA
+//! rebuild index list on the GPU
+void ParticleGroup::rebuildIndexListGPU()
+    {
+    ArrayHandle<unsigned char> d_is_member(m_is_member, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_member_tags(m_member_tags, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_member_idx(m_member_idx, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
+
+    gpu_rebuild_index_list(m_pdata->getN(),
+                           m_num_members,
+                           d_member_tags.data,
+                           d_is_member.data,
+                           d_member_idx.data,
+                           d_global_rtag.data);
+    }
+#endif
 
 //! Wrapper class for exposing abstract ParticleSelector base class to python
 class ParticleSelectorWrap : public ParticleSelector, public wrapper<ParticleSelector>
