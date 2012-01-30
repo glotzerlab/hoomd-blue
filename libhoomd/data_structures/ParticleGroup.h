@@ -76,7 +76,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     If set operations on groups are performed, such as intersection, union or difference, these really
     operate on the ParticleSelectors. In fact, the operations are implemented as selectors themselves,
-    which internally store clones of the ParticleSelector classes of the ParticleGroups they take as an argument.
+    which internally store the ParticleSelector classes of the ParticleGroups they take as an argument.
     
     <b>Implementation details</b>
     As the ParticleSelector is specified via a virtual class the group definition can be expanded to include any
@@ -90,7 +90,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     rule-based particle ParticleSelectorRule<>, it is a template class that takes a rule as a parameter. This rule
     can be efficiently evaluated on the CPU or on the GPU to construct the tag list.
     
-    ParticleSelector provides a purely virtual internal method rebuildTagsList()
+    ParticleSelector provides a purely virtual internal method getMemberTags()
     that is used to generate the list of included tags of local particles. This method is called from within a
     ParticleGroup, if the latter has detected a change in the particle data arrays (e.g.
     insertion or deletion of particles).
@@ -107,25 +107,14 @@ class ParticleSelector
         virtual ~ParticleSelector() {}
 
         //! Get the list of selected tags
-        /*! \return the tag list
+        /*! \param the GPU array to store the member tags in
+         * \return the number of local particles included
+         * \pre  member_tags must be allocated and of sufficient size to accomodate
+         *       all local members of the group (i.e.
+         *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
-        virtual std::vector<unsigned int>& getMemberTags();
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags) = 0;
 
-        //! Clone this ParticleSelector
-        /*! \return a copy of the ParticleSelector
-        */
-        virtual ParticleSelector* clone() = 0;
-
-        friend class ParticleGroup;
-        friend class ParticleSelectorUnion;
-        friend class ParticleSelectorIntersection;
-        friend class ParticleSelectorDifference;
-
-    protected:
-        std::vector<unsigned int> m_member_tags;        //!< List of global tags that are owned by this processor and that are part of the group
-
-        //! Helper function to rebuild the tags list
-        virtual void rebuildTagsList() = 0;
     };
 
 //! Implementation of a particle selector that applies a selection rule
@@ -146,18 +135,16 @@ class ParticleSelectorRule : public ParticleSelector
         */
         void setParams(typename T::param_type params);
 
-        //! Clone this ParticleSelector
-        /*! \return a copy of the ParticleSelector
+        //! Get the list of selected tags
+        /*! \param the GPU array to store the member tags in
+         * \return the number of local particles included
+         * \pre  member_tags must be allocated and of sufficient size to accomodate
+         *       all local members of the group (i.e.
+         *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
-        ParticleSelector* clone()
-            {
-            return new ParticleSelectorRule<T>(*this);
-            }
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
 
     protected:
-        //! Internal function to rebuild the tags list
-        virtual void rebuildTagsList();
-
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
     private:
@@ -173,17 +160,19 @@ ParticleSelectorRule<T>::ParticleSelectorRule(boost::shared_ptr<SystemDefinition
 
 //! Loop over particles and determine those that match the selection criterium
 template< class T >
-void ParticleSelectorRule<T>::rebuildTagsList()
+unsigned int ParticleSelectorRule<T>::getMemberTags(const GPUArray<unsigned int>& member_tags)
     {
-    // reset tags list
-    m_member_tags.clear();
+    assert(member_tags.getNumElements() >= m_pdata->getN());
 
+    unsigned int num_members = 0;
     // instantiate the selection rule
     T rule(m_params);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+
+    ArrayHandle<unsigned int> h_member_tags(member_tags, access_location::host, access_mode::overwrite);
 
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
@@ -193,8 +182,10 @@ void ParticleSelectorRule<T>::rebuildTagsList()
         unsigned int global_tag = h_global_tag.data[idx];
 
         if (rule.isSelected(global_tag, body, type))
-            m_member_tags.push_back(global_tag);
+            h_member_tags.data[num_members++] = global_tag;
         }
+
+    return num_members;
     }
 
 //! Set the parameters for the rule
@@ -306,18 +297,16 @@ class ParticleSelectorGlobalTagList : public ParticleSelector
         ParticleSelectorGlobalTagList(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& global_tag_list);
         virtual ~ParticleSelectorGlobalTagList() {}
 
-        //! Clone this ParticleSelector
-        /*! \return a copy of the ParticleSelector
+        //! Get the list of selected tags
+        /*! \param the GPU array to store the member tags in
+         * \return the number of local particles included
+         * \pre  member_tags must be allocated and of sufficient size to accomodate
+         *       all local members of the group (i.e.
+         *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
-        ParticleSelector *clone()
-            {
-            return new ParticleSelectorGlobalTagList(*this);
-            }
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
 
     protected:
-
-        //! Internal function to rebuild the tags list
-        virtual void rebuildTagsList();
 
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
@@ -337,18 +326,14 @@ class ParticleSelectorUnion : public ParticleSelector
         ParticleSelectorUnion(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b);
         virtual ~ParticleSelectorUnion() {}
 
-        //! Clone this ParticleSelector
-        /*! \return a copy of the ParticleSelector
+        //! Get the list of selected tags
+        /*! \param the GPU array to store the member tags in
+         * \return the number of local particles included
+         * \pre  member_tags must be allocated and of sufficient size to accomodate
+         *       all local members of the group (i.e.
+         *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
-        ParticleSelector *clone()
-            {
-            return new ParticleSelectorUnion(*this);
-            }
-
-    protected:
-
-        //! Internal function to rebuild the tags list
-        virtual void rebuildTagsList();
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
 
     private:
         boost::shared_ptr<ParticleSelector> m_selector_a;  //!< first argument
@@ -366,18 +351,15 @@ class ParticleSelectorIntersection : public ParticleSelector
         ParticleSelectorIntersection(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b);
         virtual ~ParticleSelectorIntersection() {}
 
-        //! Clone this ParticleSelector
-        /*! \return a copy of the ParticleSelector
+
+        //! Get the list of selected tags
+        /*! \param the GPU array to store the member tags in
+         * \return the number of local particles included
+         * \pre  member_tags must be allocated and of sufficient size to accomodate
+         *       all local members of the group (i.e.
+         *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
-        ParticleSelector *clone()
-            {
-            return new ParticleSelectorIntersection(*this);
-            }
-
-    protected:
-
-        //! Internal function to rebuild the tags list
-        virtual void rebuildTagsList();
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
 
     private:
         boost::shared_ptr<ParticleSelector> m_selector_a;  //!< first argument
@@ -395,18 +377,14 @@ class ParticleSelectorDifference : public ParticleSelector
         ParticleSelectorDifference(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b);
         virtual ~ParticleSelectorDifference() {}
 
-        //! Clone this ParticleSelector
-        /*! \return a copy of the ParticleSelector
+        //! Get the list of selected tags
+        /*! \param the GPU array to store the member tags in
+         * \return the number of local particles included
+         * \pre  member_tags must be allocated and of sufficient size to accomodate
+         *       all local members of the group (i.e.
+         *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
-        ParticleSelector *clone()
-            {
-            return new ParticleSelectorDifference(*this);
-            }
-
-    protected:
-
-        //! Internal function to rebuild the tags list
-        virtual void rebuildTagsList();
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
 
     private:
         boost::shared_ptr<ParticleSelector> m_selector_a;  //!< first argument
@@ -478,7 +456,7 @@ class ParticleGroup
         */
         unsigned int getNumMembers() const
             {
-            return (unsigned int)m_member_tags.size();
+            return m_num_members;
             }
             
         //! Get a member from the group
@@ -488,7 +466,8 @@ class ParticleGroup
         unsigned int getMemberTag(unsigned int i) const
             {
             assert(i < getNumMembers());
-            return m_member_tags[i];
+            ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
+            return h_member_tags.data[i];
             }
             
         //! Get a member index from the group
@@ -564,7 +543,12 @@ class ParticleGroup
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals::connection m_particle_num_change_connection; //!< Connection to the ParticleData particle number change signal
-        std::vector<unsigned int>& m_member_tags;       //!< Lists the tags of the paritcle members
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the maximum number change signal
+        GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of local particle members
+        unsigned int m_num_members;                     //!< Number of local members of the group
+
+        //! Helper function to resize array of member tags
+        void reallocate();
 
         //! Helper function to rebuild the index lists afer the particles have been sorted
         void rebuildIndexList();

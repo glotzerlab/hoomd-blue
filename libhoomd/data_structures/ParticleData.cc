@@ -704,74 +704,14 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 /*! \param indices array of particle indices to remove
  *  \param n number of particles to remove
  *
- * \pre this method is supposed to be called \b before the calculation of the net force,
- * virial, torque and orientation arrays. These are assumed to be overwritten by
- * the subsequent part of the timestep anyway, so they are not rearranged along with the
- * particle deletion.
- *
- * \post particle order and tag labels are changed, since the last particle of the array
- * is moved up to fill the hole created by the removed particle
- * and since it is given the tag of the removed particle.
- *
- * Particle tags are adjusted such that always 0 <= tag < getN().
- *
- * TODO We still need to change the bond table such that it stores bonds using global tags
- * and that it is reconstructed after add/remove particles
+ * This method just decreases the number of particles in the system. The caller
+ * has tom make sure that the change is reflected in the particle data arrays (i.e. compacting
+ * the particle data).
  */
-void ParticleData::removeParticles(unsigned int *indices, const unsigned int n)
+void ParticleData::removeParticles(const unsigned int n)
     {
-
-        {
-        ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
-        ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::readwrite);
-        ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::readwrite);
-        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
-        ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::readwrite);
-        ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::readwrite);
-        ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::readwrite);
-        ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::readwrite);
-        ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
-        ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::readwrite);
-        ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::readwrite);
-
-        for (unsigned int i = 0; i < n; i++)
-            {
-            unsigned int idx = indices[i];
-            assert(idx < getN());
-            unsigned int last_idx = getN() - 1;
-
-            // remove deleted particle from set of local particles
-            m_is_local[h_global_tag.data[idx]] = false;
-
-            // move the last particle up to the hole created in the particle data arrays
-            h_pos.data[idx] = h_pos.data[last_idx];
-            h_vel.data[idx] = h_vel.data[last_idx];
-            h_accel.data[idx] = h_accel.data[last_idx];
-            h_image.data[idx] = h_image.data[last_idx];
-            h_charge.data[idx] = h_charge.data[last_idx];
-            h_diameter.data[idx] = h_diameter.data[last_idx];
-            h_body.data[idx] = h_body.data[last_idx];
-            h_global_tag.data[idx] = h_global_tag.data[last_idx];
-
-            // the last particle in the array gets assigned the tag of the removed particle,
-            // hence tag[idx] and rtag[tag[idx]] is unchanged
-
-            // assign the free'ed particle tag of the last particle in the array to the
-            // particle with tag=last_idx (which will no longer be part of the local domain)
-            h_tag.data[h_rtag.data[last_idx]] = h_tag.data[last_idx];
-            h_rtag.data[h_tag.data[last_idx]] = h_rtag.data[last_idx];
-
-            // update global tag reverse lookup for moved particle
-            assert(h_global_rtag.data[h_global_tag.data[last_idx]] == last_idx);
-            h_global_rtag.data[h_global_tag.data[last_idx]] = idx;
-
-            // also need to change subsequent references in the delete buffer
-            for (unsigned int j=i+1; j < n; j++)
-                if (indices[j] == last_idx) indices[j] = idx;
-
-            m_nparticles--;
-            }
-        }
+    assert(n <= m_pdata->getN());
+    m_nparticles -= n;
     }
 
 //! Add a number of particles to the system
@@ -779,8 +719,8 @@ void ParticleData::removeParticles(unsigned int *indices, const unsigned int n)
     to accomodate the new partices.
 
     \param n number of particles to add
-    \post The new particle values are assigned tags starting from the previously highest
-          tag + 1, but are otherwise uninitialized
+    \post The maximum size of the particle data arrays (accessible via getMaxN()) is
+         increased to hold the new particles.
 */
 void ParticleData::addParticles(const unsigned int n)
     {
@@ -800,14 +740,6 @@ void ParticleData::addParticles(const unsigned int n)
         reallocate(max_nparticles);
         }
 
-    // initialize local and global tags
-    ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::readwrite);
-    ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
-
-    for (unsigned int idx = m_nparticles; idx < m_nparticles + n; idx++)
-        {
-        h_tag.data[idx] = h_rtag.data[idx] = idx;
-        }
     m_nparticles += n;
     }
 

@@ -870,7 +870,7 @@ class ParticleData : boost::noncopyable
         void takeSnapshot(SnapshotParticleData &snapshot);
 
         //! Remove particles from the domain
-        void removeParticles(unsigned int *indices, const unsigned int n);
+        void removeParticles(const unsigned int n);
 
         //! Add particles to the domain
         void addParticles(const unsigned int n);
