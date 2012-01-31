@@ -92,13 +92,10 @@ struct selector_args
 #include<thrust/copy.h>
 #include<thrust/iterator/zip_iterator.h>
 
+
 //! GPU method for selecting global particle tags that are present in the local particle data
-/*! \param N number of particles in the local box
-    \param num_members number of members included (output value)
-    \param d_pos array of particle positions
-    \param d_tag array of particle tags
-    \param d_body array of particle body ids
-    \param d_member_tag array of member tags to write to
+/*! \param sel_args standard arguments for this selector
+    \param params parameters for the selection rule
 */
 template<class rule>
 cudaError_t gpu_apply_particle_selection_rule(selector_args sel_args,
@@ -115,8 +112,7 @@ cudaError_t gpu_apply_particle_selection_rule(selector_args sel_args,
     thrust::device_ptr<unsigned int> body_ptr(sel_args.d_body);
     thrust::device_ptr<unsigned int> member_tag_ptr(sel_args.d_member_tag);
 
-    sel_args.num_members =
-        thrust::copy_if(tag_ptr,
+    sel_args.num_members = thrust::copy_if(tag_ptr,
                         tag_ptr + sel_args.N,
                         thrust::make_zip_iterator( thrust::make_tuple(tag_ptr, body_ptr, pos_ptr )),
                         member_tag_ptr, rule(params)) - member_tag_ptr;

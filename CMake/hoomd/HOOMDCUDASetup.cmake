@@ -7,12 +7,19 @@ if (SINGLE_PRECISION)
     if (ENABLE_CUDA)
         # the package is needed
         find_package(CUDA REQUIRED REQUIRED)
-        
+
         if (${CUDA_VERSION} VERSION_LESS 2.3)
             message(SEND_ERROR "CUDA 2.2 and older are not supported")
         endif (${CUDA_VERSION} VERSION_LESS 2.3)
 
+        # Find Thrust
+        find_package(Thrust)
+
         include_directories(${CUDA_INCLUDE_DIRS})
+
+        if (${THRUST_VERSION} VERSION_LESS 1.5.0)
+            message(SEND_ERROR "Thrust version ${THRUST_VERSION} found, >= 1.5.0 is required")
+        endif (${THRUST_VERSION} VERSION_LESS 1.5.0)
 
         # hide some variables users don't need to see
         mark_as_advanced(CUDA_SDK_ROOT_DIR)
