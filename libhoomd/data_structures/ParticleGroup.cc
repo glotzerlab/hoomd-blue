@@ -374,8 +374,11 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
     
-    // connect the rebuildIndexList method to be called whenever the particles are sorted
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
+    // connect the rebuildTagList method to be called whenever the particles are sorted
+    // we could have equivalently used rebuildIndexList, but we have to keep in mind
+    // that after sorting the order of global tags changes and that performance is better
+    // if the member_tags are also updated to reflect the new ordering
+    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildTagList, this));
 
     // connect the rebuildTagList() method to be called whenever particles are inserted or deleted
     m_particle_num_change_connection = m_pdata->connectParticleNumberChange(bind(&ParticleGroup::rebuildTagList, this));
@@ -659,11 +662,9 @@ void export_ParticleGroup()
             .def("getMemberTag", &ParticleGroup::getMemberTag)
             .def("getTotalMass", &ParticleGroup::getTotalMass)
             .def("getCenterOfMass", &ParticleGroup::getCenterOfMass)
-#if 0
             .def("groupUnion", &ParticleGroup::groupUnion)
             .def("groupIntersection", &ParticleGroup::groupIntersection)
             .def("groupDifference", &ParticleGroup::groupDifference)
-#endif
             ;
 
     class_<ParticleSelectorWrap, boost::noncopyable>

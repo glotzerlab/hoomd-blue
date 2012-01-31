@@ -80,7 +80,7 @@ class ParticleSelectorRuleGPU : public ParticleSelectorRule<T>
          *       all local members of the group (i.e.
          *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
-        virtual unsigned int getMemberTags(GPUArray<unsigned int>& member_tags);
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
     };
 
 //! Constructor
@@ -92,7 +92,7 @@ ParticleSelectorRuleGPU<T, gpu_psr>::ParticleSelectorRuleGPU(boost::shared_ptr<S
 
 //! get list of selected tags
 template< class T, cudaError_t gpu_psr(selector_args sel_args, const typename T::param_type params) >
-unsigned int ParticleSelectorRuleGPU<T, gpu_psr>::getMemberTags(GPUArray<unsigned int>& member_tags)
+unsigned int ParticleSelectorRuleGPU<T, gpu_psr>::getMemberTags(const GPUArray<unsigned int>& member_tags)
     {
     assert(this->m_pdata->getExecConf()->isCUDAEnabled());
 

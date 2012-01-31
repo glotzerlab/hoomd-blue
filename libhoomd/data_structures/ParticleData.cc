@@ -701,11 +701,10 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     }
 
 //! Remove particles from the simulation domain
-/*! \param indices array of particle indices to remove
- *  \param n number of particles to remove
+/*! \param n number of particles to remove
  *
  * This method just decreases the number of particles in the system. The caller
- * has tom make sure that the change is reflected in the particle data arrays (i.e. compacting
+ * has to make sure that the change is reflected in the particle data arrays (i.e. compacting
  * the particle data).
  */
 void ParticleData::removeParticles(const unsigned int n)
