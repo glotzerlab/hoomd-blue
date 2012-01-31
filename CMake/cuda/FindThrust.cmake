@@ -29,4 +29,4 @@ set( THRUST_VERSION "${major}.${minor}.${version}")
 # Check for required components
 set( THRUST_FOUND TRUE )
 
-find_package_handle_standard_args( Thrust REQUIRED_VARS THRUST_INCLUDE_DIR )
+find_package_handle_standard_args( Thrust REQUIRED_VARS THRUST_INCLUDE_DIR THRUST_VERSION )
