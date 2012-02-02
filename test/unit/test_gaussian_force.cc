@@ -97,7 +97,8 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
+    pdata_3->setFlags(~PDataFlags(0));
+
     ParticleDataArrays arrays = pdata_3->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
     arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
@@ -118,25 +119,32 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     {
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -0.622542302888418, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 0.155635575722105/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[0], 0.103757050481403, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+0]
+                                       +h_virial_1.data[3*pitch+0]
+                                       +h_virial_1.data[5*pitch+0]), 0.103757050481403, tol);
     
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, 0.155635575722105, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[1], 0.103757050481403*2, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+1]
+                                       +h_virial_1.data[3*pitch+1]
+                                       +h_virial_1.data[5*pitch+1]), 0.103757050481403*2, tol);
     
     MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, 0.622542302888418, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, 0.155635575722105/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_virial_1.data[2], 0.103757050481403, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+2]
+                                       +h_virial_1.data[3*pitch+2]
+                                       +h_virial_1.data[5*pitch+2]), 0.103757050481403, tol);
     }
 
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
@@ -177,7 +185,8 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     // also test the ability of the force compute to use different particle types
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    
+    pdata_6->setFlags(~PDataFlags(0));
+
     ParticleDataArrays arrays = pdata_6->acquireReadWrite();
     arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
     arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -220,43 +229,56 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     {
     GPUArray<Scalar4>& force_array_3 =  fc_6->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_6->getVirialArray();
+    unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     // particle 0 should be pushed right
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, 2.224298403625553*0.8, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial_3.data[0], 0.296573120483407*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+0]
+                                       +h_virial_3.data[3*pitch+0]
+                                       +h_virial_3.data[5*pitch+0]), 0.296573120483407*0.8, tol);
     
     // particle 1 should be pushed left
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -2.224298403625553*0.8, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial_3.data[1], 0.296573120483407*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+1]
+                                       +h_virial_3.data[3*pitch+1]
+                                       +h_virial_3.data[5*pitch+1]), 0.296573120483407*0.8, tol);
     
     // particle 2 should be pushed up
     MY_BOOST_CHECK_CLOSE(h_force_3.data[2].y, 3.336447605438329*0.8, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[2].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial_3.data[2], 0.444859680725111*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+2]
+                                       +h_virial_3.data[3*pitch+2]
+                                       +h_virial_3.data[5*pitch+2]), 0.444859680725111*0.8, tol);
     
     // particle 3 should be pushed down
     MY_BOOST_CHECK_CLOSE(h_force_3.data[3].y, -3.336447605438329*0.8, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[3].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[3].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial_3.data[3], 0.444859680725111*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+3]
+                                       +h_virial_3.data[3*pitch+3]
+                                       +h_virial_3.data[5*pitch+3]), 0.444859680725111*0.8, tol);
     
     // particle 4 should be pushed forward
     MY_BOOST_CHECK_CLOSE(h_force_3.data[4].z, 5.560746009063882*0.8, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[4].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[4].y, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial_3.data[4], 0.741432801208518*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+4]
+                                       +h_virial_3.data[3*pitch+4]
+                                       +h_virial_3.data[5*pitch+4]),  0.741432801208518*0.8, tol);
     
     // particle 3 should be pushed back
     MY_BOOST_CHECK_CLOSE(h_force_3.data[5].z, -5.560746009063882*0.8, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[5].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[5].y, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_virial_3.data[5], 0.741432801208518*0.8, tol);
+    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+5]
+                                       +h_virial_3.data[3*pitch+5]
+                                       +h_virial_3.data[5*pitch+5]),  0.741432801208518*0.8, tol);
     }
     }
 
@@ -271,7 +293,8 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+    pdata->setFlags(~PDataFlags(0));
+
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
@@ -295,6 +318,7 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_4 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc1->getVirialArray();
+    unsigned int pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
     GPUArray<Scalar4>& force_array_5 =  fc2->getForceArray();
@@ -305,7 +329,9 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
-    double deltav2 = 0.0;
+    double deltav2[6];
+    for (unsigned int i = 0; i < 6;  i++)
+        deltav2[i] = 0.0;
         
     for (unsigned int i = 0; i < N; i++)
         {
@@ -313,16 +339,23 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
         deltaf2 += double(h_force_5.data[i].y - h_force_4.data[i].y) * double(h_force_5.data[i].y - h_force_4.data[i].y);
         deltaf2 += double(h_force_5.data[i].z - h_force_4.data[i].z) * double(h_force_5.data[i].z - h_force_4.data[i].z);
         deltape2 += double(h_force_5.data[i].w - h_force_4.data[i].w) * double(h_force_5.data[i].w - h_force_4.data[i].w);
-        deltav2 += double(h_virial_5.data[i] - h_virial_4.data[i]) * double(h_virial_5.data[i] - h_virial_4.data[i]);
+        for (unsigned int j = 0; j < 6; j++)
+            deltav2[j] += double(h_virial_5.data[j*pitch+i] - h_virial_4.data[j*pitch+i]) * double(h_virial_5.data[j*pitch+i] - h_virial_4.data[j*pitch+i]);
 
         // also check that each individual calculation is somewhat close
         }
     deltaf2 /= double(pdata->getN());
     deltape2 /= double(pdata->getN());
-    deltav2 /= double(pdata->getN());
+    for (unsigned int i = 0; i < 6; i++)
+        deltav2[i] /= double(pdata->getN());
     BOOST_CHECK_SMALL(deltaf2, double(tol_small));
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 
@@ -332,7 +365,8 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     // this 2-particle test is just to get a plot of the potential and force vs r cut
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
+    pdata_2->setFlags(~PDataFlags(0));
+
     ParticleDataArrays arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
     arrays.x[1] = Scalar(2.8); arrays.y[1] = arrays.z[1] = 0.0;

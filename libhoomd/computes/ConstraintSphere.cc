@@ -121,6 +121,7 @@ void ConstraintSphere::computeForces(unsigned int timestep)
    
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    unsigned int virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -147,14 +148,15 @@ void ConstraintSphere::computeForces(unsigned int timestep)
         
         // evaluate the constraint force
         Scalar3 FC;
-        Scalar virial;
+        Scalar virial[6];
         constraint.evalConstraintForce(FC, virial, C);
         
         // apply the constraint force
         h_force.data[j].x = FC.x;
         h_force.data[j].y = FC.y;
         h_force.data[j].z = FC.z;
-        h_virial.data[j]  = virial;
+        for (int k = 0; k < 6; k++)
+            h_virial.data[k*virial_pitch+j]  = virial[k];
         }
         
     m_pdata->release();

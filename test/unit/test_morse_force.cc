@@ -96,7 +96,8 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
+    pdata_3->setFlags(~PDataFlags(0));
+
     ParticleDataArrays arrays = pdata_3->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
     arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
@@ -174,7 +175,8 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+    pdata->setFlags(~PDataFlags(0));
+
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairMorse> fc1 = morse_creator1(sysdef, nlist);
@@ -199,6 +201,7 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_3 =  fc1->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc1->getVirialArray();
+    unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     GPUArray<Scalar4>& force_array_4 =  fc2->getForceArray();
@@ -209,7 +212,9 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
-    double deltav2 = 0.0;
+    double deltav2[6];
+    for (unsigned int j = 0; j < 6; j++)
+        deltav2[j] = 0.0;
         
     for (unsigned int i = 0; i < N; i++)
         {
@@ -217,16 +222,23 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
         deltaf2 += double(h_force_4.data[i].y - h_force_3.data[i].y) * double(h_force_4.data[i].y - h_force_3.data[i].y);
         deltaf2 += double(h_force_4.data[i].z - h_force_3.data[i].z) * double(h_force_4.data[i].z - h_force_3.data[i].z);
         deltape2 += double(h_force_4.data[i].w - h_force_3.data[i].w) * double(h_force_4.data[i].w - h_force_3.data[i].w);
-        deltav2 += double(h_virial_4.data[i] - h_virial_3.data[i]) * double(h_virial_4.data[i] - h_virial_3.data[i]);
+        for (unsigned int j = 0; j < 6; j++)
+            deltav2[j] += double(h_virial_4.data[j*pitch+i] - h_virial_3.data[j*pitch+i]) * double(h_virial_4.data[j*pitch+i] - h_virial_3.data[j*pitch+i]);
 
         // also check that each individual calculation is somewhat close
         }
     deltaf2 /= double(pdata->getN());
     deltape2 /= double(pdata->getN());
-    deltav2 /= double(pdata->getN());
+    for (unsigned int j = 0; j < 6; j++)
+        deltav2[j] /= double(pdata->getN());
     BOOST_CHECK_SMALL(deltaf2, double(tol_small));
     BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
+    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 

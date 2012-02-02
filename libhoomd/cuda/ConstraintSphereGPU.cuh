@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
 cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
                                                  float* d_virial,
+                                                 const unsigned int virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const gpu_pdata_arrays &pdata,

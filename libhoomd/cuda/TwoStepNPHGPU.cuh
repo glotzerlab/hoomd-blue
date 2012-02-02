@@ -48,28 +48,38 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
-#include "BondData.cuh"
+#ifndef __TWOSTEPNPHGPU_CUH__
+#define __TWOSTEPNPHGPU_CUH__
+
+#include <cuda_runtime.h>
+
 #include "ParticleData.cuh"
 
-/*! \file HarmonicBondForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the harmonic bond forces. Used by HarmonicBondForceComputeGPU.
+/*! \file TwoStepNPHGPU.cuh
+    \brief Declares GPU kernel code for NPH integration on the GPU. Used by TwoStepNPHGPU.
 */
 
-#ifndef __HARMONICBONDFORCEGPU_CUH__
-#define __HARMONICBONDFORCEGPU_CUH__
+//! Kernel driver for the the first step of the computation called by NPHUpdaterGPU
+cudaError_t gpu_nph_step_one(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             float3 L_old,
+                             float3 L_halfstep,
+                             float3 L_final,
+                             float deltaT);
 
-//! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_harmonic_bond_forces(float4* d_force,
-                                             float* d_virial,
-                                             const unsigned int virial_pitch,
-                                             const gpu_pdata_arrays &pdata,
-                                             const gpu_boxsize &box,
-                                             const gpu_bondtable_array &btable,
-                                             float2 *d_params,
-                                             unsigned int n_bond_types,
-                                             int block_size);
+//! Kernel driver to wrap the particles into a new box on the GPU
+cudaError_t gpu_nph_wrap_particles(const gpu_pdata_arrays &pdata,
+                             const gpu_boxsize& box);
+
+//! Kernel driver for the the second step of the computation called by NPHUpdaterGPU
+cudaError_t gpu_nph_step_two(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             float4 *d_net_force,
+                             float deltaT);
 
 #endif
 

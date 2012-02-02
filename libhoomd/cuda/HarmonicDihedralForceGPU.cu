@@ -75,6 +75,7 @@ texture<float4, 1, cudaReadModeElementType> dihedral_params_tex;
 //! Kernel for caculating harmonic dihedral forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data arrays to calculate forces on
     \param box Box dimensions for periodic boundary condition handling
     \param tlist Dihedral data to use in calculating the forces
@@ -82,6 +83,7 @@ texture<float4, 1, cudaReadModeElementType> dihedral_params_tex;
 extern "C" __global__ 
 void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
                                                  float* d_virial,
+                                                 const unsigned int virial_pitch,
                                                  gpu_pdata_arrays pdata,
                                                  gpu_boxsize box,
                                                  gpu_dihedraltable_array tlist)
@@ -103,7 +105,9 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
     float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     
     // initialize the virial to 0
-    float virial_idx = 0.0f;
+    float virial_idx[6];
+    for (unsigned int i = 0; i < 6; i++)
+        virial_idx[i] = 0.0f;
     
     // loop over all dihedrals
     for (int dihedral_idx = 0; dihedral_idx < n_dihedrals; dihedral_idx++)
@@ -300,14 +304,19 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
         //float dihedral_eng = p*K*float(1.0/4.0);
         float dihedral_eng = p*K*float(1.0/8.0); // the 1/8th term is (1/2)K * 1/4
-        
-        float vx = (dxab*ffax) + (dxcb*ffcx) + (dxdc+dxcb)*ffdx;
-        float vy = (dyab*ffay) + (dycb*ffcy) + (dydc+dycb)*ffdy;
-        float vz = (dzab*ffaz) + (dzcb*ffcz) + (dzdc+dzcb)*ffdz;
-        
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
-        float dihedral_virial = float(1.0/12.0)*(vx + vy + vz);
-        
+        // symmetrized version of virial tensor
+        float dihedral_virial[6];
+        dihedral_virial[0] = float(1./4.)*(dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx);
+        dihedral_virial[1] = float(1./8.)*(dxab*ffay + dxcb*ffcy + (dxdc+dxcb)*ffdy
+                                     +dyab*ffax + dycb*ffcx + (dydc+dycb)*ffdx);
+        dihedral_virial[2] = float(1./8.)*(dxab*ffaz + dxcb*ffcz + (dxdc+dxcb)*ffdz
+                                     +dzab*ffax + dzcb*ffcx + (dzdc+dzcb)*ffdx);
+        dihedral_virial[3] = float(1./4.)*(dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy);
+        dihedral_virial[4] = float(1./8.)*(dyab*ffaz + dycb*ffcz + (dydc+dycb)*ffdz
+                                     +dzab*ffay + dzcb*ffcy + (dzdc+dzcb)*ffdy);
+        dihedral_virial[5] = float(1./4.)*(dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz);
+
         if (cur_dihedral_abcd == 0)
             {
             force_idx.x += ffax;
@@ -334,16 +343,19 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
             }
             
         force_idx.w += dihedral_eng;
-        virial_idx += dihedral_virial;
+        for (int k = 0; k < 6; k++)
+            virial_idx[k] += dihedral_virial[k];
         }
         
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force_idx;
-    d_virial[idx] = virial_idx;
+    for (int k = 0; k < 6; k++)
+       d_virial[k*virial_pitch+idx] = virial_idx[k];
     }
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to perform the calculation on
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param ttable List of dihedrals stored on the GPU
@@ -359,6 +371,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
 */
 cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
                                                  float* d_virial,
+                                                 const unsigned int virial_pitch,
                                                  const gpu_pdata_arrays &pdata,
                                                  const gpu_boxsize &box,
                                                  const gpu_dihedraltable_array &ttable,
@@ -382,7 +395,7 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
         return error;
         
     // run the kernel
-    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, pdata, box, ttable);
+    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, pdata, box, ttable);
     
     return cudaSuccess;
     }

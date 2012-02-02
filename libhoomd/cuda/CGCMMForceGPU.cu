@@ -70,6 +70,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to calculate forces on
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -92,6 +93,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 */
 __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
                                                 float* d_virial,
+                                                const unsigned int virial_pitch,
                                                const gpu_pdata_arrays pdata,
                                                const gpu_boxsize box,
                                                const unsigned int *d_n_neigh,
@@ -125,7 +127,9 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
     
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float virial = 0.0f;
+    float virial[6];
+    for (int i = 0; i < 6; i++)
+        virial[i] = 0.0f;
     
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
@@ -186,7 +190,14 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
             // calculate the force magnitude / r (FLOPS: 11)
             float forcemag_divr = r6inv * (r2inv * (12.0f * lj12  * r6inv + 9.0f * r3inv * lj9 + 6.0f * lj6 ) + 4.0f * lj4);
             // calculate the virial (FLOPS: 3)
-            virial += float(1.0/6.0) * rsq * forcemag_divr;
+            float forcemag_div2r = 0.5f*forcemag_divr;
+            virial[0] += dx*dx*forcemag_div2r;
+            virial[1] += dx*dy*forcemag_div2r;
+            virial[2] += dx*dz*forcemag_div2r;
+            virial[3] += dy*dy*forcemag_div2r;
+            virial[4] += dy*dz*forcemag_div2r;
+            virial[5] += dz*dz*forcemag_div2r;
+
             // calculate the pair energy (FLOPS: 8)
             float pair_eng = r6inv * (lj12 * r6inv + lj9 * r3inv + lj6) + lj4 * r2inv * r2inv;
             
@@ -202,12 +213,14 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
-    d_virial[idx] = virial;
+    for (int i = 0; i < 6; i++)
+        d_virial[i*virial_pitch+idx] = virial[i];
     }
 
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to perform the calculation on
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -227,6 +240,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
 */
 cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
                                      float* d_virial,
+                                     const unsigned int virial_pitch,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,
@@ -253,7 +267,7 @@ cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
         
     // run the kernel
     gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>
-         (d_force, d_virial, pdata, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
+         (d_force, d_virial, virial_pitch, pdata, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
         
     return cudaSuccess;
     }

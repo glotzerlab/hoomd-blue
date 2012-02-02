@@ -74,6 +74,7 @@ class ComputeThermoGPU : public ComputeThermo
         Scalar2 PPPM_thermo_compute();
     protected:
         GPUArray<float4> m_scratch;  //!< Scratch space for partial sums
+        GPUArray<float> m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
         unsigned int m_num_blocks;   //!< Number of blocks participating in the reduction
         unsigned int m_block_size;   //!< Block size executed
         //! Does the actual computation

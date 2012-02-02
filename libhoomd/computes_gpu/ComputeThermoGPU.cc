@@ -92,6 +92,9 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     
     GPUArray< float4 > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
+
+    GPUArray< float > scratch_pressure_tensor(m_num_blocks * 6, exec_conf);
+    m_scratch_pressure_tensor.swap(scratch_pressure_tensor);
     }
 
 
@@ -121,6 +124,7 @@ void ComputeThermoGPU::computeProperties()
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::read);
     ArrayHandle<float4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
+    ArrayHandle<float> d_scratch_pressure_tensor(m_scratch_pressure_tensor, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_properties(m_properties, access_location::device, access_mode::overwrite);
     
     // access the group
@@ -130,11 +134,15 @@ void ComputeThermoGPU::computeProperties()
     compute_thermo_args args;
     args.d_net_force = d_net_force.data;
     args.d_net_virial = d_net_virial.data;
+    args.virial_pitch = net_virial.getPitch();
     args.ndof = m_ndof;
     args.D = m_sysdef->getNDimensions();
     args.d_scratch = d_scratch.data;
+    args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
     args.block_size = m_block_size;
     args.n_blocks = m_num_blocks;
+
+    PDataFlags flags = m_pdata->getFlags();
     
     // perform the computation on the GPU
     gpu_compute_thermo( d_properties.data,
@@ -142,7 +150,8 @@ void ComputeThermoGPU::computeProperties()
                         d_index_array.data,
                         group_size,
                         box,
-                        args);
+                        args,
+                        flags[pdata_flag::pressure_tensor]);
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

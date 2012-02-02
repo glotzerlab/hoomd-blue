@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMPUTE_THERMO_TYPES_H_
 #define _COMPUTE_THERMO_TYPES_H_
 
+#include "HOOMDMath.h"
 /*! \file ComputeThermoTypes.h
     \brief Data structures common to both CPU and GPU implementations of ComputeThermo
     */
@@ -67,8 +68,25 @@ struct thermo_index
         pressure,            //!< Index for the computed pressure in the GPUArray
         kinetic_energy,      //!< Index for the kinetic energy in the GPUArray
         potential_energy,    //!< Index for the potential energy in the GPUArray
+        pressure_xx,         //!< Index for the xx component of the symmetrized pressure tensor in the GPUArray
+        pressure_xy,         //!< Index for the xy component of the symmetrized pressure tensor in the GPUArray
+        pressure_xz,         //!< Index for the xz component of the symmetrized pressure tensor in the GPUArray
+        pressure_yy,         //!< Index for the yy component of the symmetrized pressure tensor in the GPUArray
+        pressure_yz,         //!< Index for the yz component of the symmetrized pressure tensor in the GPUArray
+        pressure_zz,         //!< Index for the zz component of the symmetrized pressure tensor in the GPUArray
         };
     };
 
+//! structure for storing the components of the pressure tensor
+struct PressureTensor
+    {
+    //! The six components of the symmetrized pressure tensor
+    Scalar xx; //!< xx component
+    Scalar xy; //!< xy component
+    Scalar xz; //!< xz component
+    Scalar yy; //!< yy component
+    Scalar yz; //!< yz component
+    Scalar zz; //!< zz component
+    };
 #endif
 

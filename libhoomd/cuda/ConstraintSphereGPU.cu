@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel for caculating sphere constraint forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param d_group_members List of members in the group
     \param group_size number of members in the group
     \param pdata Particle data arrays to calculate forces on
@@ -78,6 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" __global__
 void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
                                                  float* d_virial,
+                                                 const unsigned int virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  gpu_pdata_arrays pdata,
@@ -113,17 +115,19 @@ void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
     
     // evaluate the constraint force
     Scalar3 FC;
-    Scalar virial;
+    Scalar virial[6];
     constraint.evalConstraintForce(FC, virial, C);
 
     // now that the force calculation is complete, write out the results
     d_force[idx] = make_float4(FC.x, FC.y, FC.z, 0.0f);
-    d_virial[idx] = virial;
+    for (unsigned int i = 0; i < 6; i++)
+        d_virial[i*virial_pitch+idx] = virial[i];
     }
 
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param d_group_members List of members in the group
     \param group_size number of members in the group
     \param pdata Particle data arrays to calculate forces on
@@ -138,6 +142,7 @@ void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
 */
 cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
                                                  float* d_virial,
+                                                 const unsigned int virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const gpu_pdata_arrays &pdata,
@@ -156,9 +161,10 @@ cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
     
     // run the kernel
     cudaMemset(d_force, 0, sizeof(float4)*pdata.N);
-    cudaMemset(d_virial, 0, sizeof(float)*pdata.N);
+    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
     gpu_compute_constraint_sphere_forces_kernel<<< grid, threads>>>(d_force,
                                                                     d_virial,
+                                                                    virial_pitch,
                                                                     d_group_members,
                                                                     group_size,
                                                                     pdata,

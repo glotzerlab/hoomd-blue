@@ -196,6 +196,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
     eam_arrays.atomDerivativeEmbeddingFunction = (float *)d_atomDerivativeEmbeddingFunction;
     gpu_compute_eam_tex_inter_forces(d_force.data,
                                      d_virial.data,
+                                     m_virial.getPitch(),
                                      d_pdata,
                                      box,
                                      d_n_neigh.data,

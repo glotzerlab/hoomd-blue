@@ -68,6 +68,7 @@ struct dpd_pair_args_t
     //! Construct a dpd_pair_args_t
     dpd_pair_args_t(float4 *_d_force,
                     float *_d_virial,
+                    const unsigned int _virial_pitch,
                     const gpu_pdata_arrays& _pdata,
                     const gpu_boxsize &_box,
                     const unsigned int *_d_n_neigh,
@@ -82,6 +83,7 @@ struct dpd_pair_args_t
                     const float _T)
                         : d_force(_d_force),
                         d_virial(_d_virial),
+                        virial_pitch(_virial_pitch),
                         pdata(_pdata),
                         box(_box),
                         d_n_neigh(_d_n_neigh),
@@ -99,6 +101,7 @@ struct dpd_pair_args_t
     
     float4 *d_force;                //!< Force to write out
     float *d_virial;                //!< Virial to write out
+    const unsigned int virial_pitch; //!< pitch of 2D virial array
     const gpu_pdata_arrays& pdata;  //!< Particle data to compute forces over
     const gpu_boxsize &box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
@@ -126,6 +129,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
 
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -157,6 +161,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
 template< class evaluator >
 __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
                                               float *d_virial,
+                                              const unsigned int virial_pitch,
                                               gpu_pdata_arrays pdata,
                                               gpu_boxsize box,
                                               const unsigned int *d_n_neigh,
@@ -209,7 +214,9 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
     
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float virial = 0.0f;
+    float virial[6];
+    for (unsigned int i = 0; i < 6; i++)
+        virial[i] = 0.0f;
     
     // prefetch neighbor index
     unsigned int cur_j = 0;
@@ -281,7 +288,13 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             eval.evalForceEnergyThermo(force_divr, pair_eng);
 
             // calculate the virial (FLOPS: 3)
-            virial += float(1.0/6.0) * rsq * force_divr;
+            float force_div2r = 0.5f*force_divr;
+            virial[0] += dx * dx * force_div2r;
+            virial[1] += dx * dy * force_div2r;
+            virial[2] += dx * dz * force_div2r;
+            virial[3] += dy * dy * force_div2r;
+            virial[4] += dy * dz * force_div2r;
+            virial[5] += dz * dz * force_div2r;
             
             // add up the force vector components (FLOPS: 7)
             #if (__CUDA_ARCH__ >= 200)
@@ -303,7 +316,8 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
-    d_virial[idx] = virial;
+    for (unsigned int i = 0; i < 6; i++)
+        d_virial[i*virial_pitch+idx] = virial[i];
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
@@ -348,6 +362,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                  <<<grid, threads, shared_bytes>>>
                                  (args.d_force,
                                   args.d_virial,
+                                  args.virial_pitch,
                                   args.pdata,
                                   args.box,
                                   args.d_n_neigh,

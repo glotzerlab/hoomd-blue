@@ -176,6 +176,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
  
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    unsigned int virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -414,37 +415,47 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
         //Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
         Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(0.125);  // the .125 term is (1/2)K * 1/4
-        
-        Scalar vx = dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx;
-        Scalar vy = dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy;
-        Scalar vz = dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz;
-        
+
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
-        Scalar dihedral_virial = Scalar(1.0/12.0)*(vx + vy + vz);
+        // symmetrized version of virial tensor
+        Scalar dihedral_virial[6];
+        dihedral_virial[0] = (1./4.)*(dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx);
+        dihedral_virial[1] = (1./8.)*(dxab*ffay + dxcb*ffcy + (dxdc+dxcb)*ffdy
+                                     +dyab*ffax + dycb*ffcx + (dydc+dycb)*ffdx);
+        dihedral_virial[2] = (1./8.)*(dxab*ffaz + dxcb*ffcz + (dxdc+dxcb)*ffdz
+                                     +dzab*ffax + dzcb*ffcx + (dzdc+dzcb)*ffdx);
+        dihedral_virial[3] = (1./4.)*(dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy);
+        dihedral_virial[4] = (1./8.)*(dyab*ffaz + dycb*ffcz + (dydc+dycb)*ffdz
+                                     +dzab*ffay + dzcb*ffcy + (dzdc+dzcb)*ffdy);
+        dihedral_virial[5] = (1./4.)*(dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz);
        
         h_force.data[idx_a].x += ffax; 
         h_force.data[idx_a].y += ffay; 
         h_force.data[idx_a].z += ffaz; 
         h_force.data[idx_a].w += dihedral_eng; 
-        h_virial.data[idx_a]  += dihedral_virial; 
+        for (int k = 0; k < 6; k++)
+           h_virial.data[virial_pitch*k+idx_a]  += dihedral_virial[k];
 
         h_force.data[idx_b].x += ffbx; 
         h_force.data[idx_b].y += ffby; 
         h_force.data[idx_b].z += ffbz; 
         h_force.data[idx_b].w += dihedral_eng; 
-        h_virial.data[idx_b]  += dihedral_virial; 
+        for (int k = 0; k < 6; k++)
+           h_virial.data[virial_pitch*k+idx_b]  += dihedral_virial[k];
 
         h_force.data[idx_c].x += ffcx; 
         h_force.data[idx_c].y += ffcy; 
         h_force.data[idx_c].z += ffcz; 
         h_force.data[idx_c].w += dihedral_eng; 
-        h_virial.data[idx_c]  += dihedral_virial; 
+        for (int k = 0; k < 6; k++)
+           h_virial.data[virial_pitch*k+idx_c]  += dihedral_virial[k];
 
         h_force.data[idx_d].x += ffdx; 
         h_force.data[idx_d].y += ffdy; 
         h_force.data[idx_d].z += ffdz; 
         h_force.data[idx_d].w += dihedral_eng; 
-        h_virial.data[idx_d]  += dihedral_virial; 
+        for (int k = 0; k < 6; k++)
+           h_virial.data[virial_pitch*k+idx_d]  += dihedral_virial[k];
        }
         
     m_pdata->release();

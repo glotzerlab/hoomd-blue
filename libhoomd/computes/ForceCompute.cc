@@ -84,12 +84,13 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     // allocate data on the host
     unsigned int num_particles = m_pdata->getN();
     GPUArray<Scalar4>  force(num_particles,exec_conf);
-    GPUArray<Scalar>  virial(num_particles,exec_conf);
+    GPUArray<Scalar>   virial(num_particles,6,exec_conf);
     GPUArray<Scalar4>  torque(num_particles,exec_conf);
     m_force.swap(force);
     m_virial.swap(virial);
     m_torque.swap(torque);
-    
+
+    m_virial_pitch = m_virial.getPitch();
     m_fdata_partial = NULL;
     m_virial_partial = NULL;
     m_torque_partial = NULL;
@@ -106,7 +107,7 @@ void ForceCompute::allocateThreadPartial()
     m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
     //Don't use GPU arrays here, *_partial's only used on CPU
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
-    m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
+    m_virial_partial = new Scalar[6*m_index_thread_partial.getNumElements()];
     m_torque_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     }
 

@@ -186,6 +186,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    unsigned int virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -302,7 +303,13 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
             bond_eng = 0.0f;
 
         // calculate virial (FLOPS: 2)
-        Scalar bond_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
+        Scalar forcemag_div2r = Scalar(0.5) * forcemag_divr;
+        Scalar bond_virialxx = dx * dx * forcemag_div2r;
+        Scalar bond_virialxy = dx * dy * forcemag_div2r;
+        Scalar bond_virialxz = dx * dz * forcemag_div2r;
+        Scalar bond_virialyy = dy * dy * forcemag_div2r;
+        Scalar bond_virialyz = dy * dz * forcemag_div2r;
+        Scalar bond_virialzz = dz * dz * forcemag_div2r;
         
         // add the force to the particles
         // (MEM TRANSFER: 20 Scalars / FLOPS 16)
@@ -310,14 +317,23 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         h_force.data[idx_b].y += forcemag_divr * dy;
         h_force.data[idx_b].z += forcemag_divr * dz;
         h_force.data[idx_b].w += bond_eng + pair_eng;
-        h_virial.data[idx_b]  += bond_virial;
+        h_virial.data[0*virial_pitch+idx_b] += bond_virialxx;
+        h_virial.data[1*virial_pitch+idx_b] += bond_virialxy;
+        h_virial.data[2*virial_pitch+idx_b] += bond_virialxz;
+        h_virial.data[3*virial_pitch+idx_b] += bond_virialyy;
+        h_virial.data[4*virial_pitch+idx_b] += bond_virialyz;
+        h_virial.data[5*virial_pitch+idx_b] += bond_virialzz;
 
         h_force.data[idx_a].x -= forcemag_divr * dx;
         h_force.data[idx_a].y -= forcemag_divr * dy;
         h_force.data[idx_a].z -= forcemag_divr * dz;
         h_force.data[idx_a].w += bond_eng + pair_eng;
-        h_virial.data[idx_a]  += bond_virial;
-        
+        h_virial.data[0*virial_pitch+idx_a] += bond_virialxx;
+        h_virial.data[1*virial_pitch+idx_a] += bond_virialxy;
+        h_virial.data[2*virial_pitch+idx_a] += bond_virialxz;
+        h_virial.data[3*virial_pitch+idx_a] += bond_virialyy;
+        h_virial.data[4*virial_pitch+idx_a] += bond_virialyz;
+        h_virial.data[5*virial_pitch+idx_a] += bond_virialzz;
         }
         
     m_pdata->release();

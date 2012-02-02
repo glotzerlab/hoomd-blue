@@ -48,28 +48,44 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
-#include "BondData.cuh"
-#include "ParticleData.cuh"
+#include "TwoStepNPH.h"
 
-/*! \file HarmonicBondForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the harmonic bond forces. Used by HarmonicBondForceComputeGPU.
+#ifndef __TWO_STEP_NPH_GPU_H__
+#define __TWO_STEP_NPH_GPU_H__
+
+/*! \file TwoStepNPHGPU.h
+    \brief Declares the TwoStepNPHGPU class
 */
 
-#ifndef __HARMONICBONDFORCEGPU_CUH__
-#define __HARMONICBONDFORCEGPU_CUH__
+//! Integrates part of the system forward in two steps in the NPH ensemble on the GPU
+/*! Implements Andersen NPH integration through the IntegrationMethodTwoStep interface, runs on the GPU
 
-//! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_harmonic_bond_forces(float4* d_force,
-                                             float* d_virial,
-                                             const unsigned int virial_pitch,
-                                             const gpu_pdata_arrays &pdata,
-                                             const gpu_boxsize &box,
-                                             const gpu_bondtable_array &btable,
-                                             float2 *d_params,
-                                             unsigned int n_bond_types,
-                                             int block_size);
+    \ingroup updaters
+*/
+class TwoStepNPHGPU : public TwoStepNPH
+    {
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepNPHGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                   boost::shared_ptr<ParticleGroup> group,
+                   boost::shared_ptr<ComputeThermo> thermo,
+                   Scalar W,
+                   boost::shared_ptr<Variant> P,
+                   integrationMode mode,
+                   const std::string& suffix);
+        virtual ~TwoStepNPHGPU() {};
 
-#endif
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    };
+
+//! Exports the TwoStepNPHGPU class to python
+void export_TwoStepNPHGPU();
+
+#endif // #ifndef __TWO_STEP_NPH_GPU_H__
 

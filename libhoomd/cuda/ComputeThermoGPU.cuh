@@ -68,9 +68,11 @@ struct compute_thermo_args
     {
     float4 *d_net_force;    //!< Net force / pe array to sum
     float *d_net_virial;    //!< Net virial array to sum
+    unsigned int virial_pitch; //!< Pitch of 2D net_virial array
     unsigned int ndof;      //!< Number of degrees of freedom for T calculation
     unsigned int D;         //!< Dimensionality of the system
     float4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
+    float *d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch spaace for partial sums of the pressure tensor
     unsigned int block_size;    //!< Block size to execute on the GPU
     unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size
     };
@@ -81,7 +83,8 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                const gpu_boxsize &box,
-                               const compute_thermo_args& args
+                               const compute_thermo_args& args,
+                               const bool compute_pressure_tensor
                                );
 
 #endif

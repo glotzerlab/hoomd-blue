@@ -204,7 +204,7 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
 
     // need to start from a zero force, energy and virial
     memset(&(this->m_fdata_partial[this->m_index_thread_partial(0,tid)]) , 0, sizeof(Scalar4)*arrays.nparticles);
-    memset(&(this->m_virial_partial[this->m_index_thread_partial(0,tid)]) , 0, sizeof(Scalar)*arrays.nparticles);
+    memset(&(this->m_virial_partial[6*this->m_index_thread_partial(0,tid)]) , 0, 6*sizeof(Scalar)*arrays.nparticles);
     
     // for each particle
 #pragma omp for schedule(guided)
@@ -229,7 +229,10 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
         Scalar fyi = 0.0;
         Scalar fzi = 0.0;
         Scalar pei = 0.0;
-        Scalar viriali = 0.0;
+        Scalar viriali[6];
+        for (unsigned int l = 0; l < 6; l++)
+            viriali[l] = 0.0;
+
         
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
@@ -339,7 +342,14 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
                     }
                     
                 // compute the virial (FLOPS: 2)
-                Scalar pair_virial = Scalar(1.0/6.0) * rsq * force_divr;
+                Scalar pair_virial[6];
+                pair_virial[0] = Scalar(0.5) * dx * dx * force_divr;
+                pair_virial[1] = Scalar(0.5) * dx * dy * force_divr;
+                pair_virial[2] = Scalar(0.5) * dx * dz * force_divr;
+                pair_virial[3] = Scalar(0.5) * dy * dy * force_divr;
+                pair_virial[4] = Scalar(0.5) * dy * dz * force_divr;
+                pair_virial[5] = Scalar(0.5) * dz * dz * force_divr;
+
                 
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)
@@ -347,8 +357,9 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
                 fyi += dy*force_divr;
                 fzi += dz*force_divr;
                 pei += pair_eng * Scalar(0.5);
-                viriali += pair_virial;
-                
+                for (unsigned int l = 0; l < 6; l++)
+                    viriali[l] += pair_virial[l];
+
                 // NOTE, If we are using the (third_law) then we need to calculate the drag part of the force on the other particle too!
                 // and NOT include the drag force of the first particle
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
@@ -359,7 +370,9 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
                     this->m_fdata_partial[mem_idx].y -= dy*force_divr;
                     this->m_fdata_partial[mem_idx].z -= dz*force_divr;
                     this->m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
-                    this->m_virial_partial[mem_idx] += pair_virial;
+                    for (unsigned int l = 0; l < 6; l++)
+                        this->m_virial_partial[l+6*mem_idx] += pair_virial[l];
+
                     }
                 }
             }
@@ -370,7 +383,8 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
         this->m_fdata_partial[mem_idx].y += fyi;
         this->m_fdata_partial[mem_idx].z += fzi;
         this->m_fdata_partial[mem_idx].w += pei;
-        this->m_virial_partial[mem_idx] += viriali;
+        for (unsigned int l = 0; l < 6; l++)
+            this->m_virial_partial[l+6*mem_idx] += viriali[l];
         }
 #pragma omp barrier
     
@@ -383,7 +397,8 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
         h_force.data[i].y = this->m_fdata_partial[i].y;
         h_force.data[i].z = this->m_fdata_partial[i].z;
         h_force.data[i].w = this->m_fdata_partial[i].w;
-        h_virial.data[i]  = this->m_virial_partial[i];
+        for (unsigned int l = 0; l < 6; l++)
+            h_virial.data[l*this->m_virial_pitch+i]  = this->m_virial_partial[l+6*i];
 
         #ifdef ENABLE_OPENMP
         // add results from other threads
@@ -396,6 +411,8 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
             h_force.data[i].z += this->m_fdata_partial[mem_idx].z;
             h_force.data[i].w += this->m_fdata_partial[mem_idx].w;
             h_virial.data[i]  += this->m_virial_partial[mem_idx];
+            for (unsigned int l = 0; l < 6; l++)
+                 h_virial.data[l*this->m_virial_pitch+i]  = this->m_virial_partial[l+6*mem_idx];
             }
         #endif
         }

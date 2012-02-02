@@ -129,6 +129,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     // run the kernel on the GPU
     gpu_compute_harmonic_angle_forces(d_force.data,
                                       d_virial.data,
+                                      m_virial.getPitch(),
                                       pdata,
                                       box,
                                       gpu_angletable,

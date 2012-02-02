@@ -132,6 +132,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
     // run the kernel in parallel on all GPUs
     gpu_compute_harmonic_bond_forces(d_force.data,
                                      d_virial.data,
+                                     m_virial.getPitch(),
                                      pdata,
                                      box,
                                      gpu_bondtable,

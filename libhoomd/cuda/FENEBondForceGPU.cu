@@ -75,6 +75,7 @@ texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
 //! Kernel for caculating FENE bond forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data arrays to calculate forces on
     \param box Box dimensions for periodic boundary condition handling
     \param blist Bond data to use in calculating the forces
@@ -83,6 +84,7 @@ texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
 extern "C" __global__ 
 void gpu_compute_fene_bond_forces_kernel(float4* d_force,
                                          float* d_virial,
+                                         const unsigned int virial_pitch,
                                          gpu_pdata_arrays pdata,
                                          gpu_boxsize box,
                                          gpu_bondtable_array blist,
@@ -106,8 +108,14 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     // initialize the virial to 0
-    float virial = 0.0f;
-    
+    float virialxx = 0.0f;
+    float virialxy = 0.0f;
+    float virialxz = 0.0f;
+    float virialyy = 0.0f;
+    float virialyz = 0.0f;
+    float virialzz = 0.0f;
+
+
     // loop over neighbors
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
@@ -190,8 +198,14 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
             bond_eng = 0.0f;
         
         // add up the virial (FLOPS: 3)
-        virial += float(1.0/6.0) * rsq * forcemag_divr;
-        
+        float forcemag_div2r = 0.5f * forcemag_divr;
+        virialxx += dx * dx * forcemag_div2r;
+        virialxy += dx * dy * forcemag_div2r;
+        virialxz += dx * dz * forcemag_div2r;
+        virialyy += dy * dy * forcemag_div2r;
+        virialyz += dy * dz * forcemag_div2r;
+        virialzz += dz * dz * forcemag_div2r;
+
         // add up the forces (FLOPS: 7)
         force.x += dx * forcemag_divr;
         force.y += dy * forcemag_divr;
@@ -207,12 +221,18 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
     
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
     d_force[idx] = force;
-    d_virial[idx] = virial;
+    d_virial[0*virial_pitch+idx] = virialxx;
+    d_virial[1*virial_pitch+idx] = virialxy;
+    d_virial[2*virial_pitch+idx] = virialxz;
+    d_virial[3*virial_pitch+idx] = virialyy;
+    d_virial[4*virial_pitch+idx] = virialyz;
+    d_virial[5*virial_pitch+idx] = virialzz;
     }
 
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
     \param pdata Particle data on the GPU to perform the calculation on
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param btable List of bonds stored on the GPU
@@ -229,6 +249,7 @@ void gpu_compute_fene_bond_forces_kernel(float4* d_force,
 */
 cudaError_t gpu_compute_fene_bond_forces(float4* d_force,
                                          float* d_virial,
+                                         const unsigned int virial_pitch,
                                          const gpu_pdata_arrays &pdata,
                                          const gpu_boxsize &box,
                                          const gpu_bondtable_array &btable,
@@ -259,7 +280,7 @@ cudaError_t gpu_compute_fene_bond_forces(float4* d_force,
         return error;
         
     // run the kernel
-    gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(d_force, d_virial, pdata, box, btable, d_flags);
+    gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, pdata, box, btable, d_flags);
     
     return cudaSuccess;
     }

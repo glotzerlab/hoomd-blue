@@ -1042,6 +1042,7 @@ void PPPMForceCompute::fix_exclusions_cpu()
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
+    unsigned int virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -1065,7 +1066,9 @@ void PPPMForceCompute::fix_exclusions_cpu()
     for(unsigned int i = 0; i < group_size; i++)
         {
         Scalar4 force = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
-        Scalar virial = 0.0f;
+        Scalar virial[6];
+        for (unsigned int k = 0; k < 6; k++)
+            virial[k] = 0.0f;
         unsigned int idx = d_group_members.data[i];
         Scalar4 posi;
         posi.x = arrays.x[idx];
@@ -1100,7 +1103,12 @@ void PPPMForceCompute::fix_exclusions_cpu()
             Scalar erffac = erf(m_kappa * r) / r;
             Scalar force_divr = qiqj * (-2.0f * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
             Scalar pair_eng = qiqj * erffac; 
-            virial += Scalar(1.0/6.0) * rsq * force_divr;
+            virial[0]+= Scalar(0.5) * dx * dx * force_divr;
+            virial[1]+= Scalar(0.5) * dy * dx * force_divr;
+            virial[2]+= Scalar(0.5) * dz * dx * force_divr;
+            virial[3]+= Scalar(0.5) * dy * dy * force_divr;
+            virial[4]+= Scalar(0.5) * dz * dy * force_divr;
+            virial[5]+= Scalar(0.5) * dz * dz * force_divr;
             force.x += dx * force_divr;
             force.y += dy * force_divr;
             force.z += dz * force_divr;
@@ -1111,7 +1119,8 @@ void PPPMForceCompute::fix_exclusions_cpu()
         h_force.data[idx].y -= force.y;
         h_force.data[idx].z -= force.z;
         h_force.data[idx].w = -force.w;
-        h_virial.data[idx] = -virial;
+        for (unsigned int k = 0; k < 6; k++)
+            h_virial.data[k*virial_pitch+idx] = -virial[k];
         }
     
     m_pdata->release();

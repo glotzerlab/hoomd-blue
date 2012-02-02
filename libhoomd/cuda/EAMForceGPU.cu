@@ -90,6 +90,7 @@ __constant__ EAMTexInterData eam_data_ti;
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     float4* d_force,
     float* d_virial,
+    const unsigned int virial_pitch,
     gpu_pdata_arrays pdata,
     gpu_boxsize box,
     const unsigned int *d_n_neigh,
@@ -164,6 +165,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     float4* d_force,
     float* d_virial,
+    const unsigned int virial_pitch,
     gpu_pdata_arrays pdata,
     gpu_boxsize box,
     const unsigned int *d_n_neigh,
@@ -196,7 +198,10 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     float fzi = 0.0f;
     float m_pe = 0.0f;
     float pairForce = 0.0f;
-    float virial = 0.0f;
+    float virial[6];
+    for (int i = 0; i < 6; i++)
+        virial[i] = 0.0f;
+
     force.w = d_force[idx].w;
     int nr = eam_data_ti.nr;
     int ntypes = eam_data_ti.ntypes;
@@ -240,7 +245,13 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         float fullDerivativePhi = adef * derivativeRhoJ +
                 atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
         pairForce = - fullDerivativePhi * inverseR;
-        virial += float(1.0f/6.0f) * rsq * pairForce;
+        float pairForceover2 = 0.5f *pairForce;
+        virial[0] += dx * dx *pairForceover2;
+        virial[1] += dx * dy *pairForceover2;
+        virial[2] += dx * dz *pairForceover2;
+        virial[3] += dy * dy *pairForceover2;
+        virial[4] += dy * dz *pairForceover2;
+        virial[5] += dz * dz *pairForceover2;
 
         fxi += dx * pairForce ;
         fyi += dy * pairForce ;
@@ -254,12 +265,14 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     force.w += m_pe;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
-    d_virial[idx] = virial;
+    for (int i = 0; i < 6; i++)
+        d_virial[i*virial_pitch+idx] = virial[i];
     }
 
 cudaError_t gpu_compute_eam_tex_inter_forces(
     float4* d_force,
     float* d_virial,
+    const unsigned int virial_pitch,
     const gpu_pdata_arrays &pdata,
     const gpu_boxsize &box,
     const unsigned int *d_n_neigh,
@@ -314,6 +327,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 
     gpu_compute_eam_tex_inter_forces_kernel<<< grid, threads>>>(d_force,
                                                                 d_virial,
+                                                                virial_pitch,
                                                                 pdata,
                                                                 box,
                                                                 d_n_neigh,
@@ -323,6 +337,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 
     gpu_compute_eam_tex_inter_forces_kernel_2<<< grid, threads>>>(d_force,
                                                                   d_virial,
+                                                                  virial_pitch,
                                                                   pdata,
                                                                   box,
                                                                   d_n_neigh,

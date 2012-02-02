@@ -70,7 +70,8 @@ struct gpu_force_list
     gpu_force_list() 
         : f0(NULL), f1(NULL), f2(NULL), f3(NULL), f4(NULL), f5(NULL),
           t0(NULL), t1(NULL), t2(NULL), t3(NULL), t4(NULL), t5(NULL),
-          v0(NULL), v1(NULL), v2(NULL), v3(NULL), v4(NULL), v5(NULL)
+          v0(NULL), v1(NULL), v2(NULL), v3(NULL), v4(NULL), v5(NULL),
+          vpitch0(0), vpitch1(0), vpitch2(0), vpitch3(0), vpitch4(0), vpitch5(0)
           {
           }
           
@@ -94,15 +95,24 @@ struct gpu_force_list
     float *v3;  //!< Pointer to virial array 3
     float *v4;  //!< Pointer to virial array 4
     float *v5;  //!< Pointer to virial array 5
+
+    unsigned int vpitch0; //!< Pitch of virial array 0
+    unsigned int vpitch1; //!< Pitch of virial array 1
+    unsigned int vpitch2; //!< Pitch of virial array 2
+    unsigned int vpitch3; //!< Pitch of virial array 3
+    unsigned int vpitch4; //!< Pitch of virial array 4
+    unsigned int vpitch5; //!< Pitch of virial array 5
  };
 
 //! Driver for gpu_integrator_sum_net_force_kernel()
 cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float *d_net_virial,
+                                         const unsigned int virial_pitch,
                                          float4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
-                                         bool clear);
+                                         bool clear,
+                                         bool compute_virial);
 
 #endif
 

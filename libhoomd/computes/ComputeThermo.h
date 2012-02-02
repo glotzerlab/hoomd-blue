@@ -169,6 +169,38 @@ class ComputeThermo : public Compute
                 }
             }
 
+        //! Returns the symmetrized virial tensor last computed by compute()
+        /*! \returns Instantaneous virial tensor, or virial tensor containing NaN entries if it is
+            not available
+        */
+        PressureTensor getPressureTensor()
+            {
+            // return tensor of NaN's if flags are not valid
+            PDataFlags flags = m_pdata->getFlags();
+            PressureTensor p;
+            if (flags[pdata_flag::pressure_tensor])
+                {
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+
+                p.xx = h_properties.data[thermo_index::pressure_xx];
+                p.xy = h_properties.data[thermo_index::pressure_xy];
+                p.xz = h_properties.data[thermo_index::pressure_xz];
+                p.yy = h_properties.data[thermo_index::pressure_yy];
+                p.yz = h_properties.data[thermo_index::pressure_yz];
+                p.zz = h_properties.data[thermo_index::pressure_zz];
+                }
+            else
+                {
+                p.xx = std::numeric_limits<Scalar>::quiet_NaN();
+                p.xy = std::numeric_limits<Scalar>::quiet_NaN();
+                p.xz = std::numeric_limits<Scalar>::quiet_NaN();
+                p.yy = std::numeric_limits<Scalar>::quiet_NaN();
+                p.yz = std::numeric_limits<Scalar>::quiet_NaN();
+                p.zz = std::numeric_limits<Scalar>::quiet_NaN();
+                }
+            return p;
+            }
+
         //! Get the gpu array of properties
         const GPUArray<Scalar>& getProperties()
             {

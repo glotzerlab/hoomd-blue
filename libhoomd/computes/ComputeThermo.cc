@@ -76,7 +76,7 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     : Compute(sysdef), m_group(group), m_ndof(1)
     {
     assert(m_pdata);
-    GPUArray< Scalar > properties(4, exec_conf);
+    GPUArray< Scalar > properties(10, exec_conf);
     m_properties.swap(properties);
 
     m_logname_list.push_back(string("temperature") + suffix);
@@ -177,14 +177,46 @@ void ComputeThermo::computeProperties()
 
     // total kinetic energy 
     double ke_total = 0.0;
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
+    PDataFlags flags = m_pdata->getFlags();
+
+    double pressure_kinetic_xx = 0.0;
+    double pressure_kinetic_xy = 0.0;
+    double pressure_kinetic_xz = 0.0;
+    double pressure_kinetic_yy = 0.0;
+    double pressure_kinetic_yz = 0.0;
+    double pressure_kinetic_zz = 0.0;
+
+    if (flags[pdata_flag::pressure_tensor])
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        ke_total += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vx[j] 
-                                            + (double)arrays.vy[j] * (double)arrays.vy[j] 
-                                            + (double)arrays.vz[j] * (double)arrays.vz[j]);
+        // Calculate kinetic part of pressure tensor
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            pressure_kinetic_xx += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vx[j] );
+            pressure_kinetic_xy += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vy[j] );
+            pressure_kinetic_xz += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vz[j] );
+            pressure_kinetic_yy += (double)arrays.mass[j]*(  (double)arrays.vy[j] * (double)arrays.vy[j] );
+            pressure_kinetic_yz += (double)arrays.mass[j]*(  (double)arrays.vy[j] * (double)arrays.vz[j] );
+            pressure_kinetic_zz += (double)arrays.mass[j]*(  (double)arrays.vz[j] * (double)arrays.vz[j] );
+            }
+
+        // kinetic energy = 1/2 trace of kinetic part of pressure tensor
+        ke_total = Scalar(0.5)*(pressure_kinetic_xx + pressure_kinetic_yy + pressure_kinetic_zz);
         }
-    ke_total *= 0.5;
+    else
+        {
+        // total kinetic energy
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            ke_total += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vx[j]
+                                                + (double)arrays.vy[j] * (double)arrays.vy[j]
+                                                + (double)arrays.vz[j] * (double)arrays.vz[j]);
+            }
+
+        ke_total *= Scalar(0.5);
+        }
     
     // total potential energy 
     double pe_total = 0.0;
@@ -194,12 +226,47 @@ void ComputeThermo::computeProperties()
         pe_total += (double)h_net_force.data[j].w;
         }
 
-    // total the virial
+
     double W = 0.0;
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    double virial_xx = 0.0;
+    double virial_xy = 0.0;
+    double virial_xz = 0.0;
+    double virial_yy = 0.0;
+    double virial_yz = 0.0;
+    double virial_zz = 0.0;
+
+    if (flags[pdata_flag::pressure_tensor])
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        W += (double)h_net_virial.data[j];
+        // Calculate symmetrized virial tensor
+        unsigned int virial_pitch = net_virial.getPitch();
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            virial_xx += (double)h_net_virial.data[j+0*virial_pitch];
+            virial_xy += (double)h_net_virial.data[j+1*virial_pitch];
+            virial_xz += (double)h_net_virial.data[j+2*virial_pitch];
+            virial_yy += (double)h_net_virial.data[j+3*virial_pitch];
+            virial_yz += (double)h_net_virial.data[j+4*virial_pitch];
+            virial_zz += (double)h_net_virial.data[j+5*virial_pitch];
+            }
+
+        if (flags[pdata_flag::isotropic_virial])
+            {
+            // isotropic virial = 1/3 trace of virial tensor
+            W = Scalar(1./3.) * (virial_xx + virial_yy + virial_zz);
+            }
+        }
+     else if (flags[pdata_flag::isotropic_virial])
+        {
+        // only sum up isotropic part of virial tensor
+        unsigned int virial_pitch = net_virial.getPitch();
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            W += Scalar(1./3.)* ((double)h_net_virial.data[j+0*virial_pitch] +
+                                 (double)h_net_virial.data[j+3*virial_pitch] +
+                                 (double)h_net_virial.data[j+5*virial_pitch] );
+            }
         }
 
     m_pdata->release();
@@ -227,13 +294,27 @@ void ComputeThermo::computeProperties()
     // pressure: P = (N * K_B * T + W)/V
     Scalar pressure =  (2.0 * ke_total / Scalar(D) + W) / volume;
 
+    // pressure tensor = (kinetic part + virial) / V
+    Scalar pressure_xx = (pressure_kinetic_xx + virial_xx) / volume;
+    Scalar pressure_xy = (pressure_kinetic_xy + virial_xy) / volume;
+    Scalar pressure_xz = (pressure_kinetic_xz + virial_xz) / volume;
+    Scalar pressure_yy = (pressure_kinetic_yy + virial_yy) / volume;
+    Scalar pressure_yz = (pressure_kinetic_yz + virial_yz) / volume;
+    Scalar pressure_zz = (pressure_kinetic_zz + virial_zz) / volume;
+
     // fill out the GPUArray
     ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::overwrite);
     h_properties.data[thermo_index::temperature] = temperature;
     h_properties.data[thermo_index::pressure] = pressure;
     h_properties.data[thermo_index::kinetic_energy] = Scalar(ke_total);
     h_properties.data[thermo_index::potential_energy] = Scalar(pe_total);
-    
+    h_properties.data[thermo_index::pressure_xx] = pressure_xx;
+    h_properties.data[thermo_index::pressure_xy] = pressure_xy;
+    h_properties.data[thermo_index::pressure_xz] = pressure_xz;
+    h_properties.data[thermo_index::pressure_yy] = pressure_yy;
+    h_properties.data[thermo_index::pressure_yz] = pressure_yz;
+    h_properties.data[thermo_index::pressure_zz] = pressure_zz;
+
 
    if(PPPMData::compute_pppm_flag) {
         Scalar2 pppm_thermo = ComputeThermo::PPPM_thermo_compute_cpu();

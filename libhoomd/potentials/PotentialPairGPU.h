@@ -171,8 +171,13 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
     
+    // access flags
+    PDataFlags flags = this->m_pdata->getFlags();
+
+
     gpu_cgpf(pair_args_t(d_force.data,
                          d_virial.data,
+                         this->m_virial.getPitch(),
                          pdata,
                          box,
                          d_n_neigh.data,
@@ -182,7 +187,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          d_ronsq.data,
                          this->m_pdata->getNTypes(),
                          m_block_size,
-                         this->m_shift_mode),
+                         this->m_shift_mode,
+                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

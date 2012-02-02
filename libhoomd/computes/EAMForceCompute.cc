@@ -322,6 +322,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    unsigned int virial_pitch = m_virial.getPitch();
  
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -463,7 +464,9 @@ void EAMForceCompute::computeForces(unsigned int timestep)
         Scalar fyi = 0.0;
         Scalar fzi = 0.0;
         Scalar pei = 0.0;
-        Scalar viriali = 0.0;
+        Scalar viriali[6];
+        for (int k = 0; k < 6; k++)
+            viriali[k] = 0.0;
 
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
@@ -527,7 +530,14 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             Scalar fullDerivativePhi = atomDerivativeEmbeddingFunction[i] * derivativeRhoJ +
                 atomDerivativeEmbeddingFunction[k] * derivativeRhoI + derivativePhi;
             Scalar pairForce = - fullDerivativePhi * inverseR;
-            viriali += float(1.0/3.0) * (rsq) * pairForce;
+            // are the virial and potential energy correctly calculated
+            // with respect to double counting?
+            viriali[0] += dx*dx * pairForce;
+            viriali[1] += dx*dy * pairForce;
+            viriali[2] += dx*dz * pairForce;
+            viriali[3] += dy*dy * pairForce;
+            viriali[4] += dy*dz * pairForce;
+            viriali[5] += dz*dz * pairForce;
             fxi += dx * pairForce;
             fyi += dy * pairForce;
             fzi += dz * pairForce;
@@ -544,7 +554,8 @@ void EAMForceCompute::computeForces(unsigned int timestep)
         h_force.data[i].y += fyi;
         h_force.data[i].z += fzi;
         h_force.data[i].w += pei;
-        h_virial.data[i] += viriali;
+        for (int k = 0; k < 6; k++)
+            h_virial.data[k*virial_pitch+i] += viriali[k];
         }
     m_pdata->release();
 
