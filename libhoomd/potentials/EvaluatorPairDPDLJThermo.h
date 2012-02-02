@@ -71,7 +71,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
 #else
@@ -79,7 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // call different optimized sqrt functions on the host / device
-//! RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
+// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
 #ifdef NVCC
 #define RSQRT(x) rsqrtf( (x) )
 #else
@@ -87,7 +87,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // call different Saru PRNG initializers on the host / device
-//! SARU is SaruGPU Class when included in nvcc and Saru Class when included into the host compiler
+// SARU is SaruGPU Class when included in nvcc and Saru Class when included into the host compiler
 #ifdef NVCC
 #define SARU(ix,iy,iz) SaruGPU saru( (ix) , (iy) , (iz) )
 #else
@@ -95,7 +95,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // use different Saru PRNG returns on the host / device
-//! CALL_SARU is currently define to return a random float for both the GPU and Host.  By changing saru.f to saru.d, a double could be returned instead.
+// CALL_SARU is currently define to return a random float for both the GPU and Host.  By changing saru.f to saru.d, a double could be returned instead.
 #ifdef NVCC
 #define CALL_SARU(x,y) saru.f( (x), (y))
 #else

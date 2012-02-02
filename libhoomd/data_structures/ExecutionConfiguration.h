@@ -173,7 +173,7 @@ private:
     void setupStats();
     };
 
-//! Macro for easy checking of CUDA errors - enabled all the time
+// Macro for easy checking of CUDA errors - enabled all the time
 #define CHECK_CUDA_ERROR() ExecutionConfiguration::checkCUDAError(__FILE__, __LINE__);
 
 //! Exports ExecutionConfiguration to python

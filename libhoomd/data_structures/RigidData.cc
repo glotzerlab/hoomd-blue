@@ -71,9 +71,9 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-//! Maximum number of iterations for Jacobi rotations
+// Maximum number of iterations for Jacobi rotations
 #define MAXJACOBI 50
-//! Maximum value macro
+// Maximum value macro
 #define MAX(A,B) ((A) > (B)) ? (A) : (B)
 
 /*! \param particle_data ParticleData this use in initializing this RigidData

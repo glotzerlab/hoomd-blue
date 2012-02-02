@@ -40,27 +40,26 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef __HOOMD_VERSION_H__
-//! Inclusion guard (why does doxygen want to document this one?)
 #define __HOOMD_VERSION_H__
 
-//! Full text HOOMD version string
+// Full text HOOMD version string
 #define HOOMD_VERSION "${HOOMD_VERSION}"
-//! Full text HOOMD version string 
+// Full text HOOMD version string 
 #define HOOMD_VERSION_LONG "${HOOMD_VERSION_LONG}"
-//! Text string containing the date this build was configured
+// Text string containing the date this build was configured
 #define COMPILE_DATE "${COMPILE_DATE}"
-//! Set to the src dir to be used as the root to read data files from
+// Set to the src dir to be used as the root to read data files from
 #define HOOMD_SOURCE_DIR "${HOOMD_SOURCE_DIR}"
-//! Current git refspec checked out
+// Current git refspec checked out
 #define HOOMD_GIT_REFSPEC "${HOOMD_GIT_REFSPEC}"
-//! Current git hash
+// Current git hash
 #define HOOMD_GIT_SHA1 "${HOOMD_GIT_SHA1}"
 
-//! hoomd major version
+// hoomd major version
 #define HOOMD_VERSION_MAJOR ${HOOMD_VERSION_MAJOR}
-//! hoomd minor version
+// hoomd minor version
 #define HOOMD_VERSION_MINOR ${HOOMD_VERSION_MINOR}
-//! hoomd patch version
+// hoomd patch version
 #define HOOMD_VERSION_PATCH ${HOOMD_VERSION_PATCH}
 
 /*! \file HOOMDVersion.h.in

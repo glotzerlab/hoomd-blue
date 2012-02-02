@@ -70,7 +70,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAX_BLOCK_DIM_SIZE 65535
 
-//! Constant memory for gridpoint weighting
+// Constant memory for gridpoint weighting
 #define CONSTANT_SIZE 2048
 __device__ __constant__ float GPU_rho_coeff[CONSTANT_SIZE];
 
