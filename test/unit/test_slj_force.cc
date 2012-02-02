@@ -97,7 +97,8 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
+    pdata_3->setFlags(~PDataFlags(0));    
+
     ParticleDataArrays arrays = pdata_3->acquireReadWrite();
     arrays.x[0] = Scalar(-0.2);
     //arrays.x[0] = 0;
@@ -237,7 +238,8 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    
+    pdata_6->setFlags(~PDataFlags(0));
+
     ParticleDataArrays arrays = pdata_6->acquireReadWrite();
     arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
     arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -357,7 +359,8 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     RandomInitializer rand_init(N, Scalar(0.05), Scalar(1.3), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+    pdata->setFlags(~PDataFlags(0));
+
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairSLJ> fc1 = shiftedlj_creator1(sysdef, nlist);
