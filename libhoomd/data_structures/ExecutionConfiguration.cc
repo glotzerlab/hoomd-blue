@@ -153,6 +153,19 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #endif
     }
 
+std::string ExecutionConfiguration::getGPUName() const
+    {
+    #ifdef ENABLE_CUDA
+    if (exec_mode == GPU)
+        return string(dev_prop.name);
+    else
+        return string();
+    #else
+    return string();
+    #endif
+    }
+
+
 #ifdef ENABLE_CUDA
 /*! \returns Compute capability of GPU 0 as a string
     \note Silently returns an emtpy string if no GPUs are specified
@@ -543,6 +556,7 @@ void ExecutionConfiguration::setupStats()
         cudaGetDevice(&dev);
         cudaGetDeviceProperties(&dev_prop, dev);
         printGPUStats();
+        n_cpu = 1;  // GPU runs only use 1 CPU core
         }
     #endif
     
@@ -570,6 +584,8 @@ void export_ExecutionConfiguration()
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool>())
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
+                         .def("getGPUName", &ExecutionConfiguration::getGPUName)
+                         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
 #ifdef ENABLE_CUDA
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif

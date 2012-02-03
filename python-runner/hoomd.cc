@@ -53,15 +53,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
 
-//! Enable old boost::filesystem API (temporary fix)
-#define BOOST_FILESYSTEM_VERSION 2
-
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
 #endif
 
-
+#include <boost/version.hpp>
 #include <boost/python.hpp>
 
 #include <boost/filesystem/operations.hpp>
@@ -77,6 +74,11 @@ using namespace boost::filesystem;
 #include <list>
 #include <iostream>
 using namespace std;
+
+// hack to support both version 2 and version 3 of the boost filesystem API
+#if (BOOST_VERSION >= 104400)
+#define native_file_string string
+#endif
 
 /*! \file hoomd.cc
     \brief Executable for running python scripts with the hoomd module builtin

@@ -71,15 +71,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __PPPMFORCECOMPUTE_H__
 #define __PPPMFORCECOMPUTE_H__
 
-//! MAX gives the larger of two values
+// MAX gives the larger of two values
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
-//! MIN gives the lesser of two values
+// MIN gives the lesser of two values
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
-//! MaxOrder is the largest allowed value of the interpolation order
+// MaxOrder is the largest allowed value of the interpolation order
 #define MaxOrder 7
-//! ConstSize is used to make sure the rho_coeff will fit into memory on the GPU
+// ConstSize is used to make sure the rho_coeff will fit into memory on the GPU
 #define CONSTANT_SIZE 2048
-//! EPS_HOC is used to calculate the Green's function
+// EPS_HOC is used to calculate the Green's function
 #define EPS_HOC 1.0e-7
 
 //! Computes the long ranged part of the electrostatic forces on each particle
