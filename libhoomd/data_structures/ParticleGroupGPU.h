@@ -141,6 +141,24 @@ class ParticleSelectorRigidGPU : public ParticleSelectorRuleGPU<RigidRule, gpu_s
         ParticleSelectorRigidGPU(boost::shared_ptr<SystemDefinition> sysdef, bool rigid);
         virtual ~ParticleSelectorRigidGPU() {}
     };
+
+//! ParticleSelector to select particles on the GPU based on a global tag list
+class ParticleSelectorGlobalTagListGPU : public ParticleSelectorGlobalTagList
+    {
+    public:
+        //! Initializes the selector
+        ParticleSelectorGlobalTagListGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& global_tag_list);
+        virtual ~ParticleSelectorGlobalTagListGPU() {}
+
+        //! Get the list of selected tags
+        /*! \param the GPU array to store the member tags in
+         * \return the number of local particles included
+         * \pre  member_tags must be allocated and of sufficient size to accomodate
+         *       all local members of the group (i.e.
+         *       the current maximum number of particles returned by ParticleData::getMaxN() )
+        */
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
+    };
 #endif
 
 #endif

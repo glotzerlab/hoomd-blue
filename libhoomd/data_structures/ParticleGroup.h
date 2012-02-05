@@ -251,7 +251,7 @@ class ParticleSelectorGlobalTagList : public ParticleSelector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
 
     private:
-        const std::vector<unsigned int> m_global_member_tags; //!< List of global member tags
+        GPUArray<unsigned int> m_global_member_tags;    //!< array of global member tags
     };
 
 //! ParticleSelector that represents a union of two ParticleSelectors

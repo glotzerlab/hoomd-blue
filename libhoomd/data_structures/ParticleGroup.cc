@@ -213,8 +213,16 @@ bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
 
 //! Constructor
 ParticleSelectorGlobalTagList::ParticleSelectorGlobalTagList(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& global_tag_list)
-    : ParticleSelector(), m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_global_member_tags(global_tag_list)
+    : ParticleSelector(), m_sysdef(sysdef), m_pdata(sysdef->getParticleData())
     {
+
+    // copy the tag list into a GPU array for efficient access on the GPU
+    GPUArray<unsigned int> global_tags(global_tag_list.size(), m_pdata->getExecConf());
+    m_global_member_tags.swap(global_tags);
+
+    ArrayHandle<unsigned int> h_global_member_tags(m_global_member_tags, access_location::host, access_mode::overwrite);
+    std::copy(global_tag_list.begin(), global_tag_list.end(), h_global_member_tags.data);
+
     }
 
 //! rebuild list of particle global tags that are members of the group and which are owned by the ParticleData
@@ -222,21 +230,21 @@ unsigned int ParticleSelectorGlobalTagList::getMemberTags(const GPUArray<unsigne
     {
     assert(member_tags.getNumElements() >= m_pdata->getN());
 
-    unsigned int num_members = 0;
     ArrayHandle<unsigned int> h_tag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
+    // global tags of local members of the group
     ArrayHandle<unsigned int> h_member_tags(member_tags, access_location::host, access_mode::overwrite);
 
-    std::vector<unsigned int>::const_iterator it;
+    // all global tags that are members of the group
+    ArrayHandle<unsigned int> h_global_member_tags(m_global_member_tags, access_location::host, access_mode::read);
 
-    for (it = m_global_member_tags.begin(); it != m_global_member_tags.end(); it++)
-        {
-        if (m_pdata->isLocal(*it))
-            {
-            // if the particle is present in the local simulation box, add its tag to the group members list
-            h_member_tags.data[num_members++] = *it;
-            }
-        }
+    unsigned int num_members;
+    // find intersection of global tag list with global tags of local particles
+    num_members =  std::set_intersection(h_global_member_tags.data,
+                                         h_global_member_tags.data + m_global_member_tags.getNumElements(),
+                                         h_tag.data,
+                                         h_tag.data + m_pdata->getN(),
+                                         h_member_tags.data) - h_member_tags.data;
     return num_members;
     }
 
