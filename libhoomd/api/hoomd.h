@@ -55,137 +55,117 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hoomd_config.h"
 
-// math setup
 #include "HOOMDMath.h"
-
-// data structures
-#include "GPUArray.h"
+#include "ClockSource.h"
+#include "Profiler.h"
 #include "ParticleData.h"
-#include "AngleData.h"
-#include "BondData.h"
-#include "DihedralData.h"
-#include "IntegratorData.h"
-#include "ParticleGroup.h"
-#include "WallData.h"
-
-#include "ExecutionConfiguration.h"
+#include "RigidData.h"
 #include "SystemDefinition.h"
-
-// initializers
+#include "BondData.h"
+#include "AngleData.h"
+#include "DihedralData.h"
+#include "ExecutionConfiguration.h"
 #include "Initializers.h"
-#include "RandomGenerator.h"
-#include "HOOMDBinaryInitializer.h"
 #include "HOOMDInitializer.h"
-
-// base classes
-#include "Analyzer.h"
+#include "HOOMDBinaryInitializer.h"
+#include "RandomGenerator.h"
 #include "Compute.h"
-#include "Updater.h"
-
-// analyzers
-#include "DCDDumpWriter.h"
-#include "HOOMDBinaryDumpWriter.h"
-#include "HOOMDDumpWriter.h"
-#include "IMDInterface.h"
-#include "Logger.h"
-#include "MOL2DumpWriter.h"
-#include "MSDAnalyzer.h"
-#include "PDBDumpWriter.h"
-
-// computes
-#include "ForceCompute.h"
 #include "CellList.h"
-#include "NeighborList.h"
-#include "NeighborListBinned.h"
+#include "ForceCompute.h"
+#include "ForceConstraint.h"
 #include "ConstForceCompute.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
-
-#ifdef ENABLE_CUDA
-#include "CellListGPU.h"
-#include "NeighborListGPUBinned.h"
-#endif
-
-// pair potentials
-#include "TablePotential.h"
-#include "CGCMMForceCompute.h"
-#include "AllPairPotentials.h"
-
-#ifdef ENABLE_CUDA
-#include "CGCMMForceComputeGPU.h"
-#include "TablePotentialGPU.h"
-#endif
-
-// bond potentials
-#include "FENEBondForceCompute.h"
 #include "HarmonicBondForceCompute.h"
-
-#ifdef ENABLE_CUDA
-#include "HarmonicBondForceComputeGPU.h"
-#include "FENEBondForceComputeGPU.h"
-#endif
-
-// angle potentials
-#include "CGCMMAngleForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
-
-#ifdef ENABLE_CUDA
-#include "CGCMMAngleForceComputeGPU.h"
-#include "HarmonicAngleForceComputeGPU.h"
-#endif
-
-// dihedral/improper potentials
 #include "HarmonicDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
-
-#ifdef ENABLE_CUDA
-#include "HarmonicDihedralForceComputeGPU.h"
-#include "HarmonicImproperForceComputeGPU.h"
-#endif
-
-// wall potentials
+#include "CGCMMAngleForceCompute.h"
+#include "FENEBondForceCompute.h"
+#include "CGCMMForceCompute.h"
+#include "TablePotential.h"
 #include "LJWallForceCompute.h"
-
-// system
-#include "System.h"
-
-// updaters
-#include "BoxResizeUpdater.h"
-#include "Enforce2DUpdater.h"
-#include "SFCPackUpdater.h"
+#include "AllPairPotentials.h"
+#include "ComputeThermo.h"
+#include "ComputeThermoGPU.h"
+#include "NeighborList.h"
+#include "NeighborListBinned.h"
+#include "Analyzer.h"
+#include "IMDInterface.h"
+#include "HOOMDDumpWriter.h"
+#include "HOOMDBinaryDumpWriter.h"
+#include "PDBDumpWriter.h"
+#include "MOL2DumpWriter.h"
+#include "DCDDumpWriter.h"
+#include "Logger.h"
+#include "MSDAnalyzer.h"
+#include "Updater.h"
+#include "Integrator.h"
+#include "IntegratorTwoStep.h"
+#include "IntegrationMethodTwoStep.h"
+#include "TwoStepNVE.h"
+#include "TwoStepNVT.h"
+#include "TwoStepBDNVT.h"
+#include "TwoStepNPT.h"
+#include "TwoStepBerendsen.h"
+#include "TwoStepNVERigid.h" 
+#include "TwoStepNVTRigid.h"
+#include "TwoStepNPTRigid.h"  
+#include "TwoStepBDNVTRigid.h" 
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
 #include "FIREEnergyMinimizer.h"
-#ifdef ENABLE_CUDA
-#include "Enforce2DUpdaterGPU.h"
-#include "FIREEnergyMinimizerGPU.h"
-#endif
+#include "FIREEnergyMinimizerRigid.h"
+#include "SFCPackUpdater.h"
+#include "BoxResizeUpdater.h"
+#include "Enforce2DUpdater.h"
+#include "System.h"
+#include "Variant.h"
+#include "EAMForceCompute.h"
+#include "ConstraintSphere.h"
+#include "PotentialPairDPDThermo.h"
+#include "EvaluatorPairDPDThermo.h"
+#include "PotentialPairDPDLJThermo.h"
+#include "EvaluatorPairDPDLJThermo.h"
+#include "PotentialPair.h"
+#include "PPPMForceCompute.h"
 
-// integrators
-#include "IntegrationMethodTwoStep.h"
-#include "Integrator.h"
-#include "IntegratorTwoStep.h"
-#include "TwoStepBDNVT.h"
-#include "TwoStepNPT.h"
-#include "TwoStepNVE.h"
-#include "TwoStepNVT.h"
-#include "ClockSource.h"
 
+// include GPU classes
 #ifdef ENABLE_CUDA
-#include "TwoStepBDNVTGPU.h"
-#include "TwoStepNPTGPU.h"
+#include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
+#include "TwoStepBDNVTGPU.h"
+#include "TwoStepNPTGPU.h"
+#include "TwoStepBerendsenGPU.h"
+#include "TwoStepNVERigidGPU.h" 
+#include "TwoStepNVTRigidGPU.h" 
+#include "TwoStepNPTRigidGPU.h" 
+#include "TwoStepBDNVTRigidGPU.h" 
+#include "NeighborListGPU.h"
+#include "NeighborListGPUBinned.h"
+#include "CGCMMForceComputeGPU.h"
+//#include "ConstExternalFieldDipoleForceComputeGPU.h"
+#include "TablePotentialGPU.h"
+#include "HarmonicBondForceComputeGPU.h"
+#include "HarmonicAngleForceComputeGPU.h"
+#include "HarmonicDihedralForceComputeGPU.h"
+#include "HarmonicImproperForceComputeGPU.h"
+#include "CGCMMAngleForceComputeGPU.h"
+#include "FENEBondForceComputeGPU.h"
+#include "Enforce2DUpdaterGPU.h"
+#include "FIREEnergyMinimizerRigidGPU.h"
+#include "FIREEnergyMinimizerGPU.h"
+#include "EAMForceComputeGPU.h"
+#include "ConstraintSphereGPU.h"
+#include "PotentialPairGPU.h"
+#include "PPPMForceComputeGPU.h"
 #endif
 
-// utility classes
-#include "FileFormatManager.h"
-#include "FileFormatProxy.h"
-#include "Index1D.h"
-#include "MolFilePlugin.h"
-#include "Profiler.h"
 #include "SignalHandler.h"
-#include "Variant.h"
+
 #include "HOOMDVersion.h"
+#include "PathUtils.h"
 
 #endif
 

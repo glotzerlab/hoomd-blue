@@ -48,7 +48,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
 #include "TwoStepNPH.h"
 
@@ -88,3 +88,4 @@ class TwoStepNPHGPU : public TwoStepNPH
 void export_TwoStepNPHGPU();
 
 #endif // #ifndef __TWO_STEP_NPH_GPU_H__
+

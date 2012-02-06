@@ -53,9 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
 
-//! Enable old boost::filesystem API (temporary fix)
-#define BOOST_FILESYSTEM_VERSION 2
-
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 4267 )
@@ -140,6 +137,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // include GPU classes
 #ifdef ENABLE_CUDA
+#include <cuda.h>
 #include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
@@ -257,11 +255,11 @@ string find_vmd()
         return "/usr/local/bin/vmd";
     if (exists("/opt/vmd/bin/vmd"))
         return "/opt/vmd/bin/vmd";
-    if (exists(path("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+    if (exists(path("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.9.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-    if (exists(path("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+    if (exists(path("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-    if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+    if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
 #endif
         
@@ -299,6 +297,36 @@ int get_num_procs()
     #endif
     }
 
+//! Get the hoomd version as a tuple
+object get_hoomd_version_tuple()
+    {
+    return make_tuple(HOOMD_VERSION_MAJOR, HOOMD_VERSION_MINOR, HOOMD_VERSION_PATCH);
+    }
+
+//! Get the CUDA version as a tuple
+object get_cuda_version_tuple()
+    {
+    #ifdef ENABLE_CUDA
+    int major = CUDA_VERSION / 1000;
+    int minor = CUDA_VERSION / 10 % 100;
+    return make_tuple(major, minor);
+    #else
+    return make_tuple(0,0);
+    #endif
+    }
+
+//! Get the compiler version
+string get_compiler_version()
+    {
+    #ifdef __GNUC__
+    ostringstream o;
+    o << "gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." <<  __GNUC_PATCHLEVEL__;
+    return o.str();
+    #else
+    return string("unknown");
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -312,6 +340,11 @@ BOOST_PYTHON_MODULE(hoomd)
 
     def("set_num_threads", &set_num_threads);
     def("get_num_procs", &get_num_procs);
+    scope().attr("__version__") = get_hoomd_version_tuple();
+    scope().attr("__git_sha1__") = HOOMD_GIT_SHA1;
+    scope().attr("__git_refspec__") = HOOMD_GIT_REFSPEC;
+    scope().attr("__cuda_version__") = get_cuda_version_tuple();
+    scope().attr("__compiler_version__") = get_compiler_version();
 
     // data structures
     class_<std::vector<int> >("std_vector_int")

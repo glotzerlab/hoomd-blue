@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTRigidGPU.
 */
 
-//! Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
+// Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
 #define INVALID_INDEX 0xffffffff
 
 /*! Maclaurine expansion

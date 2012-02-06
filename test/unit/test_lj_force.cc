@@ -97,7 +97,8 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
+    pdata_3->setFlags(~PDataFlags(0));
+
     ParticleDataArrays arrays = pdata_3->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
     arrays.x[1] = Scalar(pow(2.0,1.0/6.0)); arrays.y[1] = arrays.z[1] = 0.0;
@@ -229,7 +230,8 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    
+    pdata_6->setFlags(~PDataFlags(0));
+
     ParticleDataArrays arrays = pdata_6->acquireReadWrite();
     arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
     arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -337,7 +339,8 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+    pdata->setFlags(~PDataFlags(0));
+
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairLJ> fc1 = lj_creator1(sysdef, nlist);
@@ -411,7 +414,8 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     // this 2-particle test is just to get a plot of the potential and force vs r cut
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
+    pdata_2->setFlags(~PDataFlags(0));
+
     ParticleDataArrays arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
     arrays.x[1] = Scalar(2.8); arrays.y[1] = arrays.z[1] = 0.0;

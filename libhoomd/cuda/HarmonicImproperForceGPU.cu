@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-//! SMALL a relatively small number
+// SMALL a relatively small number
 #define SMALL 0.001f
 
 /*! \file HarmonicImproperForceGPU.cu

@@ -78,8 +78,8 @@ using boost::uint64_t;
 */
 struct timezone
     {
-    int tz_minuteswest;
-    int tz_dsttime;
+    int tz_minuteswest; //!< no docs
+    int tz_dsttime;     //!< no docs
     };
 
 //! Emulation for gettimeofday in windows

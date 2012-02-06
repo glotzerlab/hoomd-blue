@@ -378,7 +378,7 @@ class nlist:
                 print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
                 raise RuntimeError("Error creating neighbor list");
             
-        self.cpp_nlist.setEvery(1);
+        self.cpp_nlist.setEvery(1, True);
         self.is_exclusion_overridden = False;
         
         globals.system.addCompute(self.cpp_nlist, "auto_nlist");
@@ -424,6 +424,8 @@ class nlist:
     #        needs updating
     # \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
     #        run() commands. (in distance units)
+    # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
+    #        \a check_period steps
     # 
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
     # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -465,7 +467,7 @@ class nlist:
     # nlist.set_params(r_buff = 0.7, check_period = 4)
     # nlist.set_params(d_max = 3.0)
     # \endcode
-    def set_params(self, r_buff=None, check_period=None, d_max=None):
+    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True):
         util.print_status_line();
         
         if self.cpp_nlist is None:
@@ -478,7 +480,7 @@ class nlist:
             self.r_buff = r_buff;
             
         if check_period is not None:
-            self.cpp_nlist.setEvery(check_period);
+            self.cpp_nlist.setEvery(check_period, dist_check);
         
         if d_max is not None:
             self.cpp_nlist.setMaximumDiameter(d_max);

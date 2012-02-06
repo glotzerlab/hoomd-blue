@@ -468,6 +468,7 @@ class particle_data:
 # - \c orientation  : Orientation of anisotropic particle (quaternion)
 # - \c net_force    : Net force on particle (x, y, z) (in force units)
 # - \c net_energy   : Net contribution of particle to the potential energy (in energy units)
+# - \c net_torque   : Net torque on the particle (x, y, z) (in torque units)
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
@@ -500,6 +501,7 @@ class particle_data_proxy:
         result += "orientation : " + str(self.orientation) + "\n";
         result += "net_force   : " + str(self.net_force) + "\n";
         result += "net_energy  : " + str(self.net_energy) + "\n";
+        result += "net_torque  : " + str(self.net_torque) + "\n";
         return result;
     
     ## \internal
@@ -539,6 +541,9 @@ class particle_data_proxy:
         if name == "net_energy":
             f = self.pdata.getPNetForce(self.tag);
             return f.w;
+        if name == "net_torque":
+            f = self.pdata.getNetTorque(self.tag);
+            return (f.x, f.y, f.z);
         
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
@@ -680,7 +685,8 @@ class force_data:
 # The following attributes are read only:
 # - \c %force         : A 3-tuple of floats (x, y, z) listing the current %force on the particle
 # - \c virial         : A float containing the contribution of this particle to the total virial
-# - \c pe             : A float containing the contribution of this particle to the total potential energy
+# - \c energy         : A float containing the contribution of this particle to the total potential energy
+# - \c torque         : A 3-tuple of floats (x, y, z) listing the current torque on the particle
 #
 class force_data_proxy:
     ## \internal
@@ -700,6 +706,7 @@ class force_data_proxy:
         result += "force       : " + str(self.force) + "\n";
         result += "virial      : " + str(self.virial) + "\n";
         result += "energy      : " + str(self.energy) + "\n";
+        result += "torque      : " + str(self.torque) + "\n";
         return result;
     
     ## \internal
@@ -713,6 +720,9 @@ class force_data_proxy:
         if name == "energy":
             energy = self.fdata.cpp_force.getEnergy(self.tag);
             return energy;
+        if name == "torque":
+            f = self.fdata.cpp_force.getTorque(self.tag);
+            return (f.x, f.y, f.z)
         
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;

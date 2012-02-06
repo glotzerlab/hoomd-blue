@@ -71,9 +71,9 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-//! Maximum number of iterations for Jacobi rotations
+// Maximum number of iterations for Jacobi rotations
 #define MAXJACOBI 50
-//! Maximum value macro
+// Maximum value macro
 #define MAX(A,B) ((A) > (B)) ? (A) : (B)
 
 /*! \param particle_data ParticleData this use in initializing this RigidData
@@ -226,7 +226,8 @@ void RigidData::initializeData()
     GPUArray<Scalar4> ey_space(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> ez_space(m_n_bodies, m_pdata->getExecConf());
     GPUArray<int3> body_image(m_n_bodies, m_pdata->getExecConf());
-    
+    GPUArray<Scalar4> conjqm_alloc(m_n_bodies, m_pdata->getExecConf());
+
     GPUArray<Scalar4> com(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> vel(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> angmom(m_n_bodies, m_pdata->getExecConf());
@@ -245,7 +246,8 @@ void RigidData::initializeData()
     m_ey_space.swap(ey_space);
     m_ez_space.swap(ez_space);
     m_body_image.swap(body_image);
-    
+    m_conjqm.swap(conjqm_alloc);
+
     m_com.swap(com);
     m_vel.swap(vel);
     m_angmom.swap(angmom);

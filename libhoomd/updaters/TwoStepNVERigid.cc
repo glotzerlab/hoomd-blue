@@ -132,9 +132,6 @@ void TwoStepNVERigid::setup()
     if (m_n_bodies <= 0)
         return;
     
-    GPUArray<Scalar4> conjqm_alloc(m_n_bodies, m_pdata->getExecConf());
-    m_conjqm.swap(conjqm_alloc);
-    
     //GPUArray<Scalar> virial(m_rigid_data->getNmax(), m_n_bodies, m_pdata->getExecConf());
     //m_virial.swap(virial);
     
@@ -161,7 +158,7 @@ void TwoStepNVERigid::setup()
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_rigid_data->getConjqm(), access_location::host, access_mode::readwrite);
     
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::read);
