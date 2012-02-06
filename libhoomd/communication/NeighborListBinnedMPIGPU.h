@@ -50,56 +50,64 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include<thrust/iterator/permutation_iterator.h>
-#include<thrust/iterator/constant_iterator.h>
-#include<thrust/fill.h>
-
-#ifdef WIN32
-#include <cassert>
-#else
-#include <assert.h>
-#endif
-
-/*! \file ParticleGroup.cu
-    \brief Contains GPU kernel code used by ParticleGroup
+/*! \file NeighborListBinnedMPIGPU.h
+    \brief Defines the NeighborListBinnedMPIGPU class
 */
 
-//! GPU method for rebuilding the index list of a ParticleGroup
-/*! \param N number of local particles
-    \param num_members number of local members of the group
-    \param d_member_tag tags of local members
-    \param d_is_member array of membership flags
-    \param d_member_idx array of member indices
-    \param d_rtag array of reverse-lookup global tag -> index
-*/
-cudaError_t gpu_rebuild_index_list(unsigned int N,
-                                   unsigned int num_members,
-                                   unsigned int *d_member_tag,
-                                   unsigned char *d_is_member,
-                                   unsigned int *d_member_idx,
-                                   unsigned int *d_rtag)
+#ifdef ENABLE_MPI
+#ifdef ENABLE_CUDA
+
+#ifndef __NEIGHBOR_LIST_BINNED_MPI_GPU_H
+#define __NEIGHBOR_LIST_BINNED_MPI_GPU_H
+
+#include "NeighborListGPUBinned.h"
+
+//! forward declarations
+class Communicator;
+
+//! This class defines a neighbor list to be used in parallel MPI simulations
+/*! This class extends the neighbor list construction by two communication steps,
+    which are implemented in a separate communication class.
+
+    Before the neighbor list is updated, particle data and ghost particles
+    are exchanged with neighboring processors.
+
+    To determine when the neighbor list needs to be updated, a global distance check
+    criterium is applied. If a distance check indicates that the neighbor list needs to be rebuilt
+    ony any processor, i .e. any particle on that processor has moved more than the \c r_cut + r_buff,
+    the global criterium is fulfilled.
+ */
+class NeighborListBinnedMPIGPU : public NeighborListGPUBinned
     {
-    assert(num_members >= 0);
-    assert(d_member_tag);
-    assert(d_is_member);
-    assert(d_member_idx);
+    public:
+        //! Constructor
+        /*! \param sysdef system definition to construct this neighbor list from
+         * \param r_cut cutoff radius
+         * \param r_buff skin length
+         * \param comm the communicator this neighbor list is assoicated with
+         * \param cl the cell list to use for binning the particles
+         */
+        NeighborListBinnedMPIGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                              Scalar r_cut,
+                              Scalar r_buff,
+                              boost::shared_ptr<Communicator> comm,
+                              boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
 
-    thrust::device_ptr<unsigned int> member_tag_ptr(d_member_tag);
-    thrust::device_ptr<unsigned char> is_member_ptr(d_is_member);
-    thrust::device_ptr<unsigned int> member_idx_ptr(d_member_idx);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    // clear membership flags
-    thrust::fill(is_member_ptr, is_member_ptr + N, 0);
+    protected:
+        //! Apply a global distance check criterium
+        virtual bool distanceCheck();
 
-    thrust::permutation_iterator<thrust::device_ptr<unsigned int>, thrust::device_ptr<unsigned int> > member_indices(rtag_ptr, member_tag_ptr);
+        //! This method is called when the neighbor list needs to be rebuilt
+        virtual void buildNlist(unsigned int timestep);
 
-    // fill member_idx array
-    thrust::copy(member_indices, member_indices + num_members, member_idx_ptr);
+        boost::shared_ptr<Communicator> m_comm; //!< the communication class
 
-    // set membership flags
-    thrust::constant_iterator<int> const_one(1);
-    thrust::scatter(const_one, const_one + num_members, member_indices, is_member_ptr);
+    private:
+        unsigned int m_last_exchange_step;      //!< timestep at which last exchange occured
+        bool m_first_exchange;                  //!< indicates whether the particles have not been exchanged before
+    };
 
-    return cudaSuccess;
-    }
+#endif // __NEIGHBOR_LIST_BINNED_MPI_GPU_H
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI

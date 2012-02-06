@@ -628,7 +628,7 @@ void ParticleGroup::rebuildIndexList()
             }
 
         // sanity check, the number of indices added to m_member_idx must be the same as the number of members in the group
-        assert(cur_member == m_num_elements);
+        assert(cur_member == m_num_members);
         }
     }
 

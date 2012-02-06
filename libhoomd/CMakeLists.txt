@@ -22,7 +22,7 @@ set(_libhoomd_sources "")
 set(_libhoomd_cu_sources "")
 
 # process all subdirectories, which add source files to _libhoomd_sources and _libhoomd_cu_sources
-set(_dir_list analyzers computes data_structures extern potentials python system updaters utils)
+set(_dir_list analyzers communication computes data_structures extern potentials python system updaters utils)
 if (ENABLE_CUDA)
 list(APPEND _dir_list computes_gpu cuda updaters_gpu)
 endif (ENABLE_CUDA)

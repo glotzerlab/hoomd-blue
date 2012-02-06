@@ -709,7 +709,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
  */
 void ParticleData::removeParticles(const unsigned int n)
     {
-    assert(n <= m_pdata->getN());
+    assert(n <= getN());
     m_nparticles -= n;
     }
 

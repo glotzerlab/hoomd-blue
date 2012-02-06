@@ -63,6 +63,15 @@ if (ENABLE_CUDA)
 
 endif (ENABLE_CUDA)
 
+############################
+## MPI related options
+find_package(MPI QUIET)
+if (MPI_FOUND)
+option(ENABLE_MPI "Enable the compilation of the MPI communication code" on)
+else (MPI_FOUND)
+option (ENABLE_MPI "Enable the compilation of the MPI communication code" off)
+endif (MPI_FOUND)
+
 #################################
 ## Optionally enable documentation build
 find_package(Doxygen)

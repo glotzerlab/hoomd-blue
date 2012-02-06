@@ -50,56 +50,63 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include<thrust/iterator/permutation_iterator.h>
-#include<thrust/iterator/constant_iterator.h>
-#include<thrust/fill.h>
-
-#ifdef WIN32
-#include <cassert>
-#else
-#include <assert.h>
-#endif
-
-/*! \file ParticleGroup.cu
-    \brief Contains GPU kernel code used by ParticleGroup
+/*! \file NeighborListBinnedMPIGPU.cc
+    \brief Implements the NeighborListBinnedMPIGPU class
 */
 
-//! GPU method for rebuilding the index list of a ParticleGroup
-/*! \param N number of local particles
-    \param num_members number of local members of the group
-    \param d_member_tag tags of local members
-    \param d_is_member array of membership flags
-    \param d_member_idx array of member indices
-    \param d_rtag array of reverse-lookup global tag -> index
-*/
-cudaError_t gpu_rebuild_index_list(unsigned int N,
-                                   unsigned int num_members,
-                                   unsigned int *d_member_tag,
-                                   unsigned char *d_is_member,
-                                   unsigned int *d_member_idx,
-                                   unsigned int *d_rtag)
+
+#ifdef ENABLE_MPI
+#include "NeighborListBinnedMPIGPU.h"
+#include "Communicator.h"
+
+#include <boost/mpi.hpp>
+
+//! Constructor
+NeighborListBinnedMPIGPU::NeighborListBinnedMPIGPU(boost::shared_ptr<SystemDefinition> sysdef,
+    Scalar r_cut,
+    Scalar r_buff,
+    boost::shared_ptr<Communicator> comm,
+    boost::shared_ptr<CellList> cl)
+    : NeighborListGPUBinned(sysdef, r_cut, r_buff, cl), m_comm(comm), m_last_exchange_step(0), m_first_exchange(true)
     {
-    assert(num_members >= 0);
-    assert(d_member_tag);
-    assert(d_is_member);
-    assert(d_member_idx);
-
-    thrust::device_ptr<unsigned int> member_tag_ptr(d_member_tag);
-    thrust::device_ptr<unsigned char> is_member_ptr(d_is_member);
-    thrust::device_ptr<unsigned int> member_idx_ptr(d_member_idx);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    // clear membership flags
-    thrust::fill(is_member_ptr, is_member_ptr + N, 0);
-
-    thrust::permutation_iterator<thrust::device_ptr<unsigned int>, thrust::device_ptr<unsigned int> > member_indices(rtag_ptr, member_tag_ptr);
-
-    // fill member_idx array
-    thrust::copy(member_indices, member_indices + num_members, member_idx_ptr);
-
-    // set membership flags
-    thrust::constant_iterator<int> const_one(1);
-    thrust::scatter(const_one, const_one + num_members, member_indices, is_member_ptr);
-
-    return cudaSuccess;
+    for (unsigned int i = 0; i < 3; i++)
+        {
+        unsigned int dim = m_comm->getDimension(i);
+        this->setGhostLayer(i, (dim > 1) ? true : false);
+        this->setMinimumImage(i, (dim > 1) ? false : true); // do not use minium image convention, we use ghost particles
+        }
     }
+
+//! Evaluate global distance check criterium
+bool NeighborListBinnedMPIGPU::distanceCheck()
+    {
+    unsigned int local_flag = NeighborListGPUBinned::distanceCheck() ? 1 : 0;
+
+    unsigned int res;
+    all_reduce(*m_comm->getMPICommunicator(), local_flag, res,  boost::mpi::maximum<unsigned int>());
+    return (res > 0);
+    }
+
+//! Build the neighborlist
+void NeighborListBinnedMPIGPU::buildNlist(unsigned int timestep)
+    {
+    if (m_first_exchange || m_last_exchange_step != timestep)
+    {
+    m_first_exchange = false;
+    m_last_exchange_step = timestep;
+
+    // migrate atoms
+    m_comm->migrateAtoms();
+
+    // exchange ghosts
+    Scalar rmax = m_r_cut + m_r_buff;
+    if (!m_filter_diameter)
+        rmax += m_d_max - Scalar(1.0);
+
+    m_comm->exchangeGhosts(rmax);
+    }
+
+    // build the neighbor list
+    NeighborListGPUBinned::buildNlist(timestep);
+    }
+#endif // ENABLE_MPI

@@ -50,56 +50,56 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include<thrust/iterator/permutation_iterator.h>
-#include<thrust/iterator/constant_iterator.h>
-#include<thrust/fill.h>
-
-#ifdef WIN32
-#include <cassert>
-#else
-#include <assert.h>
-#endif
-
-/*! \file ParticleGroup.cu
-    \brief Contains GPU kernel code used by ParticleGroup
+/*! \file CommunicatorGPU.h
+    \brief Defines the CommunicatorGPU class
 */
 
-//! GPU method for rebuilding the index list of a ParticleGroup
-/*! \param N number of local particles
-    \param num_members number of local members of the group
-    \param d_member_tag tags of local members
-    \param d_is_member array of membership flags
-    \param d_member_idx array of member indices
-    \param d_rtag array of reverse-lookup global tag -> index
+#ifndef __COMMUNICATOR_GPU_H__
+#define __COMMUNICATOR_GPU_H__
+
+#ifdef ENABLE_MPI
+#ifdef ENABLE_CUDA
+
+#include "Communicator.h"
+
+/*! \ingroup communication
 */
-cudaError_t gpu_rebuild_index_list(unsigned int N,
-                                   unsigned int num_members,
-                                   unsigned int *d_member_tag,
-                                   unsigned char *d_is_member,
-                                   unsigned int *d_member_idx,
-                                   unsigned int *d_rtag)
+
+//! Class that handles MPI communication (GPU version)
+class CommunicatorGPU : public Communicator
     {
-    assert(num_members >= 0);
-    assert(d_member_tag);
-    assert(d_is_member);
-    assert(d_member_idx);
+    public:
+        //! Constructor
+        //! Constructor
+        /*! \param sysdef system definition the communicator is associated with
+         *  \param mpi_comm the underlying MPI communicator
+         *  \param mpi_init the MPI initializer the system was initialized with
+         */
+        CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                        boost::shared_ptr<boost::mpi::communicator> mpi_comm,
+                        boost::shared_ptr<MPIInitializer> mpi_init);
 
-    thrust::device_ptr<unsigned int> member_tag_ptr(d_member_tag);
-    thrust::device_ptr<unsigned char> is_member_ptr(d_is_member);
-    thrust::device_ptr<unsigned int> member_idx_ptr(d_member_idx);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+        //! \name communication methods
+        //@{
 
-    // clear membership flags
-    thrust::fill(is_member_ptr, is_member_ptr + N, 0);
+        //! transfer particles between domains
+        virtual void migrateAtoms();
 
-    thrust::permutation_iterator<thrust::device_ptr<unsigned int>, thrust::device_ptr<unsigned int> > member_indices(rtag_ptr, member_tag_ptr);
+        //! build a ghost particle list, copy ghost particle data to neighboring domains
+        /*! \param width of ghost layer
+         */
+        virtual void exchangeGhosts(Scalar r_ghost);
 
-    // fill member_idx array
-    thrust::copy(member_indices, member_indices + num_members, member_idx_ptr);
+        //! update ghost particle positions
+        virtual void copyGhosts();
 
-    // set membership flags
-    thrust::constant_iterator<int> const_one(1);
-    thrust::scatter(const_one, const_one + num_members, member_indices, is_member_ptr);
+        //@}
 
-    return cudaSuccess;
-    }
+    protected:
+        gpu_boxsize m_global_box_gpu;           //!< global simulation box for use on GPU
+
+    };
+
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
+#endif // __COMMUNICATOR_GPU_H

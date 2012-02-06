@@ -92,7 +92,11 @@ set(TEST_LIST
     test_dpd_integrator
     test_bd_rigid_updater)
 
-foreach (CUR_TEST ${TEST_LIST})
+if(ENABLE_MPI)
+    set(MPI_TEST_LIST test_domain_decomposition)
+endif(ENABLE_MPI)
+
+foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     cuda_add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc
@@ -126,3 +130,23 @@ foreach (CUR_TEST ${TEST_LIST})
     endif (CMAKE_GENERATOR MATCHES "Xcode")
     endif (MSVC)
 endforeach (CUR_TEST)
+
+# add linker options to MPI tests
+if (ENABLE_MPI)
+foreach(CUR_TEST ${MPI_TEST_LIST})
+    # if we are compiling with MPI support built in, add MPI library
+
+    target_link_libraries(${CUR_TEST} ${MPI_LIBRARY})
+
+    # set appropriate compiler/linker flags
+    if(MPI_COMPILE_FLAGS)
+        set_target_properties(${CUR_TEST} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+    endif(MPI_COMPILE_FLAGS)
+    if(MPI_LINK_FLAGS)
+        set_target_properties(${CUR_TEST} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+    endif(MPI_LINK_FLAGS)
+
+    # link to required boost libraries
+    target_link_libraries(${CUR_TEST} ${Boost_LIBRARIES})
+endforeach()
+endif(ENABLE_MPI)
