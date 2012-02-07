@@ -145,6 +145,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
+    Scalar Lx2 = Lx / Scalar(2.0);
+    Scalar Ly2 = Ly / Scalar(2.0);
+    Scalar Lz2 = Lz / Scalar(2.0);
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
@@ -204,36 +207,39 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 Scalar dy = my_pos.y - neigh_pos.y;
                 Scalar dz = my_pos.z - neigh_pos.z;
 
-                if (! m_no_minimum_image)
-                    {
-                    if (dx >= Lx/2.0)
-                        dx -= Lx;
-                    if (dx <= -Lx/2.0)
-                        dx += Lx;
-
-                    if (dy >= Ly/2.0)
-                        dy -= Ly;
-                    if (dy <= -Ly/2.0)
-                        dy += Ly;
-
-                    if (dz >= Lz/2.0)
-                        dz -= Lz;
-                    if (dz <= -Lz/2.0)
-                        dz += Lz;
-                    }
-                else
-                    {
-                    if (dx >= Lx/2.0 || dx <= -Lx/2.0 ||
-                        dy >= Ly/2.0 || dy <= -Ly/2.0 ||
-                        dz >= Lz/2.0 || dz <= -Lz/2.0)
-                        {
-                        // discard atom pairs that wrap around the local box
-                        continue;
-                        }
-                     }
-
                 bool excluded = (i == (int)cur_neigh);
-                
+        // if the vector crosses the box, pull it back
+        if (! m_no_minimum_image[0])
+            {
+            if (dx >= Lx2)
+            dx -= Lx;
+            else if (dx < -Lx2)
+            dx += Lx;
+            assert(dx >= box.xlo && dx <= box.xhi);
+            }
+        else if (dx >= Lx2 || dx <= -Lx2) excluded = true;
+
+        if (! m_no_minimum_image[1])
+            {
+            if (dy >= Ly2)
+            dy -= Ly;
+            else if (dy < -Ly2)
+            dy += Ly;
+            assert(dy >= box.ylo && dy <= box.yhi);
+            }
+        else if (dy >= Ly2 || dy <= -Ly2) excluded = true;
+
+        if (! m_no_minimum_image[2])
+            {
+            if (dz >= Lz2)
+            dz -= Lz;
+            else if (dz < -Lz2)
+            dz += Lz;
+            assert(dz >= box.zlo && dz <= box.zhi);
+            }
+        else if (dz >= Lz2 || dz <= -Lz2) excluded = true;
+
+
                 if (m_filter_body && bodyi != NO_BODY)
                     excluded = excluded | (bodyi == h_body.data[cur_neigh]);
                 
