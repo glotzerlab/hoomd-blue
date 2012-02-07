@@ -108,7 +108,9 @@ class ParticleSelector
     {
     public:
         //! constructs a ParticleSelector
+        //! \param sysdef System to select particles on
         ParticleSelector() {}
+
         virtual ~ParticleSelector() {}
 
         //! Get the list of selected tags
@@ -119,7 +121,6 @@ class ParticleSelector
          *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
         virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags) = 0;
-
     };
 
 //! Implementation of a particle selector that applies a selection rule
@@ -150,16 +151,17 @@ class ParticleSelectorRule : public ParticleSelector
         virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
 
     protected:
+        typename T::param_type m_params; //!< rule parameters
+
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
 
-        typename T::param_type m_params; //!< rule parameters
     };
 
 //! Constructor
 template< class T >
 ParticleSelectorRule<T>::ParticleSelectorRule(boost::shared_ptr<SystemDefinition> sysdef)
-    : ParticleSelector(), m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData())
+    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData())
     {
     }
 
@@ -246,87 +248,165 @@ class ParticleSelectorGlobalTagList : public ParticleSelector
         virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
 
     protected:
+        GPUArray<unsigned int> m_global_member_tags;    //!< array of global member tags
+
+        boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
+        boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
+    };
+
+//! ParticleSelector that represents performs a set operation on two ParticleSelectors (abstract base class)
+class ParticleSelectorSetOperation : public ParticleSelector
+    {
+    public:
+        //! constructs this particle selector
+        /*! \param a first selector to perform the set operation on
+            \param b second selector to perform the set operation on
+         */
+        ParticleSelectorSetOperation(boost::shared_ptr<SystemDefinition> sysdef,
+                              boost::shared_ptr<ParticleSelector> a,
+                              boost::shared_ptr<ParticleSelector> b);
+        virtual ~ParticleSelectorSetOperation() {}
+
+        //! Get the list of selected tags
+        /*! \param the GPU array to store the member tags in
+         * \return the number of local particles included
+         * \pre  member_tags must be allocated and of sufficient size to accomodate
+         *       all local members of the group (i.e.
+         *       the current maximum number of particles returned by ParticleData::getMaxN() )
+        */
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
+
+    protected:
+        //! Perform the set operation between both selectors
+        /*! \param member_tags_a GPU array of local members returned by the first selector
+         *  \param member_tags_b GPU array of local members returned by the second selector
+         *  \param num_members_a number of local members returned by the first selector
+         *  \param num_members_b number of local members returned by the second selector
+         *  \param member_tags GPU array for storing members of the combined selection
+         *  \returns number of members in the combined selection
+         */
+        virtual unsigned operation(const GPUArray<unsigned int>& member_tags_a,
+                                      const GPUArray<unsigned int>& member_tags_b,
+                                      const unsigned int num_members_a,
+                                      const unsigned int num_members_b,
+                                      const GPUArray<unsigned int>& member_tags) = 0;
+    private:
+        GPUArray<unsigned int> m_member_tags_a;            //!< Local members of first particle selector
+        GPUArray<unsigned int> m_member_tags_b;            //!< Local members of second particle selector
 
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
 
-        GPUArray<unsigned int> m_global_member_tags;    //!< array of global member tags
+        boost::shared_ptr<ParticleSelector> m_selector_a;  //!< first argument
+        boost::shared_ptr<ParticleSelector> m_selector_b;  //!< second argument
     };
 
 //! ParticleSelector that represents a union of two ParticleSelectors
-class ParticleSelectorUnion : public ParticleSelector
+class ParticleSelectorUnion : public ParticleSelectorSetOperation
     {
     public:
         //! constructs this particle selector
         /*! \param a first selector to include in the union
             \param b second selector to include in the union
          */
-        ParticleSelectorUnion(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b);
+        ParticleSelectorUnion(boost::shared_ptr<SystemDefinition> sysdef,
+                              boost::shared_ptr<ParticleSelector> a,
+                              boost::shared_ptr<ParticleSelector> b);
         virtual ~ParticleSelectorUnion() {}
 
-        //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
-         * \return the number of local particles included
-         * \pre  member_tags must be allocated and of sufficient size to accomodate
-         *       all local members of the group (i.e.
-         *       the current maximum number of particles returned by ParticleData::getMaxN() )
-        */
-        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
-
-    private:
-        boost::shared_ptr<ParticleSelector> m_selector_a;  //!< first argument
-        boost::shared_ptr<ParticleSelector> m_selector_b;  //!< second argument
+    protected:
+        //! Perform the union between both selectors
+        /*! \param member_tags_a GPU array of local members returned by the first selector
+         *  \param member_tags_b GPU array of local members returned by the second selector
+         *  \param num_members_a number of local members returned by the first selector
+         *  \param num_members_b number of local members returned by the second selector
+         *  \param member_tags GPU array for storing members of the combined selection
+         *  \returns number of members in the combined selection
+         */
+        virtual unsigned operation(const GPUArray<unsigned int>& member_tags_a,
+                                   const GPUArray<unsigned int>& member_tags_b,
+                                   const unsigned int num_members_a,
+                                   const unsigned int num_members_b,
+                                   const GPUArray<unsigned int>& member_tags);
     };
 
 //! ParticleSelector that represents an intersection of two ParticleSelectors
-class ParticleSelectorIntersection : public ParticleSelector
+class ParticleSelectorIntersection : public ParticleSelectorSetOperation
     {
     public:
         //! constructs this particle selector
         /*! \param a first selector to perform the intersection on
             \param b second selector to perform the intersection on
          */
-        ParticleSelectorIntersection(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b);
+        ParticleSelectorIntersection(boost::shared_ptr<SystemDefinition> sysdef,
+                                     boost::shared_ptr<ParticleSelector> a,
+                                     boost::shared_ptr<ParticleSelector> b);
         virtual ~ParticleSelectorIntersection() {}
 
-
-        //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
-         * \return the number of local particles included
-         * \pre  member_tags must be allocated and of sufficient size to accomodate
-         *       all local members of the group (i.e.
-         *       the current maximum number of particles returned by ParticleData::getMaxN() )
-        */
-        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
-
-    private:
-        boost::shared_ptr<ParticleSelector> m_selector_a;  //!< first argument
-        boost::shared_ptr<ParticleSelector> m_selector_b;  //!< second argument
+    protected:
+        //! Make the intersection between the two selectors
+        /*! \param member_tags_a GPU array of local members returned by the first selector
+         *  \param member_tags_b GPU array of local members returned by the second selector
+         *  \param num_members_a number of local members returned by the first selector
+         *  \param num_members_b number of local members returned by the second selector
+         *  \param member_tags GPU array for storing members of the combined selection
+         *  \returns number of members in the combined selection
+         */
+        virtual unsigned operation(const GPUArray<unsigned int>& member_tags_a,
+                                   const GPUArray<unsigned int>& member_tags_b,
+                                   const unsigned int num_members_a,
+                                   const unsigned int num_members_b,
+                                   const GPUArray<unsigned int>& member_tags);
     };
 
 //! ParticleSelector that represents the difference of two ParticleSelectors
-class ParticleSelectorDifference : public ParticleSelector
+class ParticleSelectorDifference : public ParticleSelectorSetOperation
     {
     public:
         //! constructs this particle selector
         /*! \param a first selector to perform the intersection on
             \param b second selector to perform the intersection on
          */
-        ParticleSelectorDifference(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b);
+        ParticleSelectorDifference(boost::shared_ptr<SystemDefinition> sysdef,
+                                   boost::shared_ptr<ParticleSelector> a,
+                                   boost::shared_ptr<ParticleSelector> b);
         virtual ~ParticleSelectorDifference() {}
 
-        //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
-         * \return the number of local particles included
-         * \pre  member_tags must be allocated and of sufficient size to accomodate
-         *       all local members of the group (i.e.
-         *       the current maximum number of particles returned by ParticleData::getMaxN() )
-        */
-        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags);
+    protected:
+        //! Make the difference between the two selectors
 
-    private:
-        boost::shared_ptr<ParticleSelector> m_selector_a;  //!< first argument
-        boost::shared_ptr<ParticleSelector> m_selector_b;  //!< second argument
+        /*! \param member_tags_a GPU array of local members returned by the first selector
+         *  \param member_tags_b GPU array of local members returned by the second selector
+         *  \param num_members_a number of local members returned by the first selector
+         *  \param num_members_b number of local members returned by the second selector
+         *  \param member_tags GPU array for storing members of the combined selection
+         *  \returns number of members in the combined selection
+         */
+        virtual unsigned operation(const GPUArray<unsigned int>& member_tags_a,
+                                   const GPUArray<unsigned int>& member_tags_b,
+                                   const unsigned int num_members_a,
+                                   const unsigned int num_members_b,
+                                   const GPUArray<unsigned int>& member_tags);
+    };
+
+//! The trivial particle selector that represents the empty set
+class ParticleSelectorEmptySet : public ParticleSelector
+    {
+    public:
+        //! Constructs the particle selector
+        /*! \param sysdef System definition
+        */
+        ParticleSelectorEmptySet() {}
+        virtual ~ParticleSelectorEmptySet() {}
+
+        //! Get the number of selected local particles
+        /*! \param the GPU array to store member tags in
+         * \returns zero
+         */
+        virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags)
+            {
+            return 0;
+            }
     };
 
 //! Describes a group of particles
@@ -356,8 +436,13 @@ class ParticleSelectorDifference : public ParticleSelector
     absolutely require the particle data be released before they are called will be documented as such.
 
     <b>Data Structures and Implementation</b>
-    
-    The initial and fundamental data structure in the group is a vector listing all of the particle tags in the group,
+
+    FIXME: Currently, the sorted tag order of local group members is no longer guaranteed. In fact, would (local) sorted
+    order make sense at all? We might need to rethink how and when getMemberTag() is used in a simulation. If it is only
+    used outside a simulation in order to get a list group members in sorted order, we might require for its use
+    that all global particles be present in the local ParticleData. We need to find a way to sort the group members, then.
+
+    The initial and fundamental data structure in the group is an array of all particle tags in the group,
     in a sorted tag order. This list can be accessed directly via getMemberTag() to meet the 2nd use case listed above.
     In order to iterate through all particles in the group in a cache-efficient manner, an auxilliary list is stored
     that lists all particle <i>indicies</i> that belong to the group. This list must be updated on every particle sort.
@@ -375,7 +460,10 @@ class ParticleGroup
     public:
         //! \name Initialization methods
         // @{
-                
+
+        //! Constructs an empty particle group
+        ParticleGroup();
+
         //! Constructs a particle group of all particles that meet the given selection
         ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector);
 
@@ -400,6 +488,11 @@ class ParticleGroup
         //! Get a member from the group
         /*! \param i Index from 0 to getNumMembers()-1 of the group member to get
             \returns Tag of the member at index \a i
+
+            FIXME: This is currently broken, since not all global group members may be present on the local
+                   processor. We need to come up with a solution e.g. in which this function is only
+                   used on processor with rank 0, only if it has all the data available. On this processor,
+                   the tags should be in sorted order...
         */
         unsigned int getMemberTag(unsigned int i) const
             {
@@ -427,6 +520,7 @@ class ParticleGroup
         */
         bool isMember(unsigned int idx) const
             {
+            if (m_is_empty) return false;
             ArrayHandle<unsigned char> h_is_member(m_is_member, access_location::host, access_mode::read);
             return (h_is_member.data[idx] == 1);
             }
@@ -439,15 +533,6 @@ class ParticleGroup
             {
             return m_member_idx;
             }
-
-        //! Update the group members
-        /*! \param timestep current timestep of the simulation
-            The default implementation is empty, as the members of a ParticleGroup are not supposed to change during the
-            simulation. In derived classes this method may be reimplemented to make the group dynamic.
-         */
-         void update(unsigned int timestep)
-             {
-             }
 
         // @}
         //! \name Analysis methods
@@ -485,6 +570,8 @@ class ParticleGroup
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the maximum number change signal
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of local particle members
         unsigned int m_num_members;                     //!< Number of local members of the group
+
+        bool m_is_empty;                                //!< True if this is an empty group
 
         //! Helper function to resize array of member tags
         void reallocate();

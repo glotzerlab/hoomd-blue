@@ -129,13 +129,9 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
         endif (ENABLE_VALGRIND)
     endif (CMAKE_GENERATOR MATCHES "Xcode")
     endif (MSVC)
-endforeach (CUR_TEST)
 
-# add linker options to MPI tests
-if (ENABLE_MPI)
-foreach(CUR_TEST ${MPI_TEST_LIST})
+    if (ENABLE_MPI)
     # if we are compiling with MPI support built in, add MPI library
-
     target_link_libraries(${CUR_TEST} ${MPI_LIBRARY})
 
     # set appropriate compiler/linker flags
@@ -146,7 +142,7 @@ foreach(CUR_TEST ${MPI_TEST_LIST})
         set_target_properties(${CUR_TEST} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
     endif(MPI_LINK_FLAGS)
 
-    # link to required boost libraries
-    target_link_libraries(${CUR_TEST} ${Boost_LIBRARIES})
-endforeach()
-endif(ENABLE_MPI)
+        # link to required boost libraries
+        target_link_libraries(${CUR_TEST} ${Boost_LIBRARIES})
+    endif (ENABLE_MPI)
+endforeach (CUR_TEST)

@@ -171,49 +171,17 @@ ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinitio
     do not have overlapping sets of particles.
 */
 
-void ParticleSelectorGlobalTagList::rebuildTagsList()
-    {
-    // reset tags list
-    m_member_tags.clear();
-
-    ArrayHandle<unsigned int> h_tag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-    std::vector<unsigned int>::const_iterator it;
-
-    for (it = m_global_member_tags.begin(); it != m_global_member_tags.end(); it++)
-        {
-        if (m_pdata->isLocal(*it))
-            {
-            // if the particle is present in the local simulation box, add its tag to the local group members
-            unsigned int idx = m_pdata->getGlobalRTag(*it);
-            m_member_tags.push_back(h_tag.data[idx]);
-            }
-        }
-    }
-
-bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
-    {
-    assert(tag < m_pdata->getN());
-
-    // identify the index of the current particle tag
-    Scalar3 pos = m_pdata->getPosition(tag);
-    
-    // see if it matches the criteria
-    bool result = (m_min.x <= pos.x && pos.x < m_max.x &&
-                   m_min.y <= pos.y && pos.y < m_max.y &&
-                   m_min.z <= pos.z && pos.z < m_max.z);
-    
-    return result;
-    }
 #endif
 
-
+//////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorEmpty
+//
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorGlobalTagList
 
 //! Constructor
 ParticleSelectorGlobalTagList::ParticleSelectorGlobalTagList(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& global_tag_list)
-    : ParticleSelector(), m_sysdef(sysdef), m_pdata(sysdef->getParticleData())
+    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData())
     {
 
     // copy the tag list into a GPU array for efficient access on the GPU
@@ -249,113 +217,145 @@ unsigned int ParticleSelectorGlobalTagList::getMemberTags(const GPUArray<unsigne
     }
 
 //////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorUnion
+// ParticleSelector set operations
 
-//! constructor
+//! Constructor for ParticleSelectorSetOperation
 /*! We construct the union of two ParticleSelectors by storing copies of them in class member variables (instead
     of references) and taking the union of their member tags. In this way cyclic references between ParticleSelectors are prevented.
  */
-ParticleSelectorUnion::ParticleSelectorUnion(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b)
+ParticleSelectorSetOperation::ParticleSelectorSetOperation(boost::shared_ptr<SystemDefinition> sysdef,
+                                                           boost::shared_ptr<ParticleSelector> a,
+                                                           boost::shared_ptr<ParticleSelector> b)
     : ParticleSelector(),
+      m_sysdef(sysdef),
+      m_pdata(sysdef->getParticleData()),
       m_selector_a(a),
       m_selector_b(b)
     {
+    // initialize arrays to hold tags of local group members as returned by both selectors
+    GPUArray<unsigned int> member_tags_a(m_pdata->getN(), m_pdata->getExecConf());
+    GPUArray<unsigned int> member_tags_b(m_pdata->getN(), m_pdata->getExecConf());
+    m_member_tags_a.swap(member_tags_a);
+    m_member_tags_b.swap(member_tags_b);
     }
 
 //! rebuild internal list of included tags
-unsigned int ParticleSelectorUnion::getMemberTags(const GPUArray<unsigned int>& member_tags)
+unsigned int ParticleSelectorSetOperation::getMemberTags(const GPUArray<unsigned int>& member_tags)
     {
-#if 0
-    // clear list of members
-    this->m_member_tags.clear();
+    // resize arrays if necessary
+    if (m_pdata->getN() > m_member_tags_a.getNumElements())
+        {
+        unsigned int new_size = m_member_tags_a.getNumElements();
+        while (m_pdata->getN() > new_size) new_size *= 2;
+        m_member_tags_a.resize(new_size);
+        }
 
-    // first rebuild the tag lists of the arguments
-    m_selector_a->rebuildTagsList();
-    m_selector_b->rebuildTagsList();
+    if (m_pdata->getN() > m_member_tags_b.getNumElements())
+        {
+        unsigned int new_size = m_member_tags_b.getNumElements();
+        while (m_pdata->getN() > new_size) new_size *= 2;
+        m_member_tags_b.resize(new_size);
+        }
 
-    // get the tag lists
-    std::vector<unsigned int>& member_tags_a = m_selector_a->getMemberTags();
-    std::vector<unsigned int>& member_tags_b = m_selector_b->getMemberTags();
+    // get local members from both ParticleSelectors
+    unsigned int num_members_a = m_selector_a->getMemberTags(m_member_tags_a);
+    unsigned int num_members_b = m_selector_b->getMemberTags(m_member_tags_b);
 
-    // make the union
-    insert_iterator< vector<unsigned int> > ii(m_member_tags, this->m_member_tags.begin());
-    set_union(member_tags_a.begin(), member_tags_a.end(), member_tags_a.begin(), member_tags_b.end(), ii);
-#endif
+    assert(num_members_a <= m_pdata->getN());
+    assert(num_members_b <= m_pdata->getN());
+    assert(member_tags.getNumElements() >= m_pdata->getN());
+
+    // perform the set operation
+    return operation(m_member_tags_a, m_member_tags_b, num_members_a, num_members_b, member_tags);
     }
 
 
-//////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorIntersection
+//! Constructor for ParticleSelectorUnion
+ParticleSelectorUnion::ParticleSelectorUnion(boost::shared_ptr<SystemDefinition> sysdef,
+                                             boost::shared_ptr<ParticleSelector> a,
+                                             boost::shared_ptr<ParticleSelector> b)
+    : ParticleSelectorSetOperation(sysdef, a, b)
+    { }
 
-//! constructor
-/*! We construct the intersection of two ParticleSelectors by storing copies of them in class member variables (instead
-    of references) and taking the intersection of their member tags. In this way cyclic references between ParticleSelectors are prevented.
- */
-ParticleSelectorIntersection::ParticleSelectorIntersection(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b)
-    : ParticleSelector(),
-      m_selector_a(a),
-      m_selector_b(b)
+//! Implementation of a union of two particle selectors
+unsigned int ParticleSelectorUnion::operation(const GPUArray<unsigned int>& member_tags_a,
+                                 const GPUArray<unsigned int>& member_tags_b,
+                                 const unsigned int num_members_a,
+                                 const unsigned int num_members_b,
+                                 const GPUArray<unsigned int>& member_tags)
     {
+    ArrayHandle<unsigned int> h_member_tags_a(member_tags_a,access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_member_tags_b(member_tags_b,access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_member_tags(member_tags,access_location::host, access_mode::readwrite);
+
+    return std::set_union(h_member_tags_a.data,
+                          h_member_tags_a.data + num_members_a,
+                          h_member_tags_b.data,
+                          h_member_tags_b.data + num_members_b,
+                          h_member_tags.data) - h_member_tags.data;
     }
 
-//! rebuild internal list of included tags
-unsigned int ParticleSelectorIntersection::getMemberTags(const GPUArray<unsigned int> & member_tags)
+//! Constructor for ParticleSelectorDifference
+ParticleSelectorDifference::ParticleSelectorDifference(boost::shared_ptr<SystemDefinition> sysdef,
+                                             boost::shared_ptr<ParticleSelector> a,
+                                             boost::shared_ptr<ParticleSelector> b)
+    : ParticleSelectorSetOperation(sysdef, a, b)
+    { }
+
+//! Implementation of a difference between two particle selectors
+unsigned int ParticleSelectorDifference::operation(const GPUArray<unsigned int>& member_tags_a,
+                                 const GPUArray<unsigned int>& member_tags_b,
+                                 const unsigned int num_members_a,
+                                 const unsigned int num_members_b,
+                                 const GPUArray<unsigned int>& member_tags)
     {
-#if 0
-    // clear list of members
-    this->m_member_tags.clear();
+    ArrayHandle<unsigned int> h_member_tags_a(member_tags_a,access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_member_tags_b(member_tags_b,access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_member_tags(member_tags,access_location::host, access_mode::readwrite);
 
-    // first rebuild the tag lists of the arguments
-    m_selector_a->rebuildTagsList();
-    m_selector_b->rebuildTagsList();
-
-    // get the tag lists
-    std::vector<unsigned int>& member_tags_a = m_selector_a->getMemberTags();
-    std::vector<unsigned int>& member_tags_b = m_selector_b->getMemberTags();
-
-    // make the intersection
-    insert_iterator< vector<unsigned int> > ii(m_member_tags, this->m_member_tags.begin());
-    set_intersection(member_tags_a.begin(), member_tags_a.end(), member_tags_a.begin(), member_tags_b.end(), ii);
-#endif
+    return std::set_difference(h_member_tags_a.data,
+                          h_member_tags_a.data + num_members_a,
+                          h_member_tags_b.data,
+                          h_member_tags_b.data + num_members_b,
+                          h_member_tags.data) - h_member_tags.data;
     }
 
-//////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorDifference
+//! Constructor for ParticleSelectorIntersection
+ParticleSelectorIntersection::ParticleSelectorIntersection(boost::shared_ptr<SystemDefinition> sysdef,
+                                             boost::shared_ptr<ParticleSelector> a,
+                                             boost::shared_ptr<ParticleSelector> b)
+    : ParticleSelectorSetOperation(sysdef, a, b)
+    { }
 
-//! constructor
-/*! We construct the union of two ParticleSelectors by storing copies of them in class member variables (instead
-    of references) and taking the difference of their member tags. In this way cyclic references between ParticleSelectors are prevented.
- */
-ParticleSelectorDifference::ParticleSelectorDifference(boost::shared_ptr<ParticleSelector> a, boost::shared_ptr<ParticleSelector> b)
-    : ParticleSelector(),
-      m_selector_a(a),
-      m_selector_b(b)
+//! Implementation of a union of two particle selectors
+unsigned int ParticleSelectorIntersection::operation(const GPUArray<unsigned int>& member_tags_a,
+                                 const GPUArray<unsigned int>& member_tags_b,
+                                 const unsigned int num_members_a,
+                                 const unsigned int num_members_b,
+                                 const GPUArray<unsigned int>& member_tags)
     {
-    }
+    ArrayHandle<unsigned int> h_member_tags_a(member_tags_a,access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_member_tags_b(member_tags_b,access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_member_tags(member_tags,access_location::host, access_mode::readwrite);
 
-//! rebuild internal list of included tags
-unsigned int ParticleSelectorDifference::getMemberTags(const GPUArray<unsigned int> & member_tags)
-    {
-#if 0
-    // clear list of members
-    this->m_member_tags.clear();
-
-    // first rebuild the tag lists of the arguments
-    m_selector_a->rebuildTagsList();
-    m_selector_b->rebuildTagsList();
-
-    // get the tag lists
-    std::vector<unsigned int>& member_tags_a = m_selector_a->getMemberTags();
-    std::vector<unsigned int>& member_tags_b = m_selector_b->getMemberTags();
-
-    // make the difference
-    insert_iterator< vector<unsigned int> > ii(m_member_tags, this->m_member_tags.begin());
-    set_difference(member_tags_a.begin(), member_tags_a.end(), member_tags_a.begin(), member_tags_b.end(), ii);
-#endif
+    return std::set_intersection(h_member_tags_a.data,
+                          h_member_tags_a.data + num_members_a,
+                          h_member_tags_b.data,
+                          h_member_tags_b.data + num_members_b,
+                          h_member_tags.data) - h_member_tags.data;
     }
 
 //////////////////////////////////////////////////////////////////////////////
 // ParticleGroup
+
+//! Empty particle group
+ParticleGroup::ParticleGroup()
+    : m_selector(boost::shared_ptr<ParticleSelector>(new ParticleSelectorEmptySet())),
+      m_num_members(0),
+      m_is_empty(true)
+    {
+    }
+
 /*! \param sysdef System definition to build the group from
     \param selector ParticleSelector used to choose the group members
 
@@ -364,7 +364,8 @@ unsigned int ParticleSelectorDifference::getMemberTags(const GPUArray<unsigned i
 ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
-      m_selector(selector)
+      m_selector(selector),
+      m_is_empty(false)
     {
     // we use the number of loal particles as the maximum size for the member tags array
     GPUArray<unsigned int> member_tags(m_pdata->getN(), m_pdata->getExecConf());
@@ -401,7 +402,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
 ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& global_tag_list)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
-      m_selector(boost::shared_ptr<ParticleSelectorGlobalTagList>(new ParticleSelectorGlobalTagList(sysdef, global_tag_list)))
+      m_selector(boost::shared_ptr<ParticleSelectorGlobalTagList>(new ParticleSelectorGlobalTagList(sysdef, global_tag_list))),
+      m_is_empty(false)
     {
     // we use the number of loal particles as the maximum size for the member tags array
     GPUArray<unsigned int> member_tags(m_pdata->getN(), m_pdata->getExecConf());
@@ -467,6 +469,8 @@ void ParticleGroup::rebuildTagList()
 
 /*! \returns Total mass of all particles in the group
     \note This method aquires the ParticleData internally
+
+    FIXME: this will not work with global groups (yet)
 */
 Scalar ParticleGroup::getTotalMass() const
     {
@@ -485,9 +489,13 @@ Scalar ParticleGroup::getTotalMass() const
     
 /*! \returns The center of mass of the group, in unwrapped coordinates
     \note This method aquires the ParticleData internally
+
+    FIXME: This will not work with global groups, as it returns the local center of mass
 */
 Scalar3 ParticleGroup::getCenterOfMass() const
     {
+    if (! m_pdata) return make_scalar3(0.0,0.0,0.0); // assume this is the global center of mass
+
     // grab the particle data
     ArrayHandle< Scalar4 > h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -528,10 +536,22 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
                                                            boost::shared_ptr<ParticleGroup> b)
     {
     // create the union of ParticleSelectors
-    boost::shared_ptr<ParticleSelector> p_sel_union(new ParticleSelectorUnion(a->m_selector, b->m_selector));
+
+    // get a valid system definition
+    boost::shared_ptr<SystemDefinition> sysdef;
+    if (a->m_sysdef)
+        sysdef = a->m_sysdef;
+    else if (b->m_sysdef)
+        sysdef = b->m_sysdef;
+
+    // check if this is a union of two empty groups
+    if (! sysdef)
+        return boost::shared_ptr<ParticleGroup>(new ParticleGroup());
+
+    boost::shared_ptr<ParticleSelector> p_sel_union(new ParticleSelectorUnion(sysdef, a->m_selector, b->m_selector));
 
     // create the new particle group
-    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, p_sel_union));
+    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(sysdef, p_sel_union));
     
     // return the newly created group
     return new_group;
@@ -546,11 +566,22 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
 boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_ptr<ParticleGroup> a,
                                                                   boost::shared_ptr<ParticleGroup> b)
     {
+    // get a valid system definition
+    boost::shared_ptr<SystemDefinition> sysdef;
+    if (a->m_sysdef)
+        sysdef = a->m_sysdef;
+    else if (b->m_sysdef)
+        sysdef = b->m_sysdef;
+
+    // check if this is an intersection of two empty groups
+    if (! sysdef)
+        return boost::shared_ptr<ParticleGroup>(new ParticleGroup());
+
     // create the intersection of ParticleSelectors
-    boost::shared_ptr<ParticleSelector> p_sel_intersection(new ParticleSelectorIntersection(a->m_selector, b->m_selector));
+    boost::shared_ptr<ParticleSelector> p_sel_intersection(new ParticleSelectorIntersection(sysdef, a->m_selector, b->m_selector));
 
     // create the new particle group
-    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, p_sel_intersection));
+    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(sysdef, p_sel_intersection));
     
     // return the newly created group
     return new_group;
@@ -565,11 +596,22 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
 boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_ptr<ParticleGroup> a,
                                                                 boost::shared_ptr<ParticleGroup> b)
     {
+    // get a valid system definition
+    boost::shared_ptr<SystemDefinition> sysdef;
+    if (a->m_sysdef)
+        sysdef = a->m_sysdef;
+    else if (b->m_sysdef)
+        sysdef = b->m_sysdef;
+
+    // check if this is a difference of two empty groups
+    if (! sysdef)
+        return boost::shared_ptr<ParticleGroup>(new ParticleGroup());
+
     // create the intersection of ParticleSelectors
-    boost::shared_ptr<ParticleSelector> p_sel_difference(new ParticleSelectorDifference(a->m_selector, b->m_selector));
+    boost::shared_ptr<ParticleSelector> p_sel_difference(new ParticleSelectorDifference(sysdef, a->m_selector, b->m_selector));
 
     // create the new particle group
-    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, p_sel_difference));
+    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(sysdef, p_sel_difference));
     
     // return the newly created group
     return new_group;
@@ -583,7 +625,6 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
 void ParticleGroup::rebuildIndexList()
     {
     // start by rebuilding the bitset of member indices in the group
-
 
     // resize indices array if necessary
     while (m_num_members > m_member_idx.getNumElements())
