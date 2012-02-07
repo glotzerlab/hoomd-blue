@@ -294,8 +294,16 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+<<<<<<< HEAD
     pdata->setFlags(~PDataFlags(0));
 
+=======
+    PDataFlags flags;
+    flags[pdata_flag::isotropic_virial] = 1;
+    pdata->setFlags(flags);
+
+
+>>>>>>> Corrected unit tests of pair potentials with virial comparison (by default, the virial is disabled)
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
