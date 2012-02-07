@@ -75,6 +75,8 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<MPIInitializer> mpi_init)
           : Communicator(sysdef, mpi_comm, mpi_init)
     {
+    // initialize send buffer size with size of particle data element on the GPU
+    setPackedSize(gpu_pdata_element_size());
     }
 
 //! Transfer particles between neighboring domains
@@ -145,6 +147,14 @@ void CommunicatorGPU::migrateAtoms()
         if (m_prof)
              m_prof->push("pack");
 
+        // Check if send buffer is large enough and resize if necessary
+        if (n_delete_ptls*m_packed_size > m_sendbuf[dir].getNumElements())
+            {
+            unsigned int new_size = m_sendbuf[dir].getNumElements();
+            while (new_size < n_delete_ptls * m_packed_size) new_size *= 2;
+            m_sendbuf[dir].resize(new_size);
+            }
+
         unsigned int send_buf_size;
 
             {
@@ -203,8 +213,16 @@ void CommunicatorGPU::migrateAtoms()
             unsigned int dimj = getDimension(dirj/2);
             if (dimj == 1) continue;
 
-            ArrayHandle<char> d_sendbuf(m_sendbuf[dir], access_location::device, access_mode::readwrite);
+            // Check if send buffer is large enough and resize if necessary
+            if (send_buf_size + recv_buf_size[dirj] > m_sendbuf[dir].getNumElements())
+                {
+                unsigned int new_size = m_sendbuf[dir].getNumElements();
+                while (new_size < recv_buf_size[dirj] + send_buf_size) new_size *= 2;
+                m_sendbuf[dir].resize(new_size);
+                }
+
             ArrayHandle<char> d_recvbuf(m_recvbuf[dirj], access_location::device, access_mode::read);
+            ArrayHandle<char> d_sendbuf(m_sendbuf[dir], access_location::device, access_mode::readwrite);
 
             char *new_send_buf_end;
             gpu_migrate_forward_particles(d_recvbuf.data,
@@ -228,6 +246,15 @@ void CommunicatorGPU::migrateAtoms()
         reqs[0] = m_mpi_comm->isend(send_neighbor,0,send_buf_size);
         reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,recv_buf_size[dir]);
         boost::mpi::wait_all(reqs,reqs+2);
+
+        // Check if receive buffer is large enough and resize if necessary
+        if (recv_buf_size[dir] > m_recvbuf[dir].getNumElements())
+            {
+            unsigned int new_size = m_recvbuf[dir].getNumElements();
+            while (new_size < recv_buf_size[dir]) new_size *= 2;
+            m_recvbuf[dir].resize(new_size);
+            }
+
 #ifdef ENABLE_MPI_CUDA
             {
             ArrayHandle<char> d_sendbuf(m_sendbuf[dir], access_location::device, access_mode::read);

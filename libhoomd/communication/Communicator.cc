@@ -92,7 +92,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 //! Allocate internal buffers
 void Communicator::allocate()
     {
-    // FIXME: packed_size may be different on GPU
+    // the size of the data element may be different between CPU and GPU. It is just
+    // used for allocation of the buffers
     unsigned int buf_size = m_pdata->getN() * m_packed_size;
 
     for (int dir = 0; dir < 6; dir++)

@@ -237,6 +237,15 @@ class Communicator
 
     protected:
 
+        //! Set size of a packed data element
+        /*! \param size size of data element (in bytes)
+         */
+        void setPackedSize(unsigned int size)
+            {
+            assert(size > 0);
+            m_packed_size = size;
+            }
+
         //! Helper function to allocate internal buffers
         void allocate();
 

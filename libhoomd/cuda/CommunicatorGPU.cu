@@ -145,7 +145,7 @@ struct select_particle_ghost
      };
 
 //! Structure to pack a particle data element into
-struct pdata_element
+struct __align__(128) pdata_element
     {
     float4 pos;               //!< Position
     float4 vel;               //!< Velocity
