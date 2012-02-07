@@ -94,85 +94,17 @@ class BoxDim;
 class ParticleData;
 
 //! Structure to store packed particle data
-struct PackedParticleData
+struct pdata_element
     {
-    public:
-        //! constructor
-        //! \param data pointer to the data
-        PackedParticleData(char *data)
-         : m_data(data)
-            {
-            }
-
-        //! get particle position by reference
-        //! \param idx index of particle in array
-        inline Scalar4& pos(unsigned int idx)
-            {
-            return *(Scalar4 *)(m_data + m_size*idx);
-            }
-
-        //! get particle velocity by reference
-        //! \param idx index of particle in array
-        inline Scalar4& vel(unsigned int idx)
-            {
-            return *(Scalar4 *) (m_data + m_size*idx + sizeof(Scalar4) );
-            }
-
-        //! get particle acceleration by reference
-        //! \param idx index of particle in array
-        inline Scalar3& accel(unsigned int idx)
-            {
-            return *(Scalar3 *) (m_data + m_size*idx + 2*sizeof(Scalar4));
-            }
-        //! get particle charge by reference
-        //! \param idx index of particle in array
-        inline Scalar& charge(unsigned int idx)
-            {
-            return *(Scalar *) (m_data + m_size*idx + 2*sizeof(Scalar4) + sizeof(Scalar3));
-            }
-
-        //! get particle diameter by reference
-        //! \param idx index of particle in array
-        inline Scalar& diameter(unsigned int idx)
-            {
-            return *(Scalar *) (m_data + m_size*idx + 2*sizeof(Scalar4) + sizeof(Scalar3) + sizeof(Scalar));
-            }
-
-        //! get particle image by reference
-        //! \param idx index of particle in array
-        inline int3& image(unsigned int idx)
-            {
-            return *(int3 *) (m_data + m_size*idx + 2*sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(Scalar));
-            }
-        //! get particle body id by reference
-        //! \param idx index of particle in array
-        inline unsigned int& body(unsigned int idx)
-            {
-            return *(unsigned int *) (m_data + m_size*idx + 2*sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(Scalar) + sizeof(int3));
-            }
-
-        //! get the particle orientation by reference
-        inline Scalar4& orientation(unsigned int idx)
-            {
-            return *(Scalar4 *) (m_data + m_size*idx + 2*sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(Scalar) + sizeof(int3) + sizeof(unsigned int));
-            }
-
-        //! get the particle global tag by reference
-        inline unsigned int& global_tag(unsigned int idx)
-            {
-            return *(unsigned int*) (m_data + m_size*idx + 2*sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(Scalar) + sizeof(int3) + sizeof(unsigned int)+sizeof(Scalar4));
-            }
-
-        //! get size of per-particle data record (in number of bytes)
-        static unsigned int getSize()
-            {
-            return m_size;
-            }
-
-    private:
-        char *m_data;               //!< the data array
-        static const unsigned int m_size = (2*sizeof(Scalar4)+sizeof(Scalar3)+2*sizeof(Scalar)+sizeof(int3)+sizeof(unsigned int)+sizeof(Scalar4)+sizeof(unsigned int));  //!< size of a data record per particle
-
+    float4 pos;               //!< Position
+    float4 vel;               //!< Velocity
+    float3 accel;             //!< Acceleration
+    float charge;             //!< Charge
+    float diameter;           //!< Diameter
+    int3 image;               //!< Image
+    unsigned int body;        //!< Body id
+    float4 orientation;       //!< Orientation
+    unsigned int global_tag;  //!< global tag
     };
 
 
@@ -183,11 +115,15 @@ class Communicator
         //! Constructor
         /*! \param sysdef system definition the communicator is associated with
          *  \param mpi_comm the underlying MPI communicator
-         *  \param mpi_init the MPI initializer the system was initialized with
+         *  \param neighbor_rank list of neighbor processor ranks
+         *  \param dim Dimensions of global simulation box (number of boxes along every axis)
+         *  \param global_box Dimensions global simulation box
          */
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                     boost::shared_ptr<MPIInitializer> mpi_init);
+                     std::vector<unsigned int> neighbor_rank,
+                     int3 dim,
+                     const BoxDim& global_box);
 
         //! \name accessor methods
         //@{
@@ -214,7 +150,21 @@ class Communicator
          */
         unsigned int getDimension(unsigned int dir)
             {
-            return m_mpi_init->getDimension(dir);
+            assert(dir < 3);
+            switch(dir)
+                {
+                case 0:
+                    return m_dim.x;
+                    break;
+                case 1:
+                    return m_dim.y;
+                    break;
+                case 2:
+                    return m_dim.z;
+                    break;
+                }
+
+            return 0; // we should never arrive here
             }
 
         //@}
@@ -273,9 +223,9 @@ class Communicator
         boost::shared_ptr<ParticleData> m_pdata;                   //!< particle data
         boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< execution configuration
         boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communciator
-        boost::shared_ptr<MPIInitializer> m_mpi_init;              //!< MPI initializer
         boost::shared_ptr<Profiler> m_prof;                        //!< Profiler
 
+        const int3 m_dim;                        //!< dimensions of global simulation box (number of boxes along every axis)
         const BoxDim& m_global_box;              //!< global simulation box
         unsigned int m_packed_size;              //!< size of packed particle data element in bytes
         bool m_is_allocated;                     //!< true if internal buffers have been allocated

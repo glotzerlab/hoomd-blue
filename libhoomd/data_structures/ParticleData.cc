@@ -186,7 +186,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 
         h_global_tag.data[i] = i;
         h_global_rtag.data[i] = i;
-        m_is_local[i] = true;
         }
 
     // default constructed shared ptr is null as desired
@@ -513,9 +512,6 @@ void ParticleData::allocate(unsigned int N, unsigned int nglobal)
     GPUArray< unsigned int> global_rtag(getNGlobal(), m_exec_conf);
     m_global_rtag.swap(global_rtag);
 
-    // resize bitset of locality flags
-    m_is_local.resize(getNGlobal());
-
     // body ID
     GPUArray< unsigned int > body(getN(), m_exec_conf);
     m_body.swap(body);
@@ -657,7 +653,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
         h_global_tag.data[idx] = snapshot.global_tag[tag];
         h_global_rtag.data[snapshot.global_tag[tag]] = idx;
-        m_is_local[snapshot.global_tag[tag]] = true;
 
         h_body.data[idx] = snapshot.body[tag];
         }

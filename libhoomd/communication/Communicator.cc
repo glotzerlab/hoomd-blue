@@ -60,6 +60,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "System.h"
 
 #include <boost/mpi.hpp>
+#include <boost/python.hpp>
+
+using namespace boost::python;
 
 //! Define some of our types as fixed-size MPI datatypes for performance optimization
 BOOST_IS_MPI_DATATYPE(Scalar4)
@@ -70,21 +73,32 @@ BOOST_IS_MPI_DATATYPE(int3)
 //! Constructor
 Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                           boost::shared_ptr<MPIInitializer> mpi_init)
+                           std::vector<unsigned int> neighbor_rank,
+                           int3 dim,
+                           const BoxDim& global_box)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             exec_conf(m_pdata->getExecConf()),
             m_mpi_comm(mpi_comm),
-            m_mpi_init(mpi_init),
-            m_global_box(mpi_init->getGlobalBox()),
+            m_dim(dim),
+            m_global_box(global_box),
             m_is_allocated(false),
             m_r_ghost(Scalar(0.0))
     {
     // initialize array of neighbor processor ids
-    for (unsigned int dir = 0; dir < 6; dir++)
-        m_neighbors[dir] = m_mpi_init->getNeighborRank(dir);
+    if (neighbor_rank.size() != 6)
+        {
+        //! Set the rank of a neighbor processors of this simulation box in
+        cerr << endl << "***Error! Invalid number of neighbor processor ranks supplied (" << neighbor_rank.size() << " != 6)."  << endl
+                     << "          One processor rank per direction is required."
+                     << endl << endl;
+        throw runtime_error("Error initializing MPI communication.");
+        }
 
-    m_packed_size = PackedParticleData::getSize();
+    for (unsigned int dir = 0; dir < 6; dir++)
+        m_neighbors[dir] = neighbor_rank[dir];
+
+    m_packed_size = sizeof(pdata_element);
 
     allocate();
     }
@@ -150,13 +164,39 @@ void Communicator::migrateAtoms()
 
     unsigned int num_send_particles[6]; // number of particles to send in positive direction
 
+    // first step: determine particles that are going to be deleted
+    bool send_x = getDimension(0) > 1;
+    bool send_y = getDimension(1) > 1;
+    bool send_z = getDimension(2) > 1;
+
+    if (send_x || send_y || send_z) // trivial check if we are sending to someone at all
+        {
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_delete_buf(m_delete_buf, access_location::host, access_mode::readwrite);
+        for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+            {
+            Scalar4 pos = h_pos.data[idx];
+            // determine whether particle has left the boundaries
+            if ((send_x && pos.x >= box.xhi) || // send east
+                (send_x && pos.x < box.xlo)  || // send west
+                (send_y && pos.y >= box.yhi) || // send north
+                (send_y && pos.y < box.ylo)  || // send south
+                (send_z && pos.z >= box.zhi) || // send up
+                (send_z && pos.z < box.zlo))    // send down
+                {
+                // add to delete buffer
+                h_delete_buf.data[n_delete_ptls++] = idx;
+                }
+            }
+        }
+
+    // second step: determine local particles that are to be sent to neighboring processors and fill send buffer
     for (unsigned int dir=0; dir < 6; dir++)
         {
         num_send_particles[dir] = 0;
 
         if (getDimension(dir/2) == 1) continue;
 
-            // scan all atom positions and fill the send buffers with those that have left the domain boundaries
             if (m_prof)
                 m_prof->push("pack");
 
@@ -174,7 +214,6 @@ void Communicator::migrateAtoms()
             // FIXME: need to resize send buffer if necessary
             ArrayHandle<char> h_sendbuf(m_sendbuf[dir], access_location::host, access_mode::overwrite);
 
-            ArrayHandle<unsigned int> h_delete_buf(m_delete_buf, access_location::host, access_mode::readwrite);
 
             for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                 {
@@ -189,38 +228,23 @@ void Communicator::migrateAtoms()
                     (dir == 5 && pos.z < box.zlo)) // send down
                     {
                     // pack particle data
-                    PackedParticleData pack_data(h_sendbuf.data);
-                    pack_data.pos(num_send_particles[dir]) = h_pos.data[idx];
-                    pack_data.vel(num_send_particles[dir]) = h_vel.data[idx];
-                    pack_data.accel(num_send_particles[dir]) = h_accel.data[idx];
-                    pack_data.charge(num_send_particles[dir]) = h_charge.data[idx];
-                    pack_data.diameter(num_send_particles[dir]) = h_diameter.data[idx];
-                    pack_data.image(num_send_particles[dir]) = h_image.data[idx];
-                    pack_data.body(num_send_particles[dir]) = h_body.data[idx];
-                    pack_data.orientation(num_send_particles[dir]) = h_orientation.data[idx];
-                    pack_data.global_tag(num_send_particles[dir]) = h_global_tag.data[idx];
+                    pdata_element p;
+                    p.pos = h_pos.data[idx];
+                    p.vel = h_vel.data[idx];
+                    p.accel = h_accel.data[idx];
+                    p.charge = h_charge.data[idx];
+                    p.diameter = h_diameter.data[idx];
+                    p.image = h_image.data[idx];
+                    p.body = h_body.data[idx];
+                    p.orientation = h_orientation.data[idx];
+                    p.global_tag = h_global_tag.data[idx];
 
-                    num_send_particles[dir]++;
-
-                    // add to delete buffer
-                    h_delete_buf.data[n_delete_ptls] = h_global_tag.data[idx];
-                    n_delete_ptls++;
+                    ( (pdata_element *) h_sendbuf.data)[num_send_particles[dir]++] = p;
                     }
                 }
             }
         if (m_prof)
             m_prof->pop();
-
-            {
-            // remove deleted atoms
-
-            ArrayHandle<unsigned int> h_delete_buf(m_delete_buf, access_location::host, access_mode::read);
-
-            // need to implement CPU code here
-            }
-
-        // update number of particles in system
-        m_pdata->removeParticles(num_send_particles[dir]);
 
         unsigned int send_neighbor = m_neighbors[dir];
 
@@ -233,6 +257,7 @@ void Communicator::migrateAtoms()
 
         if (m_prof)
             m_prof->push("forward ptls");
+
         // go through received data and determine particles that need to included in the next send and add them
         // to the message buffer
         for (unsigned int dirj = 0; dirj < dir ; dirj++)
@@ -241,33 +266,21 @@ void Communicator::migrateAtoms()
             if (dimj == 1) continue;
                 {
                 ArrayHandle<char> h_sendbuf(m_sendbuf[dir], access_location::host, access_mode::readwrite);
-
-
                 ArrayHandle<char> h_recvbuf(m_recvbuf[dirj], access_location::host, access_mode::read);
-                PackedParticleData pack_data_j(h_recvbuf.data);
 
                 for (unsigned int idx = 0; idx < num_recv_particles[dirj]; idx++)
                     {
-                    Scalar4 pos = pack_data_j.pos(idx);
+                    pdata_element &p = ((pdata_element *) h_recvbuf.data)[idx];
+                    Scalar4 pos = p.pos;
 
-                    PackedParticleData pack_data(h_sendbuf.data);
                     if ((dir==2 && (pos.y >= box.yhi)) || // send north
                         (dir==3 && (pos.y < box.ylo)) ||  // send south
-                        (dir==4 && (pos.z >= box.zhi)) ||  // send up
-                        (dir==5 && (pos.z < box.zlo)))     // send down
+                        (dir==4 && (pos.z >= box.zhi)) || // send up
+                        (dir==5 && (pos.z < box.zlo)))    // send down
                         {
                         // send with next message
-                        pack_data.pos(num_send_particles[dir]) = pos;
-                        pack_data.vel(num_send_particles[dir]) = pack_data_j.vel(idx);
-                        pack_data.accel(num_send_particles[dir]) = pack_data_j.accel(idx);
-                        pack_data.charge(num_send_particles[dir]) = pack_data_j.charge(idx);
-                        pack_data.diameter(num_send_particles[dir]) = pack_data_j.diameter(idx);
-                        pack_data.image(num_send_particles[dir]) = pack_data_j.image(idx);
-                        pack_data.body(num_send_particles[dir]) = pack_data_j.body(idx);
-                        pack_data.orientation(num_send_particles[dir]) = pack_data_j.orientation(idx);
-                        pack_data.global_tag(num_send_particles[dir]) = pack_data_j.global_tag(idx);
-
-                        num_send_particles[dir]++;
+                        pdata_element &p_send = ((pdata_element *) h_sendbuf.data)[num_send_particles[dir]++];
+                        p_send = p;
                         }
                     }
                 }
@@ -278,6 +291,7 @@ void Communicator::migrateAtoms()
 
         if (m_prof)
             m_prof->push("MPI send/recv");
+
         // communicate size of the message that will contain the particle data
         boost::mpi::request reqs[2];
         reqs[0] = m_mpi_comm->isend(send_neighbor,0,num_send_particles[dir]);
@@ -298,11 +312,11 @@ void Communicator::migrateAtoms()
 
             {
             ArrayHandle<char> h_recvbuf(m_recvbuf[dir], access_location::host, access_mode::readwrite);
-            PackedParticleData pack_data_recv(h_recvbuf.data);
             for (unsigned int idx = 0; idx < num_recv_particles[dir]; idx++)
                 {
-                Scalar4& pos = pack_data_recv.pos(idx);
-                int3& image = pack_data_recv.image(idx);
+                pdata_element& p = ((pdata_element *) h_recvbuf.data)[idx];
+                Scalar4& pos = p.pos;
+                int3& image = p.image;
 
                 // wrap received particles across a global boundary back into global box
                 if (dir == 0 && pos.x >= m_global_box.xhi)
@@ -338,13 +352,63 @@ void Communicator::migrateAtoms()
                     image.z--;
                     }
 
-                assert( m_global_box.xlo <= pos.x && pos.x < m_global_box.xhi &&
-                        m_global_box.ylo <= pos.y && pos.y < m_global_box.yhi &&
-                        m_global_box.zlo <= pos.z && pos.z < m_global_box.zhi );
+                assert( ((dir==0 || dir ==1) && m_global_box.xlo <= pos.x && pos.x < m_global_box.xhi) ||
+                        ((dir==2 || dir ==3) && m_global_box.ylo <= pos.y && pos.y < m_global_box.yhi) ||
+                        ((dir==4 || dir ==5) && m_global_box.zlo <= pos.z && pos.z < m_global_box.zhi ));
                 }
             }
 
         } // end dir loop
+
+
+        {
+        // remove deleted atoms
+        /* this algorithm removes the particles with indices in h_delete_buf from the particle data arrays
+         * and fills any holes created in this way by moving the last particle up to the location of the deleted particle.
+         *
+         * NOTE: The present algorithm does not preserve the local sorted order. This may be OK on the CPU, though.
+         */
+        ArrayHandle<unsigned int> h_delete_buf(m_delete_buf, access_location::host, access_mode::read);
+
+        ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar4 > h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar3 > h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+        ArrayHandle< int3 > h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar > h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar > h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
+        ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar4 > h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle< unsigned int > h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+        ArrayHandle< unsigned int > h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+
+        for (unsigned int i = 0; i < n_delete_ptls; i++)
+            {
+            unsigned int idx = h_delete_buf.data[i];
+            assert(idx < m_pdata->getN());
+            unsigned int last_idx = m_pdata->getN() - 1;
+
+            // move the last particle up to the hole created in the particle data arrays
+            h_pos.data[idx] = h_pos.data[last_idx];
+            h_vel.data[idx] = h_vel.data[last_idx];
+            h_accel.data[idx] = h_accel.data[last_idx];
+            h_image.data[idx] = h_image.data[last_idx];
+            h_charge.data[idx] = h_charge.data[last_idx];
+            h_diameter.data[idx] = h_diameter.data[last_idx];
+            h_body.data[idx] = h_body.data[last_idx];
+            h_global_tag.data[idx] = h_global_tag.data[last_idx];
+
+            // update global tag reverse lookup for moved particle
+            assert(h_global_rtag.data[h_global_tag.data[last_idx]] == last_idx);
+            h_global_rtag.data[h_global_tag.data[last_idx]] = idx;
+
+            // also need to change subsequent references in the delete buffer
+            for (unsigned int j=i+1; j < n_delete_ptls; j++)
+                if (h_delete_buf.data[j] == last_idx) h_delete_buf.data[j] = idx;
+
+            // update number of particles in system
+            m_pdata->removeParticles(1);
+            }
+       }
 
 
     // finally, add particles to box
@@ -359,10 +423,10 @@ void Communicator::migrateAtoms()
 
             {
             ArrayHandle<char> h_recvbuf(m_recvbuf[dir], access_location::host, access_mode::read);
-            PackedParticleData pack_data(h_recvbuf.data);
             for (unsigned int idx = 0; idx < num_recv_particles[dir]; idx++)
                 {
-                Scalar4 pos = pack_data.pos(idx);
+                pdata_element& p = ((pdata_element *) h_recvbuf.data)[idx];
+                Scalar4 pos = p.pos;
 
                 // check if particle lies in this box
                 if ((box.xlo <= pos.x  && pos.x < box.xhi) &&
@@ -404,29 +468,27 @@ void Communicator::migrateAtoms()
 
 
                 ArrayHandle<char> h_recvbuf(m_recvbuf[dir], access_location::host, access_mode::read);
-                PackedParticleData pack_data(h_recvbuf.data);
                 for (unsigned int idx = 0; idx < num_recv_particles[dir]; idx++)
                     {
-                    Scalar4 pos = pack_data.pos(idx);
+                    pdata_element& p =  ((pdata_element *) h_recvbuf.data)[idx];
+                    const Scalar4& pos = p.pos;
                     if ((box.xlo <= pos.x  && pos.x < box.xhi) &&
                         (box.ylo <= pos.y  && pos.y < box.yhi) &&
                         (box.zlo <= pos.z  && pos.z < box.zhi))
                         {
                         // copy over particle coordinates to domain
-                        h_pos.data[add_idx] = pack_data.pos(idx);
-                        h_vel.data[add_idx] = pack_data.vel(idx);
-                        h_accel.data[add_idx] = pack_data.accel(idx);
-                        h_charge.data[add_idx] = pack_data.charge(idx);
-                        h_diameter.data[add_idx] = pack_data.diameter(idx);
-                        h_image.data[add_idx] = pack_data.image(idx);
-                        h_body.data[add_idx] = pack_data.body(idx);
-                        h_orientation.data[add_idx] = pack_data.orientation(idx);
-                        h_global_tag.data[add_idx] = pack_data.global_tag(idx);
-                        std::cout << "global tag " << pack_data.global_tag(idx) << std::endl;
-                        h_global_rtag.data[pack_data.global_tag(idx)] = add_idx;
+                        h_pos.data[add_idx] = p.pos;
+                        h_vel.data[add_idx] = p.vel;
+                        h_accel.data[add_idx] = p.accel;
+                        h_charge.data[add_idx] = p.charge;
+                        h_diameter.data[add_idx] = p.diameter;
+                        h_image.data[add_idx] = p.image;
+                        h_body.data[add_idx] = p.body;
+                        h_orientation.data[add_idx] = p.orientation;
+                        h_global_tag.data[add_idx] = p.global_tag;
+                        h_global_rtag.data[p.global_tag] = add_idx;
 
                         // update information that the particle is now local to this processor
-                        m_pdata->setLocal(pack_data.global_tag(idx));
                         add_idx++;
                         }
                     }
@@ -434,6 +496,7 @@ void Communicator::migrateAtoms()
             }
         }
 
+    // check that global number of particles is conserved
     unsigned int N;
     reduce(*m_mpi_comm,m_pdata->getN(), N, std::plus<unsigned int>(), 0);
     if (m_mpi_comm->rank() == 0 && N != m_pdata->getNGlobal())
@@ -668,8 +731,6 @@ void Communicator::copyGhosts()
 
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
 
-    boost::mpi::request reqs[4];
-
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
 
@@ -677,11 +738,7 @@ void Communicator::copyGhosts()
         if (dim == 1) continue;
 
             {
-            if (m_prof)
-                m_prof->push("pdata acquire");
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            if (m_prof)
-                m_prof->pop();
 
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::overwrite);
 
@@ -713,30 +770,28 @@ void Communicator::copyGhosts()
             recv_neighbor = m_neighbors[dir-1];
 
         unsigned int start_idx;
-        unsigned int even_start_idx = 0;
         {
         if (m_prof)
             m_prof->push("MPI send/recv");
 
 
         start_idx = m_pdata->getN() + num_tot_recv_ghosts;
-        if (dir % 2 == 0)
-            even_start_idx = start_idx;
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
 
-        unsigned int base = (dir % 2 == 0) ? 0 : 2;
+
             {
+            boost::mpi::request reqs[2];
+
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            reqs[base] = m_mpi_comm->isend(send_neighbor,1,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[base+1] = m_mpi_comm->irecv(recv_neighbor,1,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
+            reqs[0] = m_mpi_comm->isend(send_neighbor,1,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
+            reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
+            boost::mpi::wait_all(reqs,reqs+2);
             }
 
-        if (dir %2 == 1)
-            boost::mpi::wait_all(reqs,reqs+4);
 
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
@@ -745,14 +800,10 @@ void Communicator::copyGhosts()
         if (m_prof)
             m_prof->push("particle wrap");
 
-        if (dir % 2 == 1)
              {
-             if (m_prof)
-                m_prof->push("pdata acquire");
              ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-             if (m_prof)
-                 m_prof->pop();
-             for (unsigned int idx = even_start_idx; idx < even_start_idx + m_num_recv_ghosts[dir-1] + m_num_recv_ghosts[dir]; idx++)
+
+             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                  {
                  Scalar4& pos = h_pos.data[idx];
 
@@ -778,5 +829,17 @@ void Communicator::copyGhosts()
 
         if (m_prof)
             m_prof->pop();
+    }
+
+//! Export Communicator class to python
+void export_Communicator()
+    {
+    class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
+           init<boost::shared_ptr<SystemDefinition>,
+                boost::shared_ptr<boost::mpi::communicator>,
+                std::vector<unsigned int>,
+                int3,
+                const BoxDim &>())
+    ;
     }
 #endif // ENABLE_MPI

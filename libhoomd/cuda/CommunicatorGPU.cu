@@ -145,7 +145,7 @@ struct select_particle_ghost
      };
 
 //! Structure to pack a particle data element into
-struct __align__(128) pdata_element
+struct __align__(128) pdata_element_gpu
     {
     float4 pos;               //!< Position
     float4 vel;               //!< Velocity
@@ -158,15 +158,15 @@ struct __align__(128) pdata_element
     unsigned int global_tag;  //!< global tag
     };
 
-//! Get the size of a \c pdata_element
+//! Get the size of a \c pdata_element_gpu
 /*! The CUDA compiler aligns structure members differently than the C++ compiler. This function is used
     to return the actual size as returned by the CUDA compiler.
 
-    \returns the size of a pdata_element (in bytes)
+    \returns the size of a pdata_element_gpu (in bytes)
  */
 unsigned int gpu_pdata_element_size()
     {
-    return sizeof(pdata_element);
+    return sizeof(pdata_element_gpu);
     }
 
 //! Define a thrust tuple for a particle data element
@@ -241,7 +241,7 @@ struct select_particle_migrate
     /*! element particle data of the particle to consider for sending
      * \return true if the particle is selected
      */
-    __host__ __device__ bool operator()(const pdata_element& element)
+    __host__ __device__ bool operator()(const pdata_element_gpu& element)
         {
         const float4& pos = element.pos;
         return ((dir==0 && pos.x >= xhi) ||  // send east
@@ -274,9 +274,9 @@ struct wrap_received_particle
    /*! \param el particle data element to transform
     * \return transformed particle data element
     */
-    __host__ __device__ pdata_element operator()(const pdata_element & el)
+    __host__ __device__ pdata_element_gpu operator()(const pdata_element_gpu & el)
         {
-        pdata_element el2 = el;
+        pdata_element_gpu el2 = el;
         float4& pos = el2.pos;
         int3& image = el2.image;
 
@@ -346,7 +346,7 @@ struct isInBox
     /*! \param el the particle data element to apply the criterium to
      * \return true if the particle is to be added to the local particle data
      */
-    __host__ __device__ bool operator()(const pdata_element & el)
+    __host__ __device__ bool operator()(const pdata_element_gpu & el)
         {
         return check_ptl(el.pos);
         }
@@ -362,15 +362,15 @@ struct isInBox
      };
 
 //! Pack a particle data tuple
-struct pack_pdata : public thrust::unary_function<pdata_tuple, pdata_element>
+struct pack_pdata : public thrust::unary_function<pdata_tuple, pdata_element_gpu>
     {
     //! Transform operator
     /*! \param t Particle data tuple to pack
      * \return Packed particle data element
      */
-    __host__ __device__ pdata_element operator()(const pdata_tuple& t)
+    __host__ __device__ pdata_element_gpu operator()(const pdata_tuple& t)
         {
-        pdata_element el;
+        pdata_element_gpu el;
         el.pos  = thrust::get<0>(t);
         el.vel  = thrust::get<1>(t);
         el.accel= thrust::get<2>(t);
@@ -385,13 +385,13 @@ struct pack_pdata : public thrust::unary_function<pdata_tuple, pdata_element>
     };
 
 //! Unpack a particle data element
-struct unpack_pdata : public thrust::unary_function<pdata_element, pdata_tuple>
+struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tuple>
     {
     //! Transform operator
     /*! \param el Particle data element to unpack
         \param Tuple of particle data fields
      */
-    __host__ __device__ pdata_tuple operator()(const pdata_element & el)
+    __host__ __device__ pdata_tuple operator()(const pdata_element_gpu & el)
         {
         return pdata_tuple(el.pos,
                            el.vel,
@@ -528,7 +528,7 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
     thrust::device_ptr<unsigned int> body_ptr(d_body);
     thrust::device_ptr<float4> orientation_ptr(d_orientation);
     thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<pdata_element> send_buf_ptr((pdata_element *) d_send_buf);
+    thrust::device_ptr<pdata_element_gpu> send_buf_ptr((pdata_element_gpu *) d_send_buf);
 
     // we perform operations on the whole particle data
     typedef thrust::tuple<thrust::device_ptr<float4>,
@@ -554,7 +554,7 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
 
 
     // now pack the particles we want to send into a buffer
-    thrust::device_ptr<pdata_element> send_buf_end_ptr =
+    thrust::device_ptr<pdata_element_gpu> send_buf_end_ptr =
         thrust::copy_if(thrust::make_transform_iterator(pdata_first, pack_pdata()),
                                   thrust::make_transform_iterator(pdata_end, pack_pdata()),
                                   send_buf_ptr,
@@ -577,11 +577,11 @@ void gpu_migrate_forward_particles(char *d_recv_buf,
                                    gpu_boxsize box,
                                    unsigned int dir)
     {
-    thrust::device_ptr<pdata_element> recv_buf_ptr((pdata_element *) d_recv_buf);
-    thrust::device_ptr<pdata_element> recv_buf_end_ptr((pdata_element *) d_recv_buf_end);
-    thrust::device_ptr<pdata_element> send_buf_ptr((pdata_element *) d_send_buf);
+    thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
+    thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
+    thrust::device_ptr<pdata_element_gpu> send_buf_ptr((pdata_element_gpu *) d_send_buf);
 
-    device_ptr<pdata_element> send_buf_end_ptr =
+    device_ptr<pdata_element_gpu> send_buf_end_ptr =
         thrust::copy_if(recv_buf_ptr,
                         recv_buf_end_ptr,
                         send_buf_ptr,
@@ -600,8 +600,8 @@ void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  const gpu_boxsize& global_box,
                                  unsigned int dir)
     {
-    thrust::device_ptr<pdata_element> recv_buf_ptr((pdata_element *) d_recv_buf);
-    thrust::device_ptr<pdata_element> recv_buf_end_ptr((pdata_element *) d_recv_buf_end);
+    thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
+    thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
     thrust::transform(recv_buf_ptr, recv_buf_end_ptr, recv_buf_ptr, wrap_received_particle(global_box, dir));
     }
 
@@ -616,8 +616,8 @@ void gpu_migrate_count_particles_in_box(unsigned int &num_ptls_in_box,
                                 char *d_recv_buf_end,
                                 const gpu_boxsize& box)
     {
-    thrust::device_ptr<pdata_element> recv_buf_ptr((pdata_element *) d_recv_buf);
-    thrust::device_ptr<pdata_element> recv_buf_end_ptr((pdata_element *) d_recv_buf_end);
+    thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
+    thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
     num_ptls_in_box = thrust::count_if(recv_buf_ptr, recv_buf_end_ptr, isInBox(box));
     }
 
@@ -649,8 +649,8 @@ void gpu_migrate_move_particles_into_box(unsigned int &num_added_ptls,
                                  unsigned int *d_tag,
                                  const gpu_boxsize &box)
     {
-    thrust::device_ptr<pdata_element> recv_buf_ptr((pdata_element *) d_recv_buf);
-    thrust::device_ptr<pdata_element> recv_buf_end_ptr((pdata_element *) d_recv_buf_end);
+    thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
+    thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
     thrust::device_ptr<float4> pos_ptr(d_pos);
     thrust::device_ptr<float4> vel_ptr(d_vel);
     thrust::device_ptr<float3> accel_ptr(d_accel);

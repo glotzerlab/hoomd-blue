@@ -74,8 +74,10 @@ BOOST_CLASS_TRACKING(Scalar4,track_never)
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                                 boost::shared_ptr<MPIInitializer> mpi_init)
-          : Communicator(sysdef, mpi_comm, mpi_init)
+                                 std::vector<unsigned int> neighbor_rank,
+                                 int3 dim,
+                                 const BoxDim& global_box)
+    : Communicator(sysdef, mpi_comm, neighbor_rank, dim, global_box)
     {
     // initialize send buffer size with size of particle data element on the GPU
     setPackedSize(gpu_pdata_element_size());

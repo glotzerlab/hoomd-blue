@@ -614,21 +614,6 @@ class ParticleData : boost::noncopyable
         //! Get the orientation array
         const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
 
-        //! Find out if the particle identified by a global tag is stored in the local ParticleData
-        /*! By definition, it is local if there exists a reverse lookup entry for that global
-            tag and it points to a particle with idx < getN(), i.e. it is not a ghost particle
-         */
-        inline bool isLocal(unsigned int global_tag) const
-            {
-            return m_is_local[global_tag];
-            }
-
-        //! Set a flag to indicate that a particle with a specified global tag is local
-        void setLocal(unsigned int global_tag)
-            {
-            m_is_local[global_tag] = true;
-            }
-
         //! Get the current position of a particle
         Scalar3 getPosition(unsigned int global_tag) const
             {
@@ -913,7 +898,6 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_global_tag;        //!< global particle tags
         GPUArray<unsigned int> m_global_rtag;       //! reverse lookup of local particle indices from global tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
-        boost::dynamic_bitset<> m_is_local;         //!< One bit per global tag, indicates whether a particle is local
 
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
         

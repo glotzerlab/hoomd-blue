@@ -33,6 +33,8 @@
 
 using namespace boost;
 
+void set_num_threads(int nthreads);
+
 void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 {
     ClockSource clk;
@@ -61,12 +63,20 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(*mpi_init, exec_conf));
 
     boost::shared_ptr<Communicator> comm;
+    std::vector<unsigned int> neighbor_rank;
+    for (unsigned int i = 0; i < 6; i++)
+        neighbor_rank.push_back(mpi_init->getNeighborRank(i));
+
+    int3 dim = make_int3(mpi_init->getDimension(0),
+                         mpi_init->getDimension(1),
+                         mpi_init->getDimension(2));
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
-        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef, world, mpi_init));
+        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef, world, neighbor_rank, dim, mpi_init->getGlobalBox()));
     else
 #endif
-    boost::shared_ptr<Communicator> comm(new Communicator(sysdef,world,mpi_init));
+        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef,world,neighbor_rank, dim, mpi_init->getGlobalBox()));
+
     boost::shared_ptr<Profiler> prof(new Profiler());
     comm->setProfiler(prof);
 
@@ -152,13 +162,12 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
         cout << *prof;
 }
 
-#if 0
 //! Tests MPI domain decomposition with NVE integrator
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVE_test )
     {
+    set_num_threads(1);
     test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-#endif
 
 #ifdef ENABLE_CUDA
 //! Tests MPI domain decomposition with NVE integrator on the GPU

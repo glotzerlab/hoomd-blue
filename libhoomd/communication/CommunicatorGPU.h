@@ -73,11 +73,15 @@ class CommunicatorGPU : public Communicator
         //! Constructor
         /*! \param sysdef system definition the communicator is associated with
          *  \param mpi_comm the underlying MPI communicator
-         *  \param mpi_init the MPI initializer the system was initialized with
+         *  \param neighbor_rank list of neighbor processor ranks
+         *  \param dim Dimensions of global simulation box (number of boxes along every axis)
+         *  \param global_box Dimensions of global simulation box
          */
         CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                         boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                        boost::shared_ptr<MPIInitializer> mpi_init);
+                        std::vector<unsigned int> neighbor_rank,
+                        int3 dim,
+                        const BoxDim& global_box);
 
         //! \name communication methods
         //@{
