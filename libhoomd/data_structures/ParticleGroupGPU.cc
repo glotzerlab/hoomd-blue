@@ -109,4 +109,35 @@ ParticleSelectorRigidGPU::ParticleSelectorRigidGPU(boost::shared_ptr<SystemDefin
     setParams(rigid);
     }
 
+//! GPU Implementation of a ParticleSelector that takes a list of global member tags as input
+
+//! Constructor
+ParticleSelectorGlobalTagListGPU::ParticleSelectorGlobalTagListGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& global_tag_list)
+    : ParticleSelectorGlobalTagList(sysdef, global_tag_list)
+    {
+    }
+
+//! Get local group members
+unsigned int ParticleSelectorGlobalTagListGPU::getMemberTags(const GPUArray<unsigned int>& member_tags)
+    {
+    assert(member_tags.getNumElements() >= m_pdata->getN());
+
+    ArrayHandle<unsigned int> d_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
+
+    // global tags of local group members
+    ArrayHandle<unsigned int> d_member_tags(member_tags, access_location::device, access_mode::overwrite);
+
+    // global list of group members
+    ArrayHandle<unsigned int> d_global_member_tags(m_global_member_tags, access_location::device, access_mode::read);
+
+    unsigned int num_members;
+    // calculate intersection of local tags with all group member tags
+    gpu_particle_selector_tag_list(m_global_member_tags.getNumElements(),
+                                          m_pdata->getN(),
+                                          d_tag.data,
+                                          d_global_member_tags.data,
+                                          num_members,
+                                          d_member_tags.data);
+    return num_members;
+    }
 #endif

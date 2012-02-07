@@ -69,6 +69,8 @@ BOOST_IS_MPI_DATATYPE(Scalar3)
 BOOST_IS_MPI_DATATYPE(uint3)
 BOOST_IS_MPI_DATATYPE(int3)
 
+BOOST_CLASS_TRACKING(Scalar4,track_never)
+
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<boost::mpi::communicator> mpi_comm,

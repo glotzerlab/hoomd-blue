@@ -250,7 +250,6 @@ class ParticleSelectorGlobalTagList : public ParticleSelector
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
 
-    private:
         GPUArray<unsigned int> m_global_member_tags;    //!< array of global member tags
     };
 

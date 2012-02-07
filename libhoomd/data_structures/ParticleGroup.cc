@@ -230,7 +230,7 @@ unsigned int ParticleSelectorGlobalTagList::getMemberTags(const GPUArray<unsigne
     {
     assert(member_tags.getNumElements() >= m_pdata->getN());
 
-    ArrayHandle<unsigned int> h_tag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
 
     // global tags of local members of the group
     ArrayHandle<unsigned int> h_member_tags(member_tags, access_location::host, access_mode::overwrite);
@@ -419,13 +419,13 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
 
-    // connect the rebuildIndexList method to be called whenever the particles are sorted
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
+    // connect the rebuildTagList method to be called whenever the particles are sorted
+    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildTagList, this));
 
     // connect the rebuildTagList() method to be called whenever particles are inserted or deleted
     m_particle_num_change_connection = m_pdata->connectParticleNumberChange(bind(&ParticleGroup::rebuildTagList, this));
 
-    //! connect reallocate() method to maximum particle number change signal
+    // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
     }
 

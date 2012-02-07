@@ -128,4 +128,13 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_rtag);
 
+
+//! Implementation of GPU code for ParticleSelectorGlobalTagListGPU
+cudaError_t gpu_particle_selector_tag_list(const unsigned int num_global_members,
+                                           const unsigned int N,
+                                           unsigned int *d_tag,
+                                           unsigned int *d_global_member_tags,
+                                           unsigned int& num_local_members,
+                                           unsigned int *d_member_tags);
+
 #endif
