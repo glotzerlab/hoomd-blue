@@ -30,9 +30,8 @@ else (PYTHON_SITEDIR)
            set_target_properties(hoomd PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
        endif(MPI_LINK_FLAGS)
 
-       # link to required boost libraries
-es
-    target_link_libraries(hoomd ${Boost_LIBRARIES} ${MPI_LIBRARY})
+       # link to boost and MPI libraries
+       target_link_libraries(hoomd ${Boost_LIBRARIES} ${MPI_LIBRARY})
     endif(ENABLE_MPI)
 
 

@@ -215,9 +215,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
             dx -= Lx;
             else if (dx < -Lx2)
             dx += Lx;
-)
-            dx += Lx;
- -Lx2 && dx <= Lx2);
             }
         else if (dx >= Lx2 || dx <= -Lx2) excluded = true;
 
@@ -227,9 +224,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
             dy -= Ly;
             else if (dy < -Ly2)
             dy += Ly;
-)
-            dy += Ly;
- -Ly2 && dy <= Ly2);
             }
         else if (dy >= Ly2 || dy <= -Ly2) excluded = true;
 
@@ -239,9 +233,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
             dz -= Lz;
             else if (dz < -Lz2)
             dz += Lz;
-)
-            dz += Lz;
- -Lz2 && dz <= Lz2);
             }
         else if (dz >= Lz2 || dz <= -Lz2) excluded = true;
 
