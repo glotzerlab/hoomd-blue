@@ -627,8 +627,12 @@ void ParticleGroup::rebuildIndexList()
     // start by rebuilding the bitset of member indices in the group
 
     // resize indices array if necessary
-    while (m_num_members > m_member_idx.getNumElements())
+    if (m_num_members > m_member_idx.getNumElements())
+        {
+        unsigned int new_size = m_member_idx.getNumElements() ? m_member_idx.getNumElements() : m_num_members;
+        while (m_num_members > new_size) new_size*=2;
         m_member_idx.resize(2*m_member_idx.getNumElements());
+        }
 
 #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled() )
@@ -643,6 +647,7 @@ void ParticleGroup::rebuildIndexList()
         ArrayHandle<unsigned char> h_is_member(m_is_member, access_location::host, access_mode::readwrite);
         for (unsigned int idx = 0; idx < m_pdata->getN(); idx ++)
             h_is_member.data[idx] = 0;
+
 
         // then loop through every particle in the group and set its bit
             {
@@ -661,7 +666,7 @@ void ParticleGroup::rebuildIndexList()
         unsigned int nparticles = m_pdata->getN();
         for (unsigned int idx = 0; idx < nparticles; idx++)
             {
-            if (isMember(idx))
+            if (h_is_member.data[idx])
                 {
                 h_handle.data[cur_member] = idx;
                 cur_member++;
@@ -677,9 +682,12 @@ void ParticleGroup::rebuildIndexList()
 //! rebuild index list on the GPU
 void ParticleGroup::rebuildIndexListGPU()
     {
-    ArrayHandle<unsigned char> d_is_member(m_is_member, access_location::device, access_mode::readwrite);
+    // do nothing if we have zero members
+    if  (!m_num_members) return;
+
+    ArrayHandle<unsigned char> d_is_member(m_is_member, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_member_tags(m_member_tags, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_member_idx(m_member_idx, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_member_idx(m_member_idx, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
 
     gpu_rebuild_index_list(m_pdata->getN(),

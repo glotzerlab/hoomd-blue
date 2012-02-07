@@ -964,7 +964,7 @@ void NeighborList::buildNlist(unsigned int timestep)
                     dx -= Lx;
                 else if (dx < -Lx2)
                     dx += Lx;
-                assert(dx >= box.xlo && dx <= box.xhi);
+                assert(dx >= -Lx2 && dx <= Lx2);
                 }
             else if (dx >= Lx2 || dx <= -Lx2) excluded = true;
 
@@ -974,9 +974,9 @@ void NeighborList::buildNlist(unsigned int timestep)
                     dy -= Ly;
                 else if (dy < -Ly2)
                     dy += Ly;
-                assert(dy >= box.ylo && dy <= box.yhi);
+                assert(dy >= -Ly2 && dy <= Ly2);
                 }
-            else if (dy >= Ly2 || dy <= -Ly) excluded = true;
+            else if (dy >= Ly2 || dy <= -Ly2) excluded = true;
 
             if (! m_no_minimum_image[2])
                 {
@@ -984,7 +984,7 @@ void NeighborList::buildNlist(unsigned int timestep)
                     dz -= Lz;
                 else if (dz < -Lz2)
                     dz += Lz;
-                assert(dz >= box.zlo && dz <= box.zhi);
+                assert(dz >= -Lz2 && dz <= Lz2);
                 }
             else if (dz >= Lz2 || dz <= -Lz2) excluded = true;
 

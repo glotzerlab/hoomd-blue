@@ -80,7 +80,6 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_rtag)
     {
-    assert(num_members >= 0);
     assert(d_member_tag);
     assert(d_is_member);
     assert(d_member_idx);
@@ -126,7 +125,6 @@ cudaError_t gpu_particle_selector_tag_list(const unsigned int num_global_members
                                            unsigned int & num_local_members,
                                            unsigned int *d_member_tags)
     {
-    assert(num_global_members >=0);
     assert(N>0);
     assert(d_tag);
     assert(d_global_member_tags);

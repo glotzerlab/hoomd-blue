@@ -247,6 +247,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
         ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_global_tag(getGlobalTags(), access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
 
         // set default values
@@ -260,6 +261,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             h_body.data[i] = NO_BODY;
             h_rtag.data[i] = i;
             h_tag.data[i] = i;
+            h_global_tag.data[i] = i;
             h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
             }
         }
