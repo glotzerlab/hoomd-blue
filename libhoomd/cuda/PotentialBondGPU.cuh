@@ -313,3 +313,4 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
 #endif
 
 #endif // __POTENTIAL_BOND_GPU_CUH__
+

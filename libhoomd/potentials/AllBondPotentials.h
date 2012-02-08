@@ -85,3 +85,4 @@ typedef PotentialBondGPU< EvaluatorBondFENE, gpu_compute_fene_forces > Potential
 #endif
 
 #endif // __BOND_POTENTIALS_H__
+

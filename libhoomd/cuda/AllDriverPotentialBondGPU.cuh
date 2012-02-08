@@ -68,3 +68,4 @@ cudaError_t gpu_compute_fene_forces(const bond_args_t& bond_args,
                                     unsigned int *d_flags);
 
 #endif
+
