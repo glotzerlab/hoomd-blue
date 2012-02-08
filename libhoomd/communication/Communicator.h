@@ -232,5 +232,9 @@ class Communicator
         Scalar m_r_ghost;                        //!< width of ghost layer
 
     };
+
+//! Declaration of python export function
+void export_Communicator();
+
 #endif // __COMMUNICATOR_H__
 #endif // ENABLE_MPI

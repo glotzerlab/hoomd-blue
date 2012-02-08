@@ -131,7 +131,7 @@ namespace boost
 
 //! Class that initializes the different ranks in a MPI simulation
 /*! This class reads in a ParticleDataInitializer defining the initial state of the
-    global particle data. The global simulation box is subdivided into sub-domains which are assigned to
+    global particle data. The global simulation box is divided into sub-domains which are assigned to
     individual processors. The sub-division is performed such as to minimize surface area between domains,
     which is assumed to be proportional to the cost of communication.
 
@@ -139,6 +139,12 @@ namespace boost
 
     All communication and initialization of data structures is done in the constructor. The processor
     with rank 0 is responsible for distributing the particle data to the other processors.
+
+    There are two main methods defined by this class: scatter() and gather().
+
+    The scatter() method distributes ParticleData from the processor with rank 0 to the other processors,
+    the gather() method recombines all ParticleData of the processors on the processor with rank 0.
+
 */
 class MPIInitializer : public ParticleDataInitializer
     {
@@ -164,7 +170,7 @@ class MPIInitializer : public ParticleDataInitializer
        //! Get the global simulation box
        /*! \return dimensions of the global simulation box
        */
-       virtual const BoxDim& getGlobalBox()
+       virtual const BoxDim getGlobalBox()
        {
        return m_global_box;
        }
@@ -267,6 +273,9 @@ class MPIInitializer : public ParticleDataInitializer
        unsigned int m_ny;   //!< grid dimensions in y direction
        unsigned int m_nz;   //!< grid dimensions in z direction
     };
+
+//! Declare function that exports MPIInitializer to python
+void export_MPIInitializer();
 
 #endif // __MPI_INITIALIZER_H
 #endif // ENABLE_MPI

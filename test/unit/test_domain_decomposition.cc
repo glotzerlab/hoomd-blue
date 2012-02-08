@@ -163,12 +163,13 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 }
 
 //! Tests MPI domain decomposition with NVE integrator
+#if 0
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVE_test )
     {
     set_num_threads(1);
     test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-
+#endif
 #ifdef ENABLE_CUDA
 //! Tests MPI domain decomposition with NVE integrator on the GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVE_test_GPU )

@@ -80,6 +80,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <b>ABSOLUTELY NO</b> CUDA calls should be made if exec_mode is set to CPU - making a CUDA call will initialize a
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
+
+    ExecutionConfiguration also provides information about whether MPI support is available.
 */
 struct ExecutionConfiguration : boost::noncopyable
     {
@@ -127,6 +129,17 @@ struct ExecutionConfiguration : boost::noncopyable
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName() const;
     
+    //! Determine availability of MPI support
+    bool isMPIAvailable()
+        {
+        return
+#ifdef ENABLE_MPI
+           true;
+#else
+           false;
+#endif
+        }
+
 #ifdef ENABLE_CUDA
     cudaDeviceProp dev_prop;    //!< Cached device properties
     

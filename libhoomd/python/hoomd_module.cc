@@ -133,7 +133,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
 
-
 // include GPU classes
 #ifdef ENABLE_CUDA
 #include <cuda.h>
@@ -164,6 +163,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
+#endif
+
+// include MPI classes
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "MPIInitializer.h"
 #endif
 
 #include "SignalHandler.h"
@@ -489,7 +494,12 @@ BOOST_PYTHON_MODULE(hoomd)
     export_FIREEnergyMinimizerGPU();
     export_FIREEnergyMinimizerRigidGPU();          
 #endif
-    
+
+#ifdef ENABLE_MPI
+    export_Communicator();
+    export_MPIInitializer();
+#endif
+
     // system
     export_System();
     

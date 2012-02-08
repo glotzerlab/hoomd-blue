@@ -58,6 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MPIInitializer.h"
 
 #include <boost/mpi.hpp>
+#include <boost/python.hpp>
+
+using namespace boost::python;
 
 //! Define some of our types as fixed-size MPI datatypes for performance optimization
 BOOST_IS_MPI_DATATYPE(Scalar4)
@@ -351,5 +354,16 @@ void MPIInitializer::initSnapshot(SnapshotParticleData& snapshot) const
     snapshot.rtag = m_rtag;
     snapshot.body = m_body;
     snapshot.global_tag = m_global_tag;
+    }
+
+//! Export MPIInitializer class to python
+void export_MPIInitializer()
+    {
+    class_<MPIInitializer, bases<ParticleDataInitializer>, boost::noncopyable >("MPIInitializer",
+           init< ParticleDataInitializer&, boost::shared_ptr<boost::mpi::communicator> >())
+    .def("getNeighborRank", &MPIInitializer::getNeighborRank)
+    .def("getGlobalBox", &MPIInitializer::getGlobalBox)
+    .def("getDimension", &MPIInitializer::getDimension)
+    ;
     }
 #endif // ENABLE_MPI
