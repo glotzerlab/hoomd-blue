@@ -78,12 +78,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
-#include "HarmonicBondForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
 #include "CGCMMAngleForceCompute.h"
-#include "FENEBondForceCompute.h"
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
 #include "LJWallForceCompute.h"
@@ -154,12 +152,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
 #include "TablePotentialGPU.h"
-#include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
 #include "HarmonicImproperForceComputeGPU.h"
 #include "CGCMMAngleForceComputeGPU.h"
-#include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
@@ -383,13 +379,11 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ForceConstraint();
     export_ConstForceCompute();
     export_ConstExternalFieldDipoleForceCompute();
-    export_HarmonicBondForceCompute();
     export_HarmonicAngleForceCompute();
     export_HarmonicDihedralForceCompute();
     export_HarmonicImproperForceCompute();
     export_CGCMMAngleForceCompute();
     export_TablePotential();
-    export_FENEBondForceCompute();
     export_CGCMMForceCompute();
     export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
     export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
@@ -429,12 +423,10 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>("PotentialBondFENEGPU");
     export_TablePotentialGPU();
     export_EAMForceComputeGPU();
-    export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
     export_HarmonicImproperForceComputeGPU();
     export_CGCMMAngleForceComputeGPU();
-    export_FENEBondForceComputeGPU();
     export_ComputeThermoGPU();
     export_ConstraintSphereGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
