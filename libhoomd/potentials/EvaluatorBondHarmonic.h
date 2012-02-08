@@ -70,6 +70,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! Class for evaluating the harmonic bond potential
+/*! Evaluates the harmonic bond potential in an identical manner to EvaluatorPairLJ for pair potentials. See that
+    class for a full motivation and design specifics.
+
+    params.x is the K stiffness parameter, and params.y is the r_0 equilibrium rest length.
+*/
 class EvaluatorBondHarmonic
     {
     public:

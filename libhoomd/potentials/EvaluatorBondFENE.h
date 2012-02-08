@@ -59,14 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \file EvaluatorBondFENE.h
     \brief Defines the bond evaluator class for FENE potentials
-
-    The parameters are:
-    - \a K (params.x) Stiffness parameter for the force computation
-    - \a r_0 (params.y) maximum bond length for the force computation
-    - \a lj1 (params.z) Value of lj1 = 4.0*epsilon*pow(sigma,12.0)
-       of the WCA potential in the force calculation
-    - \a lj2 (params.w) Value of lj2 = 4.0*epsilon*pow(sigma,6.0)
-       of the WCA potential in the force calculation
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -78,6 +70,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! Class for evaluating the FENE bond potential
+/*! The parameters are:
+    - \a K (params.x) Stiffness parameter for the force computation
+    - \a r_0 (params.y) maximum bond length for the force computation
+    - \a lj1 (params.z) Value of lj1 = 4.0*epsilon*pow(sigma,12.0)
+       of the WCA potential in the force calculation
+    - \a lj2 (params.w) Value of lj2 = 4.0*epsilon*pow(sigma,6.0)
+       of the WCA potential in the force calculation
+*/
 class EvaluatorBondFENE
     {
     public:
