@@ -108,13 +108,19 @@ class EvaluatorBondHarmonic
             \param bond_eng Output parameter to write the computed bond energy
 
             \return True if they are evaluated or false if the bond
-                    energy is divergent
+                    energy is not defined
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& bond_eng)
             {
             Scalar r = sqrt(rsq);
             force_divr = K * (r_0 / r - Scalar(1.0));
-            if (!isfinite(force_divr)) return false;
+
+            // if the result is not finite, it is likely because of a division by 0, setting force_divr to 0 will
+            // correctly result in a 0 force in this case
+            if (!isfinite(force_divr))
+                {
+                force_divr = Scalar(0);
+                }
             bond_eng = Scalar(0.5) * K * (r_0 - r) * (r_0 - r);
 
             return true;

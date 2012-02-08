@@ -120,7 +120,7 @@ class EvaluatorBondFENE
             \param bond_eng Output parameter to write the computed bond energy
 
             \return True if they are evaluated or false if the bond
-                    energy is divergent
+                    energy is not defined
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& bond_eng)
             {
@@ -142,13 +142,11 @@ class EvaluatorBondFENE
             Scalar epsilon = lj2*lj2/Scalar(4.0)/lj1;
 
             // add != 0.0f check to allow epsilon=0 FENE bonds to go to r=0
-            if ((r6inv > sigma6inv/Scalar(2.0)) && (epsilon != Scalar(0.0)))     //wcalimit 2^(1/6))^6 sigma^6
-            {
+            if (r6inv > sigma6inv/Scalar(2.0))     //wcalimit 2^(1/6))^6 sigma^6
+                {
                 WCAforcemag_divr = r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
                 pair_eng = (r6inv * (lj1*r6inv - lj2) + epsilon);
-
-                if (!isfinite(pair_eng)) return false;
-            }
+                }
 
             // Check if bond length restrictino is violated
             if (rsq >= r_0*r_0) return false;
@@ -157,11 +155,6 @@ class EvaluatorBondFENE
                          (r_0*r_0))*rmdoverr + WCAforcemag_divr*rmdoverr;
             bond_eng = -Scalar(0.5) * K * (r_0 * r_0) *
                            log(Scalar(1.0) - rsq/(r_0 * r_0));
-
-            // non-finite results will be ignored in the force caclulation. This will result in the correct 0 force for r ~= 0. The energy
-            // will be incorrect for r > r_0, however. Assuming that r > r_0 because K == 0, this is fine.
-            if (!isfinite(force_divr)) return false;
-            if (!isfinite(bond_eng)) return false;
 
             // add WCA pair energy
             bond_eng += pair_eng;
