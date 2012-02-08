@@ -48,8 +48,6 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: AllPairPotentials.h 4001 2011-06-21 12:38:12Z phillicl $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/AllPairPotentials.h $
 // Maintainer: joaander / Anyone is free to add their own pair potentials here
 
 #ifndef __BOND_POTENTIALS__H__
