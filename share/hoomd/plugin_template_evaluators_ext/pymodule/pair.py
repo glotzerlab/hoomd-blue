@@ -48,9 +48,9 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -- end license --
 
-import _pair_ext_template
+import _evaluators_ext_template
 
-# Next, since we are extending an pair potential, we need to bring in the base class and some other parts from 
+# Next, since we are extending an pair potential, we need to bring in the base class and some other parts from
 # hoomd_script
 from hoomd_script import pair
 from hoomd_script import util
@@ -62,12 +62,12 @@ import math
 #
 # Here, you can document your pair potential.The following is an abbreviated copy of the docs from hoomd itself.
 # \f{eqnarray*}
-# V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+# V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
 #                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 #
-# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
 # the \ref page_quick_start for information on how to set coefficients.
 # - \f$ \varepsilon \f$ - \c epsilon (in energy units)
 # - \f$ \sigma \f$ - \c sigma (in distance units)
@@ -93,16 +93,16 @@ class lj2(pair.pair):
     # one must update the referenced classes here.
     def __init__(self, r_cut, name=None):
         util.print_status_line();
-        
+
         # tell the base class how we operate
-        
+
         # initialize the base class
         pair.pair.__init__(self, r_cut, name);
-        
+
         # update the neighbor list
         neighbor_list = pair._update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = _pair_ext_template.PotentialPairLJ2(globals.system_definition, neighbor_list.cpp_nlist, self.name);
@@ -114,13 +114,13 @@ class lj2(pair.pair):
             # you can play with the block size value, set it to any multiple of 32 up to 1024. Use the
             # lj.benchmark() command to find out which block size performs the fastest
             self.cpp_force.setBlockSize(64);
-            
+
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
         self.pair_coeff.set_default_coeff('alpha', 1.0);
-    
+
     ## Process the coefficients
     #
     # The coefficients that the user specifies need not be the same coefficients that get passed as paramters
@@ -131,8 +131,7 @@ class lj2(pair.pair):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
         alpha = coeff['alpha'];
-        
+
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_scalar2(lj1, lj2);
-

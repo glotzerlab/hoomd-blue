@@ -48,62 +48,17 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: phillicl
+// Every Evaluator in this plugin needs a corresponding function call here. This function call is responsible for
+// performing the bond force computation with that evaluator on the GPU. (See AllDriverBondExtGPU.cu)
 
-#include <boost/shared_ptr.hpp>
+#ifndef __ALL_DRIVER_POTENTIAL_BOND_EXT_GPU_CUH__
+#define __ALL_DRIVER_POTENTIAL_BOND_EXT_GPU_CUH__
 
-#include "ForceCompute.h"
-#include "BondData.h"
+#include "hoomd/hoomd_config.h"
+#include "hoomd/PotentialBondGPU.cuh"
 
-#include <vector>
-
-/*! \file FENEBondForceCompute.h
-    \brief Declares FENEBondForceCompute
-*/
-
-#ifndef __FENEBONDFORCECOMPUTE_H__
-#define __FENEBONDFORCECOMPUTE_H__
-
-//! Computes FENE bond forces
-/*! FENE+WCA forces are computed on all bonded particles in the simulation.
-
-    The bonds which forces are computed on are accessed from ParticleData::getBondData
-    \ingroup computes
-*/
-class FENEBondForceCompute : public ForceCompute
-    {
-    public:
-        //! Constructs the compute
-        FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix="");
-        
-        //! Destructor
-        ~FENEBondForceCompute();
-        
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon);
-        
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
-    protected:
-        Scalar *m_K;        //!< K parameter for multiple bond tyes
-        Scalar *m_r_0;      //!< r_0 parameter for multiple bond types
-        Scalar *m_lj1;      //!< lj1 for multiple bond types
-        Scalar *m_lj2;      //!< lj2 for multiple bond types
-        Scalar *m_epsilon;  //!< epsilon value for multiple bond types
-        
-        boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
-        std::string m_log_name;                     //!< Cached log name
-
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
-
-//! Exports the BondForceCompute class to python
-void export_FENEBondForceCompute();
-
+//! Compute harmonic+DPD bond forces on the GPU with EvaluatorBondHarmonicDPD
+cudaError_t gpu_compute_harmonic_dpd_forces(const bond_args_t& bond_args, const float4 *d_params, unsigned int *d_flags);
+// NOTE: The argument d_params must be of the type param_type specified
+// in the evaluator class
 #endif
-

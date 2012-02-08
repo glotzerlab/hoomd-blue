@@ -1,8 +1,10 @@
-See plugin_template_cpp for basic information on compiling and using plugins. What follows here is documentation 
-specific to creating pair potential plugins.
+See plugin_template_cpp for basic information on compiling and using plugins.
+What follows here is documentation specific to creating pair/bond
+potential plugins.
+
 
 To create a plugin that actually does something useful
- - copy plugin_template_pair to a new location
+ - copy plugin_template_evaluators_ext to a new location
  - change the PROJECT() line in CMakeLists.txt to the name of your new plugin. This is the name that it will install to
  - change the BOOST_PYTHON_MODULE line in cppmodule/module.cc to include the name of your new plugin prefixed with an
    underscore.
@@ -18,4 +20,5 @@ To create a plugin that actually does something useful
      * Add the appropriate export_PotentialPair calls in module.cc (see existing lines for an example)
     * in pymodule
      * add a new class in pair.py that initializes the pair potential defined in module.cc and processes the
-       user specified coefficients into the proper form. See pair.lj2 in pair.py for an example. 
+       user specified coefficients into the proper form. See pair.lj2 in pair.py for an example.
+- Adding a bond potential is achieved along the same lines, by replacing the word pair with the word bond. See the EvaluatorBondHarmonicDPD and bond.harmonic_dpd for an example.

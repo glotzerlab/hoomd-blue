@@ -48,59 +48,34 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+#ifndef __BOND_EXT_POTENTIALS__H__
+#define __BOND_EXT_POTENTIALS__H__
 
-#include <boost/shared_ptr.hpp>
+// need to include hoomd_config and PotentialBond here
+#include "hoomd/hoomd_config.h"
+#include "hoomd/PotentialBond.h"
 
-#include "ForceCompute.h"
-#include "BondData.h"
+// include all of the evaluators that the plugin contains
+#include "EvaluatorBondHarmonicDPD.h"
 
-#include <vector>
-
-/*! \file HarmonicBondForceCompute.h
-    \brief Declares a class for computing harmonic bonds
-*/
-
-#ifndef __HARMONICBONDFORCECOMPUTE_H__
-#define __HARMONICBONDFORCECOMPUTE_H__
-
-//! Computes harmonic bond forces on each particle
-/*! Harmonic bond forces are computed on every particle in the simulation.
-
-    The bonds which forces are computed on are accessed from ParticleData::getBondData
-    \ingroup computes
-*/
-class HarmonicBondForceCompute : public ForceCompute
-    {
-    public:
-        //! Constructs the compute
-        HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix="");
-        
-        //! Destructor
-        ~HarmonicBondForceCompute();
-        
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
-        
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
-    protected:
-        Scalar*  m_K;    //!< K parameter for multiple bond tyes
-        Scalar* m_r_0;  //!< r_0 parameter for multiple bond types
-        
-        boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
-        std::string m_log_name;                     //!< Cached log name
-
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
-
-//! Exports the BondForceCompute class to python
-void export_HarmonicBondForceCompute();
-
+#ifdef ENABLE_CUDA
+// PotentialBondGPU is the class that performs the bond computations on the GPU
+#include "hoomd/PotentialBondGPU.h"
+// AllDriverPotentialBondExtGPU.cuh is a header file containing the kernel driver functions for computing the bond
+// potentials defined in this plugin. See it for more details
+#include "AllDriverPotentialBondExtGPU.cuh"
 #endif
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
+//! Bond potential force compute for Harmonic+DPD forces
+typedef PotentialBond<EvaluatorBondHarmonicDPD> PotentialBondHarmonicDPD;
+
+#ifdef ENABLE_CUDA
+//! Bond potential force compute for Harmonic+DPD forces on the GPU
+typedef PotentialBondGPU< EvaluatorBondHarmonicDPD, gpu_compute_harmonic_dpd_forces > PotentialBondHarmonicDPDGPU;
+#endif
+
+#endif // __BOND_EXT_POTENTIALS_H__

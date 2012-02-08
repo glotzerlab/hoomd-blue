@@ -48,71 +48,15 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+#include "AllDriverPotentialPairExtGPU.cuh"
+#include "EvaluatorPairLJ2.h"
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
-#include "HarmonicBondForceCompute.h"
-#include "HarmonicBondForceGPU.cuh"
-
-#include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
-
-/*! \file HarmonicBondForceComputeGPU.h
-    \brief Declares the HarmonicBondForceGPU class
-*/
-
-#ifndef __HARMONICBONDFORCECOMPUTEGPU_H__
-#define __HARMONICBONDFORCECOMPUTEGPU_H__
-
-//! Implements the harmonic bond force calculation on the GPU
-/*! HarmonicBondForceComputeGPU implements the same calculations as HarmonicBondForceCompute,
-    but executing on the GPU.
-
-    Per-type parameters are stored in a simple global memory area pointed to by
-    \a m_gpu_params. They are stored as float2's with the \a x component being K and the
-    \a y component being r_0.
-
-    The GPU kernel can be found in bondforce_kernel.cu.
-
-    \ingroup computes
-*/
-class HarmonicBondForceComputeGPU : public HarmonicBondForceCompute
+// Every evaluator needs a function in this file. The functions are very simple, containing a one line call to
+// a template that does all of the work. To add a additional function, copy and paste this one, change the
+// template argument to the correct evaluator <EvaluatorPairMine>, and update the type of the 2nd argument to the
+// param_type of the evaluator
+cudaError_t gpu_compute_lj2_forces(const pair_args_t& pair_args,
+                                   const float2 *d_params)
     {
-    public:
-        //! Constructs the compute
-        HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix="");
-        //! Destructor
-        ~HarmonicBondForceComputeGPU();
-        
-        //! Sets the block size to run on the device
-        /*! \param block_size Block size to set
-        */
-        void setBlockSize(int block_size)
-            {
-            m_block_size = block_size;
-            }
-            
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
-        
-    protected:
-        int m_block_size;            //!< Block size to run calculation on
-        GPUArray<float2>  m_params;  //!< Parameters stored on the GPU
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
-
-//! Export the BondForceComputeGPU class to python
-void export_HarmonicBondForceComputeGPU();
-
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-
+    return gpu_compute_pair_forces<EvaluatorPairLJ2>(pair_args, d_params);
+    }

@@ -1,4 +1,4 @@
-project(pair_ext_template)
+project(evaluators_ext_template)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6.2 FATAL_ERROR)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
@@ -31,5 +31,5 @@ if (NOT _first_run)
     endif (HOOMD_FOUND)
 endif (NOT _first_run)
 
-# install the __init__.py file 
+# install the __init__.py file
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION hoomd_plugins)

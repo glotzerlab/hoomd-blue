@@ -48,29 +48,34 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: phillicl
+#ifndef __PAIR_EXT_POTENTIALS__H__
+#define __PAIR_EXT_POTENTIALS__H__
 
-#include "BondData.cuh"
-#include "ParticleData.cuh"
+// need to include hoomd_config and PotentialPair here
+#include "hoomd/hoomd_config.h"
+#include "hoomd/PotentialPair.h"
 
-/*! \file FENEBondForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the FENE bond forces. Used by FENEBondForceComputeGPU.
-*/
+// include all of the evaluators that the plugin contains
+#include "EvaluatorPairLJ2.h"
 
-#ifndef __FENEBONDFORCEGPU_CUH__
-#define __FENEBONDFORCEGPU_CUH__
-
-//! Kernel driver that computes FENE bond forces for FENEBondForceComputeGPU
-cudaError_t gpu_compute_fene_bond_forces(float4* d_force,
-                                         float* d_virial,
-                                         const unsigned int virial_pitch,
-                                         const gpu_pdata_arrays &pdata,
-                                         const gpu_boxsize &box,
-                                         const gpu_bondtable_array &btable,
-                                         float4 *d_params,
-                                         unsigned int n_bond_types,
-                                         int block_size,
-                                         unsigned int *d_flags);
-
+#ifdef ENABLE_CUDA
+// PotentialPairGPU is the class that performs the pair computations on the GPU
+#include "hoomd/PotentialPairGPU.h"
+// AllDriverPotentialPairExtGPU.cuh is a header file containing the kernel driver functions for computing the pair
+// potentials defined in this plugin. See it for more details
+#include "AllDriverPotentialPairExtGPU.cuh"
 #endif
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
+//! Pair potential force compute for LJ forces
+typedef PotentialPair<EvaluatorPairLJ2> PotentialPairLJ2;
+
+#ifdef ENABLE_CUDA
+//! Pair potential force compute for LJ forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairLJ2, gpu_compute_lj2_forces > PotentialPairLJ2GPU;
+#endif
+
+#endif // __PAIR_EXT_POTENTIALS_H__

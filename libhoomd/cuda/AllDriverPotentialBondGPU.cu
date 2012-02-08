@@ -48,28 +48,31 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: joaander / Anyone is free to add their own pair potentials here
 
-#include "BondData.cuh"
-#include "ParticleData.cuh"
-
-/*! \file HarmonicBondForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the harmonic bond forces. Used by HarmonicBondForceComputeGPU.
+/*! \file AllDriverPotentialBondGPU.cu
+    \brief Defines the driver functions for computing all types of bond forces on the GPU
 */
 
-#ifndef __HARMONICBONDFORCEGPU_CUH__
-#define __HARMONICBONDFORCEGPU_CUH__
+#include "EvaluatorBondHarmonic.h"
+#include "EvaluatorBondFENE.h"
+#include "AllDriverPotentialBondGPU.cuh"
 
-//! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_harmonic_bond_forces(float4* d_force,
-                                             float* d_virial,
-                                             const unsigned int virial_pitch,
-                                             const gpu_pdata_arrays &pdata,
-                                             const gpu_boxsize &box,
-                                             const gpu_bondtable_array &btable,
-                                             float2 *d_params,
-                                             unsigned int n_bond_types,
-                                             int block_size);
+cudaError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
+                                        const float2 *d_params,
+                                        unsigned int *d_flags)
+    {
+    return gpu_compute_bond_forces<EvaluatorBondHarmonic>(bond_args,
+                                                    d_params,
+                                                    d_flags);
+    }
 
-#endif
+cudaError_t gpu_compute_fene_forces(const bond_args_t& bond_args,
+                                   const float4 *d_params,
+                                   unsigned int *d_flags)
+    {
+    return gpu_compute_bond_forces<EvaluatorBondFENE>(bond_args,
+                                                     d_params,
+                                                     d_flags);
+    }
 

@@ -75,16 +75,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
-#include "HarmonicBondForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
 #include "CGCMMAngleForceCompute.h"
-#include "FENEBondForceCompute.h"
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
+#include "AllBondPotentials.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoGPU.h"
 #include "NeighborList.h"
@@ -106,6 +105,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVT.h"
 #include "TwoStepBDNVT.h"
 #include "TwoStepNPT.h"
+#include "TwoStepNPH.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepNVERigid.h" 
 #include "TwoStepNVTRigid.h"
@@ -132,11 +132,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // include GPU classes
 #ifdef ENABLE_CUDA
+#include <cuda.h>
 #include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTGPU.h"
+#include "TwoStepNPHGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h" 
 #include "TwoStepNVTRigidGPU.h" 
@@ -147,12 +149,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
 #include "TablePotentialGPU.h"
-#include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
 #include "HarmonicImproperForceComputeGPU.h"
 #include "CGCMMAngleForceComputeGPU.h"
-#include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
@@ -161,6 +161,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #endif
+
 
 #include "SignalHandler.h"
 

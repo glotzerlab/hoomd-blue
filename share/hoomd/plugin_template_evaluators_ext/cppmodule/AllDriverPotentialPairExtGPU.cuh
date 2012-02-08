@@ -48,35 +48,17 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __PAIR_EXT_POTENTIALS__H__
-#define __PAIR_EXT_POTENTIALS__H__
+// Every Evaluator in this plugin needs a corresponding function call here. This function call is responsible for
+// performing the pair force computation with that evaluator on the GPU. (See AllDriverPairExtGPU.cu)
 
-// need to include hoomd_config and PotentialPair here
+#ifndef __ALL_DRIVER_POTENTIAL_PAIR_EXT_GPU_CUH__
+#define __ALL_DRIVER_POTENTIAL_PAIR_EXT_GPU_CUH__
+
 #include "hoomd/hoomd_config.h"
-#include "hoomd/PotentialPair.h"
+#include "hoomd/PotentialPairGPU.cuh"
 
-// include all of the evaluators that the plugin contains
-#include "EvaluatorPairLJ2.h"
-
-#ifdef ENABLE_CUDA
-// PotentialPairGPU is the class that performs the pair computations on the GPU
-#include "hoomd/PotentialPairGPU.h"
-// AllDriverPotentialPairExtGPU.cuh is a header file containing the kernel driver functions for computing the pair
-// potentials defined in this plugin. See it for more details
-#include "AllDriverPotentialPairExtGPU.cuh"
+//! Compute lj pair forces on the GPU with PairEvaluatorLJ2
+cudaError_t gpu_compute_lj2_forces(const pair_args_t& pair_args, const float2 *d_params);
+// the last argument on the previous line is a pointer to the per type pair parameters passed into the pair potential
+// it must be the same as the param_type in the evaluator this function uses
 #endif
-
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
-
-//! Pair potential force compute for LJ forces
-typedef PotentialPair<EvaluatorPairLJ2> PotentialPairLJ2;
-
-#ifdef ENABLE_CUDA
-//! Pair potential force compute for LJ forces on the GPU
-typedef PotentialPairGPU< EvaluatorPairLJ2, gpu_compute_lj2_forces > PotentialPairLJ2GPU;
-#endif
-
-#endif // __PAIR_EXT_POTENTIALS_H__
-
