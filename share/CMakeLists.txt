@@ -33,7 +33,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/plugin_template_cpp
         DESTINATION ${DATA_INSTALL_DIR}
         PATTERN ".svn" EXCLUDE
         )
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/plugin_template_pair_ext
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/plugin_template_evaluators_ext
         DESTINATION ${DATA_INSTALL_DIR}
         PATTERN ".svn" EXCLUDE
         )
