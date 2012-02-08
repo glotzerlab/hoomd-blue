@@ -182,13 +182,8 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
         // MEM TRANSFER: 8 bytes
-        // the volatile fails to compile in device emulation mode
-#ifdef _DEVICEEMU
-        uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx];
-#else
         // the volatile is needed to force the compiler to load the uint2 coalesced
         volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx];
-#endif
 
         int cur_bond_idx = cur_bond.x;
         int cur_bond_type = cur_bond.y;
