@@ -10,6 +10,12 @@ sub wanted
         return;
         }
 
+    # skip processing if this file is in the build directory
+    if ($File::Find::name =~ /\/build\//)
+        {
+        return;
+        }
+    
     # skip processing if this file is in the share directory
     if ($File::Find::name =~ /\/share\//)
         {
@@ -61,7 +67,7 @@ sub wanted
     }
 
 # header
-print "||'''File'''||'''Maintainer'''||'''Notes'''||\n";
+print "|._File|._Maintainer|._Notes|\n";
 
 # grep through the source
 finddepth(\&wanted, '.');
@@ -70,5 +76,5 @@ finddepth(\&wanted, '.');
 
 for $file ( @ordered_file_list )
     {
-    print "||\`$file->{fname}`||$file->{user}||$file->{notes}||\n";
+    print "|\@$file->{fname}\@|$file->{user}|$file->{notes}|\n";
     }
