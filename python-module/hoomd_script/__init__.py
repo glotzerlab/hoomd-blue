@@ -87,8 +87,9 @@ __all__ = [ "analyze",
             "hoomd",
             "compute",
             "charge",
-            "get_hoomd_script_version"];
-            
+            "get_hoomd_script_version",
+            "comm"];
+
 ## \internal
 # \brief Major version of hoomd_script
 version_major = 1;

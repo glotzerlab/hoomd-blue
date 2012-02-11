@@ -65,6 +65,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __NEIGHBORLIST_H__
 #define __NEIGHBORLIST_H__
 
+#ifdef ENABLE_MPI
+//! Forward declaration
+class Communicator;
+#endif
+
 //! Computes a Neibhorlist from the particles
 /*! \b Overview:
 
@@ -334,6 +339,13 @@ class NeighborList : public Compute
             m_force_update = true;
             }
 
+#ifdef ENABLE_MPI
+        //! Set the communicator to use
+        /*! \param comm MPI communication class
+         */
+        void setCommunicator(boost::shared_ptr<Communicator> comm);
+#endif
+
     protected:
         Scalar m_r_cut;             //!< The cuttoff radius
         Scalar m_r_buff;            //!< The buffer around the cuttoff
@@ -360,6 +372,11 @@ class NeighborList : public Compute
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
         bool m_no_minimum_image[3];           //!< True if minimum image convention should be ignored in given direction
 
+#ifdef ENABLE_MPI
+        boost::shared_ptr<Communicator> m_comm;   //! MPI communication class
+#endif
+
+
         //! Performs the distance check
         virtual bool distanceCheck();
         
@@ -375,13 +392,6 @@ class NeighborList : public Compute
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
 
-        //! Switch for minimum image convention
-        void setMinimumImage(unsigned int dir, bool minimum_image)
-            {
-            assert(dir<3);
-            m_no_minimum_image[dir] = (minimum_image ? false : true);
-            }
-
     private:
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
         int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated
@@ -392,7 +402,6 @@ class NeighborList : public Compute
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
         vector<unsigned int> m_update_periods;    //!< Steps between updates
-
 
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);

@@ -53,6 +53,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#ifdef ENABLE_MPI
+#include <boost/mpi.hpp>
+#include "Communicator.h"
+#endif
+
 #include <boost/bind.hpp>
 
 #include "NeighborList.h"
@@ -184,6 +189,19 @@ void NeighborList::compute(unsigned int timestep)
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
+#ifdef ENABLE_MPI
+        assert(m_comm);
+
+        // migrate atoms
+        m_comm->migrateAtoms();
+
+        // exchange ghosts
+        Scalar rmax = m_r_cut + m_r_buff;
+        if (!m_filter_diameter)
+            rmax += m_d_max - Scalar(1.0);
+
+        m_comm->exchangeGhosts(rmax);
+#endif
         // rebuild the list until there is no overflow
         bool overflowed = false;
         do
@@ -205,6 +223,14 @@ void NeighborList::compute(unsigned int timestep)
         
         setLastUpdatedPos();
         }
+#ifdef ENABLE_MPI
+    else
+        {
+        assert(m_comm);
+        // update ghost positions
+        m_comm->copyGhosts();
+        }
+#endif
 
     if (m_prof) m_prof->pop();
     }
@@ -720,7 +746,15 @@ bool NeighborList::distanceCheck()
         
     // don't worry about computing flops here, this is fast
     if (m_prof) m_prof->pop();
-    
+
+#ifdef ENABLE_MPI
+    // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
+    unsigned int local_result = result ? 1 : 0;
+    unsigned int global_result = 0;
+    all_reduce(*m_comm->getMPICommunicator(), local_result, global_result,  boost::mpi::maximum<unsigned int>());
+    result = (global_result > 0);
+#endif
+
     return result;
     }
 
@@ -1205,6 +1239,18 @@ void NeighborList::growExclusionList()
     // we didn't copy data for the new idx list, force an update so it will be correct
     forceUpdate();
     }
+
+#ifdef ENABLE_MPI
+//! Set the communicator to use
+void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    m_comm = comm;
+
+    // adapt minimum image settings
+    for (int dir = 0; dir < 3; dir ++)
+        m_no_minimum_image[dir] = m_comm->getDimension(dir) > 1;
+    }
+#endif
 
 //! helper function for accessing an elemeng of the neighb rlist: python __getitem__
 /*! \param list List to extract an item from

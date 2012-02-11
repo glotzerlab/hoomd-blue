@@ -487,11 +487,6 @@ unsigned int RandomGenerator::getNumGlobalParticles() const
     return getNumParticles();
     }
 
-unsigned int RandomGenerator::getNumParticleTypes() const
-    {
-    return (unsigned int)m_type_mapping.size();
-    }
-
 BoxDim RandomGenerator::getBox() const
     {
     return m_box;
@@ -509,14 +504,10 @@ void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
         snapshot.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
         snapshot.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
         snapshot.type[i] = m_data.m_particles[i].type_id;
-        
-        snapshot.rtag[i] = i;
         }
-    }
 
-std::vector<std::string> RandomGenerator::getTypeMapping() const
-    {
-    return m_type_mapping;
+    snapshot.type_mapping = m_type_mapping;
+    snapshot.num_particle_types = m_type_mapping.size();
     }
 
 /*! \return Number of bond types generated

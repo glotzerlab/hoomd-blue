@@ -128,18 +128,6 @@ struct ExecutionConfiguration : boost::noncopyable
 
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName() const;
-    
-    //! Determine availability of MPI support
-    bool isMPIAvailable()
-        {
-        return
-#ifdef ENABLE_MPI
-           true;
-#else
-           false;
-#endif
-        }
-
 #ifdef ENABLE_CUDA
     cudaDeviceProp dev_prop;    //!< Cached device properties
     

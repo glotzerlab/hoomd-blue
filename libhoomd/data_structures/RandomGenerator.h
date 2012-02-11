@@ -266,18 +266,12 @@ class RandomGenerator : public ParticleDataInitializer
         //! Returns the total number of particles in the simulation
         virtual unsigned int getNumGlobalParticles() const;
 
-        //! Returns the number of particle types to be initialized
-        virtual unsigned int getNumParticleTypes() const;
-        
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
 
         //! initializes a snapshot with the particle data
         virtual void initSnapshot(SnapshotParticleData &snapshot) const;
 
-        //! Initialize the type name mapping
-        std::vector<std::string> getTypeMapping() const;
-        
         //! Returns the number of bond types to be created
         virtual unsigned int getNumBondTypes() const;
         

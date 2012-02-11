@@ -125,6 +125,9 @@ namespace boost
         }
     }
 
+//! Forward definitions
+class SystemDefinition;
+class ParticleData;
 
 /*! \ingroup communication
 */
@@ -146,14 +149,20 @@ namespace boost
     the gather() method recombines all ParticleData of the processors on the processor with rank 0.
 
 */
-class MPIInitializer : public ParticleDataInitializer
+class MPIInitializer
     {
    public:
        //! Constructor
-       /*! \param init the initializer to construct the global system from
+       /*! \param sysdef System definition of the local system this initializer acts upon
         * \param comm MPI communicator to use to initialize the sub-domains
         */
-       MPIInitializer(ParticleDataInitializer& init, boost::shared_ptr<boost::mpi::communicator> comm);
+       MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
+                      boost::shared_ptr<boost::mpi::communicator> comm);
+
+       //! Distribute particles onto processors
+       /*! \param root Rank of the processor to distribute particles from
+        */
+       void scatter(unsigned int root);
 
        //! Calculate MPI ranks of neighboring domain
        /*! \param dir neighbor direction to calculate rank for
@@ -181,52 +190,7 @@ class MPIInitializer : public ParticleDataInitializer
         */
        virtual unsigned int getDimension(unsigned int dir) const;
 
-       //! Get the number of particles of this processor
-       /*! \return local number of particles
-        */
-       virtual unsigned int getNumParticles() const
-       {
-       return m_N;
-       }
-
-       //! Get the global number of particles in the simulation
-       /*! \return global number of particles
-        */
-       virtual unsigned int getNumGlobalParticles() const
-       {
-       return m_nglobal;
-       }
-
-       //! Get the local simulation box
-       /*! \return local box dimensions
-        */
-       virtual BoxDim getBox() const
-           {
-           return m_box;
-           }
-
-       //! Get number of particle types
-       /*! \return number of particle types in the simulation
-        */
-       virtual unsigned int getNumParticleTypes() const
-           {
-           return m_num_particle_types;
-           }
-
-       //! Initialize a snapshot with the local particle data
-       /*! \param the snapshot to initialize
-        */
-       virtual void initSnapshot(SnapshotParticleData& snapshot) const;
-
-       //! Get the mapping between particle type ids and names
-       /*! \return paticle type id<->name mapping
-        */
-       virtual std::vector<std::string> getTypeMapping() const
-           {
-           return m_type_mapping;
-           }
-
-       private:
+   private:
        unsigned int m_N;              //!< number of particles on this processor
        unsigned int m_nglobal;        //!< global number of particles
 
@@ -241,24 +205,11 @@ class MPIInitializer : public ParticleDataInitializer
        std::vector< std::vector<unsigned int > > m_rtag_proc;       //!< particle reverse-lookup tags of every processor
        std::vector< std::vector<unsigned int > > m_body_proc;       //!< body ids of every processor
        std::vector< std::vector<unsigned int > > m_global_tag_proc; //!< global tags of every processor
-
-       std::vector< Scalar3> m_pos;                     //!< positions of this processor
-       std::vector< Scalar3> m_vel;                     //!< velocities of this processor
-       std::vector< Scalar3> m_accel;                   //!< accelerations of this processor
-       std::vector< unsigned int > m_type;              //!< particle types of this processor
-       std::vector< Scalar > m_mass;                    //!< particle masses of this processor
-       std::vector< Scalar > m_charge;                  //!< particle charges of this processor
-       std::vector< Scalar > m_diameter;                //!< particle charges of this processor
-       std::vector< int3 > m_image;                     //!< particle images of this processor
-       std::vector< unsigned int > m_rtag;              //!< reverse-lookup tags of this processor
-       std::vector< unsigned int > m_body;              //!< body ids of this processor
-       std::vector< unsigned int > m_global_tag;        //!< global tags of this processor
+       std::vector< unsigned int > m_N_proc;                        //!< Number of particles on every processor
 
        unsigned int m_rank;                             //!< rank of this processor
        std::vector<BoxDim> m_box_proc;                  //!< box dimensions of every processor
        std::vector<uint3> m_grid_pos_proc;              //!< grid position of every processor
-       BoxDim m_global_box;                             //!< global simulation box
-       BoxDim m_box;                                    //!< dimensions of this box
        unsigned m_num_particle_types;                   //!< number of particle types
        std::vector<std::string> m_type_mapping;         //!< number of particle types
 
@@ -272,6 +223,13 @@ class MPIInitializer : public ParticleDataInitializer
        unsigned int m_nx;   //!< grid dimensions in x direction
        unsigned int m_ny;   //!< grid dimensions in y direction
        unsigned int m_nz;   //!< grid dimensions in z direction
+
+       boost::shared_ptr<SystemDefinition> m_sysdef; //!< Definition of the local simulation
+       boost::shared_ptr<ParticleData> m_pdata;      //!< Local particle data
+       boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
+
+       BoxDim m_global_box;                             //!< global simulation box
+       BoxDim m_box;                                    //!< dimensions of this box
     };
 
 //! Declare function that exports MPIInitializer to python

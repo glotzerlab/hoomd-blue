@@ -94,18 +94,6 @@ unsigned int SimpleCubicInitializer::getNumParticles() const
     return m_M * m_M * m_M;
     }
 
-/*! \return Number of global particles in the simulation
-*/
-unsigned int SimpleCubicInitializer::getNumGlobalParticles() const
-    {
-    return getNumParticles();
-    }
-
-unsigned int SimpleCubicInitializer::getNumParticleTypes() const
-    {
-    return 1;
-    }
-
 /*! \return Box dimensions that just fit the particles on their lattice
 */
 BoxDim SimpleCubicInitializer::getBox() const
@@ -134,18 +122,9 @@ void SimpleCubicInitializer::initSnapshot(SnapshotParticleData &snapshot) const
                 }
             }
         }
-    }
 
-/*! \returns A type mapping with a single particle m_type_name
-*/
-std::vector<std::string> SimpleCubicInitializer::getTypeMapping() const
-    {
-    // create the type mapping
-    vector<string> type_mapping;
-    type_mapping.push_back(m_type_name);
-    
-    // return it
-    return type_mapping;
+    snapshot.num_particle_types = 1;
+    snapshot.type_mapping.push_back(m_type_name);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -186,20 +165,6 @@ RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_di
 unsigned int RandomInitializer::getNumParticles() const
     {
     return m_N;
-    }
-
-/*! \return Number of global particles in the simulation
-*/
-unsigned int RandomInitializer::getNumGlobalParticles() const
-    {
-    return getNumParticles();
-    }
-
-/*! \return Number of particle types that will be initialized
-*/
-unsigned int RandomInitializer::getNumParticleTypes() const
-    {
-    return 1;
     }
 
 /*! \return Box particles will be placed in
@@ -287,18 +252,8 @@ void RandomInitializer::initSnapshot(SnapshotParticleData& snapshot) const
         snapshot.pos[i] = make_scalar3(x,y,z);
         }
 
-    }
-
-/*! \returns A type mapping with a single particle m_type_name
-*/
-std::vector<std::string> RandomInitializer::getTypeMapping() const
-    {
-    // create the type mapping
-    vector<string> type_mapping;
-    type_mapping.push_back(m_type_name);
-    
-    // return it
-    return type_mapping;
+    snapshot.num_particle_types = 1;
+    snapshot.type_mapping.push_back(m_type_name);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////

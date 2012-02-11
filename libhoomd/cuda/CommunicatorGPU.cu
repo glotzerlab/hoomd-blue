@@ -57,6 +57,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "CommunicatorGPU.cuh"
 
+#include <thrust/device_vector.h>
+#include <thrust/binary_search.h>
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/gather.h>
 #include <thrust/scatter.h>
@@ -178,79 +180,51 @@ typedef thrust::tuple<float4,
                       int3,
                       unsigned int,
                       float4,
-                      unsigned int> pdata_tuple;
-
-//! Determine whether a particle is found inside the box boundaries along a given axis
-struct select_particle_keep
-    {
-    const gpu_boxsize box;  //!< Local box dimensions
-    const bool send_x;      //!< True if we have neighbors in the x direction
-    const bool send_y;      //!< True if we have neighbors in the y direction
-    const bool send_z;      //!< True if we have neighbors in the z direction
-
-    //! Constructor
-    /*! \param _box Dimensions of the local box
-     * \param _send_x True if we have neighbors in the x direction
-     * \param _send_y True if we have neighbors in the y direction
-     * \param _send_z True if we have neighbors in the z direction
-     */
-    select_particle_keep(const gpu_boxsize _box, bool _send_x, bool _send_y, bool _send_z)
-        : box(_box), send_x(_send_x), send_y(_send_y), send_z(_send_z)
-        {
-        }
-
-    //! Determine whether we want to keep a particle (i.e. not consider it for sending)
-    /*! \param t the input particle data tuple
-     * \returns true if the particle is inside the boundaries on an axis along which we have neighboring domains
-     */
-    __host__ __device__ bool operator()(const pdata_tuple& t)
-        {
-        float4 pos = thrust::get<0>(t);
-        return !((send_x && pos.x >= box.xhi) || // send east
-                (send_x && pos.x < box.xlo)  ||  // send west
-                (send_y && pos.y >= box.yhi) ||  // send north
-                (send_y && pos.y < box.ylo)  ||  // send south
-                (send_z && pos.z >= box.zhi) ||  // send up
-                (send_z && pos.z < box.zlo));    // send down
-        }
-     };
+                      unsigned int> pdata_tuple_gpu;
 
 //! Select particles to be sent in a specified direction
-struct select_particle_migrate
+struct select_particle_migrate_gpu : public thrust::unary_function<const pdata_tuple_gpu&, bool>
     {
-//    const gpu_boxsize box;     //!< Local box dimensions
     const float xlo;
     const float xhi;
     const float ylo;
     const float yhi;
     const float zlo;
     const float zhi;
-    const unsigned int dir;    //!< Direction to send particles to
+    const unsigned int dir;
+    const float4 *d_pos;
+
 
     //! Constructor
-    /*! \param _box Dimensions of local box
-        \param _dir Direction to send particles to
+    /*!
      */
-    select_particle_migrate(const float _xlo, const float _xhi, const float _ylo, const float _yhi, const float _zlo, const float _zhi,
-                            unsigned int &_dir)
-        : xlo(_xlo), xhi(_xhi), ylo(_ylo), yhi(_yhi), zlo(_zlo), zhi(_zhi), dir(_dir)
+    select_particle_migrate_gpu(const float _xlo,
+                            const float _xhi,
+                            const float _ylo,
+                            const float _yhi,
+                            const float _zlo,
+                            const float _zhi,
+                            const unsigned int _dir,
+                            const float4 *_d_pos)
+        : xlo(_xlo), xhi(_xhi), ylo(_ylo), yhi(_yhi), zlo(_zlo), zhi(_zhi), dir(_dir), d_pos(_d_pos)
         {
         }
 
     //! Select a particle
-    /*! element particle data of the particle to consider for sending
-     * \return true if the particle is selected
+    /*! t particle data to consider for sending
+     * \return true if particle stays in the box
      */
-    __host__ __device__ bool operator()(const pdata_element_gpu& element)
+    __host__ __device__ bool operator()(const unsigned int& idx)
         {
-        const float4& pos = element.pos;
-        return ((dir==0 && pos.x >= xhi) ||  // send east
-                (dir==1 && pos.x < xlo)  ||  // send west
-                (dir==2 && pos.y >= yhi) ||  // send north
-                (dir==3 && pos.y < ylo)  ||  // send south
-                (dir==4 && pos.z >= zhi) ||  // send up
-                (dir==5 && pos.z < zlo));    // send down
-
+        const float4& pos = d_pos[idx];
+        // we return true if the particle stays in our box,
+        // false otherwise
+        return !((dir == 0 && pos.x >= xhi) ||  // send east
+                (dir == 1 && pos.x < xlo)  ||  // send west
+                (dir == 2 && pos.y >= yhi) ||  // send north
+                (dir == 3 && pos.y < ylo)  ||  // send south
+                (dir == 4 && pos.z >= zhi) ||  // send up
+                (dir == 5 && pos.z < zlo ));   // send down
         }
 
      };
@@ -355,20 +329,20 @@ struct isInBox
     /*! \param t the particle data tuple to apply the criterium to
      * \return true if the particle is to be added to the local particle data
      */
-    __host__ __device__ bool operator()(const pdata_tuple & t)
+    __host__ __device__ bool operator()(const pdata_tuple_gpu & t)
         {
         return check_ptl(thrust::get<0>(t));
         }
      };
 
 //! Pack a particle data tuple
-struct pack_pdata : public thrust::unary_function<pdata_tuple, pdata_element_gpu>
+struct pack_pdata : public thrust::unary_function<pdata_tuple_gpu, pdata_element_gpu>
     {
     //! Transform operator
     /*! \param t Particle data tuple to pack
      * \return Packed particle data element
      */
-    __host__ __device__ pdata_element_gpu operator()(const pdata_tuple& t)
+    __host__ __device__ pdata_element_gpu operator()(const pdata_tuple_gpu& t)
         {
         pdata_element_gpu el;
         el.pos  = thrust::get<0>(t);
@@ -385,15 +359,15 @@ struct pack_pdata : public thrust::unary_function<pdata_tuple, pdata_element_gpu
     };
 
 //! Unpack a particle data element
-struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tuple>
+struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tuple_gpu>
     {
     //! Transform operator
     /*! \param el Particle data element to unpack
         \param Tuple of particle data fields
      */
-    __host__ __device__ pdata_tuple operator()(const pdata_element_gpu & el)
+    __host__ __device__ pdata_tuple_gpu operator()(const pdata_element_gpu & el)
         {
-        return pdata_tuple(el.pos,
+        return pdata_tuple_gpu(el.pos,
                            el.vel,
                            el.accel,
                            el.charge,
@@ -405,16 +379,40 @@ struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tup
         }
     };
 
-/*! Selects all particles which are no longer inside the local box boundaries and move them to the end of the particle data arrays.
-   The number of particles that have been selected and moved to the end is returned.
 
-   \post The particle data arrays are divided into two consecutive arrays:
-   Local particles, and particles that have left the simulation box.
-   The relative order of the local particles is preserved. The overall size of the particle
-   data arrays is unchanged.
+thrust::device_vector<unsigned int> *keys;
+thrust::device_vector<float4> *float4_tmp;
+thrust::device_vector<float3> *float3_tmp;
+thrust::device_vector<float> *float_tmp;
+thrust::device_vector<unsigned int> *uint_tmp;
+thrust::device_vector<int3> *int3_tmp;
+
+void gpu_allocate_tmp_storage()
+    {
+    keys = new thrust::device_vector<unsigned int>;
+    float4_tmp = new thrust::device_vector<float4>;
+    float3_tmp = new thrust::device_vector<float3>;
+    float_tmp = new thrust::device_vector<float>;
+    uint_tmp = new thrust::device_vector<unsigned int>;
+    int3_tmp = new thrust::device_vector<int3>;
+    }
+
+void gpu_deallocate_tmp_storage()
+    {
+    delete keys;
+    delete float4_tmp;
+    delete float3_tmp;
+    delete float_tmp;
+    delete uint_tmp;
+    delete int3_tmp;
+    }
+
+/*! Reorder the particles according to a migration criterium
+    Particles that remain in the simulation box come first, followed by the particles that are sent in the
+    specified direction
 
    \param N Number of particles in local simulation box
-   \param n_delete_ptls Number of particles that have been moved to the end (return value)
+   \param n_send_ptls Number of particles that are sent (return value)
    \param d_pos Array of particle positions
    \param d_vel Array of particle velocities
    \param d_accel Array of particle accelerations
@@ -429,8 +427,8 @@ struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tup
    \param send_x Flag to indicate if we have neighbor domains in the x direction
    \param send_x Flag to indicate if we have neighbor domains in the y direction
 */
-void gpu_migrate_compact_pdata(unsigned int N,
-                        unsigned int &n_delete_ptls,
+void gpu_migrate_select_particles(unsigned int N,
+                        unsigned int &n_send_ptls,
                         float4 *d_pos,
                         float4 *d_vel,
                         float3 *d_accel,
@@ -441,9 +439,7 @@ void gpu_migrate_compact_pdata(unsigned int N,
                         float4  *d_orientation,
                         unsigned int *d_tag,
                         gpu_boxsize box,
-                        bool send_x,
-                        bool send_y,
-                        bool send_z)
+                        unsigned int dir)
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);
     thrust::device_ptr<float4> vel_ptr(d_vel);
@@ -455,40 +451,95 @@ void gpu_migrate_compact_pdata(unsigned int N,
     thrust::device_ptr<float4> orientation_ptr(d_orientation);
     thrust::device_ptr<unsigned int> tag_ptr(d_tag);
 
-    // we perform operations on the whole particle data
-    typedef thrust::tuple<thrust::device_ptr<float4>,
-                          thrust::device_ptr<float4>,
-                          thrust::device_ptr<float3>,
-                          thrust::device_ptr<float>,
-                          thrust::device_ptr<float>,
-                          thrust::device_ptr<int3>,
-                          thrust::device_ptr<unsigned int>,
-                          thrust::device_ptr<float4>,
-                          thrust::device_ptr<unsigned int> > pdata_iterator_tuple;
+    if (keys->size() < N)
+        {
+        unsigned int cur_size = keys->size() ? keys->size() : N;
+        while (cur_size < N) cur_size *= 2;
+        keys->resize(cur_size);
+        float4_tmp->resize(cur_size);
+        float3_tmp->resize(cur_size);
+        float_tmp->resize(cur_size);
+        uint_tmp->resize(cur_size);
+        int3_tmp->resize(cur_size);
+        }
 
-    thrust::zip_iterator<pdata_iterator_tuple> pdata_first = thrust::make_tuple( pos_ptr,
-                                               vel_ptr,
-                                               accel_ptr,
-                                               charge_ptr,
-                                               diameter_ptr,
-                                               image_ptr,
-                                               body_ptr,
-                                               orientation_ptr,
-                                               tag_ptr);
-    thrust::zip_iterator<pdata_iterator_tuple> pdata_end = pdata_first + N;
+    thrust::counting_iterator<unsigned int> count(0);
+    thrust::copy(count, count + N, keys->begin());
 
-    // move all particles we are going to send to the end
-    // we use a stable partition here because we don't want to destroy
-    // the sort order of the particles
-    thrust::zip_iterator<pdata_iterator_tuple> pdata_middle =
-        thrust::stable_partition(pdata_first,
-                                 pdata_end,
-                                 select_particle_keep(box,send_x, send_y, send_z));
+    thrust::device_vector<unsigned int>::iterator keys_middle;
 
-    n_delete_ptls = pdata_end - pdata_middle;
+    keys_middle = thrust::stable_partition(keys->begin(),
+                             keys->begin() + N,
+                             select_particle_migrate_gpu(box.xlo, box.xhi, box.ylo, box.yhi, box.zlo, box.zhi, dir, d_pos));
+
+    n_send_ptls = (keys->begin() + N) - keys_middle;
+
+    // reorder particle data
+    thrust::copy(thrust::make_permutation_iterator(pos_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(pos_ptr + N, keys->begin() +N),
+                 float4_tmp->begin());
+    thrust::copy(float4_tmp->begin(),
+                 float4_tmp->begin() + N,
+                 pos_ptr);
+
+    thrust::copy(thrust::make_permutation_iterator(vel_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(vel_ptr + N, keys->begin() +N),
+                 float4_tmp->begin());
+    thrust::copy(float4_tmp->begin(),
+                 float4_tmp->begin() + N,
+                 vel_ptr);
+
+    thrust::copy(thrust::make_permutation_iterator(accel_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(accel_ptr + N, keys->begin() +N),
+                 float3_tmp->begin());
+    thrust::copy(float3_tmp->begin(),
+                 float3_tmp->begin() + N,
+                 accel_ptr);
+
+    thrust::copy(thrust::make_permutation_iterator(charge_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(charge_ptr + N, keys->begin() +N),
+                 float_tmp->begin());
+    thrust::copy(float_tmp->begin(),
+                 float_tmp->begin() + N,
+                 charge_ptr);
+
+    thrust::copy(thrust::make_permutation_iterator(diameter_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(diameter_ptr + N, keys->begin() +N),
+                 float_tmp->begin());
+    thrust::copy(float_tmp->begin(),
+                 float_tmp->begin() + N,
+                 diameter_ptr);
+
+    thrust::copy(thrust::make_permutation_iterator(image_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(image_ptr + N, keys->begin() +N),
+                 int3_tmp->begin());
+    thrust::copy(int3_tmp->begin(),
+                 int3_tmp->begin() + N,
+                 image_ptr);
+
+    thrust::copy(thrust::make_permutation_iterator(body_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(body_ptr + N, keys->begin() +N),
+                 uint_tmp->begin());
+    thrust::copy(uint_tmp->begin(),
+                 uint_tmp->begin() + N,
+                 body_ptr);
+
+    thrust::copy(thrust::make_permutation_iterator(orientation_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(orientation_ptr + N, keys->begin() +N),
+                 float4_tmp->begin());
+    thrust::copy(float4_tmp->begin(),
+                 float4_tmp->begin() + N,
+                 orientation_ptr);
+
+    thrust::copy(thrust::make_permutation_iterator(tag_ptr, keys->begin()),
+                 thrust::make_permutation_iterator(tag_ptr + N, keys->begin() +N),
+                 uint_tmp->begin());
+    thrust::copy(uint_tmp->begin(),
+                 uint_tmp->begin() + N,
+                 tag_ptr);
     }
 
-//! Determine particles to be sent in a given direction and fill send buffer
+//! Pack particle data into send buffer
 /*! \param N number of particles to check for sending
    \param d_pos Array of particle positions
    \param d_vel Array of particle velocities
@@ -515,9 +566,7 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
                            float4  *d_orientation,
                            unsigned int *d_tag,
                            char *d_send_buf,
-                           char *&d_send_buf_end,
-                           gpu_boxsize box,
-                           unsigned int dir)
+                           char *&d_send_buf_end)
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);
     thrust::device_ptr<float4> vel_ptr(d_vel);
@@ -553,72 +602,32 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
     thrust::zip_iterator<pdata_iterator_tuple> pdata_end = pdata_first + N;
 
 
-    // now pack the particles we want to send into a buffer
+    // pack the particles into the send buffer
     thrust::device_ptr<pdata_element_gpu> send_buf_end_ptr =
-        thrust::copy_if(thrust::make_transform_iterator(pdata_first, pack_pdata()),
-                                  thrust::make_transform_iterator(pdata_end, pack_pdata()),
-                                  send_buf_ptr,
-                                  select_particle_migrate(box.xlo, box.xhi, box.ylo, box.yhi, box.zlo, box.zhi,dir));
-    d_send_buf_end = (char *) thrust::raw_pointer_cast(send_buf_end_ptr);
-    }
+        thrust::copy(thrust::make_transform_iterator(pdata_first, pack_pdata()),
+                     thrust::make_transform_iterator(pdata_end, pack_pdata()),
+                     send_buf_ptr);
 
-//! Select particles to forward in a given direction and pack them into a send buffer
-/*! \param d_recv_buf Received particle data to check
- * \param d_recv_buf_end Pointer to end of received particle data
- * \param d_send_buf Send buffer to store particle data in
- * \param d_send_buf_end Pointer to end of send buffer (return value)
- * \param box Local box dimensions
- * \param dir Direction in which particles are to be forwarded
- */
-void gpu_migrate_forward_particles(char *d_recv_buf,
-                                   char *d_recv_buf_end,
-                                   char *d_send_buf,
-                                   char *&d_send_buf_end,
-                                   gpu_boxsize box,
-                                   unsigned int dir)
-    {
-    thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
-    thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
-    thrust::device_ptr<pdata_element_gpu> send_buf_ptr((pdata_element_gpu *) d_send_buf);
-
-    device_ptr<pdata_element_gpu> send_buf_end_ptr =
-        thrust::copy_if(recv_buf_ptr,
-                        recv_buf_end_ptr,
-                        send_buf_ptr,
-                        select_particle_migrate(box.xlo, box.xhi, box.ylo, box.yhi, box.zlo, box.zhi, dir));
     d_send_buf_end = (char *) thrust::raw_pointer_cast(send_buf_end_ptr);
     }
 
 //! Wrap received particles across global box boundaries
 /*! \param d_recv_buf Received particle data
  * \param d_recv_buf_end End of received particle data
+ * \param n_recv_ptl Number of received particles (return value)
  * \param global_box Dimensions of global box
  * \param dir Direction along which particles where received
  */
 void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  char *d_recv_buf_end,
+                                 unsigned int &n_recv_ptl,
                                  const gpu_boxsize& global_box,
                                  unsigned int dir)
     {
     thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
     thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
     thrust::transform(recv_buf_ptr, recv_buf_end_ptr, recv_buf_ptr, wrap_received_particle(global_box, dir));
-    }
-
-//! Count received particles that are to be added to the local simulation box
-/*!\param num_ptls_in_box Number of particles that are to be added to the local box (return value)
- * \param d_recv_buf Buffer of received particles to chek
- * \param d_recv_buf_end Pointer to end of received particle data
- * \param box Dimensions of local simulation box
- */
-void gpu_migrate_count_particles_in_box(unsigned int &num_ptls_in_box,
-                                char *d_recv_buf,
-                                char *d_recv_buf_end,
-                                const gpu_boxsize& box)
-    {
-    thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
-    thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
-    num_ptls_in_box = thrust::count_if(recv_buf_ptr, recv_buf_end_ptr, isInBox(box));
+    n_recv_ptl = recv_buf_end_ptr - recv_buf_ptr;
     }
 
 //! Add received particles to local box if their positions are inside the local boundaries
@@ -635,8 +644,7 @@ void gpu_migrate_count_particles_in_box(unsigned int &num_ptls_in_box,
  * \param d_tag Array to store particle global tags
  * \param box Local box dimensions
  */
-void gpu_migrate_move_particles_into_box(unsigned int &num_added_ptls,
-                                 char *d_recv_buf,
+void gpu_migrate_add_particles(  char *d_recv_buf,
                                  char *d_recv_buf_end,
                                  float4 *d_pos,
                                  float4 *d_vel,
@@ -660,8 +668,8 @@ void gpu_migrate_move_particles_into_box(unsigned int &num_added_ptls,
     thrust::device_ptr<unsigned int> body_ptr(d_body);
     thrust::device_ptr<float4> orientation_ptr(d_orientation);
     thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-    num_added_ptls =
-        thrust::copy_if(thrust::make_transform_iterator(recv_buf_ptr, unpack_pdata()),
+
+    thrust::copy(thrust::make_transform_iterator(recv_buf_ptr, unpack_pdata()),
                     thrust::make_transform_iterator(recv_buf_end_ptr, unpack_pdata()),
                     make_zip_iterator( thrust::make_tuple( pos_ptr,
                                                vel_ptr,
@@ -671,8 +679,8 @@ void gpu_migrate_move_particles_into_box(unsigned int &num_added_ptls,
                                                image_ptr,
                                                body_ptr,
                                                orientation_ptr,
-                                               tag_ptr) ),
-                    isInBox(box)) - make_zip_iterator( thrust::make_tuple( pos_ptr,
+                                               tag_ptr) )) -
+                    make_zip_iterator( thrust::make_tuple( pos_ptr,
                                                vel_ptr,
                                                accel_ptr,
                                                charge_ptr,
@@ -725,7 +733,11 @@ void gpu_make_exchange_ghost_list(unsigned int N,
 
     thrust::device_ptr<unsigned int> copy_ghosts_end_ptr;
 
-    copy_ghosts_end_ptr = thrust::copy_if(global_tag_ptr, global_tag_ptr+N, pos_ptr, copy_ghosts_ptr, select_particle_ghost(box, r_ghost, dir));
+    copy_ghosts_end_ptr = thrust::copy_if(global_tag_ptr,
+                                          global_tag_ptr+N,
+                                          pos_ptr,
+                                          copy_ghosts_ptr,
+                                          select_particle_ghost(box, r_ghost, dir));
 
     n_copy_ghosts =  copy_ghosts_end_ptr - copy_ghosts_ptr;
     }

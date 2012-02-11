@@ -19,7 +19,6 @@
 #include <math.h>
 
 #include "Communicator.h"
-#include "NeighborListBinnedMPI.h"
 #include "MPIInitializer.h"
 
 #ifdef ENABLE_CUDA
@@ -28,7 +27,6 @@
 #include "TwoStepNVEGPU.h"
 #include "ParticleGroupGPU.h"
 #include "CommunicatorGPU.h"
-#include "NeighborListBinnedMPIGPU.h"
 #endif
 
 using namespace boost;
@@ -56,11 +54,13 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     rand_init.addGenerator((int)N, boost::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(1.0, types, bonds, bonds, bond_types, 100)));
     rand_init.setSeparationRadius("A", .4);
 
-    if (world->rank() == 0) rand_init.generate();
+    rand_init.generate();
 
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(rand_init, world));
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
 
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(*mpi_init, exec_conf));
+    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef, world));
+
+    mpi_init->scatter(0);
 
     boost::shared_ptr<Communicator> comm;
     std::vector<unsigned int> neighbor_rank;
@@ -112,13 +112,27 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     Scalar r_cut = Scalar(3.0);
     Scalar r_buff = Scalar(0.8);
     shared_ptr<NeighborList> nlist;
+    shared_ptr<CellList> cl;
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
-        nlist = shared_ptr<NeighborList>(new NeighborListBinnedMPIGPU(sysdef, r_cut, r_buff, comm, boost::shared_ptr<CellList>(new CellListGPU(sysdef))));
+        {
+        cl = boost::shared_ptr<CellList>(new CellListGPU(sysdef));
+        nlist = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef, r_cut, r_buff, cl));
+        }
     else
 #endif
-    nlist = shared_ptr<NeighborList>(new NeighborListBinnedMPI(sysdef, r_cut, r_buff, comm ));
+        {
+        cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+        nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef, r_cut, r_buff ));
+        }
+
     nlist->setStorageMode(NeighborList::full);
+    nlist->setCommunicator(comm);
+
+    for (unsigned int dir = 0; dir < 3; dir ++)
+       {
+       cl->setGhostLayer(dir, (comm->getDimension(1)>1));
+       }
 
     shared_ptr<PotentialPairLJ> fc;
 
@@ -152,18 +166,17 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
       // if (!( i%100))
 //       if (world.rank()==0)  std::cout << "step " << i << std::endl;
        if (i % 300 == 0) sorter->update(i);
-       nve->update(i);
-       comm->copyGhosts();
        Scalar TPS = i/Scalar(clk.getTime() - initial_time) * Scalar(1e9);
        if (i%10 == 0 && world->rank() == 0) std::cout << "step " << i << " TPS: " << TPS << std::endl;
+       nve->update(i);
        }
 
     if (world->rank() == 0)
         cout << *prof;
 }
 
-//! Tests MPI domain decomposition with NVE integrator
 #if 0
+//! Tests MPI domain decomposition with NVE integrator
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVE_test )
     {
     set_num_threads(1);
@@ -174,7 +187,12 @@ BOOST_AUTO_TEST_CASE( DomainDecomposition_NVE_test )
 //! Tests MPI domain decomposition with NVE integrator on the GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVE_test_GPU )
     {
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    char *str;
+    int dev = -1;
+    if ((str = getenv("PMI_RANK")))
+       dev = atoi(str);
+
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,dev));
     test_domain_decomposition(exec_conf);
     }
 #endif

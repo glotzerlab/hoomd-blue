@@ -102,12 +102,6 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
         
-        //! Returns the total number of particles in the simulation
-        virtual unsigned int getNumGlobalParticles() const;
-
-        //! Returns the number of particle types to be initialized
-        virtual unsigned int getNumParticleTypes() const;
-        
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
         
@@ -122,9 +116,6 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         
         //! Initialize the walls
         virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
-        
-        //! Initialize the type name mapping
-        std::vector<std::string> getTypeMapping() const;
         
         //! Returns the number of bond types to be created
         virtual unsigned int getNumBondTypes() const;

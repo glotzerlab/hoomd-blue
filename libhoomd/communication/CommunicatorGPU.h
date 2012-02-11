@@ -82,6 +82,7 @@ class CommunicatorGPU : public Communicator
                         std::vector<unsigned int> neighbor_rank,
                         int3 dim,
                         const BoxDim& global_box);
+        virtual ~CommunicatorGPU();
 
         //! \name communication methods
         //@{

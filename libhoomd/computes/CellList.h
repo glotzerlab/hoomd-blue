@@ -149,6 +149,7 @@ class CellList : public Compute
         //! Set to true if ghost layer is present
         void setGhostLayer(unsigned int dir, bool has_ghost_layer)
             {
+            assert(dir < 3);
             m_has_ghost_layer[dir] = has_ghost_layer;
             m_params_changed = true;
             }

@@ -110,21 +110,6 @@ unsigned int HOOMDBinaryInitializer::getNumParticles() const
     return (unsigned int)m_x_array.size();
     }
 
-/*! \returns Total number of particles in the global simulation
-*/
-unsigned int HOOMDBinaryInitializer::getNumGlobalParticles() const
-    {
-    return getNumParticles();
-    }
-
-/*! \returns Numer of particle types parsed from the binary file
-*/
-unsigned int HOOMDBinaryInitializer::getNumParticleTypes() const
-    {
-    assert(m_type_mapping.size() > 0);
-    return (unsigned int)m_type_mapping.size();
-    }
-
 /*! \returns Box dimensions parsed from the binary file
 */
 BoxDim HOOMDBinaryInitializer::getBox() const
@@ -154,9 +139,6 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < snapshot.size; i++)
         {
-        unsigned int tag = m_tag_array[i];
-        snapshot.rtag[tag] = i;
-
         snapshot.pos[i] = make_scalar3(m_x_array[i], m_y_array[i], m_z_array[i]);
         snapshot.image[i] = make_int3(m_ix_array[i], m_iy_array[i], m_iz_array[i]);
         snapshot.vel[i] = make_scalar3(m_vx_array[i], m_vy_array[i], m_vz_array[i]);
@@ -166,8 +148,11 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         snapshot.diameter[i] = m_diameter_array[i];
         snapshot.charge[i] = m_charge_array[i];
         snapshot.body[i] = m_body_array[i];
+        snapshot.global_tag[i] = m_tag_array[i];
         }        
 
+    snapshot.type_mapping = m_type_mapping;
+    snapshot.num_particle_types = m_type_mapping.size();
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -519,7 +504,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         cout << m_diameter_array.size() << " diameters" << endl;
     if (m_charge_array.size() > 0)
         cout << m_charge_array.size() << " charges" << endl;
-    cout << getNumParticleTypes() <<  " particle types" << endl;
+    cout << m_type_mapping.size() <<  " particle types" << endl;
     if (m_integrator_variables.size() > 0)
         cout << m_integrator_variables.size() << " integrator states" << endl;
     if (m_bonds.size() > 0)
@@ -644,13 +629,6 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
         }
     }
 
-
-/*! \returns A mapping of type ids to type names deteremined from the XML input file
-*/
-std::vector<std::string> HOOMDBinaryInitializer::getTypeMapping() const
-    {
-    return m_type_mapping;
-    }
 
 void export_HOOMDBinaryInitializer()
     {

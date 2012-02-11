@@ -57,6 +57,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "MPIInitializer.h"
 
+#include "SystemDefinition.h"
+#include "ParticleData.h"
+
 #include <boost/mpi.hpp>
 #include <boost/python.hpp>
 
@@ -78,34 +81,38 @@ BOOST_IS_MPI_DATATYPE(int3)
           have been initialized on all processors and the class accessor methods can be used
           to query information about local particle data.
  */
-MPIInitializer::MPIInitializer(ParticleDataInitializer& init, boost::shared_ptr<boost::mpi::communicator> comm)
-      : m_global_box(1.0,1.0,1.0), m_box(1.0,1.0,1.0)
+MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
+                               boost::shared_ptr<boost::mpi::communicator> comm)
+      : m_sysdef(sysdef),
+        m_pdata(sysdef->getParticleData()),
+        m_mpi_comm(comm),
+        m_global_box(1.0,1.0,1.0),
+        m_box(1.0,1.0,1.0)
     {
-    m_pos_proc.resize(comm->size());
-    m_rank = comm->rank();
+    m_pos_proc.resize(m_mpi_comm->size());
+    m_rank = m_mpi_comm->rank();
 
-    if (m_rank ==0)
-    {
-    m_global_box = init.getBox();
     // get global box dimensions
+    m_global_box = m_pdata->getBox();
+
     double Lx_g = m_global_box.xhi - m_global_box.xlo;
     double Ly_g = m_global_box.yhi - m_global_box.ylo;
     double Lz_g = m_global_box.zhi - m_global_box.zlo;
 
-        // Calulate the number of sub-domains in every direction
+    // Calulate the number of sub-domains in every direction
     // by minimizing the surface area between domains at constant number of domains
-    double min_surface_area = Lx_g*Ly_g*comm->size()+Lx_g*Lz_g+Ly_g*Lz_g;
+    double min_surface_area = Lx_g*Ly_g*m_mpi_comm->size()+Lx_g*Lz_g+Ly_g*Lz_g;
 
-        // initial guess
-    m_nx = 1; m_ny = 1; m_nz = comm->size();
+    // initial guess
+    m_nx = 1; m_ny = 1; m_nz = m_mpi_comm->size();
 
-    for (unsigned int nx = 1; nx <= (unsigned int) comm->size(); nx++)
+    for (unsigned int nx = 1; nx <= (unsigned int) m_mpi_comm->size(); nx++)
            {
-       for (unsigned int ny = 1; nx*ny <= (unsigned int) comm->size(); ny++)
+       for (unsigned int ny = 1; nx*ny <= (unsigned int) m_mpi_comm->size(); ny++)
                {
-           for (unsigned int nz = 1; nx*ny*nz <= (unsigned int) comm->size(); nz++)
+           for (unsigned int nz = 1; nx*ny*nz <= (unsigned int) m_mpi_comm->size(); nz++)
            {
-           if (nx*ny*nz != (unsigned int) comm->size()) continue;
+           if (nx*ny*nz != (unsigned int) m_mpi_comm->size()) continue;
            double surface_area = Lx_g*Ly_g*nz + Lx_g*Lz_g*ny + Ly_g*Lz_g*nx;
            if (surface_area < min_surface_area)
                {
@@ -118,180 +125,187 @@ MPIInitializer::MPIInitializer(ParticleDataInitializer& init, boost::shared_ptr<
                 }
             }
 
-        // Print out information about the domain decomposition
+    // Print out information about the domain decomposition
     std::cout << "Domain decomposition: n_x = " << m_nx << " n_y = " << m_ny << " n_z = " << m_nz << std::endl;
-
-    // calculate physical box dimensions
-    m_box_proc.resize(comm->size(),BoxDim(1.0,1.0,1.0));
-    m_grid_pos_proc.resize(comm->size());
-    for (unsigned int rank = 0; rank < (unsigned int) comm->size(); rank++)
-        {
-        BoxDim box(Lx_g,Ly_g,Lz_g);
-        m_Lx = Lx_g/(double)m_nx;
-        m_Ly = Ly_g/(double)m_ny;
-        m_Lz = Lz_g/(double)m_nz;
-
-        // position of this domain in the grid
-        unsigned int k = rank/(m_nx*m_ny);
-        unsigned int j = (rank % (m_nx*m_ny)) / m_nx;
-        unsigned int i = (rank % (m_nx*m_ny)) % m_nx;
-
-        box.xlo = m_global_box.xlo + (double)i * m_Lx;
-        box.xhi = box.xlo + m_Lx;
-
-        box.ylo = m_global_box.ylo + (double)j * m_Ly;
-        box.yhi = box.ylo + m_Ly;
-
-        box.zlo = m_global_box.zlo + (double)k * m_Lz;
-        box.zhi = box.zlo + m_Lz;
-
-        m_grid_pos_proc[rank] = make_uint3(i,j,k);
-        m_box_proc[rank] = box;
-        }
     }
 
+//! Distribute particle data onto processors
+void MPIInitializer::scatter(unsigned int root)
+    {
+    // calculate physical box dimensions
+
+    if (m_rank == root)
+        {
+        m_box_proc.resize(m_mpi_comm->size(),BoxDim(1.0,1.0,1.0));
+        m_grid_pos_proc.resize(m_mpi_comm->size());
+        for (unsigned int rank = 0; rank < (unsigned int) m_mpi_comm->size(); rank++)
+            {
+            BoxDim box(1.0,1.0,1.0);
+            m_Lx = (m_global_box.xhi-m_global_box.xlo)/(double)m_nx;
+            m_Ly = (m_global_box.yhi-m_global_box.ylo)/(double)m_ny;
+            m_Lz = (m_global_box.zhi-m_global_box.zlo)/(double)m_nz;
+
+            // position of this domain in the grid
+            unsigned int k = rank/(m_nx*m_ny);
+            unsigned int j = (rank % (m_nx*m_ny)) / m_nx;
+            unsigned int i = (rank % (m_nx*m_ny)) % m_nx;
+
+            box.xlo = m_global_box.xlo + (double)i * m_Lx;
+            box.xhi = box.xlo + m_Lx;
+
+            box.ylo = m_global_box.ylo + (double)j * m_Ly;
+            box.yhi = box.ylo + m_Ly;
+
+            box.zlo = m_global_box.zlo + (double)k * m_Lz;
+            box.zhi = box.zlo + m_Lz;
+
+            m_grid_pos_proc[rank] = make_uint3(i,j,k);
+            m_box_proc[rank] = box;
+            }
+        }
+
     // broadcast global box dimensions
-    broadcast(*comm, m_global_box, 0);
+    boost::mpi::broadcast(*m_mpi_comm, m_global_box, root);
 
     // broadcast grid dimensions
-    broadcast(*comm, m_nx, 0);
-    broadcast(*comm, m_ny, 0);
-    broadcast(*comm, m_nz, 0);
+    boost::mpi::broadcast(*m_mpi_comm, m_nx, root);
+    boost::mpi::broadcast(*m_mpi_comm, m_ny, root);
+    boost::mpi::broadcast(*m_mpi_comm, m_nz, root);
 
     // distribute local box dimensions
-    scatter(*comm, m_box_proc, m_box, 0);
+    boost::mpi::scatter(*m_mpi_comm, m_box_proc, m_box, root);
 
     // distribute grid positions
-    scatter(*comm, m_grid_pos_proc, m_grid_pos, 0);
+    boost::mpi::scatter(*m_mpi_comm, m_grid_pos_proc, m_grid_pos, root);
 
     // broadcast number of particle types
-    m_num_particle_types = init.getNumParticleTypes();
-    broadcast(*comm, m_num_particle_types, 0);
+    m_num_particle_types = m_pdata->getNTypes();
+    boost::mpi::broadcast(*m_mpi_comm, m_num_particle_types, root);
 
     // broadcast particle type mapping
-    m_type_mapping = init.getTypeMapping();
-    broadcast(*comm, m_type_mapping, 0);
+    for (unsigned int i = 0; i < m_num_particle_types; i++)
+        m_type_mapping.push_back(m_pdata->getNameByType(i));
 
-    if (m_rank == 0)
+    boost::mpi::broadcast(*m_mpi_comm, m_type_mapping, root);
+
+    if (m_rank == root)
     {
-    // distribute particles on processors
-    m_nglobal = init.getNumParticles();
-    SnapshotParticleData snap(m_nglobal);
+        // distribute particles on processors
+        m_nglobal = m_pdata->getN();
 
-    // initialize with default values
-    for (unsigned int i = 0; i < m_nglobal; i++)
-       {
-       snap.mass[i] = 1.0;
-       snap.diameter[i] = 1.0;
-       snap.body[i] = NO_BODY;
-       snap.global_tag[i] = i;
-       }
+        m_pos_proc.resize(m_mpi_comm->size());
+        m_vel_proc.resize(m_mpi_comm->size());
+        m_accel_proc.resize(m_mpi_comm->size());
+        m_type_proc.resize(m_mpi_comm->size());
+        m_mass_proc.resize(m_mpi_comm->size());
+        m_charge_proc.resize(m_mpi_comm->size());
+        m_diameter_proc.resize(m_mpi_comm->size());
+        m_image_proc.resize(m_mpi_comm->size());
+        m_body_proc.resize(m_mpi_comm->size());
+        m_global_tag_proc.resize(m_mpi_comm->size());
 
-    // use the Initializer to initialize the global particle data snapshot
-    init.initSnapshot(snap);
+        m_N_proc.resize(m_mpi_comm->size(),0);
 
-    m_pos_proc.resize(comm->size());
-    m_vel_proc.resize(comm->size());
-    m_accel_proc.resize(comm->size());
-    m_type_proc.resize(comm->size());
-    m_mass_proc.resize(comm->size());
-    m_charge_proc.resize(comm->size());
-    m_diameter_proc.resize(comm->size());
-    m_image_proc.resize(comm->size());
-    m_rtag_proc.resize(comm->size());
-    m_body_proc.resize(comm->size());
-    m_global_tag_proc.resize(comm->size());
+        SnapshotParticleData snap(m_pdata->getN(),m_pdata->getNTypes());
+        m_pdata->takeSnapshot(snap);
 
+        for (std::vector<Scalar3>::iterator it=snap.pos.begin(); it != snap.pos.end(); it++)
+            {
+            // determine domain the particle lies in
+            unsigned int i= (it->x-m_global_box.zlo)/m_Lx;
+            unsigned int j= (it->y-m_global_box.ylo)/m_Ly;
+            unsigned int k= (it->z-m_global_box.zlo)/m_Lz;
 
-    std::vector< unsigned int > N_proc;
-    N_proc.resize(comm->size(),0);
+            // treat particles lying exactly on the boundary
+            if (i == m_nx)
+                {
+                i = 0;
+                it->x = m_global_box.xlo;
+                }
+            if (j == m_ny)
+                {
+                j = 0;
+                it->y = m_global_box.ylo;
+                }
+            if (k == m_nz)
+                {
+                k = 0;
+                it->z = m_global_box.zlo;
+                }
 
-    for (std::vector<Scalar3>::iterator it=snap.pos.begin(); it != snap.pos.end(); it++)
-        {
-        // determine domain the particle lies in
-        unsigned int i= (it->x-m_global_box.zlo)/m_Lx;
-        unsigned int j= (it->y-m_global_box.ylo)/m_Ly;
-        unsigned int k= (it->z-m_global_box.zlo)/m_Lz;
+            unsigned int rank = k*m_nx*m_ny + j * m_nx + i;
 
-        // treat particles lying exactly on the boundary
-        if (i == m_nx)
-        {
-        i = 0;
-        it->x = m_global_box.xlo;
+            // fill up per-processor data structures
+            unsigned int idx = it - snap.pos.begin();
+
+            m_pos_proc[rank].push_back(snap.pos[idx]);
+            m_vel_proc[rank].push_back(snap.vel[idx]);
+            m_accel_proc[rank].push_back(snap.accel[idx]);
+            m_type_proc[rank].push_back(snap.type[idx]);
+            m_mass_proc[rank].push_back(snap.mass[idx]);
+            m_charge_proc[rank].push_back(snap.charge[idx]);
+            m_diameter_proc[rank].push_back(snap.diameter[idx]);
+            m_image_proc[rank].push_back(snap.image[idx]);
+            m_body_proc[rank].push_back(snap.body[idx]);
+            m_global_tag_proc[rank].push_back(snap.global_tag[idx]);
+            m_N_proc[rank]++;
+
+            }
         }
-        if (j == m_ny)
-        {
-        j = 0;
-        it->y = m_global_box.ylo;
-        }
-        if (k == m_nz)
-        {
-        k = 0;
-        it->z = m_global_box.zlo;
-        }
 
-        unsigned int rank = k*m_nx*m_ny + j * m_nx + i;
+    // distribute number of particles
+    unsigned int N = 0;
+    boost::mpi::scatter(*m_mpi_comm, m_N_proc, N,root);
 
-        // fill up per-processor data structures
-        unsigned int idx = it - snap.pos.begin();
-        m_pos_proc[rank].push_back(snap.pos[idx]);
-        m_vel_proc[rank].push_back(snap.vel[idx]);
-        m_accel_proc[rank].push_back(snap.accel[idx]);
-        m_type_proc[rank].push_back(snap.type[idx]);
-        m_mass_proc[rank].push_back(snap.mass[idx]);
-        m_charge_proc[rank].push_back(snap.charge[idx]);
-        m_diameter_proc[rank].push_back(snap.diameter[idx]);
-        m_image_proc[rank].push_back(snap.image[idx]);
-        m_body_proc[rank].push_back(snap.body[idx]);
-        m_global_tag_proc[rank].push_back(snap.global_tag[idx]);
+    // initialize snapshot
+    SnapshotParticleData snap(N, m_num_particle_types);
 
-        // the particles are pushed to the processors in (local) tag order
-        m_rtag_proc[rank].push_back(N_proc[rank]++);
+    // distribute positions
+    boost::mpi::scatter(*m_mpi_comm, m_pos_proc,snap.pos,root);
 
-        }
-     }
+    // distribute velocities
+    boost::mpi::scatter(*m_mpi_comm, m_vel_proc,snap.vel,root);
 
-     // distribute positions
-     scatter(*comm, m_pos_proc,m_pos,0);
+    // distribute accelerations
+    boost::mpi::scatter(*m_mpi_comm, m_accel_proc, snap.accel, root);
 
-     // distribute velocities
-     scatter(*comm, m_vel_proc,m_vel,0);
+    // distribute particle types
+    boost::mpi::scatter(*m_mpi_comm, m_type_proc, snap.type, root);
 
-     // distribute accelerations
-     scatter(*comm, m_accel_proc, m_accel, 0);
+    // distribute particle masses
+    boost::mpi::scatter(*m_mpi_comm, m_mass_proc, snap.mass, root);
 
-     // distribute particle types
-     scatter(*comm, m_type_proc, m_type, 0);
+    // distribute particle charges
+    boost::mpi::scatter(*m_mpi_comm, m_charge_proc, snap.charge, root);
 
-     // distribute particle masses
-     scatter(*comm, m_mass_proc, m_mass, 0);
+    // distribute particle diameters`
+    boost::mpi::scatter(*m_mpi_comm, m_diameter_proc, snap.diameter, root);
 
-     // distribute particle charges
-     scatter(*comm, m_charge_proc, m_charge, 0);
+    // distribute particle images
+    boost::mpi::scatter(*m_mpi_comm, m_image_proc, snap.image, root);
 
-     // distribute particle diameters`
-     scatter(*comm, m_diameter_proc, m_diameter, 0);
+    // distribute body ids
+    boost::mpi::scatter(*m_mpi_comm, m_body_proc, snap.body, root);
 
-     // distribute particle images
-     scatter(*comm, m_image_proc, m_image, 0);
+    // distribute global tags
+    boost::mpi::scatter(*m_mpi_comm, m_global_tag_proc, snap.global_tag, root);
 
-     // distribute particle reverse-lookup tags
-     scatter(*comm, m_rtag_proc, m_rtag, 0);
+    // broadcast global number of particles
+    boost::mpi::broadcast(*m_mpi_comm, m_nglobal, root);
 
-     // distribute body ids
-     scatter(*comm, m_body_proc, m_body, 0);
 
-     // distribute global tags
-     scatter(*comm, m_global_tag_proc, m_global_tag, 0);
+    snap.type_mapping = m_type_mapping;
+    snap.num_particle_types = m_num_particle_types;
 
-     // broadcast global number of particles
-     broadcast(*comm, m_nglobal, 0);
+    // set simulation box
+    m_pdata->setBox(m_box);
 
-     std::cout << "rank " << comm->rank() << " " << m_pos.size() << " ptls." << std::endl;
+    // initialize local simulation box with snapshot
+    m_pdata->initializeFromSnapshot(snap);
 
-     m_N = m_pos.size();
-
-     }
+    // set global number of particles
+    m_pdata->setNGlobal(m_nglobal);
+    }
 
 //! Get rank of neighboring domain
 unsigned int MPIInitializer::getNeighborRank(unsigned int dir)
@@ -329,38 +343,28 @@ unsigned int MPIInitializer::getDimension(unsigned int dir) const
     {
     assert(dir < 3);
     unsigned int dim = 0;
-    if (dir ==0 )
-    dim = m_nx;
-    else
-    if (dir == 1) dim = m_ny;
-    else
-    if (dir == 2) dim = m_nz;
+
+    if (dir ==0)
+        {
+        dim = m_nx;
+        }
+    else if (dir == 1)
+        {
+        dim = m_ny;
+        }
+    else if (dir == 2)
+        {
+        dim = m_nz;
+        }
 
     return dim;
-    }
-
-//! Initialize a snapshot with local particle data
-void MPIInitializer::initSnapshot(SnapshotParticleData& snapshot) const
-    {
-    // copy over vectors into snapshot
-    snapshot.pos = m_pos;
-    snapshot.vel = m_vel;
-    snapshot.accel = m_accel;
-    snapshot.type = m_type;
-    snapshot.mass = m_mass;
-    snapshot.charge = m_charge;
-    snapshot.diameter = m_diameter;
-    snapshot.image = m_image;
-    snapshot.rtag = m_rtag;
-    snapshot.body = m_body;
-    snapshot.global_tag = m_global_tag;
     }
 
 //! Export MPIInitializer class to python
 void export_MPIInitializer()
     {
     class_<MPIInitializer, bases<ParticleDataInitializer>, boost::noncopyable >("MPIInitializer",
-           init< ParticleDataInitializer&, boost::shared_ptr<boost::mpi::communicator> >())
+           init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<boost::mpi::communicator> >())
     .def("getNeighborRank", &MPIInitializer::getNeighborRank)
     .def("getGlobalBox", &MPIInitializer::getGlobalBox)
     .def("getDimension", &MPIInitializer::getDimension)

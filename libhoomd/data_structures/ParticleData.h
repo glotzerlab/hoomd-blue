@@ -207,12 +207,23 @@ struct BoxDim
 const unsigned int NO_BODY = 0xffffffff;
 
 //! Handy structure for passing around per-particle data
-/* TODO: document me
-*/
+/*! A snapshot is used for two purposes:
+ *      1) Initializing the ParticleData from a ParticleDataInitializer
+ *      2) inside an Analyzer to iterate over the current ParticleDat
+ *
+ * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
+ * (such as type, mass, diameter). Then a snapshot of this initial state is taken and pased to the
+ * ParticleDataInitializer, which may modify any of the fields of the snapshot. It then returns it to
+ * ParticleData, which in turn initializes its internal arrays from the snapshot using initializeFromSnapshot().
+ *
+ * To support scenerio 2) it is necessary that particles can be accessed in global tag order. For this purporse,
+ * the snapshot contains a std::map which maps between global tags and local snapshot indices. This is updated
+ * whenever a snapshot is taken using takeSnapshot().
+ */
 struct SnapshotParticleData {
     //! constructor
     //! \param N number of particles to allocate memory for
-    SnapshotParticleData(unsigned int N)
+    SnapshotParticleData(unsigned int N, unsigned int n_types)
        {
        pos.resize(N);
        vel.resize(N);
@@ -222,10 +233,10 @@ struct SnapshotParticleData {
        charge.resize(N);
        diameter.resize(N);
        image.resize(N);
-       rtag.resize(N);
        global_tag.resize(N);
        body.resize(N);
        size = N;
+       num_particle_types = n_types;
        }
 
     std::vector<Scalar3> pos;       //!< positions
@@ -236,10 +247,12 @@ struct SnapshotParticleData {
     std::vector<Scalar> charge;     //!< charges
     std::vector<Scalar> diameter;   //!< diameters
     std::vector<int3> image;        //!< images
-    std::vector<unsigned int> rtag; //!< reverse-lookup tags
     std::vector<unsigned int> global_tag; //! global tag
     std::vector<unsigned int> body; //!< body ids
     unsigned int size;              //!< number of particles in this snapshot
+    unsigned int num_particle_types;//!< Number of particle types defined
+    std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
+    std::map<unsigned int,unsigned int> global_rtag; //!< Maps a global tag onto a local snapshot index
     };
 
 //! Abstract interface for initializing a ParticleData
@@ -264,12 +277,6 @@ class ParticleDataInitializer
         //! Returns the number of local particles to be initialized
         virtual unsigned int getNumParticles() const = 0;
         
-        //! Returns the number of global particles in the simulation
-        virtual unsigned int getNumGlobalParticles() const = 0;
-
-        //! Returns the number of particles types to be initialized
-        virtual unsigned int getNumParticleTypes() const = 0;
-        
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const = 0;
         
@@ -291,9 +298,6 @@ class ParticleDataInitializer
         */
         virtual void initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data) const {}
         
-        //! Intialize the type mapping
-        virtual std::vector<std::string> getTypeMapping() const = 0;
-
         //! Returns the number of dimensions
         /*! The base class returns 3 */
         virtual unsigned int getNumDimensions() const
@@ -379,7 +383,7 @@ class ParticleDataInitializer
     <code>pos_array_handle.data[i].y</code>, and <code>pos_array_handle.data[i].z</code>
     where \c i runs from 0 to <code>getN()</code>.
 
-    Velocities and other propertys can be accessed in a similar manner.
+    Velocities and other properties can be accessed in a similar manner.
     
     \note Position and type are combined into a single Scalar4 quantity. x,y,z specifies the position and w specifies
     the type. Use __scalar_as_int() / __int_as_scalar() (or __int_as_float() / __float_as_int()) to extract / set
@@ -397,7 +401,6 @@ class ParticleDataInitializer
 
     In additon to a local tag, there is also a global tag that is unique among all processors in a parallel
     simulation. The tag of a particle with index i is stored in the \c m_global_tag array.
->>>>>>> Partial set of changes to enable domain decomposition
 
     In order to help other classes deal with particles changing indices, any class that
     changes the order must call notifyParticleSort(). Any class interested in being notified
@@ -505,6 +508,11 @@ class ParticleData : boost::noncopyable
             {
             return m_nglobal;
             }
+
+        //! Set global number of particles
+        /*! \param nglobal Global number of particles
+         */
+        void setNGlobal(unsigned int nglobal);
 
         //! Get the number of particle types
         /*! \return Number of particle types
@@ -915,7 +923,7 @@ class ParticleData : boost::noncopyable
 #endif
         
         //! Helper function to allocate particle data
-        void allocate(unsigned int N, unsigned int nglobal);
+        void allocate(unsigned int N);
 
         //! Helper function to reallocate particle data
         void reallocate(unsigned int max_n);

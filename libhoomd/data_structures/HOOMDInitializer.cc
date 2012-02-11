@@ -124,21 +124,6 @@ unsigned int HOOMDInitializer::getNumParticles() const
     return (unsigned int)m_pos_array.size();
     }
 
-/*! \return Number of global particles in the simulation
-*/
-unsigned int HOOMDInitializer::getNumGlobalParticles() const
-    {
-    return getNumParticles();
-    }
-
-/*! \returns Number of particle types parsed from the XML file
-*/
-unsigned int HOOMDInitializer::getNumParticleTypes() const
-    {
-    assert(m_type_mapping.size() > 0);
-    return (unsigned int)m_type_mapping.size();
-    }
-
 /*! \returns Box dimensions parsed from the XML file
 */
 BoxDim HOOMDInitializer::getBox() const
@@ -169,7 +154,6 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     for (unsigned int i = 0; i < m_pos_array.size(); i++)
         {
         snapshot.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
-        snapshot.rtag[i] = i;
         }
 
     if (m_image_array.size() != 0)
@@ -228,6 +212,8 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
             snapshot.body[i] = m_body_array[i];
         }
 
+    snapshot.type_mapping = m_type_mapping;
+    snapshot.num_particle_types = m_type_mapping.size();
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -439,7 +425,7 @@ void HOOMDInitializer::readFile(const string &fname)
         cout << m_mass_array.size() << " masses" << endl;
     if (m_diameter_array.size() > 0)
         cout << m_diameter_array.size() << " diameters" << endl;
-    cout << getNumParticleTypes() <<  " particle types" << endl;
+    cout << m_type_mapping.size() <<  " particle types" << endl;
     if (m_body_array.size() > 0)
         cout << m_body_array.size() << " particle body values" << endl;        
     if (m_bonds.size() > 0)
@@ -1137,13 +1123,6 @@ void HOOMDInitializer::initMomentInertia(InertiaTensor *moment_inertia) const
     {
     for (unsigned int i = 0; i < m_moment_inertia.size(); i++)
         moment_inertia[i] = m_moment_inertia[i];
-    }
-
-/*! \returns A mapping of type ids to type names deteremined from the XML input file
-*/
-std::vector<std::string> HOOMDInitializer::getTypeMapping() const
-    {
-    return m_type_mapping;
     }
 
 void export_HOOMDInitializer()

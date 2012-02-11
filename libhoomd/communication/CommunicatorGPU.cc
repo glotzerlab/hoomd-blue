@@ -81,6 +81,15 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     {
     // initialize send buffer size with size of particle data element on the GPU
     setPackedSize(gpu_pdata_element_size());
+
+    // allocate temporary GPU buffers
+    gpu_allocate_tmp_storage();
+    }
+
+//! Destructor
+CommunicatorGPU::~CommunicatorGPU()
+    {
+    gpu_deallocate_tmp_storage();
     }
 
 //! Transfer particles between neighboring domains
@@ -92,20 +101,20 @@ void CommunicatorGPU::migrateAtoms()
     if (!m_is_allocated)
         allocate();
 
-    // get box dimensions
     unsigned int recv_buf_size[6]; // per-direction size of receive buffer
 
-    if (m_prof)
-        m_prof->push("remove ptls");
-
-    unsigned int n_delete_ptls = 0;
-    bool send_x = getDimension(0) > 1;
-    bool send_y = getDimension(1) > 1;
-    bool send_z = getDimension(2) > 1;
-
-    if (send_x || send_y || send_z) // trivial check if we are sending to someone at all
+    for (unsigned int dir=0; dir < 6; dir++)
         {
-        // first remove all particles that are sent in any direction from our domain
+        char *d_send_buf_end;
+        unsigned int n_send_ptls;
+
+        if (getDimension(dir/2) == 1) continue;
+
+        if (m_prof)
+            m_prof->push("remove ptls");
+
+        {
+        // first remove all particles from our domain that are going to be sent in the current direction
 
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -117,45 +126,40 @@ void CommunicatorGPU::migrateAtoms()
         ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
 
-        // particles we are going to send are moved to the end of the particle data arrays
-        gpu_migrate_compact_pdata(m_pdata->getN(),
-                                  n_delete_ptls,
-                                  d_pos.data,
-                                  d_vel.data,
-                                  d_accel.data,
-                                  d_image.data,
-                                  d_charge.data,
-                                  d_diameter.data,
-                                  d_body.data,
-                                  d_orientation.data,
-                                  d_global_tag.data,
-                                  m_pdata->getBoxGPU(),
-                                  send_x,
-                                  send_y,
-                                  send_z);
+        /* Reorder particles.
+           Particles that stay in our domain come first, followed by the particles that are sent to a
+           neighboring processor.
+         */
+        gpu_migrate_select_particles(m_pdata->getN(),
+                               n_send_ptls,
+                               d_pos.data,
+                               d_vel.data,
+                               d_accel.data,
+                               d_image.data,
+                               d_charge.data,
+                               d_diameter.data,
+                               d_body.data,
+                               d_orientation.data,
+                               d_global_tag.data,
+                               m_pdata->getBoxGPU(),
+                               dir);
 
-        // update number of particles in system (i.e. subtract the number of particles that are to be sent)
-        m_pdata->removeParticles(n_delete_ptls);
+        m_pdata->removeParticles(n_send_ptls);
+
+        if (m_prof)
+            m_prof->pop();
+
         }
-
-    if (m_prof)
-        m_prof->pop();
-
-    for (unsigned int dir=0; dir < 6; dir++)
-        {
-        char *d_send_buf_end;
-
-        if (getDimension(dir/2) == 1) continue;
 
         // scan all atom positions and fill the send buffers with those that have left the domain boundaries
         if (m_prof)
              m_prof->push("pack");
 
         // Check if send buffer is large enough and resize if necessary
-        if (n_delete_ptls*m_packed_size > m_sendbuf[dir].getNumElements())
+        if (n_send_ptls*m_packed_size > m_sendbuf[dir].getNumElements())
             {
             unsigned int new_size = m_sendbuf[dir].getNumElements();
-            while (new_size < n_delete_ptls * m_packed_size) new_size *= 2;
+            while (new_size < n_send_ptls * m_packed_size) new_size *= 2;
             m_sendbuf[dir].resize(new_size);
             }
 
@@ -174,22 +178,22 @@ void CommunicatorGPU::migrateAtoms()
 
             ArrayHandle<char> d_sendbuf(m_sendbuf[dir], access_location::device, access_mode::overwrite);
 
-            unsigned int send_ptls_start = m_pdata->getN();
+            // the particles that are going to be sent have been moved to the end of the particle data
+            unsigned int send_begin = m_pdata->getN();
 
-            gpu_migrate_pack_send_buffer(n_delete_ptls,
-                                         d_pos.data + send_ptls_start,
-                                         d_vel.data + send_ptls_start,
-                                         d_accel.data + send_ptls_start,
-                                         d_image.data + send_ptls_start,
-                                         d_charge.data + send_ptls_start,
-                                         d_diameter.data + send_ptls_start,
-                                         d_body.data + send_ptls_start,
-                                         d_orientation.data + send_ptls_start,
-                                         d_global_tag.data + send_ptls_start,
+            // pack send buf
+            gpu_migrate_pack_send_buffer(n_send_ptls,
+                                         d_pos.data + send_begin,
+                                         d_vel.data + send_begin,
+                                         d_accel.data + send_begin,
+                                         d_image.data + send_begin,
+                                         d_charge.data + send_begin,
+                                         d_diameter.data + send_begin,
+                                         d_body.data + send_begin,
+                                         d_orientation.data + send_begin,
+                                         d_global_tag.data + send_begin,
                                          d_sendbuf.data,
-                                         d_send_buf_end,
-                                         m_pdata->getBoxGPU(),
-                                         dir);
+                                         d_send_buf_end);
 
             send_buf_size = d_send_buf_end - d_sendbuf.data;
             }
@@ -206,41 +210,6 @@ void CommunicatorGPU::migrateAtoms()
             recv_neighbor = m_neighbors[dir+1];
         else
             recv_neighbor = m_neighbors[dir-1];
-
-        if (m_prof)
-            m_prof->push("forward ptls");
-
-        // go through received data and determine particles that need to included in the next send and add them
-        // to the message buffer
-        for (unsigned int dirj = 0; dirj < dir ; dirj++)
-            {
-            unsigned int dimj = getDimension(dirj/2);
-            if (dimj == 1) continue;
-
-            // Check if send buffer is large enough and resize if necessary
-            if (send_buf_size + recv_buf_size[dirj] > m_sendbuf[dir].getNumElements())
-                {
-                unsigned int new_size = m_sendbuf[dir].getNumElements();
-                while (new_size < recv_buf_size[dirj] + send_buf_size) new_size *= 2;
-                m_sendbuf[dir].resize(new_size);
-                }
-
-            ArrayHandle<char> d_recvbuf(m_recvbuf[dirj], access_location::device, access_mode::read);
-            ArrayHandle<char> d_sendbuf(m_sendbuf[dir], access_location::device, access_mode::readwrite);
-
-            char *new_send_buf_end;
-            gpu_migrate_forward_particles(d_recvbuf.data,
-                                          d_recvbuf.data + recv_buf_size[dirj],
-                                          d_send_buf_end,
-                                          new_send_buf_end,
-                                          m_pdata->getBoxGPU(),
-                                          dir);
-            send_buf_size += new_send_buf_end - d_send_buf_end;
-            d_send_buf_end = new_send_buf_end;
-            }
-
-        if (m_prof)
-            m_prof->pop();
 
         if (m_prof)
             m_prof->push("MPI send/recv");
@@ -275,13 +244,15 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<char> h_sendbuf(m_sendbuf[dir], access_location::host, access_mode::read);
             ArrayHandle<char> h_recvbuf(m_recvbuf[dir], access_location::host, access_mode::overwrite);
             // exchange actual particle data
-            reqs[0] = m_mpi_comm->isend(send_neighbor,1,h_sendbuf.data,send_buf_size);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,h_recvbuf.data,recv_buf_size[dir]);
+            reqs[0] = m_mpi_comm->isend(send_neighbor,2,h_sendbuf.data,send_buf_size);
+            reqs[1] = m_mpi_comm->irecv(recv_neighbor,2,h_recvbuf.data,recv_buf_size[dir]);
             boost::mpi::wait_all(reqs,reqs+2);
             }
 #endif
        if (m_prof)
           m_prof->pop();
+
+       unsigned int n_recv_ptl;
 
             {
             m_global_box_gpu.xlo = m_global_box.xlo;
@@ -292,41 +263,19 @@ void CommunicatorGPU::migrateAtoms()
             m_global_box_gpu.zhi = m_global_box.zhi;
 
             ArrayHandle<char> d_recvbuf(m_recvbuf[dir], access_location::device, access_mode::readwrite);
-            gpu_migrate_wrap_received_particles(d_recvbuf.data, d_recvbuf.data+recv_buf_size[dir], m_global_box_gpu, dir);
+            gpu_migrate_wrap_received_particles(d_recvbuf.data,
+                                                d_recvbuf.data+recv_buf_size[dir],
+                                                n_recv_ptl,
+                                                m_global_box_gpu,
+                                                dir);
             }
 
-        } // end dir loop
-
-
-    // finally, add particles to box
-
-    // first step: count how many particles will be added to this simulation box
-    unsigned int num_add_particles = 0;
-
-    for (int dir=0; dir < 6; dir++)
-        {
-        unsigned int dim = getDimension(dir/2);
-        if (dim == 1) continue;
-
-        ArrayHandle<char> d_recvbuf(m_recvbuf[dir], access_location::device, access_mode::read);
-        unsigned int num;
-        gpu_migrate_count_particles_in_box(num, d_recvbuf.data, d_recvbuf.data+recv_buf_size[dir], m_pdata->getBoxGPU());
-        num_add_particles += num;
-        }
-
-    if (num_add_particles)
-        {
-        // start index for atoms to be added
-        unsigned int add_idx = m_pdata->getN();
-
-        // add particles that have migrated to this domain
-        m_pdata->addParticles(num_add_particles);
-
-        // go through receive buffers and update local particle data
-        for (int dir=0; dir < 6; dir++)
             {
-            unsigned int dim = getDimension(dir/2);
-            if (dim == 1) continue;
+            // start index for atoms to be added
+            unsigned int add_idx = m_pdata->getN();
+
+            // allocate memory for particles that have been received
+            m_pdata->addParticles(n_recv_ptl);
 
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -339,10 +288,8 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
 
             ArrayHandle<char> d_recvbuf(m_recvbuf[dir], access_location::device, access_mode::read);
-            unsigned int num_added_particles;
 
-            gpu_migrate_move_particles_into_box(num_added_particles,
-                                        d_recvbuf.data,
+            gpu_migrate_add_particles(  d_recvbuf.data,
                                         d_recvbuf.data+recv_buf_size[dir],
                                         d_pos.data + add_idx,
                                         d_vel.data + add_idx,
@@ -355,9 +302,10 @@ void CommunicatorGPU::migrateAtoms()
                                         d_global_tag.data + add_idx,
                                         m_pdata->getBoxGPU());
 
-            add_idx += num_added_particles;
             }
-        }
+
+        } // end dir loop
+
 
         {
         // update rtag information
@@ -371,7 +319,8 @@ void CommunicatorGPU::migrateAtoms()
     reduce(*m_mpi_comm,m_pdata->getN(), N, std::plus<unsigned int>(), 0);
     if (m_mpi_comm->rank() == 0 && N != m_pdata->getNGlobal())
         {
-        cerr << endl << "***Error! Global number of particles has changed unexpectedly." << endl << endl;
+        cerr << endl << "***Error! Global number of particles has changed unexpectedly (" <<
+                N << " != " << m_pdata->getNGlobal() << ")." << endl << endl;
         throw runtime_error("Error in MPI communication.");
         }
 
@@ -379,8 +328,7 @@ void CommunicatorGPU::migrateAtoms()
     if (m_prof)
         m_prof->push("group update");
 
-    if (n_delete_ptls || num_add_particles)
-        m_pdata->notifyParticleNumberChange();
+    m_pdata->notifyParticleNumberChange();
 
     if (m_prof)
         m_prof->pop();

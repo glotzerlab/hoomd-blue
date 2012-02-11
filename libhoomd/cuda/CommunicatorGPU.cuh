@@ -62,24 +62,28 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 unsigned int gpu_pdata_element_size();
 
-//! Reorder the particle data
-void gpu_migrate_compact_pdata(unsigned int N,
-                           unsigned int &n_delete_ptls,
-                           float4 *d_pos,
-                           float4 *d_vel,
-                           float3 *d_accel,
-                           int3 *d_image,
-                           float *d_charge,
-                           float *d_diameter,
-                           unsigned int *d_body,
-                           float4  *d_orientation,
-                           unsigned int *d_tag,
-                           gpu_boxsize box,
-                           bool send_x,
-                           bool send_y,
-                           bool send_z);
+//! Allocate temporary device memory for reordering particles
+void gpu_allocate_tmp_storage();
 
-//! Determine particles to be sent in a given direction and fill send buffer
+//! Dellocate temporary memory
+void gpu_deallocate_tmp_storage();
+
+//! Reorder the particle data
+void gpu_migrate_select_particles(unsigned int N,
+                        unsigned int &n_send_ptls,
+                        float4 *d_pos,
+                        float4 *d_vel,
+                        float3 *d_accel,
+                        int3 *d_image,
+                        float *d_charge,
+                        float *d_diameter,
+                        unsigned int *d_body,
+                        float4  *d_orientation,
+                        unsigned int *d_tag,
+                        gpu_boxsize box,
+                        unsigned int dir);
+
+//! Pack particle data into send buffer
 void gpu_migrate_pack_send_buffer(unsigned int N,
                            float4 *d_pos,
                            float4 *d_vel,
@@ -91,33 +95,17 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
                            float4  *d_orientation,
                            unsigned int *d_tag,
                            char *d_send_buf,
-                           char *&d_send_buf_end,
-                           gpu_boxsize box,
-                           unsigned int dir);
-
-//! Select particles to forward in a given direction and pack them into a send buffer
-void gpu_migrate_forward_particles(char *d_recv_buf,
-                                   char *d_recv_buf_end,
-                                   char *d_send_buf,
-                                   char *&d_send_buf_end,
-                                   gpu_boxsize box,
-                                   unsigned int dir);
+                           char *&d_send_buf_end);
 
 //! Wrap received particles across global box boundaries
 void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  char *d_recv_buf_end,
+                                 unsigned int &n_recv_ptl,
                                  const gpu_boxsize& global_box,
                                  unsigned int dir);
 
-//! Count received particles that are to be added to the local simulation box
-void gpu_migrate_count_particles_in_box(unsigned int &num_ptls_in_box,
-                                char *d_recv_buf,
-                                char *d_recv_buf_end,
-                                const gpu_boxsize& box);
-
 //! Add received particles to local box if their positions are inside the local boundaries
-void gpu_migrate_move_particles_into_box(unsigned int &num_added_ptls,
-                                 char *d_recv_buf,
+void gpu_migrate_add_particles(  char *d_recv_buf,
                                  char *d_recv_buf_end,
                                  float4 *d_pos,
                                  float4 *d_vel,

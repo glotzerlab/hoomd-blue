@@ -327,6 +327,16 @@ string get_compiler_version()
     #else
     return string("unknown");
     #endif
+
+//! Determine availability of MPI support
+bool is_MPI_available()
+   {
+   return
+#ifdef ENABLE_MPI
+       true;
+#else
+       false;
+#endif
     }
 
 //! Create the python module
@@ -347,6 +357,8 @@ BOOST_PYTHON_MODULE(hoomd)
     scope().attr("__git_refspec__") = HOOMD_GIT_REFSPEC;
     scope().attr("__cuda_version__") = get_cuda_version_tuple();
     scope().attr("__compiler_version__") = get_compiler_version();
+
+    def("is_MPI_available", &is_MPI_available);
 
     // data structures
     class_<std::vector<int> >("std_vector_int")
