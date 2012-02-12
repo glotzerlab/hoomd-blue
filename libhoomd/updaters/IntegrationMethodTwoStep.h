@@ -59,6 +59,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __INTEGRATION_METHOD_TWO_STEP_H__
 #define __INTEGRATION_METHOD_TWO_STEP_H__
 
+#ifdef ENABLE_MPI
+//! Forward declaration
+class Communicator;
+#endif
+
 /*! \file IntegrationMethodTwoStep.h
     \brief Declares a base class for all two-step integration methods
 */
@@ -210,15 +215,12 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Validate that all members in the particle group are valid (throw an exception if they are not)
         virtual void validateGroup();
 
-        //! Sets the no_wrap_particles option
-        /*! \param dir the direction to which the setting applies
-            \param no_wrap_particles Set to true if particles should not be wrapped across the boundary
+#ifdef ENABLE_MPI
+        //! Set the communicator to use
+        /*! \param comm MPI communication class
          */
-        void setNoWrapParticles(unsigned int dir, bool no_wrap_particles)
-            {
-            assert(dir < 3);
-            m_no_wrap_particles[dir] = no_wrap_particles;
-            }
+        void setCommunicator(boost::shared_ptr<Communicator> comm);
+#endif
 
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
@@ -248,7 +250,9 @@ class IntegrationMethodTwoStep : boost::noncopyable
 
     protected:
         bool m_no_wrap_particles[3];                           //!< True if particles should not be wrapped across boundaries in a given direction
-
+#ifdef ENABLE_MPI
+        boost::shared_ptr<Communicator> m_comm;             //! The communicator to use for MPI
+#endif
     private:
         unsigned int m_integrator_id;                       //!< Registered integrator id to access the state variables
         bool m_valid_restart;                               //!< True if the restart info was valid when loading

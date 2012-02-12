@@ -51,6 +51,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+
 using namespace boost::python;
 
 #ifdef ENABLE_MPI
@@ -1252,20 +1254,10 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     }
 #endif
 
-//! helper function for accessing an elemeng of the neighb rlist: python __getitem__
-/*! \param list List to extract an item from
-    \param i item to extract
-*/
-unsigned int getNlistItem(std::vector<unsigned int>* list, unsigned int i)
-    {
-    return (*list)[i];
-    }
-
 void export_NeighborList()
     {
     class_< std::vector<unsigned int> >("std_vector_uint")
-    .def("__len__", &std::vector<unsigned int>::size)
-    .def("__getitem__", &getNlistItem)
+    .def(vector_indexing_suite<std::vector<unsigned int> >())
     .def("push_back", &std::vector<unsigned int>::push_back)
     ;
     
@@ -1288,6 +1280,7 @@ void export_NeighborList()
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)
                      .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
+                     .def("setCommunicator", &NeighborList::setCommunicator)
                      ;
                      
     enum_<NeighborList::storageMode>("storageMode")

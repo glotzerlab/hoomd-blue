@@ -80,8 +80,8 @@ class CommunicatorGPU : public Communicator
         CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                         boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                         std::vector<unsigned int> neighbor_rank,
-                        int3 dim,
-                        const BoxDim& global_box);
+                        uint3 dim,
+                        const BoxDim global_box);
         virtual ~CommunicatorGPU();
 
         //! \name communication methods
@@ -104,6 +104,9 @@ class CommunicatorGPU : public Communicator
         gpu_boxsize m_global_box_gpu;           //!< global simulation box for use on GPU
 
     };
+
+//! Export CommunicatorGPU class to python
+void export_CommunicatorGPU();
 
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI

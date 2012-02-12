@@ -100,6 +100,7 @@ import sys;
 import util;
 import variant;
 import init;
+import comm;
 
 ## \internal
 # \brief Base class for integrators
@@ -188,6 +189,12 @@ class _integrator:
             
             for m in globals.integration_methods:
                 self.cpp_integrator.addIntegrationMethod(m.cpp_method);
+
+                # If a communicator has been set, let the integration method know
+                if globals.communicator is not None:
+                    comm.check_mpi()
+                    m.cpp_method.setCommunicator(globals.communicator)
+
         else:
             if len(globals.integration_methods) > 0:
                 print >> sys.stderr, "\nThis integrator does not support the use of integration methods,";

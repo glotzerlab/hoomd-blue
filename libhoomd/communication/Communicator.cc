@@ -126,8 +126,8 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
 Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                            std::vector<unsigned int> neighbor_rank,
-                           int3 dim,
-                           const BoxDim& global_box)
+                           uint3 dim,
+                           const BoxDim global_box)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             exec_conf(m_pdata->getExecConf()),
@@ -141,14 +141,16 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     if (neighbor_rank.size() != 6)
         {
         //! Set the rank of a neighbor processors of this simulation box in
-        cerr << endl << "***Error! Invalid number of neighbor processor ranks supplied (" << neighbor_rank.size() << " != 6)."  << endl
+        cerr << endl << "***Error! Invalid number of neighbor processor ranks given (" << neighbor_rank.size() << " != 6)."  << endl
                      << "          One processor rank per direction is required."
                      << endl << endl;
         throw runtime_error("Error initializing MPI communication.");
         }
 
     for (unsigned int dir = 0; dir < 6; dir++)
+        {
         m_neighbors[dir] = neighbor_rank[dir];
+        }
 
     m_packed_size = sizeof(pdata_element);
 
@@ -806,8 +808,8 @@ void export_Communicator()
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<boost::mpi::communicator>,
                 std::vector<unsigned int>,
-                int3,
-                const BoxDim &>())
+                uint3,
+                const BoxDim >())
     ;
     }
 #endif // ENABLE_MPI

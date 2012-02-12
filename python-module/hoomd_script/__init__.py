@@ -119,6 +119,7 @@ def get_hoomd_script_version():
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
 # \param callback_period Sets the period, in time steps, between calls made to \a callback
 # \param quiet Set to True to eliminate the status information printed to the screen by the run
+# \param root (Only used in MPI mode) Set this to the rank of the root processor that contains global particle data (default 0)
 #
 # \b Examples:
 # \code
@@ -175,7 +176,7 @@ def get_hoomd_script_version():
 # once at the end of the run. Otherwise the callback is executed whenever the current
 # time step number is a multiple of \a callback_period.
 #
-def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):
+def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False, root=0):
     if not quiet:
         util.print_status_line();
     # check if initialization has occured
@@ -189,7 +190,22 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         globals.integrator.update_forces();
         globals.integrator.update_methods();
         globals.integrator.update_thermos();
-    
+
+    # If MPI communication is enabled, pass communicator to neighbor list
+    if globals.communicator is not None and globals.neighbor_list is not None:
+        comm.check_mpi()
+        globals.neighbor_list.set_communicator(globals.communicator)
+
+    # If running in MPI mode
+    if globals.communicator:
+        comm.check_mpi()
+        # set quiet flag on all processors other than the root
+        if (comm.mpi_comm.rank != root):
+            quiet = True;
+
+        # distribute particle data on all processors
+        globals.mpi_partition.scatter(root)
+
     # if rigid bodies, setxv  
     if len(data.system_data(globals.system_definition).bodies) > 0:
         data.system_data(globals.system_definition).bodies.updateRV()
@@ -215,6 +231,11 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     globals.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
         print "** run complete **"
+
+    # If running in MPI mode
+    if globals.communicator:
+        # gather particle data from all processors on root processor
+        globals.mpi_partition.gather(root)
 
 ## \brief Runs the simulation up to a given time step number
 #

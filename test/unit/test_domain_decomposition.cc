@@ -58,7 +58,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
 
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef, world));
+    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef, world, 0));
 
     mpi_init->scatter(0);
 
@@ -67,7 +67,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     for (unsigned int i = 0; i < 6; i++)
         neighbor_rank.push_back(mpi_init->getNeighborRank(i));
 
-    int3 dim = make_int3(mpi_init->getDimension(0),
+    uint3 dim = make_uint3(mpi_init->getDimension(0),
                          mpi_init->getDimension(1),
                          mpi_init->getDimension(2));
 #ifdef ENABLE_CUDA
@@ -104,8 +104,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 #endif
     two_step_nve = shared_ptr<TwoStepNVE>(new TwoStepNVE(sysdef, group_all));
 
-    for (unsigned int i = 0; i < 3; i++)
-        two_step_nve->setNoWrapParticles(i,(comm->getDimension(i)>1));
+    two_step_nve->setCommunicator(comm);
 
 //    Scalar r_cut = pow(2.0,1./6.);
 //    Scalar r_buff = 0.4;

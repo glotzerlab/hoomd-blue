@@ -648,10 +648,11 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         // reallocate particle data such that we can accomodate the particles
         reallocate(snapshot.size);
 
-        // make sure we have at least as many global particles as local particles
         if (getNGlobal() < snapshot.size)
             {
-            setNGlobal(snapshot.size);
+            cerr << endl << "***Error! Global number of particles must be greater or equal the number "
+                 << " of local particles." << endl << endl;
+            throw std::runtime_error("Error initializing ParticleData");
             }
         }
 
@@ -694,6 +695,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
     // initialize type mapping
     m_type_mapping = snapshot.type_mapping;
+    assert(m_type_mapping.size() == m_ntypes);
     }
 
 //! take a particle data snapshot

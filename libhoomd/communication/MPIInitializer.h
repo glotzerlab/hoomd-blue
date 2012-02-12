@@ -155,14 +155,27 @@ class MPIInitializer
        //! Constructor
        /*! \param sysdef System definition of the local system this initializer acts upon
         * \param comm MPI communicator to use to initialize the sub-domains
+        * \param root Rank of processor to perform the domain decomposition on
         */
        MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<boost::mpi::communicator> comm);
+                      boost::shared_ptr<boost::mpi::communicator> comm,
+                      unsigned int root);
 
        //! Distribute particles onto processors
        /*! \param root Rank of the processor to distribute particles from
         */
        void scatter(unsigned int root);
+
+       //! Gather particle data from processors on a single processor
+       /*! \param root Rank of processor to gather particle data on
+        */
+       void gather(unsigned int root);
+
+       //! Gather particle data from processors into a snapshot on a single processor
+       /*! \param root Rank of processor to gather particle data on
+        *  \param snapshot Snapshot to collect particle data in
+        */
+       void gatherSnapshot(unsigned int root, SnapshotParticleData &global_snaphot);
 
        //! Calculate MPI ranks of neighboring domain
        /*! \param dir neighbor direction to calculate rank for

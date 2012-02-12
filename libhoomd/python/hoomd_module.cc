@@ -169,7 +169,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "MPIInitializer.h"
-#endif
+
+#ifdef ENABLE_CUDA
+#include "CommunicatorGPU.h"
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
 
 #include "SignalHandler.h"
 
@@ -510,7 +514,10 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef ENABLE_MPI
     export_Communicator();
     export_MPIInitializer();
-#endif
+#ifdef ENABLE_CUDA
+    export_CommunicatorGPU();
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
 
     // system
     export_System();

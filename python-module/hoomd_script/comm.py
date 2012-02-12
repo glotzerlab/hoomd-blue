@@ -56,10 +56,12 @@
 import hoomd;
 import init;
 import data;
+import util;
+import globals;
 
 import sys;
 
-## internal
+## \internal
 # Check if MPI is available inside HOOMD
 #
 # \returns true if the HOOMD library has been compiled with MPI support
@@ -70,8 +72,8 @@ def check_mpi():
         print >> sys.stderr, "\n***Error! MPI support is not available in this HOOMD version\n";
         raise RuntimeError('Error initializing MPI');
 
-## internal
-# Check if the python bindings for Boost.MPI is available, if so, import them
+## \internal
+# \brief Check if the python bindings for Boost.MPI is available, if so, import them
 #
 # Importing the Boost.MPI python bindings initializes the MPI environment.
 # The module is imported upon calling this function, allowing the user to initialize MPI
@@ -92,11 +94,69 @@ def check_boost_mpi():
             print >> sys.stderr, "\n***Error! Could not load Boost.MPI python bindings.\n"
             raise RuntimeError('Error initializing MPI');
 
+## Boost MPI communicator
+mpi_comm = None;
 
-## internal
-# Initialize the particle data on all processors
+## Setup up domain decomposition
+# \brief Initialize the domain decomposition of the global simulation domain
 #
-# This class is used to distribute particle data among several processors.
-#
-# Ts an MPIInitializer in C++
-#
+class mpi_partition:
+    ## Specify the domain decomposition of the simulation domain
+    def __init__(self, mpi_comm_in=None, root=0):
+        util.print_status_line()
+        if not init.is_initialized():
+            print >> sys.stderr, "\n***Error! Cannot create MPI partition before intialization.\n"
+            raise RuntimeError('Error setting up MPI partition');
+
+        # Check if HOOMD has been compiled with MPI support
+        check_boost_mpi()
+
+        global mpi_comm
+        mpi_comm = mpi_comm_in
+
+        if mpi_comm is None:
+            # Create an MPI environment
+            # check if boost MPI is available
+            check_boost_mpi()
+            mpi_comm = mpi.world
+
+        self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, mpi_comm, root);
+
+        # Get ranks of neighboring processors
+        self.neighbor_ranks = hoomd.std_vector_uint();
+
+        for dir in range(6):
+            self.neighbor_ranks.append(self.cpp_mpi_init.getNeighborRank(dir));
+
+        # Get dimensions of domain decomposition
+        self.dim = hoomd.make_uint3(self.cpp_mpi_init.getDimension(0), \
+                                   self.cpp_mpi_init.getDimension(1), \
+                                   self.cpp_mpi_init.getDimension(2));
+
+        # create the c++ mirror Communicator
+        if not globals.exec_conf.isCUDAEnabled():
+            globals.communicator = hoomd.Communicator(globals.system_definition, mpi_comm, self.neighbor_ranks, \
+                                                     self.dim, self.cpp_mpi_init.getGlobalBox());
+        else:
+            globals.communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi_comm, self.neighbor_ranks, \
+                                                     self.dim, self.cpp_mpi_init.getGlobalBox());
+
+        # set Communicator in C++ System
+        globals.system.setCommunicator(globals.communicator)
+
+        # store this object in the global variables
+        globals.mpi_partition = self
+
+    ## Scatter particle data
+    # \brief Distributes particle data from processor with rank root on the other processors
+    #
+    # \param root Rank of processor that contains the complete particle data
+    def scatter(self, root=0):
+        self.cpp_mpi_init.scatter(root)
+
+    ## Gather particle data
+    # \brief Collects particle data from all processors on the processor of rank root
+    #
+    # \param root Rank of processor to collect data on
+    def gather(self, root=0):
+        self.cpp_mpi_init.gather(root)

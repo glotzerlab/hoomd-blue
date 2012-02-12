@@ -634,6 +634,15 @@ class nlist:
         
         return self.cpp_nlist.getSmallestRebuild()-1;
 
+    ## \internal
+    # \brief Set the communication class to use with the neighbor list
+    def set_communicator(self, comm):
+        if self.cpp_nlist is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error initializing MPI communication in neighbor list');
+        self.cpp_nlist.setCommunicator(comm)
+
+
 ## \internal
 # \brief Creates the global neighbor list
 # \details

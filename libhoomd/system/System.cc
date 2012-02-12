@@ -67,6 +67,10 @@ using namespace boost::python;
 
 #include <stdexcept>
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 using namespace std;
 
 /*! \param sysdef SystemDefinition for the system to be simulated
@@ -364,6 +368,14 @@ boost::shared_ptr<Integrator> System::getIntegrator()
     return m_integrator;
     }
 
+#ifdef ENABLE_MPI
+// -------------- Methods for communication
+void System::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    m_comm = comm;
+    }
+#endif
+
 // -------------- Methods for running the simulation
 
 /*! \param nsteps Number of simulation steps to run
@@ -476,7 +488,13 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             return;
             }
         }
-        
+
+#ifdef ENABLE_MPI
+    // at end of simulation run, make sure all particles are found inside the global simulation box
+    if (m_comm)
+        m_comm->migrateAtoms();
+#endif
+
     // generate a final status line
     if (!m_quiet_run)
         generateStatusLine();
@@ -565,6 +583,12 @@ void System::setupProfiling()
     map< string, boost::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->setProfiler(m_profiler);
+
+#ifdef ENABLE_MPI
+    // communicator
+    if (m_comm)
+        m_comm->setProfiler(m_profiler);
+#endif
     }
 
 void System::printStats()
@@ -693,6 +717,8 @@ void export_System()
     
     .def("getLastTPS", &System::getLastTPS)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
+
+    .def("setCommunicator", &System::setCommunicator)
     ;
     }
 

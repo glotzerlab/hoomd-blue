@@ -122,8 +122,8 @@ class Communicator
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                      std::vector<unsigned int> neighbor_rank,
-                     int3 dim,
-                     const BoxDim& global_box);
+                     uint3 dim,
+                     const BoxDim global_box);
 
         //! \name accessor methods
         //@{
@@ -225,8 +225,8 @@ class Communicator
         boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communciator
         boost::shared_ptr<Profiler> m_prof;                        //!< Profiler
 
-        const int3 m_dim;                        //!< dimensions of global simulation box (number of boxes along every axis)
-        const BoxDim& m_global_box;              //!< global simulation box
+        const uint3 m_dim;                        //!< dimensions of global simulation box (number of boxes along every axis)
+        BoxDim m_global_box;                     //!< global simulation box
         unsigned int m_packed_size;              //!< size of packed particle data element in bytes
         bool m_is_allocated;                     //!< true if internal buffers have been allocated
         Scalar m_r_ghost;                        //!< width of ghost layer

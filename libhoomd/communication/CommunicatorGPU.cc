@@ -62,6 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Profiler.h"
 
 #include <boost/mpi.hpp>
+#include <boost/python.hpp>
+using namespace boost::python;
 
 //! Define some of our types as fixed-size MPI datatypes for performance optimization
 BOOST_IS_MPI_DATATYPE(Scalar4)
@@ -75,8 +77,8 @@ BOOST_CLASS_TRACKING(Scalar4,track_never)
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                                  std::vector<unsigned int> neighbor_rank,
-                                 int3 dim,
-                                 const BoxDim& global_box)
+                                 uint3 dim,
+                                 const BoxDim global_box)
     : Communicator(sysdef, mpi_comm, neighbor_rank, dim, global_box)
     {
     // initialize send buffer size with size of particle data element on the GPU
@@ -655,6 +657,18 @@ void CommunicatorGPU::copyGhosts()
 
         if (m_prof)
             m_prof->pop();
+    }
+
+//! Export CommunicatorGPU class to python
+void export_CommunicatorGPU()
+    {
+    class_<CommunicatorGPU, bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
+           init<boost::shared_ptr<SystemDefinition>,
+                boost::shared_ptr<boost::mpi::communicator>,
+                std::vector<unsigned int>,
+                uint3,
+                const BoxDim>())
+    ;
     }
 
 #endif // ENABLE_CUDA
