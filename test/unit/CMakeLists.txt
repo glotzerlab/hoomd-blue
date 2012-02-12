@@ -132,7 +132,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     if (ENABLE_MPI)
     # if we are compiling with MPI support built in, add MPI library
-    target_link_libraries(${CUR_TEST} ${MPI_CXX_LIBRARIES})
+    target_link_libraries(${CUR_TEST} ${MPI_LIBRARIES})
 
     # set appropriate compiler/linker flags
     if(MPI_COMPILE_FLAGS)

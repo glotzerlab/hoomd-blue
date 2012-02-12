@@ -31,7 +31,7 @@ else (PYTHON_SITEDIR)
        endif(MPI_LINK_FLAGS)
 
        # link to boost and MPI libraries
-       target_link_libraries(hoomd ${Boost_LIBRARIES} ${MPI_CXX_LIBRARIES})
+       target_link_libraries(hoomd ${Boost_LIBRARIES} ${MPI_LIBRARIES})
     endif(ENABLE_MPI)
 
 
