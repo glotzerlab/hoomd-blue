@@ -66,6 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Helper structure to pass arguments to particle selection GPU method
 struct selector_args
     {
+    //! Constructor
     selector_args(const unsigned int _N,
                   unsigned int & _num_members,
                   float4 *_d_pos,

@@ -22,7 +22,7 @@ set(REQUIRED_BOOST_COMPONENTS thread filesystem python signals program_options u
 
 #if MPI support is enabled, require Boost.MPI and Boost.Serialization
 if (ENABLE_MPI)
-    find_package(Boost 1.44.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS} mpi serialization)
+    find_package(Boost 1.44.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS} system mpi serialization)
 
     if (NOT Boost_FOUND)
         message(WARNING "Boost (>= 1.44.0) with mpi and serialization components not found. Continuing without MPI support.")

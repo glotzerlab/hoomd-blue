@@ -79,6 +79,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Simulation box dimensions
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
+    \param ghost_width Width of ghost cell layer
+    \param minimum_image_flags Flags to indicate whether the minimum image convention should be used in a given direction
     
     \note optimized for Fermi
 */
@@ -394,6 +396,7 @@ texture<float4, 2, cudaReadModeElementType> cell_tdb_tex;
     \param box Simulation box dimensions
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
+    \param ghost_width Width of ghost cell layer
     
     \note optimized for compute 1.x devices
 */

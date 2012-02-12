@@ -60,6 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #include <thrust/tuple.h>
 #include "ParticleData.cuh"
+
+//! On the GPU we have to define the methods as device methods
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
@@ -102,8 +104,8 @@ class GlobalTagRule
 #endif
 
     private:
-        unsigned int _tag_min;     //! Minimum global tag to select
-        unsigned int _tag_max;     //! Maximum global tag to select
+        unsigned int _tag_min;     //!< Minimum global tag to select
+        unsigned int _tag_max;     //!< Maximum global tag to select
     };
 
 //! Rule to select particles based on their type
@@ -142,8 +144,8 @@ class TypeRule
 #endif
 
     private:
-        unsigned int _type_min;     //! Minimum particle tag to select
-        unsigned int _type_max;     //! Maximum particle tag to select
+        unsigned int _type_min;     //!< Minimum particle tag to select
+        unsigned int _type_max;     //!< Maximum particle tag to select
     };
 
 //! Rule to select particles that are in rigid bodies
@@ -153,7 +155,7 @@ class RigidRule
         typedef bool param_type;   //!< parameter type
 
         //! Constructor
-        //! \param param parameter for this rule
+        //! \param rigid parameter for this rule
         RigidRule(bool rigid)
             : _rigid(rigid)
             {

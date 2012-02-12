@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-/*! \file Communicator.cu
+/*! \file CommunicatorGPU.cu
     \brief Implementation of communication algorithms on the GPU
 */
 

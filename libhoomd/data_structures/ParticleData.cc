@@ -776,7 +776,7 @@ void ParticleData::addParticles(const unsigned int n)
   Ghost particles have only incomplete particle information (position, charge, diameter) and
   don't need tags.
 
-  \param n ghosts number of ghost particles to add
+  \param nghosts number of ghost particles to add
   \post the particle data arrays are resized if necessary to accomodate the ghost particles,
         the number of ghost particles is updated
 */

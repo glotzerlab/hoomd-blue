@@ -222,7 +222,9 @@ const unsigned int NO_BODY = 0xffffffff;
  */
 struct SnapshotParticleData {
     //! constructor
-    //! \param N number of particles to allocate memory for
+    /*! \param N number of particles to allocate memory for
+     * \param n_types number of particle types in the system
+     */
     SnapshotParticleData(unsigned int N, unsigned int n_types)
        {
        pos.resize(N);
@@ -247,7 +249,7 @@ struct SnapshotParticleData {
     std::vector<Scalar> charge;     //!< charges
     std::vector<Scalar> diameter;   //!< diameters
     std::vector<int3> image;        //!< images
-    std::vector<unsigned int> global_tag; //! global tag
+    std::vector<unsigned int> global_tag; //!< global tag
     std::vector<unsigned int> body; //!< body ids
     unsigned int size;              //!< number of particles in this snapshot
     unsigned int num_particle_types;//!< Number of particle types defined
@@ -904,7 +906,7 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_tag;               //!< particle tags
         GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
         GPUArray<unsigned int> m_global_tag;        //!< global particle tags
-        GPUArray<unsigned int> m_global_rtag;       //! reverse lookup of local particle indices from global tags
+        GPUArray<unsigned int> m_global_rtag;       //!< reverse lookup of local particle indices from global tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
 
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.

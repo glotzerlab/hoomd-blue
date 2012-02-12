@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 #include "AllParticleSelectors.cuh"
 
+//! Rule-based particle selector implemented on the GPU
 template< class T, cudaError_t gpu_psr(selector_args sel_args, const typename T::param_type params) >
 class ParticleSelectorRuleGPU : public ParticleSelectorRule<T>
     {
@@ -74,7 +75,7 @@ class ParticleSelectorRuleGPU : public ParticleSelectorRule<T>
 
 
         //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
+        /*! \param member_tags GPU array to store the member tags in
          * \return the number of local particles included
          * \pre  member_tags must be allocated and of sufficient size to accomodate
          *       all local members of the group (i.e.
@@ -151,7 +152,7 @@ class ParticleSelectorGlobalTagListGPU : public ParticleSelectorGlobalTagList
         virtual ~ParticleSelectorGlobalTagListGPU() {}
 
         //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
+        /*! \param member_tags GPU array to store the member tags in
          * \return the number of local particles included
          * \pre  member_tags must be allocated and of sufficient size to accomodate
          *       all local members of the group (i.e.

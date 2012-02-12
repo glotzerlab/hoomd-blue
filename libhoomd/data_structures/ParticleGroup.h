@@ -108,15 +108,14 @@ class ParticleSelector
     {
     public:
         //! constructs a ParticleSelector
-        //! \param sysdef System to select particles on
         ParticleSelector() {}
 
         virtual ~ParticleSelector() {}
 
         //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
-         * \return the number of local particles included
-         * \pre  member_tags must be allocated and of sufficient size to accomodate
+        /*! \param member_tags GPU array to store the member tags in
+         * \returns number of local particles included
+         * \pre member_tags must be allocated and of sufficient size to accomodate
          *       all local members of the group (i.e.
          *       the current maximum number of particles returned by ParticleData::getMaxN() )
         */
@@ -142,7 +141,7 @@ class ParticleSelectorRule : public ParticleSelector
         void setParams(typename T::param_type params);
 
         //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
+        /*! \param member_tags GPU array to store the member tags in
          * \return the number of local particles included
          * \pre  member_tags must be allocated and of sufficient size to accomodate
          *       all local members of the group (i.e.
@@ -235,12 +234,15 @@ class ParticleSelectorGlobalTagList : public ParticleSelector
     {
     public:
         //! constructs this particle selector
+        /*! \param sysdef System definition to use for selecting particles
+         * \param global_tag_list List of global tags to include in the group
+         */
         ParticleSelectorGlobalTagList(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& global_tag_list);
         virtual ~ParticleSelectorGlobalTagList() {}
 
         //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
-         * \return the number of local particles included
+        /*! \param member_tags GPU array to store the member tags in
+         * \return number of local particles included
          * \pre  member_tags must be allocated and of sufficient size to accomodate
          *       all local members of the group (i.e.
          *       the current maximum number of particles returned by ParticleData::getMaxN() )
@@ -259,7 +261,8 @@ class ParticleSelectorSetOperation : public ParticleSelector
     {
     public:
         //! constructs this particle selector
-        /*! \param a first selector to perform the set operation on
+        /*! \param sysdef System definition used for storing internal tag lists
+            \param a first selector to perform the set operation on
             \param b second selector to perform the set operation on
          */
         ParticleSelectorSetOperation(boost::shared_ptr<SystemDefinition> sysdef,
@@ -268,8 +271,8 @@ class ParticleSelectorSetOperation : public ParticleSelector
         virtual ~ParticleSelectorSetOperation() {}
 
         //! Get the list of selected tags
-        /*! \param the GPU array to store the member tags in
-         * \return the number of local particles included
+        /*! \param member_tags GPU array to store the member tags in
+         * \returns number of local particles included
          * \pre  member_tags must be allocated and of sufficient size to accomodate
          *       all local members of the group (i.e.
          *       the current maximum number of particles returned by ParticleData::getMaxN() )
@@ -306,7 +309,8 @@ class ParticleSelectorUnion : public ParticleSelectorSetOperation
     {
     public:
         //! constructs this particle selector
-        /*! \param a first selector to include in the union
+        /*! \param sysdef System definition used for storage of internal tags
+            \param a first selector to include in the union
             \param b second selector to include in the union
          */
         ParticleSelectorUnion(boost::shared_ptr<SystemDefinition> sysdef,
@@ -335,7 +339,8 @@ class ParticleSelectorIntersection : public ParticleSelectorSetOperation
     {
     public:
         //! constructs this particle selector
-        /*! \param a first selector to perform the intersection on
+        /*! \param sysdef System definition to use for storing the internal tags
+            \param a first selector to perform the intersection on
             \param b second selector to perform the intersection on
          */
         ParticleSelectorIntersection(boost::shared_ptr<SystemDefinition> sysdef,
@@ -364,7 +369,8 @@ class ParticleSelectorDifference : public ParticleSelectorSetOperation
     {
     public:
         //! constructs this particle selector
-        /*! \param a first selector to perform the intersection on
+        /*! \param sysdef System definition to use for storing the tags
+            \param a first selector to perform the intersection on
             \param b second selector to perform the intersection on
          */
         ParticleSelectorDifference(boost::shared_ptr<SystemDefinition> sysdef,
@@ -394,13 +400,11 @@ class ParticleSelectorEmptySet : public ParticleSelector
     {
     public:
         //! Constructs the particle selector
-        /*! \param sysdef System definition
-        */
         ParticleSelectorEmptySet() {}
         virtual ~ParticleSelectorEmptySet() {}
 
         //! Get the number of selected local particles
-        /*! \param the GPU array to store member tags in
+        /*! \param member_tags GPU array to store member tags in
          * \returns zero
          */
         virtual unsigned int getMemberTags(const GPUArray<unsigned int>& member_tags)

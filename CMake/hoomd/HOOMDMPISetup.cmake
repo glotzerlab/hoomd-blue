@@ -57,11 +57,6 @@ if (ENABLE_MPI)
     endif()
 
     if (ENABLE_MPI)
-        if (MPI_LIBRARY MATCHES "cxx")
-            # warn the user about potential incompatiblity of C++ MPI library with Boost MPI
-            MESSAGE(WARNING "Using C++ MPI Library ${MPI_LIBRARY} toegether with Boost.MPI is not recommended. Try to use standard C MPI library.")
-        endif()
-
         # add preprocessor flag
         add_definitions(-DENABLE_MPI)
 
