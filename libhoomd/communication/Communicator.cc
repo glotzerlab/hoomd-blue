@@ -76,14 +76,14 @@ BOOST_IS_MPI_DATATYPE(int3)
 //! Select a particle for migration
 struct select_particle_migrate : public std::unary_function<const unsigned int&, bool>
     {
-    const float xlo;
-    const float xhi;
-    const float ylo;
-    const float yhi;
-    const float zlo;
-    const float zhi;
-    const unsigned int dir;
-    const Scalar4 *h_pos;
+    const float xlo;        //!< Lower x boundary
+    const float xhi;        //!< Upper x boundary
+    const float ylo;        //!< Lower y boundary
+    const float yhi;        //!< Upper y boundary
+    const float zlo;        //!< Lower z boundary
+    const float zhi;        //!< Upper z boundary
+    const unsigned int dir; //!< Direction to send particles to
+    const Scalar4 *h_pos;   //!< Array of particle positions
 
 
     //! Constructor
@@ -490,7 +490,7 @@ void Communicator::migrateAtoms()
         m_prof->pop();
     }
 
-//! build ghost particle list, copy ghost particle data
+//! Build ghost particle list, exchange ghost particle data
 void Communicator::exchangeGhosts(Scalar r_ghost)
     {
     if (m_prof)

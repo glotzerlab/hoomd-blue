@@ -71,19 +71,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Utility class to select particles based on given conditions
 /*! \b Overview
     
-    In order to flexibly specify the particles that belong to a given ParticleGroup, it will take a
-    ParticleSelector as a parameter in its constructor. The selector will return a list of selected global tags
+    In order to flexibly specify the particles that belong to a given ParticleGroup, it is constructed using
+    a ParticleSelector. The selector will return a list of selected global tags
     that are owned by the local ParticleData. This list is constructed by applying a selection criterium to every particle.
 
-    Every ParticleGroup has to have a ParticleSelector. This requirement arises since the local members of a group
-    may change if particles are inserted or deleted into the simulation domain.
+    Every ParticleGroup \b must be associated with a ParticleSelector. This requirement arises for simulations that use
+    spatial domain decomposition, since the local members of a group may change if particles are inserted or deleted into the simulation domain.
     In such an event, the selector is called to re-determine the tags local to this processor that need to be included.
 
-    If set operations on groups are performed, such as intersection, union or difference, these really
+    If e.g. logical set operations on groups are performed, such as \ref ParticleSelectorIntersection "intersection",
+    \ref ParticleSelectorUnion "Union" or \ref ParticleSelectorDifference "difference", these really
     operate on the ParticleSelectors. In fact, the operations are implemented as selectors themselves,
-    which internally store the ParticleSelector classes of the ParticleGroups they take as an argument.
+    which internally store the ParticleSelectors of the ParticleGroups they are given as arguments.
     
-    <b>Implementation details</b>
+    <b>Implementation details</b>:
+
     As the ParticleSelector is specified via a virtual class the group definition can be expanded to include any
     concievable selection criteria.
 
@@ -95,7 +97,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     rule-based particle ParticleSelectorRule<>, it is a template class that takes a rule as a parameter. This rule
     can be efficiently evaluated on the CPU or on the GPU to construct the tag list.
     
-    ParticleSelector provides a purely virtual internal method getMemberTags()
+    Every ParticleSelector provides a purely virtual internal method getMemberTags()
     that is used to generate the list of included tags of local particles. This method is called from within a
     ParticleGroup, if the latter has detected a change in the particle data arrays (e.g.
     insertion or deletion of particles).
@@ -114,7 +116,7 @@ class ParticleSelector
 
         //! Get the list of selected tags
         /*! \param member_tags GPU array to store the member tags in
-         * \returns number of local particles included
+         * \returns Number of local particles included
          * \pre member_tags must be allocated and of sufficient size to accomodate
          *       all local members of the group (i.e.
          *       the current maximum number of particles returned by ParticleData::getMaxN() )
@@ -430,8 +432,8 @@ class ParticleSelectorEmptySet : public ParticleSelector
 
     Group membership is determined once at the instantiation of the group. This means, that in terms of global
     particle tags the membership does not change over the course of a simulation. Internally, however, a ParticleGroup
-    maintains a current list of local member. This list may change as particles are inserted in or deleted from
-    the simulation domain. Truly dynamic groups, if they are needed, may require a drastically different design
+    maintains a current list local particles that are members of the group. This can be necessary in spatial domain decomposition,
+    where group members may enter or levae domain. Truly dynamic groups, if they are needed, may require a drastically different design
     to allow for efficient access and update.
 
     In many use-cases, ParticleGroup may be accessed many times within inner loops. Thus, it must not aquire any
@@ -441,7 +443,7 @@ class ParticleSelectorEmptySet : public ParticleSelector
 
     <b>Data Structures and Implementation</b>
 
-    FIXME: Currently, the sorted tag order of local group members is no longer guaranteed. In fact, would (local) sorted
+    \b FIXME: Currently, the sorted tag order of local group members is no longer guaranteed. In fact, would (local) sorted
     order make sense at all? We might need to rethink how and when getMemberTag() is used in a simulation. If it is only
     used outside a simulation in order to get a list group members in sorted order, we might require for its use
     that all global particles be present in the local ParticleData. We need to find a way to sort the group members, then.

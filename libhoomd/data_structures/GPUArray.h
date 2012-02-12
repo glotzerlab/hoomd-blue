@@ -844,8 +844,8 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
 
 /*! \param width new width of array
 *   \param height new height of array
-* \note Resizing a 2D array can actually invalidate the stored data as the pitch of the array may change.
-* 2D arrays should only be resized if the data is overwritten anyway.
+* \warning Resizing a 2D array can actually invalidate the stored data (as the pitch may change).
+* It should not be expected that after a resize of a 2D array the contents are still accessible.
 */
 template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int height)
     {

@@ -251,7 +251,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
     protected:
         bool m_no_wrap_particles[3];                           //!< True if particles should not be wrapped across boundaries in a given direction
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //! The communicator to use for MPI
+        boost::shared_ptr<Communicator> m_comm;             //!< The communicator to use for MPI
 #endif
     private:
         unsigned int m_integrator_id;                       //!< Registered integrator id to access the state variables

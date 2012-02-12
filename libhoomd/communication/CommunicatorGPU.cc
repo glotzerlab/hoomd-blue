@@ -339,7 +339,7 @@ void CommunicatorGPU::migrateAtoms()
         m_prof->pop();
     }
 
-//! build ghost particle list, copy ghost particle data
+//! Build a ghost particle list, exchange ghost particle data with neighboring processors
 void CommunicatorGPU::exchangeGhosts(Scalar r_ghost)
     {
     if (m_prof)
@@ -557,7 +557,7 @@ void CommunicatorGPU::exchangeGhosts(Scalar r_ghost)
         m_prof->pop();
     }
 
-//! update positions of ghost particles
+//! Update ghost particle positions
 void CommunicatorGPU::copyGhosts()
     {
     // we have a current m_copy_ghosts list which contain the indices of particles

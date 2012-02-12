@@ -69,6 +69,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! Rule to select particles based on their global tag
+/*! \ingroup data_structs
+ */
 class GlobalTagRule
     {
     public:
@@ -109,6 +111,8 @@ class GlobalTagRule
     };
 
 //! Rule to select particles based on their type
+/*! \ingroup data_structs
+ */
 class TypeRule
     {
     public:
@@ -149,6 +153,8 @@ class TypeRule
     };
 
 //! Rule to select particles that are in rigid bodies
+/*! \ingroup data_structs
+ */
 class RigidRule
     {
     public:

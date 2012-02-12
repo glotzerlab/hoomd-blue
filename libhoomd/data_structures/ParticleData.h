@@ -208,17 +208,18 @@ const unsigned int NO_BODY = 0xffffffff;
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
- *      1) Initializing the ParticleData from a ParticleDataInitializer
- *      2) inside an Analyzer to iterate over the current ParticleDat
+ * - Initializing the ParticleData from a ParticleDataInitializer
+ * - inside an Analyzer to iterate over the current ParticleDat
  *
  * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
  * (such as type, mass, diameter). Then a snapshot of this initial state is taken and pased to the
  * ParticleDataInitializer, which may modify any of the fields of the snapshot. It then returns it to
- * ParticleData, which in turn initializes its internal arrays from the snapshot using initializeFromSnapshot().
+ * ParticleData, which in turn initializes its internal arrays from the snapshot using ParticleData::initializeFromSnapshot().
  *
- * To support scenerio 2) it is necessary that particles can be accessed in global tag order. For this purporse,
- * the snapshot contains a std::map which maps between global tags and local snapshot indices. This is updated
- * whenever a snapshot is taken using takeSnapshot().
+ * To support the second scenerio it is necessary that particles can be accessed in global tag order. For this purporse,
+ * the snapshot contains a map which supports lookup between global tags and local snapshot indices. This is updated
+ * whenever a snapshot is taken using ParticleData::takeSnapshot().
+ * \ingroup data_structs
  */
 struct SnapshotParticleData {
     //! constructor
@@ -375,7 +376,8 @@ class ParticleDataInitializer
     };
 
 //! Manages all of the data arrays for the particles
-/*! ParticleData stores and manages particle coordinates, velocities, accelerations, type,
+/*! <h1> General </h1>
+    ParticleData stores and manages particle coordinates, velocities, accelerations, type,
     and tag information. This data must be available both via the CPU and GPU memories.
     All copying of data back and forth from the GPU is accomplished transparently by GPUArray.
 
@@ -396,13 +398,12 @@ class ParticleDataInitializer
 
     \warning Local particles can and will be rearranged in the arrays throughout a simulation.
     So, a particle that was once at index 5 may be at index 123 the next time the data
-    is acquired. Individual particles can be tracked through all these changes by their local tag.
-    The tag of a particle is stored in the \c m_tag array, and the ith element contains the tag of the particle
-    with index i. Conversely, the the index of a particle with tag \c tag can be read from
-    the element at position \c tag in the a \c m_rtag array.
+    is acquired. Individual particles can be tracked through all these changes by their (global) tag.
+    The tag of a particle is stored in the \c m_global_tag array, and the ith element contains the tag of the particle
+    with index i. Conversely, the the index of a particle with tag \c global_tag can be read from
+    the element at position \c global_tag in the a \c m_global_rtag array.
 
-    In additon to a local tag, there is also a global tag that is unique among all processors in a parallel
-    simulation. The tag of a particle with index i is stored in the \c m_global_tag array.
+    In a parallel simulation, the global tag is unique among all processors.
 
     In order to help other classes deal with particles changing indices, any class that
     changes the order must call notifyParticleSort(). Any class interested in being notified
@@ -429,10 +430,44 @@ class ParticleDataInitializer
     until the second step of the simulation), then it should remove the flag to signify that the values are not valid.
     Any analyzer/updater that expects the value to be set should check the flags that are actually set.
     
-    \note When writing to the particle data, particles must not be moved outside the box.
-    In debug builds, any aquire will fail an assertion if this is done.
+    \note Particles are not checked if their position is actually inside the local box. In fact, when using spatial domain decomposition,
+    particles may temporarily move outside the boundaries.
+
     \ingroup data_structs
     
+    <h1>Parallel simulations</h1>
+
+    In a parallel (or domain decompositon) simulation, the ParticleData may either correspond to the global state of the
+    simulation (e.g. before and after a simulation run), or to the local particles only (e.g. during a simulation run).
+    In the latter case, getN() returns the current number of \a local particles. The method getNGlobal() can be used to query the \a global number
+    of particles on all processors.
+
+    During the simulation particles may enter or leave the box, therefore the number of \a local particles may change.
+    To account for this, the size of the particle data arrays is dynamically updated using amortized doubling of the array sizes. To add particles to
+    the domain, the addParticles() method is called, and the arrays are resized if necessary. Conversely, if particles are removed,
+    the removeParticles() method is called.
+
+    In addition, since many other classes maintain internal arrays with data for every particle (such as neighbor lists etc.), these
+    arrays need to be resized, too, if the particle number changes. Everytime the particle data arrays are reallocated, a
+    maximum particle number change signal is triggered. Other classes can subscribe to this signal using connectMaxParticleNumberChange().
+    They may use the current maxium size of the particle arrays, which is returned by getMaxN().
+    This size changes only infrequently (it is doubled when necessary, see above). Note that getMaxN() can return a higher number
+    than the actual number of particles.
+
+    \note addParticles() and removeParticles() only change the particle number counters and the allocated memory size (if necessary).
+    They do not actually change any data in the particle arrays. The caller is responsible for (re-)organizing the particle data when particles
+    are added or deleted.
+
+    If, after insertion or deletion of particles, the reorganisation of the particle data is complete, i.e. all the particle data
+    fields are filled, the class that has modified the ParticleData must inform other classes about the new particle data
+    using notifyParticleNumberChange(). Other classes can subscribe to this signal using connectParticleNumberChange().
+
+    Particle data also stores temporary particles ('ghost atoms'). These are added after the local particle data (i.e. with indices
+    starting at getN()). It keeps track of those particles using the addGhostParticles() and removeAllGhostParticles() methods.
+    The caller is responsible for updating the particle data arrays with the ghost particle information.
+
+    <h1> Anisotropic particles</h1>
+
     Anisotropic particles are handled by storing an orientation quaternion for every particle in the simulation.
     Similarly, a net torque is computed and stored for each particle. The design decision made is to not
     duplicate efforts already made to enable composite bodies of anisotropic particles. So the particle orientation
@@ -536,37 +571,37 @@ class ParticleData : boost::noncopyable
             return maxdiam;
             }
             
-        //! return positions and types
+        //! Return positions and types
         const GPUArray< Scalar4 >& getPositions() const { return m_pos; }
 
-        //! return velocities and masses
+        //! Return velocities and masses
         const GPUArray< Scalar4 >& getVelocities() const { return m_vel; }
         
-        //! return accelerations
+        //! Return accelerations
         const GPUArray< Scalar3 >& getAccelerations() const { return m_accel; }
 
-        //! return charges
+        //! Return charges
         const GPUArray< Scalar >& getCharges() const { return m_charge; }
 
-        //! return diameters
+        //! Return diameters
         const GPUArray< Scalar >& getDiameters() const { return m_diameter; }
 
-        //! return images
+        //! Return images
         const GPUArray< int3 >& getImages() const { return m_image; }
 
-        //! return tags
+        //! Return tags
         const GPUArray< unsigned int >& getTags() const { return m_tag; }
 
-        //! return reverse-lookup tags
+        //! Return reverse-lookup tags
         const GPUArray< unsigned int >& getRTags() const { return m_rtag; }
 
-        //! return body ids
+        //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
 
-        //! return global tags
+        //! Return global tags
         const GPUArray< unsigned int >& getGlobalTags() const { return m_global_tag; }
 
-        //! return map of global reverse lookup tags
+        //! Return map of global reverse lookup tags
         const GPUArray< unsigned int >& getGlobalRTags() { return m_global_rtag; }
 
 #ifdef ENABLE_CUDA
@@ -864,13 +899,13 @@ class ParticleData : boost::noncopyable
         //! Take a snapshot
         void takeSnapshot(SnapshotParticleData &snapshot);
 
-        //! Remove particles from the domain
+        //! Remove particles from the local particle data
         void removeParticles(const unsigned int n);
 
-        //! Add particles to the domain
+        //! Add a number of particles to the local particle data
         void addParticles(const unsigned int n);
 
-        //! Add ghost particles to system
+        //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
 
         //! Remove all ghost particles from system
@@ -899,8 +934,8 @@ class ParticleData : boost::noncopyable
         // per-particle data
         GPUArray<Scalar4> m_pos;                    //!< particle positions and types
         GPUArray<Scalar4> m_vel;                    //!< particle velocities and masses
-        GPUArray<Scalar3> m_accel;                  //!<  particle accelerations
-        GPUArray<Scalar> m_charge;                  //!<  particle charges
+        GPUArray<Scalar3> m_accel;                  //!< particle accelerations
+        GPUArray<Scalar> m_charge;                  //!< particle charges
         GPUArray<Scalar> m_diameter;                //!< particle diameters
         GPUArray<int3> m_image;                     //!< particle images
         GPUArray<unsigned int> m_tag;               //!< particle tags

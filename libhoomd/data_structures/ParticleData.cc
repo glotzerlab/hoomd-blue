@@ -132,13 +132,11 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
     \param box Box the particles live in
     \param exec_conf ExecutionConfiguration to use when executing code on the GPU
 
-    \post \c x,\c y,\c z,\c vx,\c vy,\c vz,\c ax,\c ay, and \c az are allocated and initialized to 0.0
+    \post \c pos,\c vel,\c accel are allocated and initialized to 0.0
     \post \c charge is allocated and initialized to a value of 0.0
     \post \c diameter is allocated and initialized to a value of 1.0
     \post \c mass is allocated and initialized to a value of 1.0
-    \post \c ix, \c iy, \c iz are allocated and initialized to values of 0.0
-    \post \c rtag is allocated and given the default initialization rtag[i] = i
-    \post \c tag is allocated and given the default initialization tag[i] = i
+    \post \c image is allocated and initialized to values of 0.0
     \post \c global_tag is allocated and given the default initialization global_tag[i] = i
     \post \c the reverse lookup map global_rtag is initialized with the identity mapping
     \post \c type is allocated and given the default value of type[i] = 0
@@ -736,7 +734,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     snapshot.type_mapping = m_type_mapping;
     }
 
-//! Remove particles from the simulation domain
+//! Remove particles from the local particle data
 /*! \param n number of particles to remove
  *
  * This method just decreases the number of particles in the system. The caller
@@ -749,7 +747,7 @@ void ParticleData::removeParticles(const unsigned int n)
     m_nparticles -= n;
     }
 
-//! Add a number of particles to the system
+//! Add a number of particles to the local particle data
 /*! This function uses amortized doubling of the particle data structures in the system
     to accomodate the new partices.
 
@@ -771,7 +769,7 @@ void ParticleData::addParticles(const unsigned int n)
     m_nparticles += n;
     }
 
-//! Add ghost particles to the system.
+//! Add ghost particles at the end of the local particle data
 /*! Ghost ptls are appended at the end of the particle data.
   Ghost particles have only incomplete particle information (position, charge, diameter) and
   don't need tags.

@@ -373,7 +373,7 @@ class NeighborList : public Compute
         bool m_no_minimum_image[3];           //!< True if minimum image convention should be ignored in given direction
 
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;   //! MPI communication class
+        boost::shared_ptr<Communicator> m_comm;   //!< MPI communication class
 #endif
 
 

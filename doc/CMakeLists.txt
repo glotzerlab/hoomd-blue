@@ -8,6 +8,9 @@ set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_CUDA=1\" \\
     \"NVCC=1\" \\
     \"BOOST_VERSION=103500\" ")
 
+# build MPI documentation
+set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_MPI=1\" ")
+
 # disable DOT in doxygen if dot is not found
 if(DOXYGEN_DOT_PATH)
     set(DOXYGEN_HAVE_DOT "YES")

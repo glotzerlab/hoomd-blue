@@ -87,15 +87,15 @@ class CommunicatorGPU : public Communicator
         //! \name communication methods
         //@{
 
-        //! transfer particles between domains
+        //! Transfer particles between neighboring domains
         virtual void migrateAtoms();
 
-        //! build a ghost particle list, copy ghost particle data to neighboring domains
-        /*! \param width of ghost layer
+        //! Build a ghost particle list, exchange ghost particle data with neighboring processors
+        /*! \param r_ghost Width of ghost layer
          */
         virtual void exchangeGhosts(Scalar r_ghost);
 
-        //! update ghost particle positions
+        //! Update ghost particle positions
         virtual void copyGhosts();
 
         //@}

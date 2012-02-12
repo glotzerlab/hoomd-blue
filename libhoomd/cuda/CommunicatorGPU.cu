@@ -185,14 +185,14 @@ typedef thrust::tuple<float4,
 //! Select particles to be sent in a specified direction
 struct select_particle_migrate_gpu : public thrust::unary_function<const pdata_tuple_gpu&, bool>
     {
-    const float xlo;
-    const float xhi;
-    const float ylo;
-    const float yhi;
-    const float zlo;
-    const float zhi;
-    const unsigned int dir;
-    const float4 *d_pos;
+    const float xlo;        //!< Lower x boundary
+    const float xhi;        //!< Upper x boundary
+    const float ylo;        //!< Lower y boundary
+    const float yhi;        //!< Upper y boundary
+    const float zlo;        //!< Lower z boundary
+    const float zhi;        //!< Upper z boundary
+    const unsigned int dir; //!< Direction to send particles to
+    const float4 *d_pos;    //!< Device array of particle positions
 
 
     //! Constructor
@@ -363,7 +363,6 @@ struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tup
     {
     //! Transform operator
     /*! \param el Particle data element to unpack
-        \param Tuple of particle data fields
      */
     __host__ __device__ pdata_tuple_gpu operator()(const pdata_element_gpu & el)
         {
@@ -380,12 +379,12 @@ struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tup
     };
 
 
-thrust::device_vector<unsigned int> *keys;
-thrust::device_vector<float4> *float4_tmp;
-thrust::device_vector<float3> *float3_tmp;
-thrust::device_vector<float> *float_tmp;
-thrust::device_vector<unsigned int> *uint_tmp;
-thrust::device_vector<int3> *int3_tmp;
+thrust::device_vector<unsigned int> *keys;       //!< Temporary vector of sort keys
+thrust::device_vector<float4> *float4_tmp;       //!< Temporary vector for permutating particle data
+thrust::device_vector<float3> *float3_tmp;       //!< Temporary vector for permutating particle data
+thrust::device_vector<float> *float_tmp;         //!< Temporary vector for permutating particle data
+thrust::device_vector<unsigned int> *uint_tmp;   //!< Temporary vector for permutating particle data
+thrust::device_vector<int3> *int3_tmp;           //!< Temporary vector for permutating particle data
 
 void gpu_allocate_tmp_storage()
     {
@@ -408,25 +407,23 @@ void gpu_deallocate_tmp_storage()
     }
 
 /*! Reorder the particles according to a migration criterium
-    Particles that remain in the simulation box come first, followed by the particles that are sent in the
-    specified direction
-
-   \param N Number of particles in local simulation box
-   \param n_send_ptls Number of particles that are sent (return value)
-   \param d_pos Array of particle positions
-   \param d_vel Array of particle velocities
-   \param d_accel Array of particle accelerations
-   \param d_image Array of particle images
-   \param d_charge Array of particle charges
-   \param d_diameter Array of particle diameter
-   \param d_body Array of particle body ids
-   \param d_orientation Array of particle orientations
-   \param d_tag Array of particle global tags
-   \param box Dimensions of local simulation box
-   \param send_x Flag to indicate if we have neighbor domains in the x direction
-   \param send_x Flag to indicate if we have neighbor domains in the x direction
-   \param send_x Flag to indicate if we have neighbor domains in the y direction
-*/
+ *  Particles that remain in the simulation box come first, followed by the particles that are sent in the
+ *  specified direction
+ *
+ *  \param N Number of particles in local simulation box
+ *  \param n_send_ptls Number of particles that are sent (return value)
+ *  \param d_pos Array of particle positions
+ *  \param d_vel Array of particle velocities
+ *  \param d_accel Array of particle accelerations
+ *  \param d_image Array of particle images
+ *  \param d_charge Array of particle charges
+ *  \param d_diameter Array of particle diameter
+ *  \param d_body Array of particle body ids
+ *  \param d_orientation Array of particle orientations
+ *  \param d_tag Array of particle global tags
+ *  \param box Dimensions of local simulation box
+ *  \param dir Direction to send particles to
+ */
 void gpu_migrate_select_particles(unsigned int N,
                         unsigned int &n_send_ptls,
                         float4 *d_pos,
@@ -552,8 +549,6 @@ void gpu_migrate_select_particles(unsigned int N,
    \param d_tag Array of particle global tags
    \param d_send_buf Send buffer (has to be large enough, i.e. maxium size = number of local particles )
    \param d_send_buf_end Pointer to end of send buffer (return value)
-   \param box Dimensions of the local simulation box
-   \param dir Direction particles are sent to
 */
 void gpu_migrate_pack_send_buffer(unsigned int N,
                            float4 *d_pos,
@@ -631,8 +626,8 @@ void gpu_migrate_wrap_received_particles(char *d_recv_buf,
     }
 
 //! Add received particles to local box if their positions are inside the local boundaries
-/*! \param n_recv_ptls Number of received particles to check
- * \param d_recv_buf Buffer of received particle data
+/*! \param d_recv_buf Buffer of received particle data
+ * \param d_recv_buf_end Pointer to end of receive buffer
  * \param d_pos Array to store particle positions
  * \param d_vel Array to store particle velocities
  * \param d_accel Array to store particle accelerations

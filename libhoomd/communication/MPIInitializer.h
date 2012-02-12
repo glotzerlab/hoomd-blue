@@ -132,23 +132,25 @@ class ParticleData;
 /*! \ingroup communication
 */
 
-//! Class that initializes the different ranks in a MPI simulation
-/*! This class reads in a ParticleDataInitializer defining the initial state of the
-    global particle data. The global simulation box is divided into sub-domains which are assigned to
-    individual processors. The sub-division is performed such as to minimize surface area between domains,
-    which is assumed to be proportional to the cost of communication.
-
-    The particle data is distributed onto the individual processors according to the particle positions.
-
-    All communication and initialization of data structures is done in the constructor. The processor
-    with rank 0 is responsible for distributing the particle data to the other processors.
-
-    There are two main methods defined by this class: scatter() and gather().
-
-    The scatter() method distributes ParticleData from the processor with rank 0 to the other processors,
-    the gather() method recombines all ParticleData of the processors on the processor with rank 0.
-
-*/
+//! Class that initializes every processor using spatial domain-decomposition
+/*! This class is used to set up the initial state of the particle data on every processor.
+ *  The global simulation box is sub-divided into domains which are assigned to
+ *  individual processors. The criterium whether a particle belongs into a certain box is
+ *  based upon its position.
+ *
+ *  There are two main methods defined by this class: scatter() and gather().
+ *
+ *  The scatter() method distributes ParticleData from the processor with rank \b root to the other processors,
+ *
+ *  The gather() method recombines all ParticleData of the processors on the processor with rank \b root.
+ *
+ *  <b>Implementation details</b>
+ *
+ *  To achieve an optimal domain decomposition (i.e. minimal communication costs), the global domain is sub-divided
+ *  such as to minimize surface area between domains, while utilizing all processors in the MPI communicator.
+ *
+ *  The initialization of the domain decomposition scheme is performed in the constructor.
+ */
 class MPIInitializer
     {
    public:
@@ -166,31 +168,33 @@ class MPIInitializer
         */
        void scatter(unsigned int root);
 
-       //! Gather particle data from processors on a single processor
+       //! Gather particle data from all processors on a single processor
        /*! \param root Rank of processor to gather particle data on
         */
        void gather(unsigned int root);
 
-       //! Gather particle data from processors into a snapshot on a single processor
+       //! Gather particle data from all processors into a snapshot on a single processor
        /*! \param root Rank of processor to gather particle data on
-        *  \param snapshot Snapshot to collect particle data in
+        *  \param global_snapshot Snapshot to collect particle data in
         */
-       void gatherSnapshot(unsigned int root, SnapshotParticleData &global_snaphot);
+       void gatherSnapshot(unsigned int root, SnapshotParticleData &global_snapshot);
 
        //! Calculate MPI ranks of neighboring domain
-       /*! \param dir neighbor direction to calculate rank for
-       *  dir = 0 <-> east
-       *        1 <-> west
-       *        2 <-> north
-       *        3 <-> south
-       *        4 <-> up
-       *        5 <-> down
+       /*! \param dir neighbor direction to calculate rank for<br>
+       *  dir =<br>
+       *        0 <-> east <br>
+       *        1 <-> west <br>
+       *        2 <-> north <br>
+       *        3 <-> south <br>
+       *        4 <-> up <br>
+       *        5 <-> down <br>
+       *
        *  \return rank of neighbor in the specified direction
        */
        virtual unsigned int getNeighborRank(unsigned int dir);
 
        //! Get the global simulation box
-       /*! \return dimensions of the global simulation box
+       /*! \return Dimensions of the global simulation box
        */
        virtual const BoxDim getGlobalBox()
        {
@@ -198,51 +202,51 @@ class MPIInitializer
        }
 
        //! Get the number of simulation boxes along a certain direction
-       /*! \param dir direction (\c 0<dir<3 )
-        * \return number of boxes along the specified direction
+       /*! \param dir Direction (\b dir = 0, 1, 2)
+        * \return Number of boxes along the specified direction
         */
        virtual unsigned int getDimension(unsigned int dir) const;
 
    private:
-       unsigned int m_N;              //!< number of particles on this processor
-       unsigned int m_nglobal;        //!< global number of particles
+       unsigned int m_N;              //!< Number of particles on this processor
+       unsigned int m_nglobal;        //!< Global number of particles
 
-       std::vector< std::vector<Scalar3> > m_pos_proc;              //!< positions of every processor
-       std::vector< std::vector<Scalar3> > m_vel_proc;              //!< velocities of every processor
-       std::vector< std::vector<Scalar3> > m_accel_proc;            //!< accelerations of every processor
-       std::vector< std::vector<unsigned int> > m_type_proc;        //!< particle types of every processor
-       std::vector< std::vector<Scalar > > m_mass_proc;             //!< particle masses of every processor
-       std::vector< std::vector<Scalar > >m_charge_proc;            //!< particle charges of every processor
-       std::vector< std::vector<Scalar > >m_diameter_proc;          //!< particle diameters of every processor
-       std::vector< std::vector<int3 > > m_image_proc;              //!< particle images of every processor
-       std::vector< std::vector<unsigned int > > m_rtag_proc;       //!< particle reverse-lookup tags of every processor
-       std::vector< std::vector<unsigned int > > m_body_proc;       //!< body ids of every processor
-       std::vector< std::vector<unsigned int > > m_global_tag_proc; //!< global tags of every processor
+       std::vector< std::vector<Scalar3> > m_pos_proc;              //!< Position array of every processor
+       std::vector< std::vector<Scalar3> > m_vel_proc;              //!< Velocities array of every processor
+       std::vector< std::vector<Scalar3> > m_accel_proc;            //!< Accelerations array of every processor
+       std::vector< std::vector<unsigned int> > m_type_proc;        //!< Particle types array of every processor
+       std::vector< std::vector<Scalar > > m_mass_proc;             //!< Particle masses array of every processor
+       std::vector< std::vector<Scalar > >m_charge_proc;            //!< Particle charges array of every processor
+       std::vector< std::vector<Scalar > >m_diameter_proc;          //!< Particle diameters array of every processor
+       std::vector< std::vector<int3 > > m_image_proc;              //!< Particle images array of every processor
+       std::vector< std::vector<unsigned int > > m_rtag_proc;       //!< Particle reverse-lookup tags array of every processor
+       std::vector< std::vector<unsigned int > > m_body_proc;       //!< Body ids of every processor
+       std::vector< std::vector<unsigned int > > m_global_tag_proc; //!< Global tags of every processor
        std::vector< unsigned int > m_N_proc;                        //!< Number of particles on every processor
 
-       unsigned int m_rank;                             //!< rank of this processor
-       std::vector<BoxDim> m_box_proc;                  //!< box dimensions of every processor
-       std::vector<uint3> m_grid_pos_proc;              //!< grid position of every processor
-       unsigned m_num_particle_types;                   //!< number of particle types
-       std::vector<std::string> m_type_mapping;         //!< number of particle types
+       unsigned int m_rank;                             //!< Rank of this processor
+       std::vector<BoxDim> m_box_proc;                  //!< Box dimensions of every processor
+       std::vector<uint3> m_grid_pos_proc;              //!< Grid position of every processor
+       unsigned m_num_particle_types;                   //!< Number of particle types
+       std::vector<std::string> m_type_mapping;         //!< Number of particle types
 
 
-       Scalar m_Lx;         //!< length of this box in x direction
-       Scalar m_Ly;         //!< length of this box in y direction
-       Scalar m_Lz;         //!< length of this box in z direction
+       Scalar m_Lx;         //!< Length of this box in x direction
+       Scalar m_Ly;         //!< Length of this box in y direction
+       Scalar m_Lz;         //!< Length of this box in z direction
 
-       uint3  m_grid_pos;   //!< this processor's position in the grid
+       uint3  m_grid_pos;   //!< This processor's position in the grid
 
-       unsigned int m_nx;   //!< grid dimensions in x direction
-       unsigned int m_ny;   //!< grid dimensions in y direction
-       unsigned int m_nz;   //!< grid dimensions in z direction
+       unsigned int m_nx;   //!< Grid dimensions in x direction
+       unsigned int m_ny;   //!< Grid dimensions in y direction
+       unsigned int m_nz;   //!< Grid dimensions in z direction
 
        boost::shared_ptr<SystemDefinition> m_sysdef; //!< Definition of the local simulation
        boost::shared_ptr<ParticleData> m_pdata;      //!< Local particle data
        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
 
-       BoxDim m_global_box;                             //!< global simulation box
-       BoxDim m_box;                                    //!< dimensions of this box
+       BoxDim m_global_box;                             //!< Global simulation box
+       BoxDim m_box;                                    //!< Dimensions of this box
     };
 
 //! Declare function that exports MPIInitializer to python

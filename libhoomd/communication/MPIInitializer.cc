@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::python;
 
-//! Define some of our types as fixed-size MPI datatypes for performance optimization
+// Define some of our types as fixed-size MPI datatypes for performance optimization
 BOOST_IS_MPI_DATATYPE(Scalar4)
 BOOST_IS_MPI_DATATYPE(Scalar3)
 BOOST_IS_MPI_DATATYPE(Scalar)
@@ -74,10 +74,8 @@ BOOST_IS_MPI_DATATYPE(uint3)
 BOOST_IS_MPI_DATATYPE(int3)
 
 //! Constructor
-/*! The constructor reads in information about the simulation box on processor with rank root
-    and performs a spatial domain decomposition of that box.
-
-    The information about the domain decomposition is distributed on the other processors
+/*! The constructor performs a spatial domain decomposition of the simulation box of processor with rank \b root.
+ * The domain dimensions are distributed on the other processors.
  */
 MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
                                boost::shared_ptr<boost::mpi::communicator> comm,
@@ -330,7 +328,7 @@ void MPIInitializer::scatter(unsigned int root)
     m_pdata->setNGlobal(m_nglobal);
     }
 
-//! Gather particle data on the root processor
+//! Gather particle data from all processors on a single processor
 void MPIInitializer::gather(unsigned int root)
    {
    // initialize a snapshot
@@ -348,7 +346,7 @@ void MPIInitializer::gather(unsigned int root)
        }
    }
 
-//! Gather particle data into a snapshot
+//! Gather particle data from all processors into a snapshot on a single processor
 void MPIInitializer::gatherSnapshot(unsigned int root, SnapshotParticleData& global_snapshot)
     {
     // take a snapshot of the current configuration
@@ -423,7 +421,7 @@ void MPIInitializer::gatherSnapshot(unsigned int root, SnapshotParticleData& glo
         }
     }
 
-//! Get rank of neighboring domain
+//! Calculate MPI ranks of neighboring domain.
 unsigned int MPIInitializer::getNeighborRank(unsigned int dir)
     {
     assert(0<= dir && dir < 6);

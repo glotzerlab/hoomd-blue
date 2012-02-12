@@ -64,6 +64,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllParticleSelectors.cuh"
 
 //! Rule-based particle selector implemented on the GPU
+/*! \ingroup data_structs
+ */
 template< class T, cudaError_t gpu_psr(selector_args sel_args, const typename T::param_type params) >
 class ParticleSelectorRuleGPU : public ParticleSelectorRule<T>
     {
@@ -117,6 +119,8 @@ unsigned int ParticleSelectorRuleGPU<T, gpu_psr>::getMemberTags(const GPUArray<u
     }
 
 //! ParticleSelector to select particles on the GPU based on the tag rule
+/*! \ingroup data_structs
+ */
 class ParticleSelectorTagGPU : public ParticleSelectorRuleGPU<GlobalTagRule, gpu_select_particles_tag>
     {
     public:
@@ -126,6 +130,8 @@ class ParticleSelectorTagGPU : public ParticleSelectorRuleGPU<GlobalTagRule, gpu
     };
 
 //! ParticleSelector to select particles on the GPU based on the type rule
+/*! \ingroup data_structs
+ */
 class ParticleSelectorTypeGPU : public ParticleSelectorRuleGPU<TypeRule, gpu_select_particles_type>
     {
     public:
@@ -135,6 +141,8 @@ class ParticleSelectorTypeGPU : public ParticleSelectorRuleGPU<TypeRule, gpu_sel
     };
 
 //! ParticleSelector to select particles on the GPU based on the body
+/*! \ingroup data_structs
+ */
 class ParticleSelectorRigidGPU : public ParticleSelectorRuleGPU<RigidRule, gpu_select_particles_body>
     {
     public:
@@ -144,6 +152,8 @@ class ParticleSelectorRigidGPU : public ParticleSelectorRuleGPU<RigidRule, gpu_s
     };
 
 //! ParticleSelector to select particles on the GPU based on a global tag list
+/*! \ingroup data_structs
+ */
 class ParticleSelectorGlobalTagListGPU : public ParticleSelectorGlobalTagList
     {
     public:
