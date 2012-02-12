@@ -30,16 +30,28 @@
 #endif
 
 using namespace boost;
-
 void set_num_threads(int nthreads);
+
+//! MPI environment
+boost::mpi::environment *env;
+
+//! MPI communicator
+boost::shared_ptr<boost::mpi::communicator> world;
+
+//! Excution Configuration for GPU
+/* For MPI libraries that directly support CUDA, it is required that
+   CUDA be initialized before setting up the MPI environmnet. This
+   global variable stores the ExecutionConfiguration for GPU, which is
+   initialized once
+*/
+boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
+
+//! Execution configuration on the CPU
+boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
 
 void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 {
     ClockSource clk;
-
-    boost::mpi::environment env(boost::unit_test::framework::master_test_suite().argc,
-                                boost::unit_test::framework::master_test_suite().argv);
-    shared_ptr<boost::mpi::communicator> world(new boost::mpi::communicator);
 
     // initialize a random particle system
     Scalar phi_p = 0.2;
@@ -174,24 +186,44 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
         cout << *prof;
 }
 
+//! Fixture to setup and tear down MPI
+struct MPISetup
+    {
+    //! Setup
+    MPISetup()
+        {
+        int argc = boost::unit_test::framework::master_test_suite().argc;
+        char **argv = boost::unit_test::framework::master_test_suite().argv;
+
+        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        env = new boost::mpi::environment(argc,argv);
+        world = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());
+        }
+
+    //! Cleanup
+    ~MPISetup()
+        {
+        delete env;
+        }
+
+    };
+
+BOOST_GLOBAL_FIXTURE( MPISetup )
+
 #if 0
 //! Tests MPI domain decomposition with NVE integrator
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVE_test )
     {
     set_num_threads(1);
-    test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    test_domain_decomposition(exec_conf_cpu);
     }
 #endif
+
 #ifdef ENABLE_CUDA
 //! Tests MPI domain decomposition with NVE integrator on the GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVE_test_GPU )
     {
-    char *str;
-    int dev = -1;
-    if ((str = getenv("PMI_RANK")))
-       dev = atoi(str);
-
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,dev));
-    test_domain_decomposition(exec_conf);
+    test_domain_decomposition(exec_conf_gpu);
     }
 #endif

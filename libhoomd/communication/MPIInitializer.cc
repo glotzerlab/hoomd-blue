@@ -177,7 +177,6 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
 //! Distribute particle data onto processors
 void MPIInitializer::scatter(unsigned int root)
     {
-
     if (m_rank == root)
         {
         // get number of particle types
@@ -226,33 +225,35 @@ void MPIInitializer::scatter(unsigned int root)
 
         for (std::vector<Scalar3>::iterator it=global_snapshot.pos.begin(); it != global_snapshot.pos.end(); it++)
             {
-            // determine domain the particle lies in
-            unsigned int i= (it->x-m_global_box.zlo)/m_Lx;
-            unsigned int j= (it->y-m_global_box.ylo)/m_Ly;
-            unsigned int k= (it->z-m_global_box.zlo)/m_Lz;
+            // determine domain the particle is placed into
+            int i= (it->x - m_global_box.zlo)/m_Lx;
+            int j= (it->y - m_global_box.ylo)/m_Ly;
+            int k= (it->z - m_global_box.zlo)/m_Lz;
 
             // treat particles lying exactly on the boundary
-            if (i == m_nx)
+            if (i == (int) m_nx)
                 {
                 i = 0;
                 it->x = m_global_box.xlo;
                 }
-            if (j == m_ny)
+            if (j == (int) m_ny)
                 {
                 j = 0;
                 it->y = m_global_box.ylo;
                 }
-            if (k == m_nz)
+            if (k == (int) m_nz)
                 {
                 k = 0;
                 it->z = m_global_box.zlo;
                 }
 
-            unsigned int rank = k*m_nx*m_ny + j * m_nx + i;
 
-            // fill up per-processor data structures
             unsigned int idx = it - global_snapshot.pos.begin();
 
+            unsigned int rank = k*m_nx*m_ny + j * m_nx + i;
+            assert(rank <= m_mpi_comm->size());
+
+            // fill up per-processor data structures
             m_pos_proc[rank].push_back(global_snapshot.pos[idx]);
             m_vel_proc[rank].push_back(global_snapshot.vel[idx]);
             m_accel_proc[rank].push_back(global_snapshot.accel[idx]);

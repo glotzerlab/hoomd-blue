@@ -703,6 +703,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     {
     assert(snapshot.size >= getN());
+    assert(inBox());
 
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
