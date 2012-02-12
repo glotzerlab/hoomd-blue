@@ -192,17 +192,18 @@ void NeighborList::compute(unsigned int timestep)
     if (needsUpdating(timestep))
         {
 #ifdef ENABLE_MPI
-        assert(m_comm);
+        if (m_comm)
+            {
+            // migrate atoms
+            m_comm->migrateAtoms();
 
-        // migrate atoms
-        m_comm->migrateAtoms();
+            // exchange ghosts
+            Scalar rmax = m_r_cut + m_r_buff;
+            if (!m_filter_diameter)
+                rmax += m_d_max - Scalar(1.0);
 
-        // exchange ghosts
-        Scalar rmax = m_r_cut + m_r_buff;
-        if (!m_filter_diameter)
-            rmax += m_d_max - Scalar(1.0);
-
-        m_comm->exchangeGhosts(rmax);
+            m_comm->exchangeGhosts(rmax);
+            }
 #endif
         // rebuild the list until there is no overflow
         bool overflowed = false;
@@ -228,9 +229,9 @@ void NeighborList::compute(unsigned int timestep)
 #ifdef ENABLE_MPI
     else
         {
-        assert(m_comm);
         // update ghost positions
-        m_comm->copyGhosts();
+        if (m_comm)
+            m_comm->copyGhosts();
         }
 #endif
 
@@ -750,11 +751,14 @@ bool NeighborList::distanceCheck()
     if (m_prof) m_prof->pop();
 
 #ifdef ENABLE_MPI
-    // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
-    unsigned int local_result = result ? 1 : 0;
-    unsigned int global_result = 0;
-    all_reduce(*m_comm->getMPICommunicator(), local_result, global_result,  boost::mpi::maximum<unsigned int>());
-    result = (global_result > 0);
+    if (m_comm)
+        {
+        // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
+        unsigned int local_result = result ? 1 : 0;
+        unsigned int global_result = 0;
+        all_reduce(*m_comm->getMPICommunicator(), local_result, global_result,  boost::mpi::maximum<unsigned int>());
+        result = (global_result > 0);
+        }
 #endif
 
     return result;
