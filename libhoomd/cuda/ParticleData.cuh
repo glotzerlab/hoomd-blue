@@ -80,11 +80,5 @@ struct gpu_boxsize
     float Lzinv;//!< 1.0f/Lz
     };
 
-//! Helper kernel for un-interleaving data
-cudaError_t gpu_uninterleave_float4(float *d_out, float4 *d_in, int N, int pitch);
-//! Helper kernel for interleaving data
-cudaError_t gpu_interleave_float4(float4 *d_out, float *d_in, int N, int pitch);
-
-
 #endif
 
