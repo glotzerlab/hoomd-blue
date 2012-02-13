@@ -108,8 +108,7 @@ void gpu_fire_zero_v_kernel(Scalar4 *d_vel,
     }
 
 
-/*! \param N number of particles in system
-    \param d_vel device array of particle velocities
+/*! \param d_vel device array of particle velocities
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
 
@@ -641,8 +640,7 @@ extern "C" __global__
     }
 
 
-/*! \param N number of particles in system
-    \param d_vel array of particle velocities to update
+/*! \param d_vel array of particle velocities to update
     \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group

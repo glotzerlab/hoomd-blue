@@ -118,6 +118,7 @@ struct bond_args_t
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
+    \param N Number of particles in the system
     \param d_pos particle positions on the GPU
     \param d_charge particle charges
     \param d_diameter particle diameters
