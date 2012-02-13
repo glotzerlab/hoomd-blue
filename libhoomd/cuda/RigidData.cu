@@ -289,10 +289,10 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
     if (d_body[pidx] != NO_BODY)
         {
         // calculate the virial from the position and velocity from the previous step
-        Scalar mass = d_vel[pidx].w;
         Scalar4 old_vel = d_oldvel[pidx];
         Scalar4 old_pos = d_oldpos[pidx];
         Scalar4 vel = d_vel[pidx];
+        Scalar mass = vel.w;
         Scalar4 net_force = d_net_force[pidx];
         Scalar3 fc;
         fc.x = mass * (vel.x - old_vel.x) / deltaT - net_force.x;
