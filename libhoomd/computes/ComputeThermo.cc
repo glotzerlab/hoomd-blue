@@ -195,8 +195,8 @@ void ComputeThermo::computeProperties()
             unsigned int j = m_group->getMemberIndex(group_idx);
             double mass = h_vel.data[j].w;
             pressure_kinetic_xx += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].x );
-            pressure_kinetic_xy += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].x );
-            pressure_kinetic_xz += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].x );
+            pressure_kinetic_xy += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].y );
+            pressure_kinetic_xz += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].z );
             pressure_kinetic_yy += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].y );
             pressure_kinetic_yz += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].z );
             pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
