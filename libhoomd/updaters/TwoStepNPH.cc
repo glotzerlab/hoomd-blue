@@ -267,10 +267,6 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         Lz_final = Lx_final;
         }
 
-    // update the simulation box
-    box = BoxDim(Lx_final, Ly_final, Lz_final);
-    m_pdata->setBox(box);
-
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
@@ -290,6 +286,7 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         }
 
     // wrap the particle around the box
+    box = BoxDim(Lx_final, Ly_final, Lz_final);
     Lx = Lx_final;
     Ly = Ly_final;
     Lz = Lz_final;
@@ -337,6 +334,9 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
     // done profiling
     if (m_prof)
         m_prof->pop();
+
+    // update the simulation box
+    m_pdata->setBox(box);
     }
 
 /*! \param timestep Current time step
@@ -364,24 +364,26 @@ void TwoStepNPH::integrateStepTwo(unsigned int timestep)
     Scalar &etay = v.variable[1];
     Scalar &etaz = v.variable[2];
 
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-
-    // v(t+deltaT) = v'' + 1/2 * a(t+deltaT)*deltaT
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
+        const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-        // first, calculate acceleration from the net force
-        Scalar minv = Scalar(1.0) / arrays.mass[j];
-        arrays.ax[j] = h_net_force.data[j].x*minv;
-        arrays.ay[j] = h_net_force.data[j].y*minv;
-        arrays.az[j] = h_net_force.data[j].z*minv;
+        // v(t+deltaT) = v'' + 1/2 * a(t+deltaT)*deltaT
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
 
-        // then, update the velocity
-        arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-        arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-        arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
+            // first, calculate acceleration from the net force
+            Scalar minv = Scalar(1.0) / arrays.mass[j];
+            arrays.ax[j] = h_net_force.data[j].x*minv;
+            arrays.ay[j] = h_net_force.data[j].y*minv;
+            arrays.az[j] = h_net_force.data[j].z*minv;
+
+            // then, update the velocity
+            arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
+            arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
+            arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
+            }
         }
 
     m_pdata->release();
