@@ -131,6 +131,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDLJThermo.h"
 #include "PotentialPair.h"
 #include "PPPMForceCompute.h"
+#include "AllExternalPotentials.h"
 
 
 // include GPU classes
@@ -404,6 +405,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListBinned();
     export_ConstraintSphere();
     export_PPPMForceCompute();
+    export_PotentialExternal<PotentialExternalLamellar>("PotentialExternalLamellar");
 #ifdef ENABLE_CUDA
     export_CellListGPU();
     export_NeighborListGPU();
@@ -431,6 +433,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstraintSphereGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
+    export_PotentialExternalGPU<PotentialExternalLamellarGPU, PotentialExternalLamellar>("PotentialExternalLamellarGPU");
 #endif
     
     // analyzers

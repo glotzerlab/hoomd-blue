@@ -48,84 +48,20 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: joaander / Everyone is free to add additional potentials
 
-/*! \file HOOMDMath.cc
-    \brief Defines code needed for common math operations
- */
+/*! \file AllDriverPotentialExternalGPU.cuh
+    \brief Declares driver functions for computing all types of external forces on the GPU
+*/
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
+#ifndef __ALL_DRIVER_POTENTIAL_EXTERNAL_GPU_CUH__
+#define __ALL_DRIVER_POTENTIAL_EXTERNAL_GPU_CUH__
 
-#include "HOOMDMath.h"
+#include "PotentialExternalGPU.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+//! Compute lamellar potential forces on the GPU with EvaluatorExternalLamellar
+cudaError_t gpu_compute_lamellar_forces(const external_potential_args_t& potential_args,
+                                      const float4 *d_params);
 
-void export_hoomd_math_functions()
-    {
-    class_<Scalar2>("Scalar2", init<>())
-        .def_readwrite("x", &Scalar2::x)
-        .def_readwrite("y", &Scalar2::y)
-        ;
-    class_<Scalar3>("Scalar3", init<>())
-        .def_readwrite("x", &Scalar3::x)
-        .def_readwrite("y", &Scalar3::y)
-        .def_readwrite("z", &Scalar3::z)
-        ;
-    class_<Scalar4>("Scalar4", init<>())
-        .def_readwrite("x", &Scalar4::x)
-        .def_readwrite("y", &Scalar4::y)
-        .def_readwrite("z", &Scalar4::z)
-        .def_readwrite("w", &Scalar4::w)
-        ;
-    class_<uint2>("uint2", init<>())
-        .def_readwrite("x", &uint2::x)
-        .def_readwrite("y", &uint2::y)
-        ;
-    class_<uint3>("uint3", init<>())
-        .def_readwrite("x", &uint3::x)
-        .def_readwrite("y", &uint3::y)
-        .def_readwrite("z", &uint3::z)
-        ;
-    class_<uint4>("uint4", init<>())
-        .def_readwrite("x", &uint4::x)
-        .def_readwrite("y", &uint4::y)
-        .def_readwrite("z", &uint4::z)
-        .def_readwrite("z", &uint4::w)
-        ;
-    class_<int2>("int2", init<>())
-        .def_readwrite("x", &int2::x)
-        .def_readwrite("y", &int2::y)
-        ;
-    class_<int3>("int3", init<>())
-        .def_readwrite("x", &int3::x)
-        .def_readwrite("y", &int3::y)
-        .def_readwrite("z", &int3::z)
-        ;
-    class_<int4>("int4", init<>())
-        .def_readwrite("x", &int4::x)
-        .def_readwrite("y", &int4::y)
-        .def_readwrite("z", &int4::z)
-        .def_readwrite("z", &int4::w)
-        ;
-
-    
-    def("make_scalar2", &make_scalar2);
-    def("make_scalar3", &make_scalar3);
-    def("make_scalar4", &make_scalar4);
-    def("make_uint2", &make_uint2);
-    def("make_uint3", &make_uint3);
-    def("make_uint4", &make_uint4);
-    def("make_int2", &make_int2);
-    def("make_int3", &make_int3);
-    def("make_int4", &make_int4);
-    def("int_as_scalar", &__int_as_scalar);
-    }
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif
 
