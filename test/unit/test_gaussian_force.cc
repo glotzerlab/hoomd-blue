@@ -97,7 +97,7 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-	pdata_3->setFlags(~PDataFlags(0));
+    pdata_3->setFlags(~PDataFlags(0));
 
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_3->setPosition(1,make_scalar3(1.0,0.0,0.0));
