@@ -144,8 +144,14 @@ class mpi_partition:
         # set Communicator in C++ System
         globals.system.setCommunicator(globals.communicator)
 
+        # set Communicator in ParticleData
+        globals.system_definition.getParticleData().setCommunicator(globals.communicator)
+
         # store this object in the global variables
         globals.mpi_partition = self
+
+        # distribute particle data on processors
+        self.scatter(root);
 
     ## Scatter particle data
     # \brief Distributes particle data from processor with rank root on the other processors

@@ -76,6 +76,14 @@ using namespace boost::python;
 #include "AngleData.h"
 #include "DihedralData.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+
+#include <boost/mpi.hpp>
+#include <boost/mpi/collectives.hpp>
+using namespace boost::mpi;
+#endif
+
 #include <boost/bind.hpp>
 
 using namespace boost::signals;
@@ -261,10 +269,8 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             }
         }
 
-
-    // setup one default particle type
+    // one particle type by default
     m_ntypes = 1;
-    m_type_mapping.push_back("A");
 
     SnapshotParticleData snapshot(getN(),m_ntypes);
 
@@ -656,6 +662,10 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
     m_nparticles = snapshot.size;
 
+    // first reset all reverse look-up tags
+    for (unsigned int tag = 0; tag < m_nglobal; tag++)
+        h_global_rtag.data[tag] = NOT_LOCAL;
+
     for (unsigned int idx = 0; idx < m_nparticles; idx++)
         {
         h_pos.data[idx].x = snapshot.pos[idx].x;
@@ -797,6 +807,462 @@ void ParticleData::addGhostParticles(const unsigned int nghosts)
 
     }
 
+#ifdef ENABLE_MPI
+//! Find the processor that owns a particle
+/*! \param tag Tag of the particle to search
+ * \param is_local True if the particle is local
+ */
+unsigned int ParticleData::getOwnerRank(unsigned int tag, bool is_local) const
+    {
+    const communicator& mpi_comm = *m_comm->getMPICommunicator();
+    int n_found;
+
+    // First check that the particle is on exactly one processor
+    all_reduce(mpi_comm, is_local ? 1 : 0, n_found, std::plus<int>());
+
+    if (n_found == 0)
+        {
+        cerr << endl << "***Error! Could not find particle " << tag << " on any processor." << endl << endl;
+        throw std::runtime_error("Error accessing particle data.");
+        }
+    else if (n_found > 1)
+       {
+        cerr << endl << "***Error! Found particle " << tag << " on multiple processors." << endl << endl;
+        throw std::runtime_error("Error accessing particle data.");
+       }
+
+    // Now find the processor that owns it
+    int owner_rank;
+    all_reduce(mpi_comm, is_local ? mpi_comm.rank() : -1, owner_rank, std::max<int>);
+    assert (owner_rank >= 0);
+    assert (owner_rank < mpi_comm.size());
+
+    return (unsigned int) owner_rank;
+    }
+#endif
+
+///////////////////////////////////////////////////////////
+// get accessors
+
+//! Get the current position of a particle
+Scalar3 ParticleData::getPosition(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    Scalar3 result;
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
+        result = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the current velocity of a particle
+Scalar3 ParticleData::getVelocity(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    Scalar3 result;
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
+        result = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the current acceleration of a particle
+Scalar3 ParticleData::getAcceleration(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    Scalar3 result;
+    if (found)
+        {
+        ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::read);
+        result = make_scalar3(h_accel.data[idx].x, h_accel.data[idx].y, h_accel.data[idx].z);
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the current image flags of a particle
+int3 ParticleData::getImage(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    int3 result;
+    if (found)
+        {
+        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::read);
+        result = make_int3(h_image.data[idx].x, h_image.data[idx].y, h_image.data[idx].z);
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the current charge of a particle
+Scalar ParticleData::getCharge(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    Scalar result;
+    if (found)
+        {
+        ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::read);
+        result = h_charge.data[idx];
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the current mass of a particle
+Scalar ParticleData::getMass(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    Scalar result;
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
+        result = h_vel.data[idx].w;
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the current diameter of a particle
+Scalar ParticleData::getDiameter(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    Scalar result;
+    if (found)
+        {
+        ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::read);
+        result = h_diameter.data[idx];
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the body id of a particle
+unsigned int ParticleData::getBody(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    unsigned int result;
+    if (found)
+        {
+        ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
+        result = h_body.data[idx];
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the current type of a particle
+unsigned int ParticleData::getType(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    unsigned int result;
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
+        result = __scalar_as_int(h_pos.data[idx].w);
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the orientation of a particle with a given tag
+Scalar4 ParticleData::getOrientation(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    Scalar4 result;
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::read);
+        result = h_orientation.data[idx];
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the net force / energy on a given particle
+Scalar4 ParticleData::getPNetForce(unsigned int global_tag) const
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+    Scalar4 result;
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_net_force(m_net_force, access_location::host, access_mode::read);
+        result = h_net_force.data[idx];
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        unsigned int owner_rank = getOwnerRank(global_tag, found);
+        broadcast(*m_comm->getMPICommunicator(), result, owner_rank);
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+
+    }
+
+//! Set the current position of a particle
+void ParticleData::setPosition(unsigned int global_tag, const Scalar3& pos)
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
+        h_pos.data[idx].x = pos.x; h_pos.data[idx].y = pos.y; h_pos.data[idx].z = pos.z;
+        }
+    }
+
+//! Set the current velocity of a particle
+void ParticleData::setVelocity(unsigned int global_tag, const Scalar3& vel)
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::readwrite);
+        h_vel.data[idx].x = vel.x; h_vel.data[idx].y = vel.y; h_vel.data[idx].z = vel.z;
+        }
+    }
+
+//! Set the current image flags of a particle
+void ParticleData::setImage(unsigned int global_tag, const int3& image)
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
+        h_image.data[idx].x = image.x; h_image.data[idx].y = image.y; h_image.data[idx].z = image.z;
+        }
+    }
+
+//! Set the current charge of a particle
+void ParticleData::setCharge(unsigned int global_tag, Scalar charge)
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::readwrite);
+        h_charge.data[idx] = charge;
+        }
+    }
+
+//! Set the current mass of a particle
+void ParticleData::setMass(unsigned int global_tag, Scalar mass)
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::readwrite);
+        h_vel.data[idx].w = mass;
+        }
+    }
+
+
+//! Set the current diameter of a particle
+void ParticleData::setDiameter(unsigned int global_tag, Scalar diameter)
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::readwrite);
+        h_diameter.data[idx] = diameter;
+        }
+    }
+
+//! Set the body id of a particle
+void ParticleData::setBody(unsigned int global_tag, int body)
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::readwrite);
+        h_body.data[idx] = body;
+        }
+    }
+
+//! Set the current type of a particle
+void ParticleData::setType(unsigned int global_tag, unsigned int typ)
+    {
+    assert(typ < m_ntypes);
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
+        h_pos.data[idx].w = __int_as_scalar(typ);
+        }
+    }
+
+//! Set the orientation of a particle with a given tag
+void ParticleData::setOrientation(unsigned int global_tag, const Scalar4& orientation)
+    {
+    unsigned int idx = getGlobalRTag(global_tag);
+    bool found = (idx != NOT_LOCAL);
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_comm)
+        getOwnerRank(global_tag, found);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
+        h_orientation.data[idx] = orientation;
+        }
+    }
+
+
 //! Helper for python __str__ for BoxDim
 /*! Formats the box dim into a nice string
     \param box Box to format
@@ -880,6 +1346,7 @@ void export_ParticleData()
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setBox", &ParticleData::setBox)
     .def("getN", &ParticleData::getN)
+    .def("getNGlobal", &ParticleData::getNGlobal)
     .def("getNTypes", &ParticleData::getNTypes)
     .def("getMaximumDiameter", &ParticleData::getMaxDiameter)
     .def("getNameByType", &ParticleData::getNameByType)
@@ -909,6 +1376,9 @@ void export_ParticleData()
     .def("setType", &ParticleData::setType)
     .def("setOrientation", &ParticleData::setOrientation)
     .def("setInertiaTensor", &ParticleData::setInertiaTensor)
+#ifdef ENABLE_MPI
+    .def("setCommunicator", &ParticleData::setCommunicator)
+#endif
     ;
     }
 

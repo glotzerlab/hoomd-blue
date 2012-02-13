@@ -34,13 +34,12 @@ class integrate_nph_tests (unittest.TestCase):
         nph.set_params(mode="tetragonal")
         run(100);
 
-#FIXME
-#    # test w/ empty group
-#    def test_empty(self):
-#        empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
-#        mode = integrate.mode_standard(dt=0.005);
-#        nph = integrate.nph(group=empty, P=1.0, W=1)
-#        run(1);
+    # test w/ empty group
+    def test_empty(self):
+        empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
+        mode = integrate.mode_standard(dt=0.005);
+        nph = integrate.nph(group=empty, P=1.0, W=1)
+        run(1);
 
     def tearDown(self):
         init.reset();

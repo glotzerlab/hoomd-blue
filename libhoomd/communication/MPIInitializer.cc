@@ -251,7 +251,7 @@ void MPIInitializer::scatter(unsigned int root)
             unsigned int idx = it - global_snapshot.pos.begin();
 
             unsigned int rank = k*m_nx*m_ny + j * m_nx + i;
-            assert(rank <= m_mpi_comm->size());
+            assert(rank <= (unsigned int) m_mpi_comm->size());
 
             // fill up per-processor data structures
             m_pos_proc[rank].push_back(global_snapshot.pos[idx]);
@@ -322,30 +322,15 @@ void MPIInitializer::scatter(unsigned int root)
     // initialize local simulation box with snapshot
     m_pdata->initializeFromSnapshot(snap);
 
+    // Notify about addition of particles
+    m_pdata->notifyParticleNumberChange();
+
     // set simulation box
     m_pdata->setBox(m_box);
 
     // set global number of particles
     m_pdata->setNGlobal(m_nglobal);
     }
-
-//! Gather particle data from all processors on a single processor
-void MPIInitializer::gather(unsigned int root)
-   {
-   // initialize a snapshot
-   SnapshotParticleData snapshot(m_pdata->getNGlobal(), m_pdata->getNTypes());
-
-   // gather particle data into snapshot
-   gatherSnapshot(root, snapshot);
-
-   // on root rank, initialize particle data with global snapshot
-   if (m_mpi_comm->rank() == (int)root)
-       {
-       m_pdata->initializeFromSnapshot(snapshot);
-
-       m_pdata->setBox(m_global_box);
-       }
-   }
 
 //! Gather particle data from all processors into a snapshot on a single processor
 void MPIInitializer::gatherSnapshot(unsigned int root, SnapshotParticleData& global_snapshot)
@@ -484,8 +469,7 @@ void export_MPIInitializer()
     .def("getGlobalBox", &MPIInitializer::getGlobalBox)
     .def("getDimension", &MPIInitializer::getDimension)
     .def("scatter", &MPIInitializer::scatter)
-    .def("gather", &MPIInitializer::gather)
-    .def("gatherSnapshot", &MPIInitializer::gather)
+    .def("gatherSnapshot", &MPIInitializer::gatherSnapshot)
     ;
     }
 #endif // ENABLE_MPI

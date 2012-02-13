@@ -176,7 +176,7 @@ def get_hoomd_script_version():
 # once at the end of the run. Otherwise the callback is executed whenever the current
 # time step number is a multiple of \a callback_period.
 #
-def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False, root=0):
+def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):
     if not quiet:
         util.print_status_line();
     # check if initialization has occured
@@ -198,13 +198,9 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     # If running in MPI mode
     if globals.communicator:
-        comm.check_mpi()
-        # set quiet flag on all processors other than the root
-        if (comm.mpi_comm.rank != root):
+        # set quiet flag on all processors other than rank zero
+        if (comm.mpi_comm.rank != 0):
             quiet = True;
-
-        # distribute particle data on all processors
-        globals.mpi_partition.scatter(root)
 
     # if rigid bodies, setxv  
     if len(data.system_data(globals.system_definition).bodies) > 0:
@@ -231,11 +227,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     globals.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
         print "** run complete **"
-
-    # If running in MPI mode
-    if globals.communicator:
-        # gather particle data from all processors on root processor
-        globals.mpi_partition.gather(root)
 
 ## \brief Runs the simulation up to a given time step number
 #

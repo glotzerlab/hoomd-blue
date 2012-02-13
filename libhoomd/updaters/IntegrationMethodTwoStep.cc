@@ -205,7 +205,9 @@ void export_IntegrationMethodTwoStep()
     class_<IntegrationMethodTwoStep, boost::shared_ptr<IntegrationMethodTwoStep>, boost::noncopyable>
         ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
+#ifdef ENABLE_MPI
         .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
+#endif
         ;
     }
 

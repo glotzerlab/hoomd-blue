@@ -48,14 +48,13 @@ class integrate_bdnvt_tests (unittest.TestCase):
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
 
-#FIXME
-#    # test w/ empty group
-#    def test_empty(self):
-#        empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
-#        mode = integrate.mode_standard(dt=0.005);
-#        nve = integrate.bdnvt(group=empty, T=1.2)
-#        run(1);
-    
+    # test w/ empty group
+    def test_empty(self):
+        empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
+        mode = integrate.mode_standard(dt=0.005);
+        nve = integrate.bdnvt(group=empty, T=1.2)
+        run(1);
+
     def tearDown(self):
         init.reset();
 

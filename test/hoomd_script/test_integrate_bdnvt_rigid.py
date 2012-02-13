@@ -52,13 +52,12 @@ class integrate_bdnvt_rigid_nobody_tests (unittest.TestCase):
         sysdef = init.create_random(N=100, phi_p=0.05);
         force.constant(fx=0.1, fy=0.1, fz=0.1)
 
-# FIXME
-#    # test w/ empty group
-#    def test_empty(self):
-#        empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
-#        mode = integrate.mode_standard(dt=0.005);
-#        nve = integrate.bdnvt_rigid(group=empty, T=1.2)
-#        run(1);
+    # test w/ empty group
+    def test_empty(self):
+        empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
+        mode = integrate.mode_standard(dt=0.005);
+        nve = integrate.bdnvt_rigid(group=empty, T=1.2)
+        run(1);
 
     def tearDown(self):
         init.reset();

@@ -168,11 +168,6 @@ class MPIInitializer
         */
        void scatter(unsigned int root);
 
-       //! Gather particle data from all processors on a single processor
-       /*! \param root Rank of processor to gather particle data on
-        */
-       void gather(unsigned int root);
-
        //! Gather particle data from all processors into a snapshot on a single processor
        /*! \param root Rank of processor to gather particle data on
         *  \param global_snapshot Snapshot to collect particle data in

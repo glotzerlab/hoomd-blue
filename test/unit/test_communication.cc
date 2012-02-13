@@ -106,14 +106,6 @@ void test_mpi_initializer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // check that every domain has exactly one particle
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
-
-    // gather particles on processor with rank 0
-    mpi_init->gather(0);
-    if (world->rank() == 0)
-        {
-        // check that we have eight particles on the root processor
-        BOOST_CHECK_EQUAL(pdata->getN(), 8);
-        }
     }
 
 //! Fixture to setup and tear down MPI

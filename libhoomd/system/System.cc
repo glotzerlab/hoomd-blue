@@ -717,8 +717,9 @@ void export_System()
     
     .def("getLastTPS", &System::getLastTPS)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
-
+#ifdef ENABLE_MPI
     .def("setCommunicator", &System::setCommunicator)
+#endif
     ;
     }
 

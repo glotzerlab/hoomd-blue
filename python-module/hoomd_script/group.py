@@ -201,7 +201,7 @@ def all():
     # the all group is special: when the first one is created, it is cached in globals and future calls to group.all()
     # return the cached version
     if globals.group_all is not None:
-        expected_N = globals.system_definition.getParticleData().getN();
+        expected_N = globals.system_definition.getParticleData().getNGlobal();
         if len(globals.group_all) != expected_N:
             print >> sys.stderr, "\n***Error! globals.group_all does not appear to be the group of all particles!\n";
             raise RuntimeError('Error creating group');
@@ -210,7 +210,7 @@ def all():
     
     # choose the tag range
     tag_min = 0;
-    tag_max = globals.system_definition.getParticleData().getN()-1;
+    tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
 
     # create the group
     name = 'all';

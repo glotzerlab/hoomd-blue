@@ -1284,7 +1284,9 @@ void export_NeighborList()
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)
                      .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
+#ifdef ENABLE_MPI
                      .def("setCommunicator", &NeighborList::setCommunicator)
+#endif
                      ;
                      
     enum_<NeighborList::storageMode>("storageMode")

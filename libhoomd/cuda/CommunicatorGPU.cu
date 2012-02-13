@@ -546,11 +546,14 @@ void gpu_migrate_reset_rtags(unsigned int n_delete_ptls,
                              unsigned int *d_delete_tags,
                              unsigned int *d_rtag)
     {
+    thrust::device_ptr<unsigned int> delete_tags_ptr(d_delete_tags);
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+
     thrust::constant_iterator<unsigned int> not_local(NOT_LOCAL);
     thrust::scatter(not_local,
                     not_local + n_delete_ptls,
-                    d_delete_tags,
-                    d_rtag);
+                    delete_tags_ptr,
+                    rtag_ptr);
     }
 
 //! Pack particle data into send buffer
