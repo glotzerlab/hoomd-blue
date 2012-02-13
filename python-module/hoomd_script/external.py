@@ -397,7 +397,7 @@ class _external_force(force._force):
 _external_force.cur_id = 0;
 
 
-## Constrain particles to the surface of a sphere
+## One-dimension periodic potential
 #
 # The command %periodic specifies that an external %force should be
 # added to every particle in the simulation to induce a periodic modulation
