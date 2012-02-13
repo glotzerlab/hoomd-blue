@@ -146,7 +146,7 @@ void gpu_bdnvt_bdforce_kernel(const Scalar4 *d_pos,
             {
             // read in the type of our particle. A texture read of only the fourth part of the position float4
             // (where type is stored) is used.
-            unsigned int typ = __scalar_as_int(d_pos[idx].w);
+            unsigned int typ = __float_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
         

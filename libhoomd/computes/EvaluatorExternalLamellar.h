@@ -42,6 +42,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __EVALUATOR_EXTERNAL_LAMELLAR_H__
 #define __EVALUATOR_EXTERNAL_LAMELLAR_H__
 
+#include <math.h>
 #include "HOOMDMath.h"
 
 /*! \file EvaluatorExternalLamellar.h
@@ -56,8 +57,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-//! the constant pi
-const Scalar pi=Scalar(3.141592653589793238462643383279502884197169399375105820974944);
+//! SCALARASINT resolves to __float_as_int on the device and to __scalar_as_int on the host
+#ifdef NVCC
+#define SCALARASINT(x) __float_as_int(x)
+#else
+#define SCALARASINT(x) __scalar_as_int(x)
+#endif
 
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
@@ -92,12 +97,12 @@ class EvaluatorExternalLamellar
             : m_pos(X),
               m_Lx(Lx),
               m_Ly(Ly),
-              m_Lz(Lz),
-              m_index(__scalar_as_int(params.x)),
-              m_orderParameter(params.y),
-              m_interfaceWidth(params.z),
-              m_periodicity(__scalar_as_int(params.w))
+              m_Lz(Lz)
             {
+            m_index=  SCALARASINT(params.x);
+            m_orderParameter = params.y;
+            m_interfaceWidth = params.z;
+            m_periodicity =SCALARASINT(params.w);
             }
 
         //! Evaluate the force, energy and virial
@@ -138,7 +143,7 @@ class EvaluatorExternalLamellar
 
             Scalar q, clipParameter, arg, clipcos, tanH, sechSq;
 
-            q = (Scalar(2.0)*pi*m_periodicity)/perpLength;
+            q = (Scalar(2.0)*Scalar(M_PI)*m_periodicity)/perpLength;
             clipParameter   = Scalar(1.0)/(q*(m_interfaceWidth*perpLength));
             arg = q*d;
             clipcos = clipParameter*cosf(arg);
