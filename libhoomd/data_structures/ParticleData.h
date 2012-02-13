@@ -686,10 +686,9 @@ class ParticleData : boost::noncopyable
         Scalar4 getNetTorque(unsigned int tag)
             {
             assert(tag < getN());
-            acquireReadOnly();
             ArrayHandle< Scalar4 > h_net_torque(m_net_force, access_location::host, access_mode::read);
-            unsigned int idx = m_arrays.rtag[tag];
-            release();
+            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
             return h_net_torque.data[idx];
             }
 
