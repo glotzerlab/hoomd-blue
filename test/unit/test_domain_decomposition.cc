@@ -25,7 +25,6 @@
 #include "CellListGPU.h"
 #include "NeighborListGPUBinned.h"
 #include "TwoStepNVEGPU.h"
-#include "ParticleGroupGPU.h"
 #include "CommunicatorGPU.h"
 #endif
 
@@ -92,18 +91,10 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     boost::shared_ptr<Profiler> prof(new Profiler());
     comm->setProfiler(prof);
 
-    std::cout << "Processor " << world->rank() << " " << sysdef->getParticleData()->getN() << " particles. " << std::endl;
 //    std::cout << world.rank() << " box xlo " << box.xlo << " xhi " << box.xhi << " ylo " << box.ylo << " yhi " << box.yhi << " zlo " << box.zlo << " zhi " << box.zhi << std::endl;
 
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::cout << "global tags " << pdata->getNGlobal() << std::endl;
-    shared_ptr<ParticleSelector> selector_all;
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        selector_all = shared_ptr<ParticleSelector>(new ParticleSelectorTagGPU(sysdef, 0, pdata->getNGlobal()-1));
-    else
-#endif
-    selector_all = shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, pdata->getNGlobal()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getNGlobal()-1));
 
 
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
@@ -174,8 +165,6 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
     for (int i=0; i< 5000; i++)
        {
-      // if (!( i%100))
-//       if (world.rank()==0)  std::cout << "step " << i << std::endl;
        if (i % 300 == 0) sorter->update(i);
        Scalar TPS = i/Scalar(clk.getTime() - initial_time) * Scalar(1e9);
        if (i%10 == 0 && world->rank() == 0) std::cout << "step " << i << " TPS: " << TPS << std::endl;

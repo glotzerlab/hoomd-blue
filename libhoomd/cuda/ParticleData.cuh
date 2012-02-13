@@ -62,6 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
+//! Sentinal value in \a r_tag to signify that this particle is not currently present on the local processor
+const unsigned int NOT_LOCAL = 0xffffffff;
 #endif
 
 //! Store the box size on the GPU

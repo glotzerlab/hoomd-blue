@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "CommunicatorGPU.cuh"
+#include "ParticleData.cuh"
 
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
@@ -534,6 +535,22 @@ void gpu_migrate_select_particles(unsigned int N,
     thrust::copy(uint_tmp->begin(),
                  uint_tmp->begin() + N,
                  tag_ptr);
+    }
+
+//! Reset reverse lookup tags of particles we are removing
+/* \param n_delete_ptls Number of particles to delete
+ * \param d_delete_tags Array of particle tags to delete
+ * \param d_rtag Array for tag->idx lookup
+ */
+void gpu_migrate_reset_rtags(unsigned int n_delete_ptls,
+                             unsigned int *d_delete_tags,
+                             unsigned int *d_rtag)
+    {
+    thrust::constant_iterator<unsigned int> not_local(NOT_LOCAL);
+    thrust::scatter(not_local,
+                    not_local + n_delete_ptls,
+                    d_delete_tags,
+                    d_rtag);
     }
 
 //! Pack particle data into send buffer

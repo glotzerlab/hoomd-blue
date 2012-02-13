@@ -206,6 +206,9 @@ struct BoxDim
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
 
+//! Sentinal value in \a r_tag to signify that this particle is not currently present on the local processor
+const unsigned int NOT_LOCAL = 0xffffffff;
+
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
  * - Initializing the ParticleData from a ParticleDataInitializer
@@ -601,7 +604,7 @@ class ParticleData : boost::noncopyable
         //! Return global tags
         const GPUArray< unsigned int >& getGlobalTags() const { return m_global_tag; }
 
-        //! Return map of global reverse lookup tags
+        //! Return array of global reverse lookup tags
         const GPUArray< unsigned int >& getGlobalRTags() { return m_global_rtag; }
 
 #ifdef ENABLE_CUDA
@@ -765,6 +768,14 @@ class ParticleData : boost::noncopyable
             assert(idx < getN() + getNGhosts());
             return idx;
             }
+
+        //! Return true if particle is local (= present on this processor)
+        bool isParticleLocal(unsigned int global_tag) const
+             {
+             assert(global_tag < m_nglobal);
+             ArrayHandle< unsigned int> h_global_rtag(m_global_rtag,access_location::host, access_mode::read);
+             return h_global_rtag.data[global_tag] != NOT_LOCAL;
+             }
 
         //! Get the orientation of a particle with a given tag
         Scalar4 getOrientation(unsigned int global_tag) const

@@ -63,64 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __PARTICLE_GROUP_CUH__
 #define __PARTICLE_GROUP_CUH__
 
-//! Helper structure to pass arguments to particle selection GPU method
-struct selector_args
-    {
-    //! Constructor
-    selector_args(const unsigned int _N,
-                  unsigned int & _num_members,
-                  float4 *_d_pos,
-                  unsigned int *_d_tag,
-                  unsigned int *_d_body,
-                  unsigned int *_d_member_tag)
-        : N(_N),
-          num_members(_num_members),
-          d_pos(_d_pos),
-          d_tag(_d_tag),
-          d_body(_d_body),
-          d_member_tag(_d_member_tag)
-        {
-        }
-    const unsigned int N;        //!< Number of particles in local box
-    unsigned int &num_members;   //!< number of members included (output value)
-    float4 *d_pos;         //!< array of particle positions
-    unsigned int *d_tag;   //!< array of particle tags
-    unsigned int *d_body;  //!< array of particle body ids
-    unsigned int *d_member_tag;  //!< array to which global tags of local group members are written
-    };
-
-#ifdef NVCC
-#include<thrust/copy.h>
-#include<thrust/iterator/zip_iterator.h>
-
-
-//! GPU method for selecting global particle tags that are present in the local particle data
-/*! \param sel_args standard arguments for this selector
-    \param params parameters for the selection rule
-*/
-template<class rule>
-cudaError_t gpu_apply_particle_selection_rule(selector_args sel_args,
-                                              const typename rule::param_type params)
-    {
-    assert(sel_args.d_pos);
-    assert(sel_args.d_tag);
-    assert(sel_args.d_body);
-    assert(sel_args.d_member_tag);
-    assert(sel_args.N > 0);
-
-    thrust::device_ptr<float4> pos_ptr(sel_args.d_pos);
-    thrust::device_ptr<unsigned int> tag_ptr(sel_args.d_tag);
-    thrust::device_ptr<unsigned int> body_ptr(sel_args.d_body);
-    thrust::device_ptr<unsigned int> member_tag_ptr(sel_args.d_member_tag);
-
-    sel_args.num_members = thrust::copy_if(tag_ptr,
-                        tag_ptr + sel_args.N,
-                        thrust::make_zip_iterator( thrust::make_tuple(tag_ptr, body_ptr, pos_ptr )),
-                        member_tag_ptr, rule(params)) - member_tag_ptr;
-    return cudaSuccess;
-    }
-#endif
-
 //! GPU method for rebuilding the index list of a ParticleGroup
 cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int num_members,
@@ -129,13 +71,5 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_rtag);
 
-
-//! Implementation of GPU code for ParticleSelectorGlobalTagListGPU
-cudaError_t gpu_particle_selector_tag_list(const unsigned int num_global_members,
-                                           const unsigned int N,
-                                           unsigned int *d_tag,
-                                           unsigned int *d_global_member_tags,
-                                           unsigned int& num_local_members,
-                                           unsigned int *d_member_tags);
 
 #endif

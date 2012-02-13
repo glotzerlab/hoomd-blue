@@ -256,8 +256,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     BOOST_CHECK_EQUAL_UINT(tags04.getIndexArray().getNumElements(), 5);
     for (unsigned int i = 0; i < 5; i++)
         {
-        // FIXME: currently getMemberTag is not supported
- //        BOOST_CHECK_EQUAL_UINT(tags04.getMemberTag(i), i);
+        BOOST_CHECK_EQUAL_UINT(tags04.getMemberTag(i), i);
         // indices are in sorted order (tags 0-4 are particles 9-5)
         BOOST_CHECK_EQUAL_UINT(tags04.getMemberIndex(i), i + 5);
         }
@@ -436,7 +435,6 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(4), 9);
     }
 
-#if 0
 //! Checks that ParticleGroup can initialize by cuboid
 BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
     {
@@ -473,7 +471,6 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
     BOOST_CHECK_EQUAL_UINT(tags2.getMemberTag(1), 1);
     BOOST_CHECK_EQUAL_UINT(tags2.getMemberTag(2), 2);
     }
-#endif
 
 //! Checks that the ParticleGroup boolean operation work correctly
 BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)

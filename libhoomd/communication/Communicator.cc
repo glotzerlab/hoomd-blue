@@ -317,6 +317,8 @@ void Communicator::migrateAtoms()
             // FIXME: need to resize send buffer if necessary
             ArrayHandle<char> h_sendbuf(m_sendbuf[dir], access_location::host, access_mode::overwrite);
 
+            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+
             for (unsigned int i = 0;  i<  n_send_ptls; i++)
                 {
                 unsigned int idx = m_pdata->getN() + i;
@@ -332,6 +334,9 @@ void Communicator::migrateAtoms()
                 p.body = h_body.data[idx];
                 p.orientation = h_orientation.data[idx];
                 p.global_tag = h_global_tag.data[idx];
+
+                // Reset the global rtag for the particle we are sending to indicate it is no longer local
+                h_global_rtag.data[idx] = NOT_LOCAL;
 
                 ( (pdata_element *) h_sendbuf.data)[i] = p;
                 }

@@ -50,10 +50,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include<thrust/iterator/permutation_iterator.h>
-#include<thrust/iterator/constant_iterator.h>
-#include<thrust/fill.h>
-#include<thrust/set_operations.h>
+#include <thrust/fill.h>
+#include <thrust/copy.h>
+#include <thrust/scatter.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/constant_iterator.h>
+
+#include "ParticleData.cuh"
 
 #ifdef WIN32
 #include <cassert>
@@ -64,6 +67,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file ParticleGroup.cu
     \brief Contains GPU kernel code used by ParticleGroup
 */
+
+//! Predicate to select particles that are local
+struct is_local
+    {
+    unsigned int *d_rtag; //!< device array of global reverse lookup tags
+
+    //! Constructor
+    /*!
+     */
+    is_local(unsigned int *_d_rtag) : d_rtag(_d_rtag) { }
+
+    //! Return true if particle is local
+    /*! \param tag Tag of particle to check
+     */
+    __host__ __device__ bool operator() (const unsigned int & tag)
+        {
+        return (d_rtag[tag] != NOT_LOCAL);
+        }
+    };
+
+//! Predicate to check if particle is member
+struct is_member
+    {
+    //! Returns true if argument (is_member) is one
+    __host__ __device__ bool operator() (const unsigned char & is_member)
+        {
+        return (is_member == 1);
+        }
+    };
 
 //! GPU method for rebuilding the index list of a ParticleGroup
 /*! \param N number of local particles
@@ -89,54 +121,26 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
     thrust::device_ptr<unsigned int> member_idx_ptr(d_member_idx);
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
+
+
     // clear membership flags
     thrust::fill(is_member_ptr, is_member_ptr + N, 0);
 
+    // set membership flags
+    thrust::constant_iterator<unsigned int> const_one(1);
     thrust::permutation_iterator<thrust::device_ptr<unsigned int>, thrust::device_ptr<unsigned int> > member_indices(rtag_ptr, member_tag_ptr);
 
+    thrust::scatter_if(const_one,
+                       const_one + num_members,
+                       member_indices,
+                       member_tag_ptr,
+                       is_member_ptr,
+                       is_local(d_rtag));
+
+    thrust::counting_iterator<unsigned int> idx(0);
     // fill member_idx array
-    thrust::copy(member_indices, member_indices + num_members, member_idx_ptr);
-
-    // set membership flags
-    thrust::constant_iterator<int> const_one(1);
-    thrust::scatter(const_one, const_one + num_members, member_indices, is_member_ptr);
+    thrust::copy_if(idx, idx + N, is_member_ptr, member_idx_ptr, is_member());
 
     return cudaSuccess;
     }
 
-//! Implementation of GPU code for ParticleSelectorGlobalTagListGPU
-/*! \param num_global_members Global number of members
-    \param N number of local particles
-    \param d_tag Array of global particle tags of local particles
-    \param d_global_member_tags Array of global particle tags that are members of the group
-    \param d_member_tags Array to fill with local member tags that are also group members
-    \param num_local_members Number of local members (return value)
-
-    \pre d_member_tags has to be allocated with sufficient capacity (i.e. for a maximum of N
-         members)
-
-    \post d_member_tags will contain the intersection of d_global_member_tags and d_tag,
-          and num_local_members will contain the size of the intersection
- */
-cudaError_t gpu_particle_selector_tag_list(const unsigned int num_global_members,
-                                           const unsigned int N,
-                                           unsigned int *d_tag,
-                                           unsigned int *d_global_member_tags,
-                                           unsigned int & num_local_members,
-                                           unsigned int *d_member_tags)
-    {
-    assert(N>0);
-    assert(d_tag);
-    assert(d_global_member_tags);
-    assert(d_member_tags);
-
-    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> global_member_tags_ptr(d_global_member_tags);
-    thrust::device_ptr<unsigned int> member_tags_ptr(d_member_tags);
-    num_local_members = thrust::set_intersection(tag_ptr,
-                             tag_ptr+N,
-                             global_member_tags_ptr,
-                             global_member_tags_ptr+num_global_members,
-                             member_tags_ptr) - member_tags_ptr;
-    return cudaSuccess;
-    }

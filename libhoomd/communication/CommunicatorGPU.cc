@@ -146,7 +146,15 @@ void CommunicatorGPU::migrateAtoms()
                                m_pdata->getBoxGPU(),
                                dir);
 
+        // Update number of particles in system
         m_pdata->removeParticles(n_send_ptls);
+
+        // Reset reverse lookup tags of removed particles
+        ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
+
+        gpu_migrate_reset_rtags(n_send_ptls,
+                                d_global_tag.data + m_pdata->getN(),
+                                d_global_rtag.data);
 
         if (m_prof)
             m_prof->pop();
