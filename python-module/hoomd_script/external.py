@@ -446,3 +446,4 @@ class periodic(_external_force):
         p = coeff['p'];
 
         return hoomd.make_scalar4(hoomd.int_as_scalar(i), A, w, hoomd.int_as_scalar(p));
+

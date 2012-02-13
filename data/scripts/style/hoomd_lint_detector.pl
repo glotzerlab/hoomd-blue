@@ -137,6 +137,12 @@ sub wanted
         return;
         }
     
+    # skip processing if this file is in the build
+    if ($File::Find::name =~ /\/build\//)
+        {
+        return;
+        }
+    
     # skip processing if this file is in the microbenchmarks directory
     if ($File::Find::name =~ /\/microbenchmarks\//)
         {

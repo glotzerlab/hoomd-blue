@@ -179,3 +179,4 @@ cudaError_t gpu_compute_external_forces(const external_potential_args_t& externa
 #endif
 
 #endif // __POTENTIAL_PAIR_GPU_CUH__
+
