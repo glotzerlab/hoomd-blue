@@ -186,7 +186,7 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
         float4 net_force = d_net_force[idx];
         Scalar3 accel = make_scalar3(net_force.x,net_force.y,net_force.z);
         // MEM TRANSFER: 4 bytes   FLOPS: 3
-        float mass = d_vel[idx].w;
+        float mass = vel.w;
         float minv = 1.0f / mass;
         accel.x = (accel.x + bd_force.x) * minv;
         accel.y = (accel.y + bd_force.y) * minv;
