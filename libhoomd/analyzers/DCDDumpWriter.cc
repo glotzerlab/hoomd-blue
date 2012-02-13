@@ -71,9 +71,9 @@ using namespace boost::filesystem;
 using namespace boost::python;
 using namespace std;
 
-//! File position of NFILE in DCD header
+// File position of NFILE in DCD header
 #define NFILE_POS 8L
-//! File position of NSTEP in DCD header
+// File position of NSTEP in DCD header
 #define NSTEP_POS 20L
 
 //! simple helper function to write an integer

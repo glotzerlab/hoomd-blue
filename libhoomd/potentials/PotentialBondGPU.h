@@ -48,6 +48,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
+
 #ifndef __POTENTIAL_BOND_GPU_H__
 #define __POTENTIAL_BOND_GPU_H__
 
@@ -204,3 +206,4 @@ template < class T, class Base > void export_PotentialBondGPU(const std::string&
 
 #endif // ENABLE_CUDA
 #endif // __POTENTIAL_PAIR_GPU_H__
+

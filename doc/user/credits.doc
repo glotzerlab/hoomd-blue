@@ -113,6 +113,14 @@ Peter Palm, Jens Glaser, Leipzig University
 
 Jens Glaser, University of Minnesota
  - Dynamic addition/removal of bonds
+ - Computation of virial and pressure tensor
+ - integrate.nph
+ - Framework for external potentials
+ - external.periodic
+
+Pavani Medapuram, University of Minnesota
+ - Framework for external potentials
+ - external.periodic
 
 Brandon D. Smith, University of Michigan
  - integrate.berendsen

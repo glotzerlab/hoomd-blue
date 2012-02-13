@@ -97,6 +97,7 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+	pdata_3->setFlags(~PDataFlags(0));
 
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_3->setPosition(1,make_scalar3(1.0,0.0,0.0));
@@ -187,6 +188,7 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     // also test the ability of the force compute to use different particle types
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    pdata_6->setFlags(~PDataFlags(0));
     
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
     pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
@@ -292,7 +294,8 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+    pdata->setFlags(~PDataFlags(0));
+
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
@@ -363,6 +366,7 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     // this 2-particle test is just to get a plot of the potential and force vs r cut
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    pdata_2->setFlags(~PDataFlags(0));
     
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(2.8,0.0,0.0));

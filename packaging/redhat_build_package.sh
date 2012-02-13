@@ -9,11 +9,12 @@
 # 0 0 * * * $HOME/hoomd-blue/packaging/redhat_build_package.sh >> $HOME/redhat_package_build.out 2>&1
 #
 # If this script is invoked automatically (as via crontab) from $HOME/hoomd-blue/packaging/
-# then updates in hoomd-blue master will take two subsequent runs to take effect.
+# then updates in hoomd-blue git will take two subsequent runs to take effect.
 #
 # Use the -f flag to prevent the script from performing an automatic update
 # of itself and the Makefile.
 #
+BRANCH=master
 PATH=/bin:/usr/bin:$PATH
 # $0 can't be relied upon to identify the name of this script...
 ME=redhat_build_package.sh
@@ -36,7 +37,7 @@ echo "$0 running at "`date`
 
 cd $HOME/hoomd-blue
 git fetch
-git checkout master
+git checkout ${BRANCH}
 git pull --ff-only
 cd packaging
 
@@ -65,7 +66,7 @@ else
     cp -R SPECS $HOME/nightly-build/
     cd $HOME/nightly-build
 
-    make rpm VERSION=${HVERSION_BASE} RELEASE=${HREVISION} REFSPEC=master $QUIET || exit
+    make rpm VERSION=${HVERSION_BASE} RELEASE=${HREVISION} REFSPEC=${BRANCH} $QUIET || exit
     #set the version we just built in rh_old_revsion so it won't be built again
     echo $new_rev > $HOME/rh_old_revsion
     #move files to be uploaded

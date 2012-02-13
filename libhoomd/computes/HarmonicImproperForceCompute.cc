@@ -67,7 +67,7 @@ using namespace boost::python;
 
 using namespace std;
 
-//! SMALL a relatively small number
+// SMALL a relatively small number
 #define SMALL 0.001f
 
 /*! \file HarmonicImproperForceCompute.cc

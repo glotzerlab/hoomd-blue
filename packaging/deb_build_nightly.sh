@@ -1,7 +1,9 @@
+BRANCH=master
+
 #update our codebase
 cd  ../
 git fetch
-git checkout master
+git checkout ${BRANCH}
 git pull --ff-only
 
 #check  the previous version built

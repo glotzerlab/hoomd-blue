@@ -95,6 +95,7 @@ Table of contents:
    - \ref sec_index_charge
    - \ref sec_index_wall
    - \ref sec_index_constraint
+   - \ref sec_index_external
    - \ref sec_index_other
 
  - Helpers
@@ -197,7 +198,10 @@ Table of contents:
 \section sec_index_constraint Constraint forces
  - \link hoomd_script.constrain.sphere constrain.sphere\endlink - <i>Constrain particles to the surface of a sphere </i>
 
-\section sec_index_other Other forces
+ \section sec_index_external External forces
+ - \link hoomd_script.external.periodic external.periodic\endlink - <i>One-dimension periodic potential</i>
+
+ \section sec_index_other Other forces
  - \link hoomd_script.force.constant force.constant\endlink - <i>Constant %force </i>
 
 

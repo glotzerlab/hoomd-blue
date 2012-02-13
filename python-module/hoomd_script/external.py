@@ -397,7 +397,7 @@ class _external_force(force._force):
 _external_force.cur_id = 0;
 
 
-## Constrain particles to the surface of a sphere
+## One-dimension periodic potential
 #
 # The command %periodic specifies that an external %force should be
 # added to every particle in the simulation to induce a periodic modulation
@@ -446,3 +446,4 @@ class periodic(_external_force):
         p = coeff['p'];
 
         return hoomd.make_scalar4(hoomd.int_as_scalar(i), A, w, hoomd.int_as_scalar(p));
+

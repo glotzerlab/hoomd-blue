@@ -334,6 +334,11 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
                 h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
 
             }
+        else
+            {
+            cerr << endl << "***Error! << " << evaluator::getName() << " bond out of bounds" << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
         }
 
     if (m_prof) m_prof->pop();
@@ -352,3 +357,4 @@ template < class T > void export_PotentialBond(const std::string& name)
     }
 
 #endif
+

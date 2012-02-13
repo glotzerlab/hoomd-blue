@@ -78,3 +78,4 @@ typedef PotentialExternalGPU<EvaluatorExternalLamellar, gpu_compute_lamellar_for
 #endif
 
 #endif // __EXTERNAL_POTENTIALS_H__
+

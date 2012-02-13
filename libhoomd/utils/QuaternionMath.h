@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
 #else
@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // call different optimized cos functions on the host / device
-//! __COS is __cosf when included in nvcc and cos when included into the host compiler
+// __COS is __cosf when included in nvcc and cos when included into the host compiler
 #ifdef NVCC
 #define __COS __cosf
 #else
@@ -72,7 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // call different optimized sin functions on the host / device
-//! __SIN is __sinf when included in nvcc and sin when included into the host compiler
+// __SIN is __sinf when included in nvcc and sin when included into the host compiler
 #ifdef NVCC
 #define __SIN __sinf
 #else
@@ -80,7 +80,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // call different optimized sqrt functions on the host / device
-//! RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
+// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
 #ifdef NVCC
 #define RSQRT(x) rsqrtf( (x) )
 #else

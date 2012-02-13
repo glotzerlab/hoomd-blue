@@ -67,8 +67,7 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param SMALL a relatively small number
-*/
+// \param SMALL a relatively small number
 #define SMALL 0.001f
 
 /*! \file CGCMMAngleForceCompute.cc

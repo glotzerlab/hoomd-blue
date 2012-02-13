@@ -74,11 +74,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cudacpu_vector_types.h"
 #include "cudacpu_vector_functions.h"
 
+//! Define complex type
 typedef float2 cufftComplex;
 #endif
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc
-//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__
 #else
@@ -200,6 +201,7 @@ inline double rintf(float x)
     return floorf(x+.5f);
     }
 
+//! Test if number is finite
 inline int isfinite(float x)
     {
     return _finite(x);

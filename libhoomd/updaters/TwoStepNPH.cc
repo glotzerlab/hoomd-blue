@@ -143,8 +143,6 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         m_state_initialized = true;
         }
 
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
     /* perform the first half step of the explicitly reversible NPH integration scheme.
 

@@ -97,6 +97,7 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    pdata_3->setFlags(~PDataFlags(0));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -188,7 +189,8 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+    pdata->setFlags(~PDataFlags(0));
+
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairYukawa> fc1 = yukawa_creator1(sysdef, nlist);

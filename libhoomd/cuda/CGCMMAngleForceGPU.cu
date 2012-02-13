@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-//! small number. cutoff for igoring the angle as being ill defined.
+// small number. cutoff for igoring the angle as being ill defined.
 #define SMALL 0.001f
 
 /*! \file CGCMMAngleForceGPU.cu

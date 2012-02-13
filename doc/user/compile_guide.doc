@@ -245,6 +245,7 @@ plugin_name.whatever(...)
 For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin 
 that incorporates such code, 'make install' hoomd as normal. Then copy the
 directory hoomd_install_location/share/hoomd/plugin_template_cpp to a new working space and modify it to implement your
-plugin. See the README file in that directory for full documentation.
+plugin. See the README file in that directory for full documentation. Examples of new pair and bond potentials
+are available in hoomd_install_location/share/hoomd/plugin_template_evaluators_ext
 
 */

@@ -48,6 +48,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander / Anyone is free to add their own pair potentials here
+
 /*! \file AllDriverPotentialBondGPU.cu
     \brief Defines the driver functions for computing all types of bond forces on the GPU
 */
@@ -73,3 +75,4 @@ cudaError_t gpu_compute_fene_forces(const bond_args_t& bond_args,
                                                      d_params,
                                                      d_flags);
     }
+

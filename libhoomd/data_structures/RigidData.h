@@ -188,6 +188,11 @@ class RigidData
             {
             return m_orientation;
             }
+        //! Get m_conjqm
+        const GPUArray<Scalar4>& getConjqm()
+            {
+            return m_conjqm;
+            }
         //! Get m_angmom
         const GPUArray<Scalar4>& getAngMom()
             {
@@ -442,6 +447,7 @@ class RigidData
         GPUArray<Scalar4> m_angmom;         //!< n_bodies length 1D array of angular momentum in the space frame
         GPUArray<Scalar4> m_angvel;         //!< n_bodies length 1D array of angular velocity in the space frame
         GPUArray<Scalar4> m_orientation;    //!< n_bodies length 1D array of orientation quaternions
+        GPUArray<Scalar4> m_conjqm;         //!< n_bodies length 1D array of conjugate momenta of orientation quaternion
         GPUArray<Scalar4> m_ex_space;       //!< n_bodies length 1D array of the x axis of the body frame in the space frame
         GPUArray<Scalar4> m_ey_space;       //!< n_bodies length 1D array of the y axis of the body frame in the space frame
         GPUArray<Scalar4> m_ez_space;       //!< n_bodies length 1D array of the z axis of the body frame in the space frame

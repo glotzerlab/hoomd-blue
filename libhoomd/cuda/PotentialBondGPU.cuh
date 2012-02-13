@@ -48,6 +48,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
+
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 #include "BondData.cuh"
@@ -123,7 +125,7 @@ struct bond_args_t
     \param blist List of bonds stored on the GPU
     \param n_bond_type number of bond types
     \param d_params Parameters for the potential, stored per bond type
-    \param d_checkr Flag allocated on the device for use in checking for bonds that are too long
+    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be evaluated
 
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
@@ -142,7 +144,7 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
                                                gpu_bondtable_array blist,
                                                const unsigned int n_bond_type,
                                                const typename evaluator::param_type *d_params,
-                                               unsigned int *d_checkr)
+                                               unsigned int *d_flags)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -187,13 +189,8 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
         // MEM TRANSFER: 8 bytes
-        // the volatile fails to compile in device emulation mode
-#ifdef _DEVICEEMU
-        uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx];
-#else
         // the volatile is needed to force the compiler to load the uint2 coalesced
         volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx];
-#endif
 
         int cur_bond_idx = cur_bond.x;
         int cur_bond_type = cur_bond.y;
@@ -254,9 +251,10 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
             // energy is double counted: multiply by 0.5
             force.w += bond_eng * 0.5f;
             }
-        else {
-            *d_checkr = 1;
-             }
+        else
+            {
+            *d_flags = 1;
+            }
         }
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
@@ -302,3 +300,4 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
 #endif
 
 #endif // __POTENTIAL_BOND_GPU_CUH__
+

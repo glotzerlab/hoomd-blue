@@ -1,3 +1,5 @@
+BRANCH=master
+
 echo "--- Building nightly Mac OS X hoomd package on `date`"
 
 # get up to the root of the tree
@@ -6,7 +8,7 @@ cd ..
 
 # update to the latest rev
 git fetch
-git checkout master
+git checkout ${BRANCH}
 git pull --ff-only
 
 new_rev=`git describe`

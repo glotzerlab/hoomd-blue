@@ -97,6 +97,7 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+	pdata_3->setFlags(~PDataFlags(0));
     
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_3->setPosition(1,make_scalar3(1.0,0.0,0.0));
@@ -187,7 +188,8 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+    pdata->setFlags(~PDataFlags(0));
+
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<PotentialPairEwald> fc1 = ewald_creator1(sysdef, nlist);
