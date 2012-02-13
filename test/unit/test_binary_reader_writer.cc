@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_CHECK_EQUAL(h_vel.data[3].y, vy3);
     BOOST_CHECK_EQUAL(h_vel.data[1].z, vz1);
 
-    BOOST_CHECK_EQUAL(__scalar_as_int(h_pos.data[1].w), (unsigned int)type1);
+    BOOST_CHECK_EQUAL((unsigned int)__scalar_as_int(h_pos.data[1].w), (unsigned int)type1);
 
     }
     {
