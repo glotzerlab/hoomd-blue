@@ -206,7 +206,8 @@ struct BoxDim
 const unsigned int NO_BODY = 0xffffffff;
 
 //! Handy structure for passing around per-particle data
-//! data is stored in tag order, and restored in sorted order
+/* TODO: document me
+*/
 struct SnapshotParticleData {
     //! constructor
     //! \param N number of particles to allocate memory for
@@ -364,13 +365,7 @@ class ParticleDataInitializer
 //! Manages all of the data arrays for the particles
 /*! ParticleData stores and manages particle coordinates, velocities, accelerations, type,
     and tag information. This data must be available both via the CPU and GPU memories.
-    All copying of data back and forth from the GPU is accomplished transparently. To access
-    the particle data for read-only purposes: call acquireReadOnly() for CPU access or
-    acquireReadOnlyGPU() for GPU access. Similarly, if any values in the data are to be
-    changed, data pointers can be gotten with: acquireReadWrite() for the CPU and
-    acquireReadWriteGPU() for the GPU. A single ParticleData cannot be acquired multiple
-    times without releasing it. Call release() to do so. An assert() will fail in debug
-    builds if the ParticleData is acquired more than once without being released.
+    All copying of data back and forth from the GPU is accomplished transparently by GPUArray.
 
     For performance reasons, data is stored as simple arrays. Once a handle to the particle data
     GPUArrays has been acquired, the coordinates of the particle with
@@ -378,13 +373,20 @@ class ParticleDataInitializer
     <code>pos_array_handle.data[i].y</code>, and <code>pos_array_handle.data[i].z</code>
     where \c i runs from 0 to <code>getN()</code>.
 
-    Velocities can similarly be accessed through the members vx,vy, and vz
+    Velocities and other propertys can be accessed in a similar manner.
+    
+    \note Position and type are combined into a single Scalar4 quantity. x,y,z specifies the position and w specifies
+    the type. Use __scalar_as_int() / __int_as_scalar() (or __int_as_float() / __float_as_int()) to extract / set
+    this integer that is masquerading as a scalar.
+    
+    \note Velocity and mass are combined into a single Scalar4 quantity. x,y,z specifies the velocity and w specifies
+    the mass.
 
     \warning Particles can and will be rearranged in the arrays throughout a simulation.
     So, a particle that was once at index 5 may be at index 123 the next time the data
     is acquired. Individual particles can be tracked through all these changes by their tag.
-    <code>arrays.tag[i]</code> identifies the tag of the particle that currently has index
-    \c i, and the index of a particle with tag \c tag can be read from <code>arrays.rtag[tag]</code>.
+    <code>tag[i]</code> identifies the tag of the particle that currently has index
+    \c i, and the index of a particle with tag \c tag can be read from <code>rtag[tag]</code>.
 
     In order to help other classes deal with particles changing indices, any class that
     changes the order must call notifyParticleSort(). Any class interested in being notified
@@ -403,12 +405,13 @@ class ParticleDataInitializer
      - pdata_flag::isotropic_virial - specify that the net_virial should be/is computed (getNetVirial)
      - pdata_flag::potential_energy - specify that the potential energy .w component stored in the net force array 
        (getNetForce) is valid
+     - pdata_flag::pressure_tensor - specify that the full virial tensor is valid
        
     If these flags are not set, these arrays can still be read but their values may be incorrect.
     
     If any computation is unable to supply the appropriate values (i.e. rigid body virial can not be computed
     until the second step of the simulation), then it should remove the flag to signify that the values are not valid.
-    Any analyzer/updater that expects the value to be set should 
+    Any analyzer/updater that expects the value to be set should check the flags that are actually set.
     
     \note When writing to the particle data, particles must not be moved outside the box.
     In debug builds, any aquire will fail an assertion if this is done.
