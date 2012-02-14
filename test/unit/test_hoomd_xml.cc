@@ -1219,7 +1219,7 @@ im_b 5 4 3 2\n\
         // string
         ostringstream type_name;
         type_name << 5-i;   // the expected type is the integer 5-i
-        BOOST_CHECK_EQUAL(__scalar_as_int(h_pos.data[i].w), pdata->getTypeByName(type_name.str()));
+        BOOST_CHECK_EQUAL((unsigned int)__scalar_as_int(h_pos.data[i].w), pdata->getTypeByName(type_name.str()));
         BOOST_CHECK_EQUAL(h_tag.data[i], (unsigned int)i);
         BOOST_CHECK_EQUAL(h_rtag.data[i], (unsigned int)i);
 
