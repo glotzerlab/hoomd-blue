@@ -39,6 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: jglaser
+
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include "ForceCompute.h"

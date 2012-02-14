@@ -48,6 +48,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
+
 #include "ParticleData.cuh"
 #include "HOOMDMath.h"
 
