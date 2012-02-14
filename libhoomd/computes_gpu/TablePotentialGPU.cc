@@ -124,7 +124,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
-    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // access the table data
@@ -138,7 +138,8 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     gpu_compute_table_forces(d_force.data,
                              d_virial.data,
                              m_virial.getPitch(),
-                             pdata,
+                             m_pdata->getN(),
+                             d_pos.data,
                              box,
                              d_n_neigh.data,
                              d_nlist.data,
@@ -152,8 +153,6 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
-    m_pdata->release();
-   
     if (m_prof) m_prof->pop(exec_conf);
     }
 

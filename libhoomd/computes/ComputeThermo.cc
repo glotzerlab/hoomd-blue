@@ -167,7 +167,7 @@ void ComputeThermo::computeProperties()
     assert(m_ndof != 0);
     
     // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
     // access the net force, pe, and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -193,12 +193,13 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            pressure_kinetic_xx += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vx[j] );
-            pressure_kinetic_xy += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vy[j] );
-            pressure_kinetic_xz += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vz[j] );
-            pressure_kinetic_yy += (double)arrays.mass[j]*(  (double)arrays.vy[j] * (double)arrays.vy[j] );
-            pressure_kinetic_yz += (double)arrays.mass[j]*(  (double)arrays.vy[j] * (double)arrays.vz[j] );
-            pressure_kinetic_zz += (double)arrays.mass[j]*(  (double)arrays.vz[j] * (double)arrays.vz[j] );
+            double mass = h_vel.data[j].w;
+            pressure_kinetic_xx += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].x );
+            pressure_kinetic_xy += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].y );
+            pressure_kinetic_xz += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].z );
+            pressure_kinetic_yy += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].y );
+            pressure_kinetic_yz += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].z );
+            pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
             }
 
         // kinetic energy = 1/2 trace of kinetic part of pressure tensor
@@ -210,9 +211,10 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            ke_total += (double)arrays.mass[j]*(  (double)arrays.vx[j] * (double)arrays.vx[j]
-                                                + (double)arrays.vy[j] * (double)arrays.vy[j]
-                                                + (double)arrays.vz[j] * (double)arrays.vz[j]);
+            ke_total += (double)h_vel.data[j].w*( (double)h_vel.data[j].x * (double)h_vel.data[j].x
+                                                + (double)h_vel.data[j].y * (double)h_vel.data[j].y
+                                                + (double)h_vel.data[j].z * (double)h_vel.data[j].z);
+
             }
 
         ke_total *= Scalar(0.5);
@@ -268,8 +270,6 @@ void ComputeThermo::computeProperties()
                                  (double)h_net_virial.data[j+5*virial_pitch] );
             }
         }
-
-    m_pdata->release();
 
     // compute the temperature
     Scalar temperature = Scalar(2.0) * Scalar(ke_total) / Scalar(m_ndof);

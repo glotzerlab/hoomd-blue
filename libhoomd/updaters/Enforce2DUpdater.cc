@@ -91,19 +91,18 @@ void Enforce2DUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->push("Enforce2D");
     
     assert(m_pdata);
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    
-    // zero the z-positions and z-velocities:
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+
+    // zero the z-velocities and z-accelerations:
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        arrays.vz[i] = Scalar(0.0);
-        arrays.az[i] = Scalar(0.0);
+        h_vel.data[i].z = Scalar(0.0);
+        h_accel.data[i].z = Scalar(0.0);
         }
 
     // for rigid bodies, zero x / y components of omega/angmom/torque:
 
-    m_pdata->release();
-    
     if (m_prof) m_prof->pop();
     }
 

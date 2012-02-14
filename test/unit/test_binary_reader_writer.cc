@@ -99,33 +99,37 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
     
     // set recognizable values for the particle
-    const ParticleDataArrays array = pdata1->acquireReadWrite();
     Scalar x0(1.1), y1(2.1234567890123456), z3(-5.76);
-    array.x[0] = x0;
-    array.y[1] = y1;
-    array.z[3] = z3;
-    
     int ix3 = -1, iy1=-5, iz2=6;
-    array.ix[3] = ix3;
-    array.iy[1] = iy1;
-    array.iz[2] = iz2;
-    
     Scalar vx1(-1.4567), vy3(-10.0987654321098765), vz1(56.78);
-    array.vx[1] = vx1;
-    array.vy[3] = vy3;
-    array.vz[1] = vz1;
-    
     Scalar mass2(1.8);
-    array.mass[2] = mass2;
-    
     Scalar diameter3(3.8);
-    array.diameter[3] = diameter3;
-    
     int type1 = 1;
-    array.type[1] = type1;
+    {
+    ArrayHandle<Scalar4> h_pos(pdata1->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata1->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(pdata1->getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(pdata1->getDiameters(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = x0;
+    h_pos.data[1].y = y1;
+    h_pos.data[3].z = z3;
+
+    h_image.data[3].x = ix3;
+    h_image.data[1].y = iy1;
+    h_image.data[2].z = iz2;
+
+    h_vel.data[1].x = vx1;
+    h_vel.data[3].y = vy3;
+    h_vel.data[1].z = vz1;
+
+    h_vel.data[2].w = mass2;
     
-    pdata1->release();
+    h_diameter.data[3] = diameter3;
     
+    h_pos.data[1].w = __int_as_scalar(type1);
+    }
+
     shared_ptr<IntegratorData> idata = sysdef1->getIntegratorData();
     // add some integrator states
     std::string name1 = "nvt", name2 = "langevin";
@@ -189,31 +193,33 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     MY_BOOST_CHECK_CLOSE(pdata2->getBox().xhi - pdata1->getBox().xlo, Lx, tol);
     MY_BOOST_CHECK_CLOSE(pdata2->getBox().yhi - pdata1->getBox().ylo, Ly, tol);
     MY_BOOST_CHECK_CLOSE(pdata2->getBox().zhi - pdata1->getBox().zlo, Lz, tol);
-    
-    const ParticleDataArrays array1 = pdata1->acquireReadWrite();
-    BOOST_CHECK_EQUAL(array1.x[0], x0);
-    BOOST_CHECK_EQUAL(array1.y[1], y1);
-    BOOST_CHECK_EQUAL(array1.z[3], z3);
-    BOOST_CHECK_EQUAL(array1.vx[1], vx1);
-    BOOST_CHECK_EQUAL(array1.vy[3], vy3);
-    BOOST_CHECK_EQUAL(array1.vz[1], vz1);
 
-    BOOST_CHECK_EQUAL(array1.type[1], (unsigned int)type1);
+    {
+    ArrayHandle<Scalar4> h_pos(pdata1->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(pdata1->getVelocities(), access_location::host, access_mode::read);
+    BOOST_CHECK_EQUAL(h_pos.data[0].x, x0);
+    BOOST_CHECK_EQUAL(h_pos.data[1].y, y1);
+    BOOST_CHECK_EQUAL(h_pos.data[3].z, z3);
+    BOOST_CHECK_EQUAL(h_vel.data[1].x, vx1);
+    BOOST_CHECK_EQUAL(h_vel.data[3].y, vy3);
+    BOOST_CHECK_EQUAL(h_vel.data[1].z, vz1);
 
-    pdata1->release();
+    BOOST_CHECK_EQUAL((unsigned int)__scalar_as_int(h_pos.data[1].w), (unsigned int)type1);
 
-    const ParticleDataArrays array2 = pdata2->acquireReadWrite();
-    BOOST_CHECK_EQUAL(array2.x[0], x0);
-    BOOST_CHECK_EQUAL(array2.y[1], y1);
-    BOOST_CHECK_EQUAL(array2.z[3], z3);
-    BOOST_CHECK_EQUAL(array2.vx[1], vx1);
-    BOOST_CHECK_EQUAL(array2.vy[3], vy3);
-    BOOST_CHECK_EQUAL(array2.vz[1], vz1);
+    }
+    {
+    ArrayHandle<Scalar4> h_pos(pdata2->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(pdata2->getVelocities(), access_location::host, access_mode::read);
+    BOOST_CHECK_EQUAL(h_pos.data[0].x, x0);
+    BOOST_CHECK_EQUAL(h_pos.data[1].y, y1);
+    BOOST_CHECK_EQUAL(h_pos.data[3].z, z3);
+    BOOST_CHECK_EQUAL(h_vel.data[1].x, vx1);
+    BOOST_CHECK_EQUAL(h_vel.data[3].y, vy3);
+    BOOST_CHECK_EQUAL(h_vel.data[1].z, vz1);
 
-    BOOST_CHECK_EQUAL(array2.type[1], (unsigned int)type1);
+    BOOST_CHECK_EQUAL((unsigned int)__scalar_as_int(h_pos.data[1].w), (unsigned int)type1);
+    }
 
-    pdata2->release();
-    
     //integrator variables check
     IntegratorVariables iv1_0, iv2_0, iv1_1, iv2_1;
     iv1_0 = sysdef1->getIntegratorData()->getIntegratorVariables(0);
@@ -253,12 +259,17 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     
     BOOST_CHECK_EQUAL(init3.getTimeStep(), (unsigned int)10);
 
-    const ParticleDataArrays array3 = pdata3->acquireReadWrite();
-    BOOST_CHECK_EQUAL(array3.mass[2], mass2);
-    BOOST_CHECK_EQUAL(array.diameter[3], diameter3);
-    BOOST_CHECK_EQUAL(array3.ix[3], ix3);
-    BOOST_CHECK_EQUAL(array3.iy[1], iy1);
-    BOOST_CHECK_EQUAL(array3.iz[2], iz2);
+    {
+    ArrayHandle<Scalar4> h_vel(pdata3->getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(pdata3->getImages(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(pdata3->getDiameters(), access_location::host, access_mode::read);
+
+    BOOST_CHECK_EQUAL(h_vel.data[2].w, mass2);
+    BOOST_CHECK_EQUAL(h_diameter.data[3], diameter3);
+    BOOST_CHECK_EQUAL(h_image.data[3].x, ix3);
+    BOOST_CHECK_EQUAL(h_image.data[1].y, iy1);
+    BOOST_CHECK_EQUAL(h_image.data[2].z, iz2);
+    }
 
     remove_all("test.0000000000.bin");
     remove_all("test.0000000010.bin");

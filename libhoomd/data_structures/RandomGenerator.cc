@@ -493,20 +493,19 @@ BoxDim RandomGenerator::getBox() const
     }
 
 
-void RandomGenerator::initArrays(const ParticleDataArrays &pdata) const
+/*! initializes a snapshot with the internally stored copy of the particle data */
+void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
     {
-    for (unsigned int i = 0; i < pdata.nparticles; i++)
+    unsigned int nparticles = m_data.m_particles.size();
+    assert(snapshot.size == nparticles);
+
+    for (unsigned int i = 0; i < nparticles; i++)
         {
-        pdata.x[i] = m_data.m_particles[i].x;
-        pdata.y[i] = m_data.m_particles[i].y;
-        pdata.z[i] = m_data.m_particles[i].z;
-        pdata.ix[i] = m_data.m_particles[i].ix;
-        pdata.iy[i] = m_data.m_particles[i].iy;
-        pdata.iz[i] = m_data.m_particles[i].iz;
-        pdata.type[i] = m_data.m_particles[i].type_id;
+        snapshot.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
+        snapshot.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
+        snapshot.type[i] = m_data.m_particles[i].type_id;
         
-        pdata.tag[i] = i;
-        pdata.rtag[i] = i;
+        snapshot.rtag[i] = i;
         }
     }
 

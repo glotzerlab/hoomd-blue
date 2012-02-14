@@ -268,10 +268,10 @@ class RandomGenerator : public ParticleDataInitializer
         
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
-        
-        //! Initializes the particle data arrays
-        virtual void initArrays(const ParticleDataArrays &pdata) const;
-        
+
+        //! initializes a snapshot with the particle data
+        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
+
         //! Initialize the type name mapping
         std::vector<std::string> getTypeMapping() const;
         

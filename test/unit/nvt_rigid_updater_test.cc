@@ -140,25 +140,28 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
     unsigned int seed = 10483;
     boost::shared_ptr<Saru> random = boost::shared_ptr<Saru>(new Saru(seed));
     Scalar KE = Scalar(0.0);
-    
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     
     // initialize bodies in a cubic lattice with some velocity profile
     for (unsigned int i = 0; i < nbodies; i++)
         {
         for (unsigned int j = 0; j < nparticlesperbody; j++)
             {
-            arrays.x[iparticle] = x0 + 1.0 * j;
-            arrays.y[iparticle] = y0 + 0.0;
-            arrays.z[iparticle] = z0 + 0.0;
+            h_pos.data[iparticle].x = x0 + 1.0 * j;
+            h_pos.data[iparticle].y = y0 + 0.0;
+            h_pos.data[iparticle].z = z0 + 0.0;
             
-            arrays.vx[iparticle] = random->d();
-            arrays.vy[iparticle] = random->d();
-            arrays.vz[iparticle] = random->d();
+            h_vel.data[iparticle].x = random->d();
+            h_vel.data[iparticle].y = random->d();
+            h_vel.data[iparticle].z = random->d();
             
-            KE += Scalar(0.5) * (arrays.vx[iparticle]*arrays.vx[iparticle] + arrays.vy[iparticle]*arrays.vy[iparticle] + arrays.vz[iparticle]*arrays.vz[iparticle]);
+            KE += Scalar(0.5) * (h_vel.data[iparticle].x*h_vel.data[iparticle].x + h_vel.data[iparticle].x*h_vel.data[iparticle].y + h_vel.data[iparticle].z*h_vel.data[iparticle].z);
             
-            arrays.body[iparticle] = ibody;
+            h_body.data[iparticle] = ibody;
             
             iparticle++;
             }
@@ -184,7 +187,7 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
         
     assert(iparticle == N);
     
-    pdata->release();
+    }
     
     Scalar deltaT = Scalar(0.001);
     Scalar Q = Scalar(2.0);
@@ -222,15 +225,16 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
     Scalar current_temp = 2.0 * KE / nrigid_dof;
     Scalar factor = sqrt(temperature / current_temp);
     
-    arrays = pdata->acquireReadWrite();
+    {
+    ArrayHandle< Scalar4 > h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     for (unsigned int j = 0; j < N; j++)
         {
-        arrays.vx[j] *= factor;
-        arrays.vy[j] *= factor;
-        arrays.vz[j] *= factor;
+        h_vel.data[j].x *= factor;
+        h_vel.data[h].y *= factor;
+        h_vel.data[j].z *= factor;
         }
         
-    pdata->release();
+    }
     
     cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
     cout << "Temperature set point: " << temperature << "\n";
@@ -245,16 +249,15 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
         
         if (i % sampling == 0)
             {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle< Scalar4 > h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0.0);
             for (unsigned int j = 0; j < N; j++)
-                KE += Scalar(0.5) * (arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+                KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             PE = fc->calcEnergySum();
             
             current_temp = 2.0 * KE / nrigid_dof;
             printf("%8d\t%12.8g\t%12.8g\t%12.8g\t%12.8g\n", i, current_temp, PE / N, KE / N, (PE + KE) / N);
             
-            pdata->release();
             }
         }
         
@@ -263,18 +266,18 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
     printf("Elapased time: %f sec or %f TPS\n", elapsed, (double)steps / elapsed);
     
     // Output coordinates
-    arrays = pdata->acquireReadWrite();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
     FILE *fp = fopen("test_energy_nvt.xyz", "w");
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[i], arrays.y[i], arrays.z[i]);
+    fprintf(fp, "%d\n%f\t%f\t%f\n", pdata->getN(), Lx, Ly, Lz);
+    for (unsigned int i = 0; i < pdta->getN(); i++)
+        fprintf(fp, "N\t%f\t%f\t%f\n", h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         
     fclose(fp);
-    pdata->release();
+    }
     
     }
 

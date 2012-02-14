@@ -97,100 +97,111 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
     // set recognizable values for the particle
-    const ParticleDataArrays array = pdata->acquireReadWrite();
-    array.x[0] = Scalar(1.5);
-    array.y[0] = Scalar(2.5);
-    array.z[0] = Scalar(-5.5);
-    
-    array.ix[0] = -1;
-    array.iy[0] = -5;
-    array.iz[0] = 6;
-    
-    array.vx[0] = Scalar(-1.5);
-    array.vy[0] = Scalar(-10.5);
-    array.vz[0] = Scalar(56.5);
-    
-    array.mass[0] = Scalar(1.5);
-    
-    array.diameter[0] = Scalar(3.5);
-    
-    array.type[0] = 3;
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(pdata->getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::readwrite);
 
-    array.body[0] = NO_BODY;    
+
+    h_pos.data[0].x = Scalar(1.5);
+    h_pos.data[0].y = Scalar(2.5);
+    h_pos.data[0].z = Scalar(-5.5);
+    
+    h_image.data[0].x = -1;
+    h_image.data[0].y = -5;
+    h_image.data[0].z = 6;
+    
+    h_vel.data[0].x = Scalar(-1.5);
+    h_vel.data[0].y = Scalar(-10.5);
+    h_vel.data[0].z = Scalar(56.5);
+    
+    h_vel.data[0].w = Scalar(1.5); //mass
+    
+    h_diameter.data[0] = Scalar(3.5);
+    
+    h_pos.data[0].w = __int_as_scalar(3); //type
+
+    h_body.data[0] = NO_BODY;
     
     I.set(0, 1, 2, 3, 4, 5);
     pdata->setInertiaTensor(0, I);
 
-    array.x[1] = Scalar(1.5);
-    array.y[1] = Scalar(2.5);
-    array.z[1] = Scalar(-3.5);
+    h_pos.data[1].x = Scalar(1.5);
+    h_pos.data[1].y = Scalar(2.5);
+    h_pos.data[1].z = Scalar(-3.5);
     
-    array.ix[1] = 10;
-    array.iy[1] = 500;
-    array.iz[1] = 900;
+    h_image.data[1].x = 10;
+    h_image.data[1].y = 500;
+    h_image.data[1].z = 900;
     
-    array.vx[1] = Scalar(-1.5);
-    array.vy[1] = Scalar(-10.5);
-    array.vz[1] = Scalar(5.5);
+    h_vel.data[1].x = Scalar(-1.5);
+    h_vel.data[1].y = Scalar(-10.5);
+    h_vel.data[1].z = Scalar(5.5);
     
-    array.mass[1] = Scalar(2.5);
+    h_vel.data[1].w = Scalar(2.5); /// mass
     
-    array.diameter[1] = Scalar(4.5);
+    h_diameter.data[1] = Scalar(4.5);
     
-    array.type[1] = 0;
+    h_pos.data[1].w = __int_as_scalar(0);
     
-    array.body[1] = 1;
+    h_body.data[1] = 1;
 
     I.set(5, 4, 3, 2, 1, 0);
     pdata->setInertiaTensor(1, I);
 
-    array.x[2] = Scalar(-1.5);
-    array.y[2] = Scalar(2.5);
-    array.z[2] = Scalar(3.5);
+    h_pos.data[2].x = Scalar(-1.5);
+    h_pos.data[2].y = Scalar(2.5);
+    h_pos.data[2].z = Scalar(3.5);
     
-    array.ix[2] = 10;
-    array.iy[2] = 500;
-    array.iz[2] = 900;
+    h_image.data[2].x = 10;
+    h_image.data[2].y = 500;
+    h_image.data[2].z = 900;
     
-    array.vx[2] = Scalar(-1.5);
-    array.vy[2] = Scalar(-10.5);
-    array.vz[2] = Scalar(5.5);
+    h_vel.data[2].x = Scalar(-1.5);
+    h_vel.data[2].y = Scalar(-10.5);
+    h_vel.data[2].z = Scalar(5.5);
     
-    array.mass[2] = Scalar(2.5);
+    h_vel.data[2].w = Scalar(2.5);
     
-    array.diameter[2] = Scalar(4.5);
+    h_diameter.data[2] = Scalar(4.5);
     
-    array.type[2] = 1;
+    h_pos.data[2].w = __int_as_scalar(1);
     
-    array.body[2] = 1;
+    h_body.data[2] = 1;
     
     I.set(1, 11, 21, 31, 41, 51);
     pdata->setInertiaTensor(2, I);
 
-    array.x[3] = Scalar(-1.5);
-    array.y[3] = Scalar(2.5);
-    array.z[3] = Scalar(3.5);
+    h_pos.data[3].x = Scalar(-1.5);
+    h_pos.data[3].y = Scalar(2.5);
+    h_pos.data[3].z = Scalar(3.5);
     
-    array.ix[3] = 105;
-    array.iy[3] = 5005;
-    array.iz[3] = 9005;
+    h_image.data[3].x = 105;
+    h_image.data[3].y = 5005;
+    h_image.data[3].z = 9005;
     
-    array.vx[3] = Scalar(-1.5);
-    array.vy[3] = Scalar(-10.5);
-    array.vz[3] = Scalar(5.5);
+    h_vel.data[3].x = Scalar(-1.5);
+    h_vel.data[3].y = Scalar(-10.5);
+    h_vel.data[3].z = Scalar(5.5);
     
-    array.mass[3] = Scalar(2.5);
+    h_vel.data[3].w = Scalar(2.5);
     
-    array.diameter[3] = Scalar(4.5);
+    h_diameter.data[3] = Scalar(4.5);
     
-    array.type[3] = 1;
+    h_pos.data[3].w = __int_as_scalar(1);
     
-    array.body[3] = 0;
+    h_body.data[3] = 0;
     
     I.set(51, 41, 31, 21, 11, 1);
     pdata->setInertiaTensor(3, I);
     
-    pdata->release();
+    }
     
     // add a couple walls for fun
     sysdef->getWallData()->addWall(Wall(1,0,0, 0,1,0));
@@ -833,29 +844,39 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     unsigned int tags[6] = { 5, 2, 3, 1, 0, 4 };
     unsigned int rtags[6] = { 4, 3, 1, 2, 5, 0 };
     
+    {
     // set recognizable values for the particle
-    const ParticleDataArrays array = pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(pdata->getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::readwrite);
+
     for (int i = 0; i < 6; i++)
         {
-        array.tag[i] = tags[i];
+        h_tag.data[i] = tags[i];
         unsigned int tag = tags[i];
         
-        array.x[i] = Scalar(tag)+Scalar(0.5);
-        array.y[i] = Scalar(tag)+Scalar(1.5);
-        array.z[i] = Scalar(tag)+Scalar(2.5);
+        h_pos.data[i].x = Scalar(tag)+Scalar(0.5);
+        h_pos.data[i].y = Scalar(tag)+Scalar(1.5);
+        h_pos.data[i].z = Scalar(tag)+Scalar(2.5);
         
-        array.ix[i] = tag - 10;
-        array.iy[i] = tag - 11;
-        array.iz[i] = tag + 50;
+        h_image.data[i].x = tag - 10;
+        h_image.data[i].y = tag - 11;
+        h_image.data[i].z = tag + 50;
         
-        array.vx[i] = Scalar(tag)*Scalar(10.0);
-        array.vy[i] = Scalar(tag)*Scalar(11.0);
-        array.vz[i] = Scalar(tag)*Scalar(12.0);
+        h_vel.data[i].x = Scalar(tag)*Scalar(10.0);
+        h_vel.data[i].y = Scalar(tag)*Scalar(11.0);
+        h_vel.data[i].z = Scalar(tag)*Scalar(12.0);
         
-        array.type[i] = tag + 2;
-        array.rtag[i] = rtags[i];
+        h_pos.data[i].w =__int_as_scalar(tag + 2);
+        h_rtag.data[i] = rtags[i];
         }
-    pdata->release();
+    }
     
     // create the writer
     shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
@@ -1161,36 +1182,46 @@ im_b 5 4 3 2\n\
     MY_BOOST_CHECK_CLOSE(pdata->getBox().yhi - pdata->getBox().ylo, 32.12345, tol);
     MY_BOOST_CHECK_CLOSE(pdata->getBox().zhi - pdata->getBox().zlo, 45.098, tol);
     
-    ParticleDataArraysConst arrays = pdata->acquireReadOnly();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(pdata->getImages(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::read);
+
     for (int i = 0; i < 6; i++)
         {
-        MY_BOOST_CHECK_CLOSE(arrays.x[i], Scalar(i) + Scalar(1.4), tol);
-        MY_BOOST_CHECK_CLOSE(arrays.y[i], Scalar(i) + Scalar(2.567890), tol);
-        MY_BOOST_CHECK_CLOSE(arrays.z[i], Scalar(i) + Scalar(3.45), tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[i].x, Scalar(i) + Scalar(1.4), tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[i].y, Scalar(i) + Scalar(2.567890), tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[i].z, Scalar(i) + Scalar(3.45), tol);
         
-        BOOST_CHECK_EQUAL(arrays.ix[i], 10 + i);
-        BOOST_CHECK_EQUAL(arrays.iy[i], 20 + i);
-        BOOST_CHECK_EQUAL(arrays.iz[i], 30 + i);
+        BOOST_CHECK_EQUAL(h_image.data[i].x, 10 + i);
+        BOOST_CHECK_EQUAL(h_image.data[i].y, 20 + i);
+        BOOST_CHECK_EQUAL(h_image.data[i].z, 30 + i);
         
-        MY_BOOST_CHECK_CLOSE(arrays.vx[i], Scalar(i+1)*Scalar(10.0) + Scalar(0.12), tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vy[i], Scalar(i+1)*Scalar(10.0) + Scalar(2.1567), tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vz[i], Scalar(i+1) + Scalar(0.056), tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[i].x, Scalar(i+1)*Scalar(10.0) + Scalar(0.12), tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[i].y, Scalar(i+1)*Scalar(10.0) + Scalar(2.1567), tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[i].z, Scalar(i+1) + Scalar(0.056), tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.mass[i], Scalar(i+1), tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[i].w, Scalar(i+1), tol); // mass
         
-        MY_BOOST_CHECK_CLOSE(arrays.diameter[i], Scalar(i+7), tol);
+        MY_BOOST_CHECK_CLOSE(h_diameter.data[i], Scalar(i+7), tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.charge[i], Scalar(i)*Scalar(10.0), tol);
+        MY_BOOST_CHECK_CLOSE(h_charge.data[i], Scalar(i)*Scalar(10.0), tol);
         
-        BOOST_CHECK_EQUAL(arrays.body[i], (unsigned int)(i-1));
+        BOOST_CHECK_EQUAL(h_body.data[i], (unsigned int)(i-1));
         
         // checking that the type is correct becomes tricky because types are identified by
         // string
         ostringstream type_name;
         type_name << 5-i;   // the expected type is the integer 5-i
-        BOOST_CHECK_EQUAL(arrays.type[i], pdata->getTypeByName(type_name.str()));
-        BOOST_CHECK_EQUAL(arrays.tag[i], (unsigned int)i);
-        BOOST_CHECK_EQUAL(arrays.rtag[i], (unsigned int)i);
+        BOOST_CHECK_EQUAL((unsigned int)__scalar_as_int(h_pos.data[i].w), pdata->getTypeByName(type_name.str()));
+        BOOST_CHECK_EQUAL(h_tag.data[i], (unsigned int)i);
+        BOOST_CHECK_EQUAL(h_rtag.data[i], (unsigned int)i);
 
         // check the moment_inertia values
         InertiaTensor I;
@@ -1200,7 +1231,7 @@ im_b 5 4 3 2\n\
             MY_BOOST_CHECK_CLOSE(I.components[c], i*10 + c, tol);
             }
         }
-    pdata->release();
+    }
     
     // check the walls
     BOOST_REQUIRE_EQUAL(sysdef->getWallData()->getNumWalls(), (unsigned int)2);

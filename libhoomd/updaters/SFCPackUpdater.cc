@@ -120,82 +120,50 @@ void SFCPackUpdater::applySortOrder()
     {
     assert(m_pdata);
     assert(m_sort_order.size() == m_pdata->getN());
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-    
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
+
     // construct a temporary holding array for the sorted data
-    Scalar *scal_tmp = new Scalar[m_pdata->getN()];
+    Scalar4 *scal4_tmp = new Scalar4[m_pdata->getN()];
     
-    // sort x
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.x[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.x[i] = scal_tmp[i];
+    // sort positions and types
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        scal4_tmp[i] = h_pos.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_pos.data[i] = scal4_tmp[i];
         
-    // sort y
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.y[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.y[i] = scal_tmp[i];
+    // sort velocities and mass
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        scal4_tmp[i] = h_vel.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_vel.data[i] = scal4_tmp[i];
         
-    // sort z
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.z[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.z[i] = scal_tmp[i];
-        
-    // sort vx
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.vx[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.vx[i] = scal_tmp[i];
-        
-    // sort vy
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.vy[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.vy[i] = scal_tmp[i];
-        
-    // sort vz
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.vz[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.vz[i] = scal_tmp[i];
-        
-    // sort ax
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.ax[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.ax[i] = scal_tmp[i];
-        
-    // sort ay
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.ay[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.ay[i] = scal_tmp[i];
-        
-    // sort az
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.az[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.az[i] = scal_tmp[i];
-        
+    Scalar3 *scal3_tmp = new Scalar3[m_pdata->getN()];
+    // sort accelerations
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        scal3_tmp[i] = h_accel.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_accel.data[i] = scal3_tmp[i];
+
+    Scalar *scal_tmp  = new Scalar[m_pdata->getN()];
     // sort charge
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.charge[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.charge[i] = scal_tmp[i];
-        
-    // sort mass
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.mass[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.mass[i] = scal_tmp[i];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        scal_tmp[i] = h_charge.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_charge.data[i] = scal_tmp[i];
         
     // sort diameter
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        scal_tmp[i] = arrays.diameter[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.diameter[i] = scal_tmp[i];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        scal_tmp[i] = h_diameter.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_diameter.data[i] = scal_tmp[i];
     
     // in case anyone access it from frame to frame, sort the net virial
         {
@@ -204,88 +172,71 @@ void SFCPackUpdater::applySortOrder()
 
         for (unsigned int j = 0; j < 6; j++)
             {
-            for (unsigned int i = 0; i < arrays.nparticles; i++)
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 scal_tmp[i] = h_net_virial.data[j*virial_pitch+m_sort_order[i]];
-            for (unsigned int i = 0; i < arrays.nparticles; i++)
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 h_net_virial.data[j*virial_pitch+i] = scal_tmp[i];
             }
         }
 
     // sort net force, net torque, and orientation
-    Scalar4 *scalar4_tmp = new Scalar4[m_pdata->getN()];
         {
         ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
         
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            scalar4_tmp[i] = h_net_force.data[m_sort_order[i]];
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            h_net_force.data[i] = scalar4_tmp[i];
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            scal4_tmp[i] = h_net_force.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            h_net_force.data[i] = scal4_tmp[i];
         }
 
         {
         ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
         
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            scalar4_tmp[i] = h_net_torque.data[m_sort_order[i]];
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            h_net_torque.data[i] = scalar4_tmp[i];
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            scal4_tmp[i] = h_net_torque.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            h_net_torque.data[i] = scal4_tmp[i];
         }
 
         {
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
         
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            scalar4_tmp[i] = h_orientation.data[m_sort_order[i]];
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            h_orientation.data[i] = scalar4_tmp[i];
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            scal4_tmp[i] = h_orientation.data[m_sort_order[i]];
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            h_orientation.data[i] = scal4_tmp[i];
         }
 
-    // sort ix
-    int *int_tmp = new int[m_pdata->getN()];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        int_tmp[i] = arrays.ix[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.ix[i] = int_tmp[i];
+    // sort image
+    int3 *int3_tmp = new int3[m_pdata->getN()];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        int3_tmp[i] = h_image.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_image.data[i] = int3_tmp[i];
         
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        int_tmp[i] = arrays.iy[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.iy[i] = int_tmp[i];
-        
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        int_tmp[i] = arrays.iz[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.iz[i] = int_tmp[i];
-        
-    // sort type
-    unsigned int *uint_tmp = new unsigned int[m_pdata->getN()];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        uint_tmp[i] = arrays.type[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.type[i] = uint_tmp[i];
-    
     // sort body
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        uint_tmp[i] = arrays.body[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.body[i] = uint_tmp[i];
+    unsigned int *uint_tmp = new unsigned int[m_pdata->getN()];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        uint_tmp[i] = h_body.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_body.data[i] = uint_tmp[i];
     
     // sort tag
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        uint_tmp[i] = arrays.tag[m_sort_order[i]];
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.tag[i] = uint_tmp[i];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        uint_tmp[i] = h_tag.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_tag.data[i] = uint_tmp[i];
         
     // rebuild rtag
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        arrays.rtag[arrays.tag[i]] = i;
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_rtag.data[h_tag.data[i]] = i;
         
     delete[] scal_tmp;
-    delete[] scalar4_tmp;
+    delete[] scal4_tmp;
+    delete[] scal3_tmp;
     delete[] uint_tmp;
-    delete[] int_tmp;
+    delete[] int3_tmp;
     
-    m_pdata->release();
     }
 
 //! x walking table for the hilbert curve
@@ -498,21 +449,23 @@ void SFCPackUpdater::getSortedOrder2D()
     Scalar scaley = Scalar(1.0) / biny;
     
     // put the particles in the bins
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
     // for each particle
-    for (unsigned int n = 0; n < arrays.nparticles; n++)
+    for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % m_grid;
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % m_grid;
+        unsigned int ib = (unsigned int)((h_pos.data[n].x-box.xlo)*scalex) % m_grid;
+        unsigned int jb = (unsigned int)((h_pos.data[n].y-box.ylo)*scaley) % m_grid;
         
         // record its bin
         unsigned int bin = ib*m_grid + jb;
         
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(bin, n);
         }
-    m_pdata->release();
-    
+    }
+
     // sort the tuples
     sort(m_particle_bins.begin(), m_particle_bins.end());
     
@@ -583,16 +536,17 @@ void SFCPackUpdater::getSortedOrder3D()
     assert(m_traversal_order.size() == m_grid*m_grid*m_grid);
     
     // put the particles in the bins
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
     // for each particle
-    for (unsigned int n = 0; n < arrays.nparticles; n++)
+    for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
         Scalar x, y, z;
 
         // bin them by particle position if they are in no body
-        x = (arrays.x[n]-box.xlo)*scalex;
-        y = (arrays.y[n]-box.ylo)*scaley;
-        z = (arrays.z[n]-box.zlo)*scalez;
+        x = (h_pos.data[n].x-box.xlo)*scalex;
+        y = (h_pos.data[n].y-box.ylo)*scaley;
+        z = (h_pos.data[n].z-box.zlo)*scalez;
         
         // find the bin each particle belongs in
         unsigned int ib = (unsigned int)(x) % m_grid;
@@ -604,7 +558,6 @@ void SFCPackUpdater::getSortedOrder3D()
         
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(m_traversal_order[bin], n);
         }
-    m_pdata->release();
     
     // sort the tuples
     sort(m_particle_bins.begin(), m_particle_bins.end());

@@ -65,24 +65,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
 */
 
-//! The texture for reading the pdata vel array
-texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
-//! The texture for reading the net force array
-texture<float4, 1, cudaReadModeElementType> net_force_tex;
-//! The texture for reading the particle mass array
-texture<float, 1, cudaReadModeElementType> pdata_mass_tex;
-//! The texture for raeding particle types
-texture<unsigned int, 1, cudaReadModeElementType> pdata_type_tex;
-//! Texture for reading particle diameters
-texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
-//! Texture for reading particle tags
-texture<unsigned int, 1, cudaReadModeElementType> pdata_tag_tex;
-
 //! Shared memory array for gpu_bdnvt_step_two_kernel()
 extern __shared__ float s_gammas[];
 
 //! Takes the first half-step forward in the BDNVT integration on a group of particles with
-/*! \param pdata Particle data to step forward in time
+/*! \param d_pos array of particle positions and types
+    \param d_vel array of particle velocities
+    \param d_diameter array of particle diameters
+    \param d_tag array of particle tags
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
@@ -103,7 +93,10 @@ extern __shared__ float s_gammas[];
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
 extern "C" __global__ 
-void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
+void gpu_bdnvt_bdforce_kernel(const Scalar4 *d_pos,
+                              const Scalar4 *d_vel,
+                              const Scalar *d_diameter,
+                              const unsigned int *d_tag,
                               unsigned int *d_group_members,
                               unsigned int group_size,
                               float4 *d_net_force,
@@ -136,10 +129,10 @@ void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
         
         // calculate the additional BD force
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
+        float4 vel = d_vel[idx];
         // read in the tag of our particle.
         // (MEM TRANSFER: 4 bytes)
-        unsigned int ptag = tex1Dfetch(pdata_tag_tex, idx);
+        unsigned int ptag = d_tag[idx];
         
         // calculate the magintude of the random force
         float gamma;
@@ -147,13 +140,13 @@ void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
             {
             // read in the tag of our particle.
             // (MEM TRANSFER: 4 bytes)
-            gamma = tex1Dfetch(pdata_diam_tex, idx);
+            gamma = d_diameter[idx];
             }
         else
             {
             // read in the type of our particle. A texture read of only the fourth part of the position float4
             // (where type is stored) is used.
-            unsigned int typ = tex1Dfetch(pdata_type_tex, idx*4 + 3);
+            unsigned int typ = __float_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
         
@@ -173,7 +166,7 @@ void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
             bd_force.z = randomz*coeff - gamma*vel.z;
         
         // read in the net force
-        float4 fi = tex1Dfetch(net_force_tex, idx);
+        float4 fi = d_net_force[idx];
         
         // write out data (MEM TRANSFER: 32 bytes)
         fi.x += bd_force.x;
@@ -183,7 +176,10 @@ void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
         }
     }
 
-/*! \param pdata Particle data to step forward in time
+/*! \param d_pos array of particle positions and types
+    \param d_vel array of particle velocities
+    \param d_diameter array of particle diameters
+    \param d_tag array of particle tags
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
@@ -191,7 +187,10 @@ void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
     \param deltaT Amount of real time to step forward in one time step
     \param D Dimensionality of the system
 */
-cudaError_t gpu_bdnvt_force(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
+                               const Scalar4 *d_vel,
+                               const Scalar *d_diameter,
+                               const unsigned int *d_tag,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                float4 *d_net_force,
@@ -204,35 +203,13 @@ cudaError_t gpu_bdnvt_force(const gpu_pdata_arrays &pdata,
     int block_size = 256;
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_type_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_diam_tex, pdata.diameter, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-    
-    error = cudaBindTexture(0, pdata_tag_tex, pdata.tag, sizeof(unsigned int) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
     
     // run the kernel
     gpu_bdnvt_bdforce_kernel<<< grid, threads, sizeof(float)*bdnvt_args.n_types >>>
-                                                  (pdata,
+                                                  (d_pos,
+                                                   d_vel,
+                                                   d_diameter,
+                                                   d_tag,
                                                    d_group_members,
                                                    group_size,
                                                    d_net_force,

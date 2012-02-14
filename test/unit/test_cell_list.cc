@@ -90,11 +90,12 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(10.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
-    arrays.x[2] = Scalar(2.0); arrays.y[2] = arrays.z[2] = 0.0;
-    pdata_3->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = Scalar(2.0); h_pos.data[2].y = h_pos.data[2].z = 0.0;
+    }
     
     // ********* initialize a cell list *********
     shared_ptr<CellList> cl(new CL(sysdef_3));
@@ -226,11 +227,12 @@ void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
-    arrays.x[2] = Scalar(1.25); arrays.y[2] = arrays.z[2] = 0.0;
-    pdata_3->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = Scalar(1.25); h_pos.data[2].y = h_pos.data[2].z = 0.0;
+    }
     
     // ********* initialize a basic cell list *********
     shared_ptr<CellList> cl(new CL(sysdef_3));
@@ -306,57 +308,54 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.type[0] = 1;
-    arrays.charge[0] = 1.0f;
-    arrays.diameter[0] = 0.5f;
-    arrays.body[0] = 2;
-    
-    arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
-    arrays.type[1] = 2;
-    arrays.charge[1] = 2.0f;
-    arrays.diameter[1] = 1.0f;
-    arrays.body[1] = 3;
-    
-    arrays.x[2] = Scalar(-1.0); arrays.y[2] = arrays.z[2] = 0.0;
-    arrays.type[2] = 3;
-    arrays.charge[2] = 3.0f;
-    arrays.diameter[2] = 1.5f;
-    arrays.body[2] = 0;
+    pdata->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata->setType(0,1);
+    pdata->setCharge(0,1.0);
+    pdata->setDiameter(0,0.5f);
+    pdata->setBody(0,2);
 
-    arrays.x[3] = Scalar(1.0); arrays.y[3] = Scalar(2.0); arrays.z[3] = 0.0;
-    arrays.type[3] = 0;
-    arrays.charge[3] = 4.0f;
-    arrays.diameter[3] = 2.0f;
-    arrays.body[3] = 1;
-    
-    arrays.x[4] = Scalar(0.25); arrays.y[4] = Scalar(0.25); arrays.z[4] = 0.0;
-    arrays.type[4] = 1;
-    arrays.charge[4] = 5.0f;
-    arrays.diameter[4] = 2.5f;
-    arrays.body[4] = 2;
-    
-    arrays.x[5] = Scalar(1.25); arrays.y[5] = Scalar(2.25); arrays.z[5] = 0.0;
-    arrays.type[5] = 2;
-    arrays.charge[5] = 6.0f;
-    arrays.diameter[5] = 3.0f;
-    arrays.body[5] = 3;
+    pdata->setPosition(1,make_scalar3(1.0,0.0,0.0));
+    pdata->setType(1,2);
+    pdata->setCharge(1,2.0f);
+    pdata->setDiameter(1,1.0f);
+    pdata->setBody(1,3);
 
-    arrays.x[6] = Scalar(0.25); arrays.y[6] = Scalar(-2.0); arrays.z[6] = 3.0;
-    arrays.type[6] = 3;
-    arrays.charge[6] = 7.0f;
-    arrays.diameter[6] = 3.5f;
-    arrays.body[6] = 0;
+    pdata->setPosition(2, make_scalar3(-1.0,0.0,0.0));
+    pdata->setType(2, 3);
+    pdata->setCharge(2,3.0f);
+    pdata->setDiameter(2,1.5f);
+    pdata->setBody(2,0);
 
-    arrays.x[7] = Scalar(-0.25); arrays.y[7] = Scalar(-2.0); arrays.z[7] = -3.0;
-    arrays.type[7] = 0;
-    arrays.charge[7] = 8.0f;
-    arrays.diameter[7] = 4.0f;
-    arrays.body[7] = 1;
+    pdata->setPosition(3,make_scalar3(1.0,2.0,0.0));
+    pdata->setType(3,0);
+    pdata->setCharge(3,4.0f);
+    pdata->setDiameter(3,2.0f);
+    pdata->setBody(3,1);
 
-    pdata->release();
-    
+    pdata->setPosition(4,make_scalar3(0.25,0.25,0.0));
+    pdata->setType(4,1);
+    pdata->setCharge(4,5.0f);
+    pdata->setDiameter(4,2.5f);
+    pdata->setBody(4,2);
+
+    pdata->setPosition(5, make_scalar3(1.25,2.25,0.0));
+    pdata->setType(5,2);
+    pdata->setCharge(5,6.0f);
+    pdata->setDiameter(5,3.0f);
+    pdata->setBody(5,3);
+
+    pdata->setPosition(6,make_scalar3(0.25,-2.0,3.0));
+    pdata->setType(6,3);
+    pdata->setCharge(6,7.0f);
+    pdata->setDiameter(6,3.5f);
+    pdata->setBody(6,0);
+
+    pdata->setPosition(7,make_scalar3(-0.25,-2.0,-3.0));
+    pdata->setType(7,0);
+    pdata->setCharge(7,8.0f);
+    pdata->setDiameter(7,4.0f);
+    pdata->setBody(7,1);
+
     // ********* initialize a cell list *********
     shared_ptr<CellList> cl(new CL(sysdef));
     cl->setNominalWidth(Scalar(1.0));

@@ -132,7 +132,8 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
         }
 
     // access all the needed data
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // get integrator variables
@@ -216,12 +217,13 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
         Lz_final = Lx_final;
         }
 
-    // update the simulation box
-    box = BoxDim(Lx_final, Ly_final, Lz_final);
-    m_pdata->setBox(box);
+    {
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
     // perform the particle update on the GPU
-    gpu_nph_step_one(d_pdata,
+    gpu_nph_step_one(d_pos.data,
+                     d_vel.data,
+                     d_accel.data,
                      d_index_array.data,
                      group_size,
                      make_scalar3(Lx_old,Ly_old,Lz_old),
@@ -232,14 +234,33 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
+    }
+
+
+    {
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
     // wrap particles around new boundaries
-    gpu_boxsize gpubox = m_pdata->getBoxGPU();
-    gpu_nph_wrap_particles(d_pdata, gpubox);
+    gpu_boxsize gpubox;
+    gpubox.Lx = Lx_final;
+    gpubox.Lxinv = Scalar(1.0)/gpubox.Lx;
+    gpubox.Ly = Ly_final;
+    gpubox.Lyinv = Scalar(1.0)/gpubox.Ly;
+    gpubox.Lz = Lz_final;
+    gpubox.Lzinv = Scalar(1.0)/gpubox.Lz;
+
+    gpu_nph_wrap_particles(m_pdata->getN(), d_pos.data, d_image.data, gpubox);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    }
 
-    m_pdata->release();
+    // update simulation box
+    box = BoxDim(Lx_final, Ly_final, Lz_final);
+    m_pdata->setBox(box);
+
+
     setIntegratorVariables(v);
 
     // done profiling
@@ -262,12 +283,15 @@ void TwoStepNPHGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NPH step 2");
 
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
+    {
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
-    gpu_nph_step_two(d_pdata,
+    gpu_nph_step_two(d_vel.data,
+                     d_accel.data,
                      d_index_array.data,
                      group_size,
                      d_net_force.data,
@@ -275,8 +299,7 @@ void TwoStepNPHGPU::integrateStepTwo(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    m_pdata->release();
+    }
 
     // compute pressure tensor with updated virial and velocities
     m_thermo->compute(timestep+1);

@@ -152,36 +152,25 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
     m_timestep = ts;
     }
 
-/*! \param pdata The particle data
-
-    initArrays takes the internally stored copy of the particle data and copies it
-    into the provided particle data arrays for storage in ParticleData.
-*/
-void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
+/*! initializes a snapshot with the internally stored copy of the particle data */
+void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     {
-    assert(m_pos_array.size() > 0 && m_pos_array.size() == pdata.nparticles);
-    
+    assert(m_pos_array.size() > 0);
+    assert(snapshot.size == m_pos_array.size());
+
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < m_pos_array.size(); i++)
         {
-        pdata.x[i] = m_pos_array[i].x;
-        pdata.y[i] = m_pos_array[i].y;
-        pdata.z[i] = m_pos_array[i].z;
-        
-        pdata.tag[i] = i;
-        pdata.rtag[i] = i;
+        snapshot.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
+        snapshot.rtag[i] = i;
         }
-        
+
     if (m_image_array.size() != 0)
         {
         assert(m_image_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            {
-            pdata.ix[i] = m_image_array[i].x;
-            pdata.iy[i] = m_image_array[i].y;
-            pdata.iz[i] = m_image_array[i].z;
-            }
+            snapshot.image[i] = make_int3(m_image_array[i].x, m_image_array[i].y, m_image_array[i].z);
         }
         
     if (m_vel_array.size() != 0)
@@ -189,11 +178,7 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
         assert(m_vel_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            {
-            pdata.vx[i] = m_vel_array[i].x;
-            pdata.vy[i] = m_vel_array[i].y;
-            pdata.vz[i] = m_vel_array[i].z;
-            }
+            snapshot.vel[i] = make_scalar3(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
         }
         
     if (m_mass_array.size() != 0)
@@ -201,7 +186,7 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
         assert(m_mass_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.mass[i] = m_mass_array[i];
+            snapshot.mass[i] = m_mass_array[i];
         }
         
     if (m_diameter_array.size() != 0)
@@ -209,7 +194,7 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
         assert(m_diameter_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.diameter[i] = m_diameter_array[i];
+            snapshot.diameter[i] = m_diameter_array[i];
         }
         
     if (m_charge_array.size() != 0)
@@ -217,7 +202,7 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
         assert(m_charge_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.charge[i] = m_charge_array[i];
+            snapshot.charge[i] = m_charge_array[i];
         }
         
     if (m_type_array.size() != 0)
@@ -225,17 +210,17 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
         assert(m_type_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.type[i] = m_type_array[i];
+            snapshot.type[i] = m_type_array[i];
         }
     
     if (m_body_array.size() != 0)
         {
         assert(m_body_array.size() == m_pos_array.size());
-        
+
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.body[i] = m_body_array[i];
+            snapshot.body[i] = m_body_array[i];
         }
-        
+
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -249,7 +234,7 @@ void HOOMDInitializer::initWallData(boost::shared_ptr<WallData> wall_data) const
 
 /*! \param fname File name of the hoomd_xml file to read in
     \post Internal data arrays and members are filled out from which futre calls
-    like initArrays will use to intialize the ParticleData
+    like getSnapshot() will use to intialize the ParticleData
 
     This function implements the main parser loop. It reads in XML nodes from the
     file one by one and passes them of to parsers registered in \c m_parser_map.

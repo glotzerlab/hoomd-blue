@@ -48,7 +48,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
@@ -73,14 +73,16 @@ struct external_potential_args_t
     external_potential_args_t(float4 *_d_force,
               float *_d_virial,
               const unsigned int _virial_pitch,
-              const gpu_pdata_arrays& _pdata,
+              const unsigned int _N,
+              const Scalar4 *_d_pos,
               const gpu_boxsize &_box,
               const unsigned int _block_size)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
-                  pdata(_pdata),
                   box(_box),
+                  N(_N),
+                  d_pos(_d_pos),
                   block_size(_block_size)
         {
         };
@@ -88,15 +90,13 @@ struct external_potential_args_t
     float4 *d_force;                //!< Force to write out
     float *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
-    const gpu_pdata_arrays& pdata;  //!< Particle data to compute forces over
     const gpu_boxsize &box;         //!< Simulation box in GPU format
+    const unsigned int N;           //!< Number of particles
+    const Scalar4 *d_pos;           //!< Device array of particle positions
     const unsigned int block_size;  //!< Block size to execute
     };
 
 #ifdef NVCC
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
 //! Kernel for calculating external forces
 /*! This kernel is called to calculate the external forces on all N particles. Actual evaluation of the potentials and
     forces for each particle is handled via the template class \a evaluator.
@@ -104,7 +104,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to calculate forces on
+    \param N number of particles
+    \param d_pos device array of particle positions
     \param box Box dimensions used to implement periodic boundary conditions
     \param params per-type array of parameters for the potential
 
@@ -113,19 +114,20 @@ template< class evaluator >
 __global__ void gpu_compute_external_forces_kernel(float4 *d_force,
                                                float *d_virial,
                                                const unsigned int virial_pitch,
-                                               const gpu_pdata_arrays pdata,
+                                               const unsigned int N,
+                                               const Scalar4 *d_pos,
                                                const gpu_boxsize box,
                                                const typename evaluator::param_type *params)
     {
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
 
-    // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
+    // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 posi = tex1Dfetch(pdata_pos_tex, idx);
+    float4 posi = d_pos[idx];
 
     // initialize the force to 0
     float3 force = make_float3(0.0f, 0.0f, 0.0f);
@@ -161,18 +163,12 @@ cudaError_t gpu_compute_external_forces(const external_potential_args_t& externa
                                     const typename evaluator::param_type *d_params)
     {
     // setup the grid to run the kernel
-    dim3 grid( external_potential_args.pdata.N / external_potential_args.block_size + 1, 1, 1);
+    dim3 grid( external_potential_args.N / external_potential_args.block_size + 1, 1, 1);
     dim3 threads(external_potential_args.block_size, 1, 1);
 
     // bind the position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, external_potential_args.pdata.pos, sizeof(float4) * external_potential_args.pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
     gpu_compute_external_forces_kernel<evaluator>
-           <<<grid, threads>>>(external_potential_args.d_force, external_potential_args.d_virial, external_potential_args.virial_pitch, external_potential_args.pdata, external_potential_args.box, d_params);
+           <<<grid, threads>>>(external_potential_args.d_force, external_potential_args.d_virial, external_potential_args.virial_pitch, external_potential_args.N, external_potential_args.d_pos, external_potential_args.box, d_params);
 
     return cudaSuccess;
     }

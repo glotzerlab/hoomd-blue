@@ -56,13 +56,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 /*! \file TwoStepNPHGPU.cuh
     \brief Declares GPU kernel code for NPH integration on the GPU. Used by TwoStepNPHGPU.
 */
 
 //! Kernel driver for the the first step of the computation called by NPHUpdaterGPU
-cudaError_t gpu_nph_step_one(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nph_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float3 L_old,
@@ -71,11 +74,14 @@ cudaError_t gpu_nph_step_one(const gpu_pdata_arrays &pdata,
                              float deltaT);
 
 //! Kernel driver to wrap the particles into a new box on the GPU
-cudaError_t gpu_nph_wrap_particles(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nph_wrap_particles(const unsigned int N,
+                             Scalar4 *d_pos,
+                             int3 *d_image,
                              const gpu_boxsize& box);
 
 //! Kernel driver for the the second step of the computation called by NPHUpdaterGPU
-cudaError_t gpu_nph_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nph_step_two(Scalar4 *d_pos,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,

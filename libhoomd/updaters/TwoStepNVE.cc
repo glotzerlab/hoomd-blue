@@ -123,8 +123,10 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->push("NVE step 1");
     
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-    
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+
     // perform the first half step of velocity verlet
     // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
     // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
@@ -132,11 +134,11 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         if (m_zero_force)
-            arrays.ax[j] = arrays.ay[j] = arrays.az[j] = 0.0;
+            h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
         
-        Scalar dx = arrays.vx[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT*m_deltaT;
-        Scalar dy = arrays.vy[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT*m_deltaT;
-        Scalar dz = arrays.vz[j]*m_deltaT + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT*m_deltaT;
+        Scalar dx = h_vel.data[j].x*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT*m_deltaT;
+        Scalar dy = h_vel.data[j].y*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT*m_deltaT;
+        Scalar dz = h_vel.data[j].z*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT*m_deltaT;
         
         // limit the movement of the particles
         if (m_limit)
@@ -150,13 +152,13 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 }
             }
             
-        arrays.x[j] += dx;
-        arrays.y[j] += dy;
-        arrays.z[j] += dz;
+        h_pos.data[j].x += dx;
+        h_pos.data[j].y += dy;
+        h_pos.data[j].z += dz;
         
-        arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-        arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-        arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
+        h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
+        h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
+        h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
         }
     
     // particles may have been moved slightly outside the box by the above steps, wrap them back into place
@@ -166,46 +168,47 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    
+
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        // wrap the particle around the box
-        if (arrays.x[j] >= box.xhi)
+
+        // wrap the particles around the box
+        if (h_pos.data[j].x >= box.xhi)
             {
-            arrays.x[j] -= Lx;
-            arrays.ix[j]++;
+            h_pos.data[j].x -= Lx;
+            h_image.data[j].x++;
             }
-        else if (arrays.x[j] < box.xlo)
+        else if (h_pos.data[j].x < box.xlo)
             {
-            arrays.x[j] += Lx;
-            arrays.ix[j]--;
+            h_pos.data[j].x += Lx;
+            h_image.data[j].x--;
             }
-            
-        if (arrays.y[j] >= box.yhi)
+
+        if (h_pos.data[j].y >= box.yhi)
             {
-            arrays.y[j] -= Ly;
-            arrays.iy[j]++;
+            h_pos.data[j].y -= Ly;
+            h_image.data[j].y++;
             }
-        else if (arrays.y[j] < box.ylo)
+        else if (h_pos.data[j].y < box.ylo)
             {
-            arrays.y[j] += Ly;
-            arrays.iy[j]--;
+            h_pos.data[j].y += Ly;
+            h_image.data[j].y--;
             }
-            
-        if (arrays.z[j] >= box.zhi)
+
+        if (h_pos.data[j].z >= box.zhi)
             {
-            arrays.z[j] -= Lz;
-            arrays.iz[j]++;
+            h_pos.data[j].z -= Lz;
+            h_image.data[j].z++;
             }
-        else if (arrays.z[j] < box.zlo)
+        else if (h_pos.data[j].z < box.zlo)
             {
-            arrays.z[j] += Lz;
-            arrays.iz[j]--;
+            h_pos.data[j].z += Lz;
+            h_image.data[j].z--;
             }
         }
-    
-    m_pdata->release();
     
     // done profiling
     if (m_prof)
@@ -226,8 +229,10 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push("NVE step 2");
-    
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
@@ -237,36 +242,34 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
         
         if (m_zero_force)
             {
-            arrays.ax[j] = arrays.ay[j] = arrays.az[j] = 0.0;
+            h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
             }
         else
             {
             // first, calculate acceleration from the net force
-            Scalar minv = Scalar(1.0) / arrays.mass[j];
-            arrays.ax[j] = h_net_force.data[j].x*minv;
-            arrays.ay[j] = h_net_force.data[j].y*minv;
-            arrays.az[j] = h_net_force.data[j].z*minv;
+            Scalar minv = Scalar(1.0) / h_vel.data[j].w;
+            h_accel.data[j].x = h_net_force.data[j].x*minv;
+            h_accel.data[j].y = h_net_force.data[j].y*minv;
+            h_accel.data[j].z = h_net_force.data[j].z*minv;
             }
         
         // then, update the velocity
-        arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-        arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-        arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
+        h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
+        h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
+        h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
         
         // limit the movement of the particles
         if (m_limit)
             {
-            Scalar vel = sqrt(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            Scalar vel = sqrt(h_vel.data[j].x*h_vel.data[j].x+h_vel.data[j].y*h_vel.data[j].y+h_vel.data[j].z*h_vel.data[j].z);
             if ( (vel*m_deltaT) > m_limit_val)
                 {
-                arrays.vx[j] = arrays.vx[j] / vel * m_limit_val / m_deltaT;
-                arrays.vy[j] = arrays.vy[j] / vel * m_limit_val / m_deltaT;
-                arrays.vz[j] = arrays.vz[j] / vel * m_limit_val / m_deltaT;
+                h_vel.data[j].x = h_vel.data[j].x / vel * m_limit_val / m_deltaT;
+                h_vel.data[j].y = h_vel.data[j].y / vel * m_limit_val / m_deltaT;
+                h_vel.data[j].z = h_vel.data[j].z / vel * m_limit_val / m_deltaT;
                 }
             }
         }
-    
-    m_pdata->release();
     
     // done profiling
     if (m_prof)

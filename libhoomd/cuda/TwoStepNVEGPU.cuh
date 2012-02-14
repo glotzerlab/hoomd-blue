@@ -55,12 +55,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 #ifndef __TWO_STEP_NVE_GPU_CUH__
 #define __TWO_STEP_NVE_GPU_CUH__
 
 //! Kernel driver for the first part of the NVE update called by TwoStepNVEGPU
-cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
+                             int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const gpu_boxsize &box,
@@ -70,7 +74,8 @@ cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
                              bool zero_force);
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVEGPU
-cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,

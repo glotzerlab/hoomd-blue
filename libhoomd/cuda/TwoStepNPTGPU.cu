@@ -62,21 +62,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTGPU.
 */
 
-//! Texture for reading the pdata pos array
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-//! Texture for reading the pdata vel array
-texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
-//! Texture for reading the pdata accel array
-texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
-//! The texture for reading particle mass
-texture<float, 1, cudaReadModeElementType> pdata_mass_tex;
-//! The texture for reading particle image
-texture<int4, 1, cudaReadModeElementType> pdata_image_tex;
-
 //! Shared data used by NPT kernels for sum reductions
 extern __shared__ float npt_sdata[];
 
-/*! \param pdata Particle data arrays to integrate forward 1/2 step
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param partial_scale Set to true to only scale those particles in the group
@@ -87,7 +78,9 @@ position update and is a result of coupling to the thermo/barostat
     \param deltaT Time to advance (for one full step)
 */
 extern "C" __global__ 
-void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
+void gpu_npt_step_one_kernel(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              bool partial_scale,
@@ -108,7 +101,7 @@ void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
         unsigned int idx = d_group_members[group_idx];
         
         // fetch particle position
-        float4 pos = tex1Dfetch(pdata_pos_tex, idx);
+        float4 pos = d_pos[idx];
         
         float px = pos.x;
         float py = pos.y;
@@ -116,8 +109,8 @@ void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
         float pw = pos.w;
         
         // fetch particle velocity and acceleration
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
-        float4 accel = tex1Dfetch(pdata_accel_tex, idx);
+        float4 vel = d_vel[idx];
+        Scalar3 accel = d_accel[idx];
         
         // propagate velocity by half a time step and position by the full time step
         // according to the Nose-Hoover barostat
@@ -137,19 +130,21 @@ void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
             pz *= exp_r_fac*exp_r_fac;
             }
         
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
         pos2.w = pw;
         
         // write out the results
-        pdata.pos[idx] = pos2;
-        pdata.vel[idx] = vel;
+        d_pos[idx] = pos2;
+        d_vel[idx] = vel;
         }
     }
 
-/*! \param pdata Particle Data to operate on
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param partial_scale Set to true to only scale those particles in the group
@@ -159,7 +154,9 @@ void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
 
     This is just a kernel driver for gpu_npt_step_one_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_npt_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              bool partial_scale,
@@ -172,25 +169,14 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
     dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
     // precalculate scaling factors for baro/thermostat
     float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);  // velocity scaling
     float exp_r_fac = exp(1.0f/2.0f*Eta*deltaT);        // position scaling
     
     // run the kernel
-    gpu_npt_step_one_kernel<<< grid, threads >>>(pdata,
+    gpu_npt_step_one_kernel<<< grid, threads >>>(d_pos,
+                                                 d_vel,
+                                                 d_accel,
                                                  d_group_members,
                                                  group_size,
                                                  partial_scale,
@@ -201,7 +187,9 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
     return cudaSuccess;
     }
     
-/*! \param pdata Particle data arrays to integrate forward 1/2 step
+/*! \param N number of particles in the system
+    \param d_pos array of particle positions
+    \param d_image array of particle images
     \param box The new box the particles where the particles now reside
     \param partial_scale Set to true to only scale those particles in the group
     \param box_len_scale Scaling factor by which to scale particle positions
@@ -211,7 +199,9 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
     thread for each particle in the box.
 */
 extern "C" __global__ 
-void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
+void gpu_npt_boxscale_kernel(const unsigned int N,
+                             Scalar4 *d_pos,
+                             int3 *d_image,
                              gpu_boxsize box,
                              bool partial_scale,
                              float box_len_scale)
@@ -220,10 +210,10 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     // scale ALL particles in the box
-    if (idx < pdata.N)
+    if (idx < N)
         {
         // fetch particle position
-        float4 pos = tex1Dfetch(pdata_pos_tex, idx);
+        float4 pos = d_pos[idx];
         
         float px = pos.x;
         float py = pos.y;
@@ -238,7 +228,7 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
             }
         
         // read in the image flags
-        int4 image = tex1Dfetch(pdata_image_tex, idx);
+        int3 image = d_image[idx];
         
         // fix periodic boundary conditions
         float x_shift = rintf(px * box.Lxinv);
@@ -253,19 +243,21 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
         pz -= box.Lz * z_shift;
         image.z += (int)z_shift;
         
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
         pos2.w = pw;
         
         // write out the results
-        pdata.pos[idx] = pos2;
-        pdata.image[idx] = image;
+        d_pos[idx] = pos2;
+        d_image[idx] = image;
         }
     }
 
-/*! \param pdata Particle data arrays to integrate forward 1/2 step
+/*! \param N number of particles in the system
+    \param d_pos array of particle positions
+    \param d_image array of particle images
     \param box The new box the particles where the particles now reside
     \param partial_scale Set to true to only scale those particles in the group
     \param Eta barostat variable in Nose-Hoover barostat
@@ -273,7 +265,9 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
 
     This is just a kernel driver for gpu_npt_boxscale_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_npt_boxscale(const unsigned int N,
+                             Scalar4 *d_pos,
+                             int3 *d_image,
                              const gpu_boxsize& box,
                              bool partial_scale,
                              float Eta,
@@ -281,7 +275,7 @@ cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;
-    dim3 grid( (pdata.N / block_size) + 1, 1, 1);
+    dim3 grid( (N / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     float box_len_scale = exp(Eta*deltaT);  // box length dilatation factor
@@ -295,25 +289,15 @@ cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
     scaled_box.Lyinv = 1.0f/scaled_box.Ly;
     scaled_box.Lzinv = 1.0f/scaled_box.Lz;
 
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, pdata_image_tex, pdata.image, sizeof(int4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
     // run the kernel
-    gpu_npt_boxscale_kernel<<< grid, threads >>>(pdata, scaled_box, partial_scale, box_len_scale);
+    gpu_npt_boxscale_kernel<<< grid, threads >>>(N, d_pos, d_image, scaled_box, partial_scale, box_len_scale);
     
     return cudaSuccess;
     }
 
-//! The texture for reading the net force
-texture<float4, 1, cudaReadModeElementType> net_force_tex;
-
-/*! \param pdata Particle data arrays to integrate forward 1/2 step
+/*! \param d_vel array of particle velocities and masses
+    \param d_accel array of particle accelerations
+    \param d_net_force array of net forces
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param exp_v_fac exp_v_fac = \f$\exp(-\frac 1 4 (\eta+\xi)*\delta T)\f$ is the scaling factor for
@@ -321,7 +305,9 @@ velocity update and is a result of coupling to the thermo/barostat
     \param deltaT Time to advance (for one full step)
 */
 extern "C" __global__ 
-void gpu_npt_step_two_kernel(gpu_pdata_arrays pdata,
+void gpu_npt_step_two_kernel( Scalar4 *d_vel,
+                              Scalar3 *d_accel,
+                             const float4 *d_net_force,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float exp_v_fac,
@@ -335,14 +321,15 @@ void gpu_npt_step_two_kernel(gpu_pdata_arrays pdata,
         unsigned int idx = d_group_members[group_idx];
         
         // read in the net force and compute the acceleration
-        float4 accel = tex1Dfetch(net_force_tex, idx);
-        float mass = tex1Dfetch(pdata_mass_tex, idx);
+        float4 accel = d_net_force[idx];
+
+        // fetch velocities
+        Scalar4 vel = d_vel[idx];
+
+        float mass = vel.w;
         accel.x /= mass;
         accel.y /= mass;
         accel.z /= mass;
-        
-        // fetch velocities
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
         
         // propagate velocities from t+1/2*deltaT to t+deltaT according to the
         // Nose-Hoover barostat
@@ -351,13 +338,14 @@ void gpu_npt_step_two_kernel(gpu_pdata_arrays pdata,
         vel.z = vel.z*exp_v_fac*exp_v_fac + (1.0f/2.0f)*deltaT*exp_v_fac*accel.z;
         
         // write out data
-        pdata.vel[idx] = vel;
+        d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
-        pdata.accel[idx] = accel;
+        d_accel[idx] = make_scalar3(accel.x, accel.y, accel.z);
         }
     }
 
-/*! \param pdata Particle Data to operate on
+/*! \param d_vel array of particle velocities
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
@@ -367,7 +355,8 @@ void gpu_npt_step_two_kernel(gpu_pdata_arrays pdata,
 
     This is just a kernel driver for gpu_npt_step_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_npt_step_two(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
@@ -383,21 +372,8 @@ cudaError_t gpu_npt_step_two(const gpu_pdata_arrays &pdata,
     // precalulate velocity scaling factor due to Nose-Hoover barostat dynamics
     float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);
     
-    // bind the texture
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
-    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
     // run the kernel
-    gpu_npt_step_two_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, exp_v_fac, deltaT);
+    gpu_npt_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_net_force, d_group_members, group_size, exp_v_fac, deltaT);
     
     return cudaSuccess;
     }

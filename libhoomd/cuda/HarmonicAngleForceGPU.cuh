@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AngleData.cuh"
 #include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
 /*! \file HarmonicAngleForceGPU.cuh
     \brief Declares GPU kernel code for calculating the harmonic angle forces. Used by HarmonicAngleForceComputeGPU.
@@ -64,7 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_harmonic_angle_forces(float4* d_force,
                                               float* d_virial,
                                               const unsigned int virial_pitch,
-                                              const gpu_pdata_arrays &pdata,
+                                              const unsigned int N,
+                                              const Scalar4 *d_pos,
                                               const gpu_boxsize &box,
                                               const gpu_angletable_array &atable,
                                               float2 *d_params,

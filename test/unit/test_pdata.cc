@@ -162,186 +162,164 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     BOOST_CHECK(a.getN() == 1);
     
     // Test the ability to acquire data
-    ParticleDataArrays arrays = a.acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(a.getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(a.getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(a.getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(a.getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_charge(a.getCharges(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(a.getDiameters(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(a.getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(a.getRTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(a.getBodies(), access_location::host, access_mode::readwrite);
+
     // begin by verifying that the defaults the class adversizes are set
-    BOOST_CHECK(arrays.nparticles == 1);
-    MY_BOOST_CHECK_CLOSE(arrays.x[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.y[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.z[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.vx[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.vy[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.vz[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.ax[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.ay[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.az[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.charge[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.mass[0], 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays.diameter[0], 1.0, tol);
-    BOOST_CHECK_EQUAL(arrays.ix[0], 0);
-    BOOST_CHECK_EQUAL(arrays.iy[0], 0);
-    BOOST_CHECK_EQUAL(arrays.iz[0], 0);
-    BOOST_CHECK(arrays.type[0] == 0);
-    BOOST_CHECK(arrays.rtag[0] == 0);
-    BOOST_CHECK(arrays.tag[0] == 0);
-    BOOST_CHECK(arrays.body[0] == NO_BODY);
+    BOOST_CHECK(a.getPositions().getNumElements() == 1);
+    BOOST_CHECK(a.getVelocities().getNumElements() == 1);
+    BOOST_CHECK(a.getAccelerations().getNumElements() == 1);
+    BOOST_CHECK(a.getImages().getNumElements() == 1);
+    BOOST_CHECK(a.getCharges().getNumElements() == 1);
+    BOOST_CHECK(a.getDiameters().getNumElements() == 1);
+    BOOST_CHECK(a.getTags().getNumElements() == 1);
+    BOOST_CHECK(a.getRTags().getNumElements() == 1);
+    BOOST_CHECK(a.getBodies().getNumElements() == 1);
+
+
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_vel.data[0].x, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_vel.data[0].y, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_vel.data[0].z, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_accel.data[0].x, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_accel.data[0].y, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_accel.data[0].z, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_charge.data[0], 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_vel.data[0].w, 1.0, tol); // mass
+    MY_BOOST_CHECK_CLOSE(h_diameter.data[0], 1.0, tol);
+    BOOST_CHECK_EQUAL(h_image.data[0].x, 0);
+    BOOST_CHECK_EQUAL(h_image.data[0].y, 0);
+    BOOST_CHECK_EQUAL(h_image.data[0].z, 0);
+    BOOST_CHECK(__scalar_as_int(h_pos.data[0].w) == 0); //type
+    BOOST_CHECK(h_rtag.data[0] == 0);
+    BOOST_CHECK(h_tag.data[0] == 0);
+    BOOST_CHECK(h_body.data[0] == NO_BODY);
     
     // set some new values for testing
-    arrays.x[0] = 1.0;
-    arrays.y[0] = 2.0;
-    arrays.z[0] = -2.0;
-    arrays.vx[0] = 11.0;
-    arrays.vy[0] = 12.0;
-    arrays.vz[0] = 13.0;
-    arrays.ax[0] = 21.0;
-    arrays.ay[0] = 22.0;
-    arrays.az[0] = 23.0;
-    arrays.charge[0] = 24.0;
-    arrays.mass[0] = 25.0;
-    arrays.diameter[0] = 26.0;
-    arrays.ix[0] =  27;
-    arrays.iy[0] = 28;
-    arrays.iz[0] = 29;
-    arrays.type[0] = 1;
-    arrays.body[0] = 0;
+    h_pos.data[0].x = 1.0;
+    h_pos.data[0].y = 2.0;
+    h_pos.data[0].z = -2.0;
+    h_vel.data[0].x = 11.0;
+    h_vel.data[0].y = 12.0;
+    h_vel.data[0].z = 13.0;
+    h_accel.data[0].x = 21.0;
+    h_accel.data[0].y = 22.0;
+    h_accel.data[0].z = 23.0;
+    h_charge.data[0] = 24.0;
+    h_vel.data[0].w = 25.0; // mass
+    h_diameter.data[0] = 26.0;
+    h_image.data[0].x =  27;
+    h_image.data[0].y = 28;
+    h_image.data[0].z = 29;
+    h_pos.data[0].w = __int_as_scalar(1); //type
+    h_body.data[0] = 0;
     
-    a.release();
+    }
     
     // make sure when the data is re-acquired, the values read properly
-    ParticleDataArraysConst arrays_const = a.acquireReadOnly();
-    BOOST_CHECK(arrays_const.nparticles == 1);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[0], 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[0], 2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[0], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.vx[0], 11.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.vy[0], 12.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.vz[0], 13.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.ax[0], 21.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.ay[0], 22.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.az[0], 23.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.charge[0], 24.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.mass[0], 25.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.diameter[0], 26.0, tol);
-    BOOST_CHECK_EQUAL(arrays_const.ix[0], 27);
-    BOOST_CHECK_EQUAL(arrays_const.iy[0], 28);
-    BOOST_CHECK_EQUAL(arrays_const.iz[0], 29);
-    BOOST_CHECK(arrays_const.type[0] == 1);
-    BOOST_CHECK(arrays_const.rtag[0] == 0);
-    BOOST_CHECK(arrays_const.tag[0] == 0);
-    BOOST_CHECK(arrays_const.body[0] == 0);
-    
-    a.release();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(a.getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(a.getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_accel(a.getAccelerations(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(a.getImages(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(a.getCharges(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(a.getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(a.getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(a.getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(a.getBodies(), access_location::host, access_mode::read);
+
+    BOOST_CHECK(a.getPositions().getNumElements() == 1);
+    BOOST_CHECK(a.getVelocities().getNumElements() == 1);
+    BOOST_CHECK(a.getAccelerations().getNumElements() == 1);
+    BOOST_CHECK(a.getImages().getNumElements() == 1);
+    BOOST_CHECK(a.getCharges().getNumElements() == 1);
+    BOOST_CHECK(a.getDiameters().getNumElements() == 1);
+    BOOST_CHECK(a.getTags().getNumElements() == 1);
+    BOOST_CHECK(a.getRTags().getNumElements() == 1);
+    BOOST_CHECK(a.getBodies().getNumElements() == 1);
+
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 1.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].z,-2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_vel.data[0].x,11.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_vel.data[0].y,12.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_vel.data[0].z,13.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_accel.data[0].x,21.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_accel.data[0].y,22.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_accel.data[0].z,23.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_charge.data[0],24.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_vel.data[0].w,25.0, tol); // mass
+    MY_BOOST_CHECK_CLOSE(h_diameter.data[0],26.0, tol);
+    BOOST_CHECK_EQUAL(h_image.data[0].x,27);
+    BOOST_CHECK_EQUAL(h_image.data[0].y,28);
+    BOOST_CHECK_EQUAL(h_image.data[0].z,29);
+    BOOST_CHECK(__scalar_as_int(h_pos.data[0].w) == 1); //type
+    BOOST_CHECK(h_rtag.data[0] == 0);
+    BOOST_CHECK(h_tag.data[0] == 0);
+    BOOST_CHECK(h_body.data[0] == 0);
+
+    }
     // finally, lets check a larger ParticleData for correctness of the initialization
     const unsigned int N = 1000;
     ParticleData b(N, box, 1, exec_conf);
-    arrays_const = b.acquireReadOnly();
-    BOOST_CHECK(arrays_const.nparticles == N);
+    {
+    ArrayHandle<Scalar4> h_pos(b.getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(b.getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_accel(b.getAccelerations(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(b.getImages(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(b.getCharges(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(b.getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(b.getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(b.getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(b.getBodies(), access_location::host, access_mode::read);
+
+    // begin by verifying that the defaults the class adversizes are set
+    BOOST_CHECK(b.getPositions().getNumElements() == N);
+    BOOST_CHECK(b.getVelocities().getNumElements() == N);
+    BOOST_CHECK(b.getAccelerations().getNumElements() == N);
+    BOOST_CHECK(b.getImages().getNumElements() == N);
+    BOOST_CHECK(b.getCharges().getNumElements() == N);
+    BOOST_CHECK(b.getDiameters().getNumElements() == N);
+    BOOST_CHECK(b.getTags().getNumElements() == N);
+    BOOST_CHECK(b.getRTags().getNumElements() == N);
+    BOOST_CHECK(b.getBodies().getNumElements() == N);
+
+
     for (unsigned int i = 0; i < N; i++)
         {
-        MY_BOOST_CHECK_CLOSE(arrays_const.x[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.y[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.z[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.vx[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.vy[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.vz[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.ax[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.ay[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.az[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.charge[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.mass[i], 1.0, tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.diameter[i], 1.0, tol);
-        BOOST_CHECK_EQUAL(arrays_const.ix[i], 0);
-        BOOST_CHECK_EQUAL(arrays_const.iy[i], 0);
-        BOOST_CHECK_EQUAL(arrays_const.iz[i], 0);
-        BOOST_CHECK(arrays_const.type[i] == 0);
-        BOOST_CHECK(arrays_const.rtag[i] == i);
-        BOOST_CHECK(arrays_const.tag[i] == i);
-        BOOST_CHECK(arrays_const.body[i] == NO_BODY);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[i].x, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[i].y, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_pos.data[i].z, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[i].x, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[i].y, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[i].z, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_accel.data[i].x, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_accel.data[i].y, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_accel.data[i].z, 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_charge.data[i], 0.0, tol);
+        MY_BOOST_CHECK_CLOSE(h_vel.data[i].w, 1.0, tol); // mass
+        MY_BOOST_CHECK_CLOSE(h_diameter.data[i], 1.0, tol);
+        BOOST_CHECK_EQUAL(h_image.data[i].x, 0);
+        BOOST_CHECK_EQUAL(h_image.data[i].y, 0);
+        BOOST_CHECK_EQUAL(h_image.data[i].z, 0);
+        BOOST_CHECK(__scalar_as_int(h_pos.data[i].w) == 0); //type
+        BOOST_CHECK(h_rtag.data[i] == i);
+        BOOST_CHECK(h_tag.data[i] == i);
+        BOOST_CHECK(h_body.data[i] == NO_BODY);
         }
         
-    b.release();
     }
-
-#ifdef ENABLE_CUDA
-//! Tests the ability of the ParticleData class to copy data between CPU <-> GPU
-BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
-    {
-    Scalar tol = Scalar(1e-6);
-    
-    // This set of tests will actually check that the ParticleData class is working
-    // It would be a pain in the ass to test every possible state change in going from
-    // the data being on the CPU to -on the GPU to on both, etc.... so we will just check
-    // basic functionality here. Any subtle bugs will just have to show up when
-    // unit tests are done that compare simulation runs on the cpu to those on the GPU
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    BoxDim box(10.0,30.0,50.0);
-    int N = 500;
-    ParticleData pdata(N, box, 1, exec_conf);
-    ParticleDataArrays arrays = pdata.acquireReadWrite();
-    for (int i = 0; i < N; i++)
-        {
-        arrays.x[i] = float(i)/100.0f;
-        arrays.y[i] = float(i)/75.0f;
-        arrays.z[i] = float(i)/50.0f;
-        
-        arrays.ax[i] = float(i);
-        arrays.ay[i] = float(i) * 2.0f;
-        arrays.az[i] = float(i) * 3.0f;
-        
-        arrays.charge[i] = float(i) * 4.0f;
-        arrays.mass[i] = float(i) * 5.0f;
-        arrays.diameter[i] = float(i) * 6.0f;
-        
-        arrays.ix[i] = i*7;
-        arrays.iy[i] = i*8;
-        arrays.iz[i] = i*9;
-        
-        arrays.type[i] = i;
-        
-        arrays.body[i] = i % 10;
-        }
-    pdata.release();
-    // try accessing the data on the GPU
-    gpu_pdata_arrays d_pdata = pdata.acquireReadWriteGPU();
-    gpu_pdata_texread_test(d_pdata);
-    CHECK_CUDA_ERROR();
-    pdata.release();
-    
-    pdata.acquireReadOnly();
-    for (unsigned int i = 0; i < (unsigned int)N; i++)
-        {
-        // check to make sure that the position copied back OK
-        MY_BOOST_CHECK_CLOSE(arrays.x[i], float(i)/100.0f, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.y[i], float(i)/75.0f, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.z[i], float(i)/50.0f, tol);
-        
-        // check to make sure that the texture read worked and read back ok
-        BOOST_CHECK(arrays.vx[i] == arrays.x[i]);
-        BOOST_CHECK(arrays.vy[i] == arrays.y[i]);
-        BOOST_CHECK(arrays.vz[i] == arrays.z[i]);
-        
-        // check to make sure that the accel was copied back ok
-        MY_BOOST_CHECK_CLOSE(arrays.ax[i], float(i), tol);
-        MY_BOOST_CHECK_CLOSE(arrays.ay[i], float(i) * 2.0f, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.az[i], float(i) * 3.0f, tol);
-        
-        // check the charge, mass and diameter
-        MY_BOOST_CHECK_CLOSE(arrays.charge[i], float(i) * 4.0f, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.mass[i], float(i) * 5.0f, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.diameter[i], float(i) * 6.0f, tol);
-        
-        // check the image flag
-        BOOST_CHECK_EQUAL(arrays.ix[i], (int)i*7);
-        BOOST_CHECK_EQUAL(arrays.iy[i], (int)i*8);
-        BOOST_CHECK_EQUAL(arrays.iz[i], (int)i*9);
-        
-        BOOST_CHECK(arrays.type[i] == i);
-        BOOST_CHECK(arrays.body[i] == i % 10);
-        }
-    pdata.release();
     }
-
-#endif
 
 //! Test operation of the simple cubic initializer class
 BOOST_AUTO_TEST_CASE( SimpleCubic_test )
@@ -352,12 +330,15 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     SimpleCubicInitializer one(1, 2.0, "ABC");
     ParticleData one_data(one, exec_conf);
-    ParticleDataArraysConst arrays_const = one_data.acquireReadOnly();
-    BOOST_CHECK(arrays_const.nparticles == 1);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[0], -1.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[0], -1.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[0], -1.0, tol);
-    one_data.release();
+
+    BOOST_CHECK(one_data.getN() == 1);
+    {
+    ArrayHandle<Scalar4> h_pos(one_data.getPositions(), access_location::host, access_mode::read);
+
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, -1.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, -1.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, -1.0, tol);
+    }
     
     BOOST_CHECK_EQUAL(one_data.getNameByType(0), "ABC");
     BOOST_CHECK_EQUAL(one_data.getTypeByName("ABC"), (unsigned int)0);
@@ -366,34 +347,35 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     SimpleCubicInitializer eight(2, 2.0, "A");
     ParticleData eight_data(eight, exec_conf);
     
-    arrays_const = eight_data.acquireReadOnly();
-    BOOST_CHECK(arrays_const.nparticles == 8);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[0], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[0], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[0], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[1], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[1], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[1], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[2], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[2], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[2], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[3], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[3], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[3], -2.0, tol);
+    BOOST_CHECK(eight_data.getN() == 8);
+    {
+    ArrayHandle<Scalar4> h_pos(eight_data.getPositions(), access_location::host, access_mode::read);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[1].x, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[1].y, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[1].z, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[2].x, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[2].y, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[2].z, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[3].x, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[3].y, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[3].z, -2.0, tol);
     
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[4], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[4], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[4], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[5], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[5], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[5], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[6], -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[6], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[6], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.x[7], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.y[7], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(arrays_const.z[7], 0.0, tol);
-    eight_data.release();
+    MY_BOOST_CHECK_CLOSE(h_pos.data[4].x, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[4].y, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[4].z, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[5].x, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[5].y, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[5].z, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[6].x, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[6].y, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[6].z, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[7].x, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[7].y, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(h_pos.data[7].z, 0.0, tol);
+    }
     }
 
 //! Tests the RandomParticleInitializer class
@@ -408,25 +390,26 @@ BOOST_AUTO_TEST_CASE( Random_test )
     BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
     BOOST_CHECK_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);
     
-    ParticleDataArraysConst arrays = pdata.acquireReadOnly();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata.getPositions(), access_location::host, access_mode::read);
     
     // check that the distances between particles are OK
     BoxDim box = pdata.getBox();
     Scalar L = box.xhi - box.xlo;
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < pdata.getN(); i++)
         {
-        BOOST_CHECK(arrays.x[i] <= box.xhi && arrays.x[i] >= box.xlo);
-        BOOST_CHECK(arrays.y[i] <= box.yhi && arrays.y[i] >= box.ylo);
-        BOOST_CHECK(arrays.z[i] <= box.zhi && arrays.z[i] >= box.zlo);
+        BOOST_CHECK(h_pos.data[i].x <= box.xhi && h_pos.data[i].x >= box.xlo);
+        BOOST_CHECK(h_pos.data[i].y <= box.yhi && h_pos.data[i].y >= box.ylo);
+        BOOST_CHECK(h_pos.data[i].z <= box.zhi && h_pos.data[i].z >= box.zlo);
         
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        for (unsigned int j = 0; j < pdata.getN(); j++)
             {
             if (i == j)
                 continue;
                 
-            Scalar dx = arrays.x[j] - arrays.x[i];
-            Scalar dy = arrays.y[j] - arrays.y[i];
-            Scalar dz = arrays.z[j] - arrays.z[i];
+            Scalar dx = h_pos.data[j].x - h_pos.data[i].x;
+            Scalar dy = h_pos.data[j].y - h_pos.data[i].y;
+            Scalar dz = h_pos.data[j].z - h_pos.data[i].z;
             
             if (dx < -L/Scalar(2.0))
                 dx += L;
@@ -448,7 +431,7 @@ BOOST_AUTO_TEST_CASE( Random_test )
             }
         }
         
-    pdata.release();
+    }
     }
 
 /*#include "RandomGenerator.h"

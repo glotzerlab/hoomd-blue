@@ -365,7 +365,10 @@ void CellList::computeCellList()
                                  Scalar(1.0) / m_width.z);
     
     // acquire the particle data
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle< Scalar > h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle< Scalar > h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
     
     // access the cell list data arrays
@@ -382,18 +385,18 @@ void CellList::computeCellList()
     memset(h_cell_size.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
     
     // for each particle
-    for (unsigned int n = 0; n < arrays.nparticles; n++)
+    for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
-        if (isnan(arrays.x[n]) || isnan(arrays.y[n]) || isnan(arrays.z[n]))
+        if (isnan(h_pos.data[n].x) || isnan(h_pos.data[n].y) || isnan(h_pos.data[n].z))
             {
             h_conditions.data[1] = n+1;
             continue;
             }
             
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scale.x);
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scale.y);
-        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scale.z);
+        unsigned int ib = (unsigned int)((h_pos.data[n].x-box.xlo)*scale.x);
+        unsigned int jb = (unsigned int)((h_pos.data[n].y-box.ylo)*scale.y);
+        unsigned int kb = (unsigned int)((h_pos.data[n].z-box.zlo)*scale.z);
         
         // need to handle the case where the particle is exactly at the box hi
         if (ib == m_dim.x)
@@ -418,7 +421,7 @@ void CellList::computeCellList()
         // setup the flag value to store
         Scalar flag;
         if (m_flag_charge)
-            flag = arrays.charge[n];
+            flag = h_charge.data[n];
         else
             flag = __int_as_scalar(n);
 
@@ -427,12 +430,12 @@ void CellList::computeCellList()
         
         if (offset < m_Nmax)
             {
-            h_xyzf.data[cli(offset, bin)] = make_scalar4(arrays.x[n], arrays.y[n], arrays.z[n], flag);
+            h_xyzf.data[cli(offset, bin)] = make_scalar4(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z, flag);
             if (m_compute_tdb)
                 {
-                h_tdb.data[cli(offset, bin)] = make_scalar4(__int_as_scalar(arrays.type[n]),
-                                                            arrays.diameter[n],
-                                                            __int_as_scalar(arrays.body[n]),
+                h_tdb.data[cli(offset, bin)] = make_scalar4(h_pos.data[n].w,
+                                                            h_diameter.data[n],
+                                                            __int_as_scalar(h_body.data[n]),
                                                             Scalar(0.0));
                 }
             }
@@ -445,8 +448,6 @@ void CellList::computeCellList()
         h_cell_size.data[bin]++;
         }
         
-    m_pdata->release();
-    
     if (m_prof)
         m_prof->pop();
     }

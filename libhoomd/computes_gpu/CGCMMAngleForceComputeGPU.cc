@@ -149,7 +149,8 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     gpu_angletable_array& gpu_angletable = m_CGCMMAngle_data->acquireGPU();
     
     // the angle table is up to date: we are good to go. Call the kernel
-    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+
     gpu_boxsize box = m_pdata->getBoxGPU();
    
     //Not necessary - force and virial are zeroed in the kernel
@@ -166,7 +167,8 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_CGCMM_angle_forces(d_force.data,
                                    d_virial.data,
                                    m_virial.getPitch(),
-                                   pdata,
+                                   m_pdata->getN(),
+                                   d_pos.data,
                                    box,
                                    gpu_angletable,
                                    d_params.data,
@@ -178,8 +180,6 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
    
-    m_pdata->release();
-    
     if (m_prof) m_prof->pop(exec_conf);
     }
 

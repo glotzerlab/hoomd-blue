@@ -179,7 +179,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     GPUArray<Scalar3> n_field(Nx*Ny*Nz, exec_conf);
     m_field.swap(n_field);
     const BoxDim& box = m_pdata->getBox();
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
@@ -188,9 +188,9 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     // get system charge
     m_q = 0.f;
     m_q2 = 0.0;
-    for(int i = 0; i < (int)arrays.nparticles; i++) {
-        m_q += arrays.charge[i];
-        m_q2 += arrays.charge[i]*arrays.charge[i];
+    for(int i = 0; i < (int)m_pdata->getN(); i++) {
+        m_q += h_charge.data[i];
+        m_q2 += h_charge.data[i]*h_charge.data[i];
         }
     PPPMData::q = m_q;
     if(fabs(m_q) > 0.0)
@@ -200,11 +200,11 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     Scalar hx =  Lx/(Scalar)Nx;
     Scalar hy =  Ly/(Scalar)Ny;
     Scalar hz =  Lz/(Scalar)Nz;
-    Scalar lprx = PPPMForceCompute::rms(hx, Lx, (int)arrays.nparticles); 
-    Scalar lpry = PPPMForceCompute::rms(hy, Ly, (int)arrays.nparticles);
-    Scalar lprz = PPPMForceCompute::rms(hz, Lz, (int)arrays.nparticles);
+    Scalar lprx = PPPMForceCompute::rms(hx, Lx, (int)m_pdata->getN());
+    Scalar lpry = PPPMForceCompute::rms(hy, Ly, (int)m_pdata->getN());
+    Scalar lprz = PPPMForceCompute::rms(hz, Lz, (int)m_pdata->getN());
     Scalar lpr = sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0);
-    Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)arrays.nparticles*m_rcut*Lx*Ly*Lz);
+    Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)m_pdata->getN()*m_rcut*Lx*Ly*Lz);
 
     double RMS_error = MAX(lpr,spr);
     if(RMS_error > 0.1) {
@@ -364,8 +364,6 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     PPPMData::q2 = m_q2;
     PPPMData::kappa = m_kappa;
     PPPMData::energy_virial_factor = m_energy_virial_factor;
-
-    m_pdata->release();
     }
 
 std::vector< std::string > PPPMForceCompute::getProvidedLogQuantities()
@@ -792,20 +790,22 @@ void PPPMForceCompute::assign_charges_to_grid()
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
     ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
 
     memset(h_rho_real_space.data, 0, sizeof(cufftComplex)*m_Nx*m_Ny*m_Nz);
 
-    for(int i = 0; i < (int)arrays.nparticles; i++)
+    for(int i = 0; i < (int)m_pdata->getN(); i++)
         {
-        Scalar qi = arrays.charge[i];
+        Scalar qi = h_charge.data[i];
         Scalar4 posi;
-        posi.x = arrays.x[i];
-        posi.y = arrays.y[i];
-        posi.z = arrays.z[i];
+        posi.x = h_pos.data[i].x;
+        posi.y = h_pos.data[i].y;
+        posi.z = h_pos.data[i].z;
 
         Scalar box_dx = Lx / ((Scalar)m_Nx);
         Scalar box_dy = Ly / ((Scalar)m_Ny);
@@ -883,7 +883,6 @@ void PPPMForceCompute::assign_charges_to_grid()
             }
         }
     
-    m_pdata->release();
     }
 
 void PPPMForceCompute::combined_green_e()
@@ -924,7 +923,8 @@ void PPPMForceCompute::calculate_forces()
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
 
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
@@ -942,13 +942,13 @@ void PPPMForceCompute::calculate_forces()
     ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
     ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
 
-    for(int i = 0; i < (int)arrays.nparticles; i++)
+    for(int i = 0; i < (int)m_pdata->getN(); i++)
         {
-        Scalar qi = arrays.charge[i];
+        Scalar qi = h_charge.data[i];
         Scalar4 posi;
-        posi.x = arrays.x[i];
-        posi.y = arrays.y[i];
-        posi.z = arrays.z[i];
+        posi.x = h_pos.data[i].x;
+        posi.y = h_pos.data[i].y;
+        posi.z = h_pos.data[i].z;
 
         Scalar box_dx = Lx / ((Scalar)m_Nx);
         Scalar box_dy = Ly / ((Scalar)m_Ny);
@@ -1030,7 +1030,6 @@ void PPPMForceCompute::calculate_forces()
             }
         }
     
-    m_pdata->release();
     }
 
 void PPPMForceCompute::fix_exclusions_cpu()
@@ -1061,7 +1060,8 @@ void PPPMForceCompute::fix_exclusions_cpu()
     Scalar Lyinv = 1.0/Ly;
     Scalar Lzinv = 1.0/Lz;
 
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     for(unsigned int i = 0; i < group_size; i++)
         {
@@ -1071,10 +1071,10 @@ void PPPMForceCompute::fix_exclusions_cpu()
             virial[k] = 0.0f;
         unsigned int idx = d_group_members.data[i];
         Scalar4 posi;
-        posi.x = arrays.x[idx];
-        posi.y = arrays.y[idx];
-        posi.z = arrays.z[idx];
-        Scalar qi = arrays.charge[idx];
+        posi.x = h_pos.data[idx].x;
+        posi.y = h_pos.data[idx].y;
+        posi.z = h_pos.data[idx].z;
+        Scalar qi = h_charge.data[idx];
 
         unsigned int n_neigh = d_n_ex.data[idx];
         const Scalar sqrtpi = sqrtf(M_PI);
@@ -1085,10 +1085,10 @@ void PPPMForceCompute::fix_exclusions_cpu()
             cur_j = d_exlist.data[nex(idx, neigh_idx)];
            // get the neighbor's position
             Scalar4 posj;
-            posj.x = arrays.x[cur_j];
-            posj.y = arrays.y[cur_j];
-            posj.z = arrays.z[cur_j];
-            Scalar qj = arrays.charge[cur_j];
+            posj.x = h_pos.data[cur_j].x;
+            posj.y = h_pos.data[cur_j].y;
+            posj.z = h_pos.data[cur_j].z;
+            Scalar qj = h_charge.data[cur_j];
             Scalar dx = posi.x - posj.x;
             Scalar dy = posi.y - posj.y;
             Scalar dz = posi.z - posj.z;
@@ -1123,7 +1123,6 @@ void PPPMForceCompute::fix_exclusions_cpu()
             h_virial.data[k*virial_pitch+idx] = -virial[k];
         }
     
-    m_pdata->release();
     }
 
 void export_PPPMForceCompute()

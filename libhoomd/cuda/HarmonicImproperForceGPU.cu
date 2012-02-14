@@ -65,9 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the harmonic improper forces. Used by HarmonicImproperForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
 //! Texture for reading improper parameters
 texture<float2, 1, cudaReadModeElementType> improper_params_tex;
 
@@ -75,7 +72,8 @@ texture<float2, 1, cudaReadModeElementType> improper_params_tex;
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial
-    \param pdata Particle data arrays to calculate forces on
+    \param N number of particles
+    \param d_pos Device memory of particle positions
     \param box Box dimensions for periodic boundary condition handling
     \param tlist Improper data to use in calculating the forces
 */
@@ -83,22 +81,23 @@ extern "C" __global__
 void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
                                                  float* d_virial,
                                                  const unsigned int virial_pitch,
-                                                 gpu_pdata_arrays pdata,
+                                                 unsigned int N,
+                                                 const Scalar4 *d_pos,
                                                  gpu_boxsize box,
                                                  gpu_dihedraltable_array tlist)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
         
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_impropers = tlist.n_dihedrals[idx];
     
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx);  // we can be either a, b, or c in the a-b-c-d quartet
-    float4 a_pos,b_pos,c_pos, d_pos; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
+    float4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
+    float4 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
     
     // initialize the force to 0
     float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -128,53 +127,53 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
         int cur_improper_abcd = cur_ABCD.x;
         
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
-        float4 x_pos = tex1Dfetch(pdata_pos_tex, cur_improper_x_idx);
+        float4 x_pos = d_pos[cur_improper_x_idx];
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 y_pos = tex1Dfetch(pdata_pos_tex, cur_improper_y_idx);
+        float4 y_pos = d_pos[cur_improper_y_idx];
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 z_pos = tex1Dfetch(pdata_pos_tex, cur_improper_z_idx);
+        float4 z_pos = d_pos[cur_improper_z_idx];
         
         if (cur_improper_abcd == 0)
             {
-            a_pos = idx_pos;
-            b_pos = x_pos;
-            c_pos = y_pos;
-            d_pos = z_pos;
+            pos_a = idx_pos;
+            pos_b = x_pos;
+            pos_c = y_pos;
+            pos_d = z_pos;
             }
         if (cur_improper_abcd == 1)
             {
-            b_pos = idx_pos;
-            a_pos = x_pos;
-            c_pos = y_pos;
-            d_pos = z_pos;
+            pos_b = idx_pos;
+            pos_a = x_pos;
+            pos_c = y_pos;
+            pos_d = z_pos;
             }
         if (cur_improper_abcd == 2)
             {
-            c_pos = idx_pos;
-            a_pos = x_pos;
-            b_pos = y_pos;
-            d_pos = z_pos;
+            pos_c = idx_pos;
+            pos_a = x_pos;
+            pos_b = y_pos;
+            pos_d = z_pos;
             }
         if (cur_improper_abcd == 3)
             {
-            d_pos = idx_pos;
-            a_pos = x_pos;
-            b_pos = y_pos;
-            c_pos = z_pos;
+            pos_d = idx_pos;
+            pos_a = x_pos;
+            pos_b = y_pos;
+            pos_c = z_pos;
             }
             
         // calculate dr for a-b,c-b,and a-c(FLOPS: 9)
-        float dxab = a_pos.x - b_pos.x;
-        float dyab = a_pos.y - b_pos.y;
-        float dzab = a_pos.z - b_pos.z;
+        float dxab = pos_a.x - pos_b.x;
+        float dyab = pos_a.y - pos_b.y;
+        float dzab = pos_a.z - pos_b.z;
         
-        float dxcb = c_pos.x - b_pos.x;
-        float dycb = c_pos.y - b_pos.y;
-        float dzcb = c_pos.z - b_pos.z;
+        float dxcb = pos_c.x - pos_b.x;
+        float dycb = pos_c.y - pos_b.y;
+        float dzcb = pos_c.z - pos_b.z;
         
-        float dxdc = d_pos.x - c_pos.x;
-        float dydc = d_pos.y - c_pos.y;
-        float dzdc = d_pos.z - c_pos.z;
+        float dxdc = pos_d.x - pos_c.x;
+        float dydc = pos_d.y - pos_c.y;
+        float dzdc = pos_d.z - pos_c.z;
         
         dxab -= box.Lx * rintf(dxab * box.Lxinv);
         dxcb -= box.Lx * rintf(dxcb * box.Lxinv);
@@ -316,7 +315,8 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to perform the calculation on
+    \param N number of particles
+    \param d_pos particle positions on the device
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param ttable List of impropers stored on the GPU
     \param d_params K, sign,multiplicity params packed as padded float4 variables
@@ -332,7 +332,8 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
 cudaError_t gpu_compute_harmonic_improper_forces(float4* d_force,
                                                  float* d_virial,
                                                  const unsigned int virial_pitch,
-                                                 const gpu_pdata_arrays &pdata,
+                                                 const unsigned int N,
+                                                 const Scalar4 *d_pos,
                                                  const gpu_boxsize &box,
                                                  const gpu_dihedraltable_array &ttable,
                                                  float2 *d_params,
@@ -342,20 +343,16 @@ cudaError_t gpu_compute_harmonic_improper_forces(float4* d_force,
     assert(d_params);
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, improper_params_tex, d_params, sizeof(float2) * n_improper_types);
+    // bind the texture
+    cudaError_t error = cudaBindTexture(0, improper_params_tex, d_params, sizeof(float2) * n_improper_types);
     if (error != cudaSuccess)
         return error;
         
     // run the kernel
-    gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch,pdata, box, ttable);
+    gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, ttable);
     
     return cudaSuccess;
     }

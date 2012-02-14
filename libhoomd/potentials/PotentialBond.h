@@ -187,7 +187,10 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     assert(m_pdata);
 
     // access the particle data arrays
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
@@ -199,11 +202,9 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
-    assert(arrays.x);
-    assert(arrays.y);
-    assert(arrays.z);
-    assert(arrays.diameter);
-    assert(arrays.charge);
+    assert(h_pos.data);
+    assert(h_diameter.data);
+    assert(h_charge.data);
 
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -233,24 +234,24 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = arrays.rtag[bond.a];
-        unsigned int idx_b = arrays.rtag[bond.b];
+        unsigned int idx_a = h_rtag.data[bond.a];
+        unsigned int idx_b = h_rtag.data[bond.b];
         assert(idx_a < m_pdata->getN());
         assert(idx_b < m_pdata->getN());
 
         // calculate d\vec{r}
         // (MEM TRANSFER: 6 Scalars / FLOPS: 3)
-        Scalar dx = arrays.x[idx_b] - arrays.x[idx_a];
-        Scalar dy = arrays.y[idx_b] - arrays.y[idx_a];
-        Scalar dz = arrays.z[idx_b] - arrays.z[idx_a];
+        Scalar dx = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+        Scalar dy = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+        Scalar dz = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
 
         // access diameter (if needed)
         Scalar diameter_a = Scalar(0.0);
         Scalar diameter_b = Scalar(0.0);
         if (evaluator::needsDiameter())
             {
-            diameter_a = arrays.diameter[idx_a];
-            diameter_b = arrays.diameter[idx_b];
+            diameter_a = h_diameter.data[idx_a];
+            diameter_b = h_diameter.data[idx_b];
             }
 
         // acesss charge (if needed)
@@ -258,8 +259,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         Scalar charge_b = Scalar(0.0);
         if (evaluator::needsCharge())
             {
-            charge_a = arrays.charge[idx_a];
-            charge_b = arrays.charge[idx_b];
+            charge_a = h_charge.data[idx_a];
+            charge_b = h_charge.data[idx_b];
             }
 
         // if the vector crosses the box, pull it back
@@ -280,9 +281,9 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             dz += Lz;
 
         // sanity check
-        assert(dx >= box.xlo && dx < box.xhi);
-        assert(dy >= box.ylo && dx < box.yhi);
-        assert(dz >= box.zlo && dx < box.zhi);
+        assert(dx >= -Lx2 && dx < Lx2);
+        assert(dy >= -Ly2 && dy < Ly2);
+        assert(dz >= -Lz2 && dz < Lz2);
 
         // calculate r_ab squared
         Scalar rsq = dx*dx+dy*dy+dz*dz;
@@ -339,7 +340,6 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             throw std::runtime_error("Error in bond calculation");
             }
         }
-    m_pdata->release();
 
     if (m_prof) m_prof->pop();
     }

@@ -160,7 +160,10 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
-    gpu_pdata_arrays& pdata = this->m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
+
     gpu_boxsize box = this->m_pdata->getBoxGPU();
     
     // access parameters
@@ -178,7 +181,10 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     gpu_cgpf(pair_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
-                         pdata,
+                         this->m_pdata->getN(),
+                         d_pos.data,
+                         d_diameter.data,
+                         d_charge.data,
                          box,
                          d_n_neigh.data,
                          d_nlist.data,
@@ -193,8 +199,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
-    this->m_pdata->release();
     
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }

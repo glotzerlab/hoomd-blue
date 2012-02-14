@@ -132,7 +132,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         m_prof->push(exec_conf, "compute");
 
     // acquire the particle data
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     gpu_boxsize gpubox = m_pdata->getBoxGPU();
     
     // access the nlist data arrays
@@ -153,7 +153,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
                           d_last_pos.data,
                           d_conditions.data,
                           m_nlist_indexer,
-                          d_pdata.pos,
+                          d_pos.data,
                           m_pdata->getN(),
                           gpubox,
                           rmaxsq);
@@ -161,8 +161,6 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_pdata->release();
-    
     if (m_prof)
         m_prof->pop(exec_conf);
     }
@@ -173,7 +171,7 @@ bool NeighborListGPU::distanceCheck()
     if (m_prof) m_prof->push(exec_conf, "dist-check");
     
     // access data
-    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::read);
     
@@ -182,7 +180,7 @@ bool NeighborListGPU::distanceCheck()
     
     gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
                                      d_last_pos.data,
-                                     pdata.pos,
+                                     d_pos.data,
                                      m_pdata->getN(),
                                      box,
                                      maxshiftsq,
@@ -191,8 +189,6 @@ bool NeighborListGPU::distanceCheck()
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_pdata->release();
-    
     bool result;
     result = (m_flags.readFlags() == m_checkn);
     m_checkn++;

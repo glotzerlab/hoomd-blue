@@ -97,21 +97,25 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    pdata_3->setFlags(~PDataFlags(0));    
+    pdata_3->setFlags(~PDataFlags(0));
 
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = Scalar(-0.2);
-    //arrays.x[0] = 0;
-    arrays.y[0] = arrays.z[0] = Scalar(0.0);
-    arrays.x[1] = Scalar(pow(2.0,1.0/6.0)); arrays.y[1] = arrays.z[1] = 0.0;
-    arrays.x[2] = Scalar(2.0*pow(2.0,1.0/6.0)); arrays.y[2] = arrays.z[2] = 0.0;
-    arrays.diameter[0]= Scalar(1.2);
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(pdata_3->getDiameters(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = Scalar(-0.2);
+    //h_pos.data[0].x = 0;
+    h_pos.data[0].y = h_pos.data[0].z = Scalar(0.0);
+    h_pos.data[1].x = Scalar(pow(2.0,1.0/6.0)); h_pos.data[1].y = h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = Scalar(2.0*pow(2.0,1.0/6.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
+    h_diameter.data[0]= Scalar(1.2);
+    }
     
     Scalar maxdiam = pdata_3->getMaxDiameter();
     Scalar r_cut = Scalar(1.3);
     Scalar r_alpha = maxdiam/2 - 0.5;
     Scalar r_cut_wc = r_cut + 2 * r_alpha;
-    pdata_3->release();
+
     shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, r_cut_wc, Scalar(3.0)));
     shared_ptr<PotentialPairSLJ> fc_3 = shiftedlj_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, r_cut);
@@ -200,16 +204,20 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     }
 
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
-    arrays = pdata_3->acquireReadWrite();
-    arrays.x[2] = arrays.y[2] = arrays.z[2] = 0.0;
-    arrays.x[0] = Scalar(2.0*pow(2.0,1.0/6.0)); arrays.y[0] = arrays.z[0] = 0.0;
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_3->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_3->getRTags(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[2].x = h_pos.data[2].y = h_pos.data[2].z = 0.0;
+    h_pos.data[0].x = Scalar(2.0*pow(2.0,1.0/6.0)); h_pos.data[0].y = h_pos.data[0].z = 0.0;
     
-    arrays.tag[0] = 2;
-    arrays.tag[2] = 0;
-    arrays.rtag[0] = 2;
-    arrays.rtag[2] = 0;
-    pdata_3->release();
-    
+    h_tag.data[0] = 2;
+    h_tag.data[2] = 0;
+    h_rtag.data[0] = 2;
+    h_rtag.data[2] = 0;
+    }
+
     // notify the particle data that we changed the order
     pdata_3->notifyParticleSort();
     
@@ -239,31 +247,30 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
+    
+    pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
+    pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
+    pdata_6->setPosition(2, make_scalar3(0.0,-19.35,0.0));
+    pdata_6->setPosition(3, make_scalar3(0.0,19.6,0.0));
+    pdata_6->setPosition(4, make_scalar3(0.0,0.0,-29.1));
+    pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
 
-    ParticleDataArrays arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.35); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.1);
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
-    
-    arrays.type[0] = 0;
-    arrays.type[1] = 1;
-    arrays.type[2] = 2;
-    arrays.type[3] = 0;
-    arrays.type[4] = 2;
-    arrays.type[5] = 1;
-    
-    arrays.diameter[0]=Scalar(1.2);
-    arrays.diameter[2]=Scalar(1.5);
-    arrays.diameter[4]=Scalar(2.0);
+    pdata_6->setType(0,0);
+    pdata_6->setType(1,1);
+    pdata_6->setType(2,2);
+    pdata_6->setType(3,0);
+    pdata_6->setType(4,2);
+    pdata_6->setType(5,1);
+
+    pdata_6->setDiameter(0,1.2);
+    pdata_6->setDiameter(2,1.5);
+    pdata_6->setDiameter(4,2.0);
+
     Scalar maxdiam = pdata_6->getMaxDiameter();
     Scalar r_cut = Scalar(1.3);
     Scalar r_alpha = Scalar(maxdiam/2.0 - 0.5);
     Scalar r_cut_wc = Scalar(r_cut + 2.0 * r_alpha);
     
-    pdata_6->release();
     
     shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, r_cut_wc, Scalar(3.0)));
     shared_ptr<PotentialPairSLJ> fc_6 = shiftedlj_creator(sysdef_6, nlist_6);

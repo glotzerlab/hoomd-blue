@@ -117,6 +117,7 @@ Jens Glaser, University of Minnesota
  - integrate.nph
  - Framework for external potentials
  - external.periodic
+ - ParticleData refactoring
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials

@@ -141,7 +141,9 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     
     assert(m_pdata);
 
-    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<cufftComplex> d_rho_real_space(PPPMData::m_rho_real_space, access_location::device, access_mode::readwrite);
     ArrayHandle<cufftComplex> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
@@ -197,7 +199,9 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_pppm_forces(d_force.data,
                             d_virial.data,
                             m_virial.getPitch(),
-                            pdata,
+                            m_pdata->getN(),
+                            d_pos.data,
+                            d_charge.data,
                             box,
                             m_Nx,
                             m_Ny,
@@ -229,7 +233,9 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         fix_exclusions(d_force.data,
                        d_virial.data,
                        m_virial.getPitch(),
-                       pdata,
+                       m_pdata->getN(),
+                       d_pos.data,
+                       d_charge.data,
                        box,
                        d_n_ex.data,
                        d_exlist.data,
@@ -244,8 +250,6 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 
 
 
-    m_pdata->release();
- 
     //   int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
     //    int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+3+7);
     if (m_prof) m_prof->pop(exec_conf, 1, 1);

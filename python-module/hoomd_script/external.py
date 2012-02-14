@@ -250,13 +250,7 @@ class _external_force(force._force):
         # setup the coefficient vector
         self.force_coeff = coeff();
 
-        # increment the id counter
-        id = _external_force.cur_id;
-        _external_force.cur_id += 1;
-
-        self.force_name = "external_force%d" % (id);
         self.enabled = True;
-        globals.external_forces.append(self);
 
         # create force data iterator
         self.external_forces = data.force_data(self);
@@ -283,126 +277,12 @@ class _external_force(force._force):
             param = self.process_coeff(coeff_dict);
             self.cpp_force.setParams(i, param);
 
-    ## \var enabled
-    # \internal
-    # \brief True if the force is enabled
-
-    ## \var cpp_force
-    # \internal
-    # \brief Stores the C++ side ForceCompute managed by this class
-
-    ## \var force_name
-    # \internal
-    # \brief The Force's name as it is assigned to the System
-
-    ## \internal
-    # \brief Checks that proper initialization has completed
-    def check_initialization(self):
-        # check that we have been initialized properly
-        if self.cpp_force is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-            raise RuntimeError();
-
-
-    ## Disables the force
-    #
-    # \b Examples:
-    # \code
-    # force.disable()
-    # \endcode
-    #
-    # Executing the disable command will remove the force from the simulation.
-    # Any run() command executed after disabling a force will not calculate or
-    # use the force during the simulation. A disabled force can be re-enabled
-    # with enable()
-    #
-    # To use this command, you must have saved the force in a variable, as
-    # shown in this example:
-    # \code
-    # force = external.some_force()
-    # # ... later in the script
-    # force.disable()
-    # \endcode
-    def disable(self):
-        util.print_status_line();
-        self.check_initialization();
-
-        # check if we are already disabled
-        if not self.enabled:
-            print "***Warning! Ignoring command to disable a force that is already disabled";
-            return;
-
-        self.enabled = False;
-
-        # remove the compute from the system
-        globals.system.removeCompute(self.force_name);
-
-    ## Benchmarks the force computation
-    # \param n Number of iterations to average the benchmark over
-    #
-    # \b Examples:
-    # \code
-    # t = force.benchmark(n = 100)
-    # \endcode
-    #
-    # The value returned by benchmark() is the average time to perform the force
-    # computation, in milliseconds. The benchmark is performed by taking the current
-    # positions of all particles in the simulation and repeatedly calculating the forces
-    # on them. Thus, you can benchmark different situations as you need to by simply
-    # running a simulation to achieve the desired state before running benchmark().
-    #
-    # \note
-    # There is, however, one subtle side effect. If the benchmark() command is run
-    # directly after the particle data is initialized with an init command, then the
-    # results of the benchmark will not be typical of the time needed during the actual
-    # simulation. Particles are not reordered to improve cache performance until at least
-    # one time step is performed. Executing run(1) before the benchmark will solve this problem.
-    #
-    # To use this command, you must have saved the force in a variable, as
-    # shown in this example:
-    # \code
-    # force = external.some_force()
-    # # ... later in the script
-    # t = force.benchmark(n = 100)
-    # \endcode
-    def benchmark(self, n):
-        self.check_initialization();
-
-        # run the benchmark
-        return self.cpp_force.benchmark(int(n))
-
-    ## Enables the force
-    #
-    # \b Examples:
-    # \code
-    # force.enable()
-    # \endcode
-    #
-    # See disable() for a detailed description.
-    def enable(self):
-        util.print_status_line();
-        self.check_initialization();
-
-        # check if we are already disabled
-        if self.enabled:
-            print "***Warning! Ignoring command to enable a force that is already enabled";
-            return;
-
-        # add the compute back to the system
-        globals.system.addCompute(self.cpp_force, self.force_name);
-
-        self.enabled = True;
-
-# set default counter
-_external_force.cur_id = 0;
-
-
 ## One-dimension periodic potential
 #
 # The command %periodic specifies that an external %force should be
 # added to every particle in the simulation to induce a periodic modulation
-# in the particle concentration at a given point \f$ \vec{r} \f$ (e.g. to
-# impose an ordered structure in a diblock copolymer melt)
+# in the particle concentration. The force parameters can be set on a per-particle
+# type-basis. The potential can e.g. be used to induce an ordered phase in a block-copolymer melt.
 #
 # The external potential \f$ V(\vec{r}) \f$ is implemented using the following formula:
 #

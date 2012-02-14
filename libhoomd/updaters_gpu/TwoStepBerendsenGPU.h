@@ -48,6 +48,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
+
 #include "TwoStepBerendsen.h"
 
 #ifndef __BERENDSEN_GPU_H__

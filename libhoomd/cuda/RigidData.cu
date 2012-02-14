@@ -69,8 +69,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*!
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
-    \param pdata_orientation Particle orientation
     \param pdata_image Particle image
+    \param pdata_orientation Particle orientation
     \param d_pgroup_idx Particle index
     \param n_pgroup Number of particles in the group
     \param d_particle_offset Local index of a particle in the body
@@ -86,10 +86,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Box dimensions for periodic boundary condition handling
 */
 template<bool set_x>
-__global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
-                                       float4* pdata_vel,
+__global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
+                                       Scalar4* pdata_vel,
+                                       int3* pdata_image,
                                        float4* pdata_orientation,
-                                       int4* pdata_image,
                                        unsigned int *d_pgroup_idx,
                                        unsigned int n_pgroup,
                                        unsigned int *d_particle_offset,
@@ -137,8 +137,8 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
     ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
     ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
     
-    float4 ppos;
-    int4 image;
+    Scalar4 ppos;
+    int3 image;
     float4 porientation;
     if (set_x)
         {
@@ -171,11 +171,10 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
         }
     
     // v_particle = vel + angvel x ri
-    float4 pvel;
+    Scalar4 pvel = pdata_vel[pidx];
     pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
     pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
     pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-    pvel.w = 0.0f;
     
     // write out the results
     if (set_x)
@@ -189,7 +188,10 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
 #endif
 
 // Sets R and v of particles of the rigid body on the GPU
-/*! \param pdata Particle data 
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocities
+    \param d_image array of particle images
+    \param d_body array of particle body ids
     \param rigid_data Rigid body data
     \param d_pdata_orientation Particle orientations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate (all particles in rigid bodies)
@@ -197,7 +199,10 @@ __global__ void gpu_rigid_setRV_kernel(float4* pdata_pos,
     \param box Box dimensions for periodic boundary condition handling
     \param set_x boolean indicating whether the positions are changed or not (first or second step of integration)
 */
-cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata, 
+cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
+                            Scalar4 *d_vel,
+                            int3 *d_image,
+                            unsigned int *d_body,
                                    const gpu_rigid_data_arrays& rigid_data,
                                    float4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
@@ -206,14 +211,14 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
                                    bool set_x)
     {
     
-    assert(pdata.pos);
-    assert(pdata.vel);   
+    assert(d_pos);
+    assert(d_vel);
     assert(d_pdata_orientation);
-    assert(pdata.image);     
+    assert(d_image);
     assert(d_group_members);
     
     assert(rigid_data.particle_offset);    
-    assert(pdata.body);     
+    assert(d_body);
     assert(rigid_data.orientation);    
     assert(rigid_data.com);
     assert(rigid_data.vel);
@@ -229,14 +234,14 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
     dim3 particle_threads(block_size, 1, 1);
     
     if (set_x)
-        gpu_rigid_setRV_kernel<true><<< particle_grid, particle_threads >>>(pdata.pos, 
-                                                                        pdata.vel,
+        gpu_rigid_setRV_kernel<true><<< particle_grid, particle_threads >>>(d_pos,
+                                                                        d_vel,
+                                                                        d_image,
                                                                         d_pdata_orientation,
-                                                                        pdata.image,
                                                                         d_group_members,
                                                                         group_size,
                                                                         rigid_data.particle_offset,
-                                                                        pdata.body,
+                                                                        d_body,
                                                                         rigid_data.orientation,
                                                                         rigid_data.com,
                                                                         rigid_data.vel,
@@ -247,14 +252,14 @@ cudaError_t gpu_rigid_setRV(const gpu_pdata_arrays& pdata,
                                                                         nmax,
                                                                         box);
      else
-        gpu_rigid_setRV_kernel<false><<< particle_grid, particle_threads >>>(pdata.pos, 
-                                                                        pdata.vel,
+        gpu_rigid_setRV_kernel<false><<< particle_grid, particle_threads >>>(d_pos,
+                                                                        d_vel,
+                                                                        d_image,
                                                                         d_pdata_orientation,
-                                                                        pdata.image,
                                                                         d_group_members,
                                                                         group_size,
                                                                         rigid_data.particle_offset,
-                                                                        pdata.body,
+                                                                        d_body,
                                                                         rigid_data.orientation,
                                                                         rigid_data.com,
                                                                         rigid_data.vel,
@@ -274,7 +279,6 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
                                                          const Scalar4 *d_oldvel,
                                                          const Scalar4 *d_vel,
                                                          const unsigned int *d_body,
-                                                         const Scalar *d_mass,
                                                          Scalar deltaT,
                                                          unsigned int N)
     {
@@ -285,10 +289,10 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
     if (d_body[pidx] != NO_BODY)
         {
         // calculate the virial from the position and velocity from the previous step
-        Scalar mass = d_mass[pidx];
         Scalar4 old_vel = d_oldvel[pidx];
         Scalar4 old_pos = d_oldpos[pidx];
         Scalar4 vel = d_vel[pidx];
+        Scalar mass = vel.w;
         Scalar4 net_force = d_net_force[pidx];
         Scalar3 fc;
         fc.x = mass * (vel.x - old_vel.x) / deltaT - net_force.x;
@@ -305,7 +309,6 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
     \param d_oldvel Old velocity of particles saved at the start of the step
     \param d_vel Current velocity of particles at the end of the step
     \param d_body Body index of each particle
-    \param d_mass Mass of each particle
     \param deltaT Step size
     \param N number of particles in the box
 */
@@ -315,7 +318,6 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
                                               const Scalar4 *d_oldvel,
                                               const Scalar4 *d_vel,
                                               const unsigned int *d_body,
-                                              const Scalar *d_mass,
                                               Scalar deltaT,
                                               unsigned int N)
     {
@@ -335,7 +337,6 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
                                                                                   d_oldvel,
                                                                                   d_vel,
                                                                                   d_body,
-                                                                                  d_mass,
                                                                                   deltaT,
                                                                                   N);
 

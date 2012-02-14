@@ -147,7 +147,16 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f.write((char*)&version, sizeof(int));
 
     // acquire the particle data
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+
     BoxDim box = m_pdata->getBox();
     Scalar Lx,Ly,Lz;
     Lx=Scalar(box.xhi-box.xlo);
@@ -165,24 +174,37 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     //write out particle data
     unsigned int np = m_pdata->getN();
     f.write((char*)&np, sizeof(unsigned int));
-    f.write((char*)arrays.tag, np*sizeof(unsigned int));
-    f.write((char*)arrays.rtag, np*sizeof(unsigned int));
-    f.write((char*)arrays.x, np*sizeof(Scalar));
-    f.write((char*)arrays.y, np*sizeof(Scalar));
-    f.write((char*)arrays.z, np*sizeof(Scalar));
-    f.write((char*)arrays.ix, np*sizeof(int));
-    f.write((char*)arrays.iy, np*sizeof(int));
-    f.write((char*)arrays.iz, np*sizeof(int));
-    f.write((char*)arrays.vx, np*sizeof(Scalar));
-    f.write((char*)arrays.vy, np*sizeof(Scalar));
-    f.write((char*)arrays.vz, np*sizeof(Scalar));
-    f.write((char*)arrays.ax, np*sizeof(Scalar));
-    f.write((char*)arrays.ay, np*sizeof(Scalar));
-    f.write((char*)arrays.az, np*sizeof(Scalar));
-    f.write((char*)arrays.mass, np*sizeof(Scalar));
-    f.write((char*)arrays.diameter, np*sizeof(Scalar));
-    f.write((char*)arrays.charge, np*sizeof(Scalar));
-    f.write((char*)arrays.body, np*sizeof(unsigned int));
+    f.write((char*)h_tag.data, np*sizeof(unsigned int));
+    f.write((char*)h_rtag.data, np*sizeof(unsigned int));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_pos.data[i].x, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_pos.data[i].y, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_pos.data[i].z, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_image.data[i].x, sizeof(int));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_image.data[i].y, sizeof(int));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_image.data[i].z, sizeof(int));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_vel.data[i].x, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_vel.data[i].y, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_vel.data[i].z, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_accel.data[i].x, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_accel.data[i].y, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_accel.data[i].z, sizeof(Scalar));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_vel.data[i].w, sizeof(Scalar));
+    f.write((char*)h_diameter.data, np*sizeof(Scalar));
+    f.write((char*)h_charge.data, np*sizeof(Scalar));
+    f.write((char*)h_body.data, np*sizeof(unsigned int));
     
     //write out types and type mapping
     unsigned int ntypes = m_pdata->getNTypes();
@@ -192,7 +214,8 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         std::string name = m_pdata->getNameByType(i);
         write_string(f, name);
         }
-    f.write((char*)arrays.type, np*sizeof(unsigned int));
+    for (unsigned int i = 0; i < np; i++)
+       f.write((char*)&h_pos.data[i].w, sizeof(unsigned int));
 
     if (!f.good())
         {
@@ -360,7 +383,6 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     
     if (n_bodies <= 0)
         {
-        m_pdata->release();
         return;
         }
     
@@ -403,8 +425,6 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         throw runtime_error("Error writing HOOMD dump file");
         }
         
-    m_pdata->release();
-    
     }
 
 /*! \param timestep Current time step of the simulation

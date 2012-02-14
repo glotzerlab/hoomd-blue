@@ -639,9 +639,10 @@ void NeighborList::addOneFourExclusionsFromTopology()
 */
 bool NeighborList::distanceCheck()
     {
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
     // sanity check
-    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+    assert(h_pos.data);
     
     // profile
     if (m_prof) m_prof->push("Dist check");
@@ -663,11 +664,11 @@ bool NeighborList::distanceCheck()
     
     // actually scan the array looking for values over 1/2 the buffer distance
     Scalar maxsq = (m_r_buff/Scalar(2.0))*(m_r_buff/Scalar(2.0));
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        Scalar dx = arrays.x[i] - h_last_pos.data[i].x;
-        Scalar dy = arrays.y[i] - h_last_pos.data[i].y;
-        Scalar dz = arrays.z[i] - h_last_pos.data[i].z;
+        Scalar dx = h_pos.data[i].x - h_last_pos.data[i].x;
+        Scalar dy = h_pos.data[i].y - h_last_pos.data[i].y;
+        Scalar dz = h_pos.data[i].z - h_last_pos.data[i].z;
         
         // if the vector crosses the box, pull it back
         if (dx >= box.xhi)
@@ -695,7 +696,6 @@ bool NeighborList::distanceCheck()
     // don't worry about computing flops here, this is fast
     if (m_prof) m_prof->pop();
     
-    m_pdata->release();
     return result;
     }
 
@@ -703,22 +703,22 @@ bool NeighborList::distanceCheck()
 */
 void NeighborList::setLastUpdatedPos()
     {
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
     // sanity check
-    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+    assert(h_pos.data);
     
     // profile
     if (m_prof) m_prof->push("Dist check");
     
     // update the last position arrays
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::overwrite);
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        h_last_pos.data[i] = make_scalar4(arrays.x[i], arrays.y[i], arrays.z[i], 0.0f);
+        h_last_pos.data[i] = make_scalar4(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z, 0.0f);
         }
     
     if (m_prof) m_prof->pop();
-    m_pdata->release();
     }
 
 /*! \returns true If the neighbor list needs to be updated
@@ -866,10 +866,15 @@ void NeighborList::buildNlist(unsigned int timestep)
     if (m_prof) m_prof->push("Build list");
     
     // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+
     // sanity check
-    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-    
+    assert(h_pos.data);
+    assert(h_diameter.data);
+    assert(h_body.data);
+
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
     // sanity check
@@ -905,25 +910,25 @@ void NeighborList::buildNlist(unsigned int timestep)
     
     
     // start by clearing the entire list
-    memset(h_n_neigh.data, 0, sizeof(unsigned int)*arrays.nparticles);
+    memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
     
     // now we can loop over all particles in n^2 fashion and build the list
 #pragma omp parallel for schedule(dynamic, 100)
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
-        Scalar xi = arrays.x[i];
-        Scalar yi = arrays.y[i];
-        Scalar zi = arrays.z[i];
-        Scalar di = arrays.diameter[i];
-        unsigned int bodyi = arrays.body[i];
+        Scalar xi = h_pos.data[i].x;
+        Scalar yi = h_pos.data[i].y;
+        Scalar zi = h_pos.data[i].z;
+        Scalar di = h_diameter.data[i];
+        unsigned int bodyi = h_body.data[i];
         
         // for each other particle with i < j
-        for (unsigned int j = i + 1; j < arrays.nparticles; j++)
+        for (unsigned int j = i + 1; j < m_pdata->getN(); j++)
             {
             // calculate dr
-            Scalar dx = arrays.x[j] - xi;
-            Scalar dy = arrays.y[j] - yi;
-            Scalar dz = arrays.z[j] - zi;
+            Scalar dx = h_pos.data[j].x - xi;
+            Scalar dy = h_pos.data[j].y - yi;
+            Scalar dz = h_pos.data[j].z - zi;
             
             // if the vector crosses the box, pull it back
             if (dx >= Lx2)
@@ -949,13 +954,13 @@ void NeighborList::buildNlist(unsigned int timestep)
             bool excluded = false;
             
             if (m_filter_body && bodyi != NO_BODY)
-                excluded = (bodyi == arrays.body[j]);
+                excluded = (bodyi == h_body.data[j]);
             
             Scalar sqshift = Scalar(0.0);
             if (m_filter_diameter)
                 {
                 // compute the shift in radius to accept neighbors based on their diameters
-                float delta = (di + arrays.diameter[j]) * Scalar(0.5) - Scalar(1.0);
+                float delta = (di + h_diameter.data[j]) * Scalar(0.5) - Scalar(1.0);
                 // r^2 < (r_max + delta)^2
                 // r^2 < r_maxsq + delta^2 + 2*r_max*delta
                 sqshift = (delta + Scalar(2.0) * rmax) * delta;
@@ -1001,8 +1006,6 @@ void NeighborList::buildNlist(unsigned int timestep)
             }
         }
         
-    m_pdata->release();
-    
     if (m_prof) m_prof->pop();
     }
 
@@ -1013,18 +1016,18 @@ void NeighborList::updateExListIdx()
     if (m_prof)
         m_prof->push("update-ex");
     // access data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx, access_location::host, access_mode::overwrite);
     
     // translate the number and exclusions from one array to the other
-    for (unsigned int tag = 0; tag < arrays.nparticles; tag++)
+    for (unsigned int tag = 0; tag < m_pdata->getN(); tag++)
         {
         // get the index for this tag
-        unsigned int idx = arrays.rtag[tag];
+        unsigned int idx = h_rtag.data[tag];
         
         // copy the number of exclusions over
         unsigned int n = h_n_ex_tag.data[tag];
@@ -1034,12 +1037,11 @@ void NeighborList::updateExListIdx()
         for (unsigned int offset = 0; offset < n; offset++)
             {
             unsigned int ex_tag = h_ex_list_tag.data[m_ex_list_indexer(tag, offset)];
-            unsigned int ex_idx = arrays.rtag[ex_tag];
+            unsigned int ex_idx = h_rtag.data[ex_tag];
             h_ex_list_idx.data[m_ex_list_indexer(idx, offset)] = ex_idx;
             }
         }
     
-    m_pdata->release();
     if (m_prof)
         m_prof->pop();
     }

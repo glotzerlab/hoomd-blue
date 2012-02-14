@@ -328,13 +328,13 @@ void BondData::updateBondTable()
     memset(m_host_n_bonds, 0, sizeof(unsigned int) * m_pdata->getN());
     
     // loop through the particles and count the number of bonds based on each particle index
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
         {
         unsigned int tag1 = m_bonds[cur_bond].a;
         unsigned int tag2 = m_bonds[cur_bond].b;
-        int idx1 = arrays.rtag[tag1];
-        int idx2 = arrays.rtag[tag2];
+        int idx1 = h_rtag.data[tag1];
+        int idx2 = h_rtag.data[tag2];
         
         m_host_n_bonds[idx1]++;
         m_host_n_bonds[idx2]++;
@@ -342,7 +342,8 @@ void BondData::updateBondTable()
         
     // find the maximum number of bonds
     unsigned int num_bonds_max = 0;
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    unsigned int nparticles = m_pdata->getN();
+    for (unsigned int i = 0; i < nparticles; i++)
         {
         if (m_host_n_bonds[i] > num_bonds_max)
             num_bonds_max = m_host_n_bonds[i];
@@ -365,8 +366,8 @@ void BondData::updateBondTable()
         unsigned int tag1 = m_bonds[cur_bond].a;
         unsigned int tag2 = m_bonds[cur_bond].b;
         unsigned int type = m_bonds[cur_bond].type;
-        int idx1 = arrays.rtag[tag1];
-        int idx2 = arrays.rtag[tag2];
+        int idx1 = h_rtag.data[tag1];
+        int idx2 = h_rtag.data[tag2];
         
         // get the number of bonds for each particle
         int num1 = m_host_n_bonds[idx1];
@@ -381,8 +382,6 @@ void BondData::updateBondTable()
         m_host_n_bonds[idx2]++;
         }
         
-    m_pdata->release();
-    
     // copy the bond table to the device
     copyBondTable();
     }

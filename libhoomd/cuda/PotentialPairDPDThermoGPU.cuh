@@ -69,7 +69,9 @@ struct dpd_pair_args_t
     dpd_pair_args_t(float4 *_d_force,
                     float *_d_virial,
                     const unsigned int _virial_pitch,
-                    const gpu_pdata_arrays& _pdata,
+                    const unsigned int _N,
+                    const Scalar4 *_d_pos,
+                    const Scalar4 *_d_vel,
                     const gpu_boxsize &_box,
                     const unsigned int *_d_n_neigh,
                     const unsigned int *_d_nlist,
@@ -84,7 +86,9 @@ struct dpd_pair_args_t
                         : d_force(_d_force),
                         d_virial(_d_virial),
                         virial_pitch(_virial_pitch),
-                        pdata(_pdata),
+                        N(_N),
+                        d_pos(_d_pos),
+                        d_vel(_d_vel),
                         box(_box),
                         d_n_neigh(_d_n_neigh),
                         d_nlist(_d_nlist),
@@ -102,7 +106,9 @@ struct dpd_pair_args_t
     float4 *d_force;                //!< Force to write out
     float *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< pitch of 2D virial array
-    const gpu_pdata_arrays& pdata;  //!< Particle data to compute forces over
+    const unsigned int N;           //!< number of particles
+    const Scalar4 *d_pos;           //!< particle positions
+    const Scalar4 *d_vel;           //!< particle velocities
     const gpu_boxsize &box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
@@ -130,7 +136,9 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to calculate forces on
+    \param N number of particles
+    \param d_pos particle positions on the GPU
+    \param d_vel particle velocites on the GPU
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -162,7 +170,9 @@ template< class evaluator >
 __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
                                               float *d_virial,
                                               const unsigned int virial_pitch,
-                                              gpu_pdata_arrays pdata,
+                                              const unsigned int N,
+                                              const Scalar4 *d_pos,
+                                              const Scalar4 *d_vel,
                                               gpu_boxsize box,
                                               const unsigned int *d_n_neigh,
                                               const unsigned int *d_nlist,
@@ -198,20 +208,20 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
         
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
-    
-    // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
+
+    // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
     float4 posi = tex1Dfetch(pdata_dpd_pos_tex, idx);
-    
-    // read in the velocity of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
+
+    // read in the velocity of our particle
     // (MEM TRANSFER: 16 bytes)
-    float4 veli = tex1Dfetch(pdata_dpd_vel_tex, idx);    
-    
+    float4 veli = tex1Dfetch(pdata_dpd_vel_tex, idx);
+
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float virial[6];
@@ -242,9 +252,9 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
             
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 posj = tex1Dfetch(pdata_dpd_pos_tex, cur_j);
+            Scalar4 posj = tex1Dfetch(pdata_dpd_pos_tex, cur_j);
 
-            // get the neighbor's position (MEM TRANSFER: 16 bytes)
+            // get the neighbor's velocity (MEM TRANSFER: 16 bytes)
             float4 velj = tex1Dfetch(pdata_dpd_vel_tex, cur_j);
                         
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
@@ -335,24 +345,23 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     assert(args.ntypes > 0);
     
     // setup the grid to run the kernel
-    dim3 grid( args.pdata.N / args.block_size + 1, 1, 1);
+    dim3 grid( args.N / args.block_size + 1, 1, 1);
     dim3 threads(args.block_size, 1, 1);
-    
+
     // bind the position texture
     pdata_dpd_pos_tex.normalized = false;
     pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, args.pdata.pos, sizeof(float4) * args.pdata.N);
+    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, args.d_pos, sizeof(float4)*args.N);
     if (error != cudaSuccess)
         return error;
 
     // bind the velocity texture
     pdata_dpd_vel_tex.normalized = false;
     pdata_dpd_vel_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_dpd_vel_tex, args.pdata.vel, sizeof(float4) * args.pdata.N);
+    error = cudaBindTexture(0, pdata_dpd_vel_tex, args.d_vel,  sizeof(float4)*args.N);
     if (error != cudaSuccess)
         return error;
 
-    
     Index2D typpair_idx(args.ntypes);
     unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
                                 * typpair_idx.getNumElements();
@@ -363,7 +372,9 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                  (args.d_force,
                                   args.d_virial,
                                   args.virial_pitch,
-                                  args.pdata,
+                                  args.N,
+                                  args.d_pos,
+                                  args.d_vel,
                                   args.box,
                                   args.d_n_neigh,
                                   args.d_nlist,

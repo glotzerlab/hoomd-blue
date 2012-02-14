@@ -80,51 +80,56 @@ shared_ptr<SystemDefinition> create_sysdef()
     BoxDim box(10.0);
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, box, 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
     
     // set the types
     // currently, the position is only set on the first 3 particles, intended for use in the total and center of mass
     // tests. Later, other particles will be added to test the new particle data selectors
-    arrays.type[0] = 0;
-    arrays.x[0] = Scalar(0.0); arrays.y[0] = Scalar(0.0); arrays.z[0] = Scalar(0.0);
-    arrays.ix[0] = 0; arrays.iy[0] = 0; arrays.iz[0] = 0;
-    arrays.mass[0] = Scalar(1.0);
-    arrays.body[0] = 0;
-    
-    arrays.type[1] = 2;
-    arrays.x[1] = Scalar(1.0); arrays.y[1] = Scalar(2.0); arrays.z[1] = Scalar(3.0);
-    arrays.ix[1] = 1; arrays.iy[1] = -1; arrays.iz[1] = 2;
-    arrays.mass[1] = Scalar(2.0);
-    arrays.body[1] = 0;
-    
-    arrays.type[2] = 0;
-    arrays.x[2] = Scalar(-1.0); arrays.y[2] = Scalar(-2.0); arrays.z[2] = Scalar(-3.0);
-    arrays.ix[2] = 0; arrays.iy[2] = 0; arrays.iz[2] = 0;
-    arrays.mass[2] = Scalar(5.0);
-    arrays.body[2] = 1;
-    
-    arrays.type[3] = 1;
-    arrays.x[3] = Scalar(-4.0); arrays.y[3] = Scalar(-4.0); arrays.z[3] = Scalar(-4.0);
-    arrays.body[3] = 1;
-    
-    arrays.type[4] = 3;
-    arrays.x[4] = Scalar(-3.5); arrays.y[4] = Scalar(-4.5); arrays.z[4] = Scalar(-5.0);
-    
-    arrays.type[5] = 0;
-    arrays.x[5] = Scalar(-5.0); arrays.y[5] = Scalar(-4.5); arrays.z[5] = Scalar(-3.5);
-    
-    arrays.type[6] = 1;
-    arrays.x[6] = Scalar(4.0); arrays.y[6] = Scalar(4.0); arrays.z[6] = Scalar(4.0);
-    
-    arrays.type[7] = 2;
-    arrays.x[7] = Scalar(3.5); arrays.y[7] = Scalar(4.5); arrays.z[7] = Scalar(-5.0);
-    
-    arrays.type[8] = 0;
-    arrays.x[8] = Scalar(5.0); arrays.y[8] = Scalar(4.5); arrays.z[8] = Scalar(3.5);
-    
-    arrays.type[9] = 3;
-    arrays.x[9] = Scalar(5.0); arrays.y[9] = Scalar(5.0); arrays.z[9] = Scalar(5.0);
-    pdata->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(pdata->getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].w = __int_as_scalar(0);
+    h_pos.data[0].x = Scalar(0.0); h_pos.data[0].y = Scalar(0.0); h_pos.data[0].z = Scalar(0.0);
+    h_image.data[0].x = 0; h_image.data[0].y = 0; h_image.data[0].z = 0;
+    h_vel.data[0].w = Scalar(1.0); //mass
+    h_body.data[0] = 0;
+
+    h_pos.data[1].w = __int_as_scalar(2);
+    h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = Scalar(2.0); h_pos.data[1].z = Scalar(3.0);
+    h_image.data[1].x = 1; h_image.data[1].y = -1; h_image.data[1].z = 2;
+    h_vel.data[1].w = Scalar(2.0);
+    h_body.data[1] = 0;
+
+    h_pos.data[2].w = __int_as_scalar(0);
+    h_pos.data[2].x = Scalar(-1.0); h_pos.data[2].y = Scalar(-2.0); h_pos.data[2].z = Scalar(-3.0);
+    h_image.data[2].x = 0; h_image.data[2].y = 0; h_image.data[2].z = 0;
+    h_vel.data[2].w = Scalar(5.0);
+    h_body.data[2] = 1;
+
+    h_pos.data[3].w = __int_as_scalar(1);
+    h_pos.data[3].x = Scalar(-4.0); h_pos.data[3].y = Scalar(-4.0); h_pos.data[3].z = Scalar(-4.0);
+    h_body.data[3] = 1;
+
+    h_pos.data[4].w = __int_as_scalar(3);
+    h_pos.data[4].x = Scalar(-3.5); h_pos.data[4].y = Scalar(-4.5); h_pos.data[4].z = Scalar(-5.0);
+
+    h_pos.data[5].w = __int_as_scalar(0);
+    h_pos.data[5].x = Scalar(-5.0); h_pos.data[5].y = Scalar(-4.5); h_pos.data[5].z = Scalar(-3.5);
+
+    h_pos.data[6].w = __int_as_scalar(1);
+    h_pos.data[6].x = Scalar(4.0); h_pos.data[6].y = Scalar(4.0); h_pos.data[6].z = Scalar(4.0);
+
+    h_pos.data[7].w = __int_as_scalar(2);
+    h_pos.data[7].x = Scalar(3.5); h_pos.data[7].y = Scalar(4.5); h_pos.data[7].z = Scalar(-5.0);
+
+    h_pos.data[8].w = __int_as_scalar(0);
+    h_pos.data[8].x = Scalar(5.0); h_pos.data[8].y = Scalar(4.5); h_pos.data[8].z = Scalar(3.5);
+
+    h_pos.data[9].w = __int_as_scalar(3);
+    h_pos.data[9].x = Scalar(5.0); h_pos.data[9].y = Scalar(5.0); h_pos.data[9].z = Scalar(5.0);
+    }
     
     sysdef->getRigidData()->initializeData();
     return sysdef;
@@ -216,36 +221,37 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
         }
         
     // resort the particles
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    
-    // set the types
-    arrays.tag[0] = 9;
-    arrays.tag[1] = 8;
-    arrays.tag[2] = 7;
-    arrays.tag[3] = 6;
-    arrays.tag[4] = 5;
-    arrays.tag[5] = 4;
-    arrays.tag[6] = 3;
-    arrays.tag[7] = 2;
-    arrays.tag[8] = 1;
-    arrays.tag[9] = 0;
+    {
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
 
-    arrays.rtag[0] = 9;
-    arrays.rtag[1] = 8;
-    arrays.rtag[2] = 7;
-    arrays.rtag[3] = 6;
-    arrays.rtag[4] = 5;
-    arrays.rtag[5] = 4;
-    arrays.rtag[6] = 3;
-    arrays.rtag[7] = 2;
-    arrays.rtag[8] = 1;
-    arrays.rtag[9] = 0;
-    
-    pdata->release();
+    // set the types
+    h_tag.data[0] = 9;
+    h_tag.data[1] = 8;
+    h_tag.data[2] = 7;
+    h_tag.data[3] = 6;
+    h_tag.data[4] = 5;
+    h_tag.data[5] = 4;
+    h_tag.data[6] = 3;
+    h_tag.data[7] = 2;
+    h_tag.data[8] = 1;
+    h_tag.data[9] = 0;
+
+    h_rtag.data[0] = 9;
+    h_rtag.data[1] = 8;
+    h_rtag.data[2] = 7;
+    h_rtag.data[3] = 6;
+    h_rtag.data[4] = 5;
+    h_rtag.data[5] = 4;
+    h_rtag.data[6] = 3;
+    h_rtag.data[7] = 2;
+    h_rtag.data[8] = 1;
+    h_rtag.data[9] = 0;
+    }
+
     pdata->notifyParticleSort();
     
     // verify that the group has updated
-    const ParticleDataArraysConst& arrays_const = pdata->acquireReadOnly();
     BOOST_CHECK_EQUAL_UINT(tags04.getNumMembers(), 5);
     BOOST_CHECK_EQUAL_UINT(tags04.getIndexArray().getNumElements(), 5);
     for (unsigned int i = 0; i < 5; i++)
@@ -254,14 +260,16 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
         // indices are in sorted order (tags 0-4 are particles 9-5)
         BOOST_CHECK_EQUAL_UINT(tags04.getMemberIndex(i), i + 5);
         }
-    
+    {
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        if (arrays_const.tag[i] <= 4)
+        if (h_tag.data[i] <= 4)
             BOOST_CHECK(tags04.isMember(i));
         else
             BOOST_CHECK(!tags04.isMember(i));
         }
+    }
     }
 
 //! Checks that ParticleGroup can initialize by particle type

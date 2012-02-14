@@ -64,36 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 const unsigned int NO_BODY = 0xffffffff;
 #endif
 
-//! Structure of arrays of the particle data as it resides on the GPU
-/*! Stores pointers to the particles positions, velocities, acceleartions, and particle tags.
-    Particle type information is most likely needed along with the position, so the type
-    is encoded in the 4th float in the position float4 as an integer. Device code
-    can decode this type data with __float_as_int();
-
-    All the pointers in this structure are allocated on the device.
-
-    This structure is about to be rewritten. Consider it being documented as poorly documented
-    for now.
-
-    \ingroup gpu_data_structs
-*/
-struct gpu_pdata_arrays
-    {
-    unsigned int N;         //!< Number of particles in the arrays
-    
-    float4 *pos;        //!< Particle position in \c x,\c y,\c z, particle type as an int in \c w
-    float4 *vel;        //!< Particle velocity in \c x, \c y, \c z, nothing in \c w
-    float4 *accel;      //!< Particle acceleration in \c x, \c y, \c z, nothing in \c w
-    float *charge;      //!< Particle charge
-    float *mass;        //!< Particle mass
-    float *diameter;    //!< Particle diameter
-    int4 *image;        //!< Particle box image location in \c x, c y, and \c z. Nothing in \c w.
-    
-    unsigned int *tag;  //!< Particle tag
-    unsigned int *rtag; //!< Particle rtag
-    unsigned int *body; //!< Particle rigid body (0xffffffff if not in a body)
-    };
-
 //! Store the box size on the GPU
 /*! \note For performance reasons, the GPU code is allowed to assume that the box goes
     from -L/2 to L/2, and the box dimensions in this structure must reflect that.
@@ -109,17 +79,6 @@ struct gpu_boxsize
     float Lyinv;//!< 1.0f/Ly
     float Lzinv;//!< 1.0f/Lz
     };
-
-//! Helper kernel for un-interleaving data
-cudaError_t gpu_uninterleave_float4(float *d_out, float4 *d_in, int N, int pitch);
-//! Helper kernel for interleaving data
-cudaError_t gpu_interleave_float4(float4 *d_out, float *d_in, int N, int pitch);
-
-//! Generate a test pattern in the data on the GPU (for unit testing)
-cudaError_t gpu_generate_pdata_test(const gpu_pdata_arrays &pdata);
-//! Read from the pos texture and write into the vel array (for unit testing)
-cudaError_t gpu_pdata_texread_test(const gpu_pdata_arrays &pdata);
-
 
 #endif
 

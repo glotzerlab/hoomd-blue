@@ -71,7 +71,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
     \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to calculate forces on
+    \param N number of particles
+    \param d_pos particle positions on the GPU
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
     \param nli Indexer for indexing \a d_nlist
@@ -94,7 +95,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
                                                 float* d_virial,
                                                 const unsigned int virial_pitch,
-                                               const gpu_pdata_arrays pdata,
+                                               const unsigned int N,
+                                               const Scalar4 *d_pos,
                                                const gpu_boxsize box,
                                                const unsigned int *d_n_neigh,
                                                const unsigned int *d_nlist,
@@ -115,13 +117,13 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
     
     // load in the length of the list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
     
-    // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
+    // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
     float4 pos = tex1Dfetch(pdata_pos_tex, idx);
     
@@ -221,7 +223,8 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to perform the calculation on
+    \param N number of particles
+    \param d_pos particle positions on the GPU
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -241,7 +244,8 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
 cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
                                      float* d_virial,
                                      const unsigned int virial_pitch,
-                                     const gpu_pdata_arrays &pdata,
+                                     const unsigned int N,
+                                     const Scalar4 *d_pos,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
@@ -255,19 +259,19 @@ cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
     assert(coeff_width > 0);
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // bind the texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4)*N);
     if (error != cudaSuccess)
         return error;
-        
+
     // run the kernel
     gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>
-         (d_force, d_virial, virial_pitch, pdata, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
+         (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
         
     return cudaSuccess;
     }

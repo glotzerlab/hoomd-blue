@@ -22,6 +22,14 @@ class external_periodic_tests (unittest.TestCase):
         integrate.nve(all);
         run(100);
 
+    ## test enable/disable
+    def test_enable_disable(self):
+        all = group.all()
+        periodic = external.periodic();
+        periodic.force_coeff.set('A',A=1.0, i=3, w=0.02, p=3);
+
+        periodic.disable();
+        periodic.enable();
 
     def tearDown(self):
         init.reset();

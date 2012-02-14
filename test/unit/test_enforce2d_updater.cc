@@ -106,24 +106,24 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
         
     Saru saru(11, 21, 33);
 
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-
     // setup a simple initial state
     Scalar tiny = 1e-3;
     for (unsigned int i=0; i<10; i++)
         for (unsigned int j=0; j<10; j++) 
             {
             unsigned int k = i*10 + j;
-            arrays.x[k] = 2*i-10.0 + tiny;
-            arrays.y[k] = 2*j-10.0 + tiny;
-            arrays.z[k] = 0.0;
-            arrays.vx[k] = saru.f(-1.0, 1.0);
-            arrays.vy[k] = saru.f(-1.0, 1.0);
-            arrays.vz[k] = 0.0;
+            Scalar3 pos;
+            pos.x = Scalar(2*i)-10.0 + tiny;
+            pos.y = Scalar(2*j)-10.0 + tiny;
+            pos.z = 0.0;
+            pdata->setPosition(k, pos);
+            Scalar3 vel;
+            vel.x = saru.f(-1.0, 1.0);
+            vel.y= saru.f(-1.0, 1.0);
+            vel.z = 0.0;
+            pdata->setVelocity(k, vel);
             }
         
-    pdata->release();
-    
     boost::shared_ptr<Variant> T(new VariantConst(1.0));
     shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(2*group_all->getNumMembers()-2);
@@ -156,24 +156,24 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
     // verify that the atoms leave the xy plane if no contstraints are present
     // and random forces are added (due to roundoff error in a long simulation)s
     unsigned int np = pdata->getN();
+
     for (int t = 0; t < 1000; t++)
         {
         if (t%100 == 0) {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
             for (unsigned int i=0; i<np; i++)
                 {
-                arrays.az[i] += saru.f(-0.001, 0.002);
-                arrays.vz[i] += saru.f(-0.002, 0.001);
+                h_accel.data[i].z += saru.f(-0.001, 0.002);
+                h_vel.data[i].z += saru.f(-0.002, 0.001);
                 }
-            pdata->release();        
-        }
+            }
         nve_up->update(t);
         }
 
     Scalar total_deviation = Scalar(0.0);
-    arrays = pdata->acquireReadWrite();
     for (unsigned int i=0; i<np; i++)
-        total_deviation += fabs(arrays.z[i]);
+        total_deviation += fabs(pdata->getPosition(i).z);
 
     //make sure the deviation is large (should be >> tol)
     BOOST_CHECK(total_deviation > tol);
@@ -183,15 +183,18 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
         for (unsigned int j=0; j<10; j++) 
             {
             unsigned int k = i*10 + j;
-            arrays.x[k] = 2*i-10.0 + tiny;
-            arrays.y[k] = 2*j-10.0 + tiny;
-            arrays.z[k] = 0.0;
-            arrays.vx[k] = saru.f(-1.0, 1.0);
-            arrays.vy[k] = saru.f(-1.0, 1.0);
-            arrays.vz[k] = 0.0;
+            Scalar3 pos;
+            pos.x = Scalar(2*i)-10.0 + tiny;
+            pos.y = Scalar(2*j)-10.0 + tiny;
+            pos.z = 0.0;
+            pdata->setPosition(k,pos);
+            Scalar3 vel;
+            vel.x = saru.f(-1.0, 1.0);
+            vel.y = saru.f(-1.0, 1.0);
+            vel.z = 0.0;
+            pdata->setVelocity(k,vel);
             }
             
-    pdata->release();
     pdata->notifyParticleSort();
 
     shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
@@ -200,25 +203,23 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
     for (int t = 0; t < 1000; t++)
         {
         if (t%100 == 0) {
-            arrays = pdata->acquireReadWrite();
+            ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
             for (unsigned int i=0; i<np; i++)
                 {
-                arrays.az[i] += saru.f(-0.01, 0.02);
-                arrays.vz[i] += saru.f(-0.1, 0.2);
+                h_accel.data[i].z += saru.f(-0.01, 0.02);
+                h_vel.data[i].z += saru.f(-0.1, 0.2);
                 }
-            pdata->release();        
-        }
+            }
         enforce2d->update(t);
         nve_up->update(t);
         }
 
     total_deviation = Scalar(0.0);
-    arrays = pdata->acquireReadWrite();
     for (unsigned int i=0; i<np; i++)
         {
-        total_deviation += fabs(arrays.z[i]);
+        total_deviation += fabs(pdata->getPosition(i).z);
         }
-    pdata->release();
 
     MY_BOOST_CHECK_CLOSE(total_deviation, 0.0, tol);
 

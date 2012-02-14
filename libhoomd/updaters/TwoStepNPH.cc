@@ -143,7 +143,6 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         m_state_initialized = true;
         }
 
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
 
     /* perform the first half step of the explicitly reversible NPH integration scheme.
 
@@ -267,76 +266,82 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         Lz_final = Lx_final;
         }
 
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        Scalar vxtmp = arrays.vx[j] + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-        Scalar vytmp = arrays.vy[j] + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-        Scalar vztmp = arrays.vz[j] + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
+        Scalar vxtmp = h_vel.data[j].x + Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
+        Scalar vytmp = h_vel.data[j].y + Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
+        Scalar vztmp = h_vel.data[j].z + Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
 
         // update positions using result of step two implicitly in the (combined) steps four and 5b
-        arrays.x[j] = Lx_final/Lx_old*(arrays.x[j]+ vxtmp*m_deltaT*Lx_old*Lx_old/Lx/Lx);
-        arrays.y[j] = Ly_final/Ly_old*(arrays.y[j]+ vytmp*m_deltaT*Ly_old*Ly_old/Ly/Ly);
-        arrays.z[j] = Lz_final/Lz_old*(arrays.z[j]+ vztmp*m_deltaT*Lz_old*Lz_old/Lz/Lz);
+        h_pos.data[j].x = Lx_final/Lx_old*(h_pos.data[j].x+ vxtmp*m_deltaT*Lx_old*Lx_old/Lx/Lx);
+        h_pos.data[j].y = Ly_final/Ly_old*(h_pos.data[j].y+ vytmp*m_deltaT*Ly_old*Ly_old/Ly/Ly);
+        h_pos.data[j].z = Lz_final/Lz_old*(h_pos.data[j].z+ vztmp*m_deltaT*Lz_old*Lz_old/Lz/Lz);
 
         // update velocities (step two and step 5c combined)
-        arrays.vx[j] = Lx_old/Lx_final*vxtmp;
-        arrays.vy[j] = Ly_old/Ly_final*vytmp;
-        arrays.vz[j] = Lz_old/Lz_final*vztmp;
+        h_vel.data[j].x = Lx_old/Lx_final*vxtmp;
+        h_vel.data[j].y = Ly_old/Ly_final*vytmp;
+        h_vel.data[j].z = Lz_old/Lz_final*vztmp;
         }
 
     // wrap the particle around the box
-    box = BoxDim(Lx_final, Ly_final, Lz_final);
     Lx = Lx_final;
     Ly = Ly_final;
     Lz = Lz_final;
+    box = BoxDim(Lx_final, Ly_final, Lz_final);
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        if (arrays.x[j] >= box.xhi)
+        // wrap the particles around the box
+        if (h_pos.data[j].x >= box.xhi)
             {
-            arrays.x[j] -= Lx;
-            arrays.ix[j]++;
+            h_pos.data[j].x -= Lx;
+            h_image.data[j].x++;
             }
-        else if (arrays.x[j] < box.xlo)
+        else if (h_pos.data[j].x < box.xlo)
             {
-            arrays.x[j] += Lx;
-            arrays.ix[j]--;
-            }
-
-        if (arrays.y[j] >= box.yhi)
-            {
-            arrays.y[j] -= Ly;
-            arrays.iy[j]++;
-            }
-        else if (arrays.y[j] < box.ylo)
-            {
-            arrays.y[j] += Ly;
-            arrays.iy[j]--;
+            h_pos.data[j].x += Lx;
+            h_image.data[j].x--;
             }
 
-        if (arrays.z[j] >= box.zhi)
+        if (h_pos.data[j].y >= box.yhi)
             {
-            arrays.z[j] -= Lz;
-            arrays.iz[j]++;
+            h_pos.data[j].y -= Ly;
+            h_image.data[j].y++;
             }
-        else if (arrays.z[j] < box.zlo)
+        else if (h_pos.data[j].y < box.ylo)
             {
-            arrays.z[j] += Lz;
-            arrays.iz[j]--;
+            h_pos.data[j].y += Ly;
+            h_image.data[j].y--;
+            }
+
+        if (h_pos.data[j].z >= box.zhi)
+            {
+            h_pos.data[j].z -= Lz;
+            h_image.data[j].z++;
+            }
+        else if (h_pos.data[j].z < box.zlo)
+            {
+            h_pos.data[j].z += Lz;
+            h_image.data[j].z--;
             }
         }
+    }
 
-    m_pdata->release();
+    // update the simulation box
+    m_pdata->setBox(box);
 
     setIntegratorVariables(v);
 
     // done profiling
     if (m_prof)
         m_prof->pop();
-
-    // update the simulation box
-    m_pdata->setBox(box);
     }
 
 /*! \param timestep Current time step
@@ -364,30 +369,28 @@ void TwoStepNPH::integrateStepTwo(unsigned int timestep)
     Scalar &etay = v.variable[1];
     Scalar &etaz = v.variable[2];
 
+    {
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+
+    // v(t+deltaT) = v'' + 1/2 * a(t+deltaT)*deltaT
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+        unsigned int j = m_group->getMemberIndex(group_idx);
 
-        // v(t+deltaT) = v'' + 1/2 * a(t+deltaT)*deltaT
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-            {
-            unsigned int j = m_group->getMemberIndex(group_idx);
+        // first, calculate acceleration from the net force
+        Scalar minv = Scalar(1.0) / h_vel.data[j].w;
+        h_accel.data[j].x = h_net_force.data[j].x*minv;
+        h_accel.data[j].y = h_net_force.data[j].y*minv;
+        h_accel.data[j].z = h_net_force.data[j].z*minv;
 
-            // first, calculate acceleration from the net force
-            Scalar minv = Scalar(1.0) / arrays.mass[j];
-            arrays.ax[j] = h_net_force.data[j].x*minv;
-            arrays.ay[j] = h_net_force.data[j].y*minv;
-            arrays.az[j] = h_net_force.data[j].z*minv;
-
-            // then, update the velocity
-            arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-            arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-            arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
-            }
+        // then, update the velocity
+        h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
+        h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
+        h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
         }
-
-    m_pdata->release();
-
+    }
     // now compute pressure tensor with updated virial and velocities
     m_thermo->compute(timestep+1);
 

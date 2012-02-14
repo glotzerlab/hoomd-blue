@@ -312,7 +312,10 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     // we need to unsort the positions and write in tag order
     assert(m_staging_buffer);
     
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
     BoxDim box = m_pdata->getBox();
     Scalar Lx = box.xhi - box.xlo;
@@ -325,17 +328,17 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(arrays.x[arrays.rtag[i]]);
+        m_staging_buffer[group_idx] = float(h_pos.data[h_rtag.data[i]].x);
 
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(arrays.ix[arrays.rtag[i]]) * Lx;
+            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].x) * Lx;
         else if (m_unwrap_rigid)
             {
-            if (arrays.body[arrays.rtag[i]] != NO_BODY)
+            if (h_body.data[h_rtag.data[i]] != NO_BODY)
                 {
-                int body_ix = body_image_handle.data[arrays.body[arrays.rtag[i]]].x;
-                m_staging_buffer[group_idx] += float(arrays.ix[arrays.rtag[i]] - body_ix) * Lx;
+                int body_ix = body_image_handle.data[h_body.data[h_rtag.data[i]]].x;
+                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].x - body_ix) * Lx;
                 }
             }
         }
@@ -348,17 +351,17 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(arrays.y[arrays.rtag[i]]);
+        m_staging_buffer[group_idx] = float(h_pos.data[h_rtag.data[i]].y);
         
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(arrays.iy[arrays.rtag[i]]) * Ly;
+            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].y) * Ly;
         else if (m_unwrap_rigid)
             {
-            if (arrays.body[arrays.rtag[i]] != NO_BODY)
+            if (h_body.data[h_rtag.data[i]] != NO_BODY)
                 {
-                int body_iy = body_image_handle.data[arrays.body[arrays.rtag[i]]].y;
-                m_staging_buffer[group_idx] += float(arrays.iy[arrays.rtag[i]] - body_iy) * Ly; 
+                int body_iy = body_image_handle.data[h_body.data[h_rtag.data[i]]].y;
+                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].y - body_iy) * Ly;
                 }
             }
         }
@@ -371,17 +374,17 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(arrays.z[arrays.rtag[i]]);
+        m_staging_buffer[group_idx] = float(h_pos.data[h_rtag.data[i]].z);
         
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(arrays.iz[arrays.rtag[i]]) * Lz;
+            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].z) * Lz;
         else if (m_unwrap_rigid)
             {
-            if (arrays.body[arrays.rtag[i]] != NO_BODY)
+            if (h_body.data[h_rtag.data[i]] != NO_BODY)
                 {
-                int body_iz = body_image_handle.data[arrays.body[arrays.rtag[i]]].z;
-                m_staging_buffer[group_idx] += float(arrays.iz[arrays.rtag[i]] - body_iz) * Lz;
+                int body_iz = body_image_handle.data[h_body.data[h_rtag.data[i]]].z;
+                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].z - body_iz) * Lz;
                 }
             }
          }
@@ -389,8 +392,6 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
     write_int(file, nparticles * sizeof(float));
-    
-    m_pdata->release();
     
     // check for errors
     if (!file.good())

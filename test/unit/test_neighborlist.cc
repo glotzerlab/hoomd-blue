@@ -85,11 +85,13 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     // start with the simplest possible test: 2 particles in a huge box
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = arrays.y[1] = arrays.z[1] = 3.25;
-    pdata_2->release();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 3.25;
+    }
     
     // test construction of the neighborlist
     shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 3.0, 0.25));
@@ -144,14 +146,16 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     
-    arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
-    pdata_6->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = Scalar(-9.6); h_pos.data[0].y = 0; h_pos.data[0].z = 0.0;
+    h_pos.data[1].x =  Scalar(9.6); h_pos.data[1].y = 0; h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = Scalar(-19.6); h_pos.data[2].z = 0.0;
+    h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 0.0;
+    h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = Scalar(-29.6);
+    h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  Scalar(29.6);
+    }
     
     shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setStorageMode(NeighborList::full);
@@ -183,14 +187,16 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         }
     
     // swap the order of the particles around to look for subtle directional bugs
-    arrays = pdata_6->acquireReadWrite();
-    arrays.x[1] = Scalar(-9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[0] =  Scalar(9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(-19.6); arrays.z[3] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(19.6); arrays.z[2] = 0.0;
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] = Scalar(-29.6);
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] =  Scalar(29.6);
-    pdata_6->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[1].x = Scalar(-9.6); h_pos.data[1].y = 0; h_pos.data[1].z = 0.0;
+    h_pos.data[0].x =  Scalar(9.6); h_pos.data[0].y = 0; h_pos.data[0].z = 0.0;
+    h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(-19.6); h_pos.data[3].z = 0.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = Scalar(19.6); h_pos.data[2].z = 0.0;
+    h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z = Scalar(-29.6);
+    h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z =  Scalar(29.6);
+    }
     
     // verify the neighbor list
     nlist_6->compute(1);
@@ -220,14 +226,16 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         }
     
     // one last test, we should check that more than one neighbor can be generated
-    arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = 0;
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  0;
-    pdata_6->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = 0; h_pos.data[0].y = 0; h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = 0; h_pos.data[1].y = 0; h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = Scalar(-19.6); h_pos.data[2].z = 0.0;
+    h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 0.0;
+    h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0;
+    h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  0;
+    }
     
     nlist_6->compute(20);
         {
@@ -252,15 +260,17 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
     
     // lets make this test simple: put all 6 particles on top of each other and
     // see if the exclusion code can ignore 4 of the particles
-    ParticleDataArrays arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = 0; arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = 0; arrays.z[3] = 0.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = 0;
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  0;
-    pdata_6->release();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = 0; h_pos.data[0].y = 0; h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = 0; h_pos.data[1].y = 0; h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = 0; h_pos.data[2].z = 0.0;
+    h_pos.data[3].x = 0; h_pos.data[3].y = 0; h_pos.data[3].z = 0.0;
+    h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0;
+    h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  0;
+    }
+
     shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->addExclusion(0,1);
@@ -320,14 +330,17 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     
     // lets make this test simple: put all 6 particles on top of each other and
     // see if the exclusion code can ignore 4 of the particles
-    ParticleDataArrays arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0; arrays.body[0] = NO_BODY;
-    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = 0; arrays.body[1] = 0;
-    arrays.x[2] = 0; arrays.y[2] = 0; arrays.z[2] = 0; arrays.body[2] = 1;
-    arrays.x[3] = 0; arrays.y[3] = 0; arrays.z[3] = 0; arrays.body[3] = 0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = 0; arrays.body[4] = 1;
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] = 0; arrays.body[5] = NO_BODY;
-    pdata_6->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(pdata_6->getBodies(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = 0; h_pos.data[0].y = 0; h_pos.data[0].z = 0; h_body.data[0] = NO_BODY;
+    h_pos.data[1].x = 0; h_pos.data[1].y = 0; h_pos.data[1].z = 0; h_body.data[1] = 0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = 0; h_pos.data[2].z = 0; h_body.data[2] = 1;
+    h_pos.data[3].x = 0; h_pos.data[3].y = 0; h_pos.data[3].z = 0; h_body.data[3] = 0;
+    h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0; h_body.data[4] = 1;
+    h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z = 0; h_body.data[5] = NO_BODY;
+    }
     
     // this test uses rigid bodies, initialize them
     sysdef_6->getRigidData()->initializeData();
@@ -391,13 +404,16 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
     // start with the simplest possible test: 3 particles in a huge box
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0.0; arrays.diameter[0] = 3.0;
-    arrays.x[2] = 0; arrays.y[2] = 0; arrays.z[2] = 2.5; arrays.diameter[2] = 2.0;
-    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = -3.0; arrays.diameter[1] = 1.0;
-    arrays.x[3] = 0; arrays.y[3] = 2.51; arrays.z[3] = 0; arrays.diameter[3] = 0;
-    pdata_3->release();
+
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(pdata_3->getDiameters(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = 0; h_pos.data[0].y = 0; h_pos.data[0].z = 0.0; h_diameter.data[0] = 3.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = 0; h_pos.data[2].z = 2.5; h_diameter.data[2] = 2.0;
+    h_pos.data[1].x = 0; h_pos.data[1].y = 0; h_pos.data[1].z = -3.0; h_diameter.data[1] = 1.0;
+    h_pos.data[3].x = 0; h_pos.data[3].y = 2.51; h_pos.data[3].z = 0; h_diameter.data[3] = 0;
+    }
     
     // test construction of the neighborlist
     shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));

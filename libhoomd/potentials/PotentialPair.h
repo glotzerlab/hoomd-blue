@@ -325,9 +325,12 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
     Index2D nli = m_nlist->getNListIndexer();
-    
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+
     //force arrays
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar>  h_virial(m_virial,access_location::host, access_mode::overwrite);
@@ -352,18 +355,18 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     #endif
 
     // need to start from a zero force, energy and virial
-    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
-    memset(&m_virial_partial[6*m_index_thread_partial(0,tid)] , 0, 6*sizeof(Scalar)*arrays.nparticles);
+    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*m_pdata->getN());
+    memset(&m_virial_partial[6*m_index_thread_partial(0,tid)] , 0, 6*sizeof(Scalar)*m_pdata->getN());
 
     // for each particle
 #pragma omp for schedule(guided)
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = arrays.x[i];
-        Scalar yi = arrays.y[i];
-        Scalar zi = arrays.z[i];
-        unsigned int typei = arrays.type[i];
+        Scalar xi = h_pos.data[i].x;
+        Scalar yi = h_pos.data[i].y;
+        Scalar zi = h_pos.data[i].z;
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
         
@@ -371,9 +374,9 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
         Scalar di = Scalar(0.0);
         Scalar qi = Scalar(0.0);
         if (evaluator::needsDiameter())
-            di = arrays.diameter[i];
+            di = h_diameter.data[i];
         if (evaluator::needsCharge())
-            qi = arrays.charge[i];
+            qi = h_charge.data[i];
         
         // initialize current particle force, potential energy, and virial to 0
         Scalar fxi = 0.0;
@@ -396,21 +399,21 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             assert(j < m_pdata->getN());
             
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - arrays.x[j];
-            Scalar dy = yi - arrays.y[j];
-            Scalar dz = zi - arrays.z[j];
+            Scalar dx = xi - h_pos.data[j].x;
+            Scalar dy = yi - h_pos.data[j].y;
+            Scalar dz = zi - h_pos.data[j].z;
             
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
-            unsigned int typej = arrays.type[j];
+            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
             
             // access diameter and charge (if needed)
             Scalar dj = Scalar(0.0);
             Scalar qj = Scalar(0.0);
             if (evaluator::needsDiameter())
-                dj = arrays.diameter[j];
+                dj = h_diameter.data[j];
             if (evaluator::needsCharge())
-                qj = arrays.charge[j];
+                qj = h_charge.data[j];
             
             // apply periodic boundary conditions (FLOPS: 9)
             if (dx >= box.xhi)
@@ -540,7 +543,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     
     // now that the partial sums are complete, sum up the results in parallel
 #pragma omp for
-    for (int i = 0; i < (int) arrays.nparticles; i++)
+    for (int i = 0; i < (int) m_pdata->getN(); i++)
         {
         // assign result from thread 0
         h_force.data[i].x  = m_fdata_partial[i].x;
@@ -567,8 +570,6 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
         }
     } // end omp parallel
 
-    m_pdata->release();
-       
     if (m_prof) m_prof->pop();
     }
 

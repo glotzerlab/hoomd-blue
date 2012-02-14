@@ -91,7 +91,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     float4* d_force,
     float* d_virial,
     const unsigned int virial_pitch,
-    gpu_pdata_arrays pdata,
+    const unsigned int N,
+    const Scalar4 *d_pos,
     gpu_boxsize box,
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,
@@ -101,7 +102,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     // start by identifying which particle we are to handle
     volatile int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
 
     // load in the length of the list (MEM_TRANSFER: 4 bytes)
@@ -166,7 +167,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     float4* d_force,
     float* d_virial,
     const unsigned int virial_pitch,
-    gpu_pdata_arrays pdata,
+    const unsigned int N,
+    const Scalar4 *d_pos,
     gpu_boxsize box,
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,
@@ -176,7 +178,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     // start by identifying which particle we are to handle
     volatile  int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
 
     // loadj in the length of the list (MEM_TRANSFER: 4 bytes)
@@ -212,7 +214,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+        float4 neigh_pos = tex1Dfetch(pdata_pos_tex,cur_neigh);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
         float dx = pos.x - neigh_pos.x;
@@ -273,7 +275,8 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     float4* d_force,
     float* d_virial,
     const unsigned int virial_pitch,
-    const gpu_pdata_arrays &pdata,
+    const unsigned int N,
+    const Scalar4 *d_pos,
     const gpu_boxsize &box,
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,
@@ -283,13 +286,13 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     const EAMTexInterData& eam_data)
     {
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.N / (double)eam_data.block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)eam_data.block_size), 1, 1);
     dim3 threads(eam_data.block_size, 1, 1);
 
     // bind the texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4)*N);
     if (error != cudaSuccess)
         return error;
 
@@ -328,7 +331,8 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     gpu_compute_eam_tex_inter_forces_kernel<<< grid, threads>>>(d_force,
                                                                 d_virial,
                                                                 virial_pitch,
-                                                                pdata,
+                                                                N,
+                                                                d_pos,
                                                                 box,
                                                                 d_n_neigh,
                                                                 d_nlist,
@@ -338,7 +342,8 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     gpu_compute_eam_tex_inter_forces_kernel_2<<< grid, threads>>>(d_force,
                                                                   d_virial,
                                                                   virial_pitch,
-                                                                  pdata,
+                                                                  N,
+                                                                  d_pos,
                                                                   box,
                                                                   d_n_neigh,
                                                                   d_nlist,

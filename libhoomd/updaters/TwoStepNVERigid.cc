@@ -186,8 +186,8 @@ void TwoStepNVERigid::setup()
         }
         
     // Access the particle data arrays
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+
     // for each body
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
@@ -201,11 +201,11 @@ void TwoStepNVERigid::setup()
             unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
             
             // get the particle mass
-            Scalar mass_one = arrays.mass[pidx];
+            Scalar mass_one = h_vel.data[pidx].w;
             
-            vel_handle.data[body].x += mass_one * arrays.vx[pidx];
-            vel_handle.data[body].y += mass_one * arrays.vy[pidx];
-            vel_handle.data[body].z += mass_one * arrays.vz[pidx];
+            vel_handle.data[body].x += mass_one * h_vel.data[pidx].x;
+            vel_handle.data[body].y += mass_one * h_vel.data[pidx].y;
+            vel_handle.data[body].z += mass_one * h_vel.data[pidx].z;
             
             Scalar fx, fy, fz;
             fx = h_net_force.data[pidx].x;
@@ -237,9 +237,9 @@ void TwoStepNVERigid::setup()
             torque_handle.data[body].z += rx * fy - ry * fx + tz;
             
             // Angular momentum = r x (m * v) is calculated for setup
-            angmom_handle.data[body].x += ry * (mass_one * arrays.vz[pidx]) - rz * (mass_one * arrays.vy[pidx]);
-            angmom_handle.data[body].y += rz * (mass_one * arrays.vx[pidx]) - rx * (mass_one * arrays.vz[pidx]);
-            angmom_handle.data[body].z += rx * (mass_one * arrays.vy[pidx]) - ry * (mass_one * arrays.vx[pidx]);
+            angmom_handle.data[body].x += ry * (mass_one * h_vel.data[pidx].z) - rz * (mass_one * h_vel.data[pidx].y);
+            angmom_handle.data[body].y += rz * (mass_one * h_vel.data[pidx].x) - rx * (mass_one * h_vel.data[pidx].z);
+            angmom_handle.data[body].z += rx * (mass_one * h_vel.data[pidx].y) - ry * (mass_one * h_vel.data[pidx].x);
             }
         
         }
@@ -270,8 +270,6 @@ void TwoStepNVERigid::setup()
         conjqm_handle.data[body].w *= 2.0;
         }
     
-    m_pdata->release();
-
     } // out of scope for handles   
     
     
@@ -615,7 +613,7 @@ void TwoStepNVERigid::validateGroup()
     for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
         {
         unsigned int tag = m_group->getMemberTag(gidx);
-        if (m_pdata->getBody(tag) == (int)NO_BODY)
+        if (m_pdata->getBody(tag) == NO_BODY)
             {
             cerr << endl;
             cerr << "***Error! Particle " << tag << " does not belong to a rigid body. "

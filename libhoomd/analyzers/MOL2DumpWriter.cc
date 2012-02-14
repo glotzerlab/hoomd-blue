@@ -113,7 +113,8 @@ void MOL2DumpWriter::writeFile(std::string fname)
         }
         
     // acquire the particle data
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     
     // write the header
     f << "@<TRIPOS>MOLECULE" << "\n";
@@ -127,19 +128,19 @@ void MOL2DumpWriter::writeFile(std::string fname)
     f << "NO_CHARGES" << "\n";
     
     f << "@<TRIPOS>ATOM" << "\n";
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
+    for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         // use the rtag data to output the particles in the order they were read in
         int i;
-        i= arrays.rtag[j];
+        i= h_rtag.data[j];
         
         // get the coordinates
-        Scalar x = (arrays.x[i]);
-        Scalar y = (arrays.y[i]);
-        Scalar z = (arrays.z[i]);
+        Scalar x = (h_pos.data[i].x);
+        Scalar y = (h_pos.data[i].y);
+        Scalar z = (h_pos.data[i].z);
         
         // get the type by name
-        unsigned int type_id = arrays.type[i];
+        unsigned int type_id = __scalar_as_int(h_pos.data[i].w);
         string type_name = m_pdata->getNameByType(type_id);
         
         // this is intended to go to VMD, so limit the type name to 15 characters
@@ -181,7 +182,6 @@ void MOL2DumpWriter::writeFile(std::string fname)
         }
         
     f.close();
-    m_pdata->release();
     }
 
 void export_MOL2DumpWriter()

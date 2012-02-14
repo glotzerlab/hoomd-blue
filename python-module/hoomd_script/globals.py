@@ -77,9 +77,6 @@ forces = [];
 ## Global variable that tracks the all of the constraint force computes specified in the script so far
 constraint_forces = [];
 
-## Global variable that tracks the all of the external force computes
-external_forces = [];
-
 ## Global variable that tracks all the integration methods that have been specified in the script so far
 integration_methods = [];
 

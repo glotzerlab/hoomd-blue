@@ -1137,18 +1137,19 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
-    
     // setup a simple initial state
-    arrays.x[0] = 0.0;
-    arrays.y[0] = 0.0;
-    arrays.z[0] = Scalar(1.6);
-    arrays.vx[0] = 0.0;
-    arrays.vy[0] = 0.0;
-    arrays.vz[0] = 0.0;
-    
-    pdata->release();
-    
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = 0.0;
+    h_pos.data[0].y = 0.0;
+    h_pos.data[0].z = Scalar(1.6);
+    h_vel.data[0].x = 0.0;
+    h_vel.data[0].y = 0.0;
+    h_vel.data[0].z = 0.0;
+    }
+
     Scalar deltaT = Scalar(0.005);
     Scalar Q = Scalar(2.0);
     Scalar T = Scalar(1.5/3.0);
@@ -1169,10 +1170,8 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     // integrate through time and compare to the reference
     for (int i = 0; i < 2000; i++)
         {
-        ParticleDataArraysConst arrays_const = pdata->acquireReadOnly();
-        MY_BOOST_CHECK_CLOSE(arrays_const.z[0], q_reference[i], tol);
-        MY_BOOST_CHECK_CLOSE(arrays_const.vz[0], p_reference[i], tol);
-        pdata->release();
+        MY_BOOST_CHECK_CLOSE(pdata->getPosition(0).z, q_reference[i], tol);
+        MY_BOOST_CHECK_CLOSE(pdata->getVelocity(0).z, p_reference[i], tol);
         
         nvt_up->update(i);
         }
@@ -1240,8 +1239,13 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     // we can't do much more because these things are chaotic and diverge quickly
     for (int i = 0; i < 5; i++)
         {
-        const ParticleDataArraysConst& arrays1 = pdata1->acquireReadOnly();
-        const ParticleDataArraysConst& arrays2 = pdata2->acquireReadOnly();
+        {
+        ArrayHandle<Scalar4> h_pos1(pdata1->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel1(pdata1->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_accel1(pdata1->getAccelerations(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos2(pdata2->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel2(pdata2->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_accel2(pdata2->getAccelerations(), access_location::host, access_mode::read);
         
         //cout << arrays1.x[100] << " " << arrays2.x[100] << endl;
         Scalar rough_tol = 2.0;
@@ -1249,22 +1253,20 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
         // check position, velocity and acceleration
         for (unsigned int j = 0; j < N; j++)
             {
-            MY_BOOST_CHECK_CLOSE(arrays1.x[j], arrays2.x[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.y[j], arrays2.y[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.z[j], arrays2.z[j], rough_tol);
-            
-            MY_BOOST_CHECK_CLOSE(arrays1.vx[j], arrays2.vx[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.vy[j], arrays2.vy[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.vz[j], arrays2.vz[j], rough_tol);
-            
-            MY_BOOST_CHECK_CLOSE(arrays1.ax[j], arrays2.ax[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.ay[j], arrays2.ay[j], rough_tol);
-            MY_BOOST_CHECK_CLOSE(arrays1.az[j], arrays2.az[j], rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
+
+            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
+
+            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
+            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
             }
             
-        pdata1->release();
-        pdata2->release();
-        
+        }
         nvt1->update(i);
         nvt2->update(i);
         }

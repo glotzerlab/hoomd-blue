@@ -58,6 +58,7 @@ Moscow group.
 
 #include "ParticleData.cuh"
 #include "Index1D.h"
+#include "HOOMDMath.h"
 
 /*! \file EAMForceGPU.cuh
     \brief Declares GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
@@ -101,7 +102,8 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     float4* d_force,
     float* d_virial,
     const unsigned int virial_pitch,
-    const gpu_pdata_arrays &pdata,
+    const unsigned int N,
+    const Scalar4 *d_pos,
     const gpu_boxsize &box,
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,

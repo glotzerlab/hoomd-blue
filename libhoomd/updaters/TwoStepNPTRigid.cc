@@ -282,15 +282,15 @@ void TwoStepNPTRigid::setup()
     epsilon_dot = f_epsilon = 0.0;        
 
     // computes the total number of degrees of freedom used for system temperature compute
-    const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+
     unsigned int non_rigid_count = 0;
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        if (arrays.body[i] == NO_BODY) non_rigid_count++;
+        if (h_body.data[i] == NO_BODY) non_rigid_count++;
 
     unsigned int rigid_dof = m_sysdef->getRigidData()->getNumDOF();
     m_dof = dimension * non_rigid_count + rigid_dof; 
         
-    m_pdata->release();
     }
     
 /*! \param timestep Current time step

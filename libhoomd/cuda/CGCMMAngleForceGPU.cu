@@ -65,9 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the CGCMM angle forces. Used by CGCMMAngleForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
 //! Texture for reading angle parameters
 texture<float2, 1, cudaReadModeElementType> angle_params_tex;
 
@@ -81,28 +78,30 @@ texture<float4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPS
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data arrays to calculate forces on
+    \param N number of particles
+    \param d_pos particle positions on the device
     \param box Box dimensions for periodic boundary condition handling
     \param alist Angle data to use in calculating the forces
 */
 extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force,
                                                                  float* d_virial,
                                                                  const unsigned int virial_pitch,
-                                                                 gpu_pdata_arrays pdata,
+                                                                 const unsigned int N,
+                                                                 const Scalar4 *d_pos,
                                                                  gpu_boxsize box,
                                                                  gpu_angletable_array alist)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;    
     
-    if (idx >= pdata.N)
+    if (idx >= N)
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_angles = alist.n_angles[idx];
     
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx);  // we can be either a, b, or c in the a-b-c triplet
+    float4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
     float4 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
     
     // initialize the force to 0
@@ -135,9 +134,9 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
         int cur_angle_abc = cur_angle.w;
         
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
-        float4 x_pos = tex1Dfetch(pdata_pos_tex, cur_angle_x_idx);
+        float4 x_pos = d_pos[cur_angle_x_idx];
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 y_pos = tex1Dfetch(pdata_pos_tex, cur_angle_y_idx);
+        float4 y_pos = d_pos[cur_angle_y_idx];
         
         if (cur_angle_abc == 0)
             {
@@ -316,7 +315,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
-    \param pdata Particle data on the GPU to perform the calculation on
+    \param N number of particles
+    \param d_pos particle positions on the device
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param atable List of angles stored on the GPU
     \param d_params K and t_0 params packed as float2 variables
@@ -334,7 +334,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
 cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
                                            float* d_virial,
                                            const unsigned int virial_pitch,
-                                           const gpu_pdata_arrays &pdata,
+                                           const unsigned int N,
+                                           const Scalar4 *d_pos,
                                            const gpu_boxsize &box,
                                            const gpu_angletable_array &atable,
                                            float2 *d_params,
@@ -349,15 +350,11 @@ cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
     
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(float2) * n_angle_types);
+    cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(float2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
         
@@ -370,7 +367,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
         return error;
         
     // run the kernel
-    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, pdata, box, atable);
+    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, atable);
     
     return cudaSuccess;
     }

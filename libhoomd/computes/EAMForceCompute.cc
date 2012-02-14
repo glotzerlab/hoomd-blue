@@ -319,7 +319,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     Index2D nli = m_nlist->getNListIndexer();
 
     // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
     unsigned int virial_pitch = m_virial.getPitch();
@@ -327,9 +327,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
-    assert(arrays.x);
-    assert(arrays.y);
-    assert(arrays.z);
+    assert(h_pos.data);
     
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -354,19 +352,19 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 
     // for each particle
     vector<Scalar> atomElectronDensity;
-    atomElectronDensity.resize(arrays.nparticles);
+    atomElectronDensity.resize(m_pdata->getN());
     vector<Scalar> atomDerivativeEmbeddingFunction;
-    atomDerivativeEmbeddingFunction.resize(arrays.nparticles);
+    atomDerivativeEmbeddingFunction.resize(m_pdata->getN());
     vector<Scalar> atomEmbeddingFunction;
-    atomEmbeddingFunction.resize(arrays.nparticles);
+    atomEmbeddingFunction.resize(m_pdata->getN());
     unsigned int ntypes = m_pdata->getNTypes();
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = arrays.x[i];
-        Scalar yi = arrays.y[i];
-        Scalar zi = arrays.z[i];
-        unsigned int typei = arrays.type[i];
+        Scalar xi = h_pos.data[i].x;
+        Scalar yi = h_pos.data[i].y;
+        Scalar zi = h_pos.data[i].z;
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
 
         // sanity check
         assert(typei < m_pdata->getNTypes());
@@ -385,12 +383,12 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             assert(k < m_pdata->getN());
 
             // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - arrays.x[k];
-            Scalar dy = yi - arrays.y[k];
-            Scalar dz = zi - arrays.z[k];
+            Scalar dx = xi - h_pos.data[k].x;
+            Scalar dy = yi - h_pos.data[k].y;
+            Scalar dz = zi - h_pos.data[k].z;
 
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar
-            unsigned int typej = arrays.type[k];
+            unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
 
@@ -434,9 +432,9 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             }
         }
 
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        unsigned int typei = arrays.type[i];
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
 
         Scalar position = atomElectronDensity[i] * rdrho;
         unsigned int r_index = (unsigned int)position;
@@ -447,13 +445,13 @@ void EAMForceCompute::computeForces(unsigned int timestep)
         h_force.data[i].w += embeddingFunction[r_index + typei * nrho] + derivativeEmbeddingFunction[r_index + typei * nrho] * position * drho;
         }
 
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = arrays.x[i];
-        Scalar yi = arrays.y[i];
-        Scalar zi = arrays.z[i];
-        unsigned int typei = arrays.type[i];
+        Scalar xi = h_pos.data[i].x;
+        Scalar yi = h_pos.data[i].y;
+        Scalar zi = h_pos.data[i].z;
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
@@ -481,12 +479,12 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             assert(k < m_pdata->getN());
 
             // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - arrays.x[k];
-            Scalar dy = yi - arrays.y[k];
-            Scalar dz = zi - arrays.z[k];
+            Scalar dx = xi - h_pos.data[k].x;
+            Scalar dy = yi - h_pos.data[k].y;
+            Scalar dz = zi - h_pos.data[k].z;
 
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar
-            unsigned int typej = arrays.type[k];
+            unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
 
@@ -557,7 +555,6 @@ void EAMForceCompute::computeForces(unsigned int timestep)
         for (int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+i] += viriali[k];
         }
-    m_pdata->release();
 
     int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+9+6+8);
     if (third_law) flops += n_calc * 8;

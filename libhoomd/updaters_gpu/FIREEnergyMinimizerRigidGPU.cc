@@ -174,16 +174,13 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "FIRE rigid compute total energy");
     
-    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
-    
     ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     ArrayHandle<float> d_partial_sum_pe(m_partial_sum_pe, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_sum_pe(m_sum_pe, access_location::device, access_mode::overwrite);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
         
-    gpu_fire_compute_sum_pe(d_pdata, 
-                            d_index_array.data,
+    gpu_fire_compute_sum_pe(d_index_array.data,
                             group_size,
                             d_net_force.data, 
                             d_sum_pe.data, 
@@ -193,8 +190,6 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
-    m_pdata->release();
     
     if (m_prof)
         m_prof->pop(exec_conf);

@@ -249,8 +249,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
     nvt_rdata_partial_Ksum_r[idx_body] = akin_r;
     }
 
-/*! \param pdata Particle data to step forward 1/2 step
-    \param rigid_data Rigid body data to step forward 1/2 step
+/*! \param rigid_data Rigid body data to step forward 1/2 step
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
@@ -259,8 +258,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
     \param deltaT Amount of real time to step forward in one time step
     
 */
-cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,       
-                                    const gpu_rigid_data_arrays& rigid_data,
+cudaError_t gpu_nvt_rigid_step_one( const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
                                     float4 *d_net_force,
@@ -424,8 +422,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
     nvt_rdata_partial_Ksum_r[idx_body] = akin_r;
     }
 
-/*! \param pdata Particle data to step forward 1/2 step
-    \param rigid_data Rigid body data to step forward 1/2 step
+/*! \param rigid_data Rigid body data to step forward 1/2 step
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
@@ -435,8 +432,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
     \param deltaT Amount of real time to step forward in one time step
     
 */
-cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata, 
-                                    const gpu_rigid_data_arrays& rigid_data,
+cudaError_t gpu_nvt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
                                     float4 *d_net_force,

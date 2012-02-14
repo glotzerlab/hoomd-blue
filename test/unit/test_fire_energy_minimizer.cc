@@ -419,18 +419,15 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
-    const ParticleDataArrays& arrays = pdata->acquireReadWrite();
     for (unsigned int i=0; i<N; i++)
         {
-        arrays.x[i] = Scalar(x_blj[i*3 + 0]);
-        arrays.y[i] = Scalar(x_blj[i*3 + 1]);
-        arrays.z[i] = Scalar(x_blj[i*3 + 2]);
+        Scalar3 pos = make_scalar3(x_blj[i*3 + 0],x_blj[i*3 + 1],x_blj[i*3 + 2]);
+        pdata->setPosition(i,pos);
         if (i<(unsigned int)N*0.8)
-            arrays.type[i] = 0;
+            pdata->setType(i,0);
         else
-            arrays.type[i] = 1;
+            pdata->setType(i,1);
         }    
-    pdata->release();
     
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
@@ -483,14 +480,11 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     
     fire->reset();
 
-    const ParticleDataArrays& arrays2 = pdata->acquireReadWrite();
     for (unsigned int i=0; i<N; i++)
         {
-        arrays2.x[i] = Scalar(x_blj[i*3 + 0]);
-        arrays2.y[i] = Scalar(x_blj[i*3 + 1]);
-        arrays2.z[i] = Scalar(x_blj[i*3 + 2]);
+        Scalar3 pos = make_scalar3(x_blj[i*3 + 0],x_blj[i*3 + 1],x_blj[i*3 + 2]);
+        pdata->setPosition(i,pos);
         }    
-    pdata->release();
 
     for (int i = max_step+1; i<=2*max_step; i++)
         fire->update(i);
@@ -514,23 +508,15 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     PDataFlags flags;
     flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
-    
-    const ParticleDataArrays& arrays = pdata->acquireReadWrite();
 
-    arrays.x[0] = 0;
-    arrays.y[0] = 0;
-    arrays.z[0] = 0;
-    arrays.type[0] = 0;
-    arrays.x[1] = 2;
-    arrays.y[1] = 0;
-    arrays.z[1] = 0;
-    arrays.type[0] = 0;
-    
-    pdata->release();
+    pdata->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata->setType(0,0);
+    pdata->setPosition(1,make_scalar3(2.0,0.0,0.0));
+    pdata->setType(1,0);
     
     shared_ptr<ParticleSelector> selector_one(new ParticleSelectorTag(sysdef, 1, 1));
     shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
-    
+
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.3)));
     shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(3.0));
@@ -562,9 +548,8 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
         {
         fire->update(i);
         if (fire->hasConverged()) { break;}
-        ParticleDataArraysConst arrays = pdata->acquireReadOnly();
-        diff += (arrays.x[1]- Scalar(x_two_lj[i]))*(arrays.x[1]- Scalar(x_two_lj[i]));
-        pdata->release();
+        Scalar posx = pdata->getPosition(1).x;
+        diff += (posx- Scalar(x_two_lj[i]))*(posx- Scalar(x_two_lj[i]));
 
         //MY_BOOST_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!
         }

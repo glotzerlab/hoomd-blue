@@ -112,7 +112,10 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                                  Scalar(1.0) / width.z);
     
     // acquire the particle data and box dimension
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+
     const BoxDim& box = m_pdata->getBox();
 
     // start by creating a temporary copy of r_cut sqaured
@@ -143,13 +146,13 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     // for each particle
 #pragma omp parallel for schedule(dynamic, 100)
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         unsigned int cur_n_neigh = 0;
         
-        Scalar3 my_pos = make_scalar3(arrays.x[i], arrays.y[i], arrays.z[i]);
-        unsigned int bodyi = arrays.body[i];
-        Scalar di = arrays.diameter[i];
+        Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        unsigned int bodyi = h_body.data[i];
+        Scalar di = h_diameter.data[i];
         
         // find the bin each particle belongs in
         unsigned int ib = (unsigned int)((my_pos.x-box.xlo)*scale.x);
@@ -202,13 +205,13 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 bool excluded = (i == (int)cur_neigh);
                 
                 if (m_filter_body && bodyi != NO_BODY)
-                    excluded = excluded | (bodyi == arrays.body[cur_neigh]);
+                    excluded = excluded | (bodyi == h_body.data[cur_neigh]);
                 
                 Scalar sqshift = Scalar(0.0);
                 if (m_filter_diameter)
                     {
                     // compute the shift in radius to accept neighbors based on their diameters
-                    float delta = (di + arrays.diameter[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
+                    float delta = (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
                     // r^2 < (r_max + delta)^2
                     // r^2 < r_maxsq + delta^2 + 2*r_max*delta
                     sqshift = (delta + Scalar(2.0) * rmax) * delta;
@@ -233,8 +236,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         
         h_n_neigh.data[i] = cur_n_neigh;
         }
-    
-    m_pdata->release();
     
     if (m_prof)
         m_prof->pop(exec_conf);

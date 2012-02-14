@@ -78,9 +78,7 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
     :   FIREEnergyMinimizer(sysdef, group, dt, false), m_wtol(Scalar(1e-1)) // using false for the parent class
     {
 
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    m_nparticles = arrays.nparticles;
-    m_pdata->release();
+    m_nparticles = m_pdata->getN();
     
     // Get the system rigid data
     m_rigid_data = sysdef->getRigidData();

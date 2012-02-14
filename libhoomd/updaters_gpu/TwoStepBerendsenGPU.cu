@@ -48,6 +48,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
+
 #include "TwoStepBerendsenGPU.cuh"
 
 #include <assert.h>
@@ -58,7 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // First, the kernel code for the Berendsen thermostat
 //! Kernel that applies the first step of a Berendsen integration to a group of particles
-/*! \param pdata Particle data arrays to apply Berendsen thermostat to
+/*! \param d_pos array of particle positions
+    \param d_vel array of particle velocties
+    \param d_accel array of particle accelerations
+    \param d_image array of particle images
     \param d_group_members Device array listing the indicies of the members of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for applying periodic boundary conditions
@@ -69,7 +74,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
 extern "C" __global__
-void gpu_berendsen_step_one_kernel(gpu_pdata_arrays pdata,
+void gpu_berendsen_step_one_kernel(Scalar4 *d_pos,
+                                   Scalar4 *d_vel,
+                                   const Scalar3 *d_accel,
+                                   int3 *d_image,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    gpu_boxsize box,
@@ -84,7 +92,7 @@ void gpu_berendsen_step_one_kernel(gpu_pdata_arrays pdata,
         unsigned int idx = d_group_members[group_idx];
 
         // read the particle position
-        float4 pos = pdata.pos[idx];
+        float4 pos = d_pos[idx];
 
         // we need to use temporary variables to reduce global memory access
         float px = pos.x;
@@ -93,8 +101,8 @@ void gpu_berendsen_step_one_kernel(gpu_pdata_arrays pdata,
         float pw = pos.w;
 
         // read the particle velocity and acceleration
-        float4 vel = pdata.vel[idx];
-        float4 accel = pdata.accel[idx];
+        float4 vel = d_vel[idx];
+        float3 accel = d_accel[idx];
 
         // integrate velocity and position forward in time
         vel.x = lambda * (vel.x + accel.x * deltaT / 2.0f);
@@ -107,7 +115,7 @@ void gpu_berendsen_step_one_kernel(gpu_pdata_arrays pdata,
         pz += vel.z * deltaT;
 
         // read in the image flags
-        int4 image = pdata.image[idx];
+        int3 image = d_image[idx];
 
         // apply the periodic boundary conditions
         float x_shift = rintf(px * box.Lxinv);
@@ -123,21 +131,22 @@ void gpu_berendsen_step_one_kernel(gpu_pdata_arrays pdata,
         image.z += (int)z_shift;
 
         // another temporary variable
-        float4 pos2;
+        Scalar4 pos2;
         pos2.x = px;
         pos2.y = py;
         pos2.z = pz;
         pos2.w = pw;
 
         // write the results
-        pdata.pos[idx] = pos2;
-        pdata.vel[idx] = vel;
-        pdata.image[idx] = image;
+        d_pos[idx] = pos2;
+        d_vel[idx] = vel;
+        d_image[idx] = image;
         }
     }
 
 //! Kernel that applies the first step of a Berendsen integration to a group of particles
-/*! \param pdata Particle data arrays to apply Berendsen thermostat to
+/*! \param d_vel array of particle velocties
+    \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Current net force on the particles
@@ -147,7 +156,8 @@ void gpu_berendsen_step_one_kernel(gpu_pdata_arrays pdata,
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
 extern "C" __global__
-void gpu_berendsen_step_two_kernel(gpu_pdata_arrays pdata,
+void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
+                                   Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
@@ -160,15 +170,15 @@ void gpu_berendsen_step_two_kernel(gpu_pdata_arrays pdata,
         {
         unsigned int idx = d_group_members[group_idx];
 
+        // read in the velocity
+        Scalar4 vel = d_vel[idx];
+
         // read in the net force and calculate the acceleration
-        float4 accel = d_net_force[idx];
-        float mass = pdata.mass[idx];
+        Scalar4 accel = d_net_force[idx];
+        float mass = vel.w;
         accel.x /= mass;
         accel.y /= mass;
         accel.z /= mass;
-
-        // read in teh velocity
-        float4 vel = pdata.vel[idx];
 
         // integrate the velocity
         vel.x = (vel.x + accel.x * deltaT / 2.0f);
@@ -176,12 +186,15 @@ void gpu_berendsen_step_two_kernel(gpu_pdata_arrays pdata,
         vel.z = (vel.z + accel.z * deltaT / 2.0f);
 
         // write out the velocity and acceleration
-        pdata.vel[idx] = vel;
-        pdata.accel[idx] = accel;
+        d_vel[idx] = vel;
+        d_accel[idx] = make_scalar3(accel.x, accel.y, accel.z);
         }
     }
 
-cudaError_t gpu_berendsen_step_one(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
+                                   Scalar4 *d_vel,
+                                   const Scalar3 *d_accel,
+                                   int3 *d_image,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    const gpu_boxsize &box,
@@ -194,7 +207,10 @@ cudaError_t gpu_berendsen_step_one(const gpu_pdata_arrays &pdata,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_berendsen_step_one_kernel<<< grid, threads, block_size * sizeof(float) >>>(pdata,
+    gpu_berendsen_step_one_kernel<<< grid, threads, block_size * sizeof(float) >>>(d_pos,
+                                                                                   d_vel,
+                                                                                   d_accel,
+                                                                                   d_image,
                                                                                    d_group_members,
                                                                                    group_size,
                                                                                    box,
@@ -204,7 +220,8 @@ cudaError_t gpu_berendsen_step_one(const gpu_pdata_arrays &pdata,
     return cudaSuccess;
     }
 
-cudaError_t gpu_berendsen_step_two(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_berendsen_step_two(Scalar4 *d_vel,
+                                   Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
@@ -216,7 +233,8 @@ cudaError_t gpu_berendsen_step_two(const gpu_pdata_arrays &pdata,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_berendsen_step_two_kernel<<< grid, threads, block_size * sizeof(float) >>>(pdata,
+    gpu_berendsen_step_two_kernel<<< grid, threads, block_size * sizeof(float) >>>(d_vel,
+                                                                                   d_accel,
                                                                                    d_group_members,
                                                                                    group_size,
                                                                                    d_net_force,

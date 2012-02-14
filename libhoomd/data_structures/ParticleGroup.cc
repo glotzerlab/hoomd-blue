@@ -151,16 +151,11 @@ ParticleSelectorType::ParticleSelectorType(boost::shared_ptr<SystemDefinition> s
 bool ParticleSelectorType::isSelected(unsigned int tag) const
     {
     assert(tag < m_pdata->getN());
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
-    // identify the index of the current particle tag
-    unsigned int idx = arrays.rtag[tag];
-    unsigned int typ = arrays.type[idx];
+    unsigned int typ = m_pdata->getType(tag);
     
     // see if it matches the criteria
     bool result = (m_typ_min <= typ && typ <= m_typ_max);
     
-    m_pdata->release();
     return result;
     }
 
@@ -182,11 +177,9 @@ ParticleSelectorRigid::ParticleSelectorRigid(boost::shared_ptr<SystemDefinition>
 bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     {
     assert(tag < m_pdata->getN());
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
     
-    // identify the index of the current particle tag
-    unsigned int idx = arrays.rtag[tag];
-    unsigned int body = arrays.body[idx];
+    // get body id of current particle tag
+    unsigned int body = m_pdata->getBody(tag);
     
     // see if it matches the criteria
     bool result = false;
@@ -195,7 +188,6 @@ bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     if (!m_rigid && body == NO_BODY)
         result = true;
     
-    m_pdata->release();
     return result;
     }
 
@@ -219,21 +211,15 @@ ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinitio
 bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
     {
     assert(tag < m_pdata->getN());
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
+
     // identify the index of the current particle tag
-    unsigned int idx = arrays.rtag[tag];
-    Scalar3 pos;
-    pos.x = arrays.x[idx];
-    pos.y = arrays.y[idx];
-    pos.z = arrays.z[idx];
+    Scalar3 pos = m_pdata->getPosition(tag);
     
     // see if it matches the criteria
     bool result = (m_min.x <= pos.x && pos.x < m_max.x &&
                    m_min.y <= pos.y && pos.y < m_max.y &&
                    m_min.z <= pos.z && pos.z < m_max.z);
     
-    m_pdata->release();
     return result;
     }
 
@@ -306,16 +292,15 @@ ParticleGroup::~ParticleGroup()
 Scalar ParticleGroup::getTotalMass() const
     {
     // grab the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
+    ArrayHandle< Scalar4 > h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+
     // loop  through all indices in the group and total the mass
     Scalar total_mass = 0.0;
     for (unsigned int i = 0; i < getNumMembers(); i++)
         {
         unsigned int idx = getMemberIndex(i);
-        total_mass += arrays.mass[idx];
+        total_mass += h_vel.data[idx].w;
         }
-    m_pdata->release();
     return total_mass;
     }
     
@@ -325,7 +310,9 @@ Scalar ParticleGroup::getTotalMass() const
 Scalar3 ParticleGroup::getCenterOfMass() const
     {
     // grab the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle< Scalar4 > h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle< int3 > h_image(m_pdata->getImages(), access_location::host, access_mode::read);
     
     // grab the box dimensions
     BoxDim box = m_pdata->getBox();
@@ -339,18 +326,16 @@ Scalar3 ParticleGroup::getCenterOfMass() const
     for (unsigned int i = 0; i < getNumMembers(); i++)
         {
         unsigned int idx = getMemberIndex(i);
-        Scalar mass = arrays.mass[idx];
+        Scalar mass = h_vel.data[idx].w;
         total_mass += mass;
-        center_of_mass.x += mass * (arrays.x[idx] + Scalar(arrays.ix[idx]) * Lx);
-        center_of_mass.y += mass * (arrays.y[idx] + Scalar(arrays.iy[idx]) * Ly);
-        center_of_mass.z += mass * (arrays.z[idx] + Scalar(arrays.iz[idx]) * Lz);
+        center_of_mass.x += mass * (h_pos.data[idx].x + Scalar(h_image.data[idx].x) * Lx);
+        center_of_mass.y += mass * (h_pos.data[idx].y + Scalar(h_image.data[idx].y) * Ly);
+        center_of_mass.z += mass * (h_pos.data[idx].z + Scalar(h_image.data[idx].z) * Lz);
         }
     center_of_mass.x /= total_mass;
     center_of_mass.y /= total_mass;
     center_of_mass.z /= total_mass;
 
-    m_pdata->release();
-    
     return center_of_mass;
     }
 
@@ -435,18 +420,21 @@ void ParticleGroup::rebuildIndexList()
     m_is_member.reset();
     
     // then loop through every particle in the group and set its bit
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    {
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
     for (unsigned int member_idx = 0; member_idx < m_member_tags.size(); member_idx++)
         {
-        unsigned int idx = arrays.rtag[m_member_tags[member_idx]];
+        unsigned int idx = h_rtag.data[m_member_tags[member_idx]];
         m_is_member[idx] = true;
         }
-    m_pdata->release();
-    
+    }
+
     // then loop through the bitset and add indices to the index list
     ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::readwrite);
     unsigned int cur_member = 0;
-    for (unsigned int idx = 0; idx < arrays.nparticles; idx++)
+    unsigned int nparticles = m_pdata->getN();
+    for (unsigned int idx = 0; idx < nparticles; idx++)
         {
         if (isMember(idx))
             {

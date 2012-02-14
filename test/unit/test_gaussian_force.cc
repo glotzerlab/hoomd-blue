@@ -99,11 +99,10 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
-    arrays.x[2] = Scalar(2.0); arrays.y[2] = arrays.z[2] = 0.0;
-    pdata_3->release();
+    pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata_3->setPosition(1,make_scalar3(1.0,0.0,0.0));
+    pdata_3->setPosition(2,make_scalar3(2.0,0.0,0.0));
+
     shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
     shared_ptr<PotentialPairGauss> fc_3 = gauss_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
@@ -148,15 +147,19 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     }
 
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
-    arrays = pdata_3->acquireReadWrite();
-    arrays.x[2] = arrays.y[2] = arrays.z[2] = 0.0;
-    arrays.x[0] = Scalar(2.0); arrays.y[0] = arrays.z[0] = 0.0;
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_3->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_3->getRTags(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[2].x = h_pos.data[2].y = h_pos.data[2].z = 0.0;
+    h_pos.data[0].x = Scalar(2.0); h_pos.data[0].y = h_pos.data[0].z = 0.0;
     
-    arrays.tag[0] = 2;
-    arrays.tag[2] = 0;
-    arrays.rtag[0] = 2;
-    arrays.rtag[2] = 0;
-    pdata_3->release();
+    h_tag.data[0] = 2;
+    h_tag.data[2] = 0;
+    h_rtag.data[0] = 2;
+    h_rtag.data[2] = 0;
+    }
     
     // notify the particle data that we changed the order
     pdata_3->notifyParticleSort();
@@ -186,22 +189,20 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
-
-    ParticleDataArrays arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
     
-    arrays.type[0] = 0;
-    arrays.type[1] = 1;
-    arrays.type[2] = 2;
-    arrays.type[3] = 0;
-    arrays.type[4] = 2;
-    arrays.type[5] = 1;
-    pdata_6->release();
+    pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
+    pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
+    pdata_6->setPosition(2, make_scalar3(0.0,-19.6,0.0));
+    pdata_6->setPosition(3, make_scalar3(0.0,19.6,0.0));
+    pdata_6->setPosition(4, make_scalar3(0.0,0.0,-29.6));
+    pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
+
+    pdata_6->setType(0,0);
+    pdata_6->setType(1,1);
+    pdata_6->setType(2,2);
+    pdata_6->setType(3,0);
+    pdata_6->setType(4,2);
+    pdata_6->setType(5,1);
     
     shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
     shared_ptr<PotentialPairGauss> fc_6 = gauss_creator(sysdef_6, nlist_6);
@@ -366,11 +367,9 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
-
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(2.8); arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
+    
+    pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata_2->setPosition(1,make_scalar3(2.8,0.0,0.0));
     shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
     shared_ptr<PotentialPairGauss> fc_no_shift = gauss_creator(sysdef_2, nlist_2);
     fc_no_shift->setShiftMode(PotentialPairGauss::no_shift);
@@ -414,10 +413,8 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     }
 
     // check once again to verify that nothing fish happens past r_cut
-    arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(3.1); arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
+    pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata_2->setPosition(1,make_scalar3(3.1,0.0,0.0));
     
     fc_no_shift->compute(2);
     fc_shift->compute(2);

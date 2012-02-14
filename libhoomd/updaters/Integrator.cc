@@ -208,7 +208,7 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
     }
 
 /*! \param timestep Current timestep
-    \post \c arrays.ax, \c arrays.ay, and \c arrays.az are set based on the forces computed by the ForceComputes
+    \post \c h_accel.data[i] is set based on the forces computed by the ForceComputes
 */
 void Integrator::computeAccelerations(unsigned int timestep)
     {
@@ -222,19 +222,18 @@ void Integrator::computeAccelerations(unsigned int timestep)
         }
     
     // now, get our own access to the arrays and calculate the accelerations
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
     
     // now, add up the accelerations
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
+    for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
-        Scalar minv = Scalar(1.0) / arrays.mass[j];
-        arrays.ax[j] = h_net_force.data[j].x*minv;
-        arrays.ay[j] = h_net_force.data[j].y*minv;
-        arrays.az[j] = h_net_force.data[j].z*minv;
+        Scalar minv = Scalar(1.0) / h_vel.data[j].w;
+        h_accel.data[j].x = h_net_force.data[j].x*minv;
+        h_accel.data[j].y = h_net_force.data[j].y*minv;
+        h_accel.data[j].z = h_net_force.data[j].z*minv;
         }
-    
-    m_pdata->release();
     
     if (m_prof)
         {
@@ -251,23 +250,23 @@ void Integrator::computeAccelerations(unsigned int timestep)
 Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     {
     // grab access to the particle data
-    const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+
     // sum up the kinetic energy
     double p_tot_x = 0.0;
     double p_tot_y = 0.0;
     double p_tot_z = 0.0;
     for (unsigned int i=0; i < m_pdata->getN(); i++)
         {
-        p_tot_x += (double)arrays.mass[i]*(double)arrays.vx[i];
-        p_tot_y += (double)arrays.mass[i]*(double)arrays.vy[i];
-        p_tot_z += (double)arrays.mass[i]*(double)arrays.vz[i];
+        double mass = h_vel.data[i].w;
+        p_tot_x += mass*(double)h_vel.data[i].x;
+        p_tot_y += mass*(double)h_vel.data[i].y;
+        p_tot_z += mass*(double)h_vel.data[i].z;
         }
         
     double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getN());
     
     // done!
-    m_pdata->release();
     return Scalar(p_tot);
     }
 
@@ -374,7 +373,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles == net_force.getNumElements());
-        assert(nparticles <= net_virial.getPitch());
+        assert(6*nparticles <= net_virial.getNumElements());
         for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
             {
             //phasing out ForceDataArrays
@@ -595,7 +594,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles == net_force.getNumElements());
-        assert(nparticles == net_virial.getNumElements());
+        assert(6*nparticles <= net_virial.getNumElements());
         assert(nparticles == net_torque.getNumElements());
 
         // now, add up the accelerations

@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 #include "Index1D.h"
+#include "HOOMDMath.h"
 
 #ifndef __TABLEPOTENTIALGPU_CUH__
 #define __TABLEPOTENTIALGPU_CUH__
@@ -64,7 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_table_forces(float4* d_force,
                                      float* d_virial,
                                      const unsigned int virial_pitch,
-                                     const gpu_pdata_arrays &pdata,
+                                     const unsigned int N,
+                                     const Scalar4 *d_pos,
                                      const gpu_boxsize &box,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,

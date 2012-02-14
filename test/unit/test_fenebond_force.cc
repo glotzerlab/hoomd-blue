@@ -86,12 +86,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0,  exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(0.9);
-    arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
+
+    pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
+    pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));
     
     // create the bond force compute to check
     shared_ptr<PotentialBondFENE> fc_2 = bf_creator(sysdef_2);
@@ -149,14 +146,18 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
 
     // rearrange the two particles in memory and see if they are properly updated
-    arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = Scalar(0.9);
-    arrays.x[1] = Scalar(0.0);
-    arrays.tag[0] = 1;
-    arrays.tag[1] = 0;
-    arrays.rtag[0] = 1;
-    arrays.rtag[1] = 0;
-    pdata_2->release();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_2->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_2->getRTags(), access_location::host, access_mode::readwrite);
+
+    h_pos.data[0].x = Scalar(0.9);
+    h_pos.data[1].x = Scalar(0.0);
+    h_tag.data[0] = 1;
+    h_tag.data[1] = 0;
+    h_rtag.data[0] = 1;
+    h_rtag.data[1] = 0;
+    }
     
     // notify that we made the sort
     pdata_2->notifyParticleSort();
@@ -182,14 +183,12 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     
-    arrays = pdata_6->acquireReadWrite();
-    arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
-    arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
-    arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
-    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
-    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
-    pdata_6->release();
+    pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
+    pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
+    pdata_6->setPosition(2, make_scalar3(0.0,-19.6,0.0));
+    pdata_6->setPosition(3, make_scalar3(0.0,19.6,0.0));
+    pdata_6->setPosition(4, make_scalar3(0.0,0.0,-29.6));
+    pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
     
     shared_ptr<PotentialBondFENE> fc_6 = bf_creator(sysdef_6);
     fc_6->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
@@ -264,23 +263,27 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
     
-    arrays = pdata_4->acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata_4->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata_4->getRTags(), access_location::host, access_mode::readwrite);
+
     // make a square of particles
-    arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;
-    arrays.x[1] = 1.0; arrays.y[1] = 0; arrays.z[1] = 0.0;
-    arrays.x[2] = 0; arrays.y[2] = 1.0; arrays.z[2] = 0.0;
-    arrays.x[3] = 1.0; arrays.y[3] = 1.0; arrays.z[3] = 0.0;
-    
-    arrays.tag[0] = 2;
-    arrays.tag[1] = 3;
-    arrays.tag[2] = 0;
-    arrays.tag[3] = 1;
-    arrays.rtag[arrays.tag[0]] = 0;
-    arrays.rtag[arrays.tag[1]] = 1;
-    arrays.rtag[arrays.tag[2]] = 2;
-    arrays.rtag[arrays.tag[3]] = 3;
-    pdata_4->release();
-    
+    h_pos.data[0].x = 0.0; h_pos.data[0].y = 0.0; h_pos.data[0].z = 0.0;
+    h_pos.data[1].x = 1.0; h_pos.data[1].y = 0; h_pos.data[1].z = 0.0;
+    h_pos.data[2].x = 0; h_pos.data[2].y = 1.0; h_pos.data[2].z = 0.0;
+    h_pos.data[3].x = 1.0; h_pos.data[3].y = 1.0; h_pos.data[3].z = 0.0;
+
+    h_tag.data[0] = 2;
+    h_tag.data[1] = 3;
+    h_tag.data[2] = 0;
+    h_tag.data[3] = 1;
+    h_rtag.data[h_tag.data[0]] = 0;
+    h_rtag.data[h_tag.data[1]] = 1;
+    h_rtag.data[h_tag.data[2]] = 2;
+    h_rtag.data[h_tag.data[3]] = 3;
+    }
+
     // build the bond force compute and try it out
     shared_ptr<PotentialBondFENE> fc_4 = bf_creator(sysdef_4);
     fc_4->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.75), Scalar(pow(1.2,12.0)), Scalar(pow(1.2,6.0))));
@@ -355,30 +358,31 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     fc2->setParams(0, make_scalar4(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
     
     // displace particles a little so all forces aren't alike
-    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    {
+    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     BoxDim box = pdata->getBox();
     for (unsigned int i = 0; i < N; i++)
         {
-        arrays.x[i] += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.01);
-        if (arrays.x[i] < box.xlo)
-            arrays.x[i] = box.xlo;
-        if (arrays.x[i] > box.xhi)
-            arrays.x[i] = box.xhi;
+        h_pos.data[i].x += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.01);
+        if (h_pos.data[i].x < box.xlo)
+            h_pos.data[i].x = box.xlo;
+        if (h_pos.data[i].x > box.xhi)
+            h_pos.data[i].x = box.xhi;
             
-        arrays.y[i] += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.05);
-        if (arrays.y[i] < box.ylo)
-            arrays.y[i] = box.ylo;
-        if (arrays.y[i] > box.yhi)
-            arrays.y[i] = box.yhi;
+        h_pos.data[i].y += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.05);
+        if (h_pos.data[i].y < box.ylo)
+            h_pos.data[i].y = box.ylo;
+        if (h_pos.data[i].y > box.yhi)
+            h_pos.data[i].y = box.yhi;
             
-        arrays.z[i] += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.001);
-        if (arrays.z[i] < box.zlo)
-            arrays.z[i] = box.zlo;
-        if (arrays.z[i] > box.zhi)
-            arrays.z[i] = box.zhi;
+        h_pos.data[i].z += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.001);
+        if (h_pos.data[i].z < box.zlo)
+            h_pos.data[i].z = box.zlo;
+        if (h_pos.data[i].z > box.zhi)
+            h_pos.data[i].z = box.zhi;
         }
-    pdata->release();
-    
+    }
+
     // add bonds
     for (unsigned int i = 0; i < M; i++)
         for (unsigned int j = 0; j < M; j++)

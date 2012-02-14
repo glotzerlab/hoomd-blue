@@ -131,7 +131,9 @@ void PDBDumpWriter::writeFile(std::string fname)
         }
         
     // acquire the particle data
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
     
     // get the box dimensions
     Scalar Lx,Ly,Lz;
@@ -152,16 +154,16 @@ void PDBDumpWriter::writeFile(std::string fname)
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         int i;
-        i= arrays.rtag[j];
+        i= h_rtag.data[j];
         
         // first check that everything will fit into the PDB output
-        if (arrays.x[i] < -999.9994f || arrays.x[i] > 9999.9994f || arrays.y[i] < -999.9994f || arrays.y[i] > 9999.9994f || arrays.z[i] < -999.9994f || arrays.z[i] > 9999.9994f)
+        if (h_pos.data[i].x < -999.9994f || h_pos.data[i].x > 9999.9994f || h_pos.data[i].y < -999.9994f || h_pos.data[i].y > 9999.9994f || h_pos.data[i].z < -999.9994f || h_pos.data[i].z > 9999.9994f)
             {
-            cerr << "***Error! Coordinate " << arrays.x[i] << " " << arrays.y[i] << " " << arrays.z[i] << " is out of range for PDB writing" << endl << endl;
+            cerr << "***Error! Coordinate " << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << " is out of range for PDB writing" << endl << endl;
             throw runtime_error("Error writing PDB file");
             }
         // check the length of the type name
-        const string &type_name = m_pdata->getNameByType(arrays.type[i]);
+        const string &type_name = m_pdata->getNameByType(__scalar_as_int(h_pos.data[i].w));
         if (type_name.size() > 4)
             {
             cerr << "***Error! Type " << type_name << " is too long for PDB writing" << endl << endl;
@@ -212,7 +214,7 @@ void PDBDumpWriter::writeFile(std::string fname)
         sprintf(segnamebuf, "SEG ");
         
         snprintf(buf, linesize, "%-6s%5s %4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %-4s%2s\n", "ATOM  ", indexbuf, type_name.c_str(), altlocchar, "RES", ' ',
-                 residbuf, ' ', arrays.x[i], arrays.y[i], arrays.z[i], 0.0f, 0.0f, segnamebuf, "  ");
+                 residbuf, ' ', h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z, 0.0f, 0.0f, segnamebuf, "  ");
         f << buf;
         }
         
@@ -235,8 +237,6 @@ void PDBDumpWriter::writeFile(std::string fname)
             }
         }
         
-    // release the particle data
-    m_pdata->release();
     }
 
 void export_PDBDumpWriter()

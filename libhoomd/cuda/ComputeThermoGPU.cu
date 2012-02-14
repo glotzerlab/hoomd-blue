@@ -72,8 +72,7 @@ extern __shared__ float compute_pressure_tensor_sdata[];
     \param d_net_force Net force / pe array from ParticleData
     \param d_net_virial Net virial array from ParticleData
     \param virial_pitch pitch of 2D virial array
-    \param d_mass Particle mass array from ParticleData
-    \param d_velocity Particle velocity array from ParticleData
+    \param d_velocity Particle velocity and mass array from ParticleData
     \param d_group_members List of group members for which to sum properties
     \param group_size Number of particles in the group
     
@@ -92,8 +91,7 @@ __global__ void gpu_compute_thermo_partial_sums(float4 *d_scratch,
                                                 float4 *d_net_force,
                                                 float *d_net_virial,
                                                 const unsigned int virial_pitch,
-                                                float *d_mass,
-                                                float4 *d_velocity,
+                                                Scalar4 *d_velocity,
                                                 unsigned int *d_group_members,
                                                 unsigned int group_size)
     {
@@ -114,7 +112,7 @@ __global__ void gpu_compute_thermo_partial_sums(float4 *d_scratch,
                                +d_net_virial[3*virial_pitch+idx]   // yy
                                +d_net_virial[5*virial_pitch+idx]); // zz
         float4 vel = d_velocity[idx];
-        float mass = d_mass[idx];
+        float mass = vel.w;
         
         // compute our contribution to the sum
         my_element.x = mass * (vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
@@ -157,8 +155,7 @@ __global__ void gpu_compute_thermo_partial_sums(float4 *d_scratch,
     \param d_net_force Net force / pe array from ParticleData
     \param d_net_virial Net virial array from ParticleData
     \param virial_pitch pitch of 2D virial array
-    \param d_mass Particle mass array from ParticleData
-    \param d_velocity Particle velocity array from ParticleData
+    \param d_velocity Particle velocity and mass array from ParticleData
     \param d_group_members List of group members for which to sum properties
     \param group_size Number of particles in the group
 
@@ -172,7 +169,6 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(float *d_scratch,
                                                 float4 *d_net_force,
                                                 float *d_net_virial,
                                                 const unsigned int virial_pitch,
-                                                float *d_mass,
                                                 float4 *d_velocity,
                                                 unsigned int *d_group_members,
                                                 unsigned int group_size)
@@ -186,8 +182,8 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(float *d_scratch,
         unsigned int idx = d_group_members[group_idx];
 
         // compute contribution to pressure tensor and store it in my_element
-        float mass = d_mass[idx];
         float4 vel = d_velocity[idx];
+        float mass = vel.w;
         my_element[0] = mass*vel.x*vel.x + d_net_virial[0*virial_pitch+idx];   // xx
         my_element[1] = mass*vel.x*vel.y + d_net_virial[1*virial_pitch+idx];   // xy
         my_element[2] = mass*vel.x*vel.z + d_net_virial[2*virial_pitch+idx];   // xz
@@ -404,7 +400,7 @@ __global__ void gpu_compute_pressure_tensor_final_sums(float *d_properties,
 
 //! Compute thermodynamic properties of a group on the GPU
 /*! \param d_properties Array to write computed properties
-    \param pdata Particle data
+    \param d_vel particle velocities and masses on the GPU
     \param d_group_members List of group members
     \param group_size Number of group members
     \param box Box the particles are in
@@ -415,7 +411,7 @@ __global__ void gpu_compute_pressure_tensor_final_sums(float *d_properties,
 */
 
 cudaError_t gpu_compute_thermo(float *d_properties,
-                               const gpu_pdata_arrays &pdata,
+                               Scalar4 *d_vel,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                const gpu_boxsize &box,
@@ -424,8 +420,7 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                )
     {
     assert(d_properties);
-    assert(pdata.mass);
-    assert(pdata.vel);
+    assert(d_vel);
     assert(d_group_members);
     assert(args.d_net_force);
     assert(args.d_net_virial);
@@ -439,8 +434,7 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                     args.d_net_force,
                                                                     args.d_net_virial,
                                                                     args.virial_pitch,
-                                                                    pdata.mass,
-                                                                    pdata.vel,
+                                                                    d_vel,
                                                                     d_group_members,
                                                                     group_size);
 
@@ -455,8 +449,7 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                                   args.d_net_force,
                                                                                   args.d_net_virial,
                                                                                   args.virial_pitch,
-                                                                                  pdata.mass,
-                                                                                  pdata.vel,
+                                                                                  d_vel,
                                                                                   d_group_members,
                                                                                   group_size);
         }
