@@ -343,7 +343,7 @@ class NeighborList : public Compute
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        void setCommunicator(boost::shared_ptr<Communicator> comm);
+        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
 #endif
 
     protected:

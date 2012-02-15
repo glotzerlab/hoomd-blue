@@ -460,6 +460,17 @@ unsigned int MPIInitializer::getDimension(unsigned int dir) const
     return dim;
     }
 
+//! Determine whether this box shares a boundary with the global simulation box
+bool MPIInitializer::isAtBoundary(unsigned int dir) const
+    {
+        return ( (dir == 0 && m_grid_pos.x == m_nx - 1) ||
+                 (dir == 1 && m_grid_pos.x == 0)        ||
+                 (dir == 2 && m_grid_pos.y == m_ny - 1) ||
+                 (dir == 3 && m_grid_pos.y == 0)        ||
+                 (dir == 4 && m_grid_pos.z == m_nz - 1) ||
+                 (dir == 5 && m_grid_pos.z == 0));
+    }
+
 //! Export MPIInitializer class to python
 void export_MPIInitializer()
     {
@@ -470,6 +481,7 @@ void export_MPIInitializer()
     .def("getDimension", &MPIInitializer::getDimension)
     .def("scatter", &MPIInitializer::scatter)
     .def("gatherSnapshot", &MPIInitializer::gatherSnapshot)
+    .def("isAtBoundary", &MPIInitializer::isAtBoundary)
     ;
     }
 #endif // ENABLE_MPI

@@ -77,9 +77,10 @@ BOOST_CLASS_TRACKING(Scalar4,track_never)
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                                  std::vector<unsigned int> neighbor_rank,
+                                 std::vector<bool> is_at_boundary,
                                  uint3 dim,
                                  const BoxDim global_box)
-    : Communicator(sysdef, mpi_comm, neighbor_rank, dim, global_box)
+    : Communicator(sysdef, mpi_comm, neighbor_rank, is_at_boundary, dim, global_box)
     {
     // initialize send buffer size with size of particle data element on the GPU
     setPackedSize(gpu_pdata_element_size());
@@ -277,7 +278,8 @@ void CommunicatorGPU::migrateAtoms()
                                                 d_recvbuf.data+recv_buf_size[dir],
                                                 n_recv_ptl,
                                                 m_global_box_gpu,
-                                                dir);
+                                                dir,
+                                                m_is_at_boundary);
             }
 
             {
@@ -551,7 +553,8 @@ void CommunicatorGPU::exchangeGhosts(Scalar r_ghost)
                               m_num_recv_ghosts[dir],
                               d_pos.data + start_idx,
                               m_global_box_gpu,
-                              m_r_ghost);
+                              m_r_ghost,
+                              m_is_at_boundary);
 
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
@@ -656,7 +659,8 @@ void CommunicatorGPU::copyGhosts()
                            m_num_recv_ghosts[dir],
                            d_pos.data + start_idx,
                            m_global_box_gpu,
-                           m_r_ghost);
+                           m_r_ghost,
+                           m_is_at_boundary);
              }
 
         if (m_prof)
@@ -674,6 +678,7 @@ void export_CommunicatorGPU()
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<boost::mpi::communicator>,
                 std::vector<unsigned int>,
+                std::vector<bool>,
                 uint3,
                 const BoxDim>())
     ;

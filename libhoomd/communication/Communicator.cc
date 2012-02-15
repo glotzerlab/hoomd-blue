@@ -61,8 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/mpi.hpp>
 #include <boost/python.hpp>
-#include <boost/iterator/zip_iterator.hpp>
 #include <algorithm>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 using namespace boost::python;
 
@@ -126,6 +126,7 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
 Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                            std::vector<unsigned int> neighbor_rank,
+                           std::vector<bool> is_at_boundary,
                            uint3 dim,
                            const BoxDim global_box)
           : m_sysdef(sysdef),
@@ -138,18 +139,13 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_r_ghost(Scalar(0.0))
     {
     // initialize array of neighbor processor ids
-    if (neighbor_rank.size() != 6)
-        {
-        //! Set the rank of a neighbor processors of this simulation box in
-        cerr << endl << "***Error! Invalid number of neighbor processor ranks given (" << neighbor_rank.size() << " != 6)."  << endl
-                     << "          One processor rank per direction is required."
-                     << endl << endl;
-        throw runtime_error("Error initializing MPI communication.");
-        }
+    assert(neighbor_rank.size() == 6);
+    assert(is_at_boundary.size() == 6);
 
     for (unsigned int dir = 0; dir < 6; dir++)
         {
         m_neighbors[dir] = neighbor_rank[dir];
+        m_is_at_boundary[dir] = is_at_boundary[dir];
         }
 
     m_packed_size = sizeof(pdata_element);
@@ -314,6 +310,15 @@ void Communicator::migrateAtoms()
             // remove particles that are being sent from local data
             m_pdata->removeParticles(n_send_ptls);
 
+            if (n_send_ptls*m_packed_size > m_sendbuf[dir].getNumElements())
+                {
+                unsigned int new_size = m_sendbuf[dir].getNumElements();
+                while (new_size < n_send_ptls * m_packed_size) new_size *= 2;
+                m_sendbuf[dir].resize(new_size);
+                }
+
+
+
             // FIXME: need to resize send buffer if necessary
             ArrayHandle<char> h_sendbuf(m_sendbuf[dir], access_location::host, access_mode::overwrite);
 
@@ -385,34 +390,34 @@ void Communicator::migrateAtoms()
                 Scalar4& pos = p.pos;
                 int3& image = p.image;
 
-                if (dir == 0 && pos.x >= m_global_box.xhi)
+                if (dir == 0 && m_is_at_boundary[1])
                     {
                     pos.x -= m_global_box.xhi - m_global_box.xlo;
                     image.x++;
                     }
-                else if (dir == 1 && pos.x < m_global_box.xlo)
+                else if (dir == 1 && m_is_at_boundary[0])
                     {
                     pos.x += m_global_box.xhi - m_global_box.xlo;
                     image.x--;
                     }
 
-                if (dir == 2 && pos.y >= m_global_box.yhi)
+                if (dir == 2 && m_is_at_boundary[3])
                     {
                     pos.y -= m_global_box.yhi - m_global_box.ylo;
                     image.y++;
                     }
-                else if (dir == 3 && pos.y < m_global_box.ylo)
+                else if (dir == 3 && m_is_at_boundary[2])
                     {
                     pos.y += m_global_box.yhi - m_global_box.ylo;
                     image.y--;
                     }
 
-                if (dir == 4 && pos.z >= m_global_box.zhi)
+                if (dir == 4 && m_is_at_boundary[5])
                     {
                     pos.z -= m_global_box.zhi - m_global_box.zlo;
                     image.z++;
                     }
-                else if (dir == 5 && pos.z < m_global_box.zlo)
+                else if (dir == 5 && m_is_at_boundary[4])
                     {
                     pos.z += m_global_box.zhi - m_global_box.zlo;
                     image.z--;
@@ -671,17 +676,17 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
                 Scalar4& pos = h_pos.data[idx];
 
                 // wrap particles received across a global boundary back into global box
-                if (dir==0 && pos.x >= m_global_box.xhi - r_ghost)
+                if (dir==0 && m_is_at_boundary[1])
                     pos.x -= m_global_box.xhi - m_global_box.xlo;
-                else if (dir==1 && pos.x < m_global_box.xlo + r_ghost)
+                else if (dir==1 && m_is_at_boundary[0])
                     pos.x += m_global_box.xhi - m_global_box.xlo;
-                else if (dir==2 && pos.y >= m_global_box.yhi - r_ghost)
+                else if (dir==2 && m_is_at_boundary[3])
                     pos.y -= m_global_box.yhi - m_global_box.ylo;
-                else if (dir==3 && pos.y < m_global_box.ylo + r_ghost)
+                else if (dir==3 && m_is_at_boundary[2])
                     pos.y += m_global_box.yhi - m_global_box.ylo;
-                else if (dir==4 && pos.z >= m_global_box.zhi - r_ghost)
+                else if (dir==4 && m_is_at_boundary[5])
                     pos.z -= m_global_box.zhi - m_global_box.zlo;
-                else if (dir==5 && pos.z < m_global_box.zlo + r_ghost)
+                else if (dir==5 && m_is_at_boundary[4])
                     pos.z += m_global_box.zhi - m_global_box.zlo;
 
                 h_global_rtag.data[h_global_tag.data[idx]] = idx;
@@ -783,17 +788,17 @@ void Communicator::copyGhosts()
                  Scalar4& pos = h_pos.data[idx];
 
                  // wrap particles received across a global boundary back into global box
-                 if (dir==0 && pos.x >= m_global_box.xhi - m_r_ghost)
+                 if (dir==0 && m_is_at_boundary[1])
                      pos.x -= m_global_box.xhi - m_global_box.xlo;
-                 else if (dir==1 && pos.x < m_global_box.xlo + m_r_ghost)
+                 else if (dir==1 && m_is_at_boundary[0])
                      pos.x += m_global_box.xhi - m_global_box.xlo;
-                 else if (dir==2 && pos.y >= m_global_box.yhi - m_r_ghost)
+                 else if (dir==2 && m_is_at_boundary[3])
                      pos.y -= m_global_box.yhi - m_global_box.ylo;
-                 else if (dir==3 && pos.y < m_global_box.ylo + m_r_ghost)
+                 else if (dir==3 && m_is_at_boundary[2])
                      pos.y += m_global_box.yhi - m_global_box.ylo;
-                 else if (dir==4 && pos.z >= m_global_box.zhi - m_r_ghost)
+                 else if (dir==4 && m_is_at_boundary[5])
                      pos.z -= m_global_box.zhi - m_global_box.zlo;
-                 else if (dir==5 && pos.z < m_global_box.zlo + m_r_ghost)
+                 else if (dir==5 && m_is_at_boundary[4])
                      pos.z += m_global_box.zhi - m_global_box.zlo;
                  }
             }
@@ -809,10 +814,14 @@ void Communicator::copyGhosts()
 //! Export Communicator class to python
 void export_Communicator()
     {
+     class_< std::vector<bool> >("std_vector_bool")
+    .def(vector_indexing_suite<std::vector<bool> >());
+
     class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<boost::mpi::communicator>,
                 std::vector<unsigned int>,
+                std::vector<bool>,
                 uint3,
                 const BoxDim >())
     ;

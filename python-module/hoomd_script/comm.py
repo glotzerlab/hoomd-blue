@@ -124,9 +124,11 @@ class mpi_partition:
 
         # Get ranks of neighboring processors
         self.neighbor_ranks = hoomd.std_vector_uint();
+        self.is_at_boundary = hoomd.std_vector_bool();
 
         for dir in range(6):
             self.neighbor_ranks.append(self.cpp_mpi_init.getNeighborRank(dir));
+            self.is_at_boundary.append(self.cpp_mpi_init.isAtBoundary(dir));
 
         # Get dimensions of domain decomposition
         self.dim = hoomd.make_uint3(self.cpp_mpi_init.getDimension(0), \
@@ -136,10 +138,10 @@ class mpi_partition:
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
             globals.communicator = hoomd.Communicator(globals.system_definition, mpi_comm, self.neighbor_ranks, \
-                                                     self.dim, self.cpp_mpi_init.getGlobalBox());
+                                                     self.is_at_boundary, self.dim, self.cpp_mpi_init.getGlobalBox());
         else:
             globals.communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi_comm, self.neighbor_ranks, \
-                                                     self.dim, self.cpp_mpi_init.getGlobalBox());
+                                                     self.is_at_boundary, self.dim, self.cpp_mpi_init.getGlobalBox());
 
         # set Communicator in C++ System
         globals.system.setCommunicator(globals.communicator)

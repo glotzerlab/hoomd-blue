@@ -178,6 +178,7 @@ class Communicator
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                      std::vector<unsigned int> neighbor_rank,
+                     std::vector<bool> is_at_boundary,
                      uint3 dim,
                      const BoxDim global_box);
 
@@ -296,6 +297,7 @@ class Communicator
         unsigned int m_max_ghost_copybuf;        //!< Max  size of ghost particle data buffer
 
         unsigned int m_neighbors[6];             //!< MPI rank of neighbor domain  in every direction
+        bool m_is_at_boundary[6];                //!< Per-direction flas to indicate whether the box is at a a boundary
 
         boost::shared_ptr<SystemDefinition> m_sysdef;              //!< System definition
         boost::shared_ptr<ParticleData> m_pdata;                   //!< Particle data

@@ -55,6 +55,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff,
@@ -273,6 +277,19 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->pop(exec_conf);
     }
+
+#ifdef ENABLE_MPI
+void NeighborListBinned::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    // set ghost layer in every direction for which there is more then one cell
+    for (int dir = 0; dir < 3; dir ++)
+        {
+        m_cl->setGhostLayer(dir, comm->getDimension(dir) > 1);
+        }
+
+    NeighborList::setCommunicator(comm);
+    }
+#endif
 
 void export_NeighborListBinned()
     {

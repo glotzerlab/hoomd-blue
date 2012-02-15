@@ -79,15 +79,19 @@ struct wrap_ghost_particle
     const gpu_boxsize box;  //!< Dimensions of global simulation box
     const float rghost;     //!< Width of ghost layer
     const unsigned int dir; //!< Direction along which particle was received
+    bool is_at_boundary[6]; //!< Flags to indicate whether the local box shares a boundary with the global box
 
     //! Constructor
     /*! \param _box Dimensions of global simulation box
      * \param _rghost Width of ghost layer
      * \param _dir Direction along which particle was received
+     * \param _is_at_boundary Flags to indicate whether the local box shares a boundary with the global box
      */
-    wrap_ghost_particle(gpu_boxsize _box, float _rghost, unsigned int _dir)
+    wrap_ghost_particle(gpu_boxsize _box, float _rghost, unsigned int _dir, bool _is_at_boundary[])
         : box(_box), rghost(_rghost), dir(_dir)
         {
+        for (unsigned int dir = 0; dir < 6; dir++)
+            is_at_boundary[dir] = _is_at_boundary[dir];
         }
 
     //! Apply peridoic boundary conditions
@@ -98,17 +102,17 @@ struct wrap_ghost_particle
         {
             // wrap particles received across a global boundary back into global box
             float4 pos2 = pos;
-            if (dir==0 && pos2.x >= box.xhi - rghost)
+            if (dir==0 && is_at_boundary[1])
                 pos2.x -= box.xhi - box.xlo;
-            else if (dir==1 && pos2.x < box.xlo + rghost)
+            else if (dir==1 && is_at_boundary[0])
                 pos2.x += box.xhi - box.xlo;
-            else if (dir==2 && pos2.y >= box.yhi - rghost)
+            else if (dir==2 && is_at_boundary[3])
                 pos2.y -= box.yhi - box.ylo;
-            else if (dir==3 && pos2.y < box.ylo + rghost)
+            else if (dir==3 && is_at_boundary[2])
                 pos2.y += box.yhi - box.ylo;
-            else if (dir==4 && pos2.z >= box.zhi - rghost)
+            else if (dir==4 && is_at_boundary[5])
                 pos2.z -= box.zhi - box.zlo;
-            else if (dir==5 && pos2.z < box.zlo + rghost)
+            else if (dir==5 && is_at_boundary[4])
                 pos2.z += box.zhi - box.zlo;
             return pos2;
         }
@@ -235,14 +239,18 @@ struct wrap_received_particle
     {
     const gpu_boxsize box;   //!< Dimensions of global simulation box
     const unsigned int dir;  //!< Direction along which the particle was received
+    bool is_at_boundary[6]; //!< Flags to indicate whether the local box shares a boundary with the global box
 
     //! Constructor
     /*! \param _box Dimensions of global simulation box
         \param _dir Direciton along whic the particle was received
+        \param _is_at_boundary Flags to indicate whether the local box shares a boundary with the global box
      */
-    wrap_received_particle(const gpu_boxsize _box, unsigned int _dir)
+    wrap_received_particle(const gpu_boxsize _box, unsigned int _dir, bool _is_at_boundary[])
         : box(_box), dir(_dir)
         {
+        for (unsigned int dir = 0; dir < 6; dir++)
+            is_at_boundary[dir] = _is_at_boundary[dir];
         }
 
    //! Wrap particle across boundaries
@@ -255,34 +263,34 @@ struct wrap_received_particle
         float4& pos = el2.pos;
         int3& image = el2.image;
 
-        if (dir == 0 && pos.x >= box.xhi)
+        if (dir == 0 && is_at_boundary[1])
             {
             pos.x -= box.xhi - box.xlo;
             image.x++;
             }
-        else if (dir == 1 && pos.x < box.xlo)
+        else if (dir == 1 && is_at_boundary[0])
             {
             pos.x += box.xhi - box.xlo;
             image.x--;
             }
 
-        if (dir == 2 && pos.y >= box.yhi)
+        if (dir == 2 && is_at_boundary[3])
             {
             pos.y -= box.yhi - box.ylo;
             image.y++;
             }
-        else if (dir == 3 && pos.y < box.ylo)
+        else if (dir == 3 && is_at_boundary[2])
             {
             pos.y += box.yhi - box.ylo;
             image.y--;
             }
 
-        if (dir == 4 && pos.z >= box.zhi)
+        if (dir == 4 && is_at_boundary[5])
             {
             pos.z -= box.zhi - box.zlo;
             image.z++;
             }
-        else if (dir == 5 && pos.z < box.zlo)
+        else if (dir == 5 && is_at_boundary[4])
             {
             pos.z += box.zhi - box.zlo;
             image.z--;
@@ -637,11 +645,12 @@ void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  char *d_recv_buf_end,
                                  unsigned int &n_recv_ptl,
                                  const gpu_boxsize& global_box,
-                                 unsigned int dir)
+                                 unsigned int dir,
+                                 bool is_at_boundary[])
     {
     thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
     thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
-    thrust::transform(recv_buf_ptr, recv_buf_end_ptr, recv_buf_ptr, wrap_received_particle(global_box, dir));
+    thrust::transform(recv_buf_ptr, recv_buf_end_ptr, recv_buf_ptr, wrap_received_particle(global_box, dir, is_at_boundary));
     n_recv_ptl = recv_buf_end_ptr - recv_buf_ptr;
     }
 
@@ -717,10 +726,11 @@ void gpu_wrap_ghost_particles(unsigned int dir,
                               unsigned int n,
                               float4 *d_pos,
                               gpu_boxsize global_box,
-                              float rghost)
+                              float rghost,
+                              bool is_at_boundary[])
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::transform(pos_ptr, pos_ptr +n, pos_ptr, wrap_ghost_particle(global_box, rghost, dir));
+    thrust::transform(pos_ptr, pos_ptr +n, pos_ptr, wrap_ghost_particle(global_box, rghost, dir, is_at_boundary));
     }
 
 //! Construct a list of particle tags to send as ghost particles

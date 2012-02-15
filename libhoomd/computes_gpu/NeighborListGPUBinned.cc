@@ -56,6 +56,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                              Scalar r_cut,
                                              Scalar r_buff,
@@ -344,6 +348,19 @@ void NeighborListGPUBinned::allocateCudaArrays()
     
     CHECK_CUDA_ERROR();
     }
+
+#ifdef ENABLE_MPI
+void NeighborListGPUBinned::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    // set ghost layer in every direction for which there is more then one cell
+    for (int dir = 0; dir < 3; dir ++)
+        {
+        m_cl->setGhostLayer(dir, comm->getDimension(dir) > 1);
+        }
+
+    NeighborList::setCommunicator(comm);
+    }
+#endif
 
 void export_NeighborListGPUBinned()
     {

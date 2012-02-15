@@ -97,6 +97,11 @@ class NeighborListGPUBinned : public NeighborListGPU
         //! Enable/disable diameter filtering
         virtual void setFilterDiameter(bool filter_diameter);
 
+#ifdef ENABLE_MPI
+        //! Set the communicator to use
+        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+#endif
+
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list
         cudaArray *dca_cell_adj;            //!< CUDA array for tex2D access to d_cell_adj

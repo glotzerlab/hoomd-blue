@@ -125,7 +125,7 @@ ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sys
 */
 bool ParticleSelectorTag::isSelected(unsigned int tag) const
     {
-    assert(tag < m_pdata->getN());
+    assert(tag < m_pdata->getNGlobal());
     return (m_tag_min <= tag && tag <= m_tag_max);
     }
 
@@ -332,7 +332,7 @@ ParticleGroup::~ParticleGroup()
 
 void ParticleGroup::reallocate()
     {
-    unsigned int max_particle_num = m_member_tags.getNumElements();
+    unsigned int max_particle_num = m_member_idx.getNumElements();
 
     if (max_particle_num < m_pdata->getMaxN())
         {

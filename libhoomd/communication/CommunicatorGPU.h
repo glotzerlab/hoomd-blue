@@ -80,6 +80,7 @@ class CommunicatorGPU : public Communicator
         CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                         boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                         std::vector<unsigned int> neighbor_rank,
+                        std::vector<bool> is_at_boundary,
                         uint3 dim,
                         const BoxDim global_box);
         virtual ~CommunicatorGPU();

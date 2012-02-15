@@ -515,13 +515,24 @@ bool CellList::checkConditions()
         {
         unsigned int n = h_conditions.data[2] - 1;
         const BoxDim& box =  m_pdata->getBox();
-        Scalar3 pos = m_pdata->getPosition(n);
-        cout << "pos " << n << ": " << pos.x << " " << pos.y << " " << pos.z << endl;
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+        unsigned int tag = h_global_tag.data[n];
+        Scalar4 pos = h_pos.data[n];
+        cout << "pos " << tag << ": " << pos.x << " " << pos.y << " " << pos.z << endl;
         cout << "lo: " << box.xlo << " " << box.ylo << " " << box.zlo << endl;
         cout << "hi: " << box.xhi << " " << box.yhi << " " << box.zhi << endl;
 
-        cerr << endl << "***Error! Particle " << n << " is no longer in the simulation box." << endl
-             << endl;
+        if (n < m_pdata->getN())
+            {
+            cerr << endl << "***Error! Particle " << tag << " is no longer in the simulation box." << endl
+                 << endl;
+            }
+        else
+            {
+            cerr << endl << "***Error! Ghost particle " << tag << " is no longer in the simulation box." << endl
+                 << endl;
+            }
 
         throw runtime_error("Error computing cell list");
         }

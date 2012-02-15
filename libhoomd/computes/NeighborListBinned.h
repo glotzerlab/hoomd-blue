@@ -83,6 +83,10 @@ class NeighborListBinned : public NeighborList
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
 
+#ifdef ENABLE_MPI
+        //! Set the communicator to use
+        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+#endif
 
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list

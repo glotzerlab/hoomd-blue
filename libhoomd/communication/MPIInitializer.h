@@ -202,6 +202,11 @@ class MPIInitializer
         */
        virtual unsigned int getDimension(unsigned int dir) const;
 
+       //! Determine whether this box shares a boundary with the global simulation box
+       /*! \param dir Direction (0 <= \b dir < 6)
+        */
+       bool isAtBoundary(unsigned int dir) const;
+
    private:
        unsigned int m_N;              //!< Number of particles on this processor
        unsigned int m_nglobal;        //!< Global number of particles
