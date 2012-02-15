@@ -25,10 +25,12 @@ if (ENABLE_MPI)
     find_package(Boost 1.44.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS} system mpi serialization)
 
     if (NOT Boost_FOUND)
-        message(WARNING "Boost (>= 1.44.0) with mpi and serialization components not found. Continuing without MPI support.")
+        message(WARNING "Boost (>= 1.44.0) with mpi and serialization components not found. Disabling MPI.")
         set(ENABLE_MPI FALSE)
     endif (NOT Boost_FOUND)
-else(ENABLE_MPI)
+endif(ENABLE_MPI)
+
+if (NOT ENABLE_MPI)
     # see if we can get any supported version of Boost
     find_package(Boost 1.32.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS} REQUIRED)
 
@@ -38,7 +40,7 @@ else(ENABLE_MPI)
     set(BOOST_REQUIRED_COMPONENTS ${REQUIRED_BOOST_COMPONENTS} system)
     find_package(Boost 1.35.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS} REQUIRED)
     endif (Boost_MINOR_VERSION GREATER 34)
-endif(ENABLE_MPI)
+endif(NOT ENABLE_MPI)
 
 # add include directories
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
