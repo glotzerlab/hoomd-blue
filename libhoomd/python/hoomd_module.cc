@@ -331,6 +331,7 @@ string get_compiler_version()
     #else
     return string("unknown");
     #endif
+    }
 
 //! Determine availability of MPI support
 bool is_MPI_available()
