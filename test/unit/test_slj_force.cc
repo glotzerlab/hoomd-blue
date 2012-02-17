@@ -365,17 +365,9 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     RandomInitializer rand_init(N, Scalar(0.05), Scalar(1.3), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-<<<<<<< HEAD
     pdata->setFlags(~PDataFlags(0));
-
-=======
-    PDataFlags flags;
-    flags[pdata_flag::isotropic_virial] = 1;
-    pdata->setFlags(flags);
-
->>>>>>> Corrected unit tests of pair potentials with virial comparison (by default, the virial is disabled)
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
-    
+
     shared_ptr<PotentialPairSLJ> fc1 = shiftedlj_creator1(sysdef, nlist);
     shared_ptr<PotentialPairSLJ> fc2 = shiftedlj_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
