@@ -60,14 +60,6 @@ if (ENABLE_MPI)
         # add preprocessor flag
         add_definitions(-DENABLE_MPI)
 
-        if (NOT MPI_LIBRARIES)
-            if (MPI_CXX_LIBRARIES)
-                set(MPI_LIBRARIES ${MPI_CXX_LIBRARY)
-            else()
-                set(MPI_LIBRARIES ${MPI_LIBRARY})
-            endif()
-        endif()
-
         # add include directories
         include_directories(${MPI_INCLUDE_PATH})
     endif()

@@ -56,9 +56,6 @@ if (NOT ENABLE_STATIC)
        if(MPI_LINK_FLAGS)
            set_target_properties(libhoomd PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
        endif(MPI_LINK_FLAGS)
-
-       # link to Boost MPI and MPI libraries
-       target_link_libraries(libhoomd ${Boost_LIBRARIES} ${MPI_LIBRARIES})
     endif(ENABLE_MPI)
 
     # tweak the properties of the output to make a functional python module

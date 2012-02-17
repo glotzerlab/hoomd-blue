@@ -119,9 +119,6 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     fix_cudart_rpath(${CUR_TEST})
 
     if (ENABLE_MPI)
-        # if we are compiling with MPI support built in, add MPI library
-        target_link_libraries(${CUR_TEST} ${MPI_LIBRARIES})
-
         # set appropriate compiler/linker flags
         if(MPI_COMPILE_FLAGS)
             set_target_properties(${CUR_TEST} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
@@ -129,9 +126,6 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
         if(MPI_LINK_FLAGS)
             set_target_properties(${CUR_TEST} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
         endif(MPI_LINK_FLAGS)
-
-        # link to required boost libraries
-        target_link_libraries(${CUR_TEST} ${Boost_LIBRARIES})
     endif (ENABLE_MPI)
 endforeach (CUR_TEST)
 
