@@ -29,7 +29,7 @@
 #endif
 
 using namespace boost;
-void set_num_threads(int nthreads);
+extern void set_num_threads(int nthreads);
 
 //! MPI environment
 boost::mpi::environment *env;
@@ -69,34 +69,39 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
 
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef, world, 0));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
+    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef, world, 0));
     mpi_init->scatter(0);
+    pdata->setMPICommunicator(world);
+
+
 
     boost::shared_ptr<Communicator> comm;
     std::vector<unsigned int> neighbor_rank;
+    std::vector<bool> is_at_boundary;
     for (unsigned int i = 0; i < 6; i++)
+        {
         neighbor_rank.push_back(mpi_init->getNeighborRank(i));
+        is_at_boundary.push_back(mpi_init->isAtBoundary(i));
+        }
 
     uint3 dim = make_uint3(mpi_init->getDimension(0),
                          mpi_init->getDimension(1),
                          mpi_init->getDimension(2));
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
-        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef, world, neighbor_rank, dim, mpi_init->getGlobalBox()));
+        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef, world, neighbor_rank, is_at_boundary,dim, mpi_init->getGlobalBox()));
     else
 #endif
-        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef,world,neighbor_rank, dim, mpi_init->getGlobalBox()));
+        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef,world,neighbor_rank, is_at_boundary, dim, mpi_init->getGlobalBox()));
 
     boost::shared_ptr<Profiler> prof(new Profiler());
     comm->setProfiler(prof);
 
 //    std::cout << world.rank() << " box xlo " << box.xlo << " xhi " << box.xhi << " ylo " << box.ylo << " yhi " << box.yhi << " zlo " << box.zlo << " zhi " << box.zhi << std::endl;
 
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getNGlobal()-1));
-
-
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     shared_ptr<TwoStepNVE> two_step_nve;
@@ -125,16 +130,11 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 #endif
         {
         cl = boost::shared_ptr<CellList>(new CellList(sysdef));
-        nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef, r_cut, r_buff ));
+        nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef, r_cut, r_buff, cl ));
         }
 
     nlist->setStorageMode(NeighborList::full);
     nlist->setCommunicator(comm);
-
-    for (unsigned int dir = 0; dir < 3; dir ++)
-       {
-       cl->setGhostLayer(dir, (comm->getDimension(1)>1));
-       }
 
     shared_ptr<PotentialPairLJ> fc;
 
@@ -165,9 +165,9 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
     for (int i=0; i< 5000; i++)
        {
-       if (i % 300 == 0) sorter->update(i);
+       if ((i % 300) == 0) sorter->update(i);
        Scalar TPS = i/Scalar(clk.getTime() - initial_time) * Scalar(1e9);
-       if (i%10 == 0 && world->rank() == 0) std::cout << "step " << i << " TPS: " << TPS << std::endl;
+       if ((i%10) == 0 && world->rank() == 0) std::cout << "step " << i << " TPS: " << TPS << std::endl;
        nve->update(i);
        }
 
@@ -184,7 +184,7 @@ struct MPISetup
         int argc = boost::unit_test::framework::master_test_suite().argc;
         char **argv = boost::unit_test::framework::master_test_suite().argv;
 
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU,atoi(getenv("PMI_ID"))));
         exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         env = new boost::mpi::environment(argc,argv);
         world = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());

@@ -370,7 +370,6 @@ class NeighborList : public Compute
 
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
-        bool m_no_minimum_image[3];           //!< True if minimum image convention should be ignored in given direction
 
 #ifdef ENABLE_MPI
         boost::shared_ptr<Communicator> m_comm;   //!< MPI communication class

@@ -84,9 +84,9 @@ void gpu_migrate_select_particles(unsigned int N,
                         unsigned int dir);
 
 //! Reset reverse lookup tags of particles we are removing
-void gpu_migrate_reset_rtags(unsigned int n_delete_ptls,
-                             unsigned int *d_delete_tags,
-                             unsigned int *d_rtag);
+void gpu_reset_rtags(unsigned int n_delete_ptls,
+                     unsigned int *d_delete_tags,
+                     unsigned int *d_rtag);
 
 //! Pack particle data into send buffer
 void gpu_migrate_pack_send_buffer(unsigned int N,
@@ -167,4 +167,5 @@ void gpu_copy_ghosts(unsigned int nghost,
                      unsigned int *d_copy_ghosts,
                      float4 *d_pos_copybuf,
                      unsigned int *rtag);
+
 #endif // ENABLE_MPI

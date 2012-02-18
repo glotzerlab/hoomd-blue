@@ -141,12 +141,13 @@ struct select_particle_ghost
      */
     __host__ __device__ bool operator()(const float4 &pos)
         {
-        return ((dir==0 && (pos.x >= box.xhi - r_ghost)) ||                  // send east
-            (dir==1 && (pos.x < box.xlo + r_ghost) && (pos.x >= box.xlo)) || // send west
-            (dir==2 && (pos.y >= box.yhi - r_ghost)) ||                      // send north
-            (dir==3 && (pos.y < box.ylo + r_ghost) && (pos.y >= box.ylo)) || // send south
-            (dir==4 && (pos.z >= box.zhi - r_ghost)) ||                      // send up
-            (dir==5 && (pos.z < box.zlo + r_ghost) && (pos.z >= box.zlo)));  // send down
+        return
+           ((dir==0 && (pos.x >= box.xhi - r_ghost)) || // send east
+            (dir==1 && (pos.x < box.xlo + r_ghost))  || // send west
+            (dir==2 && (pos.y >= box.yhi - r_ghost)) || // send north
+            (dir==3 && (pos.y < box.ylo + r_ghost))  || // send south
+            (dir==4 && (pos.z >= box.zhi - r_ghost)) || // send up
+            (dir==5 && (pos.z < box.zlo + r_ghost)));   // send down
 
         }
      };
@@ -550,7 +551,7 @@ void gpu_migrate_select_particles(unsigned int N,
  * \param d_delete_tags Array of particle tags to delete
  * \param d_rtag Array for tag->idx lookup
  */
-void gpu_migrate_reset_rtags(unsigned int n_delete_ptls,
+void gpu_reset_rtags(unsigned int n_delete_ptls,
                              unsigned int *d_delete_tags,
                              unsigned int *d_rtag)
     {
@@ -841,4 +842,15 @@ void gpu_copy_ghosts(unsigned int nghost,
     gather(ghost_rtag, ghost_rtag + nghost, pos_ptr, copybuf_ptr);
 
     }
+
+//! Reset reverse lookup tags of removed ghost particles to NOT_LOCAL
+/*! \param nghost Number of ghost particles for which the tags are to be reset
+ * \param d_gloal_rtag Pointer to reverse-lookup tags to reset
+ */
+void gpu_reset_ghost_rtag(unsigned int nghost,
+                          unsigned int *d_global_rtag)
+     {
+     thrust::device_ptr<unsigned int> global_rtag_ptr(d_global_rtag);
+     thrust::fill(global_rtag_ptr, global_rtag_ptr + nghost, NOT_LOCAL);
+     }
 #endif

@@ -112,9 +112,6 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_Nmax = 0;
     m_exclusions_set = false;
 
-    for (int i = 0; i < 3; i++)
-        m_no_minimum_image[i] = false;
-
     // allocate m_n_neigh and m_last_pos
     GPUArray<unsigned int> n_neigh(m_pdata->getN(), exec_conf);
     m_n_neigh.swap(n_neigh);
@@ -210,7 +207,7 @@ void NeighborList::compute(unsigned int timestep)
         do
             {
             buildNlist(timestep);
-            
+
             overflowed = checkConditions();
             // if we overflowed, need to reallocate memory and reset the conditions
             if (overflowed)
@@ -995,39 +992,29 @@ void NeighborList::buildNlist(unsigned int timestep)
             Scalar dy = h_pos.data[j].y - yi;
             Scalar dz = h_pos.data[j].z - zi;
 
-            bool excluded = false;
 
             // if the vector crosses the box, pull it back
-            if (! m_no_minimum_image[0])
-                {
-                if (dx >= Lx2)
-                    dx -= Lx;
-                else if (dx < -Lx2)
-                    dx += Lx;
-                assert(dx >= -Lx2 && dx <= Lx2);
-                }
-            else if (dx >= Lx2 || dx <= -Lx2) excluded = true;
+            if (dx >= Lx2)
+                dx -= Lx;
+            else if (dx < -Lx2)
+                dx += Lx;
 
-            if (! m_no_minimum_image[1])
-                {
-                if (dy >= Ly2)
-                    dy -= Ly;
-                else if (dy < -Ly2)
-                    dy += Ly;
-                assert(dy >= -Ly2 && dy <= Ly2);
-                }
-            else if (dy >= Ly2 || dy <= -Ly2) excluded = true;
+            if (dy >= Ly2)
+                dy -= Ly;
+            else if (dy < -Ly2)
+                dy += Ly;
 
-            if (! m_no_minimum_image[2])
-                {
-                if (dz >= Lz2)
-                    dz -= Lz;
-                else if (dz < -Lz2)
-                    dz += Lz;
-                assert(dz >= -Lz2 && dz <= Lz2);
-                }
-            else if (dz >= Lz2 || dz <= -Lz2) excluded = true;
+            if (dz >= Lz2)
+                dz -= Lz;
+            else if (dz < -Lz2)
+                dz += Lz;
 
+            // sanity check
+            assert(dx >= box.xlo && dx <= box.xhi);
+            assert(dy >= box.ylo && dy <= box.yhi);
+            assert(dz >= box.zlo && dz <= box.zhi);
+
+            bool excluded = false;
             if (m_filter_body && bodyi != NO_BODY)
                 excluded = (bodyi == h_body.data[j]);
 
@@ -1251,10 +1238,6 @@ void NeighborList::growExclusionList()
 void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     {
     m_comm = comm;
-
-    // adapt minimum image settings
-    for (int dir = 0; dir < 3; dir ++)
-        m_no_minimum_image[dir] = m_comm->getDimension(dir) > 1;
     }
 #endif
 

@@ -151,6 +151,12 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     m_packed_size = sizeof(pdata_element);
 
     allocate();
+
+    for (unsigned int dir = 0; dir < 6; dir ++)
+        {
+        m_num_copy_ghosts[dir] = 0;
+        m_num_recv_ghosts[dir] = 0;
+        }
     }
 
 //! Allocate internal buffers
@@ -205,10 +211,25 @@ void Communicator::migrateAtoms()
     if (! m_is_allocated)
         allocate();
 
+    // wipe out reverse-lookup tag -> idx for old ghost atoms
+        {
+        ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+        for (unsigned int i = 0; i < m_pdata->getNGhosts(); i++)
+            {
+            unsigned int idx = m_pdata->getN() + i;
+            h_global_rtag.data[h_global_tag.data[idx]] = NOT_LOCAL;
+            }
+        }
+
+    //  reset ghost particle number
+    m_pdata->removeAllGhostParticles();
+
+
     // get box dimensions
     const BoxDim& box = m_pdata->getBox();
 
-    // second step: determine local particles that are to be sent to neighboring processors and fill send buffer
+    // determine local particles that are to be sent to neighboring processors and fill send buffer
     for (unsigned int dir=0; dir < 6; dir++)
         {
 
@@ -220,15 +241,15 @@ void Communicator::migrateAtoms()
         unsigned int n_send_ptls;
             {
             // first remove all particles from our domain that are going to be sent in the current direction
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
+            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
 
             /* Reorder particles.
                Particles that stay in our domain come first, followed by the particles that are sent to a
@@ -306,10 +327,23 @@ void Communicator::migrateAtoms()
             delete[] scal_tmp;
             delete[] int3_tmp;
             delete[] uint_tmp;
+            }
 
-            // remove particles that are being sent from local data
-            m_pdata->removeParticles(n_send_ptls);
+        // remove particles from local data that are being sent
+        m_pdata->removeParticles(n_send_ptls);
 
+            {
+            // update reverse lookup tags
+            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+            for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+                {
+                h_global_rtag.data[h_global_tag.data[idx]] = idx;
+                }
+            }
+
+
+            // resize send buffer if necessary
             if (n_send_ptls*m_packed_size > m_sendbuf[dir].getNumElements())
                 {
                 unsigned int new_size = m_sendbuf[dir].getNumElements();
@@ -317,12 +351,20 @@ void Communicator::migrateAtoms()
                 m_sendbuf[dir].resize(new_size);
                 }
 
+            {
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
 
+            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
 
-            // FIXME: need to resize send buffer if necessary
             ArrayHandle<char> h_sendbuf(m_sendbuf[dir], access_location::host, access_mode::overwrite);
-
-            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
 
             for (unsigned int i = 0;  i<  n_send_ptls; i++)
                 {
@@ -341,7 +383,8 @@ void Communicator::migrateAtoms()
                 p.global_tag = h_global_tag.data[idx];
 
                 // Reset the global rtag for the particle we are sending to indicate it is no longer local
-                h_global_rtag.data[idx] = NOT_LOCAL;
+                assert(h_global_rtag.data[h_global_tag.data[idx]] < m_pdata->getN() + n_send_ptls);
+                h_global_rtag.data[h_global_tag.data[idx]] = NOT_LOCAL;
 
                 ( (pdata_element *) h_sendbuf.data)[i] = p;
                 }
@@ -423,9 +466,9 @@ void Communicator::migrateAtoms()
                     image.z--;
                     }
 
-                assert( ((dir==0 || dir ==1) && m_global_box.xlo <= pos.x && pos.x < m_global_box.xhi) ||
-                        ((dir==2 || dir ==3) && m_global_box.ylo <= pos.y && pos.y < m_global_box.yhi) ||
-                        ((dir==4 || dir ==5) && m_global_box.zlo <= pos.z && pos.z < m_global_box.zhi ));
+                assert( ((dir==0 || dir ==1) && m_global_box.xlo-1e-3 <= pos.x && pos.x < m_global_box.xhi+1e-3) ||
+                        ((dir==2 || dir ==3) && m_global_box.ylo-1e-3 <= pos.y && pos.y < m_global_box.yhi+1e-3) ||
+                        ((dir==4 || dir ==5) && m_global_box.zlo-1e-3 <= pos.z && pos.z < m_global_box.zhi+1e-3 ));
                 }
             }
 
@@ -445,6 +488,7 @@ void Communicator::migrateAtoms()
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
 
             ArrayHandle<char> h_recvbuf(m_recvbuf[dir], access_location::host, access_mode::read);
             for (unsigned int i = 0; i < n_recv_ptls; i++)
@@ -462,20 +506,12 @@ void Communicator::migrateAtoms()
                 h_orientation.data[add_idx] = p.orientation;
                 h_global_tag.data[add_idx] = p.global_tag;
 
+                assert(h_global_rtag.data[h_global_tag.data[add_idx]] == NOT_LOCAL);
+                h_global_rtag.data[h_global_tag.data[add_idx]] = add_idx;
                 add_idx++;
                 }
             }
         } // end dir loop
-
-        {
-        // update reverse lookup tags
-        ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
-        for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
-            {
-            h_global_rtag.data[h_global_tag.data[idx]] = idx;
-            }
-        }
 
     // check that global number of particles is conserved
     unsigned int N;
@@ -488,13 +524,7 @@ void Communicator::migrateAtoms()
 
 
     // notify ParticleData that addition / removal of particles is complete
-    if (m_prof)
-        m_prof->push("group update");
-
-    m_pdata->notifyParticleNumberChange();
-
-    if (m_prof)
-        m_prof->pop();
+    m_pdata->notifyLocalParticleNumChange();
 
     if (m_prof)
         m_prof->pop();
@@ -503,6 +533,7 @@ void Communicator::migrateAtoms()
 //! Build ghost particle list, exchange ghost particle data
 void Communicator::exchangeGhosts(Scalar r_ghost)
     {
+
     if (m_prof)
         m_prof->push("exchange_ghosts");
 
@@ -514,12 +545,6 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
 
     m_r_ghost = r_ghost;
 
-    // we have a current list of atoms inside this box
-    // find all local atoms within a distance r_ghost from the boundary and store them in m_copy_ghosts
-
-    // first clear all ghost particles
-    m_pdata->removeAllGhostParticles();
-
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         unsigned int dim = getDimension(dir/2);
@@ -528,7 +553,7 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
         m_num_copy_ghosts[dir] = 0;
 
 
-        // scan all atom positions if they are within r_ghost from a neighbor, fill send buffer
+        // scan all local atom positions if they are within r_ghost from a neighbor, fill send buffer
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -545,12 +570,12 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
                 {
                 Scalar4 pos = h_pos.data[idx];
 
-                if ((dir==0 && (pos.x >= box.xhi - r_ghost)) ||                      // send east
-                    (dir==1 && (pos.x < box.xlo + r_ghost) && (pos.x >= box.xlo)) || // send west
-                    (dir==2 && (pos.y >= box.yhi - r_ghost)) ||                      // send north
-                    (dir==3 && (pos.y < box.ylo + r_ghost) && (pos.y >= box.ylo)) || // send south
-                    (dir==4 && (pos.z >= box.zhi - r_ghost)) ||                      // send up
-                    (dir==5 && (pos.z < box.zlo + r_ghost) && (pos.z >= box.zlo)))   // send down
+                if ((dir==0 && (pos.x >= box.xhi - r_ghost)) ||  // send east
+                    (dir==1 && (pos.x < box.xlo + r_ghost)) ||   // send west
+                    (dir==2 && (pos.y >= box.yhi - r_ghost)) ||  // send north
+                    (dir==3 && (pos.y < box.ylo + r_ghost)) ||   // send south
+                    (dir==4 && (pos.z >= box.zhi - r_ghost)) ||  // send up
+                    (dir==5 && (pos.z < box.zlo + r_ghost)))     // send down
                     {
                     // send with next message
                     h_pos_copybuf.data[m_num_copy_ghosts[dir]] = pos;
@@ -585,16 +610,19 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf[dir], access_location::host, access_mode::readwrite);
 
             // scan all ghost particles if they are within r_ghost from a neighbor, fill send buffer
-            for (unsigned int idx = m_pdata->getN(); idx < m_pdata->getN() + m_pdata->getNGhosts(); idx++)
+            // add extra check that we are not sending back particles in the opposite direction from
+            // which we have received them
+            unsigned int omit_ghosts = ((dir % 2) == 1) ? m_num_recv_ghosts[dir-1] : 0;
+            for (unsigned int idx = m_pdata->getN(); idx < m_pdata->getN() + m_pdata->getNGhosts() - omit_ghosts; idx++)
                 {
                 Scalar4 pos = h_pos.data[idx];
 
-                if ((dir==0 && (pos.x >= box.xhi - r_ghost)) ||                      // send east
-                    (dir==1 && (pos.x < box.xlo + r_ghost) && (pos.x >= box.xlo)) || // send west
-                    (dir==2 && (pos.y >= box.yhi - r_ghost)) ||                      // send north
-                    (dir==3 && (pos.y < box.ylo + r_ghost) && (pos.y >= box.ylo)) || // send south
-                    (dir==4 && (pos.z >= box.zhi - r_ghost)) ||                      // send up
-                    (dir==5 && (pos.z < box.zlo + r_ghost) && (pos.z >= box.zlo)))   // send down
+                if ((dir==0 && (pos.x >= box.xhi - r_ghost)) || // send east
+                    (dir==1 && (pos.x < box.xlo + r_ghost)) ||  // send west
+                    (dir==2 && (pos.y >= box.yhi - r_ghost)) || // send north
+                    (dir==3 && (pos.y < box.ylo + r_ghost)) ||  // send south
+                    (dir==4 && (pos.z >= box.zhi - r_ghost)) || // send up
+                    (dir==5 && (pos.z < box.zlo + r_ghost)))    // send down
                     {
                     // send with next message
                     h_pos_copybuf.data[m_num_copy_ghosts[dir]] = pos;
@@ -668,7 +696,7 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
             m_prof->pop();
 
             {
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
@@ -689,6 +717,15 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
                 else if (dir==5 && m_is_at_boundary[4])
                     pos.z += m_global_box.zhi - m_global_box.zlo;
 
+                assert ( (dir == 0 && pos.x < box.xlo+1e-3 && pos.x >= box.xlo-r_ghost-1e-3) ||
+                         (dir == 1 && pos.x >= box.xhi-1e-3 && pos.x < box.xhi+r_ghost+1e-3) ||
+                         (dir == 2 && pos.y < box.ylo+1e-3 && pos.y >= box.ylo-r_ghost-1e-3) ||
+                         (dir == 3 && pos.y >= box.yhi-1e-3 && pos.y < box.yhi+r_ghost+1e-3) ||
+                         (dir == 4 && pos.z < box.zlo+1e-3 && pos.z >= box.zlo-r_ghost-1e-3) ||
+                         (dir == 5 && pos.z >= box.zhi-1e-3 && pos.z < box.zhi+r_ghost+1e-3) );
+
+
+                assert(h_global_rtag.data[h_global_tag.data[idx]] == NOT_LOCAL);
                 h_global_rtag.data[h_global_tag.data[idx]] = idx;
                 }
             }
@@ -703,7 +740,6 @@ void Communicator::copyGhosts()
     {
     // we have a current m_copy_ghosts liss which contain the indices of particles
     // to send to neighboring processors
-
     if (m_prof)
         m_prof->push("copy_ghosts");
 
@@ -718,26 +754,21 @@ void Communicator::copyGhosts()
         if (dim == 1) continue;
 
             {
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::overwrite);
-
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
-
-            if (m_prof)
-                m_prof->push("fetch ptls");
+            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
 
             // copy positions of ghost particles
             for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
                 {
-                unsigned int idx = m_pdata->getGlobalRTag(h_copy_ghosts.data[ghost_idx]);
+                unsigned int idx = h_global_rtag.data[h_copy_ghosts.data[ghost_idx]];
 
-                // copy position, charge and diameter into send buffer
+                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                // copy position into send buffer
                 h_pos_copybuf.data[ghost_idx] = h_pos.data[idx];
                 }
-
-            if (m_prof)
-                m_prof->pop();
             }
 
         unsigned int send_neighbor = m_neighbors[dir];
@@ -777,9 +808,6 @@ void Communicator::copyGhosts()
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
         }
 
-        if (m_prof)
-            m_prof->push("particle wrap");
-
              {
              ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -788,7 +816,7 @@ void Communicator::copyGhosts()
                  Scalar4& pos = h_pos.data[idx];
 
                  // wrap particles received across a global boundary back into global box
-                 if (dir==0 && m_is_at_boundary[1])
+                 if (dir==0 && m_is_at_boundary[1] )
                      pos.x -= m_global_box.xhi - m_global_box.xlo;
                  else if (dir==1 && m_is_at_boundary[0])
                      pos.x += m_global_box.xhi - m_global_box.xlo;
@@ -800,11 +828,10 @@ void Communicator::copyGhosts()
                      pos.z -= m_global_box.zhi - m_global_box.zlo;
                  else if (dir==5 && m_is_at_boundary[4])
                      pos.z += m_global_box.zhi - m_global_box.zlo;
+
                  }
             }
 
-        if (m_prof)
-            m_prof->pop();
         } // end dir loop
 
         if (m_prof)

@@ -122,13 +122,13 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     Scalar3 ghost_width;
     if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? Scalar(2.0)*width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? Scalar(2.0)*width.y : Scalar(0.0),
                                    0.0);
     else
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
-                                   m_cl->hasGhostLayer(2) ? width.z : Scalar(0.0));
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? Scalar(2.0)*width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? Scalar(2.0)*width.y : Scalar(0.0),
+                                   m_cl->hasGhostLayer(2) ? Scalar(2.0)*width.z : Scalar(0.0));
 
 
     // acquire the particle data and box dimension
@@ -211,35 +211,23 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 Scalar dy = my_pos.y - neigh_pos.y;
                 Scalar dz = my_pos.z - neigh_pos.z;
 
+                // if the vector crosses the box, pull it back
+                if (dx >= Lx2)
+                    dx -= Lx;
+                else if (dx < -Lx2)
+                    dx += Lx;
+
+                if (dy >= Ly2)
+                    dy -= Ly;
+                else if (dy < -Ly2)
+                    dy += Ly;
+
+                if (dz >= Lz2)
+                    dz -= Lz;
+                else if (dz < -Lz2)
+                    dz += Lz;
+
                 bool excluded = (i == (int)cur_neigh);
-        // if the vector crosses the box, pull it back
-        if (! m_no_minimum_image[0])
-            {
-            if (dx >= Lx2)
-            dx -= Lx;
-            else if (dx < -Lx2)
-            dx += Lx;
-            }
-        else if (dx >= Lx2 || dx <= -Lx2) excluded = true;
-
-        if (! m_no_minimum_image[1])
-            {
-            if (dy >= Ly2)
-            dy -= Ly;
-            else if (dy < -Ly2)
-            dy += Ly;
-            }
-        else if (dy >= Ly2 || dy <= -Ly2) excluded = true;
-
-        if (! m_no_minimum_image[2])
-            {
-            if (dz >= Lz2)
-            dz -= Lz;
-            else if (dz < -Lz2)
-            dz += Lz;
-            }
-        else if (dz >= Lz2 || dz <= -Lz2) excluded = true;
-
 
                 if (m_filter_body && bodyi != NO_BODY)
                     excluded = excluded | (bodyi == h_body.data[cur_neigh]);
@@ -255,7 +243,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     }
 
                 Scalar dr_sq = dx*dx + dy*dy + dz*dz;
-                
+
                 if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)

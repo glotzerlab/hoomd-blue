@@ -104,6 +104,19 @@ void CommunicatorGPU::migrateAtoms()
     if (!m_is_allocated)
         allocate();
 
+        {
+        // Reset reverse lookup tags of old ghost atoms
+        ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+
+        gpu_reset_rtags(m_pdata->getNGhosts(),
+                        d_global_tag.data + m_pdata->getN(),
+                        d_global_rtag.data);
+        }
+
+    // reset ghost particle number
+    m_pdata->removeAllGhostParticles();
+
     unsigned int recv_buf_size[6]; // per-direction size of receive buffer
 
     for (unsigned int dir=0; dir < 6; dir++)
@@ -116,55 +129,54 @@ void CommunicatorGPU::migrateAtoms()
         if (m_prof)
             m_prof->push("remove ptls");
 
-        {
-        // first remove all particles from our domain that are going to be sent in the current direction
+            {
+            // remove all particles from our domain that are going to be sent in the current direction
 
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
-        ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
+            ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
 
-        /* Reorder particles.
-           Particles that stay in our domain come first, followed by the particles that are sent to a
-           neighboring processor.
-         */
-        gpu_migrate_select_particles(m_pdata->getN(),
-                               n_send_ptls,
-                               d_pos.data,
-                               d_vel.data,
-                               d_accel.data,
-                               d_image.data,
-                               d_charge.data,
-                               d_diameter.data,
-                               d_body.data,
-                               d_orientation.data,
-                               d_global_tag.data,
-                               m_pdata->getBoxGPU(),
-                               dir);
+            /* Reorder particles.
+               Particles that stay in our domain come first, followed by the particles that are sent to a
+               neighboring processor.
+             */
+            gpu_migrate_select_particles(m_pdata->getN(),
+                                   n_send_ptls,
+                                   d_pos.data,
+                                   d_vel.data,
+                                   d_accel.data,
+                                   d_image.data,
+                                   d_charge.data,
+                                   d_diameter.data,
+                                   d_body.data,
+                                   d_orientation.data,
+                                   d_global_tag.data,
+                                   m_pdata->getBoxGPU(),
+                                   dir);
 
-        // Update number of particles in system
-        m_pdata->removeParticles(n_send_ptls);
+            // Update number of particles in system
+            m_pdata->removeParticles(n_send_ptls);
 
-        // Reset reverse lookup tags of removed particles
-        ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
+            // Reset reverse lookup tags of removed particles
+            ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
 
-        gpu_migrate_reset_rtags(n_send_ptls,
-                                d_global_tag.data + m_pdata->getN(),
-                                d_global_rtag.data);
+            gpu_reset_rtags(n_send_ptls,
+                            d_global_tag.data + m_pdata->getN(),
+                            d_global_rtag.data);
 
-        if (m_prof)
-            m_prof->pop();
+            if (m_prof)
+                m_prof->pop();
 
-        }
+            }
 
-        // scan all atom positions and fill the send buffers with those that have left the domain boundaries
-        if (m_prof)
-             m_prof->push("pack");
+        // scan all atom positions and fill the send buffers with those that have left the domain boundaries,
+        // and remove those particles from the local domain
 
         // Check if send buffer is large enough and resize if necessary
         if (n_send_ptls*m_packed_size > m_sendbuf[dir].getNumElements())
@@ -208,10 +220,6 @@ void CommunicatorGPU::migrateAtoms()
 
             send_buf_size = d_send_buf_end - d_sendbuf.data;
             }
-
-        if (m_prof)
-            m_prof->pop();
-
 
         unsigned int send_neighbor = m_neighbors[dir];
 
@@ -337,13 +345,7 @@ void CommunicatorGPU::migrateAtoms()
         }
 
     // notify ParticleData that addition / removal of particles is complete
-    if (m_prof)
-        m_prof->push("group update");
-
-    m_pdata->notifyParticleNumberChange();
-
-    if (m_prof)
-        m_prof->pop();
+    m_pdata->notifyLocalParticleNumChange();
 
     if (m_prof)
         m_prof->pop();
@@ -360,9 +362,6 @@ void CommunicatorGPU::exchangeGhosts(Scalar r_ghost)
     // we have a current list of atoms inside this box
     // find all local atoms within a distance r_ghost from the boundary and store them in m_copy_ghosts
 
-    // first reset number of ghost particles
-    m_pdata->removeAllGhostParticles();
-
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         unsigned int dim = getDimension(dir/2);
@@ -371,9 +370,9 @@ void CommunicatorGPU::exchangeGhosts(Scalar r_ghost)
         m_num_copy_ghosts[dir] = 0;
 
 
-        // scan all atom positions if they are within r_ghost from a neighbor, fill send buffer
 
             {
+            // scan all local atom positions if they are within r_ghost from a neighbor, fill send buffer
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
@@ -429,7 +428,11 @@ void CommunicatorGPU::exchangeGhosts(Scalar r_ghost)
             ArrayHandle<Scalar> d_diameter_copybuf(m_diameter_copybuf[dir], access_location::device, access_mode::readwrite);
 
             unsigned int num_forward_ghosts;
-            gpu_make_exchange_ghost_list(m_pdata->getNGhosts(),
+            // add extra check that we are not sending back particles in the opposite direction from
+            // which we have received them
+            unsigned int omit_ghosts = ((dir %2) ==1) ? m_num_recv_ghosts[dir-1] : 0;
+
+            gpu_make_exchange_ghost_list(m_pdata->getNGhosts() - omit_ghosts,
                                          dir,
                                          d_pos.data + m_pdata->getN(),
                                          d_global_tag.data + m_pdata->getN(),
@@ -604,7 +607,7 @@ void CommunicatorGPU::copyGhosts()
             recv_neighbor = m_neighbors[dir-1];
 
         unsigned int start_idx;
-        {
+
         if (m_prof)
             m_prof->push("MPI send/recv");
 
@@ -640,10 +643,6 @@ void CommunicatorGPU::copyGhosts()
 
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
-        }
-
-        if (m_prof)
-            m_prof->push("particle wrap");
 
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -663,8 +662,6 @@ void CommunicatorGPU::copyGhosts()
                            m_is_at_boundary);
              }
 
-        if (m_prof)
-            m_prof->pop();
         } // end dir loop
 
         if (m_prof)

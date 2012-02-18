@@ -79,17 +79,18 @@ void CellListGPU::computeCellList()
                                  Scalar(1.0) / m_width.y,
                                  Scalar(1.0) / m_width.z);
 
-    // the ghost layer width in every direction is given by the cell width
+    // the ghost layer width in every direction is given by the 2* cell width (including one padding layer)
     Scalar3 ghost_width;
 
+
     if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
+        ghost_width = make_scalar3(m_has_ghost_layer[0] ? Scalar(2.0)* m_width.x : Scalar(0.0),
+                                   m_has_ghost_layer[1] ? Scalar(2.0)* m_width.y : Scalar(0.0),
                                    0.0);
     else
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
-                                   m_has_ghost_layer[2] ? m_width.z : Scalar(0.0));
+        ghost_width = make_scalar3(m_has_ghost_layer[0] ? Scalar(2.0) * m_width.x : Scalar(0.0),
+                                   m_has_ghost_layer[1] ? Scalar(2.0) * m_width.y : Scalar(0.0),
+                                   m_has_ghost_layer[2] ? Scalar(2.0) * m_width.z : Scalar(0.0));
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);

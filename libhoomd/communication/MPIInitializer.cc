@@ -319,17 +319,24 @@ void MPIInitializer::scatter(unsigned int root)
     snap.type_mapping = m_type_mapping;
     snap.num_particle_types = m_num_particle_types;
 
+    // set global number of particles
+    m_pdata->setNGlobal(m_nglobal);
+
+    // reset all reverse lookup tags to NOT_LOCAL flag
+        {
+        ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::overwrite);
+        for (unsigned int tag = 0; tag < m_nglobal; tag++)
+            h_global_rtag.data[tag] = NOT_LOCAL;
+        }
+
     // initialize local simulation box with snapshot
     m_pdata->initializeFromSnapshot(snap);
 
     // Notify about addition of particles
-    m_pdata->notifyParticleNumberChange();
+    m_pdata->notifyParticleSort();
 
     // set simulation box
     m_pdata->setBox(m_box);
-
-    // set global number of particles
-    m_pdata->setNGlobal(m_nglobal);
     }
 
 //! Gather particle data from all processors into a snapshot on a single processor

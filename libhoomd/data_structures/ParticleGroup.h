@@ -199,7 +199,7 @@ class ParticleGroup
         // @{
 
         //! Constructs an empty particle group
-        ParticleGroup() {};
+        ParticleGroup() : m_num_local_members(0) {};
 
         //! Constructs a particle group of all particles that meet the given selection
         ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector);
@@ -222,6 +222,14 @@ class ParticleGroup
             return (unsigned int)m_member_tags.getNumElements();
             }
             
+        //! Get the number of members that are present on the local processor
+        /*! \returns The number of particles on the local processor that belong to this group
+        */
+        unsigned int getNumLocalMembers() const
+            {
+            return m_num_local_members;
+            }
+
         //! Get a member from the group
         /*! \param i Index from 0 to getNumMembers()-1 of the group member to get
             \returns Tag of the member at index \a i
@@ -241,9 +249,11 @@ class ParticleGroup
         */
         unsigned int getMemberIndex(unsigned int j) const
             {
-            assert(j < getNumMembers());
+            assert(j < getNumLocalMembers());
             ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::read);
-            return h_handle.data[j];
+            unsigned int idx = h_handle.data[j];
+            assert(idx < m_pdata->getN());
+            return idx;
             }
 
         //! Test if a particle index is a member of the group
@@ -296,9 +306,10 @@ class ParticleGroup
         GPUArray<unsigned char> m_is_member;            //!< One byte per particle, == 1 if index is a member of the group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        boost::signals::connection m_particle_num_change_connection; //!< Conection to the ParticleData particle number change signal
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
+        boost::signals::connection m_local_particle_num_change_connection; //!< Connection to the local particle number change signal
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
+        unsigned int m_num_local_members;               //!< Number of members on the local processor
 
         //! Helper function to resize array of member tags
         void reallocate();

@@ -147,7 +147,7 @@ class mpi_partition:
         globals.system.setCommunicator(globals.communicator)
 
         # set Communicator in ParticleData
-        globals.system_definition.getParticleData().setCommunicator(globals.communicator)
+        globals.system_definition.getParticleData().setMPICommunicator(mpi_comm)
 
         # store this object in the global variables
         globals.mpi_partition = self
@@ -161,10 +161,3 @@ class mpi_partition:
     # \param root Rank of processor that contains the complete particle data
     def scatter(self, root=0):
         self.cpp_mpi_init.scatter(root)
-
-    ## Gather particle data
-    # \brief Collects particle data from all processors on the processor of rank root
-    #
-    # \param root Rank of processor to collect data on
-    def gather(self, root=0):
-        self.cpp_mpi_init.gather(root)

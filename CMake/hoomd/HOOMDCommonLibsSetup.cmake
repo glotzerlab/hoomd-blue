@@ -75,18 +75,15 @@ endif (WIN32)
 
 if (ENABLE_MPI)
     # Check that we can compile a program against the Boost Libraries
-    # We assume Boost.MPI is dynamically linked against the MPI libraries, but sometimes it
-    # doesn't know their path, so we set it here
-    get_filename_component(MPI_LIBRARY_DIR ${MPI_LIBRARY} PATH)
-    set(CMAKE_REQUIRED_LIBRARIES ${HOOMD_COMMON_LIBS})
+    set(CMAKE_REQUIRED_LIBRARIES ${HOOMD_COMMON_LIBS} ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+    set(CMAKE_REQUIRED_FLAGS ${MPI_LINK_FLAGS} ${MPI_COMPILE_FLAGS})
     include(CheckLibraryExists)
-    CHECK_LIBRARY_EXISTS("${Boost_MPI_LIBRARY}" exit "${MPI_LIBRARY_DIR}" BOOST_CAN_COMPILE)
+    CHECK_LIBRARY_EXISTS("${Boost_MPI_LIBRARY}" exit "" BOOST_CAN_COMPILE)
     if (NOT BOOST_CAN_COMPILE)
        message(WARNING "Cannot link against Boost.MPI. Disabling MPI.")
     endif(NOT BOOST_CAN_COMPILE)
 
-    # just add MPI library directories to link directories
-    link_directories(${MPI_LIBRARY_DIR})
+    list(APPEND HOOMD_COMMON_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
 endif (ENABLE_MPI)
 
 if (ENABLE_CUDA)

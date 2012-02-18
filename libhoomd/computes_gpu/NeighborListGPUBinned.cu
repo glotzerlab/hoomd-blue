@@ -80,7 +80,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
     \param ghost_width Width of ghost cell layer
-    \param minimum_image_flags Flags to indicate whether the minimum image convention should be used in a given direction
     
     \note optimized for Fermi
 */
@@ -106,15 +105,10 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     const gpu_boxsize box,
                                                     const float r_maxsq,
                                                     const float r_max,
-                                                    float3 ghost_width,
-                                                    unsigned char minimum_image_flags)
+                                                    float3 ghost_width)
     {
     bool filter_body = filter_flags & 1;
     bool filter_diameter = filter_flags & 2;
-
-    bool no_minimum_image_x = minimum_image_flags & 1;
-    bool no_minimum_image_y = minimum_image_flags & 2;
-    bool no_minimum_image_z = minimum_image_flags & 4;
 
     // each thread is going to compute the neighbor list for a single particle
     int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -177,27 +171,16 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
             float dy = my_pos.y - neigh_pos.y;
             float dz = my_pos.z - neigh_pos.z;
             
-            bool excluded = (my_pidx == cur_neigh);
-
             // wrap the periodic boundary conditions
-            if (! no_minimum_image_x)
-                dx = dx - box.Lx * rintf(dx * box.Lxinv);
-            else
-                if (dx >= box.Lx/2.0f || dx <= -box.Lx/2.0f) excluded= true;
-
-            if (! no_minimum_image_y)
-                dy = dy - box.Ly * rintf(dy * box.Lyinv);
-            else
-                if (dy >= box.Ly/2.0f || dy <= -box.Ly/2.0f) excluded = true;
-
-            if (! no_minimum_image_z)
-                dz = dz - box.Lz * rintf(dz * box.Lzinv);
-            else
-                if (dz >= box.Lz/2.0f || dz <= -box.Lz/2.0f) excluded = true;
+            dx = dx - box.Lx * rintf(dx * box.Lxinv);
+            dy = dy - box.Ly * rintf(dy * box.Lyinv);
+            dz = dz - box.Lz * rintf(dz * box.Lzinv);
 
             // compute dr squared
             float drsq = dx*dx + dy*dy + dz*dz;
             
+            bool excluded = (my_pidx == cur_neigh);
+
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
             
@@ -253,14 +236,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const unsigned int block_size,
                                      bool filter_body,
                                      bool filter_diameter,
-                                     float3 ghost_width,
-                                     bool no_minimum_image[])
+                                     float3 ghost_width)
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
-
-    unsigned char minimum_image_flag = ((no_minimum_image[0] ? 1 : 0 ) << 0)
-                                      |((no_minimum_image[1] ? 1 : 0 ) << 1)
-                                      |((no_minimum_image[2] ? 1 : 0 ) << 2);
 
     if (!filter_diameter && !filter_body)
         {
@@ -285,8 +263,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq),
-                                                                         ghost_width,
-                                                                         minimum_image_flag);
+                                                                         ghost_width);
         }
     if (!filter_diameter && filter_body)
         {
@@ -311,8 +288,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq),
-                                                                         ghost_width,
-                                                                         minimum_image_flag);
+                                                                         ghost_width);
         }
     if (filter_diameter && !filter_body)
         {
@@ -337,8 +313,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq),
-                                                                         ghost_width,
-                                                                         minimum_image_flag);
+                                                                         ghost_width);
         }
     if (filter_diameter && filter_body)
         {
@@ -363,8 +338,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq),
-                                                                         ghost_width,
-                                                                         minimum_image_flag);
+                                                                         ghost_width);
         }
 
     return cudaSuccess;

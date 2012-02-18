@@ -123,8 +123,14 @@ class RigidData;
 class IntegratorData;
 
 #ifdef ENABLE_MPI
-// Forward declaration of Communicator
-class Communicator;
+// Forward declaration of boost::mp::communicator
+namespace boost
+    {
+    namespace mpi
+        {
+        class communicator;
+        }
+    }
 #endif
 
 //! List of optional fields that can be enabled in ParticleData
@@ -468,7 +474,7 @@ class ParticleDataInitializer
 
     If, after insertion or deletion of particles, the reorganisation of the particle data is complete, i.e. all the particle data
     fields are filled, the class that has modified the ParticleData must inform other classes about the new particle data
-    using notifyParticleNumberChange(). Other classes can subscribe to this signal using connectParticleNumberChange().
+    using notifyLocalParticleNumChange().
 
     Particle data also stores temporary particles ('ghost atoms'). These are added after the local particle data (i.e. with indices
     starting at getN()). It keeps track of those particles using the addGhostParticles() and removeAllGhostParticles() methods.
@@ -637,17 +643,17 @@ class ParticleData : boost::noncopyable
         //! Notify listeners that the particles have been rearranged in memory
         void notifyParticleSort();
         
+        //! Notify listeners that particles have been added to or deleted from the local domain
+        void notifyLocalParticleNumChange();
+
         //! Connects a function to be called every time the box size is changed
         boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
 
         //! Connects a function to be called every time the maximum particle number changes
         boost::signals::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
 
-        //! Connects a function to be called every time particles are added or deleted from the system
-        boost::signals::connection connectParticleNumberChange(const boost::function< void() > &func);
-
-        //! Notify listeners that the current particle number has changed
-        void notifyParticleNumberChange();
+        //! Connects a function to be called every time the local particle number changes
+        boost::signals::connection connectLocalParticleNumChange(const boost::function< void()> &func);
 
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
@@ -669,7 +675,7 @@ class ParticleData : boost::noncopyable
 
 #ifdef ENABLE_MPI
         //! Find the processor that owns a particle
-        unsigned int getOwnerRank(unsigned int tag, bool is_local) const;
+        unsigned int getOwnerRank(unsigned int tag) const;
 #endif
 
         //! Get the current position of a particle
@@ -715,9 +721,10 @@ class ParticleData : boost::noncopyable
             ArrayHandle< unsigned int> h_global_rtag(m_global_rtag,access_location::host, access_mode::read);
             unsigned int idx = h_global_rtag.data[global_tag];
 #ifdef ENABLE_MPI
-            if (! m_comm && idx == NOT_LOCAL)
+            if ((! m_mpi_comm) && !(idx < getN()))
                 {
-                cerr << endl << "***Error! Possible internal error detected. Could not find particle " << global_tag << "." << endl << endl;
+                cerr << endl << "***Error! Possible internal error detected. Could not find particle "
+                     << global_tag << "." << endl << endl;
                 throw std::runtime_error("Error accessing particle data.");
                 }
 #endif
@@ -725,12 +732,12 @@ class ParticleData : boost::noncopyable
             return idx;
             }
 
-        //! Return true if particle is local (= present on this processor)
+        //! Return true if particle is local (= owned by this processor)
         bool isParticleLocal(unsigned int global_tag) const
              {
              assert(global_tag < m_nglobal);
              ArrayHandle< unsigned int> h_global_rtag(m_global_rtag,access_location::host, access_mode::read);
-             return h_global_rtag.data[global_tag] != NOT_LOCAL;
+             return h_global_rtag.data[global_tag] < getN();
              }
 
         //! Get the orientation of a particle with a given tag
@@ -813,9 +820,9 @@ class ParticleData : boost::noncopyable
             }
 #ifdef ENABLE_MPI
         //! Set the communicator
-        void setCommunicator(boost::shared_ptr<Communicator> comm)
+        void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
             {
-            m_comm = comm;
+            m_mpi_comm = mpi_comm;
             }
 #endif
 
@@ -823,7 +830,7 @@ class ParticleData : boost::noncopyable
         BoxDim m_box;                               //!< The simulation box
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;     //!< The communicator
+        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
 #endif
         unsigned int m_ntypes;                      //!< Number of particle types
         
@@ -832,7 +839,7 @@ class ParticleData : boost::noncopyable
         boost::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
         boost::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
         boost::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
-        boost::signal<void ()> m_particle_num_signal; //!< Signal that is triggered when the current particle number changes
+        boost::signal<void ()> m_local_particle_num_signal; //!< Signal that is triggered when particles are added to or delete from the local processor
 
         unsigned int m_nparticles;                  //!< number of particles
         unsigned int m_nghosts;                     //!< number of ghost particles

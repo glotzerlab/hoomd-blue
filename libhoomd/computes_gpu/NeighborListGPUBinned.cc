@@ -207,13 +207,13 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     Scalar3 ghost_width;
 
     if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? Scalar(2.0)*width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? Scalar(2.0)*width.y : Scalar(0.0),
                                    0.0);
     else
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
-                                   m_cl->hasGhostLayer(2) ? width.z : Scalar(0.0));
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? Scalar(2.0)*width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? Scalar(2.0)*width.y : Scalar(0.0),
+                                   m_cl->hasGhostLayer(2) ? Scalar(2.0)*width.z : Scalar(0.0));
 
     if (exec_conf->getComputeCapability() >= 200)
         {
@@ -240,8 +240,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_block_size,
                                  m_filter_body,
                                  m_filter_diameter,
-                                 ghost_width,
-                                 m_no_minimum_image);
+                                 ghost_width);
         }
     else
         {
