@@ -184,7 +184,7 @@ struct MPISetup
         int argc = boost::unit_test::framework::master_test_suite().argc;
         char **argv = boost::unit_test::framework::master_test_suite().argv;
 
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU,atoi(getenv("PMI_ID"))));
+        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
         exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
         env = new boost::mpi::environment(argc,argv);
         world = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());

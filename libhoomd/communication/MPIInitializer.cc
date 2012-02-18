@@ -333,7 +333,7 @@ void MPIInitializer::scatter(unsigned int root)
     m_pdata->initializeFromSnapshot(snap);
 
     // Notify about addition of particles
-    m_pdata->notifyParticleSort();
+    m_pdata->notifyLocalParticleNumChange();
 
     // set simulation box
     m_pdata->setBox(m_box);
