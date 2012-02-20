@@ -834,6 +834,7 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
 */
 template<class T> void GPUArray<T>::resize(unsigned int num_elements)
     {
+    assert(! m_acquired);
     resizeHostArray(num_elements);
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())

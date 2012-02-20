@@ -113,9 +113,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_exclusions_set = false;
 
     // allocate m_n_neigh and m_last_pos
-    GPUArray<unsigned int> n_neigh(m_pdata->getN(), exec_conf);
+    GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
-    GPUArray<Scalar4> last_pos(m_pdata->getN(), exec_conf);
+    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
     m_last_pos.swap(last_pos);
     
     // allocate conditions array
@@ -123,13 +123,13 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_conditions.swap(conditions);
     
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
-    GPUArray<unsigned int> n_ex_tag(m_pdata->getN(), exec_conf);
+    GPUArray<unsigned int> n_ex_tag(m_pdata->getMaxN(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
-    GPUArray<unsigned int> n_ex_idx(m_pdata->getN(), exec_conf);
+    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
     m_n_ex_idx.swap(n_ex_idx);
-    GPUArray<unsigned int> ex_list_tag(m_pdata->getN(), 1, exec_conf);
+    GPUArray<unsigned int> ex_list_tag(m_pdata->getMaxN(), 1, exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
-    GPUArray<unsigned int> ex_list_idx(m_pdata->getN(), 1, exec_conf);
+    GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, exec_conf);
     m_ex_list_idx.swap(ex_list_idx);
     m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), 1);
     

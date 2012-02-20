@@ -828,6 +828,12 @@ class ParticleData : boost::noncopyable
             {
             m_mpi_comm = mpi_comm;
             }
+
+        //! Get the communicator
+        boost::shared_ptr<boost::mpi::communicator> getMPICommunicator()
+            {
+            return m_mpi_comm;
+            }
 #endif
 
     private:

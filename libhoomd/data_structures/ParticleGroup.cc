@@ -261,7 +261,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
 
 
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
-    GPUArray<unsigned char> is_member(m_pdata->getN(), m_pdata->getExecConf());
+    GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
     GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
@@ -302,7 +302,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
         }
 
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
-    GPUArray<unsigned char> is_member(m_pdata->getN(), m_pdata->getExecConf());
+    GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
     GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
