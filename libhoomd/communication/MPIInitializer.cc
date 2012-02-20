@@ -220,7 +220,7 @@ void MPIInitializer::scatter(unsigned int root)
 
         m_N_proc.resize(m_mpi_comm->size(),0);
 
-        SnapshotParticleData global_snapshot(m_pdata->getN(),m_pdata->getNTypes());
+        SnapshotParticleData global_snapshot(m_pdata->getN());
         m_pdata->takeSnapshot(global_snapshot);
 
         for (std::vector<Scalar3>::iterator it=global_snapshot.pos.begin(); it != global_snapshot.pos.end(); it++)
@@ -281,7 +281,7 @@ void MPIInitializer::scatter(unsigned int root)
     boost::mpi::scatter(*m_mpi_comm, m_N_proc, N,root);
 
     // initialize snapshot
-    SnapshotParticleData snap(N, m_num_particle_types);
+    SnapshotParticleData snap(N);
 
     // distribute positions
     boost::mpi::scatter(*m_mpi_comm, m_pos_proc,snap.pos,root);
@@ -337,13 +337,16 @@ void MPIInitializer::scatter(unsigned int root)
 
     // set simulation box
     m_pdata->setBox(m_box);
+
+    // set global simulation box
+    m_pdata->setGlobalBox(m_global_box);
     }
 
 //! Gather particle data from all processors into a snapshot on a single processor
 void MPIInitializer::gatherSnapshot(unsigned int root, SnapshotParticleData& global_snapshot)
     {
     // take a snapshot of the current configuration
-    SnapshotParticleData snap(m_pdata->getN(), m_pdata->getNTypes());
+    SnapshotParticleData snap(m_pdata->getN());
     for (unsigned int i = 0; i < m_num_particle_types; i++)
         global_snapshot.type_mapping.push_back(m_pdata->getNameByType(i));
 

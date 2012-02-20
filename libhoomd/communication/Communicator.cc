@@ -127,14 +127,13 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                            std::vector<unsigned int> neighbor_rank,
                            std::vector<bool> is_at_boundary,
-                           uint3 dim,
-                           const BoxDim global_box)
+                           uint3 dim)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             exec_conf(m_pdata->getExecConf()),
             m_mpi_comm(mpi_comm),
             m_dim(dim),
-            m_global_box(global_box),
+            m_global_box(m_pdata->getGlobalBox()),
             m_is_allocated(false),
             m_r_ghost(Scalar(0.0))
     {
@@ -849,8 +848,7 @@ void export_Communicator()
                 boost::shared_ptr<boost::mpi::communicator>,
                 std::vector<unsigned int>,
                 std::vector<bool>,
-                uint3,
-                const BoxDim >())
+                uint3 >())
     ;
     }
 #endif // ENABLE_MPI

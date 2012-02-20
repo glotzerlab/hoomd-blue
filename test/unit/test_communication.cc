@@ -1268,7 +1268,7 @@ shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefini
                          mpi_init->getDimension(1),
                          mpi_init->getDimension(2));
 
-    return shared_ptr<Communicator>(new Communicator(sysdef,mpi_comm, neighbor_rank, is_at_boundary, dim, mpi_init->getGlobalBox() ));
+    return shared_ptr<Communicator>(new Communicator(sysdef,mpi_comm, neighbor_rank, is_at_boundary, dim));
     }
 
 shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
@@ -1287,7 +1287,7 @@ shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> s
                          mpi_init->getDimension(1),
                          mpi_init->getDimension(2));
 
-    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef,mpi_comm, neighbor_rank, is_at_boundary, dim, mpi_init->getGlobalBox() ));
+    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef,mpi_comm, neighbor_rank, is_at_boundary, dim) );
     }
 
 

@@ -238,9 +238,9 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 struct SnapshotParticleData {
     //! constructor
     /*! \param N number of particles to allocate memory for
-     * \param n_types number of particle types in the system
      */
-    SnapshotParticleData(unsigned int N, unsigned int n_types)
+    SnapshotParticleData(unsigned int N)
+       : size(N), num_particle_types(0)
        {
        pos.resize(N);
        vel.resize(N);
@@ -253,7 +253,6 @@ struct SnapshotParticleData {
        global_tag.resize(N);
        body.resize(N);
        size = N;
-       num_particle_types = n_types;
        }
 
     std::vector<Scalar3> pos;       //!< positions
@@ -521,6 +520,11 @@ class ParticleData : boost::noncopyable
         //! Set the simulation box
         void setBox(const BoxDim &box);
 
+        //! Get the global simulation box
+        const BoxDim& getGlobalBox() const;
+        //! Set the global simulation box
+        void setGlobalBox(const BoxDim &global_box);
+         
         //! Access the execution configuration
         boost::shared_ptr<const ExecutionConfiguration> getExecConf() const
             {
@@ -828,6 +832,7 @@ class ParticleData : boost::noncopyable
 
     private:
         BoxDim m_box;                               //!< The simulation box
+        BoxDim m_global_box;                        //!< Global simulation box
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
 #ifdef ENABLE_MPI
         boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator

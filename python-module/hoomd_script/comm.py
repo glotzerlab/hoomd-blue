@@ -138,10 +138,10 @@ class mpi_partition:
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
             globals.communicator = hoomd.Communicator(globals.system_definition, mpi_comm, self.neighbor_ranks, \
-                                                     self.is_at_boundary, self.dim, self.cpp_mpi_init.getGlobalBox());
+                                                     self.is_at_boundary, self.dim);
         else:
             globals.communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi_comm, self.neighbor_ranks, \
-                                                     self.is_at_boundary, self.dim, self.cpp_mpi_init.getGlobalBox());
+                                                     self.is_at_boundary, self.dim);
 
         # set Communicator in C++ System
         globals.system.setCommunicator(globals.communicator)

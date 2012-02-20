@@ -173,14 +173,12 @@ class Communicator
          *  \param mpi_comm the underlying MPI communicator
          *  \param neighbor_rank list of neighbor processor ranks
          *  \param dim Dimensions of global simulation box (number of boxes along every axis)
-         *  \param global_box Dimensions global simulation box
          */
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                      std::vector<unsigned int> neighbor_rank,
                      std::vector<bool> is_at_boundary,
-                     uint3 dim,
-                     const BoxDim global_box);
+                     uint3 dim);
 
         //! \name accessor methods
         //@{

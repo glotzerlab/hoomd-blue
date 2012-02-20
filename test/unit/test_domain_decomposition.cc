@@ -91,10 +91,10 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
                          mpi_init->getDimension(2));
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
-        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef, world, neighbor_rank, is_at_boundary,dim, mpi_init->getGlobalBox()));
+        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef, world, neighbor_rank, is_at_boundary,dim));
     else
 #endif
-        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef,world,neighbor_rank, is_at_boundary, dim, mpi_init->getGlobalBox()));
+        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef,world,neighbor_rank, is_at_boundary, dim));
 
     boost::shared_ptr<Profiler> prof(new Profiler());
     comm->setProfiler(prof);

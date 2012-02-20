@@ -228,6 +228,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         m_gpu_box.zhi = m_box.zhi;
         }
 #endif
+    
+    // initially, global box = local box
+    setGlobalBox(m_box);
     }
 
 /*! Calls the initializer's members to determine the number of particles, box size and then
@@ -269,10 +272,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             }
         }
 
-    // one particle type by default
-    m_ntypes = 1;
-
-    SnapshotParticleData snapshot(getN(),m_ntypes);
+    SnapshotParticleData snapshot(getN());
 
     // initialize the snapshot with default values
     takeSnapshot(snapshot);
@@ -284,6 +284,9 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     initializeFromSnapshot(snapshot);
 
     setBox(init.getBox());
+
+    // initially, global simulation box = local simulation box
+    setGlobalBox(init.getBox());
 
         {
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::overwrite);
@@ -334,6 +337,26 @@ void ParticleData::setBox(const BoxDim &box)
     m_gpu_box.yhi = m_box.yhi;
     m_gpu_box.zhi = m_box.zhi;
 #endif
+    
+    m_boxchange_signal();
+    }
+
+/*! \return Global simulation box dimensions
+ */
+const BoxDim & ParticleData::getGlobalBox() const
+    {
+    return m_global_box;
+    }
+
+/*! \param box New global box to set
+    \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
+        it is the responsibility of the caller to ensure that all particles lie within
+        the new box.
+*/
+void ParticleData::setGlobalBox(const BoxDim &global_box)
+    {
+    m_global_box = global_box;
+    assert(inBox());
     
     m_boxchange_signal();
     }
@@ -1344,6 +1367,8 @@ void export_ParticleData()
     .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setBox", &ParticleData::setBox)
+    .def("setGlobalBox", &ParticleData::setGlobalBox)
+    .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
     .def("getN", &ParticleData::getN)
     .def("getNGlobal", &ParticleData::getNGlobal)
     .def("getNTypes", &ParticleData::getNTypes)
@@ -1383,7 +1408,7 @@ void export_ParticleData()
 
 void export_SnapshotParticleData()
     {
-    class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData>, boost::noncopyable>("SnapshotParticleData", init<unsigned int, unsigned int>())
+    class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData>, boost::noncopyable>("SnapshotParticleData", init<unsigned int>())
     .def_readwrite("pos", &SnapshotParticleData::pos)
     .def_readwrite("vel", &SnapshotParticleData::vel)
     .def_readwrite("accel", &SnapshotParticleData::accel)
