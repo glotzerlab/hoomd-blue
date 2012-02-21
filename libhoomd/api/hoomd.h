@@ -85,7 +85,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "ComputeThermo.h"
-#include "ComputeThermoGPU.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
 #include "Analyzer.h"
@@ -160,6 +159,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
+#include "ComputeThermoGPU.h"
 #endif
 
 
