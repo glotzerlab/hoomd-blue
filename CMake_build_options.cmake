@@ -7,9 +7,6 @@ option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output 
 else (WIN32)
 option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" ON)
 endif (WIN32)
-if (ENABLE_ZLIB)
-    add_definitions(-DENABLE_ZLIB)
-endif(ENABLE_ZLIB)
 
 #################################
 ## Optional static build
@@ -21,16 +18,10 @@ OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be c
 endif (WIN32)
 
 mark_as_advanced(ENABLE_STATIC)
-if (ENABLE_STATIC)
-    add_definitions(-DENABLE_STATIC)
-endif(ENABLE_STATIC)
 
 #################################
 ## Optional single/double precision build
 option(SINGLE_PRECISION "Use single precision math" ON)
-if (SINGLE_PRECISION)
-    add_definitions (-DSINGLE_PRECISION)
-endif (SINGLE_PRECISION)
 
 #####################3
 ## CUDA related options
@@ -51,8 +42,6 @@ if (CMAKE_CXX_COMPILER MATCHES "icpc")
 endif (CMAKE_CXX_COMPILER MATCHES "icpc")
 
 if (ENABLE_CUDA)
-    add_definitions (-DENABLE_CUDA)
-    
     # optional ocelot emulation mode
     option(ENABLE_OCELOT "Enable ocelot emulation for CUDA GPU code" off)
     if (ENABLE_OCELOT) 
@@ -88,14 +77,6 @@ if (DOXYGEN_FOUND)
 endif (DOXYGEN_FOUND)
 
 ################################
-## thread safe compiling
-if(WIN32)
-    add_definitions(-D_MT)
-elseif(UNIX)
-    add_definitions(-D_REENTRANT)
-endif(WIN32)
-
-################################
 ## detect and optionally enable OpenMP
 
 # needs CMake 2.6.4 or newer
@@ -105,10 +86,6 @@ if (_cmake_ver VERSION_GREATER 2.6.3)
 find_package(OpenMP)
 if (OPENMP_FOUND)
     option(ENABLE_OPENMP "Enable openmp compliation to accelerate CPU code on multi-core machines" ON)
-    if (ENABLE_OPENMP)
-        add_definitions (-DENABLE_OPENMP)
-        # the compiler options to enable openmp are set in HOOMDCFlagsSetup
-    endif (ENABLE_OPENMP)
 endif (OPENMP_FOUND)
 
 else (_cmake_ver VERSION_GREATER 2.6.3)

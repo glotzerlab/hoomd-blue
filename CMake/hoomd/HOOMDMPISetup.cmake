@@ -7,7 +7,7 @@ if (ENABLE_MPI)
     find_package(MPI REQUIRED)
 
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
-    if (ENABLE_CUDA AND NOT TESTED_MPI_CUDA)
+    if (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
         if (MPI_LIBRARY MATCHES mpich)
             # find out if this is MVAPICH2
             get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
@@ -46,26 +46,18 @@ if (ENABLE_MPI)
             endif()
         endif()
 
-    if (MPI_CUDA)
-       message(STATUS "Enabling MPI<->CUDA interoperability.")
-       option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" on)
-    else()
-       message(STATUS "MPI found, but without CUDA interoperability. Expect slower MPI performance.")
-       option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
-    endif()
-        SET(TESTED_MPI_CUDA ON CACHE INTERNAL "MPI-CUDA support has been tested. Will not test again." FORCE)
-    endif()
+        if (MPI_CUDA)
+           message(STATUS "Enabling MPI<->CUDA interoperability.")
+           option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" on)
+        else(MPI_CUDA)
+           message(STATUS "MPI found, but without CUDA interoperability. Expect slower MPI performance.")
+           option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
+        endif(MPI_CUDA)
+    endif (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
 
     if (ENABLE_MPI)
-        # add preprocessor flag
-        add_definitions(-DENABLE_MPI)
-
         # add include directories
         include_directories(${MPI_INCLUDE_PATH})
     endif()
 
-    if (ENABLE_MPI_CUDA)
-        # add preprocessor flag
-        add_definitions (-DENABLE_MPI_CUDA)
-    endif()
 endif (ENABLE_MPI)
