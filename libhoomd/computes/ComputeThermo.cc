@@ -156,10 +156,14 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
 */
 void ComputeThermo::computeProperties()
     {
-    unsigned int group_size = m_group->getNumMembers();
+    unsigned int group_size = m_group->getNumLocalMembers();
     // just drop out if the group is an empty group
     if (group_size == 0)
         return;
+
+#ifdef ENABLE_MPI
+    boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_pdata->getMPICommunicator();
+#endif
 
     if (m_prof) m_prof->push("Thermo");
     
@@ -201,7 +205,17 @@ void ComputeThermo::computeProperties()
             pressure_kinetic_yz += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].z );
             pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
             }
-
+#ifdef ENABLE_MPI
+        if (mpi_comm)
+            {
+            pressure_kinetic_xx = all_reduce(*mpi_comm, pressure_kinetic_xx, std::plus<double>());
+            pressure_kinetic_xy = all_reduce(*mpi_comm, pressure_kinetic_xy, std::plus<double>());
+            pressure_kinetic_xz = all_reduce(*mpi_comm, pressure_kinetic_xz, std::plus<double>());
+            pressure_kinetic_yy = all_reduce(*mpi_comm, pressure_kinetic_yy, std::plus<double>());
+            pressure_kinetic_yz = all_reduce(*mpi_comm, pressure_kinetic_yz, std::plus<double>());
+            pressure_kinetic_zz = all_reduce(*mpi_comm, pressure_kinetic_zz, std::plus<double>());
+            }
+#endif
         // kinetic energy = 1/2 trace of kinetic part of pressure tensor
         ke_total = Scalar(0.5)*(pressure_kinetic_xx + pressure_kinetic_yy + pressure_kinetic_zz);
         }
@@ -218,6 +232,10 @@ void ComputeThermo::computeProperties()
             }
 
         ke_total *= Scalar(0.5);
+#ifdef ENABLE_MPI
+        if (mpi_comm)
+            ke_total = all_reduce(*mpi_comm, ke_total, std::plus<double>());
+#endif
         }
     
     // total potential energy 
@@ -227,7 +245,11 @@ void ComputeThermo::computeProperties()
         unsigned int j = m_group->getMemberIndex(group_idx);
         pe_total += (double)h_net_force.data[j].w;
         }
-
+#ifdef ENABLE_MPI
+    if (mpi_comm)
+        pe_total = all_reduce(*mpi_comm, pe_total, std::plus<double>());
+#endif
+ 
 
     double W = 0.0;
     double virial_xx = 0.0;
@@ -251,6 +273,17 @@ void ComputeThermo::computeProperties()
             virial_yz += (double)h_net_virial.data[j+4*virial_pitch];
             virial_zz += (double)h_net_virial.data[j+5*virial_pitch];
             }
+#ifdef ENABLE_MPI
+        if (mpi_comm)
+            {
+            virial_xx = all_reduce(*mpi_comm, virial_xx, std::plus<double>());
+            virial_xy = all_reduce(*mpi_comm, virial_xy, std::plus<double>());
+            virial_xz = all_reduce(*mpi_comm, virial_xz, std::plus<double>());
+            virial_yy = all_reduce(*mpi_comm, virial_yy, std::plus<double>());
+            virial_yz = all_reduce(*mpi_comm, virial_yz, std::plus<double>());
+            virial_zz = all_reduce(*mpi_comm, virial_zz, std::plus<double>());
+            }
+#endif
 
         if (flags[pdata_flag::isotropic_virial])
             {
@@ -269,6 +302,10 @@ void ComputeThermo::computeProperties()
                                  (double)h_net_virial.data[j+3*virial_pitch] +
                                  (double)h_net_virial.data[j+5*virial_pitch] );
             }
+#ifdef ENABLE_MPI
+        if (mpi_comm)
+            W = all_reduce(*mpi_comm, W, std::plus<double>());
+#endif
         }
 
     // compute the temperature
@@ -276,19 +313,19 @@ void ComputeThermo::computeProperties()
 
     // compute the pressure
     // volume/area & other 2D stuff needed
-    BoxDim box = m_pdata->getBox();
+    BoxDim global_box = m_pdata->getGlobalBox();
     Scalar volume;
     unsigned int D = m_sysdef->getNDimensions();
     if (D == 2)
         {
         // "volume" is area in 2D
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo);
+        volume = (global_box.xhi - global_box.xlo)*(global_box.yhi - global_box.ylo);
         // W needs to be corrected since the 1/3 factor is built in
         W *= Scalar(3.0/2.0);
         }
     else
         {
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+        volume = (global_box.xhi - global_box.xlo)*(global_box.yhi - global_box.ylo)*(global_box.zhi-global_box.zlo);
         }
 
     // pressure: P = (N * K_B * T + W)/V

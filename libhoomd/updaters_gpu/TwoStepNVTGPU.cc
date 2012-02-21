@@ -97,7 +97,7 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
+    unsigned int group_size = m_group->getNumLocalMembers();
     if (group_size == 0)
         return;
     
@@ -127,7 +127,8 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                      box,
                      m_block_size,
                      xi,
-                     m_deltaT);
+                     m_deltaT,
+                     m_no_wrap_particles);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -142,7 +143,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
+    unsigned int group_size = m_group->getNumLocalMembers();
     if (group_size == 0)
         return;
     

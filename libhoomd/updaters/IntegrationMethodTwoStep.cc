@@ -153,14 +153,8 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(IntegratorVariables& v, std:
 */
 unsigned int IntegrationMethodTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> query_group)
     {
-    // count the number of particles both in query_group and m_group
-    unsigned int intersect_size = 0;
-    for (unsigned int group_idx = 0; group_idx < query_group->getNumMembers(); group_idx++)
-        {
-        unsigned int j = query_group->getMemberIndex(group_idx);
-        if (m_group->isMember(j))
-            intersect_size++;
-        }
+    // get the size of the intersecion between query_group and m_group
+    unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembers();
     
     return m_sysdef->getNDimensions() * intersect_size;
     }

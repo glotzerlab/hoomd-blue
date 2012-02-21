@@ -631,6 +631,13 @@ class ParticleData : boost::noncopyable
             return m_gpu_box;
             }
             
+        //! Get the global box for the GPU
+        /*! \returns Box dimensions suitable for passing to the GPU code
+        */
+        const gpu_boxsize& getGlobalBoxGPU() const
+            {
+            return m_gpu_global_box;
+            }
 #endif
         
         //! Set the profiler to profile CPU<-->GPU memory copies
@@ -881,8 +888,9 @@ class ParticleData : boost::noncopyable
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         
 #ifdef ENABLE_CUDA
-        //! Simple type for identifying where the most up to date particle data is
         gpu_boxsize m_gpu_box;              //!< Mirror structure of m_box for the GPU
+
+        gpu_boxsize m_gpu_global_box;       //!< Mirror structure of m_global_box for the GPU
 #endif
         
         //! Helper function to allocate particle data

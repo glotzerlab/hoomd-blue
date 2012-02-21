@@ -103,7 +103,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
  */
 void ComputeThermoGPU::computeProperties()
     {
-    unsigned int group_size = m_group->getNumMembers();
+    unsigned int group_size = m_group->getNumLocalMembers();
     // just drop out if the group is an empty group
     if (group_size == 0)
         return;
@@ -115,7 +115,7 @@ void ComputeThermoGPU::computeProperties()
     
     // access the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    gpu_boxsize box = m_pdata->getGlobalBoxGPU();
     
     { // scope these array handles so they are released before the additional terms are added
     // access the net force, pe, and virial
@@ -152,7 +152,7 @@ void ComputeThermoGPU::computeProperties()
                         box,
                         args,
                         flags[pdata_flag::pressure_tensor]);
-    
+   
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
@@ -165,6 +165,38 @@ void ComputeThermoGPU::computeProperties()
         h_properties.data[thermo_index::potential_energy] += pppm_thermo.y;
         PPPMData::pppm_energy = pppm_thermo.y;
         }
+
+#ifdef ENABLE_MPI
+    // for MPI, we have to copy data back to the host to perform collective operations
+
+    boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_pdata->getMPICommunicator();
+
+    if (mpi_comm)
+        {
+        ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
+
+        Scalar & T = h_properties.data[thermo_index::temperature];
+        Scalar & P = h_properties.data[thermo_index::pressure];
+        Scalar & ke =  h_properties.data[thermo_index::kinetic_energy];
+        Scalar & pe =  h_properties.data[thermo_index::potential_energy];
+        Scalar & Pxx =  h_properties.data[thermo_index::pressure_xx];
+        Scalar & Pxy =  h_properties.data[thermo_index::pressure_xy];
+        Scalar & Pxz =  h_properties.data[thermo_index::pressure_xz];
+        Scalar & Pyy =  h_properties.data[thermo_index::pressure_yy];
+        Scalar & Pyz =  h_properties.data[thermo_index::pressure_yz];
+        Scalar & Pzz =  h_properties.data[thermo_index::pressure_zz];
+        T = all_reduce(*mpi_comm, T, std::plus<Scalar>());
+        P = all_reduce(*mpi_comm, P, std::plus<Scalar>());
+        ke = all_reduce(*mpi_comm, ke, std::plus<Scalar>());
+        pe = all_reduce(*mpi_comm, pe, std::plus<Scalar>());
+        Pxx = all_reduce(*mpi_comm, Pxx, std::plus<Scalar>());
+        Pxy = all_reduce(*mpi_comm, Pxy, std::plus<Scalar>());
+        Pxz = all_reduce(*mpi_comm, Pxz, std::plus<Scalar>());
+        Pyy = all_reduce(*mpi_comm, Pyy, std::plus<Scalar>());
+        Pyz = all_reduce(*mpi_comm, Pyz, std::plus<Scalar>());
+        Pzz = all_reduce(*mpi_comm, Pzz, std::plus<Scalar>());
+        }
+#endif
 
     if (m_prof) m_prof->pop();
     }

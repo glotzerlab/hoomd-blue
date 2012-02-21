@@ -135,7 +135,7 @@ Scalar TwoStepNVT::getLogValue(const std::string& quantity, unsigned int timeste
 */
 void TwoStepNVT::integrateStepOne(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
+    unsigned int group_size = m_group->getNumLocalMembers();
     if (group_size == 0)
         return;
     
@@ -181,34 +181,34 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         // wrap the particles around the box
-        if (h_pos.data[j].x >= box.xhi)
+        if ((! m_no_wrap_particles[0]) && h_pos.data[j].x >= box.xhi)
             {
             h_pos.data[j].x -= Lx;
             h_image.data[j].x++;
             }
-        else if (h_pos.data[j].x < box.xlo)
+        else if ((! m_no_wrap_particles[0]) && h_pos.data[j].x < box.xlo)
             {
             h_pos.data[j].x += Lx;
             h_image.data[j].x--;
             }
 
-        if (h_pos.data[j].y >= box.yhi)
+        if ((! m_no_wrap_particles[1]) && h_pos.data[j].y >= box.yhi)
             {
             h_pos.data[j].y -= Ly;
             h_image.data[j].y++;
             }
-        else if (h_pos.data[j].y < box.ylo)
+        else if ((! m_no_wrap_particles[1]) && h_pos.data[j].y < box.ylo)
             {
             h_pos.data[j].y += Ly;
             h_image.data[j].y--;
             }
 
-        if (h_pos.data[j].z >= box.zhi)
+        if ((! m_no_wrap_particles[2]) && h_pos.data[j].z >= box.zhi)
             {
             h_pos.data[j].z -= Lz;
             h_image.data[j].z++;
             }
-        else if (h_pos.data[j].z < box.zlo)
+        else if ((! m_no_wrap_particles[2]) && h_pos.data[j].z < box.zlo)
             {
             h_pos.data[j].z += Lz;
             h_image.data[j].z--;
@@ -225,7 +225,7 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
+    unsigned int group_size = m_group->getNumLocalMembers();
     if (group_size == 0)
         return;
     

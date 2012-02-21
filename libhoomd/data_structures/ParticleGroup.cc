@@ -410,16 +410,32 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
     // vector to store the new list of tags
     vector<unsigned int> member_tags;
 
-    // make the union
-    ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
+    if (a != b)
+        {
+        // make the union
+        ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
 
-    insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
-    set_union(h_members_a.data,
-              h_members_a.data + a->getNumMembers(),
-              h_members_b.data,
-              h_members_b.data + b->getNumMembers(),
-              ii);
+        insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
+        set_union(h_members_a.data,
+                  h_members_a.data + a->getNumMembers(),
+                  h_members_b.data,
+                  h_members_b.data + b->getNumMembers(),
+                  ii);
+        }
+    else
+        {
+        // If the two arguments are the same, just return a copy of the whole group (we cannot
+        // acquire the member_tags array twice)
+        ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
+
+        insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
+        std::copy(h_members_a.data,
+                  h_members_a.data + a->getNumMembers(),
+                  ii);          
+        }
+
+
 
     // create the new particle group
     boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
@@ -440,16 +456,30 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
     // vector to store the new list of tags
     vector<unsigned int> member_tags;
 
-    // make the intersection
-    ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
+    if (a != b)
+        {
+        // make the intersection
+        ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
 
-    insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
-    set_intersection(h_members_a.data,
-                     h_members_a.data + a->getNumMembers(),
-                     h_members_b.data,
-                     h_members_b.data + b->getNumMembers(),
-                     ii);
+        insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
+        set_intersection(h_members_a.data,
+                         h_members_a.data + a->getNumMembers(),
+                         h_members_b.data,
+                         h_members_b.data + b->getNumMembers(),
+                         ii);
+        }
+    else
+        {
+        // If the two arguments are the same, just return a copy of the whole group (we cannot
+        // acquire the member_tags array twice)
+        ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
+
+        insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
+        std::copy(h_members_a.data,
+                  h_members_a.data + a->getNumMembers(),
+                  ii);          
+        }
 
     // create the new particle group
     boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
@@ -470,16 +500,25 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
     // vector to store the new list of tags
     vector<unsigned int> member_tags;
 
-    // make the difference
-    ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
+    if (a != b)
+        {
+        // make the difference
+        ArrayHandle<unsigned int> h_members_a(a->m_member_tags, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_members_b(b->m_member_tags, access_location::host, access_mode::read);
 
-    insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
-    set_difference(h_members_a.data,
-              h_members_a.data + a->getNumMembers(),
-              h_members_b.data,
-              h_members_b.data + b->getNumMembers(),
-              ii);
+        insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
+        set_difference(h_members_a.data,
+                  h_members_a.data + a->getNumMembers(),
+                  h_members_b.data,
+                  h_members_b.data + b->getNumMembers(),
+                  ii);
+        }
+    else
+        {
+        // If the two arguments are the same, just return an empty group (we cannot
+        // acquire the member_tags array twice)
+        }
+
 
     // create the new particle group
     boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
