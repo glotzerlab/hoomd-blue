@@ -557,6 +557,7 @@ void ExecutionConfiguration::setupStats()
         cudaGetDeviceProperties(&dev_prop, dev);
         printGPUStats();
         n_cpu = 1;  // GPU runs only use 1 CPU core
+        omp_set_num_threads(n_cpu);
         }
     #endif
     
