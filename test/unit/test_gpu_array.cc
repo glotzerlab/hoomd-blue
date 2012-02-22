@@ -283,6 +283,110 @@ BOOST_AUTO_TEST_CASE( GPUArray_null_tests )
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned)1000);
     }
 
+//! Tests resize methods
+BOOST_AUTO_TEST_CASE( GPUArray_resize_tests )
+    {
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
+    // create a 1D GPUArray
+    GPUArray<unsigned int> a(5, exec_conf);
+
+        {
+        // Fill it with some values
+        ArrayHandle<unsigned int> h_handle(a, access_location::host, access_mode::overwrite);
+
+        h_handle.data[0] = 1;
+        h_handle.data[1] = 2;
+        h_handle.data[2] = 3;
+        h_handle.data[3] = 4;
+        h_handle.data[4] = 5;
+        }
+
+    // resize the array
+    a.resize(10);
+
+    // check that it has the right size
+    BOOST_CHECK_EQUAL(a.getNumElements(),10);
+        {
+        // test that it still contains the data
+        ArrayHandle<unsigned int> h_handle(a, access_location::host, access_mode::read);
+
+        BOOST_CHECK_EQUAL(h_handle.data[0], 1);
+        BOOST_CHECK_EQUAL(h_handle.data[1], 2);
+        BOOST_CHECK_EQUAL(h_handle.data[2], 3);
+        BOOST_CHECK_EQUAL(h_handle.data[3], 4);
+        BOOST_CHECK_EQUAL(h_handle.data[4], 5);
+
+        // test that the other elements are set to zero
+        BOOST_CHECK_EQUAL(h_handle.data[5], 0);
+        BOOST_CHECK_EQUAL(h_handle.data[6], 0);
+        BOOST_CHECK_EQUAL(h_handle.data[7], 0);
+        BOOST_CHECK_EQUAL(h_handle.data[8], 0);
+        BOOST_CHECK_EQUAL(h_handle.data[9], 0);
+        }
+
+   // check that it also works for a GPUArray that is initially empty
+   GPUArray<unsigned int> b;
+   b.resize(7);
+
+   BOOST_CHECK_EQUAL(b.getNumElements(), 7);
+
+   // allocate a 2D GPUArray
+   unsigned int width=3;
+   unsigned int height=2;
+   GPUArray<unsigned int> c(width, height,exec_conf);
+   unsigned int pitch = c.getPitch();
+       {
+       // write some data to it
+       ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::overwrite);
+
+       h_handle.data[0] = 123;
+       h_handle.data[1] = 456;
+       h_handle.data[2] = 789;
+
+       h_handle.data[0+pitch] = 1234;
+       h_handle.data[1+pitch] = 3456;
+       h_handle.data[2+pitch] = 5678;
+       }
+
+   // resize it
+   width = 17;
+   height = 4;
+   c.resize(width,height);
+   pitch = c.getPitch();
+
+   // check that it has the right size
+   BOOST_CHECK_EQUAL(c.getNumElements(), pitch*height);
+
+       {
+       // test that we can still recover the data
+       ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::read);
+
+       BOOST_CHECK_EQUAL(h_handle.data[0], 123);
+       BOOST_CHECK_EQUAL(h_handle.data[1], 456);
+       BOOST_CHECK_EQUAL(h_handle.data[2], 789);
+
+       // check that other elements of that row zero
+       for (unsigned int i = 3; i< 17; i++)
+           BOOST_CHECK_EQUAL(h_handle.data[i], 0);
+
+       BOOST_CHECK_EQUAL(h_handle.data[0+pitch], 1234);
+       BOOST_CHECK_EQUAL(h_handle.data[1+pitch], 3456);
+       BOOST_CHECK_EQUAL(h_handle.data[2+pitch], 5678);
+
+       // check that other elements of that row are zero
+       for (unsigned int i = 3; i< 17; i++)
+           BOOST_CHECK_EQUAL(h_handle.data[i+pitch], 0);
+
+       // check that the two new rows are zero
+       for (unsigned int i = 0; i< 17; i++)
+           {
+           BOOST_CHECK_EQUAL(h_handle.data[i+2*pitch], 0);
+           BOOST_CHECK_EQUAL(h_handle.data[i+3*pitch], 0);
+           }
+
+       }
+   }
 #endif
 
 #ifdef WIN32
