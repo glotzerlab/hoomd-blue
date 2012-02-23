@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "GPUArray.h"
+#include "GPUVector.h"
 
 #ifdef ENABLE_CUDA
 #include "test_gpu_array.cuh"
@@ -70,7 +71,7 @@ using namespace std;
 using namespace boost;
 
 /*! \file gpu_array_test.cc
-    \brief Implements unit tests for GPUArray
+    \brief Implements unit tests for GPUArray and GPUVector
     \ingroup unit_tests
 */
 
@@ -387,6 +388,75 @@ BOOST_AUTO_TEST_CASE( GPUArray_resize_tests )
 
        }
    }
+
+//! Tests GPUVector
+BOOST_AUTO_TEST_CASE( GPUVector_basic_tests )
+    {
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
+    // First create an empty GPUVector
+    GPUVector<unsigned int> vec(exec_conf);
+
+    // The size should be zero
+    BOOST_CHECK_EQUAL(vec.size(),0);
+
+    // Add some elements
+    vec.push_back(1);
+    vec.push_back(2);
+    vec.push_back(3);
+
+    BOOST_CHECK_EQUAL(vec.size(), 3);
+
+    // Test bracket operator
+    BOOST_CHECK_EQUAL(vec[0],1);
+    BOOST_CHECK_EQUAL(vec[1],2);
+    BOOST_CHECK_EQUAL(vec[2],3);
+
+    // Test assignment
+    vec[1] = 4;
+
+    BOOST_CHECK_EQUAL(vec[0],1);
+    BOOST_CHECK_EQUAL(vec[1],4);
+    BOOST_CHECK_EQUAL(vec[2],3);
+
+    // remove an element
+    vec.pop_back();
+
+    BOOST_CHECK_EQUAL(vec.size(), 2);
+
+    // clear the array
+    vec.clear();
+
+    BOOST_CHECK_EQUAL(vec.size(), 0);
+
+    // resize it
+    vec.resize(10);
+    BOOST_CHECK_EQUAL(vec.size(), 10 );
+
+    // verify we can still write to it
+    vec[0] = 234;
+    vec[1] = 123;
+    vec[2] = 654;
+    vec[3] = 789;
+    vec[4] = 321;
+    vec[5] = 432;
+    vec[6] = 543;
+    vec[7] = 678;
+    vec[8] = 987;
+    vec[9] = 890;
+
+    // read back
+    BOOST_CHECK_EQUAL(vec[0], 234);
+    BOOST_CHECK_EQUAL(vec[1], 123);
+    BOOST_CHECK_EQUAL(vec[2], 654);
+    BOOST_CHECK_EQUAL(vec[3], 789);
+    BOOST_CHECK_EQUAL(vec[4], 321);
+    BOOST_CHECK_EQUAL(vec[5], 432);
+    BOOST_CHECK_EQUAL(vec[6], 543);
+    BOOST_CHECK_EQUAL(vec[7], 678);
+    BOOST_CHECK_EQUAL(vec[8], 987);
+    BOOST_CHECK_EQUAL(vec[9], 890);
+    }
 #endif
 
 #ifdef WIN32
