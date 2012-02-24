@@ -128,7 +128,7 @@ template<class T> class GPUVector : public GPUArray<T>
             {
             public:
                 //! Constructor
-                data_proxy(GPUVector<T> & _vec, unsigned int _n)
+                data_proxy(const GPUVector<T> & _vec, const unsigned int _n)
                     : vec(_vec), n(_n) { }
 
                 operator T() const
@@ -138,6 +138,7 @@ template<class T> class GPUVector : public GPUArray<T>
                     vec.release();
                     return val;
                     }
+
 
                 data_proxy& operator= (T rhs)
                     {
@@ -152,12 +153,20 @@ template<class T> class GPUVector : public GPUArray<T>
                 unsigned int n;          //! The index of the element to access
             };
 
-        //! Get a list element by value
+        //! Get a proxy-reference to a list element
         data_proxy operator [] (unsigned int n)
             {
             assert(n < m_size);
             return data_proxy(*this, n);
             }
+
+        //! Get a proxy-reference to a list element (const version)
+        data_proxy operator [] (unsigned int n) const
+            {
+            assert(n < m_size);
+            return data_proxy(*this, n);
+            }
+
 
     private:
         unsigned int m_size;                    //!< Number of elements

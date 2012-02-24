@@ -76,7 +76,8 @@ using namespace std;
     \param n_bond_types Number of bond types in the list
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
-    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
+    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
+      m_bonds(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
     {
     assert(pdata);
     
@@ -167,17 +168,24 @@ unsigned int BondData::addBond(const Bond& bond)
         {
         tag = m_deleted_tags.top();
         m_deleted_tags.pop();
+
+        // update reverse-lookup tag
+        m_bond_rtag[tag] = m_bonds.size();
         }
-    // Otherwise, generate a new tag
     else
+        {
+        // Otherwise, generate a new tag
         tag = m_bonds.size();
+
+        // add new reverse-lookup tag
+        assert(m_bond_rtag.size() == m_bonds.size());
+        m_bond_rtag.push_back(m_bonds.size());
+        }
 
     assert(tag <= m_deleted_tags.size() + m_bonds.size());
 
-    // add mapping pointing to last element in m_bonds
-    m_bond_map.insert(std::pair<unsigned int, unsigned int>(tag,m_bonds.size()));
+    m_bonds.push_back(make_uint3(bond.type, bond.a, bond.b));
 
-    m_bonds.push_back(bond);
     m_tags.push_back(tag);
 
     m_bonds_dirty = true;
@@ -186,19 +194,19 @@ unsigned int BondData::addBond(const Bond& bond)
 
 /*! \param tag tag of the bond to access
  */
-const Bond& BondData::getBondByTag(unsigned int tag) const
+const Bond BondData::getBondByTag(unsigned int tag) const
     {
     // Find position of bond in bonds list
-    unsigned int id;
-    std::tr1::unordered_map<unsigned int, unsigned int>::const_iterator it;
-    it = m_bond_map.find(tag);
-    if (it == m_bond_map.end())
+    unsigned int bond_idx = m_bond_rtag[tag];
+    if (bond_idx == NO_BOND)
         {
         cerr << endl << "***Error! Trying to get bond tag " << tag << " which does not exist!" << endl << endl;
         throw runtime_error("Error getting bond");
         }
-    id = it->second;
-    return m_bonds[id];
+
+    uint3 b = m_bonds[bond_idx];
+    Bond bond(b.x, b.y, b.z);
+    return bond;
     }
 
 /*! \param id Index of bond (0 to N-1)
@@ -221,26 +229,26 @@ unsigned int BondData::getBondTag(unsigned int id) const
 void BondData::removeBond(unsigned int tag)
     {
     // Find position of bond in bonds list
-    unsigned int id;
-    std::tr1::unordered_map<unsigned int, unsigned int>::iterator it;
-    it = m_bond_map.find(tag);
-    if (it == m_bond_map.end())
+    unsigned int id = m_bond_rtag[tag];
+    if (id == NO_BOND)
         {
         cerr << endl << "***Error! Trying to remove bond tag " << tag << " which does not exist!" << endl << endl;
         throw runtime_error("Error removing bond");
         }
-    id = it->second;
 
     // delete from map
-    m_bond_map.erase(it);
+    m_bond_rtag[tag] = NO_BOND;
 
+    unsigned int size = m_bonds.size();
     // If the bond is in the middle of the list, move the last element to
     // to the position of the removed element
-    if (id < (m_bonds.size()-1))
+    if (id < (size-1))
         {
-        m_bonds[id] = m_bonds[m_bonds.size()-1];
-        unsigned int last_tag = m_tags[m_bonds.size()-1];
-        m_bond_map[last_tag] = id;
+        uint3 tmp;
+        tmp = m_bonds[size-1];
+        m_bonds[id] = tmp;
+        unsigned int last_tag = m_tags[size-1];
+        m_bond_rtag[last_tag] = id;
         m_tags[id] = last_tag;
         }
     // delete last element
@@ -331,8 +339,8 @@ void BondData::updateBondTable()
     ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
         {
-        unsigned int tag1 = m_bonds[cur_bond].a;
-        unsigned int tag2 = m_bonds[cur_bond].b;
+        unsigned int tag1 = ((uint3)m_bonds[cur_bond]).y;
+        unsigned int tag2 = ((uint3)m_bonds[cur_bond]).z;
         int idx1 = h_rtag.data[tag1];
         int idx2 = h_rtag.data[tag2];
         
@@ -363,9 +371,9 @@ void BondData::updateBondTable()
     int pitch = m_pdata->getN();
     for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
         {
-        unsigned int tag1 = m_bonds[cur_bond].a;
-        unsigned int tag2 = m_bonds[cur_bond].b;
-        unsigned int type = m_bonds[cur_bond].type;
+        unsigned int tag1 = ((uint3)m_bonds[cur_bond]).y;
+        unsigned int tag2 = ((uint3)m_bonds[cur_bond]).z;
+        unsigned int type = ((uint3)m_bonds[cur_bond]).x;
         int idx1 = h_rtag.data[tag1];
         int idx2 = h_rtag.data[tag2];
         
@@ -475,8 +483,8 @@ void export_BondData()
     .def("getNameByType", &BondData::getNameByType)
     .def("addBond", &BondData::addBond)
     .def("removeBond", &BondData::removeBond)
-    .def("getBond", &BondData::getBond, return_value_policy<copy_const_reference>())
-    .def("getBondByTag", &BondData::getBondByTag, return_value_policy<copy_const_reference>())
+    .def("getBond", &BondData::getBond)
+    .def("getBondByTag", &BondData::getBondByTag)
     .def("getBondTag", &BondData::getBondTag)
     ;
     

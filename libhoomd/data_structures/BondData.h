@@ -77,7 +77,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.cuh"
 #endif
 
+#include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+
+// Sentinel value in bond reverse-lookup map for unassigned bond tags
+#define NO_BOND 0xffffffff
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
@@ -137,13 +141,13 @@ class BondData : boost::noncopyable
         //! Get a given bond
         /*! \param i Bond to access
         */
-        const Bond& getBond(unsigned int i) const
+        const Bond getBond(unsigned int i) const
             {
-            assert(i < m_bonds.size()); return m_bonds[i];
+            assert(i < m_bonds.size()); return Bond(((uint3)m_bonds[i]).x, ((uint3) m_bonds[i]).y, ((uint3)m_bonds[i]).z);
             }
 
         //! Get bond by tag value
-        const Bond& getBondByTag(unsigned int tag) const;
+        const Bond getBondByTag(unsigned int tag) const;
 
         //! Get tag given an id
         unsigned int getBondTag(unsigned int id) const;
@@ -164,7 +168,24 @@ class BondData : boost::noncopyable
         
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
-        
+
+        //! Gets the bond table
+        GPUVector<uint3>& getBondTable()
+            {
+            return m_bonds;
+            }
+
+        //! Gets the list of bond tags
+        GPUVector<unsigned int>& getBondTags()
+            {
+            return m_tags;
+            }
+
+        //! Gets the list of bond reverse-lookup tags
+        GPUVector<unsigned int>& getBondRTags()
+            {
+            return m_bond_rtag;
+            }
 # ifdef ENABLE_CUDA
         //! Access the bonds on the GPU
         gpu_bondtable_array& acquireGPU();
@@ -174,15 +195,15 @@ class BondData : boost::noncopyable
         const unsigned int m_n_bond_types;              //!< Number of bond types
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
-        std::vector<Bond> m_bonds;                      //!< List of bonds on the CPU
-        std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
+        GPUVector<uint3> m_bonds;                       //!< List of bonds by tag (x: type, y: tag a, z: tag b)
+        GPUVector<unsigned int> m_tags;                 //!< Bond tags
         std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
-        std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
+        GPUVector<unsigned int> m_bond_rtag;            //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
         
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_bonds_dirty flag when partciles are sorted or a bond is added.
