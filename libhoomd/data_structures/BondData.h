@@ -170,25 +170,32 @@ class BondData : boost::noncopyable
         std::string getNameByType(unsigned int type);
 
         //! Gets the bond table
-        GPUVector<uint3>& getBondTable()
+        const GPUVector<uint3>& getBondTable()
             {
             return m_bonds;
             }
 
         //! Gets the list of bond tags
-        GPUVector<unsigned int>& getBondTags()
+        const GPUVector<unsigned int>& getBondTags() const
             {
             return m_tags;
             }
 
         //! Gets the list of bond reverse-lookup tags
-        GPUVector<unsigned int>& getBondRTags()
+        const GPUVector<unsigned int>& getBondRTags() const
             {
             return m_bond_rtag;
             }
+
 # ifdef ENABLE_CUDA
+        //! Gets the number of bonds array
+        const GPUArray<unsigned int>& getNBondsArray() const
+            {
+            return m_n_bonds;
+            }
+
         //! Access the bonds on the GPU
-        gpu_bondtable_array& acquireGPU();
+        const GPUArray<uint2>& getGPUBondList();
 #endif
         
     private:
@@ -215,13 +222,12 @@ class BondData : boost::noncopyable
             }
             
 #ifdef ENABLE_CUDA
-        gpu_bondtable_array m_gpu_bonddata; //!< List of bonds on the GPU
-        uint2 *m_host_bonds;                //!< Host copy of the bond list
-        unsigned int *m_host_n_bonds;       //!< Host copy of the number of bonds
+        GPUArray<uint2> m_gpu_bondlist;     //!< List of bonds on the GPU
+        GPUArray<unsigned int> m_n_bonds;   //!< Array of the number of bonds
         
         //! Helper function to update the bond table on the device
-        void updateBondTable();
-        
+        void updateBondTableGPU();
+
         //! Helper function to reallocate the bond table on the device
         void reallocateBondTable(int height);
         

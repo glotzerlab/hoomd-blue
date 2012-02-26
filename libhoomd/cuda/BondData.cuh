@@ -56,39 +56,31 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 /*! \file BondData.cuh
-    \brief GPU data structures used in BondData
+    \brief GPU helper functions used in BondData
 */
 
-//! Bond data stored on the GPU
-/*! gpu_bondtable_array stores all of the bonds between particles on the GPU.
-    It is structured similar to gpu_nlist_array in that a single column in the list
-    stores all of the bonds for the particle associated with that column.
+//! Allocate scratch memory for bond table creation
+void gpu_bonddata_allocate_scratch();
 
-    To access bond \em b of particle with local index \em i, use the following indexing scheme
-    \code
-    uint2 bond = bondtable.bonds[b*bondtable.pitch + i]
-    \endcode
-    The particle with \b index (not tag) \em i is bonded to particle \em bond.x
-    with bond type \em bond.y. Each particle may have a different number of bonds as
-    indicated in \em n_bonds[i].
+//! Deallocate scratch memory for bond table creation
+void gpu_bonddata_deallocate_scratch();
 
-    Only \a num_local bonds are stored on each GPU for the local particles
+//! Find the maximum number of bonds per particle
+cudaError_t gpu_find_max_bond_number(uint3 *d_bonds,
+                                     unsigned int num_bonds,
+                                     unsigned int N,
+                                     unsigned int *d_rtag,
+                                     unsigned int *d_n_bonds,
+                                     unsigned int& max_bond_num,
+                                     unsigned int *& d_sort_keys,
+                                     uint2 *& d_sort_values);
 
-    \ingroup gpu_data_structs
-*/
-struct gpu_bondtable_array
-    {
-    unsigned int *n_bonds;  //!< Number of bonds for each particle
-    uint2 *bonds;           //!< bond list
-    unsigned int height;    //!< height of the bond list
-    unsigned int pitch;     //!< width (in elements) of the bond list
-    
-    //! Allocates memory
-    cudaError_t allocate(unsigned int num_local, unsigned int alloc_height);
-    
-    //! Frees memory
-    cudaError_t deallocate();
-    };
+//! Construct the GPU bond table
+cudaError_t gpu_create_bondtable(unsigned int num_bonds,
+                                     uint2 *d_gpu_bondtable,
+                                     unsigned int pitch,
+                                     unsigned int * d_sort_keys,
+                                     uint2 *d_sort_values );
 
 #endif
 

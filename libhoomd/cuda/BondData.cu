@@ -52,6 +52,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BondData.cuh"
 
+#include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
+#include <thrust/transform.h>
+#include <thrust/scatter.h>
+#include <thrust/scan.h>
+#include <thrust/sort.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/constant_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/reduce.h>
+
 #ifdef WIN32
 #include <cassert>
 #else
@@ -59,69 +70,259 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /*! \file BondData.cu
-    \brief Defines the data structures for storing bonds on the GPU.
+    \brief Implements the helper functions (GPU version) for updating the GPU bond table
 */
 
-/*! \pre no allocations have been performed or deallocate() has been called after a previous allocate()
-    \post Memory for \a n_bonds and \a bonds is allocated on the device
-    \param num_local Number of particles local to the GPU on which this is being called
-    \param alloc_height Number of bonds to allocate for each particle
-    \note allocate() \b must be called on the GPU it is to allocate data on
-*/
-cudaError_t gpu_bondtable_array::allocate(unsigned int num_local, unsigned int alloc_height)
+//! Sorted array of the first bond member as key
+thrust::device_vector<unsigned int> *sort_keys = NULL;
+//! Sorted array of the second bond member and the bond type as value
+thrust::device_vector<uint2> *sort_values = NULL;
+
+//! Map of indices in the 2D GPU bond table for every first member of a bond
+thrust::device_vector<unsigned int> *map = NULL;
+
+//! Sorted list of number of bonds for each particle index
+thrust::device_vector<unsigned int> *num_bonds_sorted = NULL;
+
+//! Sorted list of particle indices that have at least one bond
+thrust::device_vector<unsigned int> *bonded_indices = NULL;
+
+void gpu_bonddata_allocate_scratch()
     {
-    // sanity checks
-    assert(n_bonds == NULL);
-    assert(bonds == NULL);
-    
-    height = alloc_height;
-    
-    // allocate n_bonds and check for errors
-    cudaError_t error = cudaMalloc((void**)((void*)&n_bonds), num_local*sizeof(unsigned int));
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaMemset((void*)n_bonds, 0, num_local*sizeof(unsigned int));
-    if (error != cudaSuccess)
-        return error;
-        
-    // cudaMallocPitch fails to work for coalesced reads here (dunno why), need to calculate pitch ourselves
-    // round up to the nearest multiple of 32
-    pitch = (num_local + (32 - num_local & 31));
-    error = cudaMalloc((void**)((void*)&bonds), pitch * height * sizeof(uint2));
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaMemset((void*)bonds, 0, pitch * height * sizeof(uint2));
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
+    assert(sort_keys == NULL);
+    assert(sort_values == NULL);
+    assert(map == NULL);
+    assert(bonded_indices == NULL);
+    assert(num_bonds_sorted == NULL);
+
+    sort_keys = new thrust::device_vector<unsigned int>();
+    sort_values = new thrust::device_vector<uint2>();
+
+    map = new thrust::device_vector<unsigned int>();
+
+    bonded_indices= new thrust::device_vector<unsigned int>();
+    num_bonds_sorted = new thrust::device_vector<unsigned int>();
+    }
+
+void gpu_bonddata_deallocate_scratch()
+    {
+    assert(sort_keys);
+    assert(sort_values);
+    assert(bonded_indices);
+    assert(num_bonds_sorted);
+    assert(map);
+
+
+
+    delete sort_keys;
+    delete sort_values;
+    delete map;
+    delete bonded_indices;
+    delete num_bonds_sorted;
+
+    sort_keys = NULL;
+    sort_values = NULL;
+    map = NULL;
+    bonded_indices = NULL;
+    num_bonds_sorted = NULL;
+    }
+
+struct get_a : thrust::unary_function<uint3, unsigned int>
+    {
+    //! Get tag a
+    __host__ __device__
+    unsigned int operator ()(uint3 bond)
+        {
+        return bond.y;
+        }
+    };
+
+struct get_idx_a_and_type : thrust::unary_function<uint3, uint2>
+    {
+    //! Constructor
+    get_idx_a_and_type(unsigned int *_d_rtag) : d_rtag(_d_rtag) {}
+
+    //! Get tag a and the bond type
+    __device__
+    uint2 operator ()(uint3 bond)
+        {
+        return make_uint2(d_rtag[bond.y],bond.x);
+        }
+
+    unsigned int *d_rtag; //!< Device pointer to rtag array
+    };
+
+
+struct get_b : thrust::unary_function<uint3, unsigned int>
+    {
+    //! Get tag b
+    __host__ __device__
+    unsigned int operator ()(uint3 bond)
+        {
+        return bond.z;
+        }
+    };
+
+struct get_idx_b_and_type : thrust::unary_function<uint3, uint2>
+    {
+    //! Constructor
+    get_idx_b_and_type(unsigned int *_d_rtag) : d_rtag(_d_rtag) {}
+
+    //! Get tag b and the bond type
+    __device__
+    uint2 operator ()(uint3 bond)
+        {
+        return make_uint2(d_rtag[bond.z],bond.x);
+        }
+
+    unsigned int *d_rtag; //!< Device pointer to rtag array
+    };
+
+
+//! Find the maximum number of bonds per particle
+/*! \param d_bonds Array of bonds
+    \param num_bonds Size of bond array
+    \param N Number of particles in the system
+    \param d_rtag Array of reverse-lookup particle tag -> particle index
+    \param d_n_bonds Number of bonds per particle
+    \param max_bond_num Maximum number of bonds (return value)
+    \param d_sort_keys Pointer to a temporary sorted list of first bond member indices (return value)
+    \param d_sort_values Pointer to a temporary list of second bond member indices and bond types
+ */
+cudaError_t gpu_find_max_bond_number(uint3 *d_bonds,
+                                     unsigned int num_bonds,
+                                     unsigned int N,
+                                     unsigned int *d_rtag,
+                                     unsigned int *d_n_bonds,
+                                     unsigned int& max_bond_num,
+                                     unsigned int *& d_sort_keys,
+                                     uint2 *& d_sort_values)
+    {
+    assert(d_bonds);
+    assert(d_rtag);
+    assert(d_n_bonds);
+
+    thrust::device_ptr<uint3> bonds_ptr(d_bonds);
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+    thrust::device_ptr<unsigned int> n_bonds_ptr(d_n_bonds);
+
+    if (sort_keys->size() < 2*num_bonds)
+        {
+        sort_keys->resize(2*num_bonds);
+        sort_values->resize(2*num_bonds);
+        bonded_indices->resize(2*num_bonds);
+        num_bonds_sorted->resize(2*num_bonds);
+        }
+
+    // idx a goes into sort_keys
+    thrust::copy(thrust::make_permutation_iterator(
+                     rtag_ptr,
+                     thrust::make_transform_iterator(bonds_ptr, get_a())
+                     ),
+                 thrust::make_permutation_iterator(
+                     rtag_ptr,
+                     thrust::make_transform_iterator(bonds_ptr, get_a())
+                     ) + num_bonds,
+                 sort_keys->begin());
+
+    // idx b and bond type goes into sort_values
+    thrust::copy(thrust::make_transform_iterator(bonds_ptr, get_idx_b_and_type(d_rtag)),
+                 thrust::make_transform_iterator(bonds_ptr, get_idx_b_and_type(d_rtag)) +num_bonds,
+                 sort_values->begin());
+
+    // append idx b values to sort_keys
+    thrust::copy(thrust::make_permutation_iterator(
+                     rtag_ptr,
+                     thrust::make_transform_iterator(bonds_ptr, get_b())
+                     ),
+                 thrust::make_permutation_iterator(
+                     rtag_ptr,
+                     thrust::make_transform_iterator(bonds_ptr, get_b())
+                     ) + num_bonds,
+                 sort_keys->begin() + num_bonds);
+
+    // append idx a and bond type to sort_values
+    thrust::copy( thrust::make_transform_iterator(bonds_ptr, get_idx_a_and_type(d_rtag)),
+                  thrust::make_transform_iterator(bonds_ptr, get_idx_a_and_type(d_rtag))+num_bonds,
+                  sort_values->begin() + num_bonds);
+
+
+    // sort first bond members as keys with second bond members and bond types as values
+    thrust::sort_by_key(sort_keys->begin(),
+                 sort_keys->begin() + 2 * num_bonds,
+                 sort_values->begin());
+
+    // count multiplicity of each key
+    unsigned int n_unique_indices = thrust::reduce_by_key(sort_keys->begin(),
+                          sort_keys->begin() + 2 * num_bonds,
+                          thrust::constant_iterator<unsigned int>(1),
+                          bonded_indices->begin(),
+                          num_bonds_sorted->begin() ).second - num_bonds_sorted->begin();
+
+    // find the maximum
+    max_bond_num = thrust::reduce(num_bonds_sorted->begin(),
+                                  num_bonds_sorted->begin() + n_unique_indices,
+                                  0,
+                                  thrust::maximum<unsigned int>());
+
+    // fill n_bonds array with zeros
+    thrust::fill(n_bonds_ptr,
+                 n_bonds_ptr + N,
+                 0);
+
+    // scatter bond numbers in n_bonds array
+    thrust::scatter(num_bonds_sorted->begin(),
+                    num_bonds_sorted->begin() + n_unique_indices,
+                    bonded_indices->begin(),
+                    n_bonds_ptr);
+
+    d_sort_keys = thrust::raw_pointer_cast(&*sort_keys->begin());
+    d_sort_values = thrust::raw_pointer_cast(&*sort_values->begin());
     return cudaSuccess;
     }
 
-/*! \pre allocate() has been called
-    \post Memory for \a n_bonds and \a bonds is freed on the device
-    \note deallocate() \b must be called on the same GPU as allocate()
-*/
-cudaError_t gpu_bondtable_array::deallocate()
+//! Construct the GPU bond table
+/*! \param num_bonds Size of bond array
+    \param d_gpu_bondtable Pointer to the bond table on the GPU
+    \param pitch Pitch of 2D bondtable array
+    \param d_sort_keys First bond members as keys (sorted)
+    \param d_sort_values Second bond members as values (sorted)
+ */
+cudaError_t gpu_create_bondtable(unsigned int num_bonds,
+                                     uint2 *d_gpu_bondtable,
+                                     unsigned int pitch,
+                                     unsigned int * d_sort_keys,
+                                     uint2 *d_sort_values )
+
     {
-    // sanity checks
-    assert(n_bonds != NULL);
-    assert(bonds != NULL);
-    
-    // free the memory
-    cudaError_t error = cudaFree((void*)n_bonds);
-    n_bonds = NULL;
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaFree((void*)bonds);
-    bonds = NULL;
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
+
+    thrust::device_ptr<uint2> gpu_bondtable_ptr(d_gpu_bondtable);
+
+    thrust::device_ptr<unsigned int> sort_keys_ptr(d_sort_keys);
+    thrust::device_ptr<uint2> sort_values_ptr(d_sort_values);
+
+    if (map->size() < 2*num_bonds)
+        {
+        map->resize(2*num_bonds);
+        }
+
+    // create the map of 2D bond table indices for all first bond members
+    thrust::exclusive_scan_by_key(sort_keys_ptr,
+                                  sort_keys_ptr + 2 * num_bonds,
+                                  thrust::make_constant_iterator(pitch),
+                                  map->begin());
+
+    thrust::transform(map->begin(),
+                      map->begin() + 2 * num_bonds,
+                      sort_keys_ptr,
+                      map->begin(),
+                      thrust::plus<unsigned int>());
+
+    // scatter the second bond member into the 2D matrix according to the map
+    thrust::scatter(sort_values_ptr,
+                    sort_values_ptr + 2* num_bonds,
+                    map->begin(),
+                    gpu_bondtable_ptr);
+
     return cudaSuccess;
     }
-
