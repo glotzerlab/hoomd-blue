@@ -122,11 +122,11 @@ struct SnapshotBondData
         bond_tag.resize(n_bonds);
         }
 
-    std::vector<unsigned int> type_id;      //!< Stores type for each bond
-    std::vector<uint2> bonds;              //!< .x and .y are tags of the two particles in the bond
-    std::vector<unsigned int> bond_tag;    //!< Tags of bonds
-    std::map<unsigned int,unsigned int> bond_rtag; //! Reverse-lookup map bond tag->index
-    std::vector<std::string> type_mapping; //!< Names of bond types
+    std::vector<unsigned int> type_id;             //!< Stores type for each bond
+    std::vector<uint2> bonds;                      //!< .x and .y are tags of the two particles in the bond
+    std::vector<unsigned int> bond_tag;            //!< Tags of bonds
+    std::map<unsigned int,unsigned int> bond_rtag; //!< Reverse-lookup map bond tag->index
+    std::vector<std::string> type_mapping;         //!< Names of bond types
     };
 
 //! Stores all bonds in the simulation and mangages the GPU bond data structure

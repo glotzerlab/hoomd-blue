@@ -127,6 +127,7 @@ void gpu_bonddata_deallocate_scratch()
     num_bonds_sorted = NULL;
     }
 
+//! Helper structure to get particle tag a from a bond
 struct get_a : thrust::unary_function<uint3, unsigned int>
     {
     //! Get tag a
@@ -137,6 +138,7 @@ struct get_a : thrust::unary_function<uint3, unsigned int>
         }
     };
 
+//! Helper structure to get particle tag a and the bond type from a bond
 struct get_idx_a_and_type : thrust::unary_function<uint3, uint2>
     {
     //! Constructor
@@ -153,6 +155,7 @@ struct get_idx_a_and_type : thrust::unary_function<uint3, uint2>
     };
 
 
+//! Helper structure to get particle tag b from a bond
 struct get_b : thrust::unary_function<uint3, unsigned int>
     {
     //! Get tag b
@@ -163,6 +166,7 @@ struct get_b : thrust::unary_function<uint3, unsigned int>
         }
     };
 
+//! Helper structure to get particle tag b and the bond type from a bond
 struct get_idx_b_and_type : thrust::unary_function<uint3, uint2>
     {
     //! Constructor

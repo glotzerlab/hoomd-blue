@@ -131,6 +131,7 @@ template<class T> class GPUVector : public GPUArray<T>
                 data_proxy(const GPUVector<T> & _vec, const unsigned int _n)
                     : vec(_vec), n(_n) { }
 
+                //! Type cast
                 operator T() const
                     {
                     T *data  = vec.acquireHost(access_mode::read);
@@ -139,7 +140,7 @@ template<class T> class GPUVector : public GPUArray<T>
                     return val;
                     }
 
-
+                //! Assignment
                 data_proxy& operator= (T rhs)
                     {
                     T *data  = vec.acquireHost(access_mode::readwrite);
@@ -149,8 +150,8 @@ template<class T> class GPUVector : public GPUArray<T>
                     }
 
             private:
-                const GPUVector<T>& vec; //! The vector that is accessed
-                unsigned int n;          //! The index of the element to access
+                const GPUVector<T>& vec; //!< The vector that is accessed
+                unsigned int n;          //!< The index of the element to access
             };
 
         //! Get a proxy-reference to a list element
@@ -224,7 +225,7 @@ template<class T> void GPUVector<T>::swap(GPUVector& from)
     GPUArray<T>::swap(from);
     }
 
-/*! \param new_size New requested size of allocated memory
+/*! \param size New requested size of allocated memory
  *
  * Internally, this method uses amortized doubling of allocated memory to
  * avoid excessive copying of data. The GPUArray is only reallocated if necessary,
