@@ -104,6 +104,31 @@ struct Bond
     unsigned int b;     //!< The tag of the second particle in the bond
     };
 
+//! Handy structure for passing around and initializing the bond data
+/*! This structure can be used for initializing and reading out the bond data.
+    Bonds are uniquely identified by the bond_tag. The order in which the bonds
+    are stored in the snapshot may be arbitrary. The bond_rtag map can be used for looking
+    up a bond in the bonds list by tag.
+ */
+struct SnapshotBondData
+    {
+    //! Constructor
+    /*! \param n_bonds Number of bonds contained in the snapshot
+     */
+    SnapshotBondData(unsigned int n_bonds)
+        {
+        type_id.resize(n_bonds);
+        bonds.resize(n_bonds);
+        bond_tag.resize(n_bonds);
+        }
+
+    std::vector<unsigned int> type_id;      //!< Stores type for each bond
+    std::vector<uint2> bonds;              //!< .x and .y are tags of the two particles in the bond
+    std::vector<unsigned int> bond_tag;    //!< Tags of bonds
+    std::map<unsigned int,unsigned int> bond_rtag; //! Reverse-lookup map bond tag->index
+    std::vector<std::string> type_mapping; //!< Names of bond types
+    };
+
 //! Stores all bonds in the simulation and mangages the GPU bond data structure
 /*! BondData tracks every bond defined in the simulation. On the CPU, bonds are stored just
     as a simple vector of Bond structs. On the GPU, the list of bonds is decomposed into a
@@ -143,7 +168,9 @@ class BondData : boost::noncopyable
         */
         const Bond getBond(unsigned int i) const
             {
-            assert(i < m_bonds.size()); return Bond(((uint3)m_bonds[i]).x, ((uint3) m_bonds[i]).y, ((uint3)m_bonds[i]).z);
+            uint3 bond = m_bonds[i];
+            assert(i < m_bonds.size());
+            return Bond(bond.x, bond.y, bond.z);
             }
 
         //! Get bond by tag value
@@ -198,6 +225,12 @@ class BondData : boost::noncopyable
         const GPUArray<uint2>& getGPUBondList();
 #endif
         
+        //! Takes a snapshot of the current bond data
+        void takeSnapshot(SnapshotBondData& snapshot);
+
+        //! Initialize the bond data from a snapshot
+        void initializeFromSnapshot(const SnapshotBondData& snapshot);
+
     private:
         const unsigned int m_n_bond_types;              //!< Number of bond types
         bool m_bonds_dirty;                             //!< True if the bond list has been changed

@@ -388,6 +388,60 @@ void BondData::allocateBondTable(int height)
 
 #endif
 
+//! Takes a snapshot of the current bond data
+/*! \param snapshot The snapshot that will contain the bond data
+*/
+void BondData::takeSnapshot(SnapshotBondData& snapshot)
+    {
+    // check for an invalid request
+    if (snapshot.bonds.size() != getNumBonds())
+        {
+        cerr << endl << "***Error! BondData is being asked to initizalize a snapshot of the wrong size."
+             << endl << endl;
+        throw runtime_error("Error taking snapshot.");
+        }
+
+    assert(snapshot.bond_tag.size() == getNumBonds());
+    assert(snapshot.type_id.size() == getNumBonds());
+    assert(snapshot.bond_rtag.size() == 0);
+    assert(snapshot.type_mapping.size() == 0);
+
+    for (unsigned int bond_idx = 0; bond_idx < getNumBonds(); bond_idx++)
+        {
+        uint3 bond = m_bonds[bond_idx];
+        snapshot.bonds[bond_idx] = make_uint2(bond.y, bond.z);
+        snapshot.type_id[bond_idx] = bond.x;
+        unsigned int tag = m_tags[bond_idx];
+        snapshot.bond_tag[bond_idx] = tag;
+        snapshot.bond_rtag.insert(std::pair<unsigned int, unsigned int>(tag, bond_idx));
+        }
+
+    for (unsigned int i = 0; i < m_n_bond_types; i++)
+        snapshot.type_mapping.push_back(m_bond_type_mapping[i]);
+
+    }
+
+//! Initialize the bond data from a snapshot
+/*! \param snapshot The snapshot to initialize the bonds from
+    Before initialization, the current bond data is cleared.
+ */
+void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
+    {
+    m_bonds.clear();
+    m_tags.clear();
+    while (! m_deleted_tags.empty())
+        m_deleted_tags.pop();
+    m_bond_rtag.clear();
+
+    for (unsigned int bond_idx = 0; bond_idx < snapshot.bonds.size(); bond_idx++)
+        {
+        Bond bond(snapshot.type_id[bond_idx], snapshot.bonds[bond_idx].x, snapshot.bonds[bond_idx].y);
+        addBond(bond);
+        }
+
+    setBondTypeMapping(snapshot.type_mapping);
+    }
+
 void export_BondData()
     {
     class_<Bond>("Bond", init<unsigned int, unsigned int, unsigned int>())
@@ -406,6 +460,8 @@ void export_BondData()
     .def("getBond", &BondData::getBond)
     .def("getBondByTag", &BondData::getBondByTag)
     .def("getBondTag", &BondData::getBondTag)
+    .def("takeSnapshot", &BondData::takeSnapshot)
+    .def("initializeFromSnapshot", &BondData::initializeFromSnapshot)
     ;
     
     }
