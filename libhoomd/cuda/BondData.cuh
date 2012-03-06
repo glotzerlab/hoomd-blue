@@ -66,7 +66,8 @@ void gpu_bonddata_allocate_scratch();
 void gpu_bonddata_deallocate_scratch();
 
 //! Find the maximum number of bonds per particle
-cudaError_t gpu_find_max_bond_number(uint3 *d_bonds,
+cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
+                                     unsigned int *d_bond_type,
                                      unsigned int num_bonds,
                                      unsigned int N,
                                      unsigned int *d_rtag,

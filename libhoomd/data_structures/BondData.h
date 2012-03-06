@@ -168,9 +168,10 @@ class BondData : boost::noncopyable
         */
         const Bond getBond(unsigned int i) const
             {
-            uint3 bond = m_bonds[i];
+            uint2 bond = m_bonds[i];
             assert(i < m_bonds.size());
-            return Bond(bond.x, bond.y, bond.z);
+            assert(i < m_bond_type.size());
+            return Bond(m_bond_type[i], bond.x, bond.y);
             }
 
         //! Get bond by tag value
@@ -197,10 +198,17 @@ class BondData : boost::noncopyable
         std::string getNameByType(unsigned int type);
 
         //! Gets the bond table
-        const GPUVector<uint3>& getBondTable()
+        const GPUVector<uint2>& getBondTable()
             {
             return m_bonds;
             }
+
+        //! Gets the bond types
+        const GPUVector<unsigned int>& getBondTypes()
+            {
+            return m_bond_type;
+            }
+
 
         //! Gets the list of bond tags
         const GPUVector<unsigned int>& getBondTags() const
@@ -236,7 +244,8 @@ class BondData : boost::noncopyable
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
         boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
-        GPUVector<uint3> m_bonds;                       //!< List of bonds by tag (x: type, y: tag a, z: tag b)
+        GPUVector<uint2> m_bonds;                       //!< List of bonds (x: tag a, y: tag b)
+        GPUVector<unsigned int> m_bond_type;            //!< List of bond types
         GPUVector<unsigned int> m_tags;                 //!< Bond tags
         std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
         GPUVector<unsigned int> m_bond_rtag;            //!< Map to support lookup of bonds by tag

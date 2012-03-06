@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
 #include <thrust/reduce.h>
 
 #ifdef WIN32
@@ -127,64 +128,51 @@ void gpu_bonddata_deallocate_scratch()
     num_bonds_sorted = NULL;
     }
 
-//! Helper structure to get particle tag a from a bond
-struct get_a : thrust::unary_function<uint3, unsigned int>
-    {
-    //! Get tag a
-    __host__ __device__
-    unsigned int operator ()(uint3 bond)
-        {
-        return bond.y;
-        }
-    };
-
-//! Helper structure to get particle tag a and the bond type from a bond
-struct get_idx_a_and_type : thrust::unary_function<uint3, uint2>
+//! Helper structure to get particle tag a or b from a bond
+struct get_tag : thrust::unary_function<uint2, unsigned int>
     {
     //! Constructor
-    get_idx_a_and_type(unsigned int *_d_rtag) : d_rtag(_d_rtag) {}
+    get_tag(unsigned int _member_idx)
+        : member_idx(_member_idx)
+        { }
 
-    //! Get tag a and the bond type
-    __device__
-    uint2 operator ()(uint3 bond)
-        {
-        return make_uint2(d_rtag[bond.y],bond.x);
-        }
-
-    unsigned int *d_rtag; //!< Device pointer to rtag array
-    };
-
-
-//! Helper structure to get particle tag b from a bond
-struct get_b : thrust::unary_function<uint3, unsigned int>
-    {
-    //! Get tag b
+    //! Get particle tag
     __host__ __device__
-    unsigned int operator ()(uint3 bond)
+    unsigned int operator ()(uint2 bond)
         {
-        return bond.z;
+        return (member_idx == 0) ? bond.x : bond.y;
         }
+
+    private:
+        unsigned int member_idx; //!< Index of particle tag to get (0: a, 1: b)
     };
 
-//! Helper structure to get particle tag b and the bond type from a bond
-struct get_idx_b_and_type : thrust::unary_function<uint3, uint2>
+//! Helper structure to get particle tag a or b and the bond type from a bond
+struct get_idx_and_type : thrust::unary_function<thrust::tuple<uint2, unsigned int>, uint2>
     {
     //! Constructor
-    get_idx_b_and_type(unsigned int *_d_rtag) : d_rtag(_d_rtag) {}
+    get_idx_and_type(unsigned int *_d_rtag,
+                       unsigned int _member_idx)
+        : d_rtag(_d_rtag), member_idx(_member_idx) {}
 
     //! Get tag b and the bond type
     __device__
-    uint2 operator ()(uint3 bond)
+    uint2 operator ()(thrust::tuple<uint2, unsigned int> t)
         {
-        return make_uint2(d_rtag[bond.z],bond.x);
+        uint2 b = thrust::get<0>(t);
+        return make_uint2((member_idx == 0) ? d_rtag[b.x]: d_rtag[b.y],thrust::get<1>(t));
         }
 
-    unsigned int *d_rtag; //!< Device pointer to rtag array
+    private:
+        unsigned int *d_rtag; //!< Device pointer to rtag array
+        unsigned int member_idx; //!< Index of particle tag to get (0: a, 1: b)
+
     };
 
 
 //! Find the maximum number of bonds per particle
 /*! \param d_bonds Array of bonds
+    \param d_bond_type Array of bond types
     \param num_bonds Size of bond array
     \param N Number of particles in the system
     \param d_rtag Array of reverse-lookup particle tag -> particle index
@@ -193,7 +181,8 @@ struct get_idx_b_and_type : thrust::unary_function<uint3, uint2>
     \param d_sort_keys Pointer to a temporary sorted list of first bond member indices (return value)
     \param d_sort_values Pointer to a temporary list of second bond member indices and bond types
  */
-cudaError_t gpu_find_max_bond_number(uint3 *d_bonds,
+cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
+                                     unsigned int *d_bond_type,
                                      unsigned int num_bonds,
                                      unsigned int N,
                                      unsigned int *d_rtag,
@@ -203,10 +192,12 @@ cudaError_t gpu_find_max_bond_number(uint3 *d_bonds,
                                      uint2 *& d_sort_values)
     {
     assert(d_bonds);
+    assert(d_bond_type);
     assert(d_rtag);
     assert(d_n_bonds);
 
-    thrust::device_ptr<uint3> bonds_ptr(d_bonds);
+    thrust::device_ptr<uint2> bonds_ptr(d_bonds);
+    thrust::device_ptr<unsigned int> bond_type_ptr(d_bond_type);
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
     thrust::device_ptr<unsigned int> n_bonds_ptr(d_n_bonds);
 
@@ -221,34 +212,40 @@ cudaError_t gpu_find_max_bond_number(uint3 *d_bonds,
     // idx a goes into sort_keys
     thrust::copy(thrust::make_permutation_iterator(
                      rtag_ptr,
-                     thrust::make_transform_iterator(bonds_ptr, get_a())
+                     thrust::make_transform_iterator(bonds_ptr, get_tag(0))
                      ),
                  thrust::make_permutation_iterator(
                      rtag_ptr,
-                     thrust::make_transform_iterator(bonds_ptr, get_a())
+                     thrust::make_transform_iterator(bonds_ptr, get_tag(0))
                      ) + num_bonds,
                  sort_keys->begin());
 
     // idx b and bond type goes into sort_values
-    thrust::copy(thrust::make_transform_iterator(bonds_ptr, get_idx_b_and_type(d_rtag)),
-                 thrust::make_transform_iterator(bonds_ptr, get_idx_b_and_type(d_rtag)) +num_bonds,
-                 sort_values->begin());
+    thrust::copy(
+        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
+            get_idx_and_type(d_rtag,1)),
+        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
+            get_idx_and_type(d_rtag,1)) + num_bonds,
+        sort_values->begin());
 
     // append idx b values to sort_keys
     thrust::copy(thrust::make_permutation_iterator(
                      rtag_ptr,
-                     thrust::make_transform_iterator(bonds_ptr, get_b())
+                     thrust::make_transform_iterator(bonds_ptr, get_tag(1))
                      ),
                  thrust::make_permutation_iterator(
                      rtag_ptr,
-                     thrust::make_transform_iterator(bonds_ptr, get_b())
+                     thrust::make_transform_iterator(bonds_ptr, get_tag(1))
                      ) + num_bonds,
                  sort_keys->begin() + num_bonds);
 
     // append idx a and bond type to sort_values
-    thrust::copy( thrust::make_transform_iterator(bonds_ptr, get_idx_a_and_type(d_rtag)),
-                  thrust::make_transform_iterator(bonds_ptr, get_idx_a_and_type(d_rtag))+num_bonds,
-                  sort_values->begin() + num_bonds);
+    thrust::copy(
+        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
+            get_idx_and_type(d_rtag,0)),
+        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
+            get_idx_and_type(d_rtag,0)) + num_bonds,
+        sort_values->begin() + num_bonds);
 
 
     // sort first bond members as keys with second bond members and bond types as values

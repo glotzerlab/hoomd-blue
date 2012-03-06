@@ -77,7 +77,7 @@ using namespace std;
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
     : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
-      m_bonds(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
+      m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
     {
     assert(pdata);
     
@@ -177,7 +177,8 @@ unsigned int BondData::addBond(const Bond& bond)
 
     assert(tag <= m_deleted_tags.size() + m_bonds.size());
 
-    m_bonds.push_back(make_uint3(bond.type, bond.a, bond.b));
+    m_bonds.push_back(make_uint2(bond.a, bond.b));
+    m_bond_type.push_back(bond.type);
 
     m_tags.push_back(tag);
 
@@ -197,8 +198,8 @@ const Bond BondData::getBondByTag(unsigned int tag) const
         throw runtime_error("Error getting bond");
         }
 
-    uint3 b = m_bonds[bond_idx];
-    Bond bond(b.x, b.y, b.z);
+    uint2 b = m_bonds[bond_idx];
+    Bond bond(m_bond_type[bond_idx], b.x, b.y);
     return bond;
     }
 
@@ -237,15 +238,15 @@ void BondData::removeBond(unsigned int tag)
     // to the position of the removed element
     if (id < (size-1))
         {
-        uint3 tmp;
-        tmp = m_bonds[size-1];
-        m_bonds[id] = tmp;
+        m_bonds[id] =(uint2) m_bonds[size-1];
+        m_bond_type[id] = (unsigned int) m_bond_type[size-1];
         unsigned int last_tag = m_tags[size-1];
         m_bond_rtag[last_tag] = id;
         m_tags[id] = last_tag;
         }
     // delete last element
     m_bonds.pop_back();
+    m_bond_type.pop_back();
     m_tags.pop_back();
 
     // maintain a stack of deleted bond tags for future recycling
@@ -329,10 +330,12 @@ void BondData::updateBondTableGPU()
 
 
         {
-        ArrayHandle<uint3> d_bonds(m_bonds, access_location::device, access_mode::read);
+        ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
         gpu_find_max_bond_number(d_bonds.data,
+                                 d_bond_type.data,
                                  m_bonds.size(),
                                  m_pdata->getN(),
                                  d_rtag.data,
@@ -408,9 +411,8 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
 
     for (unsigned int bond_idx = 0; bond_idx < getNumBonds(); bond_idx++)
         {
-        uint3 bond = m_bonds[bond_idx];
-        snapshot.bonds[bond_idx] = make_uint2(bond.y, bond.z);
-        snapshot.type_id[bond_idx] = bond.x;
+        snapshot.bonds[bond_idx] = m_bonds[bond_idx];
+        snapshot.type_id[bond_idx] = m_bond_type[bond_idx];
         unsigned int tag = m_tags[bond_idx];
         snapshot.bond_tag[bond_idx] = tag;
         snapshot.bond_rtag.insert(std::pair<unsigned int, unsigned int>(tag, bond_idx));
@@ -428,6 +430,7 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
 void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
     {
     m_bonds.clear();
+    m_bond_type.clear();
     m_tags.clear();
     while (! m_deleted_tags.empty())
         m_deleted_tags.pop();
