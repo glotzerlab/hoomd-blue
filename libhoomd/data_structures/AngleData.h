@@ -80,7 +80,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUVector.h"
 #include "ExecutionConfiguration.h"
 
-// Sentinel value in bond reverse-lookup map for unassigned angle tags
+// Sentinel value in angle reverse-lookup map for unassigned angle tags
 #define NO_ANGLE 0xffffffff
 
 // forward declaration of ParticleData to avoid circular references

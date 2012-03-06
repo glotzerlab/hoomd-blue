@@ -76,7 +76,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Sorted array of the first angle member as key
 thrust::device_vector<unsigned int> *angle_sort_keys = NULL;
-//! Sorted array of the second angle member and the angle type as value
+
+//! Sorted array of the second and third angle member and the angle type as value
 thrust::device_vector<uint4> *angle_sort_values = NULL;
 
 //! Map of indices in the 2D GPU angle table for every first member of a angle

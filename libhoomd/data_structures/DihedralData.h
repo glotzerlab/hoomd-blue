@@ -77,19 +77,48 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DihedralData.cuh"
 #endif
 
+#include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+
+// Sentinel value in dihedral reverse-lookup map for unassigned dihedral type
+#define NO_DIHEDRAL 0xffffffff
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
 
-//! Stores an dihedral between four particles
+//! Handy structure for passing around and initializing the dihedral data
+/*! This structure can be used for initializing and reading out the dihedral data.
+    Dihedrals are uniquely identified by the dihedral_tag. The order in which the dihedrals
+    are stored in the snapshot may be arbitrary. The dihedral_rtag map is used
+    to lookup a dihedral  in the dihedral list by tag.
+*/
+struct SnapshotDihedralData
+    {
+    //! Constructor
+    /*! \param n_dihedrals Number of dihedrals contained in the snapshot
+     */
+    SnapshotDihedralData(unsigned int n_dihedrals)
+        {
+        type_id.resize(n_dihedrals);
+        dihedrals.resize(n_dihedrals);
+        dihedral_tag.resize(n_dihedrals);
+        }
+
+    std::vector<unsigned int> type_id;                 //!< Stores type for each bo
+    std::vector<uint4> dihedrals;                      //!< .x and .y are tags of t
+    std::vector<unsigned int> dihedral_tag;            //!< Tags of dihedrals
+    std::map<unsigned int,unsigned int> dihedral_rtag; //!< Reverse-lookup map for dihedral tags
+    std::vector<std::string> type_mapping;             //!< Names of dihedral types
+    };
+
+//! Stores a dihedral between four particles
 /*! Each dihedral is given an integer \c type from 0 to \c NDihedralTypes-1 and the \em tags
     of the three dihedrald particles.
     \ingroup data_structs
 */
 struct Dihedral
     {
-    //! Constructs an dihedral
+    //! Constructs a dihedral
     /*! \param dihedral_type Type index of the dihedral
         \param tag_a Tag of the first particle in the dihedral
         \param tag_b Tag of the second particle in the dihedral
@@ -127,7 +156,7 @@ class DihedralData : boost::noncopyable
         //! Destructor
         ~DihedralData();
         
-        //! Add an dihedral to the list
+        //! Add a dihedral to the list
         unsigned int addDihedral(const Dihedral& dihedral);
 
         //! Remove a dihedral identified by its unique tag from the list
@@ -144,13 +173,16 @@ class DihedralData : boost::noncopyable
         //! Get access to a dihedral
         /*! \param i Dihedral to access
         */
-        const Dihedral& getDihedral(unsigned int i) const
+        const Dihedral getDihedral(unsigned int i) const
             {
-            assert(i < m_dihedrals.size()); return m_dihedrals[i];
+            assert(i < m_dihedrals.size());
+            assert(i < m_dihedral_type.size());
+            uint4 dihedral = m_dihedrals[i];
+            return Dihedral(m_dihedral_type[i], dihedral.x, dihedral.y, dihedral.z, dihedral.w);
             }
 
         //! Get dihedral by tag value
-        const Dihedral& getDihedralByTag(unsigned int tag) const;
+        const Dihedral getDihedralByTag(unsigned int tag) const;
 
         //! Get tag given an id
         unsigned int getDihedralTag(unsigned int id) const;
@@ -172,31 +204,68 @@ class DihedralData : boost::noncopyable
         
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
-        
+
+        //! Gets the dihedral table
+        const GPUVector<uint4>& getDihedralTable()
+            {
+            return m_dihedrals;
+            }
+
+        //! Gets the dihedral types
+        const GPUVector<unsigned int>& getDihedralTypes()
+            {
+            return m_dihedral_type;
+            }
+
+        //! Gets the list of dihedral tags
+        const GPUVector<unsigned int>& getDihedralTags() const
+            {
+           return m_tags;
+            }
+
+        //! Gets the list of dihedral reverse-lookup tags
+        const GPUVector<unsigned int>& getDihedralRTags() const
+            {
+            return m_dihedral_rtag;
+            }
+
 # ifdef ENABLE_CUDA
+        //! Gets the number of dihedrals array
+        const GPUArray<unsigned int>& getNDihedralsArray() const
+           {
+           return m_n_dihedrals;
+           }
+
         //! Access the dihedrals on the GPU
-        gpu_dihedraltable_array& acquireGPU();
-        
+        const GPUArray<uint4>& getGPUDihedralList();
+
+        //! Access the dihedral atom position list on the GPU
+        const GPUArray<uint1>& getDihedralABCD();
 #endif
-        
+
+        //! Takes a snapshot of the current angle data
+        void takeSnapshot(SnapshotDihedralData& snapshot);
+
+        //! Initialize the angle data from a snapshot
+        void initializeFromSnapshot(const SnapshotDihedralData& snapshot);
         
     private:
         const unsigned int m_n_dihedral_types;              //!< Number of dihedral types
         bool m_dihedrals_dirty;                             //!< True if the dihedral list has been changed
         boost::shared_ptr<ParticleData> m_pdata;            //!< Particle Data these dihedrals belong to
-        std::vector<Dihedral> m_dihedrals;                  //!< List of dihedrals on the CPU
-        std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
-        std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
-        std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
+        GPUVector<uint4> m_dihedrals;                       //!< List of dihedrals
+        GPUVector<unsigned int> m_dihedral_type;            //!< List of dihedral types
+        GPUVector<unsigned int> m_tags;                     //!< Reverse lookup table for tags
+        std::stack<unsigned int> m_deleted_tags;            //!< Stack for deleted dihedral tags
+        GPUVector<unsigned int> m_dihedral_rtag;            //!< Map to support lookup of dihedrals by tag
         std::vector<std::string> m_dihedral_type_mapping;   //!< Mapping between dihedral type indices and names
         
         boost::signals::connection m_sort_connection;       //!< Connection to the resort signal from ParticleData
         
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
-
         
         //! Helper function to set the dirty flag when particles are resorted
-        /*! setDirty() just sets the \c m_dihedrals_dirty flag when partciles are sorted or an dihedral is added.
+        /*! setDirty() just sets the \c m_dihedrals_dirty flag when partciles are sorted or a dihedral is added.
             The flag is used to test if the data structure needs updating on the GPU.
         */
         void setDirty()
@@ -205,35 +274,18 @@ class DihedralData : boost::noncopyable
             }
             
 #ifdef ENABLE_CUDA
-        gpu_dihedraltable_array m_gpu_dihedraldata;    //!< List of dihedrals on the GPU
-        uint4 *m_host_dihedrals;             //!< Host copy of the dihedral list (3atoms of a,b,c, or d, plus the type)
-        uint1 *m_host_dihedralsABCD;         //!< Host copy of the dihedralABCD list
-        unsigned int *m_host_n_dihedrals;    //!< Host copy of the number of dihedrals
+        GPUArray<uint4> m_gpu_dihedral_list;                    //!< List of dihedrals on the GPU (3atoms of a,b,c, or d, plus the type)
+        GPUArray<uint1> m_dihedrals_ABCD;                        //!< List of atom positions in the dihedral
+        GPUArray<unsigned int> m_n_dihedrals;                    //!< Number of dihedrals
         
-        /*! \enum dihedralABCD tells if the Dihedral is on the a,b,c, or d atom
-        */
-        enum dihedralABCD
-            {
-            a_atom = 0, //!< atom is the a particle in an a-b-c-d quartet
-            b_atom = 1, //!< atom is the b particle in an a-b-c-d quartet
-            c_atom = 2, //!< atom is the c particle in an a-b-c-d quartet
-            d_atom = 3  //!< atom is the d particle in an a-b-c-d quartet
-            };
-            
         //! Helper function to update the dihedral table on the device
-        void updateDihedralTable();
+        void updateDihedralTableGPU();
         
         //! Helper function to reallocate the dihedral table on the device
         void reallocateDihedralTable(int height);
         
         //! Helper function to allocate the dihedral table
         void allocateDihedralTable(int height);
-        
-        //! Helper function to free the dihedral table
-        void freeDihedralTable();
-        
-        //! Copies the dihedral table to the device
-        void copyDihedralTable();
         
 #endif
     };

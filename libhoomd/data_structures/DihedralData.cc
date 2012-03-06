@@ -81,7 +81,7 @@ using namespace std;
     hanging around.
 */
 DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types) 
-    : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
+    : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()), m_dihedrals(exec_conf), m_dihedral_type(exec_conf), m_tags(exec_conf), m_dihedral_rtag(exec_conf)
     {
     assert(pdata);
     
@@ -100,20 +100,11 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
         }
         
 #ifdef ENABLE_CUDA
-    // init pointers
-    m_host_dihedrals = NULL;
-    m_host_n_dihedrals = NULL;
-    m_host_dihedralsABCD = NULL;
-    m_gpu_dihedraldata.dihedrals = NULL;
-    m_gpu_dihedraldata.dihedralABCD = NULL;
-    m_gpu_dihedraldata.n_dihedrals = NULL;
-    m_gpu_dihedraldata.height = 0;
-    m_gpu_dihedraldata.pitch = 0;
-        
     // allocate memory on the GPU if there is a GPU in the execution configuration
     if (exec_conf->isCUDAEnabled())
         {
         allocateDihedralTable(1);
+        gpu_dihedraldata_allocate_scratch();
         }
 #endif
     }
@@ -125,12 +116,12 @@ DihedralData::~DihedralData()
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
-        freeDihedralTable();
+        gpu_dihedraldata_deallocate_scratch();
         }
 #endif
     }
 
-/*! \post An dihedral between particles specified in \a dihedral is created.
+/*! \post A dihedral between particles specified in \a dihedral is created.
 
     \note Each dihedral should only be specified once! There are no checks to prevent one from being
     specified more than once, and doing so would result in twice the force and twice the energy.
@@ -168,17 +159,24 @@ unsigned int DihedralData::addDihedral(const Dihedral& dihedral)
         {
         tag = m_deleted_tags.top();
         m_deleted_tags.pop();
+
+        // update reverse-lookup tag
+        m_dihedral_rtag[tag] = m_dihedrals.size();
         }
-    // Otherwise, generate a new tag
     else
+        {
+        // Otherwise, generate a new tag
         tag = m_dihedrals.size();
+
+        // add a new reverse-lookup tag
+        assert(m_dihedral_rtag.size() == m_dihedrals.size());
+        m_dihedral_rtag.push_back(m_dihedrals.size());
+        }
 
     assert(tag <= m_deleted_tags.size() + m_dihedrals.size());
 
-    // add mapping pointing to last element in m_dihedrals
-    m_bond_map.insert(std::pair<unsigned int, unsigned int>(tag,m_dihedrals.size()));
-
-    m_dihedrals.push_back(dihedral);
+    m_dihedrals.push_back(make_uint4(dihedral.a, dihedral.b, dihedral.c, dihedral.d));
+    m_dihedral_type.push_back(dihedral.type);
     m_tags.push_back(tag);
 
     m_dihedrals_dirty = true;
@@ -187,19 +185,17 @@ unsigned int DihedralData::addDihedral(const Dihedral& dihedral)
 
 /*! \param tag tag of the dihedral to access
  */
-const Dihedral& DihedralData::getDihedralByTag(unsigned int tag) const
+const Dihedral DihedralData::getDihedralByTag(unsigned int tag) const
     {
     // Find position of dihedral in dihedralss list
-    unsigned int id;
-    std::tr1::unordered_map<unsigned int, unsigned int>::const_iterator it;
-    it = m_bond_map.find(tag);
-    if (it == m_bond_map.end())
+    unsigned int dihedral_idx = m_dihedral_rtag[tag];
+    if (dihedral_idx == NO_DIHEDRAL)
         {
-        cerr << endl << "***Error! Trying to get bond tag " << tag << " which does not exist!" << endl << endl;
-        throw runtime_error("Error getting bond");
+        cerr << endl << "***Error! Trying to get dihedral tag " << tag << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting dihedral");
         }
-    id = it->second;
-    return m_dihedrals[id];
+    uint4 dihedral = m_dihedrals[dihedral_idx];
+    return Dihedral(m_dihedral_type[dihedral_idx], dihedral.x, dihedral.y, dihedral.z, dihedral.w);
     }
 
 /*! \param id Index of dihedral (0 to N-1)
@@ -209,8 +205,8 @@ unsigned int DihedralData::getDihedralTag(unsigned int id) const
     {
     if (id >= getNumDihedrals())
         {
-        cerr << endl << "***Error! Trying to get bond tag from id " << id << " which does not exist!" << endl << endl;
-        throw runtime_error("Error getting bond tag");
+        cerr << endl << "***Error! Trying to get dihedral tag from id " << id << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting dihedral tag");
         }
     return m_tags[id];
     }
@@ -222,30 +218,30 @@ unsigned int DihedralData::getDihedralTag(unsigned int id) const
 void DihedralData::removeDihedral(unsigned int tag)
     {
     // Find position of bond in bonds list
-    unsigned int id;
-    std::tr1::unordered_map<unsigned int, unsigned int>::iterator it;
-    it = m_bond_map.find(tag);
-    if (it == m_bond_map.end())
+    unsigned int id = m_dihedral_rtag[tag];
+    if (id == NO_DIHEDRAL)
         {
-        cerr << endl << "***Error! Trying to remove bond tag " << tag << " which does not exist!" << endl << endl;
-        throw runtime_error("Error removing bond");
+        cerr << endl << "***Error! Trying to remove dihedral tag " << tag << " which does not exist!" << endl << endl;
+        throw runtime_error("Error removing dihedral");
         }
-    id = it->second;
 
     // delete from map
-    m_bond_map.erase(it);
+    m_dihedral_rtag[tag] = NO_DIHEDRAL;
 
+    unsigned int size = m_dihedrals.size();
     // If the bond is in the middle of the list, move the last element to
     // to the position of the removed element
-    if (id < (m_dihedrals.size()-1))
+    if (id < size-1)
         {
-        m_dihedrals[id] = m_dihedrals[m_dihedrals.size()-1];
-        unsigned int last_tag = m_tags[m_dihedrals.size()-1];
-        m_bond_map[last_tag] = id;
+        m_dihedrals[id] = (uint4) m_dihedrals[size-1];
+        m_dihedral_type[id] = (unsigned int) m_dihedral_type[size-1];
+        unsigned int last_tag = m_tags[size-1];
+        m_dihedral_rtag[last_tag] = id;
         m_tags[id] = last_tag;
         }
     // delete last element
     m_dihedrals.pop_back();
+    m_dihedral_type.pop_back();
     m_tags.pop_back();
 
     // maintain a stack of deleted bond tags for future recycling
@@ -304,121 +300,71 @@ std::string DihedralData::getNameByType(unsigned int type)
 
 /*! Updates the dihedral data on the GPU if needed and returns the data structure needed to access it.
 */
-gpu_dihedraltable_array& DihedralData::acquireGPU()
+const GPUArray<uint4>& DihedralData::getGPUDihedralList()
     {
     if (m_dihedrals_dirty)
         {
-        updateDihedralTable();
+        updateDihedralTableGPU();
         m_dihedrals_dirty = false;
         }
-    return m_gpu_dihedraldata;
+    return m_gpu_dihedral_list;
     }
 
 
-/*! \post The dihedral tag data added via addDihedral() is translated to dihedrals based
+const GPUArray<uint1>& DihedralData::getDihedralABCD()
+    {
+    if (m_dihedrals_dirty)
+        {
+        updateDihedralTableGPU();
+        m_dihedrals_dirty = false;
+        }
+    return m_dihedrals_ABCD;
+    }
+
+/*! Update GPU dihedral table
+
+    \post The dihedral tag data added via addDihedral() is translated to dihedrals based
     on particle index for use in the GPU kernel. This new dihedral table is then uploaded
     to the device.
 */
-void DihedralData::updateDihedralTable()
+void DihedralData::updateDihedralTableGPU()
     {
-    
-    assert(m_host_n_dihedrals);
-    assert(m_host_dihedrals);
-    assert(m_host_dihedralsABCD);
-    
-    // count the number of dihedrals per particle
-    // start by initializing the host n_dihedrals values to 0
-    memset(m_host_n_dihedrals, 0, sizeof(unsigned int) * m_pdata->getN());
-    
-    // loop through the particles and count the number of dihedrals based on each particle index
-    // however, only the b atom in the a-b-c dihedral is included in the count.
-    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    unsigned int *d_sort_keys;
+    uint4 *d_sort_values;
+    uint1 *d_sort_ABCD;
+    unsigned int max_dihedral_num;
 
-    for (unsigned int cur_dihedral = 0; cur_dihedral < m_dihedrals.size(); cur_dihedral++)
         {
-        unsigned int tag1 = m_dihedrals[cur_dihedral].a; //
-        unsigned int tag2 = m_dihedrals[cur_dihedral].b;
-        unsigned int tag3 = m_dihedrals[cur_dihedral].c; //
-        unsigned int tag4 = m_dihedrals[cur_dihedral].d; //
-        int idx1 = h_rtag.data[tag1]; //
-        int idx2 = h_rtag.data[tag2];
-        int idx3 = h_rtag.data[tag3]; //
-        int idx4 = h_rtag.data[tag4]; //
-        
-        m_host_n_dihedrals[idx1]++; //
-        m_host_n_dihedrals[idx2]++;
-        m_host_n_dihedrals[idx3]++; //
-        m_host_n_dihedrals[idx4]++; //
+        ArrayHandle<uint4> d_dihedrals(m_dihedrals, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_dihedral_type (m_dihedral_type, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_dihedrals(m_n_dihedrals, access_location::device, access_mode::overwrite);
+        gpu_find_max_dihedral_number(d_dihedrals.data,
+                                     d_dihedral_type.data,
+                                     m_dihedrals.size(),
+                                     m_pdata->getN(),
+                                     d_rtag.data,
+                                     d_n_dihedrals.data,
+                                     max_dihedral_num,
+                                     d_sort_keys,
+                                     d_sort_values,
+                                     d_sort_ABCD);
         }
-        
-    // find the maximum number of dihedrals
-    unsigned int num_dihedrals_max = 0;
-    unsigned int nparticles = m_pdata->getN();
-    for (unsigned int i = 0; i < nparticles; i++)
+
+    if (max_dihedral_num > m_gpu_dihedral_list.getHeight())
         {
-        if (m_host_n_dihedrals[i] > num_dihedrals_max)
-            num_dihedrals_max = m_host_n_dihedrals[i];
+        reallocateDihedralTable(max_dihedral_num);
         }
-        
-    // re allocate memory if needed
-    if (num_dihedrals_max > m_gpu_dihedraldata.height)
-        {
-        reallocateDihedralTable(num_dihedrals_max);
-        }
-        
-    // now, update the actual table
-    // zero the number of dihedrals counter (again)
-    memset(m_host_n_dihedrals, 0, sizeof(unsigned int) * m_pdata->getN());
     
-    // loop through all dihedrals and add them to each column in the list
-    unsigned int pitch = m_pdata->getN(); //removed 'unsigned'
-    for (unsigned int cur_dihedral = 0; cur_dihedral < m_dihedrals.size(); cur_dihedral++)
-        {
-        unsigned int tag1 = m_dihedrals[cur_dihedral].a;
-        unsigned int tag2 = m_dihedrals[cur_dihedral].b;
-        unsigned int tag3 = m_dihedrals[cur_dihedral].c;
-        unsigned int tag4 = m_dihedrals[cur_dihedral].d;
-        unsigned int type = m_dihedrals[cur_dihedral].type;
-        int idx1 = h_rtag.data[tag1];
-        int idx2 = h_rtag.data[tag2];
-        int idx3 = h_rtag.data[tag3];
-        int idx4 = h_rtag.data[tag4];
-        dihedralABCD dihedral_type_abcd;
-        
-        // get the number of dihedrals for the b in a-b-c triplet
-        int num1 = m_host_n_dihedrals[idx1]; //
-        int num2 = m_host_n_dihedrals[idx2];
-        int num3 = m_host_n_dihedrals[idx3]; //
-        int num4 = m_host_n_dihedrals[idx4]; //
-        
-        // add a new dihedral to the table, provided each one is a "b" from an a-b-c triplet
-        // store in the texture as .x=a=idx1, .y=c=idx2, and b comes from the gpu
-        // or the cpu, generally from the idx2 index
-        dihedral_type_abcd = a_atom;
-        m_host_dihedrals[num1*pitch + idx1] = make_uint4(idx2, idx3, idx4, type); //
-        m_host_dihedralsABCD[num1*pitch + idx1] = make_uint1(dihedral_type_abcd);
-        
-        dihedral_type_abcd = b_atom;
-        m_host_dihedrals[num2*pitch + idx2] = make_uint4(idx1, idx3, idx4, type);
-        m_host_dihedralsABCD[num2*pitch + idx2] = make_uint1(dihedral_type_abcd);
-        
-        dihedral_type_abcd = c_atom;
-        m_host_dihedrals[num3*pitch + idx3] = make_uint4(idx1, idx2, idx4, type); //
-        m_host_dihedralsABCD[num3*pitch + idx3] = make_uint1(dihedral_type_abcd);
-        
-        dihedral_type_abcd = d_atom;
-        m_host_dihedrals[num4*pitch + idx4] = make_uint4(idx1, idx2, idx3, type); //
-        m_host_dihedralsABCD[num4*pitch + idx4] = make_uint1(dihedral_type_abcd);
-        
-        // increment the number of dihedrals
-        m_host_n_dihedrals[idx1]++; //
-        m_host_n_dihedrals[idx2]++;
-        m_host_n_dihedrals[idx3]++; //
-        m_host_n_dihedrals[idx4]++; //
-        }
-        
-    // copy the dihedral table to the device
-    copyDihedralTable();
+    ArrayHandle<uint4> d_gpu_dihedral_list(m_gpu_dihedral_list, access_location::device, access_mode::overwrite);
+    ArrayHandle<uint1> d_gpu_dihedral_ABCD(m_dihedrals_ABCD, access_location::device, access_mode::overwrite);
+    gpu_create_dihedraltable(m_dihedrals.size(),
+                             d_gpu_dihedral_list.data,
+                             d_gpu_dihedral_ABCD.data,
+                             m_gpu_dihedral_list.getPitch(),
+                             d_sort_keys,
+                             d_sort_values,
+                             d_sort_ABCD);
     }
 
 /*! \param height New height for the dihedral table
@@ -426,85 +372,90 @@ void DihedralData::updateDihedralTable()
     \post Reallocates memory on the device making room for up to
     \a height dihedrals per particle.
     
-    \note updateDihedralTable() needs to be called after so that the
+    \note updateDihedralTableGPU() needs to be called after so that the
     data in the dihedral table will be correct.
 */
 void DihedralData::reallocateDihedralTable(int height)
     {
-    freeDihedralTable();
-    allocateDihedralTable(height);
+    m_gpu_dihedral_list.resize(m_pdata->getN(), height);
+    m_dihedrals_ABCD.resize(m_pdata->getN(), height);
     }
 
 /*! \param height Height for the dihedral table
 */
 void DihedralData::allocateDihedralTable(int height)
     {
-    // make sure the arrays have been deallocated
-    assert(m_host_dihedrals == NULL);
-    assert(m_host_dihedralsABCD == NULL);
-    assert(m_host_n_dihedrals == NULL);
+    assert(m_gpu_dihedral_list.isNull());
+    assert(m_dihedral_ABCD.isNull());
+    assert(m_n_dihedrals.isNull());
     
-    unsigned int N = m_pdata->getN();
-    
-    // allocate device memory
-    m_gpu_dihedraldata.allocate(m_pdata->getN(), height);
-    CHECK_CUDA_ERROR();        
-        
-    // allocate and zero host memory
-    cudaHostAlloc(&m_host_n_dihedrals, N*sizeof(int), cudaHostAllocPortable);
-    memset((void*)m_host_n_dihedrals, 0, N*sizeof(int));
-    
-    cudaHostAlloc(&m_host_dihedrals, N * height * sizeof(uint4), cudaHostAllocPortable);
-    memset((void*)m_host_dihedrals, 0, N*height*sizeof(uint4));
-    
-    cudaHostAlloc(&m_host_dihedralsABCD, N * height * sizeof(uint1), cudaHostAllocPortable);
-    memset((void*)m_host_dihedralsABCD, 0, N*height*sizeof(uint1));
-    CHECK_CUDA_ERROR();    
-    }
+    GPUArray<uint4> gpu_dihedral_list(m_pdata->getN(), height, exec_conf);
+    m_gpu_dihedral_list.swap(gpu_dihedral_list);
 
-void DihedralData::freeDihedralTable()
-    {
-    // free device memory
-    m_gpu_dihedraldata.deallocate();
-    CHECK_CUDA_ERROR();
-        
-    // free host memory
-    cudaFreeHost(m_host_dihedrals);
-    m_host_dihedrals = NULL;
-    // free host memory
-    cudaFreeHost( m_host_dihedralsABCD);
-    m_host_dihedralsABCD = NULL;
-    cudaFreeHost(m_host_n_dihedrals);
-    m_host_n_dihedrals = NULL;
-    CHECK_CUDA_ERROR();
-    }
+    GPUArray<uint1> dihedrals_ABCD(m_pdata->getN(), height, exec_conf);
+    m_dihedrals_ABCD.swap(dihedrals_ABCD);
 
-//! Copies the dihedral table to the device
-void DihedralData::copyDihedralTable()
-    {
-    // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
-    for (unsigned int row = 0; row < m_gpu_dihedraldata.height; row++)
-        {
-        cudaMemcpy(m_gpu_dihedraldata.dihedrals + m_gpu_dihedraldata.pitch*row,
-                   m_host_dihedrals + row * m_pdata->getN(),
-                   sizeof(uint4) * m_pdata->getN(),
-                   cudaMemcpyHostToDevice);
-                                          
-        cudaMemcpy(m_gpu_dihedraldata.dihedralABCD + m_gpu_dihedraldata.pitch*row,
-                   m_host_dihedralsABCD + row * m_pdata->getN(),
-                   sizeof(uint1) * m_pdata->getN(),
-                   cudaMemcpyHostToDevice);
-        }
-            
-    cudaMemcpy(m_gpu_dihedraldata.n_dihedrals,
-               m_host_n_dihedrals,
-               sizeof(unsigned int) * m_pdata->getN(),
-               cudaMemcpyHostToDevice);
-    
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+    GPUArray<unsigned int> n_dihedrals(m_pdata->getN(), exec_conf);
+    m_n_dihedrals.swap(n_dihedrals);
     }
 #endif
+
+//! Takes a snapshot of the current dihedral data
+/*! \param snapshot THe snapshot that will contain the dihedral data
+*/
+void DihedralData::takeSnapshot(SnapshotDihedralData& snapshot)
+    {
+    // check for an invalid request
+    if (snapshot.dihedrals.size() != getNumDihedrals())
+        {
+        cerr << endl << "***Error! DihedralData is being asked to initizalize a snapshot of the wrong size."
+             << endl << endl;
+       throw runtime_error("Error taking snapshot.");
+        }
+
+    assert(snapshot.dihedral_tag.size() == getNumAngles());
+    assert(snapshot.type_id.size() == getNumAngles());
+    assert(snapshot.dihedral_rtag.size() == 0);
+    assert(snapshot.type_mapping.size() == 0);
+
+    for (unsigned int dihedral_idx = 0; dihedral_idx < getNumDihedrals(); dihedral_idx++)
+        {
+        snapshot.dihedrals[dihedral_idx] = m_dihedrals[dihedral_idx];
+        snapshot.type_id[dihedral_idx] = m_dihedral_type[dihedral_idx];
+        unsigned int tag = m_tags[dihedral_idx];
+        snapshot.dihedral_tag[dihedral_idx] = tag;
+        snapshot.dihedral_rtag.insert(std::pair<unsigned int, unsigned int>(tag, dihedral_idx));
+        }
+
+    for (unsigned int i = 0; i < m_n_dihedral_types; i++)
+        snapshot.type_mapping.push_back(m_dihedral_type_mapping[i]);
+    }
+
+//! Initialize the dihedral data from a snapshot
+/*! \param snapshot The snapshot to initialize the dihedrals from
+    Before initialization, the current angle data is cleared.
+ */
+void DihedralData::initializeFromSnapshot(const SnapshotDihedralData& snapshot)
+    {
+    m_dihedrals.clear();
+    m_dihedral_type.clear();
+    m_tags.clear();
+    while (! m_deleted_tags.empty())
+        m_deleted_tags.pop();
+    m_dihedral_rtag.clear();
+
+    for (unsigned int dihedral_idx = 0; dihedral_idx < snapshot.dihedrals.size(); dihedral_idx++)
+        {
+        Dihedral dihedral(snapshot.type_id[dihedral_idx],
+                          snapshot.dihedrals[dihedral_idx].x,
+                          snapshot.dihedrals[dihedral_idx].y,
+                          snapshot.dihedrals[dihedral_idx].z,
+                          snapshot.dihedrals[dihedral_idx].w);
+        addDihedral(dihedral);
+        }
+
+    setDihedralTypeMapping(snapshot.type_mapping);
+    }
 
 void export_DihedralData()
     {
@@ -515,9 +466,11 @@ void export_DihedralData()
     .def("getTypeByName", &DihedralData::getTypeByName)
     .def("getNameByType", &DihedralData::getNameByType)
     .def("removeDihedral", &DihedralData::removeDihedral)
-    .def("getDihedral", &DihedralData::getDihedral, return_value_policy<copy_const_reference>())
-    .def("getDihedralByTag", &DihedralData::getDihedralByTag, return_value_policy<copy_const_reference>())
+    .def("getDihedral", &DihedralData::getDihedral)
+    .def("getDihedralByTag", &DihedralData::getDihedralByTag)
     .def("getDihedralTag", &DihedralData::getDihedralTag)
+    .def("takeSnapshot", &DihedralData::takeSnapshot)
+    .def("initializeFromSnapshot", &DihedralData::initializeFromSnapshot)
     ;
     
     class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())

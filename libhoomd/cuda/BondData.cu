@@ -76,6 +76,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Sorted array of the first bond member as key
 thrust::device_vector<unsigned int> *bond_sort_keys = NULL;
+
 //! Sorted array of the second bond member and the bond type as value
 thrust::device_vector<uint2> *bond_sort_values = NULL;
 
