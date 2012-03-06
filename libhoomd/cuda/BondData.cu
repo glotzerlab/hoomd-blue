@@ -75,12 +75,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Sorted array of the first bond member as key
-thrust::device_vector<unsigned int> *sort_keys = NULL;
+thrust::device_vector<unsigned int> *bond_sort_keys = NULL;
 //! Sorted array of the second bond member and the bond type as value
-thrust::device_vector<uint2> *sort_values = NULL;
+thrust::device_vector<uint2> *bond_sort_values = NULL;
 
 //! Map of indices in the 2D GPU bond table for every first member of a bond
-thrust::device_vector<unsigned int> *map = NULL;
+thrust::device_vector<unsigned int> *bond_map = NULL;
 
 //! Sorted list of number of bonds for each particle index
 thrust::device_vector<unsigned int> *num_bonds_sorted = NULL;
@@ -90,16 +90,16 @@ thrust::device_vector<unsigned int> *bonded_indices = NULL;
 
 void gpu_bonddata_allocate_scratch()
     {
-    assert(sort_keys == NULL);
-    assert(sort_values == NULL);
-    assert(map == NULL);
+    assert(bond_sort_keys == NULL);
+    assert(bond_sort_values == NULL);
+    assert(bond_map == NULL);
     assert(bonded_indices == NULL);
     assert(num_bonds_sorted == NULL);
 
-    sort_keys = new thrust::device_vector<unsigned int>();
-    sort_values = new thrust::device_vector<uint2>();
+    bond_sort_keys = new thrust::device_vector<unsigned int>();
+    bond_sort_values = new thrust::device_vector<uint2>();
 
-    map = new thrust::device_vector<unsigned int>();
+    bond_map = new thrust::device_vector<unsigned int>();
 
     bonded_indices= new thrust::device_vector<unsigned int>();
     num_bonds_sorted = new thrust::device_vector<unsigned int>();
@@ -107,23 +107,23 @@ void gpu_bonddata_allocate_scratch()
 
 void gpu_bonddata_deallocate_scratch()
     {
-    assert(sort_keys);
-    assert(sort_values);
+    assert(bond_sort_keys);
+    assert(bond_sort_values);
     assert(bonded_indices);
     assert(num_bonds_sorted);
-    assert(map);
+    assert(bond_map);
 
 
 
-    delete sort_keys;
-    delete sort_values;
-    delete map;
+    delete bond_sort_keys;
+    delete bond_sort_values;
+    delete bond_map;
     delete bonded_indices;
     delete num_bonds_sorted;
 
-    sort_keys = NULL;
-    sort_values = NULL;
-    map = NULL;
+    bond_sort_keys = NULL;
+    bond_sort_values = NULL;
+    bond_map = NULL;
     bonded_indices = NULL;
     num_bonds_sorted = NULL;
     }
@@ -147,28 +147,37 @@ struct get_tag : thrust::unary_function<uint2, unsigned int>
         unsigned int member_idx; //!< Index of particle tag to get (0: a, 1: b)
     };
 
-//! Helper structure to get particle tag a or b and the bond type from a bond
-struct get_idx_and_type : thrust::unary_function<thrust::tuple<uint2, unsigned int>, uint2>
-    {
-    //! Constructor
-    get_idx_and_type(unsigned int *_d_rtag,
-                       unsigned int _member_idx)
-        : d_rtag(_d_rtag), member_idx(_member_idx) {}
 
-    //! Get tag b and the bond type
-    __device__
-    uint2 operator ()(thrust::tuple<uint2, unsigned int> t)
+//! Helper kernel to get particle tag a or b and the bond type from a bond
+__global__ void gpu_kernel_bond_fill_values(const uint2 *bonds,
+                                             const unsigned int *bond_types,
+                                             const unsigned int *d_rtag,
+                                             uint2 *values,
+                                             unsigned int member_idx,
+                                             unsigned int num_bonds)
+    {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= num_bonds)
+        return;
+
+    uint2 bond = bonds[idx];
+    unsigned int tag;
+    switch (member_idx)
         {
-        uint2 b = thrust::get<0>(t);
-        return make_uint2((member_idx == 1) ? d_rtag[b.x]: d_rtag[b.y],thrust::get<1>(t));
+        case 0:
+            tag = bond.y;
+            break;
+        case 1:
+            tag = bond.x;
+            break;
+        default:
+            // we should never get here
+            tag = 0;
         }
 
-    private:
-        unsigned int *d_rtag; //!< Device pointer to rtag array
-        unsigned int member_idx; //!< Index of particle tag to get (1: a, 0: b)
-
-    };
-
+    values[idx] = make_uint2(d_rtag[tag], bond_types[idx]);
+    }
 
 //! Find the maximum number of bonds per particle
 /*! \param d_bonds Array of bonds
@@ -201,15 +210,15 @@ cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
     thrust::device_ptr<unsigned int> n_bonds_ptr(d_n_bonds);
 
-    if (sort_keys->size() < 2*num_bonds)
+    if (bond_sort_keys->size() < 2*num_bonds)
         {
-        sort_keys->resize(2*num_bonds);
-        sort_values->resize(2*num_bonds);
+        bond_sort_keys->resize(2*num_bonds);
+        bond_sort_values->resize(2*num_bonds);
         bonded_indices->resize(2*num_bonds);
         num_bonds_sorted->resize(2*num_bonds);
         }
 
-    // idx a goes into sort_keys
+    // idx a goes into bond_sort_keys
     thrust::copy(thrust::make_permutation_iterator(
                      rtag_ptr,
                      thrust::make_transform_iterator(bonds_ptr, get_tag(0))
@@ -218,17 +227,19 @@ cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
                      rtag_ptr,
                      thrust::make_transform_iterator(bonds_ptr, get_tag(0))
                      ) + num_bonds,
-                 sort_keys->begin());
+                 bond_sort_keys->begin());
 
-    // idx b and bond type goes into sort_values
-    thrust::copy(
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
-            get_idx_and_type(d_rtag,0)),
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
-            get_idx_and_type(d_rtag,0)) + num_bonds,
-        sort_values->begin());
+    // idx b and bond type goes into bond_sort_values
+    unsigned int block_size = 512;
+    uint2 *d_bond_sort_values = thrust::raw_pointer_cast(&* bond_sort_values->begin());
+    gpu_kernel_bond_fill_values<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
+                                                                          d_bond_type,
+                                                                          d_rtag,
+                                                                          d_bond_sort_values,
+                                                                          0,
+                                                                          num_bonds);
 
-    // append idx b values to sort_keys
+    // append idx b values to bond_sort_keys
     thrust::copy(thrust::make_permutation_iterator(
                      rtag_ptr,
                      thrust::make_transform_iterator(bonds_ptr, get_tag(1))
@@ -237,25 +248,25 @@ cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
                      rtag_ptr,
                      thrust::make_transform_iterator(bonds_ptr, get_tag(1))
                      ) + num_bonds,
-                 sort_keys->begin() + num_bonds);
+                 bond_sort_keys->begin() + num_bonds);
 
-    // append idx a and bond type to sort_values
-    thrust::copy(
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
-            get_idx_and_type(d_rtag,1)),
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
-            get_idx_and_type(d_rtag,1)) + num_bonds,
-        sort_values->begin() + num_bonds);
+    // append idx a and bond type to bond_sort_values
+    gpu_kernel_bond_fill_values<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
+                                                                          d_bond_type,
+                                                                          d_rtag,
+                                                                          d_bond_sort_values + num_bonds,
+                                                                          1,
+                                                                          num_bonds);
 
 
     // sort first bond members as keys with second bond members and bond types as values
-    thrust::sort_by_key(sort_keys->begin(),
-                 sort_keys->begin() + 2 * num_bonds,
-                 sort_values->begin());
+    thrust::sort_by_key(bond_sort_keys->begin(),
+                 bond_sort_keys->begin() + 2 * num_bonds,
+                 bond_sort_values->begin());
 
     // count multiplicity of each key
-    unsigned int n_unique_indices = thrust::reduce_by_key(sort_keys->begin(),
-                          sort_keys->begin() + 2 * num_bonds,
+    unsigned int n_unique_indices = thrust::reduce_by_key(bond_sort_keys->begin(),
+                          bond_sort_keys->begin() + 2 * num_bonds,
                           thrust::constant_iterator<unsigned int>(1),
                           bonded_indices->begin(),
                           num_bonds_sorted->begin() ).second - num_bonds_sorted->begin();
@@ -277,8 +288,8 @@ cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
                     bonded_indices->begin(),
                     n_bonds_ptr);
 
-    d_sort_keys = thrust::raw_pointer_cast(&*sort_keys->begin());
-    d_sort_values = thrust::raw_pointer_cast(&*sort_values->begin());
+    d_sort_keys = thrust::raw_pointer_cast(&*bond_sort_keys->begin());
+    d_sort_values = thrust::raw_pointer_cast(&*bond_sort_values->begin());
     return cudaSuccess;
     }
 
@@ -302,27 +313,27 @@ cudaError_t gpu_create_bondtable(unsigned int num_bonds,
     thrust::device_ptr<unsigned int> sort_keys_ptr(d_sort_keys);
     thrust::device_ptr<uint2> sort_values_ptr(d_sort_values);
 
-    if (map->size() < 2*num_bonds)
+    if (bond_map->size() < 2*num_bonds)
         {
-        map->resize(2*num_bonds);
+        bond_map->resize(2*num_bonds);
         }
 
-    // create the map of 2D bond table indices for all first bond members
+    // create the bond_map of 2D bond table indices for all first bond members
     thrust::exclusive_scan_by_key(sort_keys_ptr,
                                   sort_keys_ptr + 2 * num_bonds,
                                   thrust::make_constant_iterator(pitch),
-                                  map->begin());
+                                  bond_map->begin());
 
-    thrust::transform(map->begin(),
-                      map->begin() + 2 * num_bonds,
+    thrust::transform(bond_map->begin(),
+                      bond_map->begin() + 2 * num_bonds,
                       sort_keys_ptr,
-                      map->begin(),
+                      bond_map->begin(),
                       thrust::plus<unsigned int>());
 
-    // scatter the second bond member into the 2D matrix according to the map
+    // scatter the second bond member into the 2D matrix according to the bond_map
     thrust::scatter(sort_values_ptr,
                     sort_values_ptr + 2* num_bonds,
-                    map->begin(),
+                    bond_map->begin(),
                     gpu_bondtable_ptr);
 
     return cudaSuccess;

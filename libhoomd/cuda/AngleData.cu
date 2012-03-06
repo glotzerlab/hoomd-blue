@@ -156,47 +156,42 @@ struct get_tag : thrust::unary_function<uint3, unsigned int>
         unsigned int member_idx; //!< Index of particle tag to get (0: a, 1: b)
     };
 
-//! Helper structure to get particle tag a, b or c, the angle type and the particle location (a b or c) from an angle
-struct get_idx_type_and_abc : thrust::unary_function<thrust::tuple<uint3, unsigned int>, uint4>
+//! Helper kernel to get particle tag a, b or c, the angle type and the particle location (a b or c) from an angle
+__global__ void gpu_kernel_angle_fill_values(const uint3 *angles,
+                            const unsigned int *angle_types,
+                            const unsigned int *d_rtag,
+                            uint4 *values,
+                            unsigned int member_idx,
+                            unsigned int num_angles)
     {
-    //! Constructor
-    get_idx_type_and_abc(unsigned int *_d_rtag,
-                         unsigned int _member_idx)
-        : d_rtag(_d_rtag), member_idx(_member_idx) {}
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    //! Get tag b and the angle type
-    __device__
-    uint4 operator ()(thrust::tuple<uint3, unsigned int> t)
+    if (idx >= num_angles)
+        return;
+
+    uint3 angle = angles[idx];
+    unsigned int tag1, tag2;
+    switch(member_idx)
         {
-        uint3 angle = thrust::get<0>(t);
-        unsigned int idx1, idx2;
-        switch(member_idx)
-            {
-            case 0:
-               idx1 = d_rtag[angle.y];
-               idx2 = d_rtag[angle.z];
-               break;
-            case 1:
-               idx1 = d_rtag[angle.x];
-               idx2 = d_rtag[angle.z];
-               break;
-            case 2:
-               idx1 = d_rtag[angle.x];
-               idx2 = d_rtag[angle.y];
-               break;
-            default:
-               // we should never get here
-               idx1 = 0;
-               idx2 = 0;
-            }
-
-        return make_uint4(idx1, idx2, thrust::get<1>(t), member_idx);
+        case 0:
+           tag1 = angle.y;
+           tag2 = angle.z;
+           break;
+        case 1:
+           tag1 = angle.x;
+           tag2 = angle.z;
+           break;
+        case 2:
+           tag1 = angle.x;
+           tag2 = angle.y;
+           break;
+        default:
+           // we should never get here
+           tag1 = 0;
+           tag2 = 0;
         }
 
-    private:
-        unsigned int *d_rtag; //!< Device pointer to rtag array
-        unsigned int member_idx; //!< Index of particle tag to get (0: a, 1: b)
-
+    values[idx] = make_uint4(d_rtag[tag1], d_rtag[tag2], angle_types[idx], member_idx);
     };
 
 
@@ -250,13 +245,15 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
                      ) + num_angles,
                  angle_sort_keys->begin());
 
-    // idx b, c and angle type goes into sort_values
-    thrust::copy(
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(angles_ptr, angle_type_ptr)),
-            get_idx_type_and_abc(d_rtag,0)),
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(angles_ptr, angle_type_ptr)),
-            get_idx_type_and_abc(d_rtag,0)) + num_angles,
-        angle_sort_values->begin());
+    // fill sort values
+    unsigned int block_size = 512;
+    uint4 *d_angle_sort_values =  thrust::raw_pointer_cast(&* angle_sort_values->begin());
+    gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
+                                                           d_angle_type,
+                                                           d_rtag,
+                                                           d_angle_sort_values,
+                                                           0,
+                                                           num_angles);
 
     // append idx b values to angle_sort_keys
     thrust::copy(thrust::make_permutation_iterator(
@@ -269,13 +266,14 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
                      ) + num_angles,
                  angle_sort_keys->begin() + num_angles);
 
-    // append idx a, c and angle type to angle_sort_values
-    thrust::copy(
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(angles_ptr, angle_type_ptr)),
-            get_idx_type_and_abc(d_rtag,1)),
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(angles_ptr, angle_type_ptr)),
-            get_idx_type_and_abc(d_rtag,1)) + num_angles,
-        angle_sort_values->begin() + num_angles);
+    // fill sort values
+    gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
+                                                           d_angle_type,
+                                                           d_rtag,
+                                                           d_angle_sort_values + num_angles,
+                                                           1,
+                                                           num_angles);
+
 
     // append idx c values to angle_sort_keys
     thrust::copy(thrust::make_permutation_iterator(
@@ -288,15 +286,13 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
                      ) + num_angles,
                  angle_sort_keys->begin() + 2*num_angles);
 
-    // append idx b, c and angle type to angle_sort_values
-    thrust::copy(
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(angles_ptr, angle_type_ptr)),
-            get_idx_type_and_abc(d_rtag,2)),
-        thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(angles_ptr, angle_type_ptr)),
-            get_idx_type_and_abc(d_rtag,2)) + num_angles,
-        angle_sort_values->begin() + 2* num_angles);
-
-
+    // fill sort values
+    gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
+                                                           d_angle_type,
+                                                           d_rtag,
+                                                           d_angle_sort_values + 2 *num_angles,
+                                                           2,
+                                                           num_angles);
 
     // sort first angle members as keys with second angle members and angle types as values
     thrust::sort_by_key(angle_sort_keys->begin(),
