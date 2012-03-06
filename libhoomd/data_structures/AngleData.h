@@ -77,7 +77,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AngleData.cuh"
 #endif
 
+#include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+
+// Sentinel value in bond reverse-lookup map for unassigned angle tags
+#define NO_ANGLE 0xffffffff
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
@@ -100,6 +104,31 @@ struct Angle
     unsigned int a;     //!< The tag of the first particle in the angle
     unsigned int b;     //!< The tag of the second particle in the angle
     unsigned int c;     //!< The tag of the third particle in the angle
+    };
+
+//! Handy structure for passing around and initializing the angle data
+/*! This structure can be used for initializing and reading out the angle data.
+    Angles are uniquely identified by the angle_tag. The order in which the angles
+    are stored in the snapshot may be arbitrary. The angle_rtag map is used
+    to lookup an angle  in the angle list by tag.
+*/
+struct SnapshotAngleData
+    {
+    //! Constructor
+    /*! \param n_angles Number of angles contained in the snapshot
+     */
+    SnapshotAngleData(unsigned int n_angles)
+        {
+        type_id.resize(n_angles);
+        angles.resize(n_angles);
+        angle_tag.resize(n_angles);
+        }
+
+    std::vector<unsigned int> type_id;              //!< Stores type for each bo
+    std::vector<uint3> angles;                      //!< .x and .y are tags of t
+    std::vector<unsigned int> angle_tag;            //!< Tags of angles
+    std::map<unsigned int,unsigned int> angle_rtag; //!< Reverse-lookup map for angle tags
+    std::vector<std::string> type_mapping;          //!< Names of angle types
     };
 
 //! Stores all angles in the simulation and mangages the GPU angle data structure
@@ -142,13 +171,16 @@ class AngleData : boost::noncopyable
         //! Get a given an angle
         /*! \param i Angle to access
         */
-        const Angle& getAngle(unsigned int i) const
+        const Angle getAngle(unsigned int i) const
             {
-            assert(i < m_angles.size()); return m_angles[i];
+            assert(i < m_angles.size());
+            assert(i < m_angle_type.size());
+            uint3 angle = m_angles[i];
+            return Angle(m_angle_type[i], angle.x, angle.y, angle.z);
             }
 
         //! Get angle by tag value
-        const Angle& getAngleByTag(unsigned int tag) const;
+        const Angle getAngleByTag(unsigned int tag) const;
 
         //! Get tag given an id
         unsigned int getAngleTag(unsigned int id) const;
@@ -170,27 +202,61 @@ class AngleData : boost::noncopyable
         
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
-        
+
+        //! Gets the angle table
+        const GPUVector<uint3>& getAngleTable()
+            {
+            return m_angles;
+            }
+
+        //! Gets the angle types
+        const GPUVector<unsigned int>& getAngleTypes()
+            {
+            return m_angle_type;
+            }
+
+        //! Gets the list of angle tags
+        const GPUVector<unsigned int>& getAngleTags() const
+            {
+            return m_tags;
+            }
+
+        //! Gets the list of angle reverse-lookup tags
+        const GPUVector<unsigned int>& getAngleRTags() const
+            {
+            return m_angle_rtag;
+            }
+
 # ifdef ENABLE_CUDA
+        //! Gets the number of angles array
+        const GPUArray<unsigned int>& getNAnglesArray() const
+           {
+           return m_n_angles;
+           }
+
         //! Access the angles on the GPU
-        gpu_angletable_array& acquireGPU();
-        
+        const GPUArray<uint4>& getGPUAngleList();
 #endif
+
+        //! Takes a snapshot of the current angle data
+        void takeSnapshot(SnapshotAngleData& snapshot);
         
+        //! Initialize the angle data from a snapshot
+        void initializeFromSnapshot(const SnapshotAngleData& snapshot);
         
     private:
         const unsigned int m_n_angle_types;             //!< Number of angle types
         bool m_angles_dirty;                            //!< True if the angle list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these angles belong to
-        std::vector<Angle> m_angles;                    //!< List of angles on the CPU
-        std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
-        std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
-        std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
+        GPUVector<uint3> m_angles;                      //!< List of angles
+        GPUVector<unsigned int> m_angle_type;           //!< List ofangle types
+        GPUVector<unsigned int> m_tags;                 //!< Reverse lookup table for tags
+        std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted angle tags
+        GPUVector<unsigned int> m_angle_rtag;           //!< Map to support lookup of angle by tag
         std::vector<std::string> m_angle_type_mapping;  //!< Mapping between angle type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
-        
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_angles_dirty flag when partciles are sorted or an angle is added.
@@ -202,33 +268,17 @@ class AngleData : boost::noncopyable
             }
             
 #ifdef ENABLE_CUDA
-        gpu_angletable_array m_gpu_angledata;  //!< List of angles on the GPU
-        uint4 *m_host_angles;                  //!< Host copy of the angle list
-        unsigned int *m_host_n_angles;         //!< Host copy of the number of angles
+        GPUArray<uint4> m_gpu_anglelist;    //!< List of angles on the GPU
+        GPUArray<unsigned int> m_n_angles;  //!< Host copy of the number of angles
         
-        /*! \enum angleABC tells if the Angle is on the a,b,or c atom
-        */
-        enum angleABC
-            {
-            a_atom = 0, //!< atom is the a particle in an a-b-c triplet
-            b_atom = 1, //!< atom is the b particle in an a-b-c triplet
-            c_atom = 2  //!< atom is the c particle in an a-b-c triplet
-            };
-            
         //! Helper function to update the angle table on the device
-        void updateAngleTable();
+        void updateAngleTableGPU();
         
         //! Helper function to reallocate the angle table on the device
         void reallocateAngleTable(int height);
         
         //! Helper function to allocate the angle table
         void allocateAngleTable(int height);
-        
-        //! Helper function to free the angle table
-        void freeAngleTable();
-        
-        //! Copies the angle table to the device
-        void copyAngleTable();
         
 #endif
     };

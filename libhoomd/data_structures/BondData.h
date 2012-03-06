@@ -168,9 +168,9 @@ class BondData : boost::noncopyable
         */
         const Bond getBond(unsigned int i) const
             {
-            uint2 bond = m_bonds[i];
             assert(i < m_bonds.size());
             assert(i < m_bond_type.size());
+            uint2 bond = m_bonds[i];
             return Bond(m_bond_type[i], bond.x, bond.y);
             }
 
@@ -275,12 +275,6 @@ class BondData : boost::noncopyable
         
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);
-        
-        //! Helper function to free the bond table
-        void freeBondTable();
-        
-        //! Copies the bond table to the device
-        void copyBondTable();
         
 #endif
     };

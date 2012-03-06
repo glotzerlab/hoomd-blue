@@ -54,7 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the GPUVector class
 */
 
-#ifndef __GPUVECTOR_H
+#ifndef __GPUVECTOR_H__
 #define __GPUVECTOR_H__
 
 #include "GPUArray.h"

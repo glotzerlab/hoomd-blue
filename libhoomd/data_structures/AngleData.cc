@@ -81,7 +81,7 @@ using namespace std;
     around.
 */
 AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle_types)
-        : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
+        : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()), m_angles(exec_conf), m_angle_type(exec_conf), m_tags(exec_conf), m_angle_rtag(exec_conf)
     {
     assert(pdata);
     
@@ -100,18 +100,11 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
         }
         
 #ifdef ENABLE_CUDA
-    // init pointers
-    m_host_angles = NULL;
-    m_host_n_angles = NULL;
-    m_gpu_angledata.angles = NULL;
-    m_gpu_angledata.n_angles = NULL;
-    m_gpu_angledata.height = 0;
-    m_gpu_angledata.pitch = 0;
-        
     // allocate memory on the GPU if there is a GPU in the execution configuration
     if (exec_conf->isCUDAEnabled())
         {
         allocateAngleTable(1);
+        gpu_angledata_allocate_scratch();
         }
 #endif
     }
@@ -123,7 +116,7 @@ AngleData::~AngleData()
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
-        freeAngleTable();
+        gpu_angledata_deallocate_scratch();
         }
 #endif
     }
@@ -173,17 +166,24 @@ unsigned int AngleData::addAngle(const Angle& angle)
         {
         tag = m_deleted_tags.top();
         m_deleted_tags.pop();
+
+        // update reverse-lookup tag
+        m_angle_rtag[tag] = m_angles.size();
         }
-    // Otherwise, generate a new tag
     else
+        {
+        // Otherwise, generate a new tag
         tag = m_angles.size();
+
+        // add new reverse-lookup tag
+        assert(m_angle_rtag.size() == m_angles.size());
+        m_angle_rtag.push_back(m_angles.size());
+        }
 
     assert(tag <= m_deleted_tags.size() + m_angles.size());
 
-    // add mapping pointing to last element in m_angles
-    m_bond_map.insert(std::pair<unsigned int, unsigned int>(tag,m_angles.size()));
-
-    m_angles.push_back(angle);
+    m_angles.push_back(make_uint3(angle.a,angle.b,angle.c));
+    m_angle_type.push_back(angle.type);
     m_tags.push_back(tag);
 
     m_angles_dirty = true;
@@ -192,19 +192,17 @@ unsigned int AngleData::addAngle(const Angle& angle)
 
 /*! \param tag tag of the angle to access
  */
-const Angle& AngleData::getAngleByTag(unsigned int tag) const
+const Angle AngleData::getAngleByTag(unsigned int tag) const
     {
     // Find position of angle in angles list
-    unsigned int id;
-    std::tr1::unordered_map<unsigned int, unsigned int>::const_iterator it;
-    it = m_bond_map.find(tag);
-    if (it == m_bond_map.end())
+    unsigned int angle_idx = m_angle_rtag[tag];
+    if (angle_idx == NO_ANGLE)
         {
-        cerr << endl << "***Error! Trying to get bond tag " << tag << " which does not exist!" << endl << endl;
-        throw runtime_error("Error getting bond");
+        cerr << endl << "***Error! Trying to get angle tag " << tag << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting angle");
         }
-    id = it->second;
-    return m_angles[id];
+    uint3 angle = m_angles[angle_idx];
+    return Angle(m_angle_type[angle_idx], angle.x, angle.y, angle.z);
     }
 
 /*! \param id Index of angle (0 to N-1)
@@ -214,8 +212,8 @@ unsigned int AngleData::getAngleTag(unsigned int id) const
     {
     if (id >= getNumAngles())
         {
-        cerr << endl << "***Error! Trying to get bond tag from id " << id << " which does not exist!" << endl << endl;
-        throw runtime_error("Error getting bond tag");
+        cerr << endl << "***Error! Trying to get angle tag from id " << id << " which does not exist!" << endl << endl;
+        throw runtime_error("Error getting angle tag");
         }
     return m_tags[id];
     }
@@ -227,30 +225,30 @@ unsigned int AngleData::getAngleTag(unsigned int id) const
 void AngleData::removeAngle(unsigned int tag)
     {
     // Find position of angle in angles list
-    unsigned int id;
-    std::tr1::unordered_map<unsigned int, unsigned int>::iterator it;
-    it = m_bond_map.find(tag);
-    if (it == m_bond_map.end())
+    unsigned int id = m_angle_rtag[tag];
+    if (id == NO_ANGLE)
         {
-        cerr << endl << "***Error! Trying to remove bond tag " << tag << " which does not exist!" << endl << endl;
-        throw runtime_error("Error removing bond");
+        cerr << endl << "***Error! Trying to remove angle tag " << tag << " which does not exist!" << endl << endl;
+        throw runtime_error("Error removing angle");
         }
-    id = it->second;
 
     // delete from map
-    m_bond_map.erase(it);
+    m_angle_rtag[tag] = NO_ANGLE;
 
+    unsigned int size = m_angles.size();
     // If the angle is in the middle of the list, move the last element to
     // to the position of the removed element
-    if (id < (m_angles.size()-1))
+    if (id < (size-1))
         {
-        m_angles[id] = m_angles[m_angles.size()-1];
-        unsigned int last_tag = m_tags[m_angles.size()-1];
-        m_bond_map[last_tag] = id;
+        m_angles[id] = (uint3) m_angles[size-1];
+        m_angle_type[id] = (unsigned int) m_angle_type[size-1];
+        unsigned int last_tag = m_tags[size-1];
+        m_angle_rtag[last_tag] = id;
         m_tags[id] = last_tag;
         }
     // delete last element
     m_angles.pop_back();
+    m_angle_type.pop_back();
     m_tags.pop_back();
 
     // maintain a stack of deleted angle tags for future recycling
@@ -308,119 +306,68 @@ std::string AngleData::getNameByType(unsigned int type)
 
 /*! Updates the angle data on the GPU if needed and returns the data structure needed to access it.
 */
-gpu_angletable_array& AngleData::acquireGPU()
+const GPUArray<uint4>& AngleData::getGPUAngleList()
     {
     if (m_angles_dirty)
         {
-        updateAngleTable();
+        updateAngleTableGPU();
         m_angles_dirty = false;
         }
-    return m_gpu_angledata;
+    return m_gpu_anglelist;
     }
 
 
-/*! \post The angle tag data added via addAngle() is translated to angles based
+/*! Update GPU angle table
+
+    \post The angle tag data added via addAngle() is translated to angles based
     on particle index for use in the GPU kernel. This new angle table is then uploaded
     to the device.
 */
-void AngleData::updateAngleTable()
+void AngleData::updateAngleTableGPU()
     {
+    unsigned int *d_sort_keys;
+    uint4 *d_sort_values;
+    unsigned int max_angle_num;
     
-    assert(m_host_n_angles);
-    assert(m_host_angles);
-    
-    // count the number of angles per particle
-    // start by initializing the host n_angles values to 0
-    memset(m_host_n_angles, 0, sizeof(unsigned int) * m_pdata->getN());
-    
-    // loop through the particles and count the number of angles based on each particle index
-    // however, only the b atom in the a-b-c angle is included in the count.
-    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+        {
+        ArrayHandle<uint3> d_angles(m_angles, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_angle_type(m_angle_type, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_angles(m_n_angles, access_location::device, access_mode::overwrite);
+        gpu_find_max_angle_number(d_angles.data,
+                                 d_angle_type.data,
+                                 m_angles.size(),
+                                 m_pdata->getN(),
+                                 d_rtag.data,
+                                 d_n_angles.data,
+                                 max_angle_num,
+                                 d_sort_keys,
+                                 d_sort_values);
+        }
 
-    for (unsigned int cur_angle = 0; cur_angle < m_angles.size(); cur_angle++)
+    if (max_angle_num > m_gpu_anglelist.getHeight())
         {
-        unsigned int tag1 = m_angles[cur_angle].a; //
-        unsigned int tagb = m_angles[cur_angle].b;
-        unsigned int tag3 = m_angles[cur_angle].c; //
-        int idx1 = h_rtag.data[tag1]; //
-        int idxb = h_rtag.data[tagb];
-        int idx3 = h_rtag.data[tag3]; //
-        
-        m_host_n_angles[idx1]++; //
-        m_host_n_angles[idxb]++;
-        m_host_n_angles[idx3]++; //
+        reallocateAngleTable(max_angle_num);
         }
-        
-    // find the maximum number of angles
-    unsigned int num_angles_max = 0;
-    unsigned int nparticles = m_pdata->getN();
-    for (unsigned int i = 0; i < nparticles; i++)
-        {
-        if (m_host_n_angles[i] > num_angles_max)
-            num_angles_max = m_host_n_angles[i];
-        }
-        
-    // re allocate memory if needed
-    if (num_angles_max > m_gpu_angledata.height)
-        {
-        reallocateAngleTable(num_angles_max);
-        }
-        
-    // now, update the actual table
-    // zero the number of angles counter (again)
-    memset(m_host_n_angles, 0, sizeof(unsigned int) * m_pdata->getN());
-    
-    // loop through all angles and add them to each column in the list
-    unsigned int pitch = m_pdata->getN(); //removed 'unsigned'
-    for (unsigned int cur_angle = 0; cur_angle < m_angles.size(); cur_angle++)
-        {
-        unsigned int tag1 = m_angles[cur_angle].a;
-        unsigned int tag2 = m_angles[cur_angle].b;
-        unsigned int tag3 = m_angles[cur_angle].c;
-        unsigned int type = m_angles[cur_angle].type;
-        int idx1 = h_rtag.data[tag1];
-        int idx2 = h_rtag.data[tag2];
-        int idx3 = h_rtag.data[tag3];
-        angleABC angle_type_abc;
-        
-        // get the number of angles for the b in a-b-c triplet
-        int num1 = m_host_n_angles[idx1]; //
-        int num2 = m_host_n_angles[idx2];
-        int num3 = m_host_n_angles[idx3]; //
-        
-        // add a new angle to the table, provided each one is a "b" from an a-b-c triplet
-        // store in the texture as .x=a=idx1, .y=c=idx2, and b comes from the gpu
-        // or the cpu, generally from the idx2 index
-        angle_type_abc = a_atom;
-        m_host_angles[num1*pitch + idx1] = make_uint4(idx2, idx3, type, angle_type_abc); //
-        
-        angle_type_abc = b_atom;
-        m_host_angles[num2*pitch + idx2] = make_uint4(idx1, idx3, type, angle_type_abc); // <-- WORKING LINE
-        //m_host_angles[idx2] = make_uint4(idx1, idx3, type);  // <-- Probably not WORKING LINE
-        
-        angle_type_abc = c_atom;
-        m_host_angles[num3*pitch + idx3] = make_uint4(idx1, idx2, type, angle_type_abc); //
-        
-        // increment the number of angles
-        m_host_n_angles[idx1]++; //
-        m_host_n_angles[idx2]++;
-        m_host_n_angles[idx3]++; //
-        }
-        
-    // copy the angle table to the device
-    copyAngleTable();
+
+    ArrayHandle<uint4> d_gpu_anglelist(m_gpu_anglelist, access_location::device, access_mode::overwrite);
+    gpu_create_angletable(m_angles.size(),
+                         d_gpu_anglelist.data,
+                         m_gpu_anglelist.getPitch(),
+                         d_sort_keys,
+                         d_sort_values);
+
     }
 
 /*! \param height New height for the angle table
     \post Reallocates memory on the device making room for up to
         \a height angles per particle.
-    \note updateAngleTable() needs to be called after so that the
+    \note updateAngleTableGPU() needs to be called after so that the
         data in the angle table will be correct.
 */
 void AngleData::reallocateAngleTable(int height)
     {
-    freeAngleTable();
-    allocateAngleTable(height);
+    m_gpu_anglelist.resize(m_pdata->getN(), height);
     }
 
 /*! \param height Height for the angle table
@@ -428,59 +375,70 @@ void AngleData::reallocateAngleTable(int height)
 void AngleData::allocateAngleTable(int height)
     {
     // make sure the arrays have been deallocated
-    assert(m_host_angles == NULL);
-    assert(m_host_n_angles == NULL);
-    
-    unsigned int N = m_pdata->getN();
+    assert(m_n_angles.isNull());
+
     
     // allocate device memory
-    m_gpu_angledata.allocate(m_pdata->getN(), height);
-    CHECK_CUDA_ERROR();
-        
-    // allocate and zero host memory
-    cudaHostAlloc(&m_host_n_angles, N*sizeof(int), cudaHostAllocPortable);
-    memset((void*)m_host_n_angles, 0, N*sizeof(int));
-    
-    cudaHostAlloc(&m_host_angles, N * height * sizeof(uint4), cudaHostAllocPortable);
-    memset((void*)m_host_angles, 0, N*height*sizeof(uint4));
-    CHECK_CUDA_ERROR();
-    }
+    GPUArray<uint4> gpu_anglelist(m_pdata->getN(), height, exec_conf);
+    m_gpu_anglelist.swap(gpu_anglelist);
 
-void AngleData::freeAngleTable()
-    {
-    // free device memory
-    m_gpu_angledata.deallocate();
-    CHECK_CUDA_ERROR();
-        
-    // free host memory
-    cudaFreeHost(m_host_angles);
-    m_host_angles = NULL;
-    cudaFreeHost(m_host_n_angles);
-    m_host_n_angles = NULL;
-    CHECK_CUDA_ERROR();
-    }
-
-//! Copies the angle table to the device
-void AngleData::copyAngleTable()
-    {
-    // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
-    for (unsigned int row = 0; row < m_gpu_angledata.height; row++)
-        {
-        cudaMemcpy(m_gpu_angledata.angles + m_gpu_angledata.pitch*row,
-                   m_host_angles + row * m_pdata->getN(),
-                   sizeof(uint4) * m_pdata->getN(),
-                   cudaMemcpyHostToDevice);
-        }
-            
-    cudaMemcpy(m_gpu_angledata.n_angles,
-               m_host_n_angles,
-               sizeof(unsigned int) * m_pdata->getN(),
-               cudaMemcpyHostToDevice);
-
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+    GPUArray<unsigned int> n_angles(m_pdata->getN(), exec_conf);
+    m_n_angles.swap(n_angles);
     }
 #endif
+
+//! Takes a snapshot of the current angle data
+/*! \param snapshot The snapshot that will contain the angle data
+*/
+void AngleData::takeSnapshot(SnapshotAngleData& snapshot)
+    {
+    // check for an invalid request
+    if (snapshot.angles.size() != getNumAngles())
+        {
+        cerr << endl << "***Error! AngleData is being asked to initizalize a snapshot of the wrong size."
+             << endl << endl;
+        throw runtime_error("Error taking snapshot.");
+        }
+
+    assert(snapshot.angle_tag.size() == getNumAngles());
+    assert(snapshot.type_id.size() == getNumAngles());
+    assert(snapshot.angle_rtag.size() == 0);
+    assert(snapshot.type_mapping.size() == 0);
+
+    for (unsigned int angle_idx = 0; angle_idx < getNumAngles(); angle_idx++)
+        {
+        snapshot.angles[angle_idx] = m_angles[angle_idx];
+        snapshot.type_id[angle_idx] = m_angle_type[angle_idx];
+        unsigned int tag = m_tags[angle_idx];
+        snapshot.angle_tag[angle_idx] = tag;
+        snapshot.angle_rtag.insert(std::pair<unsigned int, unsigned int>(tag, angle_idx));
+        }
+
+    for (unsigned int i = 0; i < m_n_angle_types; i++)
+        snapshot.type_mapping.push_back(m_angle_type_mapping[i]);
+    }
+
+//! Initialize the angle data from a snapshot
+/*! \param snapshot The snapshot to initialize the angles from
+    Before initialization, the current angle data is cleared.
+ */
+void AngleData::initializeFromSnapshot(const SnapshotAngleData& snapshot)
+    {
+    m_angles.clear();
+    m_angle_type.clear();
+    m_tags.clear();
+    while (! m_deleted_tags.empty())
+        m_deleted_tags.pop();
+    m_angle_rtag.clear();
+
+    for (unsigned int angle_idx = 0; angle_idx < snapshot.angles.size(); angle_idx++)
+        {
+        Angle angle(snapshot.type_id[angle_idx], snapshot.angles[angle_idx].x, snapshot.angles[angle_idx].y, snapshot.angles[angle_idx].z);
+        addAngle(angle);
+        }
+
+    setAngleTypeMapping(snapshot.type_mapping);
+    }
 
 void export_AngleData()
     {
@@ -492,9 +450,11 @@ void export_AngleData()
     .def("getTypeByName", &AngleData::getTypeByName)
     .def("getNameByType", &AngleData::getNameByType)
     .def("removeAngle", &AngleData::removeAngle)
-    .def("getAngle", &AngleData::getAngle, return_value_policy<copy_const_reference>())
-    .def("getAngleByTag", &AngleData::getAngleByTag, return_value_policy<copy_const_reference>())
+    .def("getAngle", &AngleData::getAngle)
+    .def("getAngleByTag", &AngleData::getAngleByTag)
     .def("getAngleTag", &AngleData::getAngleTag)
+    .def("takeSnapshot", &AngleData::takeSnapshot)
+    .def("initializeFromSnapshot", &AngleData::initializeFromSnapshot)
     ;
     
     class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())

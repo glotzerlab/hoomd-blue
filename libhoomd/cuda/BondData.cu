@@ -160,12 +160,12 @@ struct get_idx_and_type : thrust::unary_function<thrust::tuple<uint2, unsigned i
     uint2 operator ()(thrust::tuple<uint2, unsigned int> t)
         {
         uint2 b = thrust::get<0>(t);
-        return make_uint2((member_idx == 0) ? d_rtag[b.x]: d_rtag[b.y],thrust::get<1>(t));
+        return make_uint2((member_idx == 1) ? d_rtag[b.x]: d_rtag[b.y],thrust::get<1>(t));
         }
 
     private:
         unsigned int *d_rtag; //!< Device pointer to rtag array
-        unsigned int member_idx; //!< Index of particle tag to get (0: a, 1: b)
+        unsigned int member_idx; //!< Index of particle tag to get (1: a, 0: b)
 
     };
 
@@ -223,9 +223,9 @@ cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
     // idx b and bond type goes into sort_values
     thrust::copy(
         thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
-            get_idx_and_type(d_rtag,1)),
+            get_idx_and_type(d_rtag,0)),
         thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
-            get_idx_and_type(d_rtag,1)) + num_bonds,
+            get_idx_and_type(d_rtag,0)) + num_bonds,
         sort_values->begin());
 
     // append idx b values to sort_keys
@@ -242,9 +242,9 @@ cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
     // append idx a and bond type to sort_values
     thrust::copy(
         thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
-            get_idx_and_type(d_rtag,0)),
+            get_idx_and_type(d_rtag,1)),
         thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(bonds_ptr, bond_type_ptr)),
-            get_idx_and_type(d_rtag,0)) + num_bonds,
+            get_idx_and_type(d_rtag,1)) + num_bonds,
         sort_values->begin() + num_bonds);
 
 

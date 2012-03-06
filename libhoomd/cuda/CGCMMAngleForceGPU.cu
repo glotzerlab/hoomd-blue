@@ -82,6 +82,8 @@ texture<float4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPS
     \param d_pos particle positions on the device
     \param box Box dimensions for periodic boundary condition handling
     \param alist Angle data to use in calculating the forces
+    \param pitch Pitch of 2D angles list
+    \param n_angles_list List of numbers of angles stored on the GPU
 */
 extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force,
                                                                  float* d_virial,
@@ -89,7 +91,9 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
                                                                  const unsigned int N,
                                                                  const Scalar4 *d_pos,
                                                                  gpu_boxsize box,
-                                                                 gpu_angletable_array alist)
+                                                                 const uint4 *alist,
+                                                                 const unsigned int pitch,
+                                                                 const unsigned int *n_angles_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;    
@@ -98,7 +102,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_angles = alist.n_angles[idx];
+    int n_angles =n_angles_list[idx];
     
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     float4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
@@ -120,10 +124,10 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
         {
         // the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
 #ifdef _DEVICEEMU
-        uint4 cur_angle = alist.angles[alist.pitch*angle_idx + idx];
+        uint4 cur_angle = alist[pitch*angle_idx + idx];
 #else
         // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint4 cur_angle = alist.angles[alist.pitch*angle_idx + idx];
+        volatile uint4 cur_angle = alist[pitch*angle_idx + idx];
 #endif
         
         int cur_angle_x_idx = cur_angle.x;
@@ -319,6 +323,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
     \param d_pos particle positions on the device
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param atable List of angles stored on the GPU
+    \param pitch Pitch of 2D angles list
+    \param n_angles_list List of numbers of angles stored on the GPU
     \param d_params K and t_0 params packed as float2 variables
     \param d_CGCMMsr sigma, and rcut packed as a float2
     \param d_CGCMMepow epsilon, pow1, pow2, and prefactor packed as a float4
@@ -337,7 +343,9 @@ cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
                                            const unsigned int N,
                                            const Scalar4 *d_pos,
                                            const gpu_boxsize &box,
-                                           const gpu_angletable_array &atable,
+                                           const uint4 *atable,
+                                           const unsigned int pitch,
+                                           const unsigned int *n_angles_list,
                                            float2 *d_params,
                                            float2 *d_CGCMMsr,
                                            float4 *d_CGCMMepow,
@@ -367,7 +375,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
         return error;
         
     // run the kernel
-    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, atable);
+    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, atable, pitch, n_angles_list);
     
     return cudaSuccess;
     }

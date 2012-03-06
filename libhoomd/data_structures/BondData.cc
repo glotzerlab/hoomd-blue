@@ -96,9 +96,6 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
         }
         
 #ifdef ENABLE_CUDA
-    // get the execution configuration
-    boost::shared_ptr<const ExecutionConfiguration> exec_conf = m_pdata->getExecConf();
-
     // allocate memory on the GPU if there is a GPU in the execution configuration
     if (exec_conf->isCUDAEnabled())
         {
@@ -351,9 +348,9 @@ void BondData::updateBondTableGPU()
         reallocateBondTable(max_bond_num);
         }
 
-    ArrayHandle<uint2> h_gpu_bondlist(m_gpu_bondlist, access_location::device, access_mode::overwrite);
+    ArrayHandle<uint2> d_gpu_bondlist(m_gpu_bondlist, access_location::device, access_mode::overwrite);
     gpu_create_bondtable(m_bonds.size(),
-                         h_gpu_bondlist.data,
+                         d_gpu_bondlist.data,
                          m_gpu_bondlist.getPitch(),
                          d_sort_keys,
                          d_sort_values);
@@ -379,11 +376,9 @@ void BondData::allocateBondTable(int height)
     // make sure the arrays have been deallocated
     assert(m_n_bonds.isNull());
     
-    // allocate device memory
     GPUArray<uint2> gpu_bondlist(m_pdata->getN(), height, exec_conf);
     m_gpu_bondlist.swap(gpu_bondlist);
         
-    // allocate and zero host memory
     GPUArray<unsigned int> n_bonds(m_pdata->getN(), exec_conf);
     m_n_bonds.swap(n_bonds);
 
