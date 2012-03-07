@@ -104,7 +104,6 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
     if (exec_conf->isCUDAEnabled())
         {
         allocateDihedralTable(1);
-        gpu_dihedraldata_allocate_scratch();
         }
 #endif
     }
@@ -112,13 +111,6 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
 DihedralData::~DihedralData()
     {
     m_sort_connection.disconnect();
-    
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        {
-        gpu_dihedraldata_deallocate_scratch();
-        }
-#endif
     }
 
 /*! \post A dihedral between particles specified in \a dihedral is created.
@@ -329,9 +321,6 @@ const GPUArray<uint1>& DihedralData::getDihedralABCD()
 */
 void DihedralData::updateDihedralTableGPU()
     {
-    unsigned int *d_sort_keys;
-    uint4 *d_sort_values;
-    uint1 *d_sort_ABCD;
     unsigned int max_dihedral_num;
 
         {
@@ -339,16 +328,13 @@ void DihedralData::updateDihedralTableGPU()
         ArrayHandle<unsigned int> d_dihedral_type (m_dihedral_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_dihedrals(m_n_dihedrals, access_location::device, access_mode::overwrite);
-        gpu_find_max_dihedral_number(d_dihedrals.data,
+        m_transform_dihedral_data.gpu_find_max_dihedral_number(max_dihedral_num,
+                                     d_dihedrals.data,
                                      d_dihedral_type.data,
                                      m_dihedrals.size(),
                                      m_pdata->getN(),
                                      d_rtag.data,
-                                     d_n_dihedrals.data,
-                                     max_dihedral_num,
-                                     d_sort_keys,
-                                     d_sort_values,
-                                     d_sort_ABCD);
+                                     d_n_dihedrals.data);
         }
 
     if (max_dihedral_num > m_gpu_dihedral_list.getHeight())
@@ -358,13 +344,10 @@ void DihedralData::updateDihedralTableGPU()
     
     ArrayHandle<uint4> d_gpu_dihedral_list(m_gpu_dihedral_list, access_location::device, access_mode::overwrite);
     ArrayHandle<uint1> d_gpu_dihedral_ABCD(m_dihedrals_ABCD, access_location::device, access_mode::overwrite);
-    gpu_create_dihedraltable(m_dihedrals.size(),
+    m_transform_dihedral_data.gpu_create_dihedraltable(m_dihedrals.size(),
                              d_gpu_dihedral_list.data,
                              d_gpu_dihedral_ABCD.data,
-                             m_gpu_dihedral_list.getPitch(),
-                             d_sort_keys,
-                             d_sort_values,
-                             d_sort_ABCD);
+                             m_gpu_dihedral_list.getPitch());
     }
 
 /*! \param height New height for the dihedral table
@@ -413,18 +396,13 @@ void DihedralData::takeSnapshot(SnapshotDihedralData& snapshot)
        throw runtime_error("Error taking snapshot.");
         }
 
-    assert(snapshot.dihedral_tag.size() == getNumAngles());
     assert(snapshot.type_id.size() == getNumAngles());
-    assert(snapshot.dihedral_rtag.size() == 0);
     assert(snapshot.type_mapping.size() == 0);
 
     for (unsigned int dihedral_idx = 0; dihedral_idx < getNumDihedrals(); dihedral_idx++)
         {
         snapshot.dihedrals[dihedral_idx] = m_dihedrals[dihedral_idx];
         snapshot.type_id[dihedral_idx] = m_dihedral_type[dihedral_idx];
-        unsigned int tag = m_tags[dihedral_idx];
-        snapshot.dihedral_tag[dihedral_idx] = tag;
-        snapshot.dihedral_rtag.insert(std::pair<unsigned int, unsigned int>(tag, dihedral_idx));
         }
 
     for (unsigned int i = 0; i < m_n_dihedral_types; i++)

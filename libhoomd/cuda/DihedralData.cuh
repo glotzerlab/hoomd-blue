@@ -54,38 +54,48 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _DIHEDRALDATA_CUH_
 
 #include <cuda_runtime.h>
-
+#include <thrust/device_vector.h>
 
 /*! \file DihedralData.cuh
     \brief GPU helper functions used in DihedralData
 */
 
-//! Allocate scratch memory for dihedral table creation
-void gpu_dihedraldata_allocate_scratch();
+class TransformDihedralDataGPU
+    {
+    public:
+        //! Find the maximum number of dihedrals per particle
+        cudaError_t gpu_find_max_dihedral_number(unsigned int& max_dihedral_num,
+                                             uint4 *d_dihedrals,
+                                             unsigned int *d_dihedral_type,
+                                             unsigned int num_dihedrals,
+                                             unsigned int N,
+                                             unsigned int *d_rtag,
+                                             unsigned int *d_n_dihedrals);
 
-//! Deallocate scratch memory for dihedral table creation
-void gpu_dihedraldata_deallocate_scratch();
+        //! Construct the GPU dihedral table
+        cudaError_t gpu_create_dihedraltable(unsigned int num_dihedrals,
+                                             uint4 *d_gpu_dihedraltable,
+                                             uint1 *d_gpu_dihedral_ABCD,
+                                             unsigned int pitch);
 
-//! Find the maximum number of dihedrals per particle
-cudaError_t gpu_find_max_dihedral_number(uint4 *d_dihedrals,
-                                     unsigned int *d_dihedral_type,
-                                     unsigned int num_dihedrals,
-                                     unsigned int N,
-                                     unsigned int *d_rtag,
-                                     unsigned int *d_n_dihedrals,
-                                     unsigned int& max_dihedral_num,
-                                     unsigned int *& d_sort_keys,
-                                     uint4 *& d_sort_values,
-                                     uint1 *& d_sort_ABCD);
+    private:
+        //! Sorted array of the first dihedral member as key
+        thrust::device_vector<unsigned int> dihedral_sort_keys;
 
-//! Construct the GPU dihedral table
-cudaError_t gpu_create_dihedraltable(unsigned int num_dihedrals,
-                                     uint4 *d_gpu_dihedraltable,
-                                     uint1 *d_gpu_dihedral_ABCD,
-                                     unsigned int pitch,
-                                     unsigned int * d_sort_keys,
-                                     uint4 *d_sort_values,
-                                     uint1 *d_sort_ABCD);
+        //! Sorted array of three dihedral members and the dihedral type as value, for every particle part of a dihedral
+        thrust::device_vector<uint4> dihedral_sort_values;
 
+        //! Sorted array of position in the dihedral for every particle part of a dihedral
+        thrust::device_vector<uint1> dihedral_sort_ABCD;
+
+        //! Map of indices in the 2D GPU dihedral table for every first member of a dihedral
+        thrust::device_vector<unsigned int> dihedral_map;
+
+        //! Sorted list of number of dihedrals for each particle index
+        thrust::device_vector<unsigned int> num_dihedrals_sorted;
+
+        //! Sorted list of particle indices that are part of at least one dihedral
+        thrust::device_vector<unsigned int> dihedral_indices;
+    };
 #endif
 

@@ -107,11 +107,6 @@ struct Angle
     };
 
 //! Handy structure for passing around and initializing the angle data
-/*! This structure can be used for initializing and reading out the angle data.
-    Angles are uniquely identified by the angle_tag. The order in which the angles
-    are stored in the snapshot may be arbitrary. The angle_rtag map is used
-    to lookup an angle  in the angle list by tag.
-*/
 struct SnapshotAngleData
     {
     //! Constructor
@@ -121,13 +116,10 @@ struct SnapshotAngleData
         {
         type_id.resize(n_angles);
         angles.resize(n_angles);
-        angle_tag.resize(n_angles);
         }
 
     std::vector<unsigned int> type_id;              //!< Stores type for each bo
     std::vector<uint3> angles;                      //!< .x and .y are tags of t
-    std::vector<unsigned int> angle_tag;            //!< Tags of angles
-    std::map<unsigned int,unsigned int> angle_rtag; //!< Reverse-lookup map for angle tags
     std::vector<std::string> type_mapping;          //!< Names of angle types
     };
 
@@ -270,7 +262,9 @@ class AngleData : boost::noncopyable
 #ifdef ENABLE_CUDA
         GPUArray<uint4> m_gpu_anglelist;    //!< List of angles on the GPU
         GPUArray<unsigned int> m_n_angles;  //!< Host copy of the number of angles
-        
+
+        TransformAngleDataGPU m_transform_angle_data; //! GPU helper class to transform the angle data
+
         //! Helper function to update the angle table on the device
         void updateAngleTableGPU();
         

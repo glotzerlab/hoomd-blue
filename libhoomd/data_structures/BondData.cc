@@ -100,7 +100,6 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     if (exec_conf->isCUDAEnabled())
         {
         allocateBondTable(1);
-        gpu_bonddata_allocate_scratch();
         }
 #endif
     }
@@ -108,13 +107,6 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
 BondData::~BondData()
     {
     m_sort_connection.disconnect();
-    
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        {
-        gpu_bonddata_deallocate_scratch();
-        }
-#endif
     }
 
 /*! \post A bond between particles specified in \a bond is created.
@@ -321,8 +313,6 @@ const GPUArray<uint2>& BondData::getGPUBondList()
 */
 void BondData::updateBondTableGPU()
     {
-    unsigned int *d_sort_keys;
-    uint2 *d_sort_values;
     unsigned int max_bond_num;
 
 
@@ -331,15 +321,13 @@ void BondData::updateBondTableGPU()
         ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
-        gpu_find_max_bond_number(d_bonds.data,
+        m_transform_bond_data.gpu_find_max_bond_number(max_bond_num,
+                                 d_bonds.data,
                                  d_bond_type.data,
                                  m_bonds.size(),
                                  m_pdata->getN(),
                                  d_rtag.data,
-                                 d_n_bonds.data,
-                                 max_bond_num,
-                                 d_sort_keys,
-                                 d_sort_values);
+                                 d_n_bonds.data);
         }
 
     // re allocate memory if needed
@@ -349,11 +337,9 @@ void BondData::updateBondTableGPU()
         }
 
     ArrayHandle<uint2> d_gpu_bondlist(m_gpu_bondlist, access_location::device, access_mode::overwrite);
-    gpu_create_bondtable(m_bonds.size(),
+    m_transform_bond_data.gpu_create_bondtable(m_bonds.size(),
                          d_gpu_bondlist.data,
-                         m_gpu_bondlist.getPitch(),
-                         d_sort_keys,
-                         d_sort_values);
+                         m_gpu_bondlist.getPitch());
     }
 
 /*! \param height New height for the bond table
@@ -399,18 +385,13 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
         throw runtime_error("Error taking snapshot.");
         }
 
-    assert(snapshot.bond_tag.size() == getNumBonds());
     assert(snapshot.type_id.size() == getNumBonds());
-    assert(snapshot.bond_rtag.size() == 0);
     assert(snapshot.type_mapping.size() == 0);
 
     for (unsigned int bond_idx = 0; bond_idx < getNumBonds(); bond_idx++)
         {
         snapshot.bonds[bond_idx] = m_bonds[bond_idx];
         snapshot.type_id[bond_idx] = m_bond_type[bond_idx];
-        unsigned int tag = m_tags[bond_idx];
-        snapshot.bond_tag[bond_idx] = tag;
-        snapshot.bond_rtag.insert(std::pair<unsigned int, unsigned int>(tag, bond_idx));
         }
 
     for (unsigned int i = 0; i < m_n_bond_types; i++)

@@ -104,7 +104,6 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
     if (exec_conf->isCUDAEnabled())
         {
         allocateAngleTable(1);
-        gpu_angledata_allocate_scratch();
         }
 #endif
     }
@@ -112,13 +111,6 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
 AngleData::~AngleData()
     {
     m_sort_connection.disconnect();
-    
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        {
-        gpu_angledata_deallocate_scratch();
-        }
-#endif
     }
 
 /*! \post An angle between particles specified in \a angle is created.
@@ -325,8 +317,6 @@ const GPUArray<uint4>& AngleData::getGPUAngleList()
 */
 void AngleData::updateAngleTableGPU()
     {
-    unsigned int *d_sort_keys;
-    uint4 *d_sort_values;
     unsigned int max_angle_num;
     
         {
@@ -334,15 +324,13 @@ void AngleData::updateAngleTableGPU()
         ArrayHandle<unsigned int> d_angle_type(m_angle_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_angles(m_n_angles, access_location::device, access_mode::overwrite);
-        gpu_find_max_angle_number(d_angles.data,
+        m_transform_angle_data.gpu_find_max_angle_number(max_angle_num,
+                                 d_angles.data,
                                  d_angle_type.data,
                                  m_angles.size(),
                                  m_pdata->getN(),
                                  d_rtag.data,
-                                 d_n_angles.data,
-                                 max_angle_num,
-                                 d_sort_keys,
-                                 d_sort_values);
+                                 d_n_angles.data);
         }
 
     if (max_angle_num > m_gpu_anglelist.getHeight())
@@ -351,11 +339,9 @@ void AngleData::updateAngleTableGPU()
         }
 
     ArrayHandle<uint4> d_gpu_anglelist(m_gpu_anglelist, access_location::device, access_mode::overwrite);
-    gpu_create_angletable(m_angles.size(),
+    m_transform_angle_data.gpu_create_angletable(m_angles.size(),
                          d_gpu_anglelist.data,
-                         m_gpu_anglelist.getPitch(),
-                         d_sort_keys,
-                         d_sort_values);
+                         m_gpu_anglelist.getPitch());
 
     }
 
@@ -400,18 +386,13 @@ void AngleData::takeSnapshot(SnapshotAngleData& snapshot)
         throw runtime_error("Error taking snapshot.");
         }
 
-    assert(snapshot.angle_tag.size() == getNumAngles());
     assert(snapshot.type_id.size() == getNumAngles());
-    assert(snapshot.angle_rtag.size() == 0);
     assert(snapshot.type_mapping.size() == 0);
 
     for (unsigned int angle_idx = 0; angle_idx < getNumAngles(); angle_idx++)
         {
         snapshot.angles[angle_idx] = m_angles[angle_idx];
         snapshot.type_id[angle_idx] = m_angle_type[angle_idx];
-        unsigned int tag = m_tags[angle_idx];
-        snapshot.angle_tag[angle_idx] = tag;
-        snapshot.angle_rtag.insert(std::pair<unsigned int, unsigned int>(tag, angle_idx));
         }
 
     for (unsigned int i = 0; i < m_n_angle_types; i++)

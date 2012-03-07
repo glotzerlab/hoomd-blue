@@ -74,68 +74,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Implements the helper functions for updating the GPU dihedral table
 */
 
-
-//! Sorted array of the first dihedral member as key
-thrust::device_vector<unsigned int> *dihedral_sort_keys = NULL;
-
-//! Sorted array of three dihedral members and the dihedral type as value, for every particle part of a dihedral
-thrust::device_vector<uint4> *dihedral_sort_values = NULL;
-
-//! Sorted array of position in the dihedral for every particle part of a dihedral
-thrust::device_vector<uint1> *dihedral_sort_ABCD = NULL;
-
-//! Map of indices in the 2D GPU dihedral table for every first member of a dihedral
-thrust::device_vector<unsigned int> *dihedral_map = NULL;
-
-//! Sorted list of number of dihedrals for each particle index
-thrust::device_vector<unsigned int> *num_dihedrals_sorted = NULL;
-
-//! Sorted list of particle indices that are part of at least one dihedral
-thrust::device_vector<unsigned int> *dihedral_indices = NULL;
-
-void gpu_dihedraldata_allocate_scratch()
-    {
-    assert(dihedral_sort_keys == NULL);
-    assert(dihedral_sort_values == NULL);
-    assert(dihedral_sort_ABCD == NULL);
-    assert(dihedral_map == NULL);
-    assert(dihedral_indices == NULL);
-    assert(num_dihedrals_sorted == NULL);
-
-    dihedral_sort_keys = new thrust::device_vector<unsigned int>();
-    dihedral_sort_values = new thrust::device_vector<uint4>();
-    dihedral_sort_ABCD = new thrust::device_vector<uint1>();
-
-    dihedral_map = new thrust::device_vector<unsigned int>();
-
-    dihedral_indices= new thrust::device_vector<unsigned int>();
-    num_dihedrals_sorted = new thrust::device_vector<unsigned int>();
-    }
-
-void gpu_dihedraldata_deallocate_scratch()
-    {
-    assert(dihedral_sort_keys);
-    assert(dihedral_sort_values);
-    assert(dihedral_sort_ABCD);
-    assert(dihedral_indices);
-    assert(num_dihedrals_sorted);
-    assert(dihedral_map);
-
-    delete dihedral_sort_keys;
-    delete dihedral_sort_values;
-    delete dihedral_sort_ABCD;
-    delete dihedral_map;
-    delete dihedral_indices;
-    delete num_dihedrals_sorted;
-
-    dihedral_sort_keys = NULL;
-    dihedral_sort_values = NULL;
-    dihedral_sort_ABCD = NULL;
-    dihedral_map = NULL;
-    dihedral_indices = NULL;
-    num_dihedrals_sorted = NULL;
-    }
-
 //! Helper structure to get particle tag a, b, c or d from a dihedral
 struct dihedral_get_tag : thrust::unary_function<uint4, unsigned int>
     {
@@ -228,16 +166,13 @@ __global__ void gpu_kernel_dihedral_fill_values(const uint4 *dihedrals,
     \param d_sort_values Pointer to a temporary list of other dihedral member indices and dihedral types (sorted)
     \param d_sort_ABCD Pointer to a temporary list of relative atom positions in the dihedral (sorted)
  */
-cudaError_t gpu_find_max_dihedral_number(uint4 *d_dihedrals,
+cudaError_t TransformDihedralDataGPU::gpu_find_max_dihedral_number(unsigned int& max_dihedral_num,
+                                     uint4 *d_dihedrals,
                                      unsigned int *d_dihedral_type,
                                      unsigned int num_dihedrals,
                                      unsigned int N,
                                      unsigned int *d_rtag,
-                                     unsigned int *d_n_dihedrals,
-                                     unsigned int& max_dihedral_num,
-                                     unsigned int *& d_sort_keys,
-                                     uint4 *& d_sort_values,
-                                     uint1 *& d_sort_ABCD)
+                                     unsigned int *d_n_dihedrals)
     {
     assert(d_dihedrals);
     assert(d_dihedral_type);
@@ -249,19 +184,19 @@ cudaError_t gpu_find_max_dihedral_number(uint4 *d_dihedrals,
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
     thrust::device_ptr<unsigned int> n_dihedrals_ptr(d_n_dihedrals);
 
-    if (dihedral_sort_keys->size() < 4*num_dihedrals)
+    if (dihedral_sort_keys.size() < 4*num_dihedrals)
         {
-        dihedral_sort_keys->resize(4*num_dihedrals);
-        dihedral_sort_values->resize(4*num_dihedrals);
-        dihedral_sort_ABCD->resize(4*num_dihedrals);
-        dihedral_indices->resize(4*num_dihedrals);
-        num_dihedrals_sorted->resize(4*num_dihedrals);
+        dihedral_sort_keys.resize(4*num_dihedrals);
+        dihedral_sort_values.resize(4*num_dihedrals);
+        dihedral_sort_ABCD.resize(4*num_dihedrals);
+        dihedral_indices.resize(4*num_dihedrals);
+        num_dihedrals_sorted.resize(4*num_dihedrals);
         }
 
     // fill sort key and value arrays
     unsigned int block_size = 512;
-    uint4 *d_dihedral_sort_values =  thrust::raw_pointer_cast(&* dihedral_sort_values->begin());
-    uint1 *d_dihedral_sort_ABCD =  thrust::raw_pointer_cast(&* dihedral_sort_ABCD ->begin());
+    uint4 *d_dihedral_sort_values =  thrust::raw_pointer_cast(&* dihedral_sort_values.begin());
+    uint1 *d_dihedral_sort_ABCD =  thrust::raw_pointer_cast(&* dihedral_sort_ABCD .begin());
 
     for (unsigned int i = 0; i < 4; i++)
         {
@@ -273,7 +208,7 @@ cudaError_t gpu_find_max_dihedral_number(uint4 *d_dihedrals,
                      rtag_ptr,
                      thrust::make_transform_iterator(dihedrals_ptr, dihedral_get_tag(i))
                      ) + num_dihedrals,
-                 dihedral_sort_keys->begin() + i * num_dihedrals);
+                 dihedral_sort_keys.begin() + i * num_dihedrals);
 
         // fill sort values
         gpu_kernel_dihedral_fill_values<<<num_dihedrals/block_size + 1, block_size>>>(d_dihedrals,
@@ -286,20 +221,20 @@ cudaError_t gpu_find_max_dihedral_number(uint4 *d_dihedrals,
         }
 
     // sort first dihedral members as keys with other dihedral members, dihedral types and particle indicies in in dihedral as values
-    thrust::sort_by_key(dihedral_sort_keys->begin(),
-                        dihedral_sort_keys->begin() + 4 * num_dihedrals,
-                        make_zip_iterator(thrust::make_tuple(dihedral_sort_values->begin(), dihedral_sort_ABCD->begin())));
+    thrust::sort_by_key(dihedral_sort_keys.begin(),
+                        dihedral_sort_keys.begin() + 4 * num_dihedrals,
+                        make_zip_iterator(thrust::make_tuple(dihedral_sort_values.begin(), dihedral_sort_ABCD.begin())));
 
     // count multiplicity of each key
-    unsigned int n_unique_indices = thrust::reduce_by_key(dihedral_sort_keys->begin(),
-                          dihedral_sort_keys->begin() + 4 * num_dihedrals,
+    unsigned int n_unique_indices = thrust::reduce_by_key(dihedral_sort_keys.begin(),
+                          dihedral_sort_keys.begin() + 4 * num_dihedrals,
                           thrust::constant_iterator<unsigned int>(1),
-                          dihedral_indices->begin(),
-                          num_dihedrals_sorted->begin() ).second - num_dihedrals_sorted->begin();
+                          dihedral_indices.begin(),
+                          num_dihedrals_sorted.begin() ).second - num_dihedrals_sorted.begin();
 
     // find the maximum
-    max_dihedral_num = thrust::reduce(num_dihedrals_sorted->begin(),
-                                  num_dihedrals_sorted->begin() + n_unique_indices,
+    max_dihedral_num = thrust::reduce(num_dihedrals_sorted.begin(),
+                                  num_dihedrals_sorted.begin() + n_unique_indices,
                                   0,
                                   thrust::maximum<unsigned int>());
 
@@ -309,14 +244,11 @@ cudaError_t gpu_find_max_dihedral_number(uint4 *d_dihedrals,
                  0);
 
     // scatter dihedral numbers in n_dihedrals array
-    thrust::scatter(num_dihedrals_sorted->begin(),
-                    num_dihedrals_sorted->begin() + n_unique_indices,
-                    dihedral_indices->begin(),
+    thrust::scatter(num_dihedrals_sorted.begin(),
+                    num_dihedrals_sorted.begin() + n_unique_indices,
+                    dihedral_indices.begin(),
                     n_dihedrals_ptr);
 
-    d_sort_keys = thrust::raw_pointer_cast(&*dihedral_sort_keys->begin());
-    d_sort_values = thrust::raw_pointer_cast(&*dihedral_sort_values->begin());
-    d_sort_ABCD = thrust::raw_pointer_cast(&*dihedral_sort_ABCD->begin());
     return cudaSuccess;
     }
 
@@ -328,50 +260,47 @@ cudaError_t gpu_find_max_dihedral_number(uint4 *d_dihedrals,
     \param d_sort_keys First dihedral members as keys (sorted)
     \param d_sort_values Other dihedral members plus type as values (sorted)
     \param d_sort_ABCD Relative atom position in the dihedral (sorted)
+
+    \pre Prior to calling this method, the internal dihedral_sort_keys, dihedral_sort_values
+         and dihedral_sort_ABCD need to be initialized by a call to gpu_find_max_dihedral_number
+
  */
-cudaError_t gpu_create_dihedraltable(unsigned int num_dihedrals,
+cudaError_t TransformDihedralDataGPU::gpu_create_dihedraltable(unsigned int num_dihedrals,
                                      uint4 *d_gpu_dihedraltable,
                                      uint1 *d_gpu_dihedral_ABCD,
-                                     unsigned int pitch,
-                                     unsigned int * d_sort_keys,
-                                     uint4 *d_sort_values,
-                                     uint1 *d_sort_ABCD)
+                                     unsigned int pitch)
     {
 
     thrust::device_ptr<uint4> gpu_dihedraltable_ptr(d_gpu_dihedraltable);
     thrust::device_ptr<uint1> gpu_dihedral_ABCD_ptr(d_gpu_dihedral_ABCD);
 
-    thrust::device_ptr<unsigned int> sort_keys_ptr(d_sort_keys);
-    thrust::device_ptr<uint4> sort_values_ptr(d_sort_values);
-    thrust::device_ptr<uint1> sort_ABCD_ptr(d_sort_ABCD);
-
-    if (dihedral_map->size() < 4*num_dihedrals)
+    if (dihedral_map.size() < 4*num_dihedrals)
         {
-        dihedral_map->resize(4*num_dihedrals);
+        dihedral_map.resize(4*num_dihedrals);
         }
 
     // create the dihedral_map of 2D dihedral table indices for all first dihedral members
-    thrust::exclusive_scan_by_key(sort_keys_ptr,
-                                  sort_keys_ptr + 4 * num_dihedrals,
+    thrust::exclusive_scan_by_key(dihedral_sort_keys.begin(),
+                                  dihedral_sort_keys.begin() + 4 * num_dihedrals,
                                   thrust::make_constant_iterator(pitch),
-                                  dihedral_map->begin());
+                                  dihedral_map.begin());
 
-    thrust::transform(dihedral_map->begin(),
-                      dihedral_map->begin() + 4 * num_dihedrals,
-                      sort_keys_ptr,
-                      dihedral_map->begin(),
+    thrust::transform(dihedral_map.begin(),
+                      dihedral_map.begin() + 4 * num_dihedrals,
+                      dihedral_sort_keys.begin(),
+                      dihedral_map.begin(),
                       thrust::plus<unsigned int>());
 
     // scatter the other dihedral members and the type into the 2D matrix according to the dihedral_map
-    thrust::scatter(sort_values_ptr,
-                    sort_values_ptr + 4* num_dihedrals,
-                    dihedral_map->begin(),
+    thrust::scatter(dihedral_sort_values.begin(),
+                    dihedral_sort_values.begin() + 4* num_dihedrals,
+                    dihedral_map.begin(),
                     gpu_dihedraltable_ptr);
 
     // scatter the relative position of the atoms in the dihedral into the 2D matrix d_gpu_dihedral_ABCD
-    thrust::scatter(sort_ABCD_ptr,
-                   sort_ABCD_ptr + 4 * num_dihedrals,
-                   dihedral_map->begin(),
+    thrust::scatter(dihedral_sort_ABCD.begin(),
+                   dihedral_sort_ABCD.begin() + 4 * num_dihedrals,
+                   dihedral_map.begin(),
                    gpu_dihedral_ABCD_ptr);
 
     return cudaSuccess;

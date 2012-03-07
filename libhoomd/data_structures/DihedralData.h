@@ -87,11 +87,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class ParticleData;
 
 //! Handy structure for passing around and initializing the dihedral data
-/*! This structure can be used for initializing and reading out the dihedral data.
-    Dihedrals are uniquely identified by the dihedral_tag. The order in which the dihedrals
-    are stored in the snapshot may be arbitrary. The dihedral_rtag map is used
-    to lookup a dihedral  in the dihedral list by tag.
-*/
 struct SnapshotDihedralData
     {
     //! Constructor
@@ -101,13 +96,10 @@ struct SnapshotDihedralData
         {
         type_id.resize(n_dihedrals);
         dihedrals.resize(n_dihedrals);
-        dihedral_tag.resize(n_dihedrals);
         }
 
     std::vector<unsigned int> type_id;                 //!< Stores type for each bo
     std::vector<uint4> dihedrals;                      //!< .x and .y are tags of t
-    std::vector<unsigned int> dihedral_tag;            //!< Tags of dihedrals
-    std::map<unsigned int,unsigned int> dihedral_rtag; //!< Reverse-lookup map for dihedral tags
     std::vector<std::string> type_mapping;             //!< Names of dihedral types
     };
 
@@ -277,7 +269,9 @@ class DihedralData : boost::noncopyable
         GPUArray<uint4> m_gpu_dihedral_list;                    //!< List of dihedrals on the GPU (3atoms of a,b,c, or d, plus the type)
         GPUArray<uint1> m_dihedrals_ABCD;                        //!< List of atom positions in the dihedral
         GPUArray<unsigned int> m_n_dihedrals;                    //!< Number of dihedrals
-        
+
+        TransformDihedralDataGPU m_transform_dihedral_data;      //!< GPU helper class to transform dihedral data
+
         //! Helper function to update the dihedral table on the device
         void updateDihedralTableGPU();
         

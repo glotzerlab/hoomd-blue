@@ -55,33 +55,44 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cuda_runtime.h>
 
+#include <thrust/device_vector.h>
+
 /*! \file BondData.cuh
     \brief GPU helper functions used in BondData
 */
 
-//! Allocate scratch memory for bond table creation
-void gpu_bonddata_allocate_scratch();
+class TransformBondDataGPU
+    {
+    public:
+        //! Find the maximum number of bonds per particle
+        cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
+                                         uint2 *d_bonds,
+                                         unsigned int *d_bond_type,
+                                         unsigned int num_bonds,
+                                         unsigned int N,
+                                         unsigned int *d_rtag,
+                                         unsigned int *d_n_bonds);
 
-//! Deallocate scratch memory for bond table creation
-void gpu_bonddata_deallocate_scratch();
+        //! Construct the GPU bond table
+        cudaError_t gpu_create_bondtable(unsigned int num_bonds,
+                                         uint2 *d_gpu_bondtable,
+                                         unsigned int pitch);
 
-//! Find the maximum number of bonds per particle
-cudaError_t gpu_find_max_bond_number(uint2 *d_bonds,
-                                     unsigned int *d_bond_type,
-                                     unsigned int num_bonds,
-                                     unsigned int N,
-                                     unsigned int *d_rtag,
-                                     unsigned int *d_n_bonds,
-                                     unsigned int& max_bond_num,
-                                     unsigned int *& d_sort_keys,
-                                     uint2 *& d_sort_values);
+    private:
+        //! Sorted array of the first bond member as key
+        thrust::device_vector<unsigned int> bond_sort_keys;
 
-//! Construct the GPU bond table
-cudaError_t gpu_create_bondtable(unsigned int num_bonds,
-                                     uint2 *d_gpu_bondtable,
-                                     unsigned int pitch,
-                                     unsigned int * d_sort_keys,
-                                     uint2 *d_sort_values );
+        //! Sorted array of the second bond member and the bond type as value
+        thrust::device_vector<uint2> bond_sort_values;
 
+        //! Map of indices in the 2D GPU bond table for every first member of a bond
+        thrust::device_vector<unsigned int> bond_map;
+
+        //! Sorted list of number of bonds for each particle index
+        thrust::device_vector<unsigned int> num_bonds_sorted;
+
+        //! Sorted list of particle indices that have at least one bond
+        thrust::device_vector<unsigned int> bonded_indices;
+    };
 #endif
 

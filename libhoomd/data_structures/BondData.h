@@ -105,11 +105,6 @@ struct Bond
     };
 
 //! Handy structure for passing around and initializing the bond data
-/*! This structure can be used for initializing and reading out the bond data.
-    Bonds are uniquely identified by the bond_tag. The order in which the bonds
-    are stored in the snapshot may be arbitrary. The bond_rtag map can be used for looking
-    up a bond in the bonds list by tag.
- */
 struct SnapshotBondData
     {
     //! Constructor
@@ -119,13 +114,10 @@ struct SnapshotBondData
         {
         type_id.resize(n_bonds);
         bonds.resize(n_bonds);
-        bond_tag.resize(n_bonds);
         }
 
     std::vector<unsigned int> type_id;             //!< Stores type for each bond
     std::vector<uint2> bonds;                      //!< .x and .y are tags of the two particles in the bond
-    std::vector<unsigned int> bond_tag;            //!< Tags of bonds
-    std::map<unsigned int,unsigned int> bond_rtag; //!< Reverse-lookup map bond tag->index
     std::vector<std::string> type_mapping;         //!< Names of bond types
     };
 
@@ -266,7 +258,9 @@ class BondData : boost::noncopyable
 #ifdef ENABLE_CUDA
         GPUArray<uint2> m_gpu_bondlist;     //!< List of bonds on the GPU
         GPUArray<unsigned int> m_n_bonds;   //!< Array of the number of bonds
-        
+
+        TransformBondDataGPU m_transform_bond_data; //! GPU helper class to transform the bond data
+
         //! Helper function to update the bond table on the device
         void updateBondTableGPU();
 

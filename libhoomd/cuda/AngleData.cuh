@@ -54,34 +54,45 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _ANGLEDATA_CUH_
 
 #include <cuda_runtime.h>
+#include <thrust/device_vector.h>
 
 /*! \file AngleData.cuh
     \brief GPU helper functions used in AngleData
 */
 
-//! Allocate scratch memory for angle table creation
-void gpu_angledata_allocate_scratch();
-
-//! Deallocate scratch memory for angle table creation
-void gpu_angledata_deallocate_scratch();
-
-//! Find the maximum number of angles per particle
-cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
+class TransformAngleDataGPU
+    {
+    public:
+        //! Find the maximum number of angles per particle
+        cudaError_t gpu_find_max_angle_number(unsigned int& max_angle_num,
+                                     uint3 *d_angles,
                                      unsigned int *d_angle_type,
                                      unsigned int num_angles,
                                      unsigned int N,
                                      unsigned int *d_rtag,
-                                     unsigned int *d_n_angles,
-                                     unsigned int& max_angle_num,
-                                     unsigned int *& d_sort_keys,
-                                     uint4 *& d_sort_values);
+                                     unsigned int *d_n_angles);
 
-//! Construct the GPU angle table
-cudaError_t gpu_create_angletable(unsigned int num_angles,
+        //! Construct the GPU angle table
+        cudaError_t gpu_create_angletable(unsigned int num_angles,
                                      uint4 *d_gpu_angletable,
-                                     unsigned int pitch,
-                                     unsigned int * d_sort_keys,
-                                     uint4 *d_sort_values );
+                                     unsigned int pitch);
 
+    private:
+
+        //! Sorted array of the first angle member as key
+        thrust::device_vector<unsigned int> angle_sort_keys;
+
+        //! Sorted array of the second and third angle member and the angle type as value
+        thrust::device_vector<uint4> angle_sort_values;
+
+        //! Map of indices in the 2D GPU angle table for every first member of a angle
+        thrust::device_vector<unsigned int> angle_map;
+
+        //! Sorted list of number of angles for each particle index
+        thrust::device_vector<unsigned int> num_angles_sorted;
+
+        //! Sorted list of particle indices that have at least one angle
+        thrust::device_vector<unsigned int> angle_indices;
+    };
 #endif
 

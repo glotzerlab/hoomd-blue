@@ -73,60 +73,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Implements the helper functions for updating the GPU angle table
 */
 
-
-//! Sorted array of the first angle member as key
-thrust::device_vector<unsigned int> *angle_sort_keys = NULL;
-
-//! Sorted array of the second and third angle member and the angle type as value
-thrust::device_vector<uint4> *angle_sort_values = NULL;
-
-//! Map of indices in the 2D GPU angle table for every first member of a angle
-thrust::device_vector<unsigned int> *angle_map = NULL;
-
-//! Sorted list of number of angles for each particle index
-thrust::device_vector<unsigned int> *num_angles_sorted = NULL;
-
-//! Sorted list of particle indices that have at least one angle
-thrust::device_vector<unsigned int> *angle_indices = NULL;
-
-void gpu_angledata_allocate_scratch()
-    {
-    assert(angle_sort_keys == NULL);
-    assert(angle_sort_values == NULL);
-    assert(angle_map == NULL);
-    assert(angle_indices == NULL);
-    assert(num_angles_sorted == NULL);
-
-    angle_sort_keys = new thrust::device_vector<unsigned int>();
-    angle_sort_values = new thrust::device_vector<uint4>();
-
-    angle_map = new thrust::device_vector<unsigned int>();
-
-    angle_indices= new thrust::device_vector<unsigned int>();
-    num_angles_sorted = new thrust::device_vector<unsigned int>();
-    }
-
-void gpu_angledata_deallocate_scratch()
-    {
-    assert(angle_sort_keys);
-    assert(angle_sort_values);
-    assert(angle_indices);
-    assert(num_angles_sorted);
-    assert(angle_map);
-
-    delete angle_sort_keys;
-    delete angle_sort_values;
-    delete angle_map;
-    delete angle_indices;
-    delete num_angles_sorted;
-
-    angle_sort_keys = NULL;
-    angle_sort_values = NULL;
-    angle_map = NULL;
-    angle_indices = NULL;
-    num_angles_sorted = NULL;
-    }
-
 //! Helper structure to get particle tag a, b or c from an angle
 struct get_tag : thrust::unary_function<uint3, unsigned int>
     {
@@ -206,16 +152,17 @@ __global__ void gpu_kernel_angle_fill_values(const uint3 *angles,
     \param max_angle_num Maximum number of angles (return value)
     \param d_sort_keys Pointer to a temporary sorted list of first angle member indices (return value)
     \param d_sort_values Pointer to a temporary list of second angle member indices and angle types
+
+    \pre Prior to calling this method, the internal angle_sort_keys and angle_sort_values
+         need to be initialized by a call to gpu_find_max_angle_number
  */
-cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
+cudaError_t TransformAngleDataGPU::gpu_find_max_angle_number(unsigned int& max_angle_num,
+                                     uint3 *d_angles,
                                      unsigned int *d_angle_type,
                                      unsigned int num_angles,
                                      unsigned int N,
                                      unsigned int *d_rtag,
-                                     unsigned int *d_n_angles,
-                                     unsigned int& max_angle_num,
-                                     unsigned int *& d_sort_keys,
-                                     uint4 *& d_sort_values)
+                                     unsigned int *d_n_angles)
     {
     assert(d_angles);
     assert(d_angle_type);
@@ -227,12 +174,12 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
     thrust::device_ptr<unsigned int> n_angles_ptr(d_n_angles);
 
-    if (angle_sort_keys->size() < 3*num_angles)
+    if (angle_sort_keys.size() < 3*num_angles)
         {
-        angle_sort_keys->resize(3*num_angles);
-        angle_sort_values->resize(3*num_angles);
-        angle_indices->resize(3*num_angles);
-        num_angles_sorted->resize(3*num_angles);
+        angle_sort_keys.resize(3*num_angles);
+        angle_sort_values.resize(3*num_angles);
+        angle_indices.resize(3*num_angles);
+        num_angles_sorted.resize(3*num_angles);
         }
 
     // idx a goes into angle_sort_keys
@@ -244,11 +191,11 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
                      rtag_ptr,
                      thrust::make_transform_iterator(angles_ptr, get_tag(0))
                      ) + num_angles,
-                 angle_sort_keys->begin());
+                 angle_sort_keys.begin());
 
     // fill sort values
     unsigned int block_size = 512;
-    uint4 *d_angle_sort_values =  thrust::raw_pointer_cast(&* angle_sort_values->begin());
+    uint4 *d_angle_sort_values =  thrust::raw_pointer_cast(&* angle_sort_values.begin());
     gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
                                                            d_angle_type,
                                                            d_rtag,
@@ -265,7 +212,7 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
                      rtag_ptr,
                      thrust::make_transform_iterator(angles_ptr, get_tag(1))
                      ) + num_angles,
-                 angle_sort_keys->begin() + num_angles);
+                 angle_sort_keys.begin() + num_angles);
 
     // fill sort values
     gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
@@ -285,7 +232,7 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
                      rtag_ptr,
                      thrust::make_transform_iterator(angles_ptr, get_tag(2))
                      ) + num_angles,
-                 angle_sort_keys->begin() + 2*num_angles);
+                 angle_sort_keys.begin() + 2*num_angles);
 
     // fill sort values
     gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
@@ -296,20 +243,20 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
                                                            num_angles);
 
     // sort first angle members as keys with second angle members and angle types as values
-    thrust::sort_by_key(angle_sort_keys->begin(),
-                 angle_sort_keys->begin() + 3 * num_angles,
-                 angle_sort_values->begin());
+    thrust::sort_by_key(angle_sort_keys.begin(),
+                 angle_sort_keys.begin() + 3 * num_angles,
+                 angle_sort_values.begin());
 
     // count multiplicity of each key
-    unsigned int n_unique_indices = thrust::reduce_by_key(angle_sort_keys->begin(),
-                          angle_sort_keys->begin() + 3 * num_angles,
+    unsigned int n_unique_indices = thrust::reduce_by_key(angle_sort_keys.begin(),
+                          angle_sort_keys.begin() + 3 * num_angles,
                           thrust::constant_iterator<unsigned int>(1),
-                          angle_indices->begin(),
-                          num_angles_sorted->begin() ).second - num_angles_sorted->begin();
+                          angle_indices.begin(),
+                          num_angles_sorted.begin() ).second - num_angles_sorted.begin();
 
     // find the maximum
-    max_angle_num = thrust::reduce(num_angles_sorted->begin(),
-                                  num_angles_sorted->begin() + n_unique_indices,
+    max_angle_num = thrust::reduce(num_angles_sorted.begin(),
+                                  num_angles_sorted.begin() + n_unique_indices,
                                   0,
                                   thrust::maximum<unsigned int>());
 
@@ -319,13 +266,11 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
                  0);
 
     // scatter angle numbers in n_angles array
-    thrust::scatter(num_angles_sorted->begin(),
-                    num_angles_sorted->begin() + n_unique_indices,
-                    angle_indices->begin(),
+    thrust::scatter(num_angles_sorted.begin(),
+                    num_angles_sorted.begin() + n_unique_indices,
+                    angle_indices.begin(),
                     n_angles_ptr);
 
-    d_sort_keys = thrust::raw_pointer_cast(&*angle_sort_keys->begin());
-    d_sort_values = thrust::raw_pointer_cast(&*angle_sort_values->begin());
     return cudaSuccess;
     }
 
@@ -336,40 +281,35 @@ cudaError_t gpu_find_max_angle_number(uint3 *d_angles,
     \param d_sort_keys First angle members as keys (sorted)
     \param d_sort_values Second angle members as values (sorted)
  */
-cudaError_t gpu_create_angletable(unsigned int num_angles,
+cudaError_t TransformAngleDataGPU::gpu_create_angletable(unsigned int num_angles,
                                      uint4 *d_gpu_angletable,
-                                     unsigned int pitch,
-                                     unsigned int * d_sort_keys,
-                                     uint4 *d_sort_values )
+                                     unsigned int pitch)
 
     {
 
     thrust::device_ptr<uint4> gpu_angletable_ptr(d_gpu_angletable);
 
-    thrust::device_ptr<unsigned int> sort_keys_ptr(d_sort_keys);
-    thrust::device_ptr<uint4> sort_values_ptr(d_sort_values);
-
-    if (angle_map->size() < 3*num_angles)
+    if (angle_map.size() < 3*num_angles)
         {
-        angle_map->resize(3*num_angles);
+        angle_map.resize(3*num_angles);
         }
 
     // create the angle_map of 2D angle table indices for all first angle members
-    thrust::exclusive_scan_by_key(sort_keys_ptr,
-                                  sort_keys_ptr + 3 * num_angles,
+    thrust::exclusive_scan_by_key(angle_sort_keys.begin(),
+                                  angle_sort_keys.begin() + 3 * num_angles,
                                   thrust::make_constant_iterator(pitch),
-                                  angle_map->begin());
+                                  angle_map.begin());
 
-    thrust::transform(angle_map->begin(),
-                      angle_map->begin() + 3 * num_angles,
-                      sort_keys_ptr,
-                      angle_map->begin(),
+    thrust::transform(angle_map.begin(),
+                      angle_map.begin() + 3 * num_angles,
+                      angle_sort_keys.begin(),
+                      angle_map.begin(),
                       thrust::plus<unsigned int>());
 
     // scatter the second angle member into the 2D matrix according to the angle_map
-    thrust::scatter(sort_values_ptr,
-                    sort_values_ptr + 3* num_angles,
-                    angle_map->begin(),
+    thrust::scatter(angle_sort_values.begin(),
+                    angle_sort_values.begin() + 3* num_angles,
+                    angle_map.begin(),
                     gpu_angletable_ptr);
 
     return cudaSuccess;
