@@ -393,7 +393,7 @@ tools/jam/src/bin.macosxx86/bjam
 
 Now, edit ./tools/build/v2/user-config.jam and add "using mpi ;" add run the command
 \code
- $ ./b2 --with-mpi variant=release threading=multi link=shared,static
+ $ ./b2 variant=release threading=multi link=shared,static
 \endcode
 and wait a \e long time for everything to compile. At the end, you should see a message saying
 \code
