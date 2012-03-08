@@ -343,10 +343,11 @@ void MPIInitializer::scatter(unsigned int root)
     }
 
 //! Gather particle data from all processors into a snapshot on a single processor
-void MPIInitializer::gatherSnapshot(unsigned int root, SnapshotParticleData& global_snapshot)
+void MPIInitializer::gatherSnapshot(SnapshotParticleData& global_snapshot, unsigned int root)
     {
     // take a snapshot of the current configuration
     SnapshotParticleData snap(m_pdata->getN());
+    global_snapshot.type_mapping.clear();
     for (unsigned int i = 0; i < m_num_particle_types; i++)
         global_snapshot.type_mapping.push_back(m_pdata->getNameByType(i));
 

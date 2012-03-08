@@ -137,6 +137,8 @@ include (HOOMDOSSpecificSetup)
 include (HOOMDCommonLibsSetup)
 # setup macros
 include (HOOMDMacros)
+# setup MPI support
+include (HOOMDMPISetup)
 
 set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS})
 include_directories(${HOOMD_INCLUDE_DIR})

@@ -172,7 +172,7 @@ class MPIInitializer
        /*! \param root Rank of processor to gather particle data on
         *  \param global_snapshot Snapshot to collect particle data in
         */
-       void gatherSnapshot(unsigned int root, SnapshotParticleData &global_snapshot);
+       void gatherSnapshot(SnapshotParticleData &global_snapshot, unsigned int root);
 
        //! Calculate MPI ranks of neighboring domain
        /*! \param dir neighbor direction to calculate rank for<br>

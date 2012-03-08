@@ -70,7 +70,8 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
                              const gpu_boxsize &box,
                              unsigned int block_size,
                              float Xi,
-                             float deltaT);
+                             float deltaT,
+                             bool no_wrap_particles[]);
 
 //! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
 cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,

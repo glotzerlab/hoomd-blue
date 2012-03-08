@@ -357,6 +357,21 @@ void ParticleData::setGlobalBox(const BoxDim &global_box)
     {
     m_global_box = global_box;
     assert(inBox());
+#ifdef ENABLE_CUDA
+    // setup the box
+    m_gpu_global_box.Lx = m_global_box.xhi - m_global_box.xlo;
+    m_gpu_global_box.Ly = m_global_box.yhi - m_global_box.ylo;
+    m_gpu_global_box.Lz = m_global_box.zhi - m_global_box.zlo;
+    m_gpu_global_box.Lxinv = 1.0f / m_gpu_global_box.Lx;
+    m_gpu_global_box.Lyinv = 1.0f / m_gpu_global_box.Ly;
+    m_gpu_global_box.Lzinv = 1.0f / m_gpu_global_box.Lz;
+    m_gpu_global_box.xlo = m_global_box.xlo;
+    m_gpu_global_box.ylo = m_global_box.ylo;
+    m_gpu_global_box.zlo = m_global_box.zlo;
+    m_gpu_global_box.xhi = m_global_box.xhi;
+    m_gpu_global_box.yhi = m_global_box.yhi;
+    m_gpu_global_box.zhi = m_global_box.zhi;
+#endif
     
     m_boxchange_signal();
     }

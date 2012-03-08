@@ -53,6 +53,8 @@ include (HOOMDMPISetup)
 include (HOOMDMacros)
 # Configure some source files, include directories, and create variables listing all source files
 include (CMake_src_setup.cmake)
+# preprocessor flags
+include (CMake_preprocessor_flags.cmake)
 
 # setup the library compile mode
 if(ENABLE_STATIC)
