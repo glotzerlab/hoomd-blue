@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Table of contents:
  - \ref sec_build_linux_generic_prereq
  - \ref sec_build_linux_generic_compile
+ - \ref sec_build_linux_generic_mpi
 <hr>
 
 \section sec_build_linux_generic_prereq Software Prerequisites
@@ -340,4 +341,93 @@ Either open a new terminal or
 for the path setting to take effect.
 
 <hr>
+
+\section sec_build_linux_generic_mpi Compiling with MPI enabled
+
+<b>Preinstalled MPI</b>
+
+If your cluster administrator provides an installation of MPI, you need to figure out where that is installed and set
+the MPI_HOME env var (if it isn't set already).
+\code
+ $ echo ${MPI_HOME}
+/home/software/rhel5/openmpi-1.4.2/gcc
+\endcode
+
+<b>Compile your own MPI</b>
+
+Or, you can compile your own MPI and run it out of your home directory. MVAPICH 1.8a2 supports CUDA integration that
+enables fast multi-GPU performance.
+
+\code
+ $ tar -xvzf mvapich2-1.8a2.tgz
+ $ cd mvapich2-1.8a2
+ $ ./configure --with-device=ch3:mrail --with-rdma=gen2 --prefix=~/local --enable-cuda --with-cuda=${CUDA_ROOT} --enable-shared
+ $ make
+ $ make install
+\endcode
+
+The following needs to be added to your environment variables in .bash_profile.
+\code
+export LD_LIBRARY_PATH=${HOME}/local/lib:${LD_LIBRARY_PATH}    # if not already there
+export MPI_HOME=${HOME}/local 
+\endcode
+Then log out and back in before attempting to build boost (so that it can find MPI).
+
+<b>Boost with MPI support</b>
+
+If your cluster administrator does not provide a build of boost with MPI support, you will need to compile it.
+Download \b boost_1_??_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
+configure boost for building with the following commands.
+\code
+ $ tar -xjf boost_1_??_0.tar.bz2 
+ $ cd boost_1_??_0
+ $ ./bootstrap.sh --prefix=~/local
+-n Building Boost.Jam with toolset darwin... 
+tools/jam/src/bin.macosxx86/bjam
+-n Detecting Python version... 
+2.5
+-n Detecting Python root... 
+/System/Library/Frameworks/Python.framework/Versions/2.5
+...
+\endcode
+
+Now, edit ./tools/build/v2/user-config.jam and add "using mpi ;" add run the command
+\code
+ $ ./b2 --with-mpi variant=release threading=multi link=shared,static
+\endcode
+and wait a \e long time for everything to compile. At the end, you should see a message saying
+\code
+...updated 1039 targets...
+\endcode
+
+Now, you are ready to install the library.
+\code
+ $ ./b2 variant=release threading=multi link=shared,static install
+\endcode
+After a considerably shorter wait, you should see
+\code
+...updated 9845 targets...
+\endcode
+again. Boost is now installed.
+
+You can delete the boost_1_??_0 directory now if you wish. It might be worth 
+saving for a little while until you have compiled HOOMD-blue and know everything 
+is working so that you won't need to go through all the setup steps again. 
+
+The following needs to be added to your environment variables in .bash_profile.
+\code
+export LD_LIBRARY_PATH=${HOME}/local/lib:${LD_LIBRARY_PATH}    # if not already there
+export PYTHONPATH=${HOME}/local/lib:${PYTHONPATH}
+export BOOST_LINK=${HOME}/local/lib 
+export BOOST_INC=${HOME}/local/include 
+export BOOST_ROOT=${HOME}/local 
+\endcode
+
+Then log out and back in before attempting to build hoomd. 
+
+<b>Build hoomd</b>
+
+Configure and build hoomd as normal (see \ref sec_build_linux_generic_compile). During the cmake step, MPI should
+be detected and enabled.
+
 */
