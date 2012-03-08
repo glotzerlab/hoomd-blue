@@ -361,7 +361,7 @@ enables fast multi-GPU performance.
 \code
  $ tar -xvzf mvapich2-1.8a2.tgz
  $ cd mvapich2-1.8a2
- $ ./configure --with-device=ch3:mrail --with-rdma=gen2 --prefix=~/local --enable-cuda --with-cuda=${CUDA_ROOT} --enable-shared
+ $ ./configure --with-device=ch3:mrail --with-rdma=gen2 --prefix=${HOME}/local --enable-cuda --with-cuda=${CUDA_ROOT} --enable-shared
  $ make
  $ make install
 \endcode
@@ -381,7 +381,7 @@ configure boost for building with the following commands.
 \code
  $ tar -xjf boost_1_??_0.tar.bz2 
  $ cd boost_1_??_0
- $ ./bootstrap.sh --prefix=~/local
+ $ ./bootstrap.sh --prefix=${HOME}/local
 -n Building Boost.Jam with toolset darwin... 
 tools/jam/src/bin.macosxx86/bjam
 -n Detecting Python version... 
