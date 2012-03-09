@@ -513,7 +513,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     m_last_TPS = TPS;
     
     // write out the profile data
-    if (m_profiler)
+    if (!m_quiet_run && m_profiler)
         cout << *m_profiler;
         
     if (!m_quiet_run)
