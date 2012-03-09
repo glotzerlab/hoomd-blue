@@ -255,14 +255,18 @@ class BondData : boost::noncopyable
             m_bonds_dirty = true;
             }
             
-#ifdef ENABLE_CUDA
         GPUArray<uint2> m_gpu_bondlist;     //!< List of bonds on the GPU
         GPUArray<unsigned int> m_n_bonds;   //!< Array of the number of bonds
 
+#ifdef ENABLE_CUDA
         TransformBondDataGPU m_transform_bond_data; //! GPU helper class to transform the bond data
 
         //! Helper function to update the bond table on the device
         void updateBondTableGPU();
+#endif
+
+        //! Helper function to update the GPU bond table
+        void updateBondTable();
 
         //! Helper function to reallocate the bond table on the device
         void reallocateBondTable(int height);
@@ -270,7 +274,6 @@ class BondData : boost::noncopyable
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);
         
-#endif
     };
 
 //! Exports BondData to python

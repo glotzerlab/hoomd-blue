@@ -259,14 +259,17 @@ class AngleData : boost::noncopyable
             m_angles_dirty = true;
             }
             
-#ifdef ENABLE_CUDA
         GPUArray<uint4> m_gpu_anglelist;    //!< List of angles on the GPU
         GPUArray<unsigned int> m_n_angles;  //!< Host copy of the number of angles
 
+#ifdef ENABLE_CUDA
         TransformAngleDataGPU m_transform_angle_data; //! GPU helper class to transform the angle data
 
         //! Helper function to update the angle table on the device
         void updateAngleTableGPU();
+#endif
+        //! Helper function to update the GPU angle table
+        void updateAngleTable();
         
         //! Helper function to reallocate the angle table on the device
         void reallocateAngleTable(int height);
@@ -274,7 +277,6 @@ class AngleData : boost::noncopyable
         //! Helper function to allocate the angle table
         void allocateAngleTable(int height);
         
-#endif
     };
 
 //! Exports AngleData to python

@@ -99,13 +99,8 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
         m_dihedral_type_mapping.push_back(name);
         }
         
-#ifdef ENABLE_CUDA
-    // allocate memory on the GPU if there is a GPU in the execution configuration
-    if (exec_conf->isCUDAEnabled())
-        {
-        allocateDihedralTable(1);
-        }
-#endif
+    // allocate memory for the GPU dihedral table
+    allocateDihedralTable(1);
     }
 
 DihedralData::~DihedralData()
@@ -288,7 +283,6 @@ std::string DihedralData::getNameByType(unsigned int type)
     return m_dihedral_type_mapping[type];
     }
 
-#ifdef ENABLE_CUDA
 
 /*! Updates the dihedral data on the GPU if needed and returns the data structure needed to access it.
 */
@@ -296,7 +290,14 @@ const GPUArray<uint4>& DihedralData::getGPUDihedralList()
     {
     if (m_dihedrals_dirty)
         {
-        updateDihedralTableGPU();
+#ifdef ENABLE_CUDA
+        if (exec_conf->isCUDAEnabled())
+            updateDihedralTableGPU();
+        else
+            updateDihedralTable();
+#else
+        updateDihedralTable();
+#endif
         m_dihedrals_dirty = false;
         }
     return m_gpu_dihedral_list;
@@ -307,13 +308,21 @@ const GPUArray<uint1>& DihedralData::getDihedralABCD()
     {
     if (m_dihedrals_dirty)
         {
-        updateDihedralTableGPU();
+#ifdef ENABLE_CUDA
+        if (exec_conf->isCUDAEnabled())
+            updateDihedralTableGPU();
+        else
+            updateDihedralTable();
+#else
+        updateDihedralTable();
+#endif
         m_dihedrals_dirty = false;
         }
     return m_dihedrals_ABCD;
     }
 
-/*! Update GPU dihedral table
+#ifdef ENABLE_CUDA
+/*! Update GPU dihedral table (GPU version)
 
     \post The dihedral tag data added via addDihedral() is translated to dihedrals based
     on particle index for use in the GPU kernel. This new dihedral table is then uploaded
@@ -349,6 +358,119 @@ void DihedralData::updateDihedralTableGPU()
                              d_gpu_dihedral_ABCD.data,
                              m_gpu_dihedral_list.getPitch());
     }
+#endif
+
+/*! Update GPU dihedral table (CPU version)
+
+    \post The dihedral tag data added via addDihedral() is translated to dihedrals based
+    on particle index for use in the GPU kernel. This new dihedral table is then uploaded
+    to the device.
+*/
+void DihedralData::updateDihedralTable()
+    {
+
+    unsigned int num_dihedrals_max = 0;
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+        {
+        ArrayHandle<unsigned int> h_n_dihedrals(m_n_dihedrals, access_location::host, access_mode::overwrite);
+
+        // count the number of dihedrals per particle
+        // start by initializing the host n_dihedrals values to 0
+        memset(h_n_dihedrals.data, 0, sizeof(unsigned int) * m_pdata->getN());
+
+        // loop through the particles and count the number of dihedrals based on each particle index
+        // however, only the b atom in the a-b-c dihedral is included in the count.
+
+        for (unsigned int cur_dihedral = 0; cur_dihedral < m_dihedrals.size(); cur_dihedral++)
+            {
+            unsigned int tag1 = ((uint4) m_dihedrals[cur_dihedral]).x;
+            unsigned int tag2 = ((uint4) m_dihedrals[cur_dihedral]).y;
+            unsigned int tag3 = ((uint4) m_dihedrals[cur_dihedral]).z;
+            unsigned int tag4 = ((uint4) m_dihedrals[cur_dihedral]).w;
+            int idx1 = h_rtag.data[tag1];
+            int idx2 = h_rtag.data[tag2];
+            int idx3 = h_rtag.data[tag3];
+            int idx4 = h_rtag.data[tag4];
+
+            h_n_dihedrals.data[idx1]++;
+            h_n_dihedrals.data[idx2]++;
+            h_n_dihedrals.data[idx3]++;
+            h_n_dihedrals.data[idx4]++;
+            }
+
+        // find the maximum number of dihedrals
+        unsigned int nparticles = m_pdata->getN();
+        for (unsigned int i = 0; i < nparticles; i++)
+            {
+            if (h_n_dihedrals.data[i] > num_dihedrals_max)
+                num_dihedrals_max = h_n_dihedrals.data[i];
+            }
+        }
+
+    // re allocate memory if needed
+    if (num_dihedrals_max > m_gpu_dihedral_list.getHeight())
+        {
+        reallocateDihedralTable(num_dihedrals_max);
+        }
+
+        {
+        ArrayHandle<unsigned int> h_n_dihedrals(m_n_dihedrals, access_location::host, access_mode::overwrite);
+        ArrayHandle<uint4> h_gpu_dihedral_list(m_gpu_dihedral_list, access_location::host, access_mode::overwrite);
+        ArrayHandle<uint1> h_dihedral_ABCD(m_dihedrals_ABCD, access_location::host, access_mode::overwrite);
+        // now, update the actual table
+        // zero the number of dihedrals counter (again)
+        memset(h_n_dihedrals.data, 0, sizeof(unsigned int) * m_pdata->getN());
+
+        // loop through all dihedrals and add them to each column in the list
+        unsigned int pitch = m_gpu_dihedral_list.getPitch();
+        for (unsigned int cur_dihedral = 0; cur_dihedral < m_dihedrals.size(); cur_dihedral++)
+            {
+            unsigned int tag1 = ((uint4) m_dihedrals[cur_dihedral]).x;
+            unsigned int tag2 = ((uint4) m_dihedrals[cur_dihedral]).y;
+            unsigned int tag3 = ((uint4) m_dihedrals[cur_dihedral]).z;
+            unsigned int tag4 = ((uint4) m_dihedrals[cur_dihedral]).w;
+            unsigned int type = m_dihedral_type[cur_dihedral];
+            int idx1 = h_rtag.data[tag1];
+            int idx2 = h_rtag.data[tag2];
+            int idx3 = h_rtag.data[tag3];
+            int idx4 = h_rtag.data[tag4];
+            unsigned int dihedral_type_abcd;
+
+            // get the number of dihedrals for the b in a-b-c triplet
+            int num1 = h_n_dihedrals.data[idx1]; //
+            int num2 = h_n_dihedrals.data[idx2];
+            int num3 = h_n_dihedrals.data[idx3]; //
+            int num4 = h_n_dihedrals.data[idx4]; //
+
+            // add a new dihedral to the table, provided each one is a "b" from an a-b-c triplet
+            // store in the texture as .x=a=idx1, .y=c=idx2, and b comes from the gpu
+            // or the cpu, generally from the idx2 index
+            dihedral_type_abcd = 0; // a atom
+            h_gpu_dihedral_list.data[num1*pitch + idx1] = make_uint4(idx2, idx3, idx4, type); //
+            h_dihedral_ABCD.data[num1*pitch + idx1] = make_uint1(dihedral_type_abcd);
+
+            dihedral_type_abcd = 1; // b atom
+            h_gpu_dihedral_list.data[num2*pitch + idx2] = make_uint4(idx1, idx3, idx4, type);
+            h_dihedral_ABCD.data[num2*pitch + idx2] = make_uint1(dihedral_type_abcd);
+
+            dihedral_type_abcd = 2; // c atom
+            h_gpu_dihedral_list.data[num3*pitch + idx3] = make_uint4(idx1, idx2, idx4, type); //
+            h_dihedral_ABCD.data[num3*pitch + idx3] = make_uint1(dihedral_type_abcd);
+
+            dihedral_type_abcd = 3; // d atom
+            h_gpu_dihedral_list.data[num4*pitch + idx4] = make_uint4(idx1, idx2, idx3, type); //
+            h_dihedral_ABCD.data[num4*pitch + idx4] = make_uint1(dihedral_type_abcd);
+
+            // increment the number of dihedrals
+            h_n_dihedrals.data[idx1]++;
+            h_n_dihedrals.data[idx2]++;
+            h_n_dihedrals.data[idx3]++;
+            h_n_dihedrals.data[idx4]++;
+            }
+        }
+    }
+
 
 /*! \param height New height for the dihedral table
     
@@ -381,7 +503,6 @@ void DihedralData::allocateDihedralTable(int height)
     GPUArray<unsigned int> n_dihedrals(m_pdata->getN(), exec_conf);
     m_n_dihedrals.swap(n_dihedrals);
     }
-#endif
 
 //! Takes a snapshot of the current dihedral data
 /*! \param snapshot THe snapshot that will contain the dihedral data

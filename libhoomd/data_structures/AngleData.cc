@@ -99,13 +99,8 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
         m_angle_type_mapping.push_back(name);
         }
         
-#ifdef ENABLE_CUDA
-    // allocate memory on the GPU if there is a GPU in the execution configuration
-    if (exec_conf->isCUDAEnabled())
-        {
-        allocateAngleTable(1);
-        }
-#endif
+    // allocate memory for the GPU angle table
+    allocateAngleTable(1);
     }
 
 AngleData::~AngleData()
@@ -294,7 +289,6 @@ std::string AngleData::getNameByType(unsigned int type)
     return m_angle_type_mapping[type];
     }
 
-#ifdef ENABLE_CUDA
 
 /*! Updates the angle data on the GPU if needed and returns the data structure needed to access it.
 */
@@ -302,14 +296,22 @@ const GPUArray<uint4>& AngleData::getGPUAngleList()
     {
     if (m_angles_dirty)
         {
-        updateAngleTableGPU();
+#ifdef ENABLE_CUDA
+        // update angle table
+        if (exec_conf->isCUDAEnabled())
+            updateAngleTableGPU();
+        else
+            updateAngleTable();
+#else
+        updateAngleTable();
+#endif
         m_angles_dirty = false;
         }
     return m_gpu_anglelist;
     }
 
 
-/*! Update GPU angle table
+/*! Update GPU angle table (GPU version)
 
     \post The angle tag data added via addAngle() is translated to angles based
     on particle index for use in the GPU kernel. This new angle table is then uploaded
@@ -345,6 +347,100 @@ void AngleData::updateAngleTableGPU()
 
     }
 
+/*! \post The angle tag data added via addAngle() is translated to angles based
+    on particle index for use in the GPU kernel. This new angle table is then uploaded
+    to the device.
+*/
+void AngleData::updateAngleTable()
+    {
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    unsigned int num_angles_max = 0;
+
+        {
+        ArrayHandle<unsigned int> h_n_angles(m_n_angles, access_location::host, access_mode::overwrite);
+
+        // count the number of angles per particle
+        // start by initializing the host n_angles values to 0
+        memset(h_n_angles.data, 0, sizeof(unsigned int) * m_pdata->getN());
+
+        // loop through the particles and count the number of angles based on each particle index
+        // however, only the b atom in the a-b-c angle is included in the count.
+
+        for (unsigned int cur_angle = 0; cur_angle < m_angles.size(); cur_angle++)
+            {
+            unsigned int tag1 = ((uint3)m_angles[cur_angle]).x; //
+            unsigned int tagb = ((uint3)m_angles[cur_angle]).y;
+            unsigned int tag3 = ((uint3)m_angles[cur_angle]).z; //
+            int idx1 = h_rtag.data[tag1]; //
+            int idxb = h_rtag.data[tagb];
+            int idx3 = h_rtag.data[tag3]; //
+
+            h_n_angles.data[idx1]++; //
+            h_n_angles.data[idxb]++;
+            h_n_angles.data[idx3]++; //
+            }
+
+        // find the maximum number of angles
+        unsigned int nparticles = m_pdata->getN();
+        for (unsigned int i = 0; i < nparticles; i++)
+            {
+            if (h_n_angles.data[i] > num_angles_max)
+                num_angles_max = h_n_angles.data[i];
+            }
+        }
+
+    // re allocate memory if needed
+    if (num_angles_max > m_gpu_anglelist.getHeight())
+        {
+        reallocateAngleTable(num_angles_max);
+        }
+
+        {
+        ArrayHandle<unsigned int> h_n_angles(m_n_angles, access_location::host, access_mode::overwrite);
+        ArrayHandle<uint4> h_gpu_anglelist(m_gpu_anglelist, access_location::host, access_mode::overwrite);
+
+        // now, update the actual table
+        // zero the number of angles counter (again)
+        memset(h_n_angles.data, 0, sizeof(unsigned int) * m_pdata->getN());
+
+        // loop through all angles and add them to each column in the list
+        unsigned int pitch = m_gpu_anglelist.getPitch();
+        for (unsigned int cur_angle = 0; cur_angle < m_angles.size(); cur_angle++)
+            {
+            unsigned int tag1 = ((uint3)m_angles[cur_angle]).x;
+            unsigned int tag2 = ((uint3)m_angles[cur_angle]).y;
+            unsigned int tag3 = ((uint3)m_angles[cur_angle]).z;
+            unsigned int type = m_angle_type[cur_angle];
+            int idx1 = h_rtag.data[tag1];
+            int idx2 = h_rtag.data[tag2];
+            int idx3 = h_rtag.data[tag3];
+            unsigned int angle_type_abc;
+
+            // get the number of angles for the b in a-b-c triplet
+            int num1 = h_n_angles.data[idx1]; //
+            int num2 = h_n_angles.data[idx2];
+            int num3 = h_n_angles.data[idx3]; //
+
+            // add a new angle to the table, provided each one is a "b" from an a-b-c triplet
+            // store in the texture as .x=a=idx1, .y=c=idx2, and b comes from the gpu
+            // or the cpu, generally from the idx2 index
+            angle_type_abc = 0; // a atom
+            h_gpu_anglelist.data[num1*pitch + idx1] = make_uint4(idx2, idx3, type, angle_type_abc);
+
+            angle_type_abc = 1; // b atom
+            h_gpu_anglelist.data[num2*pitch + idx2] = make_uint4(idx1, idx3, type, angle_type_abc);
+
+            angle_type_abc = 2; // c atom
+            h_gpu_anglelist.data[num3*pitch + idx3] = make_uint4(idx1, idx2, type, angle_type_abc);
+
+            // increment the number of angles
+            h_n_angles.data[idx1]++;
+            h_n_angles.data[idx2]++;
+            h_n_angles.data[idx3]++;
+            }
+        }
+    }
+
 /*! \param height New height for the angle table
     \post Reallocates memory on the device making room for up to
         \a height angles per particle.
@@ -371,7 +467,6 @@ void AngleData::allocateAngleTable(int height)
     GPUArray<unsigned int> n_angles(m_pdata->getN(), exec_conf);
     m_n_angles.swap(n_angles);
     }
-#endif
 
 //! Takes a snapshot of the current angle data
 /*! \param snapshot The snapshot that will contain the angle data

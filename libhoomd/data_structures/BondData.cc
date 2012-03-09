@@ -95,13 +95,8 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
         m_bond_type_mapping.push_back(name);
         }
         
-#ifdef ENABLE_CUDA
-    // allocate memory on the GPU if there is a GPU in the execution configuration
-    if (exec_conf->isCUDAEnabled())
-        {
-        allocateBondTable(1);
-        }
-#endif
+    // allocate memory for the GPU bond table
+    allocateBondTable(1);
     }
 
 BondData::~BondData()
@@ -290,7 +285,6 @@ std::string BondData::getNameByType(unsigned int type)
     return m_bond_type_mapping[type];
     }
 
-#ifdef ENABLE_CUDA
 
 /*! Updates the bond data on the GPU if needed and returns the data structure needed to access it.
 */
@@ -298,14 +292,23 @@ const GPUArray<uint2>& BondData::getGPUBondList()
     {
     if (m_bonds_dirty)
         {
-        updateBondTableGPU();
+#ifdef ENABLE_CUDA
+        // update bond table
+        if (exec_conf->isCUDAEnabled())
+            updateBondTableGPU();
+        else
+            updateBondTable();
+#else
+        updateBondTable();
+#endif
         m_bonds_dirty = false;
         }
     return m_gpu_bondlist;
     }
 
 
-/*! Update GPU bond table
+#ifdef ENABLE_CUDA
+/*! Update GPU bond table (GPU version)
 
     \post The bond tag data added via addBond() is translated to bonds based
     on particle index for use in the GPU kernel. This new bond table is then uploaded
@@ -314,7 +317,6 @@ const GPUArray<uint2>& BondData::getGPUBondList()
 void BondData::updateBondTableGPU()
     {
     unsigned int max_bond_num;
-
 
         {
         ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
@@ -340,6 +342,86 @@ void BondData::updateBondTableGPU()
     m_transform_bond_data.gpu_create_bondtable(m_bonds.size(),
                          d_gpu_bondlist.data,
                          m_gpu_bondlist.getPitch());
+    }
+#endif
+
+/*! Update the GPU bond table (CPU version)
+
+    \post The bond tag data added via addBond() is translated to bonds based
+    on particle index for use in the GPU kernel. This new bond table is then uploaded
+    to the device.
+*/
+void BondData::updateBondTable()
+    {
+
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    unsigned int num_bonds_max = 0;
+        {
+        ArrayHandle<unsigned int> h_n_bonds(m_n_bonds, access_location::host, access_mode::overwrite);
+
+        // count the number of bonds per particle
+        // start by initializing the n_bonds values to 0
+        memset(h_n_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
+
+        // loop through the particles and count the number of bonds based on each particle index
+        for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
+            {
+            unsigned int tag1 = ((uint2) m_bonds[cur_bond]).x;
+            unsigned int tag2 = ((uint2) m_bonds[cur_bond]).y;
+            int idx1 = h_rtag.data[tag1];
+            int idx2 = h_rtag.data[tag2];
+
+            h_n_bonds.data[idx1]++;
+            h_n_bonds.data[idx2]++;
+            }
+
+        // find the maximum number of bonds
+        unsigned int nparticles = m_pdata->getN();
+        for (unsigned int i = 0; i < nparticles; i++)
+            {
+            if (h_n_bonds.data[i] > num_bonds_max)
+                num_bonds_max = h_n_bonds.data[i];
+            }
+        }
+
+    // re allocate memory if needed
+    if (num_bonds_max > m_gpu_bondlist.getHeight())
+        {
+        reallocateBondTable(num_bonds_max);
+        }
+
+        {
+        ArrayHandle<unsigned int> h_n_bonds(m_n_bonds, access_location::host, access_mode::overwrite);
+        ArrayHandle<uint2> h_gpu_bondlist(m_gpu_bondlist, access_location::host, access_mode::overwrite);
+
+        // now, update the actual table
+        // zero the number of bonds counter (again)
+        memset(h_n_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
+
+        // loop through all bonds and add them to each column in the list
+        int pitch = m_gpu_bondlist.getPitch();
+        for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
+            {
+            unsigned int tag1 = ((uint2)m_bonds[cur_bond]).x;
+            unsigned int tag2 = ((uint2)m_bonds[cur_bond]).y;
+            unsigned int type = m_bond_type[cur_bond];
+            int idx1 = h_rtag.data[tag1];
+            int idx2 = h_rtag.data[tag2];
+
+            // get the number of bonds for each particle
+            int num1 = h_n_bonds.data[idx1];
+            int num2 = h_n_bonds.data[idx2];
+
+            // add the new bonds to the table
+            h_gpu_bondlist.data[num1*pitch + idx1] = make_uint2(idx2, type);
+            h_gpu_bondlist.data[num2*pitch + idx2] = make_uint2(idx1, type);
+
+            // increment the number of bonds
+            h_n_bonds.data[idx1]++;
+            h_n_bonds.data[idx2]++;
+            }
+        }
     }
 
 /*! \param height New height for the bond table
@@ -369,8 +451,6 @@ void BondData::allocateBondTable(int height)
     m_n_bonds.swap(n_bonds);
 
     }
-
-#endif
 
 //! Takes a snapshot of the current bond data
 /*! \param snapshot The snapshot that will contain the bond data

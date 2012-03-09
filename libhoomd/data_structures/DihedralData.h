@@ -265,23 +265,26 @@ class DihedralData : boost::noncopyable
             m_dihedrals_dirty = true;
             }
             
-#ifdef ENABLE_CUDA
         GPUArray<uint4> m_gpu_dihedral_list;                    //!< List of dihedrals on the GPU (3atoms of a,b,c, or d, plus the type)
         GPUArray<uint1> m_dihedrals_ABCD;                        //!< List of atom positions in the dihedral
         GPUArray<unsigned int> m_n_dihedrals;                    //!< Number of dihedrals
 
+#ifdef ENABLE_CUDA
         TransformDihedralDataGPU m_transform_dihedral_data;      //!< GPU helper class to transform dihedral data
 
         //! Helper function to update the dihedral table on the device
         void updateDihedralTableGPU();
-        
+#endif
+
+        //! Helper function to update the GPU dihedral table
+        void updateDihedralTable();
+
         //! Helper function to reallocate the dihedral table on the device
         void reallocateDihedralTable(int height);
         
         //! Helper function to allocate the dihedral table
         void allocateDihedralTable(int height);
         
-#endif
     };
 
 //! Exports DihedralData to python
