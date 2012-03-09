@@ -154,9 +154,10 @@ void NeighborList::reallocate()
     m_last_pos.resize(m_pdata->getMaxN());
     m_n_ex_tag.resize(m_pdata->getMaxN());
     m_n_ex_idx.resize(m_pdata->getMaxN());
-    m_ex_list_tag.resize(m_pdata->getMaxN(),1);
-    m_ex_list_idx.resize(m_pdata->getMaxN(),1);
-    m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), 1);
+    unsigned int ex_list_height = m_ex_list_indexer.getH();
+    m_ex_list_tag.resize(m_pdata->getMaxN(), ex_list_height );
+    m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
+    m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), ex_list_height );
 
     reallocateNlist();
     }
@@ -178,14 +179,7 @@ void NeighborList::compute(unsigned int timestep)
         
     if (m_prof) m_prof->push("Neighbor");
 
-    // update the exclusion data if this is a forced update
-    if (m_force_update)
-        {
-        if (m_exclusions_set)
-            updateExListIdx();
-        }
-    
-    // check if the list needs to be updated and update it
+   // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
 #ifdef ENABLE_MPI
@@ -202,6 +196,13 @@ void NeighborList::compute(unsigned int timestep)
             m_comm->exchangeGhosts(rmax);
             }
 #endif
+        // update the exclusion data if this is a forced update
+        if (m_force_update)
+            {
+            if (m_exclusions_set)
+                updateExListIdx();
+            }
+
         // rebuild the list until there is no overflow
         bool overflowed = false;
         do

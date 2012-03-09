@@ -119,7 +119,6 @@ def get_hoomd_script_version():
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
 # \param callback_period Sets the period, in time steps, between calls made to \a callback
 # \param quiet Set to True to eliminate the status information printed to the screen by the run
-# \param root (Only used in MPI mode) Set this to the rank of the root processor that contains global particle data (default 0)
 #
 # \b Examples:
 # \code

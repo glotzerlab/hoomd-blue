@@ -309,6 +309,11 @@ class Communicator
         bool m_is_allocated;                     //!< True if internal buffers have been allocated
         Scalar m_r_ghost;                        //!< Width of ghost layer
 
+        std::vector<Scalar4> scal4_tmp;          //!< Temporary list used to apply the sort order to the particle data
+        std::vector<Scalar3> scal3_tmp;          //!< Temporary list used to apply the sort order to the particle data
+        std::vector<Scalar> scal_tmp;            //!< Temporary list used to apply the sort order to the particle data
+        std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
+        std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
     };
 
 //! Declaration of python export function

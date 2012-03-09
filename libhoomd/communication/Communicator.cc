@@ -232,6 +232,8 @@ void Communicator::migrateAtoms()
     for (unsigned int dir=0; dir < 6; dir++)
         {
 
+        // If the grid is only one box wide in the current direction, avoid communicating with ourselves
+        // The periodic boundary conditions are then handled by the single-processor code
         if (getDimension(dir/2) == 1) continue;
 
             if (m_prof)
@@ -270,11 +272,14 @@ void Communicator::migrateAtoms()
             n_send_ptls = (sort_keys.begin() + m_pdata->getN()) - sort_keys_middle;
 
             // reorder the particle data
-            Scalar4 *scal4_tmp = new Scalar4[m_pdata->getN()];
-            Scalar3 *scal3_tmp = new Scalar3[m_pdata->getN()];
-            Scalar *scal_tmp = new Scalar[m_pdata->getN()];
-            unsigned int *uint_tmp = new unsigned int[m_pdata->getN()];
-            int3 *int3_tmp = new int3[m_pdata->getN()];
+            if (scal4_tmp.size() < m_pdata->getN())
+                {
+                scal4_tmp.resize(m_pdata->getN());
+                scal3_tmp.resize(m_pdata->getN());
+                scal_tmp.resize(m_pdata->getN());
+                uint_tmp.resize(m_pdata->getN());
+                int3_tmp.resize(m_pdata->getN());
+                }
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 scal4_tmp[i] = h_pos.data[sort_keys[i]];
@@ -320,12 +325,6 @@ void Communicator::migrateAtoms()
                 uint_tmp[i] = h_global_tag.data[sort_keys[i]];
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 h_global_tag.data[i] = uint_tmp[i];
-
-            delete[] scal4_tmp;
-            delete[] scal3_tmp;
-            delete[] scal_tmp;
-            delete[] int3_tmp;
-            delete[] uint_tmp;
             }
 
         // remove particles from local data that are being sent
@@ -512,6 +511,7 @@ void Communicator::migrateAtoms()
             }
         } // end dir loop
 
+#ifndef NDEBUG
     // check that global number of particles is conserved
     unsigned int N;
     reduce(*m_mpi_comm,m_pdata->getN(), N, std::plus<unsigned int>(), 0);
@@ -520,7 +520,7 @@ void Communicator::migrateAtoms()
         cerr << endl << "***Error! Global number of particles has changed unexpectedly." << endl << endl;
         throw runtime_error("Error in MPI communication.");
         }
-
+#endif
 
     // notify ParticleData that addition / removal of particles is complete
     m_pdata->notifyLocalParticleNumChange();
@@ -546,6 +546,8 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
+        // If the grid is only one box wide in the current direction, avoid communicating with ourselves
+        // The periodic boundary conditions are then handled by the single-processor code
         unsigned int dim = getDimension(dir/2);
         if (dim == 1) continue;
 
@@ -749,6 +751,8 @@ void Communicator::copyGhosts()
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
 
+        // If the grid is only one box wide in the current direction, avoid communicating with ourselves
+        // The periodic boundary conditions are then handled by the single-processor code
         unsigned int dim = getDimension(dir/2);
         if (dim == 1) continue;
 

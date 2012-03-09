@@ -136,23 +136,23 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
         for (unsigned int rank = 0; rank < (unsigned int) m_mpi_comm->size(); rank++)
             {
             BoxDim box(1.0,1.0,1.0);
-            m_Lx = (m_global_box.xhi-m_global_box.xlo)/(double)m_nx;
-            m_Ly = (m_global_box.yhi-m_global_box.ylo)/(double)m_ny;
-            m_Lz = (m_global_box.zhi-m_global_box.zlo)/(double)m_nz;
+            double Lx = (m_global_box.xhi-m_global_box.xlo)/(double)m_nx;
+            double Ly = (m_global_box.yhi-m_global_box.ylo)/(double)m_ny;
+            double Lz = (m_global_box.zhi-m_global_box.zlo)/(double)m_nz;
 
             // position of this domain in the grid
             unsigned int k = rank/(m_nx*m_ny);
             unsigned int j = (rank % (m_nx*m_ny)) / m_nx;
             unsigned int i = (rank % (m_nx*m_ny)) % m_nx;
 
-            box.xlo = m_global_box.xlo + (double)i * m_Lx;
-            box.xhi = box.xlo + m_Lx;
+            box.xlo = m_global_box.xlo + (double)i * Lx;
+            box.xhi = box.xlo + Lx;
 
-            box.ylo = m_global_box.ylo + (double)j * m_Ly;
-            box.yhi = box.ylo + m_Ly;
+            box.ylo = m_global_box.ylo + (double)j * Ly;
+            box.yhi = box.ylo + Ly;
 
-            box.zlo = m_global_box.zlo + (double)k * m_Lz;
-            box.zhi = box.zlo + m_Lz;
+            box.zlo = m_global_box.zlo + (double)k * Lz;
+            box.zhi = box.zlo + Lz;
 
             m_grid_pos_proc[rank] = make_uint3(i,j,k);
             m_box_proc[rank] = box;
@@ -226,9 +226,9 @@ void MPIInitializer::scatter(unsigned int root)
         for (std::vector<Scalar3>::iterator it=global_snapshot.pos.begin(); it != global_snapshot.pos.end(); it++)
             {
             // determine domain the particle is placed into
-            int i= (it->x - m_global_box.zlo)/m_Lx;
-            int j= (it->y - m_global_box.ylo)/m_Ly;
-            int k= (it->z - m_global_box.zlo)/m_Lz;
+            int i= (it->x - m_global_box.zlo)/(m_box.xhi - m_box.xlo);
+            int j= (it->y - m_global_box.ylo)/(m_box.yhi - m_box.ylo);
+            int k= (it->z - m_global_box.zlo)/(m_box.zhi - m_box.zlo);
 
             // treat particles lying exactly on the boundary
             if (i == (int) m_nx)

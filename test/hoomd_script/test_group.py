@@ -58,60 +58,60 @@ class pair_group_tests (unittest.TestCase):
         tags = [(x.tag) for x in B]
         self.assertEqual(tags, [1, 2, 5, 8, 9, 10])
     
-#    def test_cuboid_xmin(self):
-#        g = group.cuboid(name='test', xmin=None)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, range(11))
-#
-#        g = group.cuboid(name='test', xmin=0.99)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, [1,2,5])
-#
-#    def test_cuboid_xmax(self):
-#        g = group.cuboid(name='test', xmax=None)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, range(11))
-#
-#        g = group.cuboid(name='test', xmax=-0.99)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, [3,4,8])
-#
-#    def test_cuboid_ymin(self):
-#        g = group.cuboid(name='test', ymin=None)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, range(11))
-#
-#        g = group.cuboid(name='test', ymin=0.99)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, [1,2,6])
-#
-#    def test_cuboid_ymax(self):
-#        g = group.cuboid(name='test', ymax=None)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, range(11))
-#
-#        g = group.cuboid(name='test', ymax=-0.99)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, [3,4,9])
-#
-#    def test_cuboid_zmin(self):
-#        g = group.cuboid(name='test', zmin=None)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, range(11))
-#
-#        g = group.cuboid(name='test', zmin=0.99)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, [1,2,7])
-#
-#    def test_cuboid_zmax(self):
-#        g = group.cuboid(name='test', zmax=None)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, range(11))
-#
-#        g = group.cuboid(name='test', zmax=-0.99)
-#        tags = [(x.tag) for x in g]
-#        self.assertEqual(tags, [3,4,10])
-#
+    def test_cuboid_xmin(self):
+        g = group.cuboid(name='test', xmin=None)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, range(11))
+
+        g = group.cuboid(name='test', xmin=0.99)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [1,2,5])
+
+    def test_cuboid_xmax(self):
+        g = group.cuboid(name='test', xmax=None)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, range(11))
+
+        g = group.cuboid(name='test', xmax=-0.99)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [3,4,8])
+
+    def test_cuboid_ymin(self):
+        g = group.cuboid(name='test', ymin=None)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, range(11))
+
+        g = group.cuboid(name='test', ymin=0.99)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [1,2,6])
+
+    def test_cuboid_ymax(self):
+        g = group.cuboid(name='test', ymax=None)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, range(11))
+
+        g = group.cuboid(name='test', ymax=-0.99)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [3,4,9])
+
+    def test_cuboid_zmin(self):
+        g = group.cuboid(name='test', zmin=None)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, range(11))
+
+        g = group.cuboid(name='test', zmin=0.99)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [1,2,7])
+
+    def test_cuboid_zmax(self):
+        g = group.cuboid(name='test', zmax=None)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, range(11))
+
+        g = group.cuboid(name='test', zmax=-0.99)
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [3,4,10])
+
     def test_tag_list(self):
         g = group.tag_list(name='a', tags=[0, 5, 9]);
         tags = [(x.tag) for x in g]

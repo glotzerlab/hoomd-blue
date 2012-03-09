@@ -109,7 +109,7 @@ class mpi_partition:
             raise RuntimeError('Error setting up MPI partition');
 
         # Check if HOOMD has been compiled with MPI support
-        check_boost_mpi()
+        check_mpi()
 
         global mpi_comm
         mpi_comm = mpi_comm_in

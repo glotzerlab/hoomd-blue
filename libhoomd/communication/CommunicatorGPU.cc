@@ -333,6 +333,7 @@ void CommunicatorGPU::migrateAtoms()
         gpu_update_rtag(m_pdata->getN(),0, d_global_tag.data, d_global_rtag.data);
         }
 
+#ifndef NDEBUG
     // check that total particle number is conserved
     unsigned int N;
     reduce(*m_mpi_comm,m_pdata->getN(), N, std::plus<unsigned int>(), 0);
@@ -342,6 +343,7 @@ void CommunicatorGPU::migrateAtoms()
                 N << " != " << m_pdata->getNGlobal() << ")." << endl << endl;
         throw runtime_error("Error in MPI communication.");
         }
+#endif
 
     // notify ParticleData that addition / removal of particles is complete
     m_pdata->notifyLocalParticleNumChange();
