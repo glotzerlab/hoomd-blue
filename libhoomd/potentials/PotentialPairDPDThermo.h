@@ -284,6 +284,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             
             // compute the force and potential energy
             Scalar force_divr = Scalar(0.0);
+            Scalar force_divr_cons = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
             
@@ -294,19 +295,19 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             eval.setRDotV(dot);
             eval.setT(currentTemp);
             
-            bool evaluated = eval.evalForceEnergyThermo(force_divr, pair_eng);
+            bool evaluated = eval.evalForceEnergyThermo(force_divr,force_divr_cons, pair_eng);
             
             if (evaluated)
                 {
                     
                 // compute the virial (FLOPS: 2)
                 Scalar pair_virial[6];
-                pair_virial[0] = Scalar(0.5) * dx * dx * force_divr;
-                pair_virial[1] = Scalar(0.5) * dx * dy * force_divr;
-                pair_virial[2] = Scalar(0.5) * dx * dz * force_divr;
-                pair_virial[3] = Scalar(0.5) * dy * dy * force_divr;
-                pair_virial[4] = Scalar(0.5) * dy * dz * force_divr;
-                pair_virial[5] = Scalar(0.5) * dz * dz * force_divr;
+                pair_virial[0] = Scalar(0.5) * dx * dx * force_divr_cons;
+                pair_virial[1] = Scalar(0.5) * dx * dy * force_divr_cons;
+                pair_virial[2] = Scalar(0.5) * dx * dz * force_divr_cons;
+                pair_virial[3] = Scalar(0.5) * dy * dy * force_divr_cons;
+                pair_virial[4] = Scalar(0.5) * dy * dz * force_divr_cons;
+                pair_virial[5] = Scalar(0.5) * dz * dz * force_divr_cons;
                 
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)

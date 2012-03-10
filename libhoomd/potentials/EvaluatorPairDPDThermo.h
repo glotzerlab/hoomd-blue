@@ -241,7 +241,7 @@ class EvaluatorPairDPDThermo
             
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
-        DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& pair_eng)
+        DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& force_divr_cons, Scalar& pair_eng)
             {
             // compute the force divided by r in force_divr
             if (rsq < rcutsq)
@@ -278,6 +278,9 @@ class EvaluatorPairDPDThermo
                 
                 //  Drag Term 
                 force_divr -=  gamma*m_dot*(rinv - rcutinv)*(rinv - rcutinv);
+
+		//  conservative force only
+                force_divr_cons = force_divr;
                 
                 //  Random Force 
                 force_divr += RSQRT(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
