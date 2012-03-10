@@ -302,6 +302,7 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
             
             // compute the force and potential energy
             Scalar force_divr = Scalar(0.0);
+            Scalar force_divr_cons = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
             
@@ -312,7 +313,7 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
             eval.setRDotV(dot);
             eval.setT(currentTemp);
             
-            bool evaluated = eval.evalForceEnergyThermo(force_divr, pair_eng, energy_shift);
+            bool evaluated = eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
             
             if (evaluated)
                 {
@@ -339,17 +340,18 @@ void PotentialPairDPDLJThermo< evaluator >::computeForces(unsigned int timestep)
                         // note: I'm not sure why the minus sign needs to be there: my notes have a +
                         // But this is verified correct via plotting
                         force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                        force_divr_cons = s*force_divr_cons - ds_dr_divr * old_pair_eng;
                         }
                     }
                     
                 // compute the virial (FLOPS: 2)
                 Scalar pair_virial[6];
-                pair_virial[0] = Scalar(0.5) * dx * dx * force_divr;
-                pair_virial[1] = Scalar(0.5) * dx * dy * force_divr;
-                pair_virial[2] = Scalar(0.5) * dx * dz * force_divr;
-                pair_virial[3] = Scalar(0.5) * dy * dy * force_divr;
-                pair_virial[4] = Scalar(0.5) * dy * dz * force_divr;
-                pair_virial[5] = Scalar(0.5) * dz * dz * force_divr;
+                pair_virial[0] = Scalar(0.5) * dx * dx * force_divr_cons;
+                pair_virial[1] = Scalar(0.5) * dx * dy * force_divr_cons;
+                pair_virial[2] = Scalar(0.5) * dx * dz * force_divr_cons;
+                pair_virial[3] = Scalar(0.5) * dy * dy * force_divr_cons;
+                pair_virial[4] = Scalar(0.5) * dy * dz * force_divr_cons;
+                pair_virial[5] = Scalar(0.5) * dz * dz * force_divr_cons;
 
                 
                 // add the force, potential energy and virial to the particle i
