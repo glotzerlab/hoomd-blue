@@ -275,13 +275,13 @@ class EvaluatorPairDPDThermo
                 // conservative dpd
                 //force_divr = FDIV(a,r)*(Scalar(1.0) - r*rcutinv);
                 force_divr = a*(rinv - rcutinv);
+
+                //  conservative force only
+                force_divr_cons = force_divr;
                 
                 //  Drag Term 
                 force_divr -=  gamma*m_dot*(rinv - rcutinv)*(rinv - rcutinv);
 
-		//  conservative force only
-                force_divr_cons = force_divr;
-                
                 //  Random Force 
                 force_divr += RSQRT(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
                 
