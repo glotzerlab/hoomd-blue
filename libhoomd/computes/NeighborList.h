@@ -272,7 +272,18 @@ class NeighborList : public Compute
 
         //! Gives an estimate of the number of nearest neighbors per particle
         virtual Scalar estimateNNeigh();
-        
+
+#ifdef ENABLE_MPI
+        //! Returns the width of the ghost layer in every spatial direction
+        Scalar getRGhost()
+            {
+            Scalar rmax = m_r_cut + m_r_buff;
+            if (!m_filter_diameter)
+                rmax += m_d_max - Scalar(1.0);
+            return rmax;
+            }
+#endif
+
         // @}
         //! \name Handle exclusions
         // @{
@@ -340,7 +351,7 @@ class NeighborList : public Compute
         //! Forces a full update of the list on the next call to compute()
         void forceUpdate()
             {
-            m_force_update = true;
+                m_force_update = true;
             }
 
 #ifdef ENABLE_MPI
@@ -348,6 +359,11 @@ class NeighborList : public Compute
         /*! \param comm MPI communication class
          */
         virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+
+        //! Returns true if the particle migration criterium is fulfilled
+        /*! \param timestep The current timestep
+         */
+        bool requestParticleMigrate(unsigned int timestep);
 #endif
 
     protected:
@@ -373,10 +389,9 @@ class NeighborList : public Compute
         bool m_exclusions_set;                 //!< True if any exclusions have been set
 
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
-
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;   //!< MPI communication class
+        boost::signals::connection m_migrate_request_connection; //! Connection to trigger particle migration
 #endif
 
 
@@ -401,6 +416,7 @@ class NeighborList : public Compute
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
+        bool m_cached_update;           //!< True if neighborlist update is forced as a result of an earlier check
         
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one

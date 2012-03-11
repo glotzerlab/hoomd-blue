@@ -61,9 +61,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 #include "GPUArray.h"
+#include "GPUVector.h"
 #include "MPIInitializer.h"
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
 
 //! Forward declarations
 namespace boost
@@ -107,6 +109,27 @@ struct pdata_element
     unsigned int global_tag;  //!< global tag
     };
 
+//! Perform a logical or operation on the return values of several signals
+struct migrate_logical_or
+    {
+    typedef bool result_type;
+
+    template<typename InputIterator>
+    bool operator()(InputIterator first, InputIterator last) const
+        {
+        if (first == last)
+            return false;
+
+        bool return_value = *first++;
+        while (first != last)
+            {
+            if (*first)
+                return_value = true;
+            }
+
+        return return_value;
+        }
+    };
 
 //! <b>Class that handles MPI communication</b>
 /*! This class implements the communication algorithms that are used in parallel simulations.
@@ -222,10 +245,34 @@ class Communicator
             return 0; // we should never arrive here
             }
 
+        //! Subscribe to list of functions that determine when the particles are migrated
+        /*! This method keeps track of all functions that may request particle migration.
+         * \return A connection to the present class
+         */
+        boost::signals::connection addMigrateRequest(const boost::function<bool (unsigned int timestep)>& subscriber)
+            {
+            return m_migrate_requests.connect(subscriber);
+            }
+
+        //! Set width of ghost layer
+        /*! \param ghost_width The width of the ghost layer
+         */
+        void setGhostLayerWidth(Scalar ghost_width)
+            {
+            assert(ghost_width > 0);
+            m_r_ghost = ghost_width;
+            }
+
         //@}
 
         //! \name communication methods
         //@{
+
+        /*! Interface to the communication methods.
+         * This method is supposed to be called every time step and automatically performs all necessary
+         * communication steps.
+         */
+        void communicate(unsigned int timestep);
 
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
@@ -246,10 +293,8 @@ class Communicator
          * \post A list of ghost atom tags has been constructed which can be used for updating the
          *       the ghost positions, until a new list is constructed. Ghost particle positions on the
          *       neighboring processors are current.
-         *
-         * \param r_ghost Width of ghost layer
          */
-        virtual void exchangeGhosts(Scalar r_ghost);
+        virtual void exchangeGhosts();
 
         /*! Exchange positions of ghost particles
          * Using the previously constructed ghost exchange lists, ghost positions are updated on the
@@ -276,17 +321,27 @@ class Communicator
         //! Helper function to allocate internal buffers
         void allocate();
 
-        GPUArray<unsigned int> m_delete_buf;     //!< Buffer of particle indices that are going to be deleted
-
         GPUArray<char> m_sendbuf[6];             //!< Per-direction buffer for particles that are sent
         GPUArray<char> m_recvbuf[6];             //!< Per-direction buffer for particles that are received
+
+        //! The flags used for indicating the itinerary of a ghost particle
+        enum Enum
+            {
+            send_east = 1,
+            send_west = 2,
+            send_north = 4,
+            send_south = 8,
+            send_up = 16,
+            send_down = 32
+            };
+
 
         GPUArray<Scalar4> m_pos_copybuf[6];      //!< Per-direction send buffer for particle positions to be copied
         GPUArray<Scalar> m_charge_copybuf[6];    //!< Per-direction send buffer for particle charges to be copied
         GPUArray<Scalar> m_diameter_copybuf[6];  //!< Per-direction send buffer for particle diameters to be copied
+        GPUArray<unsigned char> m_plan_copybuf[6]; //!< Per-direction send buffer for particle plans
 
         GPUArray<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts to neighboring processors
-
         unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
         unsigned int m_num_recv_ghosts[6];       //!< Number of ghosts received per direction
 
@@ -308,6 +363,11 @@ class Communicator
         unsigned int m_packed_size;              //!< Size of packed particle data element in bytes
         bool m_is_allocated;                     //!< True if internal buffers have been allocated
         Scalar m_r_ghost;                        //!< Width of ghost layer
+
+        GPUVector<unsigned char> m_plan;         //!< Array of per-direction flags that determine the sending route
+
+        boost::signal<bool(unsigned int timestep), migrate_logical_or>
+            m_migrate_requests; //!< List of functions that may request particle migration
 
         std::vector<Scalar4> scal4_tmp;          //!< Temporary list used to apply the sort order to the particle data
         std::vector<Scalar3> scal3_tmp;          //!< Temporary list used to apply the sort order to the particle data

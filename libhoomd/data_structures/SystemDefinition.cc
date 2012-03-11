@@ -57,6 +57,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SystemDefinition.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -162,6 +166,15 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
     m_n_dimensions = n_dimensions;
     }
 
+/*! This method propagates the Communiator class to all other data
+    structures that need it
+ */
+void SystemDefinition::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    m_comm = comm;
+
+    m_particle_data->setMPICommunicator(m_comm->getMPICommunicator());
+    }
 
 void export_SystemDefinition()
     {
@@ -178,6 +191,7 @@ void export_SystemDefinition()
     .def("getWallData", &SystemDefinition::getWallData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
+    .def("setCommunicator", &SystemDefinition::setCommunicator)
     ;
     }
 

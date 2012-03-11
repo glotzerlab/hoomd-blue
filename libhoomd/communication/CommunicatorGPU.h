@@ -92,7 +92,7 @@ class CommunicatorGPU : public Communicator
         //! Build a ghost particle list, exchange ghost particle data with neighboring processors
         /*! \param r_ghost Width of ghost layer
          */
-        virtual void exchangeGhosts(Scalar r_ghost);
+        virtual void exchangeGhosts();
 
         //! Update ghost particle positions
         virtual void copyGhosts();

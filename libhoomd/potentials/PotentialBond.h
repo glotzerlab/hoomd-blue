@@ -243,6 +243,15 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         assert(idx_a < m_pdata->getN());
         assert(idx_b < m_pdata->getN());
 
+        if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
+            {
+            cerr << endl << "***Error! Found incomplete bond. Possibly the bond extension is greater than 1/2 the"
+                 << endl << "          domain size in any direction. Try reducing the number of sub-divisions"
+                 << endl << "          or increasing the bond stiffness."
+                 << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
+
         // calculate d\vec{r}
         // (MEM TRANSFER: 6 Scalars / FLOPS: 3)
         Scalar dx = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
@@ -321,22 +330,26 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             bond_virial[4] = dy * dz * force_div2r; // yz
             bond_virial[5] = dz * dz * force_div2r; // zz
 
-            // add the force to the particles
-            // (MEM TRANSFER: 20 Scalars / FLOPS 16)
-            h_force.data[idx_b].x += force_divr * dx;
-            h_force.data[idx_b].y += force_divr * dy;
-            h_force.data[idx_b].z += force_divr * dz;
-            h_force.data[idx_b].w += bond_eng;
-            for (unsigned int i = 0; i < 6; i++)
-                h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+            // add the force to the particles (only for non-ghost particles)
+            if (idx_b < m_pdata->getN())
+                {
+                h_force.data[idx_b].x += force_divr * dx;
+                h_force.data[idx_b].y += force_divr * dy;
+                h_force.data[idx_b].z += force_divr * dz;
+                h_force.data[idx_b].w += bond_eng;
+                for (unsigned int i = 0; i < 6; i++)
+                    h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+                }
 
-            h_force.data[idx_a].x -= force_divr * dx;
-            h_force.data[idx_a].y -= force_divr * dy;
-            h_force.data[idx_a].z -= force_divr * dz;
-            h_force.data[idx_a].w += bond_eng;
-            for (unsigned int i = 0; i < 6; i++)
-                h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
-
+            if (idx_a < m_pdata->getN())
+                {
+                h_force.data[idx_a].x -= force_divr * dx;
+                h_force.data[idx_a].y -= force_divr * dy;
+                h_force.data[idx_a].z -= force_divr * dz;
+                h_force.data[idx_a].w += bond_eng;
+                for (unsigned int i = 0; i < 6; i++)
+                    h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
+                }
             }
         else
             {

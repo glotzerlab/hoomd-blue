@@ -272,7 +272,6 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
     
     // connect the rebuildIndexList method to be called whenever the particles are sorted, or added to or deleted from the local domain
     m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
-    m_local_particle_num_change_connection = m_pdata->connectLocalParticleNumChange(bind(&ParticleGroup::rebuildIndexList, this));
 
     // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
@@ -313,7 +312,6 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
 
     // connect the rebuildIndexList method to be called whenever the particles are sorted
     m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
-    m_local_particle_num_change_connection = m_pdata->connectLocalParticleNumChange(bind(&ParticleGroup::rebuildIndexList, this));
 
     // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
@@ -326,7 +324,6 @@ ParticleGroup::~ParticleGroup()
         {
         m_sort_connection.disconnect();
         m_max_particle_num_change_connection.disconnect();
-        m_local_particle_num_change_connection.disconnect();
         }
     }
 

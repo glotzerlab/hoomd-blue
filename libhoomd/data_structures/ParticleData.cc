@@ -428,36 +428,6 @@ boost::signals::connection ParticleData::connectMaxParticleNumberChange(const bo
     return m_max_particle_num_signal.connect(func);
     }
 
-/*! \b ANY time the local number of particle changes, this function must be called (but not, if merely
-    the maxium array size changes).
-    \note The call must be made when the particle data arrays are not currently acquired
-*/
-void ParticleData::notifyLocalParticleNumChange()
-    {
-    m_local_particle_num_signal();
-    }
-
-/*! \param func Function to be called when particles get added to or are removed from the local domain
-    \return Connection to manage the signal
-
-    This signal should be called after the reorganization of the local particle data has been completed,
-    i.e. the particle data arrays contain consistent information about all local particles, and this
-    is is reflected in the number of local particles, as returned by getN()
-    (i.e. addParticles and removeParticles have also been called previously).
-
-    \note If the caller class is destroyed, it needs to disconnect the signal connection
-    via \b con.disconnect where \b con is the return value of this function.
-
-    \note A change in the local particle number also implies a change in the possible sort order,
-          so classes that need to reorganize internal data structures that depend on the particle order
-          should subscribe to both the localParticleNumChange and the sort signal.
-*/
-boost::signals::connection ParticleData::connectLocalParticleNumChange(const boost::function<void ()> &func)
-    {
-    return m_local_particle_num_signal.connect(func);
-    }
-
-
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
     \note Throws an exception if the type name is not found
@@ -1415,9 +1385,6 @@ void export_ParticleData()
     .def("setType", &ParticleData::setType)
     .def("setOrientation", &ParticleData::setOrientation)
     .def("setInertiaTensor", &ParticleData::setInertiaTensor)
-#ifdef ENABLE_MPI
-    .def("setMPICommunicator", &ParticleData::setMPICommunicator)
-#endif
     ;
     }
 

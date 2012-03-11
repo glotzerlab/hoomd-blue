@@ -164,13 +164,25 @@ class Updater : boost::noncopyable
             {
             return PDataFlags(0);
             }
-        
+
+#ifdef ENABLE_MPI
+        //! Set the communicator to use
+        /*! \param comm The Communicator
+         */
+        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+            {
+            m_comm = comm;
+            }
+#endif
+
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
         boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration        
-        
+#ifdef ENABLE_MPI
+        boost::shared_ptr<Communicator> m_comm;             ///!< The communicator this updater is to use
+#endif
     };
 
 //! Export the Updater class to python

@@ -412,7 +412,26 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
     // but set the flags before prepRun, as prepRun may remove some flags that it cannot generate on the first step
     m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
-    
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        //! Set communicator in all Updaters
+        vector<updater_item>::iterator updater;
+        for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
+            updater->m_updater->setCommunicator(m_comm);
+
+        // Set communicator in all Computes
+        map< string, boost::shared_ptr<Compute> >::iterator compute;
+        for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
+            compute->second->setCommunicator(m_comm);
+
+        // Set communicator in Integrator
+        if (m_integrator)
+            m_integrator->setCommunicator(m_comm);
+        }
+#endif
+
     // Prepare the run
     if (!m_integrator)
         cout << "***Warning! You are running without an integrator." << endl;

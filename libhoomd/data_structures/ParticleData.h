@@ -477,7 +477,7 @@ class ParticleDataInitializer
 
     If, after insertion or deletion of particles, the reorganisation of the particle data is complete, i.e. all the particle data
     fields are filled, the class that has modified the ParticleData must inform other classes about the new particle data
-    using notifyLocalParticleNumChange().
+    using notifyParticleSort().
 
     Particle data also stores temporary particles ('ghost atoms'). These are added after the local particle data (i.e. with indices
     starting at getN()). It keeps track of those particles using the addGhostParticles() and removeAllGhostParticles() methods.
@@ -658,17 +658,11 @@ class ParticleData : boost::noncopyable
         //! Notify listeners that the particles have been rearranged in memory
         void notifyParticleSort();
         
-        //! Notify listeners that particles have been added to or deleted from the local domain
-        void notifyLocalParticleNumChange();
-
         //! Connects a function to be called every time the box size is changed
         boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
 
         //! Connects a function to be called every time the maximum particle number changes
         boost::signals::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
-
-        //! Connects a function to be called every time the local particle number changes
-        boost::signals::connection connectLocalParticleNumChange(const boost::function< void()> &func);
 
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
@@ -835,13 +829,13 @@ class ParticleData : boost::noncopyable
             }
 #ifdef ENABLE_MPI
         //! Set the communicator
-        void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
+        void setMPICommunicator(boost::shared_ptr<const boost::mpi::communicator> mpi_comm)
             {
             m_mpi_comm = mpi_comm;
             }
 
         //! Get the communicator
-        boost::shared_ptr<boost::mpi::communicator> getMPICommunicator()
+        boost::shared_ptr<const boost::mpi::communicator> getMPICommunicator()
             {
             return m_mpi_comm;
             }
@@ -852,7 +846,7 @@ class ParticleData : boost::noncopyable
         BoxDim m_global_box;                        //!< Global simulation box
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
 #ifdef ENABLE_MPI
-        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
+        boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
 #endif
         unsigned int m_ntypes;                      //!< Number of particle types
         

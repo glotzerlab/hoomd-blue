@@ -311,7 +311,6 @@ class ParticleGroup
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
-        boost::signals::connection m_local_particle_num_change_connection; //!< Connection to the local particle number change signal
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
         unsigned int m_num_local_members;               //!< Number of members on the local processor
 

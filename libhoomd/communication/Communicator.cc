@@ -135,7 +135,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_dim(dim),
             m_global_box(m_pdata->getGlobalBox()),
             m_is_allocated(false),
-            m_r_ghost(Scalar(0.0))
+            m_r_ghost(Scalar(0.0)),
+            m_plan(exec_conf)
     {
     // initialize array of neighbor processor ids
     assert(neighbor_rank.size() == 6);
@@ -178,14 +179,14 @@ void Communicator::allocate()
         m_recvbuf[dir].swap(recvbuf);
         }
 
-    GPUArray<unsigned int> delete_buf(m_pdata->getN(), exec_conf);
-    m_delete_buf.swap(delete_buf);
-
     for (unsigned int dir = 0; dir < 6; dir++)
         {
         m_max_copy_ghosts[dir] = m_pdata->getN(); // initial value
         GPUArray<unsigned int> copy_ghosts(m_max_copy_ghosts[dir], exec_conf);
         m_copy_ghosts[dir].swap(copy_ghosts);
+
+        GPUArray<unsigned char> plan_copybuf(m_max_copy_ghosts[dir], exec_conf);
+        m_plan_copybuf[dir].swap(plan_copybuf);
 
         GPUArray<Scalar4> pos_copybuf(m_max_copy_ghosts[dir], exec_conf);
         m_pos_copybuf[dir].swap(pos_copybuf);
@@ -199,6 +200,31 @@ void Communicator::allocate()
         }
 
     m_is_allocated = true;
+    }
+
+//! Interface to the communication methods.
+void Communicator::communicate(unsigned int timestep)
+    {
+    if (m_prof)
+        m_prof->push("Communicate");
+
+    // Check if we require particle migration
+    if (m_migrate_requests(timestep))
+        {
+        // If so, migrate atoms
+        migrateAtoms();
+
+        // Construct ghost send lists, exchange ghost atom data
+        exchangeGhosts();
+        }
+    else
+        {
+        // only update ghost atom coordinates
+        copyGhosts();
+        }
+
+    if (m_prof)
+        m_prof->pop();
     }
 
 //! Transfer particles between neighboring domains
@@ -523,27 +549,112 @@ void Communicator::migrateAtoms()
 #endif
 
     // notify ParticleData that addition / removal of particles is complete
-    m_pdata->notifyLocalParticleNumChange();
+    m_pdata->notifyParticleSort();
 
     if (m_prof)
         m_prof->pop();
     }
 
 //! Build ghost particle list, exchange ghost particle data
-void Communicator::exchangeGhosts(Scalar r_ghost)
+void Communicator::exchangeGhosts()
     {
-
     if (m_prof)
         m_prof->push("exchange_ghosts");
 
+
     const BoxDim& box = m_pdata->getBox();
 
-    assert(r_ghost < (box.xhi - box.xlo));
-    assert(r_ghost < (box.yhi - box.ylo));
-    assert(r_ghost < (box.zhi - box.zlo));
+    assert(m_r_ghost < (box.xhi - box.xlo));
+    assert(m_r_ghost < (box.yhi - box.ylo));
+    assert(m_r_ghost < (box.zhi - box.zlo));
 
-    m_r_ghost = r_ghost;
+    // Sending ghosts proceeds in two stages:
+    // Stage 1: mark ghost atoms for sending (for covalently bonded particles, and non-bonded interactions)
+    //          construct plans (= itineraries for ghost particles)
+    // Stage 2: fill send buffers, exchange ghosts according to plans (sending the plan along with the particle)
 
+    // reset plans
+    m_plan.clear();
+
+    // resize plans
+    m_plan.resize(m_pdata->getN());
+
+    /*
+     * Mark particles that are part of incomplete bonds for sending
+     */
+    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
+
+    if (bdata->getNumBonds())
+        {
+        const GPUArray<uint2>& btable = bdata->getGPUBondList();
+        ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_n_bonds(bdata->getNBondsArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
+
+        for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+            {
+            unsigned int n_bonds = h_n_bonds.data[idx];
+
+            // Is this bond complete (== all particles present on local processor)?
+            bool is_complete = true;
+
+            for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+                {
+                // get bond partner
+                unsigned int idxj = h_btable.data[idx + bond_idx * btable.getPitch()].x;
+
+                if (! (idxj < m_pdata->getN()))
+                    {
+                    is_complete = false;
+                    break;
+                    }
+                }
+
+            if (! is_complete)
+                {
+                // send this particle as ghost in every direction
+
+                h_plan.data[idx] |= (send_east | send_west | send_north | send_south | send_up | send_down);
+                }
+            }
+        }
+
+
+    /*
+     * Mark non-covalently bonded atoms for sending
+     */
+        {
+        // scan all local atom positions if they are within r_ghost from a neighbor
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
+
+        for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+            {
+            Scalar4 pos = h_pos.data[idx];
+
+            if (pos.x >= box.xhi - m_r_ghost)
+                h_plan.data[idx] |= send_east;
+
+            if (pos.x < box.xlo + m_r_ghost)
+                h_plan.data[idx] |= send_west;
+
+            if (pos.y >= box.yhi - m_r_ghost)
+                h_plan.data[idx] |= send_north;
+
+            if (pos.y < box.ylo + m_r_ghost)
+                h_plan.data[idx] |= send_south;
+
+            if (pos.z >= box.zhi - m_r_ghost)
+                h_plan.data[idx] |= send_up;
+
+            if (pos.z < box.zlo + m_r_ghost)
+                h_plan.data[idx] |= send_down;
+            }
+        }
+
+    /*
+     * Fill send buffers, exchange particles according to plans
+     */
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         // If the grid is only one box wide in the current direction, avoid communicating with ourselves
@@ -554,86 +665,77 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
         m_num_copy_ghosts[dir] = 0;
 
 
-        // scan all local atom positions if they are within r_ghost from a neighbor, fill send buffer
-
             {
+            // Fill send buffer
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned char>  h_plan(m_plan, access_location::host, access_mode::read);
 
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf[dir], access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf[dir], access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf[dir], access_location::host, access_mode::overwrite);
 
             for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                 {
-                Scalar4 pos = h_pos.data[idx];
 
-                if ((dir==0 && (pos.x >= box.xhi - r_ghost)) ||  // send east
-                    (dir==1 && (pos.x < box.xlo + r_ghost)) ||   // send west
-                    (dir==2 && (pos.y >= box.yhi - r_ghost)) ||  // send north
-                    (dir==3 && (pos.y < box.ylo + r_ghost)) ||   // send south
-                    (dir==4 && (pos.z >= box.zhi - r_ghost)) ||  // send up
-                    (dir==5 && (pos.z < box.zlo + r_ghost)))     // send down
+                if (h_plan.data[idx] & (1 << dir))
                     {
                     // send with next message
-                    h_pos_copybuf.data[m_num_copy_ghosts[dir]] = pos;
+                    h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
                     h_charge_copybuf.data[m_num_copy_ghosts[dir]] = h_charge.data[idx];
                     h_diameter_copybuf.data[m_num_copy_ghosts[dir]] = h_diameter.data[idx];
+                    h_plan_copybuf.data[m_num_copy_ghosts[dir]] = h_plan.data[idx];
 
                     h_copy_ghosts.data[m_num_copy_ghosts[dir]] = h_global_tag.data[idx];
                     m_num_copy_ghosts[dir]++;
                     }
                 }
             }
-            // resize array of ghost particle ids to copy if necessary
-            if (m_pdata->getN() + m_pdata->getNGhosts() > m_max_copy_ghosts[dir])
-                {
-                while (m_pdata->getN() + m_pdata->getNGhosts() > m_max_copy_ghosts[dir]) m_max_copy_ghosts[dir] *= 2;
 
-                m_copy_ghosts[dir].resize(m_max_copy_ghosts[dir]);
-                m_pos_copybuf[dir].resize(m_max_copy_ghosts[dir]);
-                m_charge_copybuf[dir].resize(m_max_copy_ghosts[dir]);
-                m_diameter_copybuf[dir].resize(m_max_copy_ghosts[dir]);
-                }
+        // resize array of ghost particle ids to copy if necessary
+        if (m_pdata->getN() + m_pdata->getNGhosts() > m_max_copy_ghosts[dir])
+            {
+            while (m_pdata->getN() + m_pdata->getNGhosts() > m_max_copy_ghosts[dir]) m_max_copy_ghosts[dir] *= 2;
+
+            m_copy_ghosts[dir].resize(m_max_copy_ghosts[dir]);
+            m_pos_copybuf[dir].resize(m_max_copy_ghosts[dir]);
+            m_charge_copybuf[dir].resize(m_max_copy_ghosts[dir]);
+            m_diameter_copybuf[dir].resize(m_max_copy_ghosts[dir]);
+            }
 
             {
+            // Fill send buffer with forwarded ghost particles
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::read);
 
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf[dir], access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf[dir], access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf[dir], access_location::host, access_mode::readwrite);
 
-            // scan all ghost particles if they are within r_ghost from a neighbor, fill send buffer
-            // add extra check that we are not sending back particles in the opposite direction from
-            // which we have received them
-            unsigned int omit_ghosts = ((dir % 2) == 1) ? m_num_recv_ghosts[dir-1] : 0;
-            for (unsigned int idx = m_pdata->getN(); idx < m_pdata->getN() + m_pdata->getNGhosts() - omit_ghosts; idx++)
+            // check plans of ghost particles, include into send buffer if necessary
+            for (unsigned int idx = m_pdata->getN(); idx < m_pdata->getN() + m_pdata->getNGhosts(); idx++)
                 {
-                Scalar4 pos = h_pos.data[idx];
-
-                if ((dir==0 && (pos.x >= box.xhi - r_ghost)) || // send east
-                    (dir==1 && (pos.x < box.xlo + r_ghost)) ||  // send west
-                    (dir==2 && (pos.y >= box.yhi - r_ghost)) || // send north
-                    (dir==3 && (pos.y < box.ylo + r_ghost)) ||  // send south
-                    (dir==4 && (pos.z >= box.zhi - r_ghost)) || // send up
-                    (dir==5 && (pos.z < box.zlo + r_ghost)))    // send down
+                if (h_plan.data[idx] & (1 << dir))
                     {
                     // send with next message
-                    h_pos_copybuf.data[m_num_copy_ghosts[dir]] = pos;
+                    h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
                     h_charge_copybuf.data[m_num_copy_ghosts[dir]] = h_charge.data[idx];
                     h_diameter_copybuf.data[m_num_copy_ghosts[dir]] = h_diameter.data[idx];
+                    h_plan_copybuf.data[m_num_copy_ghosts[dir]] = h_plan.data[idx];
+
                     h_copy_ghosts.data[m_num_copy_ghosts[dir]] = h_global_tag.data[idx];
                     m_num_copy_ghosts[dir]++;
                     }
-
-                 }
+                }
             }
 
         unsigned int send_neighbor = m_neighbors[dir];
@@ -650,7 +752,7 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
             m_prof->push("MPI send/recv");
 
         // communicate size of the message that will contain the particle data
-        boost::mpi::request reqs[10];
+        boost::mpi::request reqs[12];
         reqs[0] = m_mpi_comm->isend(send_neighbor,0,m_num_copy_ghosts[dir]);
         reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,m_num_recv_ghosts[dir]);
         boost::mpi::wait_all(reqs,reqs+2);
@@ -664,35 +766,45 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
         // accommodate new ghost particles
         m_pdata->addGhostParticles(m_num_recv_ghosts[dir]);
 
+        // resize plan array
+        if (m_pdata->getN() + m_pdata->getNGhosts() > m_plan.size())
+            m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
+
         // exchange particle data, write directly to the particle data arrays
         if (m_prof)
             m_prof->push("MPI send/recv");
 
             {
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
+            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf[dir], access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf[dir], access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf[dir], access_location::host, access_mode::read);
 
+            ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
 
-            reqs[2] = m_mpi_comm->isend(send_neighbor,1,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
+            reqs[2] = m_mpi_comm->isend(send_neighbor,1,h_plan_copybuf.data, m_num_copy_ghosts[dir]);
+            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_plan.data + start_idx, m_num_recv_ghosts[dir]);
 
-            reqs[4] = m_mpi_comm->isend(send_neighbor,2,h_copy_ghosts.data, m_num_copy_ghosts[dir]);
-            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_global_tag.data + start_idx, m_num_recv_ghosts[dir]);
+            reqs[4] = m_mpi_comm->isend(send_neighbor,2,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
+            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
-            reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_charge_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_charge.data + start_idx, m_num_recv_ghosts[dir]);
+            reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_copy_ghosts.data, m_num_copy_ghosts[dir]);
+            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_global_tag.data + start_idx, m_num_recv_ghosts[dir]);
 
-            reqs[8] = m_mpi_comm->isend(send_neighbor,4,h_diameter_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_diameter.data + start_idx, m_num_recv_ghosts[dir]);
+            reqs[8] = m_mpi_comm->isend(send_neighbor,4,h_charge_copybuf.data, m_num_copy_ghosts[dir]);
+            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_charge.data + start_idx, m_num_recv_ghosts[dir]);
 
-            boost::mpi::wait_all(reqs+2,reqs+10);
+            reqs[10] = m_mpi_comm->isend(send_neighbor,5,h_diameter_copybuf.data, m_num_copy_ghosts[dir]);
+            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_diameter.data + start_idx, m_num_recv_ghosts[dir]);
+
+            boost::mpi::wait_all(reqs+2,reqs+12);
             }
+
         if (m_prof)
             m_prof->pop();
 
@@ -718,19 +830,12 @@ void Communicator::exchangeGhosts(Scalar r_ghost)
                 else if (dir==5 && m_is_at_boundary[4])
                     pos.z += m_global_box.zhi - m_global_box.zlo;
 
-                assert ( (dir == 0 && pos.x < box.xlo+1e-3 && pos.x >= box.xlo-r_ghost-1e-3) ||
-                         (dir == 1 && pos.x >= box.xhi-1e-3 && pos.x < box.xhi+r_ghost+1e-3) ||
-                         (dir == 2 && pos.y < box.ylo+1e-3 && pos.y >= box.ylo-r_ghost-1e-3) ||
-                         (dir == 3 && pos.y >= box.yhi-1e-3 && pos.y < box.yhi+r_ghost+1e-3) ||
-                         (dir == 4 && pos.z < box.zlo+1e-3 && pos.z >= box.zlo-r_ghost-1e-3) ||
-                         (dir == 5 && pos.z >= box.zhi-1e-3 && pos.z < box.zhi+r_ghost+1e-3) );
-
-
+                // set reverse-lookup tag -> idx
                 assert(h_global_rtag.data[h_global_tag.data[idx]] == NOT_LOCAL);
                 h_global_rtag.data[h_global_tag.data[idx]] = idx;
                 }
             }
-        }
+        } // end dir loop
 
     if (m_prof)
         m_prof->pop();

@@ -184,11 +184,22 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
         // check the flags for any errors
         ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
 
-        if (h_flags.data[0])
+        if (h_flags.data[0]==1)
             {
-            cerr << endl << "***Error! << " << evaluator::getName() << " bond out of bounds" << endl << endl;
+            cerr << endl << "***Error! " << evaluator::getName() << " bond out of bounds" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
+#ifdef ENABLE_MPI
+        if (h_flags.data[0]==2)
+            {
+            cerr << endl << "***Error! Found incomplete bond. Possibly the bond extension is greater than 1/2 the"
+                 << endl << "          domain size in any direction. Try reducing the number of sub-divisions"
+                 << endl << "          or increasing the bond stiffness."
+                 << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
+#endif
+
         }
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);

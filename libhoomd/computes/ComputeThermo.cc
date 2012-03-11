@@ -162,7 +162,7 @@ void ComputeThermo::computeProperties()
         return;
 
 #ifdef ENABLE_MPI
-    boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_pdata->getMPICommunicator();
+    boost::shared_ptr<const boost::mpi::communicator> mpi_comm = m_pdata->getMPICommunicator();
 #endif
 
     if (m_prof) m_prof->push("Thermo");

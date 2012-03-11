@@ -346,19 +346,21 @@ void CommunicatorGPU::migrateAtoms()
 #endif
 
     // notify ParticleData that addition / removal of particles is complete
-    m_pdata->notifyLocalParticleNumChange();
+    m_pdata->notifyParticleSort();
 
     if (m_prof)
         m_prof->pop();
     }
 
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
-void CommunicatorGPU::exchangeGhosts(Scalar r_ghost)
+void CommunicatorGPU::exchangeGhosts()
     {
     if (m_prof)
         m_prof->push("exchange_ghosts");
 
-    m_r_ghost = r_ghost;
+    assert(m_r_ghost < (m_pdata->getBox().xhi - m_pdata->getBox().xlo));
+    assert(m_r_ghost < (m_pdata->getBox().yhi - m_pdata->getBox().ylo));
+    assert(m_r_ghost < (m_pdata->getBox().zhi - m_pdata->getBox().zlo));
 
     // we have a current list of atoms inside this box
     // find all local atoms within a distance r_ghost from the boundary and store them in m_copy_ghosts
