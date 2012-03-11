@@ -191,11 +191,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         globals.integrator.update_methods();
         globals.integrator.update_thermos();
 
-    # If MPI communication is enabled, pass communicator to neighbor list
-    if globals.communicator is not None and globals.neighbor_list is not None:
-        comm.check_mpi()
-        globals.neighbor_list.set_communicator(globals.communicator)
-
     # If running in MPI mode
     if globals.communicator:
         # set quiet flag on all processors other than rank zero

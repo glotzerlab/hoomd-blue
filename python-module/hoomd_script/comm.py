@@ -147,7 +147,7 @@ class mpi_partition:
         globals.system.setCommunicator(globals.communicator)
 
         # set Communicator in ParticleData
-        globals.system_definition.getParticleData().setMPICommunicator(mpi_comm)
+        globals.system_definition.setCommunicator(globals.communicator)
 
         # store this object in the global variables
         globals.mpi_partition = self

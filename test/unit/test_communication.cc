@@ -472,6 +472,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
     // width of ghost layer
     Scalar ghost_layer_width = Scalar(0.1);
+    comm->setGhostLayerWidth(ghost_layer_width);
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
@@ -539,7 +540,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
 
     // exchange ghosts
-    comm->exchangeGhosts(ghost_layer_width);
+    comm->exchangeGhosts();
 
    // check ghost atom numbers and positions
         {
@@ -799,7 +800,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
         }
 
    // exchange ghosts
-   comm->exchangeGhosts(ghost_layer_width);
+   comm->exchangeGhosts();
 
    // check ghost atom numbers and positions, taking into account that the particles should have been
    // wrapped across the boundaries
@@ -1251,6 +1252,131 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
    }
 
+//! Test particle communication for covalently bonded ghosts
+void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    // this test needs to be run on eight processors
+    if (world->size() != 8)
+        {
+        std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
+        throw std::runtime_error("Error setting up unit test");
+        }
+
+    // create a system with eight particles
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+                                                             BoxDim(2.0), // box dimensions
+                                                             1,           // number of particle types
+                                                             1,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf));
+
+
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
+                                                                  world,
+                                                                  0));
+
+    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
+
+    // width of ghost layer
+    Scalar ghost_layer_width = Scalar(0.1);
+    comm->setGhostLayerWidth(ghost_layer_width);
+
+    // Set initial atom positions
+    // place one particle in the middle of every box (outside the ghost layer)
+    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5));
+    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5));
+    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5));
+    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5));
+    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5));
+    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5));
+    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5));
+    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5));
+
+    // now bond these particles together, forming a cube
+
+    boost::shared_ptr<BondData> bdata(sysdef->getBondData());
+
+    bdata->addBond(Bond(0,0,1));  // bond type, tag a, tag b
+    bdata->addBond(Bond(0,0,2));
+    bdata->addBond(Bond(0,0,4));
+    bdata->addBond(Bond(0,1,3));
+    bdata->addBond(Bond(0,1,5));
+    bdata->addBond(Bond(0,2,3));
+    bdata->addBond(Bond(0,2,6));
+    bdata->addBond(Bond(0,3,7));
+    bdata->addBond(Bond(0,4,5));
+    bdata->addBond(Bond(0,4,6));
+    bdata->addBond(Bond(0,5,7));
+    bdata->addBond(Bond(0,6,7));
+
+    // distribute particle data on processors
+    mpi_init->scatter(0);
+
+    pdata->setMPICommunicator(world);
+
+    // we should have zero ghost particles
+    BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
+
+    // exchange ghost particles
+    comm->exchangeGhosts();
+
+        {
+        // all bonds should be complete, every processor should have three bonds
+        ArrayHandle<uint2> h_gpu_bondlist(bdata->getGPUBondList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_n_bonds(bdata->getNBondsArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_tag(pdata->getGlobalTags(), access_location::host, access_mode::read);
+
+        BOOST_CHECK_EQUAL(h_n_bonds.data[0],3);
+        unsigned int pitch = bdata->getGPUBondList().getPitch();
+
+        switch (world->rank())
+            {
+            case 0:
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 1);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 2);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 4);
+                break;
+            case 1:
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 0);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 3);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 5);
+                break;
+            case 2:
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 0);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 3);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 6);
+                break;
+            case 3:
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 1);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 2);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 7);
+                break;
+            case 4:
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 0);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 5);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 6);
+            case 5:
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 1);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 4);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 7);
+            case 6:
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 2);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 4);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 7);
+            case 7:
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 3);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 5);
+                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 6);
+            }
+        }
+    }
+
 //! Communicator creator for unit tests
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                          shared_ptr<boost::mpi::communicator> mpi_comm,
@@ -1336,7 +1462,15 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     test_communicator_ghosts(communicator_creator_base, exec_conf_cpu);
     }
 
+BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2,_3);
+    test_communicator_bonded_ghosts(communicator_creator_base, exec_conf_cpu);
+    }
 
+
+
+#if 0
 #ifdef ENABLE_CUDA
 //! Tests MPIInitializer on GPU
 BOOST_AUTO_TEST_CASE( MPIInitializer_test_GPU )
@@ -1356,6 +1490,12 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     test_communicator_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
 
+BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
+    {
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2,_3);
+    test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
+    }
+#endif
 #endif
 
 #endif //ENABLE_MPI
