@@ -26,7 +26,7 @@ if (ENABLE_MPI)
 
     if (NOT Boost_FOUND)
         message(WARNING "Boost (>= 1.44.0) with mpi and serialization components not found. Disabling MPI.")
-        set(ENABLE_MPI FALSE CACHE FORCE)
+        set(ENABLE_MPI FALSE CACHE BOOL "Enable the compilation of the MPI communication code" FORCE)
     endif (NOT Boost_FOUND)
 endif(ENABLE_MPI)
 
