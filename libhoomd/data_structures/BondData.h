@@ -79,6 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+#include "HOOMDMath.h"
 
 // Sentinel value in bond reverse-lookup map for unassigned bond tags
 #define NO_BOND 0xffffffff
@@ -214,7 +215,6 @@ class BondData : boost::noncopyable
             return m_bond_rtag;
             }
 
-# ifdef ENABLE_CUDA
         //! Gets the number of bonds array
         const GPUArray<unsigned int>& getNBondsArray() const
             {
@@ -223,7 +223,6 @@ class BondData : boost::noncopyable
 
         //! Access the bonds on the GPU
         const GPUArray<uint2>& getGPUBondList();
-#endif
         
         //! Takes a snapshot of the current bond data
         void takeSnapshot(SnapshotBondData& snapshot);

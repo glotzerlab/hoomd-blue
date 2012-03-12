@@ -79,6 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+#include "HOOMDMath.h"
 
 // Sentinel value in angle reverse-lookup map for unassigned angle tags
 #define NO_ANGLE 0xffffffff
@@ -219,7 +220,6 @@ class AngleData : boost::noncopyable
             return m_angle_rtag;
             }
 
-# ifdef ENABLE_CUDA
         //! Gets the number of angles array
         const GPUArray<unsigned int>& getNAnglesArray() const
            {
@@ -228,7 +228,6 @@ class AngleData : boost::noncopyable
 
         //! Access the angles on the GPU
         const GPUArray<uint4>& getGPUAngleList();
-#endif
 
         //! Takes a snapshot of the current angle data
         void takeSnapshot(SnapshotAngleData& snapshot);

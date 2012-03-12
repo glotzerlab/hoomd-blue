@@ -311,6 +311,8 @@ const GPUArray<uint4>& AngleData::getGPUAngleList()
     }
 
 
+#ifdef ENABLE_CUDA
+    
 /*! Update GPU angle table (GPU version)
 
     \post The angle tag data added via addAngle() is translated to angles based
@@ -346,6 +348,8 @@ void AngleData::updateAngleTableGPU()
                          m_gpu_anglelist.getPitch());
 
     }
+
+#endif
 
 /*! \post The angle tag data added via addAngle() is translated to angles based
     on particle index for use in the GPU kernel. This new angle table is then uploaded

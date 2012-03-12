@@ -79,6 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+#include "HOOMDMath.h"
 
 // Sentinel value in dihedral reverse-lookup map for unassigned dihedral type
 #define NO_DIHEDRAL 0xffffffff
@@ -221,7 +222,6 @@ class DihedralData : boost::noncopyable
             return m_dihedral_rtag;
             }
 
-# ifdef ENABLE_CUDA
         //! Gets the number of dihedrals array
         const GPUArray<unsigned int>& getNDihedralsArray() const
            {
@@ -233,7 +233,6 @@ class DihedralData : boost::noncopyable
 
         //! Access the dihedral atom position list on the GPU
         const GPUArray<uint1>& getDihedralABCD();
-#endif
 
         //! Takes a snapshot of the current angle data
         void takeSnapshot(SnapshotDihedralData& snapshot);
