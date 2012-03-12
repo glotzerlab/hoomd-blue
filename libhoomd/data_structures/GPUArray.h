@@ -201,7 +201,7 @@ template<class T> class GPUArray
         //! Constructs a 2-D GPUArray
         GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
-        ~GPUArray();
+        virtual ~GPUArray();
         
         //! Copy constructor
         GPUArray(const GPUArray& from);

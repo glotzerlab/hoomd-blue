@@ -80,7 +80,7 @@ template<class T> class GPUVector : public GPUArray<T>
         //! Constructs a GPUVector
         GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
-        ~GPUVector() {}
+        virtual ~GPUVector() {}
 
         //! Copy constructor
         GPUVector(const GPUVector& from);
