@@ -347,8 +347,8 @@ BOOST_PYTHON_MODULE(hoomd)
     class_<std::vector<int> >("std_vector_int")
     .def(vector_indexing_suite<std::vector<int> >());
 
-    class_<std::vector<Scalar3> >("std_vector_float3")
-    .def(vector_indexing_suite<std::vector<float3> >());
+    class_<std::vector<Scalar3> >("std_vector_scalar3")
+    .def(vector_indexing_suite<std::vector<Scalar3> >());
     
     InstallSIGINTHandler();
     
