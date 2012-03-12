@@ -80,6 +80,7 @@ class TransformDihedralDataGPU
                                              unsigned int pitch);
 
     private:
+        #ifdef NVCC
         //! Sorted array of the first dihedral member as key
         thrust::device_vector<unsigned int> dihedral_sort_keys;
 
@@ -97,6 +98,7 @@ class TransformDihedralDataGPU
 
         //! Sorted list of particle indices that are part of at least one dihedral
         thrust::device_vector<unsigned int> dihedral_indices;
+        #endif
     };
 #endif
 

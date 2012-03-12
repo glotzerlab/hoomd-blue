@@ -80,6 +80,7 @@ class TransformAngleDataGPU
 
     private:
 
+        #ifdef NVCC
         //! Sorted array of the first angle member as key
         thrust::device_vector<unsigned int> angle_sort_keys;
 
@@ -94,6 +95,7 @@ class TransformAngleDataGPU
 
         //! Sorted list of particle indices that have at least one angle
         thrust::device_vector<unsigned int> angle_indices;
+        #endif
     };
 #endif
 

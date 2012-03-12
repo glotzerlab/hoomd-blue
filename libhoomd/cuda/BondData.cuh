@@ -54,7 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _BONDDATA_CUH_
 
 #include <cuda_runtime.h>
-
 #include <thrust/device_vector.h>
 
 /*! \file BondData.cuh
@@ -80,6 +79,7 @@ class TransformBondDataGPU
                                          unsigned int pitch);
 
     private:
+        #ifdef NVCC
         //! Sorted array of the first bond member as key
         thrust::device_vector<unsigned int> bond_sort_keys;
 
@@ -94,6 +94,7 @@ class TransformBondDataGPU
 
         //! Sorted list of particle indices that have at least one bond
         thrust::device_vector<unsigned int> bonded_indices;
+        #endif
     };
 #endif
 
