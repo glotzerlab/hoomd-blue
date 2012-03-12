@@ -556,7 +556,14 @@ void ExecutionConfiguration::setupStats()
         cudaGetDevice(&dev);
         cudaGetDeviceProperties(&dev_prop, dev);
         printGPUStats();
-        n_cpu = 1;  // GPU runs only use 1 CPU core
+
+        // GPU runs only use 1 CPU core
+        n_cpu = 1;
+        #ifdef ENABLE_OPENMP
+        // need to set the number of threads. Some code in hoomd assumes that n_cpu is the same as the number of threads
+        // that OpenMP will execute in a parallel section
+        omp_set_num_threads(1);
+        #endif
         }
     #endif
     
