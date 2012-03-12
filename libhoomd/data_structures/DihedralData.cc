@@ -491,7 +491,7 @@ void DihedralData::reallocateDihedralTable(int height)
 void DihedralData::allocateDihedralTable(int height)
     {
     assert(m_gpu_dihedral_list.isNull());
-    assert(m_dihedral_ABCD.isNull());
+    assert(m_dihedrals_ABCD.isNull());
     assert(m_n_dihedrals.isNull());
     
     GPUArray<uint4> gpu_dihedral_list(m_pdata->getN(), height, exec_conf);
@@ -517,7 +517,7 @@ void DihedralData::takeSnapshot(SnapshotDihedralData& snapshot)
        throw runtime_error("Error taking snapshot.");
         }
 
-    assert(snapshot.type_id.size() == getNumAngles());
+    assert(snapshot.type_id.size() == getNumDihedrals());
     assert(snapshot.type_mapping.size() == 0);
 
     for (unsigned int dihedral_idx = 0; dihedral_idx < getNumDihedrals(); dihedral_idx++)

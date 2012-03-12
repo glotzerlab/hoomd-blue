@@ -957,7 +957,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
 template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int height)
     {
     assert(! m_acquired);
-    assert(num_elements > 0);
+    assert(width > 0 && height > 0);
 
     // make m_pitch the next multiple of 16 larger or equal to the given width
     unsigned int new_pitch = (width + (16 - (width & 15)));
