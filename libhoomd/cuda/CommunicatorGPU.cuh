@@ -57,6 +57,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "ParticleData.cuh"
 
+//! The flags used for indicating the itinerary of a ghost particle
+enum gpu_send_flags
+    {
+    send_east = 1,
+    send_west = 2,
+    send_north = 4,
+    send_south = 8,
+    send_up = 16,
+    send_down = 32
+    };
+
 //! Get the size of packed data element
 /*! \return the size of the data element (in bytes)
  */
@@ -67,6 +78,14 @@ void gpu_allocate_tmp_storage();
 
 //! Dellocate temporary memory
 void gpu_deallocate_tmp_storage();
+
+//! Mark particles in incomplete bonds for sending
+void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
+                                          const unsigned int pitch,
+                                          const unsigned int *d_n_bonds,
+                                          unsigned char *d_plan,
+                                          const unsigned int N,
+                                          const unsigned char send_flag);
 
 //! Reorder the particle data
 void gpu_migrate_select_particles(unsigned int N,
@@ -133,15 +152,20 @@ void gpu_wrap_ghost_particles(unsigned int dir,
                               float rghost,
                               bool is_at_boundary[]);
 
+//! Construct plans for sending non-bonded ghost particles
+void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
+                                      unsigned int N,
+                                      float4 *d_pos,
+                                      gpu_boxsize box,
+                                      float r_ghost);
+
 //! Construct a list of particle tags to send as ghost particles
 void gpu_make_exchange_ghost_list(unsigned int N,
                                   unsigned int dir,
-                                  float4 *d_pos,
+                                  unsigned char *d_plan,
                                   unsigned int *d_global_tag,
                                   unsigned int* d_copy_ghosts,
-                                  unsigned int &n_copy_ghosts,
-                                  gpu_boxsize box,
-                                  float r_ghost);
+                                  unsigned int &n_copy_ghosts);
 
 //! Fill send buffers of particles we are sending as ghost particles with partial particle data
 void gpu_exchange_ghosts(unsigned int nghosts,
@@ -152,7 +176,9 @@ void gpu_exchange_ghosts(unsigned int nghosts,
                          float *d_charge,
                          float *d_charge_copybuf,
                          float *d_diameter,
-                         float *d_diameter_copybuf);
+                         float *d_diameter_copybuf,
+                         unsigned char *d_plan,
+                         unsigned char *d_plan_copybuf);
 
 //! Update global tag <-> local particle index reverse lookup array
 void gpu_update_rtag(unsigned int nptl,

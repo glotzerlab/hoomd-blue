@@ -17,6 +17,8 @@
 #include "CommunicatorGPU.h"
 #endif
 
+#include <algorithm>
+
 using namespace boost;
 
 //! MPI environment
@@ -1338,48 +1340,55 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
         BOOST_CHECK_EQUAL(h_n_bonds.data[0],3);
         unsigned int pitch = bdata->getGPUBondList().getPitch();
 
-        // check bond partners, in the order the bonds where added
+        unsigned int sorted_tags[3];
+        sorted_tags[0] = h_tag.data[h_gpu_bondlist.data[0].x];
+        sorted_tags[1] = h_tag.data[h_gpu_bondlist.data[pitch].x];
+        sorted_tags[2] = h_tag.data[h_gpu_bondlist.data[2*pitch].x];
+
+        std::sort(sorted_tags, sorted_tags + 3);
+
+        // check bond partners
         switch (world->rank())
             {
             case 0:
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 1);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 2);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 4);
+                BOOST_CHECK_EQUAL(sorted_tags[0], 1);
+                BOOST_CHECK_EQUAL(sorted_tags[1], 2);
+                BOOST_CHECK_EQUAL(sorted_tags[2], 4);
                 break;
             case 1:
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 0);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 3);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 5);
+                BOOST_CHECK_EQUAL(sorted_tags[0], 0);
+                BOOST_CHECK_EQUAL(sorted_tags[1], 3);
+                BOOST_CHECK_EQUAL(sorted_tags[2], 5);
                 break;
             case 2:
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 0);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 3);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 6);
+                BOOST_CHECK_EQUAL(sorted_tags[0], 0);
+                BOOST_CHECK_EQUAL(sorted_tags[1], 3);
+                BOOST_CHECK_EQUAL(sorted_tags[2], 6);
                 break;
             case 3:
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 1);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 2);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 7);
+                BOOST_CHECK_EQUAL(sorted_tags[0], 1);
+                BOOST_CHECK_EQUAL(sorted_tags[1], 2);
+                BOOST_CHECK_EQUAL(sorted_tags[2], 7);
                 break;
             case 4:
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 0);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 5);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 6);
+                BOOST_CHECK_EQUAL(sorted_tags[0], 0);
+                BOOST_CHECK_EQUAL(sorted_tags[1], 5);
+                BOOST_CHECK_EQUAL(sorted_tags[2], 6);
                 break;
             case 5:
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 1);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 4);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 7);
+                BOOST_CHECK_EQUAL(sorted_tags[0], 1);
+                BOOST_CHECK_EQUAL(sorted_tags[1], 4);
+                BOOST_CHECK_EQUAL(sorted_tags[2], 7);
                 break;
             case 6:
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 2);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 4);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 7);
+                BOOST_CHECK_EQUAL(sorted_tags[0], 2);
+                BOOST_CHECK_EQUAL(sorted_tags[1], 4);
+                BOOST_CHECK_EQUAL(sorted_tags[2], 7);
                 break;
             case 7:
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 3);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 5);
-                BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 6);
+                BOOST_CHECK_EQUAL(sorted_tags[0], 3);
+                BOOST_CHECK_EQUAL(sorted_tags[1], 5);
+                BOOST_CHECK_EQUAL(sorted_tags[2], 6);
                 break;
             }
         }
@@ -1478,7 +1487,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
 
 
 
-#if 0
 #ifdef ENABLE_CUDA
 //! Tests MPIInitializer on GPU
 BOOST_AUTO_TEST_CASE( MPIInitializer_test_GPU )
@@ -1503,7 +1511,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2,_3);
     test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
-#endif
 #endif
 
 #endif //ENABLE_MPI

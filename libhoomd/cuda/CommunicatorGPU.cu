@@ -71,6 +71,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/partition.h>
 #include <thrust/count.h>
 
+#ifdef WIN32
+#include <cassert>
+#else
+#include <assert.h>
+#endif
+
 using namespace thrust;
 
 //! Apply (global) periodic boundary conditions to a ghost particle
@@ -119,38 +125,73 @@ struct wrap_ghost_particle
      };
 
 //! Select local particles that within a boundary layer of the neighboring domain in a given direction
-struct select_particle_ghost
+struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
     {
     const gpu_boxsize box;    //!< Local box dimensions
     const float r_ghost;      //!< Width of boundary layer
-    const unsigned int dir;   //!< Direction of the neighboring domain
 
     //! Constructor
     /*! \param _box Local box dimensions
      * \param _r_ghost Width of boundary layer
-     * \param _dir Direction of the neighboring domain
      */
-    select_particle_ghost(const gpu_boxsize _box, float _r_ghost, unsigned int _dir)
-        : box(_box), r_ghost(_r_ghost), dir(_dir)
+    make_nonbonded_plan(const gpu_boxsize _box, float _r_ghost)
+        : box(_box), r_ghost(_r_ghost)
         {
         }
 
-    //! Apply selection criterium
-    /*! \param pos the position of the particle to apply the criterium to
-        \returns true if particle lies within the boundary layer
+    //! Make exchange plan
+    /*! \param t Tuple of Particle position to check and current plan
+        \returns The updated plan for this particle
      */
-    __host__ __device__ bool operator()(const float4 &pos)
+    __host__ __device__ unsigned char operator()(const thrust::tuple<float4, unsigned char>& t)
         {
-        return
-           ((dir==0 && (pos.x >= box.xhi - r_ghost)) || // send east
-            (dir==1 && (pos.x < box.xlo + r_ghost))  || // send west
-            (dir==2 && (pos.y >= box.yhi - r_ghost)) || // send north
-            (dir==3 && (pos.y < box.ylo + r_ghost))  || // send south
-            (dir==4 && (pos.z >= box.zhi - r_ghost)) || // send up
-            (dir==5 && (pos.z < box.zlo + r_ghost)));   // send down
+        float4 pos = thrust::get<0>(t);
+        unsigned char plan = thrust::get<1>(t);
+        if (pos.x >= box.xhi - r_ghost)
+            plan |= send_east;
 
+        if (pos.x < box.xlo + r_ghost)
+            plan |= send_west;
+
+        if (pos.y >= box.yhi - r_ghost)
+            plan |= send_north;
+
+        if (pos.y < box.ylo + r_ghost)
+            plan |= send_south;
+
+        if (pos.z >= box.zhi - r_ghost)
+            plan |= send_up;
+
+        if (pos.z < box.zlo + r_ghost)
+            plan |= send_down;
+
+        return plan;
         }
      };
+
+//! Select ghost particles for sending in one direction
+struct select_particle_ghost
+    {
+    const unsigned int dir; //!< Current direction
+
+    //! Constructor
+    /*! \param _dir Direction of the neighboring domain
+     */
+    select_particle_ghost(unsigned int _dir)
+        : dir(_dir)
+        {
+        }
+
+    //! Select particles for sending
+    /*! \param plan Particle exchange plan
+        \returns true if particle is selected for sending
+     */
+    __host__ __device__ bool operator()(const unsigned char plan)
+        {
+        return (plan & (1 << dir));
+        }
+     };
+
 
 //! Structure to pack a particle data element into
 struct __align__(128) pdata_element_gpu
@@ -414,6 +455,71 @@ void gpu_deallocate_tmp_storage()
     delete float_tmp;
     delete uint_tmp;
     delete int3_tmp;
+    }
+
+//! GPU Kernel to find incomplete bonds
+/*! \param gpu_btable GPU bond table
+ * \param pitch Stride of GPU bond table
+ * \param n_bonds GPU number of bonds array
+ * \param plan Plan array
+ * \param N number of (local) particles
+ * \param send_flag Send flag (plan) for ghost particles
+ */
+__global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *gpu_btable,
+                                                         const unsigned int pitch,
+                                                         const unsigned int *n_bonds,
+                                                         unsigned char *plan,
+                                                         const unsigned int N,
+                                                         const unsigned char send_flag)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N)
+        return;
+
+    unsigned int n = n_bonds[idx];
+    bool is_complete = true;
+    for (unsigned int bond_idx = 0; bond_idx < n; bond_idx++)
+        {
+        unsigned int idxj = gpu_btable[idx + bond_idx*pitch].x;
+
+        if (! (idxj < N))
+            is_complete = false;
+
+        }
+
+    if (! is_complete)
+        plan[idx] |= send_flag;
+    }
+
+//! Mark particles in incomplete bonds for sending
+/* \param d_gpu_btable GPU bond table
+ * \param pitch Stride of GPU bond table
+ * \param d_n_bonds GPU number of bonds array
+ * \param d_plan Plan array
+ * \param N number of (local) particles
+ * \param send_flag Send flag (plan) for ghost particles
+ */
+void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
+                                          const unsigned int pitch,
+                                          const unsigned int *d_n_bonds,
+                                          unsigned char *d_plan,
+                                          const unsigned int N,
+                                          const unsigned char send_flag)
+    {
+    assert(d_gpu_btable);
+    assert(pitch > 0);
+    assert(d_n_bonds);
+    assert(d_plan);
+    assert(N>0);
+
+    unsigned int block_size = 512;
+    gpu_mark_particles_in_incomplete_bonds_kernel<<<N/block_size + 1, block_size>>>(d_gpu_btable,
+                                                                                    pitch,
+                                                                                    d_n_bonds,
+                                                                                    d_plan,
+                                                                                    N,
+                                                                                    send_flag);
     }
 
 /*! Reorder the particles according to a migration criterium
@@ -734,26 +840,49 @@ void gpu_wrap_ghost_particles(unsigned int dir,
     thrust::transform(pos_ptr, pos_ptr +n, pos_ptr, wrap_ghost_particle(global_box, rghost, dir, is_at_boundary));
     }
 
-//! Construct a list of particle tags to send as ghost particles
-/*! \param N number of particles to check
- * \param dir Direction in which ghost particles are sent
+//! Construct plans for sending non-bonded ghost particles
+/*! \param d_plan Array of ghost particle plans
+ * \param N number of particles to check
  * \param d_pos Array of particle positions
- * \param d_global_tag Array of particle global tags
- * \param d_copy_ghosts Array to be fillled x with global tags of particles that are to be send as ghosts
- * \param n_copy_ghosts Number of local particles that are sent in the given direction as ghosts (return value)
  * \param box Dimensions of local simulation box
  * \param r_ghost Width of boundary layer
  */
-void gpu_make_exchange_ghost_list(unsigned int N,
-                                  unsigned int dir,
-                                  float4 *d_pos,
-                                  unsigned int *d_global_tag,
-                                  unsigned int* d_copy_ghosts,
-                                  unsigned int &n_copy_ghosts,
-                                  gpu_boxsize box,
-                                  float r_ghost)
+void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
+                                      unsigned int N,
+                                      float4 *d_pos,
+                                      gpu_boxsize box,
+                                      float r_ghost)
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);
+    thrust::device_ptr<unsigned char> plan_ptr(d_plan);
+
+    thrust::transform(
+        thrust::make_zip_iterator(thrust::make_tuple(
+            pos_ptr,
+            plan_ptr)),
+        thrust::make_zip_iterator(thrust::make_tuple(
+            pos_ptr,
+            plan_ptr)) + N,
+        plan_ptr,
+        make_nonbonded_plan(box, r_ghost));
+    }
+
+//! Construct a list of particle tags to send as ghost particles
+/*! \param N number of particles to check
+ * \param dir Direction in which ghost particles are sent
+ * \param d_plan Array of particle exchange plans
+ * \param d_global_tag Array of particle global tags
+ * \param d_copy_ghosts Array to be fillled x with global tags of particles that are to be send as ghosts
+ * \param n_copy_ghosts Number of local particles that are sent in the given direction as ghosts (return value)
+ */
+void gpu_make_exchange_ghost_list(unsigned int N,
+                                  unsigned int dir,
+                                  unsigned char *d_plan,
+                                  unsigned int *d_global_tag,
+                                  unsigned int* d_copy_ghosts,
+                                  unsigned int &n_copy_ghosts)
+    {
+    thrust::device_ptr<unsigned char> plan_ptr(d_plan);
     thrust::device_ptr<unsigned int> global_tag_ptr(d_global_tag);
     thrust::device_ptr<unsigned int> copy_ghosts_ptr(d_copy_ghosts);
 
@@ -761,9 +890,9 @@ void gpu_make_exchange_ghost_list(unsigned int N,
 
     copy_ghosts_end_ptr = thrust::copy_if(global_tag_ptr,
                                           global_tag_ptr+N,
-                                          pos_ptr,
+                                          plan_ptr,
                                           copy_ghosts_ptr,
-                                          select_particle_ghost(box, r_ghost, dir));
+                                          select_particle_ghost(dir));
 
     n_copy_ghosts =  copy_ghosts_end_ptr - copy_ghosts_ptr;
     }
@@ -778,6 +907,8 @@ void gpu_make_exchange_ghost_list(unsigned int N,
  * \param d_charge_copybuf Send buffer for particle charges
  * \param d_diameter Array of particle diameters
  * \param d_diameter_copybuf Send buffer for particle diameters
+ * \param d_plan Array of particle plans
+ * \param d_plan_copybuf Send buffer for particle plans
  */
 void gpu_exchange_ghosts(unsigned int nghost,
                          unsigned int *d_copy_ghosts,
@@ -787,7 +918,9 @@ void gpu_exchange_ghosts(unsigned int nghost,
                          float *d_charge,
                          float *d_charge_copybuf,
                          float *d_diameter,
-                         float *d_diameter_copybuf)
+                         float *d_diameter_copybuf,
+                         unsigned char *d_plan,
+                         unsigned char *d_plan_copybuf)
     {
     thrust::device_ptr<unsigned int> copy_ghosts_ptr(d_copy_ghosts);
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
@@ -797,11 +930,14 @@ void gpu_exchange_ghosts(unsigned int nghost,
     thrust::device_ptr<float> charge_copybuf_ptr(d_charge_copybuf);
     thrust::device_ptr<float> diameter_ptr(d_diameter);
     thrust::device_ptr<float> diameter_copybuf_ptr(d_diameter_copybuf);
+    thrust::device_ptr<unsigned char> plan_ptr(d_plan);
+    thrust::device_ptr<unsigned char> plan_copybuf_ptr(d_plan_copybuf);
 
     permutation_iterator<device_ptr<unsigned int>, device_ptr<unsigned int> > ghost_rtag(rtag_ptr, copy_ghosts_ptr);
     gather(ghost_rtag, ghost_rtag + nghost, pos_ptr, pos_copybuf_ptr);
     gather(ghost_rtag, ghost_rtag + nghost, charge_ptr, charge_copybuf_ptr);
     gather(ghost_rtag, ghost_rtag + nghost, diameter_ptr, diameter_copybuf_ptr);
+    gather(ghost_rtag, ghost_rtag + nghost, plan_ptr, plan_copybuf_ptr);
     }
 
 //! Update global tag <-> local particle index reverse lookup array

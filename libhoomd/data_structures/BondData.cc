@@ -287,6 +287,10 @@ std::string BondData::getNameByType(unsigned int type)
 
 
 /*! Updates the bond data on the GPU if needed and returns the data structure needed to access it.
+ *
+ * \warning The order of bonds in the GPU bond table differs whether it is constructed using
+         the GPU implementation of updateBondTableGPU() and the CPU implementation updateBondTable().
+         It is therefore unspecified (but in, in any case, deterministic).
 */
 const GPUArray<uint2>& BondData::getGPUBondList()
     {
