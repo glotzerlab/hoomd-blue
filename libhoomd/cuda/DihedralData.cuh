@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief GPU helper functions used in DihedralData
 */
 
+//! Helper class for transforming dihedral data on the GPU
 class TransformDihedralDataGPU
     {
     public:

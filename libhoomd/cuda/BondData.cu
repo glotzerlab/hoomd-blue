@@ -133,8 +133,6 @@ __global__ void gpu_kernel_bond_fill_values(const uint2 *bonds,
     \param d_rtag Array of reverse-lookup particle tag . particle index
     \param d_n_bonds Number of bonds per particle
     \param max_bond_num Maximum number of bonds (return value)
-    \param d_sort_keys Pointer to a temporary sorted list of first bond member indices (return value)
-    \param d_sort_values Pointer to a temporary list of second bond member indices and bond types
  */
 cudaError_t TransformBondDataGPU::gpu_find_max_bond_number(
                                      unsigned int& max_bond_num,
@@ -240,8 +238,6 @@ cudaError_t TransformBondDataGPU::gpu_find_max_bond_number(
 /*! \param num_bonds Size of bond array
     \param d_gpu_bondtable Pointer to the bond table on the GPU
     \param pitch Pitch of 2D bondtable array
-    \param d_sort_keys First bond members as keys (sorted)
-    \param d_sort_values Second bond members as values (sorted)
 
     \pre Prior to calling this method, the internal bond_sort_keys and bond_sort_values
          need to be initialized by a call to gpu_find_max_bond_number

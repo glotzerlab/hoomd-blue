@@ -259,7 +259,7 @@ class BondData : boost::noncopyable
         GPUArray<unsigned int> m_n_bonds;   //!< Array of the number of bonds
 
 #ifdef ENABLE_CUDA
-        TransformBondDataGPU m_transform_bond_data; //! GPU helper class to transform the bond data
+        TransformBondDataGPU m_transform_bond_data; //!< GPU helper class to transform the bond data
 
         //! Helper function to update the bond table on the device
         void updateBondTableGPU();

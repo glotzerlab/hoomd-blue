@@ -150,8 +150,6 @@ __global__ void gpu_kernel_angle_fill_values(const uint3 *angles,
     \param d_rtag Array of reverse-lookup particle tag -> particle index
     \param d_n_angles Number of angles per particle
     \param max_angle_num Maximum number of angles (return value)
-    \param d_sort_keys Pointer to a temporary sorted list of first angle member indices (return value)
-    \param d_sort_values Pointer to a temporary list of second angle member indices and angle types
 
     \pre Prior to calling this method, the internal angle_sort_keys and angle_sort_values
          need to be initialized by a call to gpu_find_max_angle_number
@@ -278,8 +276,6 @@ cudaError_t TransformAngleDataGPU::gpu_find_max_angle_number(unsigned int& max_a
 /*! \param num_angles Size of angle array
     \param d_gpu_angletable Pointer to the angle table on the GPU
     \param pitch Pitch of 2D angletable array
-    \param d_sort_keys First angle members as keys (sorted)
-    \param d_sort_values Second angle members as values (sorted)
  */
 cudaError_t TransformAngleDataGPU::gpu_create_angletable(unsigned int num_angles,
                                      uint4 *d_gpu_angletable,

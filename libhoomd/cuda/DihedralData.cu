@@ -162,9 +162,6 @@ __global__ void gpu_kernel_dihedral_fill_values(const uint4 *dihedrals,
     \param d_rtag Array of reverse-lookup particle tag -> particle index
     \param d_n_dihedrals Number of dihedrals per particle
     \param max_dihedral_num Maximum number of dihedrals (return value)
-    \param d_sort_keys Pointer to a temporary sorted list of first dihedral member indices (return value)
-    \param d_sort_values Pointer to a temporary list of other dihedral member indices and dihedral types (sorted)
-    \param d_sort_ABCD Pointer to a temporary list of relative atom positions in the dihedral (sorted)
  */
 cudaError_t TransformDihedralDataGPU::gpu_find_max_dihedral_number(unsigned int& max_dihedral_num,
                                      uint4 *d_dihedrals,
@@ -257,9 +254,6 @@ cudaError_t TransformDihedralDataGPU::gpu_find_max_dihedral_number(unsigned int&
     \param d_gpu_dihedraltable Pointer to the dihedral table on the GPU
     \param d_gpu_dihedral_ABCD Pointer to ABCD table on the GPU
     \param pitch Pitch of 2D dihedraltable array
-    \param d_sort_keys First dihedral members as keys (sorted)
-    \param d_sort_values Other dihedral members plus type as values (sorted)
-    \param d_sort_ABCD Relative atom position in the dihedral (sorted)
 
     \pre Prior to calling this method, the internal dihedral_sort_keys, dihedral_sort_values
          and dihedral_sort_ABCD need to be initialized by a call to gpu_find_max_dihedral_number

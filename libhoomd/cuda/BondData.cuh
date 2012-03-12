@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief GPU helper functions used in BondData
 */
 
+//! Helper class for transforming bond data on the GPU
 class TransformBondDataGPU
     {
     public:

@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief GPU helper functions used in AngleData
 */
 
+//! Helper class for transforming angle data on the GPU
 class TransformAngleDataGPU
     {
     public:
