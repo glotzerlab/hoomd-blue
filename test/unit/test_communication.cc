@@ -1326,6 +1326,9 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     // exchange ghost particles
     comm->exchangeGhosts();
 
+    // rebuild bond list
+    pdata->notifyParticleSort();
+
         {
         // all bonds should be complete, every processor should have three bonds
         ArrayHandle<uint2> h_gpu_bondlist(bdata->getGPUBondList(), access_location::host, access_mode::read);
@@ -1335,6 +1338,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
         BOOST_CHECK_EQUAL(h_n_bonds.data[0],3);
         unsigned int pitch = bdata->getGPUBondList().getPitch();
 
+        // check bond partners, in the order the bonds where added
         switch (world->rank())
             {
             case 0:
@@ -1361,18 +1365,22 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 0);
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 5);
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 6);
+                break;
             case 5:
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 1);
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 4);
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 7);
+                break;
             case 6:
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 2);
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 4);
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 7);
+                break;
             case 7:
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[0].x], 3);
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[pitch].x], 5);
                 BOOST_CHECK_EQUAL(h_tag.data[h_gpu_bondlist.data[2*pitch].x], 6);
+                break;
             }
         }
     }

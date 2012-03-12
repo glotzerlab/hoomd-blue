@@ -216,6 +216,9 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
+
+        // notify ParticleData that addition / removal of particles is complete
+        m_pdata->notifyParticleSort();
         }
     else
         {
@@ -548,9 +551,6 @@ void Communicator::migrateAtoms()
         }
 #endif
 
-    // notify ParticleData that addition / removal of particles is complete
-    m_pdata->notifyParticleSort();
-
     if (m_prof)
         m_prof->pop();
     }
@@ -612,9 +612,18 @@ void Communicator::exchangeGhosts()
 
             if (! is_complete)
                 {
-                // send this particle as ghost in every direction
+                // Send incomplete bond member in all directions, avoid sending to the same box twice
+                h_plan.data[idx] |= send_east;
+                if (m_neighbors[0] != m_neighbors[1])
+                    h_plan.data[idx] |= send_west;
 
-                h_plan.data[idx] |= (send_east | send_west | send_north | send_south | send_up | send_down);
+                h_plan.data[idx] |= send_north;
+                if (m_neighbors[2] != m_neighbors[3])
+                    h_plan.data[idx] |= send_south;
+
+                h_plan.data[idx] |= send_up;
+                if (m_neighbors[4] != m_neighbors[5])
+                    h_plan.data[idx] |= send_down;
                 }
             }
         }
