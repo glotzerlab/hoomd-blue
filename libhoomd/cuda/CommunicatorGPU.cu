@@ -630,14 +630,35 @@ void gpu_migrate_select_particles(unsigned int N,
 
     n_send_ptls = (keys->begin() + N) - keys_middle;
 
-    unsigned int *d_keys = thrust::raw_pointer_cast(&*keys->begin());
-
-    unsigned int block_size = 256;
-    unsigned int num_blocks = N/block_size + 1;
+    thrust::device_ptr<float4> pos_ptr(d_pos);
+    thrust::device_ptr<float4> pos_tmp_ptr(d_pos_tmp);
+    thrust::device_ptr<float4> vel_ptr(d_vel);
+    thrust::device_ptr<float4> vel_tmp_ptr(d_vel_tmp);
+    thrust::device_ptr<float3> accel_ptr(d_accel);
+    thrust::device_ptr<float3> accel_tmp_ptr(d_accel_tmp);
+    thrust::device_ptr<int3> image_ptr(d_image);
+    thrust::device_ptr<int3> image_tmp_ptr(d_image_tmp);
+    thrust::device_ptr<float> charge_ptr(d_charge);
+    thrust::device_ptr<float> charge_tmp_ptr(d_charge_tmp);
+    thrust::device_ptr<float> diameter_ptr(d_diameter);
+    thrust::device_ptr<float> diameter_tmp_ptr(d_diameter_tmp);
+    thrust::device_ptr<unsigned int> body_ptr(d_body);
+    thrust::device_ptr<unsigned int> body_tmp_ptr(d_body_tmp);
+    thrust::device_ptr<float4> orientation_ptr(d_orientation);
+    thrust::device_ptr<float4> orientation_tmp_ptr(d_orientation_tmp);
+    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
+    thrust::device_ptr<unsigned int> tag_tmp_ptr(d_tag_tmp);
 
     // reorder particle data, write into temporary arrays
-    gpu_reorder_pdata_step_one_kernel<<<num_blocks, block_size>>>(d_pos, d_pos_tmp, d_vel, d_vel_tmp, d_accel, d_accel_tmp, d_image, d_image_tmp, d_charge, d_charge_tmp, d_diameter, d_diameter_tmp, d_body, d_body_tmp, d_orientation, d_orientation_tmp, d_tag, d_tag_tmp, d_keys, N);
-
+    thrust::gather(keys->begin(), keys->begin() + N, pos_ptr, pos_tmp_ptr);
+    thrust::gather(keys->begin(), keys->begin() + N, vel_ptr, vel_tmp_ptr);
+    thrust::gather(keys->begin(), keys->begin() + N, accel_ptr, accel_tmp_ptr);
+    thrust::gather(keys->begin(), keys->begin() + N, image_ptr, image_tmp_ptr);
+    thrust::gather(keys->begin(), keys->begin() + N, charge_ptr, charge_tmp_ptr);
+    thrust::gather(keys->begin(), keys->begin() + N, diameter_ptr, diameter_tmp_ptr);
+    thrust::gather(keys->begin(), keys->begin() + N, body_ptr, body_tmp_ptr);
+    thrust::gather(keys->begin(), keys->begin() + N, orientation_ptr, orientation_tmp_ptr);
+    thrust::gather(keys->begin(), keys->begin() + N, tag_ptr, tag_tmp_ptr);
     }
 
 //! Reset reverse lookup tags of particles we are removing
@@ -646,8 +667,8 @@ void gpu_migrate_select_particles(unsigned int N,
  * \param d_rtag Array for tag->idx lookup
  */
 void gpu_reset_rtags(unsigned int n_delete_ptls,
-                             unsigned int *d_delete_tags,
-                             unsigned int *d_rtag)
+                     unsigned int *d_delete_tags,
+                     unsigned int *d_rtag)
     {
     thrust::device_ptr<unsigned int> delete_tags_ptr(d_delete_tags);
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);

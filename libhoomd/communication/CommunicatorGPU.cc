@@ -106,8 +106,8 @@ void CommunicatorGPU::migrateAtoms()
 
         {
         // Reset reverse lookup tags of old ghost atoms
-        ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
 
         gpu_reset_rtags(m_pdata->getNGhosts(),
                         d_global_tag.data + m_pdata->getN(),
@@ -204,6 +204,9 @@ void CommunicatorGPU::migrateAtoms()
         m_pdata->getOrientationArray().swap(m_orientation_tmp);
         m_pdata->getGlobalTags().swap(m_tag_tmp);
 
+        if (m_prof)
+	        m_prof->pop();
+
         // Update number of particles in system
         m_pdata->removeParticles(n_send_ptls);
 
@@ -216,9 +219,6 @@ void CommunicatorGPU::migrateAtoms()
             gpu_reset_rtags(n_send_ptls,
                             d_global_tag.data + m_pdata->getN(),
                             d_global_rtag.data);
-
-            if (m_prof)
-                m_prof->pop();
 
             }
 

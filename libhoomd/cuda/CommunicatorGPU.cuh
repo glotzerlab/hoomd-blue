@@ -117,6 +117,7 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
                      unsigned int *d_rtag);
 
+
 //! Pack particle data into send buffer
 void gpu_migrate_pack_send_buffer(unsigned int N,
                            float4 *d_pos,
