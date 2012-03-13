@@ -62,6 +62,7 @@ from optparse import OptionParser;
 import hoomd;
 import globals;
 import init;
+import sys;
 
 ## \internal
 # \brief Storage for all option values
