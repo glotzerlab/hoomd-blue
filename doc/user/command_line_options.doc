@@ -124,7 +124,7 @@ it makes the same automatic choice described previously. If none are found, it r
 
 <hr>
 <h3>Automatic determination of the GPU on which to run</h3>
-If CUDA 2.2 or newer is installed on a Linux OS, free GPUs can be determined automatically. To utilize this
+Free GPUs can be determined automatically. To utilize this
 capability, the system administrator (root) must first use the \c nvidia-smi utility to enable 
 the compute-exclusive mode on all GPUs in the system (for an example, see http://forums.nvidia.com/index.php?showtopic=96638&hl=nvidia-smi).
 With this mode enabled, running hoomd with no options or with the \c --mode=gpu option will result in an automatic
@@ -143,9 +143,6 @@ hoomd some_script.hoomd --minimize-cpu-usage
 \endcode
 Tests performed indicate that enabling this option incurs a 10% overall performance reduction, 
 but the CPU usage of hoomd is reduced to only 10% of a single CPU core.
-
-\note For the --minimize-cpu-usage option to work, hoomd must be compiled and used on a system with CUDA 
-version 2.2 or newer.
 
 <hr>
 
