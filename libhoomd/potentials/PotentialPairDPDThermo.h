@@ -409,3 +409,4 @@ template < class T, class Base > void export_PotentialPairDPDThermo(const std::s
 #endif
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_H__
+
