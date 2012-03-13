@@ -55,8 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cuda_runtime.h>
 
-#include <thrust/device_vector.h>
-
 /*! \file BondData.cuh
     \brief GPU helper functions used in BondData
 */

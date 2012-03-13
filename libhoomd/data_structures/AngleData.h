@@ -262,8 +262,6 @@ class AngleData : boost::noncopyable
         GPUArray<unsigned int> m_n_angles;  //!< Host copy of the number of angles
 
 #ifdef ENABLE_CUDA
-        TransformAngleDataGPU m_transform_angle_data; //!< GPU helper class to transform the angle data
-
         //! Helper function to update the angle table on the device
         void updateAngleTableGPU();
 #endif

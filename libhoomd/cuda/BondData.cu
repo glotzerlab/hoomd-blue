@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Implements the helper functions (GPU version) for updating the GPU bond table
 */
 
-//! Kernel to get particle tag a or b and the bond type from a bond
+//! Kernel to find the maximum number of angles per particle
 __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
                                              const unsigned int *d_rtag,
                                              unsigned int *d_n_bonds,
@@ -127,12 +127,11 @@ __global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
 
 //! Find the maximum number of bonds per particle
 /*! \param max_bond_num Maximum number of bonds (return value)
+    \param d_n_bonds Number of bonds per particle (return array)
     \param d_bonds Array of bonds
-    \param d_bond_type Array of bond types
     \param num_bonds Size of bond array
     \param N Number of particles in the system
     \param d_rtag Array of reverse-lookup particle tag . particle index
-    \param d_n_bonds Number of bonds per particle (return array)
  */
 cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
                                      unsigned int *d_n_bonds,

@@ -325,28 +325,37 @@ void AngleData::updateAngleTableGPU()
     
         {
         ArrayHandle<uint3> d_angles(m_angles, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_angle_type(m_angle_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_angles(m_n_angles, access_location::device, access_mode::overwrite);
-        m_transform_angle_data.gpu_find_max_angle_number(max_angle_num,
+        gpu_find_max_angle_number(max_angle_num,
+                                 d_n_angles.data,
                                  d_angles.data,
-                                 d_angle_type.data,
                                  m_angles.size(),
                                  m_pdata->getN(),
-                                 d_rtag.data,
-                                 d_n_angles.data);
+                                 d_rtag.data);
         }
 
     if (max_angle_num > m_gpu_anglelist.getHeight())
         {
-        reallocateAngleTable(max_angle_num);
+        m_gpu_anglelist.resize(m_pdata->getN(), max_angle_num);
         }
 
-    ArrayHandle<uint4> d_gpu_anglelist(m_gpu_anglelist, access_location::device, access_mode::overwrite);
-    m_transform_angle_data.gpu_create_angletable(m_angles.size(),
-                         d_gpu_anglelist.data,
-                         m_gpu_anglelist.getPitch());
+        {
+        ArrayHandle<uint4> d_gpu_anglelist(m_gpu_anglelist, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_angle_type(m_angle_type, access_location::device, access_mode::read);
+        ArrayHandle<uint3> d_angles(m_angles, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_angles(m_n_angles, access_location::device, access_mode::overwrite);
 
+        gpu_create_angletable(d_gpu_anglelist.data,
+                              d_n_angles.data,
+                              d_angles.data,
+                              d_angle_type.data,
+                              d_rtag.data,
+                              m_angles.size(),
+                              m_gpu_anglelist.getPitch(),
+                              m_pdata->getN() );
+        }
     }
 
 #endif
@@ -375,9 +384,9 @@ void AngleData::updateAngleTable()
             unsigned int tag1 = ((uint3)m_angles[cur_angle]).x; //
             unsigned int tagb = ((uint3)m_angles[cur_angle]).y;
             unsigned int tag3 = ((uint3)m_angles[cur_angle]).z; //
-            int idx1 = h_rtag.data[tag1]; //
-            int idxb = h_rtag.data[tagb];
-            int idx3 = h_rtag.data[tag3]; //
+            unsigned int idx1 = h_rtag.data[tag1]; //
+            unsigned int idxb = h_rtag.data[tagb];
+            unsigned int idx3 = h_rtag.data[tag3]; //
 
             h_n_angles.data[idx1]++; //
             h_n_angles.data[idxb]++;
@@ -396,7 +405,7 @@ void AngleData::updateAngleTable()
     // re allocate memory if needed
     if (num_angles_max > m_gpu_anglelist.getHeight())
         {
-        reallocateAngleTable(num_angles_max);
+        m_gpu_anglelist.resize(m_pdata->getN(), num_angles_max);
         }
 
         {
@@ -415,15 +424,15 @@ void AngleData::updateAngleTable()
             unsigned int tag2 = ((uint3)m_angles[cur_angle]).y;
             unsigned int tag3 = ((uint3)m_angles[cur_angle]).z;
             unsigned int type = m_angle_type[cur_angle];
-            int idx1 = h_rtag.data[tag1];
-            int idx2 = h_rtag.data[tag2];
-            int idx3 = h_rtag.data[tag3];
+            unsigned int idx1 = h_rtag.data[tag1];
+            unsigned int idx2 = h_rtag.data[tag2];
+            unsigned int idx3 = h_rtag.data[tag3];
             unsigned int angle_type_abc;
 
             // get the number of angles for the b in a-b-c triplet
-            int num1 = h_n_angles.data[idx1]; //
-            int num2 = h_n_angles.data[idx2];
-            int num3 = h_n_angles.data[idx3]; //
+            unsigned int num1 = h_n_angles.data[idx1]; //
+            unsigned int num2 = h_n_angles.data[idx2];
+            unsigned int num3 = h_n_angles.data[idx3]; //
 
             // add a new angle to the table, provided each one is a "b" from an a-b-c triplet
             // store in the texture as .x=a=idx1, .y=c=idx2, and b comes from the gpu
@@ -443,17 +452,6 @@ void AngleData::updateAngleTable()
             h_n_angles.data[idx3]++;
             }
         }
-    }
-
-/*! \param height New height for the angle table
-    \post Reallocates memory on the device making room for up to
-        \a height angles per particle.
-    \note updateAngleTableGPU() needs to be called after so that the
-        data in the angle table will be correct.
-*/
-void AngleData::reallocateAngleTable(int height)
-    {
-    m_gpu_anglelist.resize(m_pdata->getN(), height);
     }
 
 /*! \param height Height for the angle table

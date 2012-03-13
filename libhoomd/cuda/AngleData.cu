@@ -52,16 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AngleData.cuh"
 
 #include <thrust/device_ptr.h>
-#include <thrust/device_vector.h>
-#include <thrust/transform.h>
-#include <thrust/scatter.h>
-#include <thrust/scan.h>
-#include <thrust/sort.h>
-#include <thrust/iterator/permutation_iterator.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/transform_iterator.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/reduce.h>
+#include <thrust/extrema.h>
 
 #ifdef WIN32
 #include <cassert>
@@ -73,240 +64,144 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Implements the helper functions for updating the GPU angle table
 */
 
-//! Helper structure to get particle tag a, b or c from an angle
-struct get_tag : thrust::unary_function<uint3, unsigned int>
+
+//! Kernel to find the maximum number of angles per particle
+__global__ void gpu_find_max_angle_number_kernel(const uint3 *angles,
+                                             const unsigned int *d_rtag,
+                                             unsigned int *d_n_angles,
+                                             unsigned int num_angles,
+                                             unsigned int N)
     {
-    //! Constructor
-    get_tag(unsigned int _member_idx)
-        : member_idx(_member_idx)
-        { }
-        
-    //! Get particle tag
-    __host__ __device__
-    unsigned int operator ()(uint3 angle)
-        {
-        switch(member_idx)
-            {
-            case 0:
-               return angle.x;
-            case 1:
-               return angle.y;
-            case 2:
-               return angle.z;
-            default:
-               // we should never get here
-               return 0;
-            }
-        }
+    int angle_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    private:
-        unsigned int member_idx; //!< Index of particle tag to get (0: a, 1: b)
-    };
-
-//! Helper kernel to get particle tag a, b or c, the angle type and the particle location (a b or c) from an angle
-__global__ void gpu_kernel_angle_fill_values(const uint3 *angles,
-                            const unsigned int *angle_types,
-                            const unsigned int *d_rtag,
-                            uint4 *values,
-                            unsigned int member_idx,
-                            unsigned int num_angles)
-    {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= num_angles)
+    if (angle_idx >= num_angles)
         return;
 
-    uint3 angle = angles[idx];
-    unsigned int tag1, tag2;
-    switch(member_idx)
+    uint3 angle = angles[angle_idx];
+    unsigned int tag1 = angle.x;
+    unsigned int tag2 = angle.y;
+    unsigned int tag3 = angle.z;
+    unsigned int idx1 = d_rtag[tag1];
+    unsigned int idx2 = d_rtag[tag2];
+    unsigned int idx3 = d_rtag[tag3];
+
+    if (idx1 < N)
+        atomicInc(&d_n_angles[idx1], 0xffffffff);
+    if (idx2 < N)
+        atomicInc(&d_n_angles[idx2], 0xffffffff);
+    if (idx3 < N)
+        atomicInc(&d_n_angles[idx3], 0xffffffff);
+
+    }
+
+//! Kernel to fill the GPU angle table
+__global__ void gpu_fill_gpu_angle_table(const uint3 *angles,
+                                        const unsigned int *angle_type,
+                                        uint4 *gpu_btable,
+                                        const unsigned int pitch,
+                                        const unsigned int *d_rtag,
+                                        unsigned int *d_n_angles,
+                                        unsigned int num_angles,
+                                        unsigned int N)
+    {
+    int angle_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (angle_idx >= num_angles)
+        return;
+
+    uint3 angle = angles[angle_idx];
+    unsigned int tag1 = angle.x;
+    unsigned int tag2 = angle.y;
+    unsigned int tag3 = angle.z;
+    unsigned int type = angle_type[angle_idx];
+    unsigned int idx1 = d_rtag[tag1];
+    unsigned int idx2 = d_rtag[tag2];
+    unsigned int idx3 = d_rtag[tag3];
+
+    if (idx1 < N)
         {
-        case 0:
-           tag1 = angle.y;
-           tag2 = angle.z;
-           break;
-        case 1:
-           tag1 = angle.x;
-           tag2 = angle.z;
-           break;
-        case 2:
-           tag1 = angle.x;
-           tag2 = angle.y;
-           break;
-        default:
-           // we should never get here
-           tag1 = 0;
-           tag2 = 0;
+        unsigned int num1 = atomicInc(&d_n_angles[idx1],0xffffffff);
+        gpu_btable[num1*pitch+idx1] = make_uint4(idx2,idx3,type,0);
         }
-
-    values[idx] = make_uint4(d_rtag[tag1], d_rtag[tag2], angle_types[idx], member_idx);
-    };
-
+    if (idx2 < N)
+        {
+        unsigned int num2 = atomicInc(&d_n_angles[idx2],0xffffffff);
+        gpu_btable[num2*pitch+idx2] = make_uint4(idx1,idx3,type,1);
+        }
+    if (idx3 < N)
+        {
+        unsigned int num3 = atomicInc(&d_n_angles[idx3],0xffffffff);
+        gpu_btable[num3*pitch+idx3] = make_uint4(idx1,idx2,type,2);
+        }
+    }
 
 //! Find the maximum number of angles per particle
-/*! \param d_angles Array of angles
-    \param d_angle_type Array of angle types
+/*! \param max_angle_num Maximum number of angles (return value)
+    \param d_n_angles Number of angles per particle (return array)
+    \param d_angles Array of angles
     \param num_angles Size of angle array
     \param N Number of particles in the system
-    \param d_rtag Array of reverse-lookup particle tag -> particle index
-    \param d_n_angles Number of angles per particle
-    \param max_angle_num Maximum number of angles (return value)
-
-    \pre Prior to calling this method, the internal angle_sort_keys and angle_sort_values
-         need to be initialized by a call to gpu_find_max_angle_number
+    \param d_rtag Array of reverse-lookup particle tag . particle index
  */
-cudaError_t TransformAngleDataGPU::gpu_find_max_angle_number(unsigned int& max_angle_num,
-                                     uint3 *d_angles,
-                                     unsigned int *d_angle_type,
-                                     unsigned int num_angles,
-                                     unsigned int N,
-                                     unsigned int *d_rtag,
-                                     unsigned int *d_n_angles)
+cudaError_t gpu_find_max_angle_number(unsigned int& max_angle_num,
+                             unsigned int *d_n_angles,
+                             const uint3 *d_angles,
+                             const unsigned int num_angles,
+                             const unsigned int N,
+                             const unsigned int *d_rtag)
     {
     assert(d_angles);
-    assert(d_angle_type);
     assert(d_rtag);
     assert(d_n_angles);
 
-    thrust::device_ptr<uint3> angles_ptr(d_angles);
-    thrust::device_ptr<unsigned int> angle_type_ptr(d_angle_type);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-    thrust::device_ptr<unsigned int> n_angles_ptr(d_n_angles);
-
-    if (angle_sort_keys.size() < 3*num_angles)
-        {
-        angle_sort_keys.resize(3*num_angles);
-        angle_sort_values.resize(3*num_angles);
-        angle_indices.resize(3*num_angles);
-        num_angles_sorted.resize(3*num_angles);
-        }
-
-    // idx a goes into angle_sort_keys
-    thrust::copy(thrust::make_permutation_iterator(
-                     rtag_ptr,
-                     thrust::make_transform_iterator(angles_ptr, get_tag(0))
-                     ),
-                 thrust::make_permutation_iterator(
-                     rtag_ptr,
-                     thrust::make_transform_iterator(angles_ptr, get_tag(0))
-                     ) + num_angles,
-                 angle_sort_keys.begin());
-
-    // fill sort values
     unsigned int block_size = 512;
-    uint4 *d_angle_sort_values =  thrust::raw_pointer_cast(&* angle_sort_values.begin());
-    gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
-                                                           d_angle_type,
-                                                           d_rtag,
-                                                           d_angle_sort_values,
-                                                           0,
-                                                           num_angles);
 
-    // append idx b values to angle_sort_keys
-    thrust::copy(thrust::make_permutation_iterator(
-                     rtag_ptr,
-                     thrust::make_transform_iterator(angles_ptr, get_tag(1))
-                     ),
-                 thrust::make_permutation_iterator(
-                     rtag_ptr,
-                     thrust::make_transform_iterator(angles_ptr, get_tag(1))
-                     ) + num_angles,
-                 angle_sort_keys.begin() + num_angles);
+    // clear n_angles array
+    cudaMemset(d_n_angles, 0, sizeof(unsigned int) * N);
 
-    // fill sort values
-    gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
-                                                           d_angle_type,
-                                                           d_rtag,
-                                                           d_angle_sort_values + num_angles,
-                                                           1,
-                                                           num_angles);
+    gpu_find_max_angle_number_kernel<<<num_angles/block_size + 1, block_size>>>(d_angles,
+                                                                              d_rtag,
+                                                                              d_n_angles,
+                                                                              num_angles,
+                                                                              N);
 
-
-    // append idx c values to angle_sort_keys
-    thrust::copy(thrust::make_permutation_iterator(
-                     rtag_ptr,
-                     thrust::make_transform_iterator(angles_ptr, get_tag(2))
-                     ),
-                 thrust::make_permutation_iterator(
-                     rtag_ptr,
-                     thrust::make_transform_iterator(angles_ptr, get_tag(2))
-                     ) + num_angles,
-                 angle_sort_keys.begin() + 2*num_angles);
-
-    // fill sort values
-    gpu_kernel_angle_fill_values<<<num_angles/block_size + 1, block_size>>>(d_angles,
-                                                           d_angle_type,
-                                                           d_rtag,
-                                                           d_angle_sort_values + 2 *num_angles,
-                                                           2,
-                                                           num_angles);
-
-    // sort first angle members as keys with second angle members and angle types as values
-    thrust::sort_by_key(angle_sort_keys.begin(),
-                 angle_sort_keys.begin() + 3 * num_angles,
-                 angle_sort_values.begin());
-
-    // count multiplicity of each key
-    unsigned int n_unique_indices = thrust::reduce_by_key(angle_sort_keys.begin(),
-                          angle_sort_keys.begin() + 3 * num_angles,
-                          thrust::constant_iterator<unsigned int>(1),
-                          angle_indices.begin(),
-                          num_angles_sorted.begin() ).second - num_angles_sorted.begin();
-
-    // find the maximum
-    max_angle_num = thrust::reduce(num_angles_sorted.begin(),
-                                  num_angles_sorted.begin() + n_unique_indices,
-                                  0,
-                                  thrust::maximum<unsigned int>());
-
-    // fill n_angles array with zeros
-    thrust::fill(n_angles_ptr,
-                 n_angles_ptr + N,
-                 0);
-
-    // scatter angle numbers in n_angles array
-    thrust::scatter(num_angles_sorted.begin(),
-                    num_angles_sorted.begin() + n_unique_indices,
-                    angle_indices.begin(),
-                    n_angles_ptr);
-
+    thrust::device_ptr<unsigned int> n_angles_ptr(d_n_angles);
+    max_angle_num = *thrust::max_element(n_angles_ptr, n_angles_ptr + N);
     return cudaSuccess;
     }
 
 //! Construct the GPU angle table
-/*! \param num_angles Size of angle array
-    \param d_gpu_angletable Pointer to the angle table on the GPU
+/*! \param d_gpu_angletable Pointer to the angle table on the GPU
+    \param d_n_angles Number of angles per particle (return array)
+    \param d_angles Bonds array
+    \param d_angle_type Array of angle types
+    \param d_rtag Reverse-lookup tag->index
+    \param num_angles Number of angles in angle list
     \param pitch Pitch of 2D angletable array
+    \param N Number of particles
  */
-cudaError_t TransformAngleDataGPU::gpu_create_angletable(unsigned int num_angles,
-                                     uint4 *d_gpu_angletable,
-                                     unsigned int pitch)
-
+cudaError_t gpu_create_angletable(uint4 *d_gpu_angletable,
+                                  unsigned int *d_n_angles,
+                                  const uint3 *d_angles,
+                                  const unsigned int *d_angle_type,
+                                  const unsigned int *d_rtag,
+                                  const unsigned int num_angles,
+                                  const unsigned int pitch,
+                                  const unsigned int N)
     {
+    unsigned int block_size = 512;
 
-    thrust::device_ptr<uint4> gpu_angletable_ptr(d_gpu_angletable);
+    // clear n_angles array
+    cudaMemset(d_n_angles, 0, sizeof(unsigned int) * N);
 
-    if (angle_map.size() < 3*num_angles)
-        {
-        angle_map.resize(3*num_angles);
-        }
-
-    // create the angle_map of 2D angle table indices for all first angle members
-    thrust::exclusive_scan_by_key(angle_sort_keys.begin(),
-                                  angle_sort_keys.begin() + 3 * num_angles,
-                                  thrust::make_constant_iterator(pitch),
-                                  angle_map.begin());
-
-    thrust::transform(angle_map.begin(),
-                      angle_map.begin() + 3 * num_angles,
-                      angle_sort_keys.begin(),
-                      angle_map.begin(),
-                      thrust::plus<unsigned int>());
-
-    // scatter the second angle member into the 2D matrix according to the angle_map
-    thrust::scatter(angle_sort_values.begin(),
-                    angle_sort_values.begin() + 3* num_angles,
-                    angle_map.begin(),
-                    gpu_angletable_ptr);
+    gpu_fill_gpu_angle_table<<<num_angles/block_size + 1, block_size>>>(d_angles,
+                                                                      d_angle_type,
+                                                                      d_gpu_angletable,
+                                                                      pitch,
+                                                                      d_rtag,
+                                                                      d_n_angles,
+                                                                      num_angles,
+                                                                      N);
 
     return cudaSuccess;
     }
