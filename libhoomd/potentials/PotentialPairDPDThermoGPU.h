@@ -173,6 +173,9 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
+    // access flags
+    PDataFlags flags = this->m_pdata->getFlags();
+
     gpu_cpdf(dpd_pair_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
@@ -191,7 +194,8 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              timestep,
                              this->m_deltaT,
                              this->m_T->getValue(timestep),
-                             this->m_shift_mode),
+                             this->m_shift_mode,
+                             flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]),
                              d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

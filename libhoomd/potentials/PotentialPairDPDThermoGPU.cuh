@@ -84,7 +84,8 @@ struct dpd_pair_args_t
                     const unsigned int _timestep,
                     const float _deltaT,
                     const float _T,
-                    const unsigned int _shift_mode)
+                    const unsigned int _shift_mode,
+                    const unsigned int _compute_virial)
                         : d_force(_d_force),
                         d_virial(_d_virial),
                         virial_pitch(_virial_pitch),
@@ -103,7 +104,8 @@ struct dpd_pair_args_t
                         timestep(_timestep),
                         deltaT(_deltaT),
                         T(_T),
-                        shift_mode(_shift_mode)
+                        shift_mode(_shift_mode),
+                        compute_virial(_compute_virial)
         {
         };
 
@@ -126,6 +128,7 @@ struct dpd_pair_args_t
     const float deltaT;             //!< timestep size
     const float T;                  //!< temperature
     const unsigned int shift_mode;  //!< The potential energy shift mode
+    const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     };
 
 #ifdef NVCC
@@ -167,13 +170,14 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut.
+    \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator, unsigned int shift_mode >
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial >
 __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
                                               float *d_virial,
                                               const unsigned int virial_pitch,
@@ -316,13 +320,16 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
 
             // calculate the virial (FLOPS: 3)
-            Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
-            virial[0] = dx * dx * force_div2r_cons;
-            virial[1] = dx * dy * force_div2r_cons;
-            virial[2] = dx * dz * force_div2r_cons;
-            virial[3] = dy * dy * force_div2r_cons;
-            virial[4] = dy * dz * force_div2r_cons;
-            virial[5] = dz * dz * force_div2r_cons;
+            if (compute_virial)
+                {
+                Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
+                virial[0] = dx * dx * force_div2r_cons;
+                virial[1] = dx * dy * force_div2r_cons;
+                virial[2] = dx * dz * force_div2r_cons;
+                virial[3] = dy * dy * force_div2r_cons;
+                virial[4] = dy * dz * force_div2r_cons;
+                virial[5] = dz * dz * force_div2r_cons;
+                }
 
             // add up the force vector components (FLOPS: 7)
             #if (__CUDA_ARCH__ >= 200)
@@ -344,8 +351,12 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
-    for (unsigned int i = 0; i < 6; i++)
-        d_virial[i*virial_pitch+idx] = virial[i];
+
+    if (compute_virial)
+        {
+        for (unsigned int i = 0; i < 6; i++)
+            d_virial[i*virial_pitch+idx] = virial[i];
+        }
     }
 
 //! Kernel driver that computes pair DPD thermo forces on the GPU
@@ -386,54 +397,109 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                 * typpair_idx.getNumElements();
 
     // run the kernel
-    switch (args.shift_mode)
+    if (args.compute_virial)
         {
-        case 0:
-            gpu_compute_dpd_forces_kernel<evaluator, 0>
-                                 <<<grid, threads, shared_bytes>>>
-                                 (args.d_force,
-                                  args.d_virial,
-                                  args.virial_pitch,
-                                  args.N,
-                                  args.d_pos,
-                                  args.d_vel,
-                                  args.box,
-                                  args.d_n_neigh,
-                                  args.d_nlist,
-                                  args.nli,
-                                  d_params,
-                                  args.d_rcutsq,
-                                  args.d_ronsq,
-                                  args.seed,
-                                  args.timestep,
-                                  args.deltaT,
-                                  args.T,
-                                  args.ntypes);
-            break;
-        case 1:
-            gpu_compute_dpd_forces_kernel<evaluator, 1>
-                                 <<<grid, threads, shared_bytes>>>
-                                 (args.d_force,
-                                  args.d_virial,
-                                  args.virial_pitch,
-                                  args.N,
-                                  args.d_pos,
-                                  args.d_vel,
-                                  args.box,
-                                  args.d_n_neigh,
-                                  args.d_nlist,
-                                  args.nli,
-                                  d_params,
-                                  args.d_rcutsq,
-                                  args.d_ronsq,
-                                  args.seed,
-                                  args.timestep,
-                                  args.deltaT,
-                                  args.T,
-                                  args.ntypes);
-            break;
-        default:
-            return cudaErrorUnknown;
+        switch (args.shift_mode)
+            {
+            case 0:
+                gpu_compute_dpd_forces_kernel<evaluator, 0, 1>
+                                    <<<grid, threads, shared_bytes>>>
+                                    (args.d_force,
+                                    args.d_virial,
+                                    args.virial_pitch,
+                                    args.N,
+                                    args.d_pos,
+                                    args.d_vel,
+                                    args.box,
+                                    args.d_n_neigh,
+                                    args.d_nlist,
+                                    args.nli,
+                                    d_params,
+                                    args.d_rcutsq,
+                                    args.d_ronsq,
+                                    args.seed,
+                                    args.timestep,
+                                    args.deltaT,
+                                    args.T,
+                                    args.ntypes);
+                break;
+            case 1:
+                gpu_compute_dpd_forces_kernel<evaluator, 1, 1>
+                                    <<<grid, threads, shared_bytes>>>
+                                    (args.d_force,
+                                    args.d_virial,
+                                    args.virial_pitch,
+                                    args.N,
+                                    args.d_pos,
+                                    args.d_vel,
+                                    args.box,
+                                    args.d_n_neigh,
+                                    args.d_nlist,
+                                    args.nli,
+                                    d_params,
+                                    args.d_rcutsq,
+                                    args.d_ronsq,
+                                    args.seed,
+                                    args.timestep,
+                                    args.deltaT,
+                                    args.T,
+                                    args.ntypes);
+                break;
+            default:
+                return cudaErrorUnknown;
+            }
+        }
+    else
+        {
+        switch (args.shift_mode)
+            {
+            case 0:
+                gpu_compute_dpd_forces_kernel<evaluator, 0, 0>
+                                    <<<grid, threads, shared_bytes>>>
+                                    (args.d_force,
+                                    args.d_virial,
+                                    args.virial_pitch,
+                                    args.N,
+                                    args.d_pos,
+                                    args.d_vel,
+                                    args.box,
+                                    args.d_n_neigh,
+                                    args.d_nlist,
+                                    args.nli,
+                                    d_params,
+                                    args.d_rcutsq,
+                                    args.d_ronsq,
+                                    args.seed,
+                                    args.timestep,
+                                    args.deltaT,
+                                    args.T,
+                                    args.ntypes);
+                break;
+            case 1:
+                gpu_compute_dpd_forces_kernel<evaluator, 1, 0>
+                                    <<<grid, threads, shared_bytes>>>
+                                    (args.d_force,
+                                    args.d_virial,
+                                    args.virial_pitch,
+                                    args.N,
+                                    args.d_pos,
+                                    args.d_vel,
+                                    args.box,
+                                    args.d_n_neigh,
+                                    args.d_nlist,
+                                    args.nli,
+                                    d_params,
+                                    args.d_rcutsq,
+                                    args.d_ronsq,
+                                    args.seed,
+                                    args.timestep,
+                                    args.deltaT,
+                                    args.T,
+                                    args.ntypes);
+                break;
+            default:
+                return cudaErrorUnknown;
+            }
         }
 
     return cudaSuccess;
