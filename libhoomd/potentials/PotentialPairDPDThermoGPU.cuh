@@ -166,8 +166,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
-    \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
-                       (See PotentialPair for a discussion on what that entails)
+    \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
@@ -293,9 +292,6 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             unsigned int typpair = typpair_idx(__float_as_int(posi.w), __float_as_int(posj.w));
             float rcutsq = s_rcutsq[typpair];
             typename evaluator::param_type param = s_params[typpair];
-            float ronsq = 0.0f;
-            if (shift_mode == 2)
-                ronsq = s_ronsq[typpair];
 
             // design specifies that energies are shifted if
             // 1) shift mode is set to shift
@@ -303,14 +299,7 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             bool energy_shift = false;
             if (shift_mode == 1)
                 energy_shift = true;
-            else if (shift_mode == 2)
-                {
-                if (ronsq > rcutsq)
-                    energy_shift = true;
-                }
 
-
-            //
             evaluator eval(rsq, rcutsq, param);
 
             // evaluate the potential
@@ -325,32 +314,6 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             eval.setT(d_T);
 
             eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
-
-            if (shift_mode == 2)
-                {
-                if (rsq >= ronsq && rsq < rcutsq)
-                    {
-                    // Implement XPLOR smoothing (FLOPS: 16)
-                    Scalar old_pair_eng = pair_eng;
-                    Scalar old_force_divr = force_divr;
-
-                    // calculate 1.0 / (xplor denominator)
-                    Scalar xplor_denom_inv =
-                        Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-
-                    Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                    Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
-                               (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
-                    Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-
-                    // make modifications to the old pair energy and force
-                    pair_eng = old_pair_eng * s;
-                    force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
-                    force_divr_cons = s * force_divr_cons - ds_dr_divr * old_pair_eng;
-                    }
-                }
-
-
 
             // calculate the virial (FLOPS: 3)
             Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
@@ -423,7 +386,6 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                 * typpair_idx.getNumElements();
 
     // run the kernel
-    // run the kernel
     switch (args.shift_mode)
         {
         case 0:
@@ -450,28 +412,6 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
             break;
         case 1:
             gpu_compute_dpd_forces_kernel<evaluator, 1>
-                                 <<<grid, threads, shared_bytes>>>
-                                 (args.d_force,
-                                  args.d_virial,
-                                  args.virial_pitch,
-                                  args.N,
-                                  args.d_pos,
-                                  args.d_vel,
-                                  args.box,
-                                  args.d_n_neigh,
-                                  args.d_nlist,
-                                  args.nli,
-                                  d_params,
-                                  args.d_rcutsq,
-                                  args.d_ronsq,
-                                  args.seed,
-                                  args.timestep,
-                                  args.deltaT,
-                                  args.T,
-                                  args.ntypes);
-            break;
-        case 2:
-            gpu_compute_dpd_forces_kernel<evaluator, 2>
                                  <<<grid, threads, shared_bytes>>>
                                  (args.d_force,
                                   args.d_virial,

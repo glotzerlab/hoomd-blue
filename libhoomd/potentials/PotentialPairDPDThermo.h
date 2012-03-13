@@ -283,22 +283,12 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             unsigned int typpair_idx = this->m_typpair_idx(typei, typej);
             param_type param = h_params.data[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
-            Scalar ronsq = Scalar(0.0);
-            if (this->m_shift_mode == this->xplor)
-                ronsq = h_ronsq.data[typpair_idx];
 
             // design specifies that energies are shifted if
             // 1) shift mode is set to shift
-            // or 2) shift mode is explor and ron > rcut
             bool energy_shift = false;
             if (this->m_shift_mode == this->shift)
                 energy_shift = true;
-            else if (this->m_shift_mode == this->xplor)
-                {
-                if (ronsq > rcutsq)
-                    energy_shift = true;
-                }
-
 
             // compute the force and potential energy
             Scalar force_divr = Scalar(0.0);
@@ -317,33 +307,6 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 
             if (evaluated)
                 {
-                // modify the potential for xplor shifting
-                if (this->m_shift_mode == this->xplor)
-                    {
-                    if (rsq >= ronsq && rsq < rcutsq)
-                        {
-                        // Implement XPLOR smoothing (FLOPS: 16)
-                        Scalar old_pair_eng = pair_eng;
-                        Scalar old_force_divr = force_divr;
-
-                        // calculate 1.0 / (xplor denominator)
-                        Scalar xplor_denom_inv =
-                            Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-
-                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
-                                   (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
-                        Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-
-                        // make modifications to the old pair energy and force
-                        pair_eng = old_pair_eng * s;
-                        // note: I'm not sure why the minus sign needs to be there: my notes have a +
-                        // But this is verified correct via plotting
-                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
-                        force_divr_cons = s*force_divr_cons - ds_dr_divr * old_pair_eng;
-                        }
-                    }
-
                 // compute the virial (FLOPS: 2)
                 Scalar pair_virial[6];
                 pair_virial[0] = Scalar(0.5) * dx * dx * force_divr_cons;
