@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the GPUVector class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __GPUVECTOR_H__
 #define __GPUVECTOR_H__
 
@@ -80,7 +84,7 @@ template<class T> class GPUVector : public GPUArray<T>
         //! Constructs a GPUVector
         GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
-        virtual ~GPUVector() {}
+        ~GPUVector() {}
 
         //! Copy constructor
         GPUVector(const GPUVector& from);
@@ -254,6 +258,12 @@ template<class T> void GPUVector<T>::resize(unsigned int new_size)
 
     // allocate memory only if necessary
     reallocate(new_size);
+
+    if (new_size > m_size)
+        {
+        // clear newly added elements
+        GPUArray<T>::memclear(m_size);
+        }
 
     // set new size
     m_size = new_size;

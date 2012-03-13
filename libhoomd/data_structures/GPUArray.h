@@ -210,7 +210,10 @@ template<class T> class GPUArray
         
         //! Swap the pointers in two GPUArrays
         inline void swap(GPUArray& from);
-        
+       
+        //! Swap the pointers of two equally sized GPUArrays
+        inline void swap(GPUArray& from) const;
+
         //! Get the number of elements
         /*!
          - For 1-D allocated GPUArrays, this is the number of elements allocated.
@@ -259,8 +262,10 @@ template<class T> class GPUArray
         virtual void resize(unsigned int width, unsigned int height);
 
     protected:
-        //! Helper function to clear memory
-        inline void memclear();
+        //! Clear memory starting from a given element
+        /*! \param first The first element to clear
+         */
+        inline void memclear(unsigned int first=0);
 
         //! Acquires the data pointer for use
         inline T* aquire(const access_location::Enum location, const access_mode::Enum mode, unsigned int gpu) const;
@@ -469,6 +474,24 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     std::swap(h_data, from.h_data);
     }
 
+//! Swap the pointers of two equally sized GPUArrays
+template<class T> void GPUArray<T>::swap(GPUArray& from) const
+    {
+    assert(!m_acquired && !from.m_acquired);
+
+    assert(m_num_elements==from.m_num_elements);
+    assert(m_pitch==from.m_pitch);
+    assert(m_height==from.m_height);
+    assert(m_exec_conf==from.m_exec_conf);
+
+    std::swap(m_acquired, from.m_acquired);
+    std::swap(m_data_location, from.m_data_location);
+#ifdef ENABLE_CUDA
+    std::swap(d_data, from.d_data);
+#endif
+    std::swap(h_data, from.h_data);
+    }
+
 /*! \pre m_num_elements is set
     \pre pointers are not allocated
     \post All memory pointers needed for GPUArray are allocated
@@ -541,24 +564,26 @@ template<class T> void GPUArray<T>::deallocate()
 /*! \pre allocate() has been called
     \post All allocated memory is set to 0
 */
-template<class T> void GPUArray<T>::memclear()
+template<class T> void GPUArray<T>::memclear(unsigned int first)
     {
     // don't do anything if there are no elements
     if (m_num_elements == 0)
         return;
         
     assert(h_data);
+    assert(first < m_num_elements);
     
     // clear memory
-    memset(h_data, 0, sizeof(T)*m_num_elements);
+    memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
-        cudaMemset(d_data, 0, m_num_elements*sizeof(T));
+        cudaMemset(d_data+first, 0, (m_num_elements-first)*sizeof(T));
         }
 #endif
     }
+
 
 
 /*! \post All memory on the device is copied to the host array
@@ -957,22 +982,22 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
 template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int height)
     {
     assert(! m_acquired);
-    assert(width > 0 && height > 0);
 
     // make m_pitch the next multiple of 16 larger or equal to the given width
     unsigned int new_pitch = (width + (16 - (width & 15)));
 
     unsigned int num_elements = new_pitch * height;
+    assert(num_elements > 0);
 
     // do not resize unless array is extended
-    if (new_pitch <= new_pitch && height <= m_height)
+    if (new_pitch <= m_pitch && height <= m_height)
         return;
 
     // it is allowed to resize only one dimension, then the other dimension
     // is forced to stay the same
     if (m_pitch > new_pitch)
         new_pitch = m_pitch;
-    if (m_height > new_pitch)
+    if (m_height > height)
         height = m_height;
 
     // if not allocated, simply allocate
