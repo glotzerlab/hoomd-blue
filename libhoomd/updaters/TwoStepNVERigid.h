@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares an updater that implements NVE dynamics for rigid bodies
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include "IntegrationMethodTwoStep.h"
 
 #ifndef __TWO_STEP_NVE_RIGID_H__

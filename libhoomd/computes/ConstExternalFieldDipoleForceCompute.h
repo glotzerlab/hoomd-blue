@@ -58,6 +58,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a class for computing external forces on anisotropic particles
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __CONSTEXTERNALFIELDDIPOLEFORCECOMPUTE_H__
 #define __CONSTEXTERNALFIELDDIPOLEFORCECOMPUTE_H__
 

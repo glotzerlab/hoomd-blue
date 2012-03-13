@@ -58,6 +58,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a base class for computing constraint
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __ForceConstraint_H__
 #define __ForceConstraint_H__
 

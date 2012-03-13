@@ -61,6 +61,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a class for computing harmonic bonds
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __CGCMMANGLEFORCECOMPUTE_H__
 #define __CGCMMANGLEFORCECOMPUTE_H__
 

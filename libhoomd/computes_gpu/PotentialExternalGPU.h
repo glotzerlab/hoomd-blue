@@ -49,6 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a class for computing an external potential field on the GPU
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __POTENTIAL_EXTERNAL_GPU_H__
 #define __POTENTIAL_EXTERNAL_GPU_H__
 

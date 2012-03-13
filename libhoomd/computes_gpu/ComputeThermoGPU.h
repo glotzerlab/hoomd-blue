@@ -56,6 +56,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a class for computing thermodynamic quantities on the GPU
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __COMPUTE_THERMO_GPU_H__
 #define __COMPUTE_THERMO_GPU_H__
 

@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the RigidBodyGroup class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>

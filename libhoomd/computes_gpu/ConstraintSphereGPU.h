@@ -56,6 +56,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a class for computing sphere constraint forces on the GPU
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __CONSTRAINT_SPHERE_GPU_H__
 #define __CONSTRAINT_SPHERE_GPU_H__
 

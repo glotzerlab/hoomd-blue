@@ -61,6 +61,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the TwoStepBDNVT class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Integrates part of the system forward in two steps in the NVT ensemble (via brownian dynamics)
 /*! Implements velocity-verlet NVE integration with additional brownian dynamics forces through the
     IntegrationMethodTwoStep interface

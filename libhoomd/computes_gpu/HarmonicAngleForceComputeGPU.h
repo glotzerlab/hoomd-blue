@@ -65,6 +65,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the HarmonicAngleForceGPU class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __HARMONICANGLEFORCECOMPUTEGPU_H__
 #define __HARMONICANGLEFORCECOMPUTEGPU_H__
 

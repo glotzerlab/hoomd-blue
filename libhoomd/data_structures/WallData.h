@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Contains declarations for WallData.
  */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include <math.h>
 #include "ParticleData.h"
 

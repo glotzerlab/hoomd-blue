@@ -60,6 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares an integrator for performing two-step integration on multiple groups
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Integrates the system forward one step with possibly multiple methods
 /*! See IntegrationMethodTwoStep for most of the design notes regarding group integration. IntegratorTwoStep merely
     implements most of the things discussed there.

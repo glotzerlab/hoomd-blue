@@ -55,6 +55,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the MolFilePlugin and FileFormatManager classes
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __FILE_FORMAT_MANAGER_H__
 #define __FILE_FORMAT_MANAGER_H__
 

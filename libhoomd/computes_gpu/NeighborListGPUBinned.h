@@ -57,6 +57,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the NeighborListGPUBinned class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __NEIGHBORLISTGPUBINNED_H__
 #define __NEIGHBORLISTGPUBINNED_H__
 

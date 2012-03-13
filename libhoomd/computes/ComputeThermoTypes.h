@@ -58,6 +58,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Data structures common to both CPU and GPU implementations of ComputeThermo
     */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Enum for indexing the GPUArray of computed values
 struct thermo_index
     {

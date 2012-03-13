@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the Enforce2DUpdaterGPU class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include "Enforce2DUpdater.h"
 
 #include <boost/shared_ptr.hpp>

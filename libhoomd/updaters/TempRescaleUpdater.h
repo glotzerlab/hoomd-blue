@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares an updater that rescales velocities to achieve a set temperature
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include <boost/shared_ptr.hpp>
 
 #include "Updater.h"

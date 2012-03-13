@@ -59,6 +59,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declaration of the Berendsen thermostat on the GPU
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 /*! Implements the Berendsen thermostat on the GPU
 */
 class TwoStepBerendsenGPU : public TwoStepBerendsen
