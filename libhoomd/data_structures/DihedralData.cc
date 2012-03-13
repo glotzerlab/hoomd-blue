@@ -334,29 +334,39 @@ void DihedralData::updateDihedralTableGPU()
 
         {
         ArrayHandle<uint4> d_dihedrals(m_dihedrals, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_dihedral_type (m_dihedral_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_dihedrals(m_n_dihedrals, access_location::device, access_mode::overwrite);
-        m_transform_dihedral_data.gpu_find_max_dihedral_number(max_dihedral_num,
+        gpu_find_max_dihedral_number(max_dihedral_num,
+                                     d_n_dihedrals.data,
                                      d_dihedrals.data,
-                                     d_dihedral_type.data,
                                      m_dihedrals.size(),
                                      m_pdata->getN(),
-                                     d_rtag.data,
-                                     d_n_dihedrals.data);
+                                     d_rtag.data);
         }
 
     if (max_dihedral_num > m_gpu_dihedral_list.getHeight())
         {
-        reallocateDihedralTable(max_dihedral_num);
+        m_gpu_dihedral_list.resize(m_pdata->getN(), max_dihedral_num);
+        m_dihedrals_ABCD.resize(m_pdata->getN(), max_dihedral_num);
         }
-    
-    ArrayHandle<uint4> d_gpu_dihedral_list(m_gpu_dihedral_list, access_location::device, access_mode::overwrite);
-    ArrayHandle<uint1> d_gpu_dihedral_ABCD(m_dihedrals_ABCD, access_location::device, access_mode::overwrite);
-    m_transform_dihedral_data.gpu_create_dihedraltable(m_dihedrals.size(),
-                             d_gpu_dihedral_list.data,
-                             d_gpu_dihedral_ABCD.data,
-                             m_gpu_dihedral_list.getPitch());
+
+        {
+        ArrayHandle<uint4> d_dihedrals(m_dihedrals, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_dihedrals(m_n_dihedrals, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_dihedral_type (m_dihedral_type, access_location::device, access_mode::read);
+        ArrayHandle<uint4> d_gpu_dihedral_list(m_gpu_dihedral_list, access_location::device, access_mode::overwrite);
+        ArrayHandle<uint1> d_gpu_dihedral_ABCD(m_dihedrals_ABCD, access_location::device, access_mode::overwrite);
+        gpu_create_dihedraltable(d_gpu_dihedral_list.data,
+                                 d_gpu_dihedral_ABCD.data,
+                                 d_n_dihedrals.data,
+                                 d_dihedrals.data,
+                                 d_dihedral_type.data,
+                                 d_rtag.data,
+                                 m_dihedrals.size(),
+                                 m_gpu_dihedral_list.getPitch(),
+                                 m_pdata->getN());
+        }
     }
 #endif
 
@@ -411,7 +421,8 @@ void DihedralData::updateDihedralTable()
     // re allocate memory if needed
     if (num_dihedrals_max > m_gpu_dihedral_list.getHeight())
         {
-        reallocateDihedralTable(num_dihedrals_max);
+        m_gpu_dihedral_list.resize(m_pdata->getN(), num_dihedrals_max);
+        m_dihedrals_ABCD.resize(m_pdata->getN(), num_dihedrals_max);
         }
 
         {
@@ -471,20 +482,6 @@ void DihedralData::updateDihedralTable()
         }
     }
 
-
-/*! \param height New height for the dihedral table
-    
-    \post Reallocates memory on the device making room for up to
-    \a height dihedrals per particle.
-    
-    \note updateDihedralTableGPU() needs to be called after so that the
-    data in the dihedral table will be correct.
-*/
-void DihedralData::reallocateDihedralTable(int height)
-    {
-    m_gpu_dihedral_list.resize(m_pdata->getN(), height);
-    m_dihedrals_ABCD.resize(m_pdata->getN(), height);
-    }
 
 /*! \param height Height for the dihedral table
 */

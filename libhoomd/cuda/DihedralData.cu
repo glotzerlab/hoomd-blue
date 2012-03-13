@@ -47,22 +47,12 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 // Maintainer: dnlebard
 
 #include "DihedralData.cuh"
 
 #include <thrust/device_ptr.h>
-#include <thrust/device_vector.h>
-#include <thrust/transform.h>
-#include <thrust/scatter.h>
-#include <thrust/scan.h>
-#include <thrust/sort.h>
-#include <thrust/iterator/permutation_iterator.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/transform_iterator.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/reduce.h>
+#include <thrust/extrema.h>
 
 #ifdef WIN32
 #include <cassert>
@@ -74,228 +64,161 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Implements the helper functions for updating the GPU dihedral table
 */
 
-//! Helper structure to get particle tag a, b, c or d from a dihedral
-struct dihedral_get_tag : thrust::unary_function<uint4, unsigned int>
+
+//! Kernel to find the maximum number of dihedrals per particle
+__global__ void gpu_find_max_dihedral_number_kernel(const uint4 *dihedrals,
+                                             const unsigned int *d_rtag,
+                                             unsigned int *d_n_dihedrals,
+                                             unsigned int num_dihedrals,
+                                             unsigned int N)
     {
-    //! Constructor
-    dihedral_get_tag(unsigned int _member_idx)
-        : member_idx(_member_idx)
-        { }
-        
-    //! Get particle tag
-    __host__ __device__
-    unsigned int operator ()(uint4 dihedral)
-        {
-        switch(member_idx)
-            {
-            case 0:
-               return dihedral.x;
-            case 1:
-               return dihedral.y;
-            case 2:
-               return dihedral.z;
-            case 3:
-               return dihedral.w;
-            default:
-               // we should never get here
-               return 0;
-            }
-        }
+    int dihedral_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    private:
-        unsigned int member_idx; //!< Index of particle tag to get
-    };
-
-//! Helper kernel to get particle tag a, b, c, d the dihedral type and the particle location (a b or c) from a dihedral
-__global__ void gpu_kernel_dihedral_fill_values(const uint4 *dihedrals,
-                            const unsigned int *dihedral_types,
-                            const unsigned int *d_rtag,
-                            uint4 *values,
-                            uint1 *values_ABCD,
-                            unsigned int member_idx,
-                            unsigned int num_dihedrals)
-    {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= num_dihedrals)
+    if (dihedral_idx >= num_dihedrals)
         return;
 
-    uint4 dihedral = dihedrals[idx];
-    unsigned int tag1, tag2, tag3;
-    switch(member_idx)
+    uint4 dihedral = dihedrals[dihedral_idx];
+    unsigned int tag1 = dihedral.x;
+    unsigned int tag2 = dihedral.y;
+    unsigned int tag3 = dihedral.z;
+    unsigned int tag4 = dihedral.w;
+    unsigned int idx1 = d_rtag[tag1];
+    unsigned int idx2 = d_rtag[tag2];
+    unsigned int idx3 = d_rtag[tag3];
+    unsigned int idx4 = d_rtag[tag4];
+
+    if (idx1 < N)
+        atomicInc(&d_n_dihedrals[idx1], 0xffffffff);
+    if (idx2 < N)
+        atomicInc(&d_n_dihedrals[idx2], 0xffffffff);
+    if (idx3 < N)
+        atomicInc(&d_n_dihedrals[idx3], 0xffffffff);
+    if (idx4 < N)
+        atomicInc(&d_n_dihedrals[idx4], 0xffffffff);
+    }
+
+//! Kernel to fill the GPU dihedral table
+__global__ void gpu_fill_gpu_dihedral_table(const uint4 *dihedrals,
+                                        const unsigned int *dihedral_type,
+                                        uint4 *gpu_btable,
+                                        uint1 *dihedrals_ABCD,
+                                        const unsigned int pitch,
+                                        const unsigned int *d_rtag,
+                                        unsigned int *d_n_dihedrals,
+                                        unsigned int num_dihedrals,
+                                        unsigned int N)
+    {
+    int dihedral_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (dihedral_idx >= num_dihedrals)
+        return;
+
+    uint4 dihedral = dihedrals[dihedral_idx];
+    unsigned int tag1 = dihedral.x;
+    unsigned int tag2 = dihedral.y;
+    unsigned int tag3 = dihedral.z;
+    unsigned int tag4 = dihedral.w;
+    unsigned int type = dihedral_type[dihedral_idx];
+    unsigned int idx1 = d_rtag[tag1];
+    unsigned int idx2 = d_rtag[tag2];
+    unsigned int idx3 = d_rtag[tag3];
+    unsigned int idx4 = d_rtag[tag4];
+
+    if (idx1 < N)
         {
-        case 0:
-            tag1 = dihedral.y;
-            tag2 = dihedral.z;
-            tag3 = dihedral.w;
-            break;
-        case 1:
-            tag1 = dihedral.x;
-            tag2 = dihedral.z;
-            tag3 = dihedral.w;
-            break;
-        case 2:
-            tag1 = dihedral.x;
-            tag2 = dihedral.y;
-            tag3 = dihedral.w;
-            break;
-        case 3:
-            tag1 = dihedral.x;
-            tag2 = dihedral.y;
-            tag3 = dihedral.z;
-            break;
-        default:
-           // we should never get here
-           tag1 = tag2 = tag3 = 0;
+        unsigned int num1 = atomicInc(&d_n_dihedrals[idx1],0xffffffff);
+        gpu_btable[num1*pitch+idx1] = make_uint4(idx2,idx3,idx4,type);
+        dihedrals_ABCD[num1*pitch+idx1] = make_uint1(0);
         }
-
-    values[idx] = make_uint4(d_rtag[tag1], d_rtag[tag2], d_rtag[tag3], dihedral_types[idx]);
-    values_ABCD[idx] = make_uint1(member_idx);
-    };
-
+    if (idx2 < N)
+        {
+        unsigned int num2 = atomicInc(&d_n_dihedrals[idx2],0xffffffff);
+        gpu_btable[num2*pitch+idx2] = make_uint4(idx1,idx3,idx4,type);
+        dihedrals_ABCD[num2*pitch+idx2] = make_uint1(1);
+        }
+    if (idx3 < N)
+        {
+        unsigned int num3 = atomicInc(&d_n_dihedrals[idx3],0xffffffff);
+        gpu_btable[num3*pitch+idx3] = make_uint4(idx1,idx2,idx4,type);
+        dihedrals_ABCD[num3*pitch+idx3] = make_uint1(2);
+        }
+    if (idx4 < N)
+        {
+        unsigned int num4 = atomicInc(&d_n_dihedrals[idx4],0xffffffff);
+        gpu_btable[num4*pitch+idx4] = make_uint4(idx1,idx2,idx3,type);
+        dihedrals_ABCD[num4*pitch+idx4] = make_uint1(3);
+        }
+    }
 
 //! Find the maximum number of dihedrals per particle
-/*! \param d_dihedrals Array of dihedrals
-    \param d_dihedral_type Array of dihedral types
+/*! \param max_dihedral_num Maximum number of dihedrals (return value)
+    \param d_n_dihedrals Number of dihedrals per particle (return array)
+    \param d_dihedrals Array of dihedrals
     \param num_dihedrals Size of dihedral array
     \param N Number of particles in the system
-    \param d_rtag Array of reverse-lookup particle tag -> particle index
-    \param d_n_dihedrals Number of dihedrals per particle
-    \param max_dihedral_num Maximum number of dihedrals (return value)
+    \param d_rtag Array of reverse-lookup particle tag . particle index
  */
-cudaError_t TransformDihedralDataGPU::gpu_find_max_dihedral_number(unsigned int& max_dihedral_num,
-                                     uint4 *d_dihedrals,
-                                     unsigned int *d_dihedral_type,
-                                     unsigned int num_dihedrals,
-                                     unsigned int N,
-                                     unsigned int *d_rtag,
-                                     unsigned int *d_n_dihedrals)
+cudaError_t gpu_find_max_dihedral_number(unsigned int& max_dihedral_num,
+                             unsigned int *d_n_dihedrals,
+                             const uint4 *d_dihedrals,
+                             const unsigned int num_dihedrals,
+                             const unsigned int N,
+                             const unsigned int *d_rtag)
     {
     assert(d_dihedrals);
-    assert(d_dihedral_type);
     assert(d_rtag);
     assert(d_n_dihedrals);
 
-    thrust::device_ptr<uint4> dihedrals_ptr(d_dihedrals);
-    thrust::device_ptr<unsigned int> dihedral_type_ptr(d_dihedral_type);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-    thrust::device_ptr<unsigned int> n_dihedrals_ptr(d_n_dihedrals);
-
-    if (dihedral_sort_keys.size() < 4*num_dihedrals)
-        {
-        dihedral_sort_keys.resize(4*num_dihedrals);
-        dihedral_sort_values.resize(4*num_dihedrals);
-        dihedral_sort_ABCD.resize(4*num_dihedrals);
-        dihedral_indices.resize(4*num_dihedrals);
-        num_dihedrals_sorted.resize(4*num_dihedrals);
-        }
-
-    // fill sort key and value arrays
     unsigned int block_size = 512;
-    uint4 *d_dihedral_sort_values =  thrust::raw_pointer_cast(&* dihedral_sort_values.begin());
-    uint1 *d_dihedral_sort_ABCD =  thrust::raw_pointer_cast(&* dihedral_sort_ABCD .begin());
 
-    for (unsigned int i = 0; i < 4; i++)
-        {
-        thrust::copy(thrust::make_permutation_iterator(
-                     rtag_ptr,
-                     thrust::make_transform_iterator(dihedrals_ptr, dihedral_get_tag(i))
-                     ),
-                     thrust::make_permutation_iterator(
-                     rtag_ptr,
-                     thrust::make_transform_iterator(dihedrals_ptr, dihedral_get_tag(i))
-                     ) + num_dihedrals,
-                 dihedral_sort_keys.begin() + i * num_dihedrals);
+    // clear n_dihedrals array
+    cudaMemset(d_n_dihedrals, 0, sizeof(unsigned int) * N);
 
-        // fill sort values
-        gpu_kernel_dihedral_fill_values<<<num_dihedrals/block_size + 1, block_size>>>(d_dihedrals,
-                                                           d_dihedral_type,
-                                                           d_rtag,
-                                                           d_dihedral_sort_values + i * num_dihedrals,
-                                                           d_dihedral_sort_ABCD + i * num_dihedrals,
-                                                           i,
-                                                           num_dihedrals);
-        }
+    gpu_find_max_dihedral_number_kernel<<<num_dihedrals/block_size + 1, block_size>>>(d_dihedrals,
+                                                                              d_rtag,
+                                                                              d_n_dihedrals,
+                                                                              num_dihedrals,
+                                                                              N);
 
-    // sort first dihedral members as keys with other dihedral members, dihedral types and particle indicies in in dihedral as values
-    thrust::sort_by_key(dihedral_sort_keys.begin(),
-                        dihedral_sort_keys.begin() + 4 * num_dihedrals,
-                        make_zip_iterator(thrust::make_tuple(dihedral_sort_values.begin(), dihedral_sort_ABCD.begin())));
-
-    // count multiplicity of each key
-    unsigned int n_unique_indices = thrust::reduce_by_key(dihedral_sort_keys.begin(),
-                          dihedral_sort_keys.begin() + 4 * num_dihedrals,
-                          thrust::constant_iterator<unsigned int>(1),
-                          dihedral_indices.begin(),
-                          num_dihedrals_sorted.begin() ).second - num_dihedrals_sorted.begin();
-
-    // find the maximum
-    max_dihedral_num = thrust::reduce(num_dihedrals_sorted.begin(),
-                                  num_dihedrals_sorted.begin() + n_unique_indices,
-                                  0,
-                                  thrust::maximum<unsigned int>());
-
-    // fill n_dihedrals array with zeros
-    thrust::fill(n_dihedrals_ptr,
-                 n_dihedrals_ptr + N,
-                 0);
-
-    // scatter dihedral numbers in n_dihedrals array
-    thrust::scatter(num_dihedrals_sorted.begin(),
-                    num_dihedrals_sorted.begin() + n_unique_indices,
-                    dihedral_indices.begin(),
-                    n_dihedrals_ptr);
-
+    thrust::device_ptr<unsigned int> n_dihedrals_ptr(d_n_dihedrals);
+    max_dihedral_num = *thrust::max_element(n_dihedrals_ptr, n_dihedrals_ptr + N);
     return cudaSuccess;
     }
 
 //! Construct the GPU dihedral table
-/*! \param num_dihedrals Size of dihedral array
-    \param d_gpu_dihedraltable Pointer to the dihedral table on the GPU
-    \param d_gpu_dihedral_ABCD Pointer to ABCD table on the GPU
+/*! \param d_gpu_dihedraltable Pointer to the dihedral table on the GPU
+    \param d_n_dihedrals Number of dihedrals per particle (return array)
+    \param d_dihedrals Bonds array
+    \param d_dihedral_type Array of dihedral types
+    \param d_rtag Reverse-lookup tag->index
+    \param num_dihedrals Number of dihedrals in dihedral list
     \param pitch Pitch of 2D dihedraltable array
-
-    \pre Prior to calling this method, the internal dihedral_sort_keys, dihedral_sort_values
-         and dihedral_sort_ABCD need to be initialized by a call to gpu_find_max_dihedral_number
-
+    \param N Number of particles
  */
-cudaError_t TransformDihedralDataGPU::gpu_create_dihedraltable(unsigned int num_dihedrals,
-                                     uint4 *d_gpu_dihedraltable,
-                                     uint1 *d_gpu_dihedral_ABCD,
-                                     unsigned int pitch)
+cudaError_t gpu_create_dihedraltable(uint4 *d_gpu_dihedraltable,
+                                  uint1 *d_dihedrals_ABCD,
+                                  unsigned int *d_n_dihedrals,
+                                  const uint4 *d_dihedrals,
+                                  const unsigned int *d_dihedral_type,
+                                  const unsigned int *d_rtag,
+                                  const unsigned int num_dihedrals,
+                                  const unsigned int pitch,
+                                  const unsigned int N)
     {
+    unsigned int block_size = 512;
 
-    thrust::device_ptr<uint4> gpu_dihedraltable_ptr(d_gpu_dihedraltable);
-    thrust::device_ptr<uint1> gpu_dihedral_ABCD_ptr(d_gpu_dihedral_ABCD);
+    // clear n_dihedrals array
+    cudaMemset(d_n_dihedrals, 0, sizeof(unsigned int) * N);
 
-    if (dihedral_map.size() < 4*num_dihedrals)
-        {
-        dihedral_map.resize(4*num_dihedrals);
-        }
-
-    // create the dihedral_map of 2D dihedral table indices for all first dihedral members
-    thrust::exclusive_scan_by_key(dihedral_sort_keys.begin(),
-                                  dihedral_sort_keys.begin() + 4 * num_dihedrals,
-                                  thrust::make_constant_iterator(pitch),
-                                  dihedral_map.begin());
-
-    thrust::transform(dihedral_map.begin(),
-                      dihedral_map.begin() + 4 * num_dihedrals,
-                      dihedral_sort_keys.begin(),
-                      dihedral_map.begin(),
-                      thrust::plus<unsigned int>());
-
-    // scatter the other dihedral members and the type into the 2D matrix according to the dihedral_map
-    thrust::scatter(dihedral_sort_values.begin(),
-                    dihedral_sort_values.begin() + 4* num_dihedrals,
-                    dihedral_map.begin(),
-                    gpu_dihedraltable_ptr);
-
-    // scatter the relative position of the atoms in the dihedral into the 2D matrix d_gpu_dihedral_ABCD
-    thrust::scatter(dihedral_sort_ABCD.begin(),
-                   dihedral_sort_ABCD.begin() + 4 * num_dihedrals,
-                   dihedral_map.begin(),
-                   gpu_dihedral_ABCD_ptr);
+    gpu_fill_gpu_dihedral_table<<<num_dihedrals/block_size + 1, block_size>>>(d_dihedrals,
+                                                                      d_dihedral_type,
+                                                                      d_gpu_dihedraltable,
+                                                                      d_dihedrals_ABCD,
+                                                                      pitch,
+                                                                      d_rtag,
+                                                                      d_n_dihedrals,
+                                                                      num_dihedrals,
+                                                                      N);
 
     return cudaSuccess;
     }

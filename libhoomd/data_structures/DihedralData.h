@@ -269,8 +269,6 @@ class DihedralData : boost::noncopyable
         GPUArray<unsigned int> m_n_dihedrals;                    //!< Number of dihedrals
 
 #ifdef ENABLE_CUDA
-        TransformDihedralDataGPU m_transform_dihedral_data;      //!< GPU helper class to transform dihedral data
-
         //! Helper function to update the dihedral table on the device
         void updateDihedralTableGPU();
 #endif
@@ -278,9 +276,6 @@ class DihedralData : boost::noncopyable
         //! Helper function to update the GPU dihedral table
         void updateDihedralTable();
 
-        //! Helper function to reallocate the dihedral table on the device
-        void reallocateDihedralTable(int height);
-        
         //! Helper function to allocate the dihedral table
         void allocateDihedralTable(int height);
         

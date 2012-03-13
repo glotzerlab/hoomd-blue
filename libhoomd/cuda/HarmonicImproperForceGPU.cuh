@@ -50,7 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#include "DihedralData.cuh"
 #include "ParticleData.cuh"
 #include "HOOMDMath.h"
 
