@@ -63,15 +63,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDThermo.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorPairDPDLJThermo.h"
-#include "PotentialPairDPDLJThermo.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "AllDriverPotentialPairGPU.cuh"
-#include "PotentialPairDPDLJThermoGPU.h"
-#include "PotentialPairDPDLJThermoGPU.cuh"
 #endif
 
 /*! \file AllPairPotentials.h
@@ -101,7 +98,7 @@ typedef PotentialPairDPDThermo<EvaluatorPairDPDThermo> PotentialPairDPDThermoDPD
 //! Pair potential force compute for dpdlj conservative forces (not intended to be used)
 typedef PotentialPair<EvaluatorPairDPDLJThermo> PotentialPairDPDLJ;
 //! Pair potential force compute for dpd thermostat and LJ conservative forces
-typedef PotentialPairDPDLJThermo<EvaluatorPairDPDLJThermo> PotentialPairDPDLJThermoDPD;
+typedef PotentialPairDPDThermo<EvaluatorPairDPDLJThermo> PotentialPairDPDLJThermoDPD;
 
 
 #ifdef ENABLE_CUDA
@@ -124,7 +121,7 @@ typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermod
 //! Pair potential force compute for dpdlj conservative forces on the GPU (not intended to be used)
 typedef PotentialPairGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermo_forces > PotentialPairDPDLJGPU;
 //! Pair potential force compute for dpd thermostat and LJ conservative forces on the GPU
-typedef PotentialPairDPDLJThermoGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermodpd_forces > PotentialPairDPDLJThermoDPDGPU;
+typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermodpd_forces > PotentialPairDPDLJThermoDPDGPU;
 
 #endif
 

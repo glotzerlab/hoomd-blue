@@ -237,6 +237,7 @@ class EvaluatorPairDPDThermo
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param force_divr_cons Output parameter to write the computed conservative force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
+            \param energy_shift Ignored. DPD always goes to 0 at the cutoff.
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
                   in PotentialPair.
 
@@ -245,7 +246,7 @@ class EvaluatorPairDPDThermo
             
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
-        DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& force_divr_cons, Scalar& pair_eng)
+        DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& force_divr_cons, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
             if (rsq < rcutsq)

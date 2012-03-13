@@ -51,22 +51,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: phillicl
 
 /*! \file PotentialPairDPDThermoGPU.cuh
-    \brief Declares driver functions for computing all types of pair forces on the GPU from glotzer-hoomd-plugins
+    \brief Declares driver functions for computing all types of pair forces on the GPU
 */
 
-#ifndef __POTENTIAL_PAIR_DPDLJTHERMO_CUH__
-#define __POTENTIAL_PAIR_DPDLJTHERMO_CUH__
+#ifndef __POTENTIAL_PAIR_DPDTHERMO_CUH__
+#define __POTENTIAL_PAIR_DPDTHERMO_CUH__
 
 #include "ParticleData.cuh"
-#include "EvaluatorPairDPDLJThermo.h"
+#include "EvaluatorPairDPDThermo.h"
 #include "Index1D.h"
 #include <cassert>
 
-//! args struct for passing additional options to gpu_compute_dpdlj_forces
-struct dpdlj_pair_args_t
+//! args struct for passing additional options to gpu_compute_dpd_forces
+struct dpd_pair_args_t
     {
-    //! Construct a dpdlj_pair_args_t
-    dpdlj_pair_args_t(float4 *_d_force,
+    //! Construct a dpd_pair_args_t
+    dpd_pair_args_t(float4 *_d_force,
                     float *_d_virial,
                     const unsigned int _virial_pitch,
                     const unsigned int _N,
@@ -96,7 +96,7 @@ struct dpdlj_pair_args_t
                         d_nlist(_d_nlist),
                         nli(_nli),
                         d_rcutsq(_d_rcutsq),
-                        d_ronsq(_d_ronsq),                        
+                        d_ronsq(_d_ronsq),
                         ntypes(_ntypes),
                         block_size(_block_size),
                         seed(_seed),
@@ -106,7 +106,7 @@ struct dpdlj_pair_args_t
                         shift_mode(_shift_mode)
         {
         };
-    
+
     float4 *d_force;                //!< Force to write out
     float *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< Pitch of 2D virial array
@@ -118,26 +118,26 @@ struct dpdlj_pair_args_t
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const Index2D& nli;             //!< Indexer for accessing d_nlist
     const float *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const float *d_ronsq;           //!< Device array listing r_on squared per particle type pair    
+    const float *d_ronsq;           //!< Device array listing r_on squared per particle type pair
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int seed;        //!< user provided seed for PRNG
     const unsigned int timestep;    //!< timestep of simulation
     const float deltaT;             //!< timestep size
-    const float T;                  //!< temperature 
-    const unsigned int shift_mode;  //!< The potential energy shift mode    
+    const float T;                  //!< temperature
+    const unsigned int shift_mode;  //!< The potential energy shift mode
     };
 
 #ifdef NVCC
 //! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_dpdlj_pos_tex;
+texture<float4, 1, cudaReadModeElementType> pdata_dpd_pos_tex;
 
 //! Texture for reading particle velocities
-texture<float4, 1, cudaReadModeElementType> pdata_dpdlj_vel_tex;
+texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
 
 
 //! Kernel for calculating pair forces
-/*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
+/*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
     forces for each pair is handled via the template class \a evaluator.
 
     \param d_force Device memory to write computed forces
@@ -152,30 +152,30 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpdlj_vel_tex;
     \param nli Indexer for indexing \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair    
-    \param d_seed user defined seed for PRNG    
-    \param d_timestep timestep of simulation    
-    \param d_deltaT timestep size    
+    \param d_ronsq ron squared, stored per type pair
+    \param d_seed user defined seed for PRNG
+    \param d_timestep timestep of simulation
+    \param d_deltaT timestep size
     \param d_T temperature
     \param ntypes Number of types in the simulation
-    
+
     \a d_params, and \a d_rcutsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
     amount of shared memory must be allocatd for this kernel launch. The amount is
     (2*sizeof(float) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
-    
+
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
-    
+
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
 template< class evaluator, unsigned int shift_mode >
-__global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
+__global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
                                               float *d_virial,
                                               const unsigned int virial_pitch,
                                               const unsigned int N,
@@ -187,7 +187,7 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
                                               const Index2D nli,
                                               const typename evaluator::param_type *d_params,
                                               const float *d_rcutsq,
-                                              const float *d_ronsq,                                     
+                                              const float *d_ronsq,
                                               const unsigned int d_seed,
                                               const unsigned int d_timestep,
                                               const float d_deltaT,
@@ -199,11 +199,11 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
 
     // shared arrays for per type pair parameters
     extern __shared__ char s_data[];
-    typename evaluator::param_type *s_params = 
+    typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
     float *s_rcutsq = (float *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
     float *s_ronsq = (float *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(float))]);
-    
+
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
         {
@@ -212,38 +212,38 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
             s_rcutsq[cur_offset + threadIdx.x] = d_rcutsq[cur_offset + threadIdx.x];
             s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
             if (shift_mode == 2)
-                s_ronsq[cur_offset + threadIdx.x] = d_ronsq[cur_offset + threadIdx.x];            
+                s_ronsq[cur_offset + threadIdx.x] = d_ronsq[cur_offset + threadIdx.x];
             }
         }
     __syncthreads();
-    
+
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (idx >= N)
         return;
-        
+
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 posi = tex1Dfetch(pdata_dpdlj_pos_tex, idx);
+    float4 posi = tex1Dfetch(pdata_dpd_pos_tex, idx);
 
     // read in the velocity of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 veli = tex1Dfetch(pdata_dpdlj_vel_tex, idx);
+    float4 veli = tex1Dfetch(pdata_dpd_vel_tex, idx);
 
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float virial[6];
     for (unsigned int i = 0; i < 6; i++)
         virial[i] = 0.0f;
-    
+
     // prefetch neighbor index
     unsigned int cur_j = 0;
     unsigned int next_j = d_nlist[nli(idx, 0)];
-    
+
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
@@ -262,33 +262,33 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
             // prefetch the next value and set the current one
             cur_j = next_j;
             next_j = d_nlist[nli(idx, neigh_idx+1)];
-            
-            // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 posj = tex1Dfetch(pdata_dpdlj_pos_tex, cur_j);
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 velj = tex1Dfetch(pdata_dpdlj_vel_tex, cur_j);
-                        
+            float4 posj = tex1Dfetch(pdata_dpd_pos_tex, cur_j);
+
+            // get the neighbor's position (MEM TRANSFER: 16 bytes)
+            float4 velj = tex1Dfetch(pdata_dpd_vel_tex, cur_j);
+
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
             float dx = posi.x - posj.x;
             float dy = posi.y - posj.y;
             float dz = posi.z - posj.z;
-            
+
             // apply periodic boundary conditions: (FLOPS 12)
             dx -= box.Lx * rintf(dx * box.Lxinv);
             dy -= box.Ly * rintf(dy * box.Lyinv);
             dz -= box.Lz * rintf(dz * box.Lzinv);
-            
+
             // calculate r squard (FLOPS: 5)
             float rsq = dx*dx + dy*dy + dz*dz;
-            
+
             // calculate dv (FLOPS: 3)
             float dvx = veli.x - velj.x;
             float dvy = veli.y - velj.y;
-            float dvz = veli.z - velj.z;            
-            
+            float dvz = veli.z - velj.z;
+
             float dot = dx*dvx + dy*dvy + dz*dvz;
-            
+
             // access the per type pair parameters
             unsigned int typpair = typpair_idx(__float_as_int(posi.w), __float_as_int(posj.w));
             float rcutsq = s_rcutsq[typpair];
@@ -296,7 +296,7 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
             float ronsq = 0.0f;
             if (shift_mode == 2)
                 ronsq = s_ronsq[typpair];
-  
+
             // design specifies that energies are shifted if
             // 1) shift mode is set to shift
             // or 2) shift mode is explor and ron > rcut
@@ -308,22 +308,22 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
                 if (ronsq > rcutsq)
                     energy_shift = true;
                 }
-                
-                                                                          
-            // 
+
+
+            //
             evaluator eval(rsq, rcutsq, param);
-            
+
             // evaluate the potential
             float force_divr = 0.0f;
             float force_divr_cons = 0.0f;
             float pair_eng = 0.0f;
 
             // Special Potential Pair DPD Requirements
-            eval.set_seed_ij_timestep(d_seed,idx,cur_j,d_timestep);  
-            eval.setDeltaT(d_deltaT);  
+            eval.set_seed_ij_timestep(d_seed,idx,cur_j,d_timestep);
+            eval.setDeltaT(d_deltaT);
             eval.setRDotV(dot);
-            eval.setT(d_T);            
-            
+            eval.setT(d_T);
+
             eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
 
             if (shift_mode == 2)
@@ -333,24 +333,24 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
                     // Implement XPLOR smoothing (FLOPS: 16)
                     Scalar old_pair_eng = pair_eng;
                     Scalar old_force_divr = force_divr;
-                    
+
                     // calculate 1.0 / (xplor denominator)
                     Scalar xplor_denom_inv =
                         Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-                    
+
                     Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
                     Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
                                (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
                     Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-                    
+
                     // make modifications to the old pair energy and force
                     pair_eng = old_pair_eng * s;
                     force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
                     force_divr_cons = s * force_divr_cons - ds_dr_divr * old_pair_eng;
                     }
                 }
-            
-            
+
+
 
             // calculate the virial (FLOPS: 3)
             Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
@@ -360,7 +360,7 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
             virial[3] = dy * dy * force_div2r_cons;
             virial[4] = dy * dz * force_div2r_cons;
             virial[5] = dz * dz * force_div2r_cons;
-            
+
             // add up the force vector components (FLOPS: 7)
             #if (__CUDA_ARCH__ >= 200)
             force.x += dx * force_divr;
@@ -372,11 +372,11 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
             force.y += __fmul_rn(dy, force_divr);
             force.z += __fmul_rn(dz, force_divr);
             #endif
-            
+
             force.w += pair_eng;
             }
         }
-        
+
     // potential energy per particle must be halved
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
@@ -385,49 +385,49 @@ __global__ void gpu_compute_dpdlj_forces_kernel(float4 *d_force,
         d_virial[i*virial_pitch+idx] = virial[i];
     }
 
-//! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
+//! Kernel driver that computes pair DPD thermo forces on the GPU
 /*! \param args Additional options
     \param d_params Per type-pair parameters for the evaluator
-    
-    This is just a driver function for gpu_compute_dpdlj_forces_kernel(), see it for details.
+
+    This is just a driver function for gpu_compute_dpd_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_dpdlj_forces(const dpdlj_pair_args_t& args,
+cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                    const typename evaluator::param_type *d_params)
     {
     assert(d_params);
     assert(args.d_rcutsq);
-    assert(args.d_ronsq);    
+    assert(args.d_ronsq);
     assert(args.ntypes > 0);
-    
+
     // setup the grid to run the kernel
     dim3 grid( args.N / args.block_size + 1, 1, 1);
     dim3 threads(args.block_size, 1, 1);
 
     // bind the position texture
-    pdata_dpdlj_pos_tex.normalized = false;
-    pdata_dpdlj_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_dpdlj_pos_tex, args.d_pos, sizeof(float4)*args.N);
+    pdata_dpd_pos_tex.normalized = false;
+    pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, args.d_pos, sizeof(float4)*args.N);
     if (error != cudaSuccess)
         return error;
 
     // bind the velocity texture
-    pdata_dpdlj_vel_tex.normalized = false;
-    pdata_dpdlj_vel_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_dpdlj_vel_tex, args.d_vel,  sizeof(float4)*args.N);
+    pdata_dpd_vel_tex.normalized = false;
+    pdata_dpd_vel_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_dpd_vel_tex, args.d_vel,  sizeof(float4)*args.N);
     if (error != cudaSuccess)
         return error;
 
     Index2D typpair_idx(args.ntypes);
-    unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
+    unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type))
                                 * typpair_idx.getNumElements();
-    
+
     // run the kernel
     // run the kernel
     switch (args.shift_mode)
         {
         case 0:
-            gpu_compute_dpdlj_forces_kernel<evaluator, 0>
+            gpu_compute_dpd_forces_kernel<evaluator, 0>
                                  <<<grid, threads, shared_bytes>>>
                                  (args.d_force,
                                   args.d_virial,
@@ -440,8 +440,8 @@ cudaError_t gpu_compute_dpdlj_forces(const dpdlj_pair_args_t& args,
                                   args.d_nlist,
                                   args.nli,
                                   d_params,
-                                  args.d_rcutsq,                                  
-                                  args.d_ronsq,        
+                                  args.d_rcutsq,
+                                  args.d_ronsq,
                                   args.seed,
                                   args.timestep,
                                   args.deltaT,
@@ -449,7 +449,7 @@ cudaError_t gpu_compute_dpdlj_forces(const dpdlj_pair_args_t& args,
                                   args.ntypes);
             break;
         case 1:
-            gpu_compute_dpdlj_forces_kernel<evaluator, 1>
+            gpu_compute_dpd_forces_kernel<evaluator, 1>
                                  <<<grid, threads, shared_bytes>>>
                                  (args.d_force,
                                   args.d_virial,
@@ -462,8 +462,8 @@ cudaError_t gpu_compute_dpdlj_forces(const dpdlj_pair_args_t& args,
                                   args.d_nlist,
                                   args.nli,
                                   d_params,
-                                  args.d_rcutsq,                                  
-                                  args.d_ronsq,        
+                                  args.d_rcutsq,
+                                  args.d_ronsq,
                                   args.seed,
                                   args.timestep,
                                   args.deltaT,
@@ -471,7 +471,7 @@ cudaError_t gpu_compute_dpdlj_forces(const dpdlj_pair_args_t& args,
                                   args.ntypes);
             break;
         case 2:
-            gpu_compute_dpdlj_forces_kernel<evaluator, 2>
+            gpu_compute_dpd_forces_kernel<evaluator, 2>
                                  <<<grid, threads, shared_bytes>>>
                                  (args.d_force,
                                   args.d_virial,
@@ -484,8 +484,8 @@ cudaError_t gpu_compute_dpdlj_forces(const dpdlj_pair_args_t& args,
                                   args.d_nlist,
                                   args.nli,
                                   d_params,
-                                  args.d_rcutsq,                                  
-                                  args.d_ronsq,        
+                                  args.d_rcutsq,
+                                  args.d_ronsq,
                                   args.seed,
                                   args.timestep,
                                   args.deltaT,
@@ -494,19 +494,11 @@ cudaError_t gpu_compute_dpdlj_forces(const dpdlj_pair_args_t& args,
             break;
         default:
             return cudaErrorUnknown;
-        }    
-    
-    
-    
-    
-    
+        }
 
-
-        
     return cudaSuccess;
     }
 
 #endif
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__
-

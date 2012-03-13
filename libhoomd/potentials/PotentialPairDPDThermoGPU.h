@@ -50,18 +50,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: phillicl
 
-#ifndef __POTENTIAL_PAIR_DPDLJTHERMO_GPU_H__
-#define __POTENTIAL_PAIR_DPDLJTHERMO_GPU_H__
+#ifndef __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
+#define __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
 
 #ifdef ENABLE_CUDA
 
 #include <boost/bind.hpp>
 #include "Variant.h"
-#include "PotentialPairDPDLJThermo.h"
-#include "PotentialPairDPDLJThermoGPU.cuh"
+#include "PotentialPairDPDThermoGPU.cuh"
 #include "AllPairPotentials.h"
 
-/*! \file PotentialPairDPDLJThermoGPU.h
+/*! \file PotentialPairDPDThermoGPU.h
     \brief Defines the template class for standard pair potentials on the GPU
     \note This header cannot be compiled by nvcc
 */
@@ -74,30 +73,30 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! Derived from PotentialPair, this class provides exactly the same interface for computing pair potentials and forces.
     In the same way as PotentialPair, this class serves as a shell dealing with all the details common to every pair
     potential calculation while the \a evaluator calculates V(r) in a generic way.
-    
-    Due to technical limitations, the instantiation of PotentialPairDPDLJThermoGPU cannot create a CUDA kernel automatically
-    with the \a evaluator. Instead, a .cu file must be written that provides a driver function to call 
-    gpu_compute_dpdlj_forces() instantiated with the same evaluator. (See PotentialPairDPDLJGPU.cu and 
-    PotentialPairDPDLJGPU.cuh for an example). That function is then passed into this class as another template parameter
+
+    Due to technical limitations, the instantiation of PotentialPairDPDThermoGPU cannot create a CUDA kernel automatically
+    with the \a evaluator. Instead, a .cu file must be written that provides a driver function to call
+    gpu_compute_dpd_forces() instantiated with the same evaluator. (See PotentialPairDPDThermoGPU.cuh for an example).
+    That function is then passed into this class as another template parameter
     \a gpu_cpdf
-    
+
     \tparam evaluator EvaluatorPair class used to evaluate V(r) and F(r)/r
     \tparam gpu_cpdf Driver function that calls gpu_compute_dpd_forces<evaluator>()
-    
-    \sa export_PotentialPairDPDLJThermoGPU()
+
+    \sa export_PotentialPairDPDThermoGPU()
 */
-template< class evaluator, cudaError_t gpu_cpdf(const dpdlj_pair_args_t& pair_args,
+template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-class PotentialPairDPDLJThermoGPU : public PotentialPairDPDLJThermo<evaluator>
+class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
     public:
         //! Construct the pair potential
-        PotentialPairDPDLJThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialPairDPDLJThermoGPU() { };
-        
+        virtual ~PotentialPairDPDThermoGPU() { };
+
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
             Performance of the code may be dependant on the block size run
@@ -109,72 +108,72 @@ class PotentialPairDPDLJThermoGPU : public PotentialPairDPDLJThermo<evaluator>
             }
     protected:
         unsigned int m_block_size;  //!< Block size to execute on the GPU
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cpdf(const dpdlj_pair_args_t& pair_args,
+template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-PotentialPairDPDLJThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDLJThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
-    : PotentialPairDPDLJThermo<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
+    : PotentialPairDPDThermo<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
         {
-        std::cerr << std::endl << "***Error! Creating a PotentialPairDPDLJThermoGPU with no GPU in the execution configuration" 
+        std::cerr << std::endl << "***Error! Creating a PotentialPairDPDThermoGPU with no GPU in the execution configuration"
                   << std::endl << std::endl;
-        throw std::runtime_error("Error initializing PotentialPairDPDLJThermoGPU");
+        throw std::runtime_error("Error initializing PotentialPairDPDThermoGPU");
         }
-        
+
     if (this->m_pdata->getNTypes() > 44)
         {
-        std::cerr << std::endl << "***Error! PotentialPairDPDLJThermoGPU cannot handle " << this->m_pdata->getNTypes() << " types" 
+        std::cerr << std::endl << "***Error! PotentialPairDPDThermoGPU cannot handle " << this->m_pdata->getNTypes() << " types"
                   << std::endl << std::endl;
-        throw std::runtime_error("Error initializing PotentialPairDPDLJThermoGPU");
-        }        
+        throw std::runtime_error("Error initializing PotentialPairDPDThermoGPU");
+        }
     }
 
-template< class evaluator, cudaError_t gpu_cpdf(const dpdlj_pair_args_t& pair_args,
+template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-void PotentialPairDPDLJThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep)
+void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
-    
+
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
-    
+
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        std::cerr << std::endl << "***Error! PotentialPairDPDLJThermoGPU cannot handle a half neighborlist" 
+        std::cerr << std::endl << "***Error! PotentialPairDPDThermoGPU cannot handle a half neighborlist"
                   << std::endl << std::endl;
-        throw std::runtime_error("Error computing forces in PotentialPairDPDLJThermoGPU");
+        throw std::runtime_error("Error computing forces in PotentialPairDPDThermoGPU");
         }
-        
+
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
-    
+
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::read);
 
     gpu_boxsize box = this->m_pdata->getBoxGPU();
-    
+
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
-    
+
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
-    gpu_cpdf(dpdlj_pair_args_t(d_force.data,
+    gpu_cpdf(dpd_pair_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
                              this->m_pdata->getN(),
@@ -194,19 +193,19 @@ void PotentialPairDPDLJThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned 
                              this->m_T->getValue(timestep),
                              this->m_shift_mode),
                              d_params.data);
-    
+
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDLJThermoGPU class template.
-    \tparam Base Base class of \a T. \b Must be PotentialPairDPDLJThermo<evaluator> with the same evaluator as used in \a T.
+    \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermoGPU class template.
+    \tparam Base Base class of \a T. \b Must be PotentialPairDPDThermo<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_PotentialPairDPDLJThermoGPU(const std::string& name)
+template < class T, class Base > void export_PotentialPairDPDThermoGPU(const std::string& name)
     {
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
@@ -215,5 +214,4 @@ template < class T, class Base > void export_PotentialPairDPDLJThermoGPU(const s
     }
 
 #endif // ENABLE_CUDA
-#endif // __POTENTIAL_PAIR_DPDLJTHERMO_GPU_H__
-
+#endif // __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
