@@ -235,9 +235,13 @@ class EvaluatorPairDPDThermo
             
         //! Evaluate the force and energy using the thermostat
         /*! \param force_divr Output parameter to write the computed force divided by r.
+            \param force_divr_cons Output parameter to write the computed conservative force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
                   in PotentialPair.
+
+            \note The conservative part \b only must be output to \a force_divr_cons so that the virial may be
+                  computed correctly.
             
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
