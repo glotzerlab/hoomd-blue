@@ -257,7 +257,7 @@ cudaError_t TransformBondDataGPU::gpu_create_bondtable(unsigned int num_bonds,
 
     // create the bond_map of 2D bond table indices for all first bond members
     thrust::exclusive_scan_by_key(bond_sort_keys.begin(),
-                                  bond_sort_keys.end() + 2 * num_bonds,
+                                  bond_sort_keys.begin() + 2 * num_bonds,
                                   thrust::make_constant_iterator(pitch),
                                   bond_map.begin());
 
