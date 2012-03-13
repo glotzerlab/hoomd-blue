@@ -199,6 +199,26 @@ void Communicator::allocate()
 
         }
 
+    // allocate temp storage for particle data
+    GPUArray<Scalar4> pos_tmp(m_pdata->getPositions().getNumElements(), exec_conf);
+    m_pos_tmp.swap(pos_tmp);
+    GPUArray<Scalar4> vel_tmp(m_pdata->getVelocities().getNumElements(), exec_conf);
+    m_vel_tmp.swap(vel_tmp);
+    GPUArray<Scalar3> accel_tmp(m_pdata->getAccelerations().getNumElements(), exec_conf);
+    m_accel_tmp.swap(accel_tmp);
+    GPUArray<int3> image_tmp(m_pdata->getImages().getNumElements(), exec_conf);
+    m_image_tmp.swap(image_tmp);
+    GPUArray<Scalar> charge_tmp(m_pdata->getCharges().getNumElements(), exec_conf);
+    m_charge_tmp.swap(charge_tmp);
+    GPUArray<Scalar> diameter_tmp(m_pdata->getDiameters().getNumElements(), exec_conf);
+    m_diameter_tmp.swap(diameter_tmp);
+    GPUArray<unsigned int> body_tmp(m_pdata->getBodies().getNumElements(), exec_conf);
+    m_body_tmp.swap(body_tmp);
+    GPUArray<Scalar4> orientation_tmp(m_pdata->getOrientationArray().getNumElements(), exec_conf);
+    m_orientation_tmp.swap(orientation_tmp);
+    GPUArray<unsigned int> tag_tmp(m_pdata->getTags().getNumElements(), exec_conf);
+    m_tag_tmp.swap(tag_tmp);
+
     m_is_allocated = true;
     }
 

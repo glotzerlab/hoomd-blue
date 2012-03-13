@@ -374,6 +374,17 @@ class Communicator
         std::vector<Scalar> scal_tmp;            //!< Temporary list used to apply the sort order to the particle data
         std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
+
+        GPUArray<Scalar4> m_pos_tmp;             //!< Temporary storage of particle positions
+        GPUArray<Scalar4> m_vel_tmp;             //!< Temporary storage of particle velocities
+        GPUArray<Scalar3> m_accel_tmp;           //!< Temporary storage of particle accelerations
+        GPUArray<int3> m_image_tmp;              //!< Temporary storage of particle images
+        GPUArray<Scalar> m_charge_tmp;           //!< Temporary storage of particle charges
+        GPUArray<Scalar> m_diameter_tmp;         //!< Temporary storage of particle diameters
+        GPUArray<unsigned int> m_body_tmp;       //!< Temporary storage of particle body ids
+        GPUArray<Scalar4> m_orientation_tmp;     //!< Temporary storage of particle orientations
+        GPUArray<unsigned int> m_tag_tmp;        //!< Temporary storage of particle tags
+
     };
 
 //! Declaration of python export function

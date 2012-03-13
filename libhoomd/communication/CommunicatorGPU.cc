@@ -129,18 +129,41 @@ void CommunicatorGPU::migrateAtoms()
         if (m_prof)
             m_prof->push("remove ptls");
 
+        if (m_pdata->getMaxN() > m_pos_tmp.getNumElements())
+            {
+            m_pos_tmp.resize(m_pdata->getMaxN());
+            m_vel_tmp.resize(m_pdata->getMaxN());
+            m_accel_tmp.resize(m_pdata->getMaxN());
+            m_image_tmp.resize(m_pdata->getMaxN());
+            m_charge_tmp.resize(m_pdata->getMaxN());
+            m_diameter_tmp.resize(m_pdata->getMaxN());
+            m_body_tmp.resize(m_pdata->getMaxN());
+            m_orientation_tmp.resize(m_pdata->getMaxN());
+            m_tag_tmp.resize(m_pdata->getMaxN());
+            }
+
             {
             // remove all particles from our domain that are going to be sent in the current direction
 
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
-            ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+            ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
+
+            ArrayHandle<Scalar4> d_pos_tmp(m_pos_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_vel_tmp(m_vel_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar3> d_accel_tmp(m_accel_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar> d_charge_tmp(m_charge_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar> d_diameter_tmp(m_diameter_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<int3> d_image_tmp(m_image_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_body_tmp(m_body_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_orientation_tmp(m_orientation_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_tag_tmp(m_tag_tmp, access_location::device, access_mode::overwrite);
 
             /* Reorder particles.
                Particles that stay in our domain come first, followed by the particles that are sent to a
@@ -149,22 +172,46 @@ void CommunicatorGPU::migrateAtoms()
             gpu_migrate_select_particles(m_pdata->getN(),
                                    n_send_ptls,
                                    d_pos.data,
+                                   d_pos_tmp.data,
                                    d_vel.data,
+                                   d_vel_tmp.data,
                                    d_accel.data,
+                                   d_accel_tmp.data,
                                    d_image.data,
+                                   d_image_tmp.data,
                                    d_charge.data,
+                                   d_charge_tmp.data,
                                    d_diameter.data,
+                                   d_diameter_tmp.data,
                                    d_body.data,
+                                   d_body_tmp.data,
                                    d_orientation.data,
+                                   d_orientation_tmp.data,
                                    d_global_tag.data,
+                                   d_tag_tmp.data,
                                    m_pdata->getBoxGPU(),
                                    dir);
+            }
 
-            // Update number of particles in system
-            m_pdata->removeParticles(n_send_ptls);
+        // Swap temporary arrays with particle data arrays
+        m_pdata->getPositions().swap(m_pos_tmp);
+        m_pdata->getVelocities().swap(m_vel_tmp);
+        m_pdata->getAccelerations().swap(m_accel_tmp);
+        m_pdata->getImages().swap(m_image_tmp);
+        m_pdata->getCharges().swap(m_charge_tmp);
+        m_pdata->getDiameters().swap(m_diameter_tmp);
+        m_pdata->getBodies().swap(m_body_tmp);
+        m_pdata->getOrientationArray().swap(m_orientation_tmp);
+        m_pdata->getGlobalTags().swap(m_tag_tmp);
 
+        // Update number of particles in system
+        m_pdata->removeParticles(n_send_ptls);
+
+
+            {
             // Reset reverse lookup tags of removed particles
             ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
 
             gpu_reset_rtags(n_send_ptls,
                             d_global_tag.data + m_pdata->getN(),

@@ -429,32 +429,16 @@ struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tup
         }
     };
 
-
 thrust::device_vector<unsigned int> *keys;       //!< Temporary vector of sort keys
-thrust::device_vector<float4> *float4_tmp;       //!< Temporary vector for permutating particle data
-thrust::device_vector<float3> *float3_tmp;       //!< Temporary vector for permutating particle data
-thrust::device_vector<float> *float_tmp;         //!< Temporary vector for permutating particle data
-thrust::device_vector<unsigned int> *uint_tmp;   //!< Temporary vector for permutating particle data
-thrust::device_vector<int3> *int3_tmp;           //!< Temporary vector for permutating particle data
 
 void gpu_allocate_tmp_storage()
     {
     keys = new thrust::device_vector<unsigned int>;
-    float4_tmp = new thrust::device_vector<float4>;
-    float3_tmp = new thrust::device_vector<float3>;
-    float_tmp = new thrust::device_vector<float>;
-    uint_tmp = new thrust::device_vector<unsigned int>;
-    int3_tmp = new thrust::device_vector<int3>;
     }
 
 void gpu_deallocate_tmp_storage()
     {
     delete keys;
-    delete float4_tmp;
-    delete float3_tmp;
-    delete float_tmp;
-    delete uint_tmp;
-    delete int3_tmp;
     }
 
 //! GPU Kernel to find incomplete bonds
@@ -539,6 +523,45 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
                                                                                     N);
     }
 
+//! Helper kernel to reorder particle data, step one
+__global__ void gpu_reorder_pdata_step_one_kernel(const float4 *d_pos,
+                                         float4 *d_pos_tmp,
+                                         const float4 *d_vel,
+                                         float4 *d_vel_tmp,
+                                         const float3 *d_accel,
+                                         float3 *d_accel_tmp,
+                                         const int3 *d_image,
+                                         int3 *d_image_tmp,
+                                         const float *d_charge,
+                                         float *d_charge_tmp,
+                                         const float *d_diameter,
+                                         float *d_diameter_tmp,
+                                         const unsigned int *d_body,
+                                         unsigned int *d_body_tmp,
+                                         const float4  *d_orientation,
+                                         float4 *d_orientation_tmp,
+                                         const unsigned int *d_tag,
+                                         unsigned int *d_tag_tmp,
+                                         unsigned int *keys,
+                                         unsigned int N)
+    {
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+
+    if (idx >= N)
+        return;
+
+    unsigned int key = keys[idx];
+    d_pos_tmp[idx] = d_pos[key];
+    d_vel_tmp[idx] = d_vel[key];
+    d_accel_tmp[idx] = d_accel[key];
+    d_image_tmp[idx] = d_image[key];
+    d_charge_tmp[idx] = d_charge[key];
+    d_diameter_tmp[idx] = d_diameter[key];
+    d_body_tmp[idx] = d_body[key];
+    d_orientation_tmp[idx] = d_orientation[key];
+    d_tag_tmp[idx] = d_tag[key];
+    }
+
 /*! Reorder the particles according to a migration criterium
  *  Particles that remain in the simulation box come first, followed by the particles that are sent in the
  *  specified direction
@@ -546,51 +569,54 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
  *  \param N Number of particles in local simulation box
  *  \param n_send_ptls Number of particles that are sent (return value)
  *  \param d_pos Array of particle positions
+ *  \param d_pos_tmp Array of particle positions to write to
  *  \param d_vel Array of particle velocities
+ *  \param d_vel_tmp Array of particle velocities to write to
  *  \param d_accel Array of particle accelerations
+ *  \param d_accel_tmp Array of particle accelerations to write to
  *  \param d_image Array of particle images
+ *  \param d_image_tmp Array of particle images
  *  \param d_charge Array of particle charges
+ *  \param d_charge_tmp Array of particle charges
  *  \param d_diameter Array of particle diameter
+ *  \param d_diameter_tmp Array of particle diameter
  *  \param d_body Array of particle body ids
+ *  \param d_body_tmp Array of particle body ids
  *  \param d_orientation Array of particle orientations
+ *  \param d_orientation_tmp Array of particle orientations
  *  \param d_tag Array of particle global tags
+ *  \param d_tag_tmp Array of particle global tags
  *  \param box Dimensions of local simulation box
  *  \param dir Direction to send particles to
  */
 void gpu_migrate_select_particles(unsigned int N,
                         unsigned int &n_send_ptls,
                         float4 *d_pos,
+                        float4 *d_pos_tmp,
                         float4 *d_vel,
+                        float4 *d_vel_tmp,
                         float3 *d_accel,
+                        float3 *d_accel_tmp,
                         int3 *d_image,
+                        int3 *d_image_tmp,
                         float *d_charge,
+                        float *d_charge_tmp,
                         float *d_diameter,
+                        float *d_diameter_tmp,
                         unsigned int *d_body,
-                        float4  *d_orientation,
+                        unsigned int *d_body_tmp,
+                        float4 *d_orientation,
+                        float4 *d_orientation_tmp,
                         unsigned int *d_tag,
+                        unsigned int *d_tag_tmp,
                         gpu_boxsize box,
                         unsigned int dir)
     {
-    thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::device_ptr<float4> vel_ptr(d_vel);
-    thrust::device_ptr<float3> accel_ptr(d_accel);
-    thrust::device_ptr<int3> image_ptr(d_image);
-    thrust::device_ptr<float> charge_ptr(d_charge);
-    thrust::device_ptr<float> diameter_ptr(d_diameter);
-    thrust::device_ptr<unsigned int> body_ptr(d_body);
-    thrust::device_ptr<float4> orientation_ptr(d_orientation);
-    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-
     if (keys->size() < N)
         {
         unsigned int cur_size = keys->size() ? keys->size() : N;
         while (cur_size < N) cur_size *= 2;
         keys->resize(cur_size);
-        float4_tmp->resize(cur_size);
-        float3_tmp->resize(cur_size);
-        float_tmp->resize(cur_size);
-        uint_tmp->resize(cur_size);
-        int3_tmp->resize(cur_size);
         }
 
     thrust::counting_iterator<unsigned int> count(0);
@@ -604,69 +630,14 @@ void gpu_migrate_select_particles(unsigned int N,
 
     n_send_ptls = (keys->begin() + N) - keys_middle;
 
-    // reorder particle data
-    thrust::copy(thrust::make_permutation_iterator(pos_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(pos_ptr + N, keys->begin() +N),
-                 float4_tmp->begin());
-    thrust::copy(float4_tmp->begin(),
-                 float4_tmp->begin() + N,
-                 pos_ptr);
+    unsigned int *d_keys = thrust::raw_pointer_cast(&*keys->begin());
 
-    thrust::copy(thrust::make_permutation_iterator(vel_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(vel_ptr + N, keys->begin() +N),
-                 float4_tmp->begin());
-    thrust::copy(float4_tmp->begin(),
-                 float4_tmp->begin() + N,
-                 vel_ptr);
+    unsigned int block_size = 256;
+    unsigned int num_blocks = N/block_size + 1;
 
-    thrust::copy(thrust::make_permutation_iterator(accel_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(accel_ptr + N, keys->begin() +N),
-                 float3_tmp->begin());
-    thrust::copy(float3_tmp->begin(),
-                 float3_tmp->begin() + N,
-                 accel_ptr);
+    // reorder particle data, write into temporary arrays
+    gpu_reorder_pdata_step_one_kernel<<<num_blocks, block_size>>>(d_pos, d_pos_tmp, d_vel, d_vel_tmp, d_accel, d_accel_tmp, d_image, d_image_tmp, d_charge, d_charge_tmp, d_diameter, d_diameter_tmp, d_body, d_body_tmp, d_orientation, d_orientation_tmp, d_tag, d_tag_tmp, d_keys, N);
 
-    thrust::copy(thrust::make_permutation_iterator(charge_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(charge_ptr + N, keys->begin() +N),
-                 float_tmp->begin());
-    thrust::copy(float_tmp->begin(),
-                 float_tmp->begin() + N,
-                 charge_ptr);
-
-    thrust::copy(thrust::make_permutation_iterator(diameter_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(diameter_ptr + N, keys->begin() +N),
-                 float_tmp->begin());
-    thrust::copy(float_tmp->begin(),
-                 float_tmp->begin() + N,
-                 diameter_ptr);
-
-    thrust::copy(thrust::make_permutation_iterator(image_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(image_ptr + N, keys->begin() +N),
-                 int3_tmp->begin());
-    thrust::copy(int3_tmp->begin(),
-                 int3_tmp->begin() + N,
-                 image_ptr);
-
-    thrust::copy(thrust::make_permutation_iterator(body_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(body_ptr + N, keys->begin() +N),
-                 uint_tmp->begin());
-    thrust::copy(uint_tmp->begin(),
-                 uint_tmp->begin() + N,
-                 body_ptr);
-
-    thrust::copy(thrust::make_permutation_iterator(orientation_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(orientation_ptr + N, keys->begin() +N),
-                 float4_tmp->begin());
-    thrust::copy(float4_tmp->begin(),
-                 float4_tmp->begin() + N,
-                 orientation_ptr);
-
-    thrust::copy(thrust::make_permutation_iterator(tag_ptr, keys->begin()),
-                 thrust::make_permutation_iterator(tag_ptr + N, keys->begin() +N),
-                 uint_tmp->begin());
-    thrust::copy(uint_tmp->begin(),
-                 uint_tmp->begin() + N,
-                 tag_ptr);
     }
 
 //! Reset reverse lookup tags of particles we are removing
