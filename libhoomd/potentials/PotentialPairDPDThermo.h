@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /*! \file PotentialPairDPDThermo.h
-    \brief Defines the template class for a dpd pair potential and thermostat
+    \brief Defines the template class for a dpd thermostat and LJ pair potential
     \note This header cannot be compiled by nvcc
 */
 
@@ -74,23 +74,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-//! Template class for computing dpd pair potential and thermostat
+//! Template class for computing dpd thermostat and LJ pair potential
 /*! <b>Overview:</b>
     TODO - Revise Documentation Below
-    
-    PotentialPairDPDThermo computes a dpd pair potentials (and forces) and thermostat between all particle pairs in the simulation. It
-    employs the use of a neighbor list to limit the number of computations done to only those particles with the 
+
+    PotentialPairDPDThermo computes a dpd thermostat and Lennard Jones pair potentials (and forces) between all particle pairs in the simulation. It
+    employs the use of a neighbor list to limit the number of computations done to only those particles with the
     cuttoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
-    by an evaluator class (e.g. EvaluatorPairDPDThermo) which is passed in as a template parameter so the compuations
+    by an evaluator class (e.g. EvaluatorPairDPDLJThermo) which is passed in as a template parameter so the compuations
     are performed as efficiently as possible.
-    
+
     PotentialPairDPDThermo handles most of the gory internal details common to all standard pair potentials.
      - A cuttoff radius to be specified per particle type pair for the conservative and stochastic potential
      - A RNG seed is stored.
      - Per type pair parameters are stored and a set method is provided
      - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
-    
+
     \sa export_PotentialPairDPDThermo()
 */
 template < class evaluator >
@@ -99,7 +99,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
     public:
         //! Param type from evaluator
         typedef typename evaluator::param_type param_type;
-    
+
         //! Construct the pair potential
         PotentialPairDPDThermo(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<NeighborList> nlist,
@@ -110,15 +110,15 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
 
         //! Set the seed
         virtual void setSeed(unsigned int seed);
-        
+
         //! Set the temperature
-        virtual void setT(boost::shared_ptr<Variant> T);        
+        virtual void setT(boost::shared_ptr<Variant> T);
 
     protected:
-        
+
         unsigned int m_seed;  //!< seed for PRNG for DPD thermostat
         boost::shared_ptr<Variant> m_T;     //!< Temperature for the DPD thermostat
-        
+
         //! Actually compute the forces (overwrites PotentialPair::computeForces())
         virtual void computeForces(unsigned int timestep);
     };
@@ -141,10 +141,10 @@ template< class evaluator >
 void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
     {
     m_seed = seed;
-    
-    // Hash the User's Seed to make it less likely to be a low positive integer    
+
+    // Hash the User's Seed to make it less likely to be a low positive integer
     m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
-    
+
     }
 
 /*! \param T the temperature the system is thermostated on this time step.
@@ -165,14 +165,14 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
-    
+
     // start the profile for this compute
     if (this->m_prof) this->m_prof->push(this->m_prof_name);
-    
+
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
-    
+
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(this->m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(this->m_nlist->getNListArray(), access_location::host, access_mode::read);
@@ -180,20 +180,21 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(this->m_pdata->getVelocities(), access_location::host, access_mode::read);
- 
+
     //force arrays
     ArrayHandle<Scalar4> h_force(this->m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar>  h_virial(this->m_virial,access_location::host, access_mode::overwrite);
 
     const BoxDim& box = this->m_pdata->getBox();
+    ArrayHandle<Scalar> h_ronsq(this->m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(this->m_params, access_location::host, access_mode::read);
-    
+
     // precalculate box lengths for use in the periodic imaging
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    
+
 #pragma omp parallel
     {
     #ifdef ENABLE_OPENMP
@@ -205,7 +206,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     // need to start from a zero force, energy and virial
     memset(&(this->m_fdata_partial[this->m_index_thread_partial(0,tid)]) , 0, sizeof(Scalar4)*this->m_pdata->getN());
     memset(&(this->m_virial_partial[6*this->m_index_thread_partial(0,tid)]) , 0, 6*sizeof(Scalar)*this->m_pdata->getN());
-    
+
     // for each particle
 #pragma omp for schedule(guided)
     for (int i = 0; i < (int)this->m_pdata->getN(); i++)
@@ -223,7 +224,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 
         // sanity check
         assert(typei < this->m_pdata->getNTypes());
-        
+
         // initialize current particle force, potential energy, and virial to 0
         Scalar fxi = 0.0;
         Scalar fyi = 0.0;
@@ -232,7 +233,8 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
         Scalar viriali[6];
         for (unsigned int l = 0; l < 6; l++)
             viriali[l] = 0.0;
-        
+
+
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
@@ -240,66 +242,71 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[nli(i, k)];
             assert(j < this->m_pdata->getN());
-            
+
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar dx = xi - h_pos.data[j].x;
             Scalar dy = yi - h_pos.data[j].y;
             Scalar dz = zi - h_pos.data[j].z;
-            
+
             // calculate dv_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar dvx = vxi - h_vel.data[j].x;
             Scalar dvy = vyi - h_vel.data[j].y;
             Scalar dvz = vzi - h_vel.data[j].z;
-                        
+
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < this->m_pdata->getNTypes());
-            
+
             // apply periodic boundary conditions (FLOPS: 9)
             if (dx >= box.xhi)
                 dx -= Lx;
             else if (dx < box.xlo)
                 dx += Lx;
-                
+
             if (dy >= box.yhi)
                 dy -= Ly;
             else if (dy < box.ylo)
                 dy += Ly;
-                
+
             if (dz >= box.zhi)
                 dz -= Lz;
             else if (dz < box.zlo)
                 dz += Lz;
-                
+
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dx*dx + dy*dy + dz*dz;
-            
+
             //calculate the drag term r \dot v
             Scalar dot = dx*dvx + dy*dvy + dz*dvz;
-            
+
             // get parameters for this type pair
             unsigned int typpair_idx = this->m_typpair_idx(typei, typej);
             param_type param = h_params.data[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
-            
+
+            // design specifies that energies are shifted if
+            // 1) shift mode is set to shift
+            bool energy_shift = false;
+            if (this->m_shift_mode == this->shift)
+                energy_shift = true;
+
             // compute the force and potential energy
             Scalar force_divr = Scalar(0.0);
             Scalar force_divr_cons = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
-            
+
             // Special Potential Pair DPD Requirements
             const Scalar currentTemp = m_T->getValue(timestep);
-            eval.set_seed_ij_timestep(m_seed,i,j,timestep); 
-            eval.setDeltaT(this->m_deltaT);  
+            eval.set_seed_ij_timestep(m_seed,i,j,timestep);
+            eval.setDeltaT(this->m_deltaT);
             eval.setRDotV(dot);
             eval.setT(currentTemp);
-            
-            bool evaluated = eval.evalForceEnergyThermo(force_divr,force_divr_cons, pair_eng);
-            
+
+            bool evaluated = eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
+
             if (evaluated)
                 {
-                    
                 // compute the virial (FLOPS: 2)
                 Scalar pair_virial[6];
                 pair_virial[0] = Scalar(0.5) * dx * dx * force_divr_cons;
@@ -308,17 +315,17 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
                 pair_virial[3] = Scalar(0.5) * dy * dy * force_divr_cons;
                 pair_virial[4] = Scalar(0.5) * dy * dz * force_divr_cons;
                 pair_virial[5] = Scalar(0.5) * dz * dz * force_divr_cons;
-                
+
+
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)
                 fxi += dx*force_divr;
                 fyi += dy*force_divr;
                 fzi += dz*force_divr;
                 pei += pair_eng * Scalar(0.5);
-
                 for (unsigned int l = 0; l < 6; l++)
                     viriali[l] += pair_virial[l];
-                
+
                 // NOTE, If we are using the (third_law) then we need to calculate the drag part of the force on the other particle too!
                 // and NOT include the drag force of the first particle
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
@@ -331,10 +338,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
                     this->m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
                     for (unsigned int l = 0; l < 6; l++)
                         this->m_virial_partial[l+6*mem_idx] += pair_virial[l];
+
                     }
                 }
             }
-            
+
         // finally, increment the force, potential energy and virial for particle i
         unsigned int mem_idx = this->m_index_thread_partial(i,tid);
         this->m_fdata_partial[mem_idx].x += fxi;
@@ -345,7 +353,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             this->m_virial_partial[l+6*mem_idx] += viriali[l];
         }
 #pragma omp barrier
-    
+
     // now that the partial sums are complete, sum up the results in parallel
 #pragma omp for
     for (int i = 0; i < (int)this->m_pdata->getN(); i++)
@@ -368,6 +376,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             h_force.data[i].y += this->m_fdata_partial[mem_idx].y;
             h_force.data[i].z += this->m_fdata_partial[mem_idx].z;
             h_force.data[i].w += this->m_fdata_partial[mem_idx].w;
+            h_virial.data[i]  += this->m_virial_partial[mem_idx];
             for (unsigned int l = 0; l < 6; l++)
                  h_virial.data[l*this->m_virial_pitch+i]  = this->m_virial_partial[l+6*mem_idx];
             }
@@ -387,7 +396,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 //NOTE - not sure this boost python export is set up correctly.
 template < class T, class Base > void export_PotentialPairDPDThermo(const std::string& name)
     {
-    boost::python::scope in_pair = 
+    boost::python::scope in_pair =
         boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases< Base >, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
                   .def("setSeed", &T::setSeed)

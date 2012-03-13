@@ -57,7 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include "Variant.h"
-#include "PotentialPairDPDThermo.h"
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "AllPairPotentials.h"
 
@@ -74,16 +73,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! Derived from PotentialPair, this class provides exactly the same interface for computing pair potentials and forces.
     In the same way as PotentialPair, this class serves as a shell dealing with all the details common to every pair
     potential calculation while the \a evaluator calculates V(r) in a generic way.
-    
+
     Due to technical limitations, the instantiation of PotentialPairDPDThermoGPU cannot create a CUDA kernel automatically
-    with the \a evaluator. Instead, a .cu file must be written that provides a driver function to call 
-    gpu_compute_dpd_forces() instantiated with the same evaluator. (See PotentialPairLJGPU.cu and 
-    PotentialPairLJGPU.cuh for an example). That function is then passed into this class as another template parameter
+    with the \a evaluator. Instead, a .cu file must be written that provides a driver function to call
+    gpu_compute_dpd_forces() instantiated with the same evaluator. (See PotentialPairDPDThermoGPU.cuh for an example).
+    That function is then passed into this class as another template parameter
     \a gpu_cpdf
-    
+
     \tparam evaluator EvaluatorPair class used to evaluate V(r) and F(r)/r
     \tparam gpu_cpdf Driver function that calls gpu_compute_dpd_forces<evaluator>()
-    
+
     \sa export_PotentialPairDPDThermoGPU()
 */
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
@@ -97,7 +96,7 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
                          const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPairDPDThermoGPU() { };
-        
+
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
             Performance of the code may be dependant on the block size run
@@ -109,7 +108,7 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
             }
     protected:
         unsigned int m_block_size;  //!< Block size to execute on the GPU
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -123,17 +122,17 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boos
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
         {
-        std::cerr << std::endl << "***Error! Creating a PotentialPairDPDThermoGPU with no GPU in the execution configuration" 
+        std::cerr << std::endl << "***Error! Creating a PotentialPairDPDThermoGPU with no GPU in the execution configuration"
                   << std::endl << std::endl;
         throw std::runtime_error("Error initializing PotentialPairDPDThermoGPU");
         }
-        
+
     if (this->m_pdata->getNTypes() > 44)
         {
-        std::cerr << std::endl << "***Error! PotentialPairDPDThermoGPU cannot handle " << this->m_pdata->getNTypes() << " types" 
+        std::cerr << std::endl << "***Error! PotentialPairDPDThermoGPU cannot handle " << this->m_pdata->getNTypes() << " types"
                   << std::endl << std::endl;
         throw std::runtime_error("Error initializing PotentialPairDPDThermoGPU");
-        }        
+        }
     }
 
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
@@ -142,37 +141,40 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
-    
+
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
-    
+
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        std::cerr << std::endl << "***Error! PotentialPairDPDThermoGPU cannot handle a half neighborlist" 
+        std::cerr << std::endl << "***Error! PotentialPairDPDThermoGPU cannot handle a half neighborlist"
                   << std::endl << std::endl;
         throw std::runtime_error("Error computing forces in PotentialPairDPDThermoGPU");
         }
-        
+
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
-    
+
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::read);
 
     gpu_boxsize box = this->m_pdata->getBoxGPU();
-    
+
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
-    
+
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+
+    // access flags
+    PDataFlags flags = this->m_pdata->getFlags();
 
     gpu_cpdf(dpd_pair_args_t(d_force.data,
                              d_virial.data,
@@ -185,17 +187,20 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              d_nlist.data,
                              nli,
                              d_rcutsq.data,
+                             d_ronsq.data,
                              this->m_pdata->getNTypes(),
                              m_block_size,
                              this->m_seed,
                              timestep,
                              this->m_deltaT,
-                             this->m_T->getValue(timestep)),
-             d_params.data);
-    
+                             this->m_T->getValue(timestep),
+                             this->m_shift_mode,
+                             flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]),
+                             d_params.data);
+
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 

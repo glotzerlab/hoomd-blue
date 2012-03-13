@@ -63,7 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDThermo.h"
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairEwald.h"
-#include "PotentialPairDPDLJThermoGPU.cuh"
 #include "EvaluatorPairDPDLJThermo.h"
 
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
@@ -126,18 +125,18 @@ cudaError_t gpu_compute_ewald_forces(const pair_args_t& pair_args,
     }
 
 
-cudaError_t gpu_compute_dpdljthermodpd_forces(const dpdlj_pair_args_t& args,
-                                            const float4 *d_params)
+cudaError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
+                                              const float4 *d_params)
     {
-    return gpu_compute_dpdlj_forces<EvaluatorPairDPDLJThermo>(args,
-                                                          d_params);
+    return gpu_compute_dpd_forces<EvaluatorPairDPDLJThermo>(args,
+                                                            d_params);
     }
 
 
 cudaError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
-                                         const float4 *d_params)
+                                           const float4 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairDPDLJThermo>(args,
-                                                           d_params);
+                                                             d_params);
     }
 
