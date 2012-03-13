@@ -320,28 +320,37 @@ void BondData::updateBondTableGPU()
 
         {
         ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
-        m_transform_bond_data.gpu_find_max_bond_number(max_bond_num,
+        gpu_find_max_bond_number(max_bond_num,
+                                 d_n_bonds.data,
                                  d_bonds.data,
-                                 d_bond_type.data,
                                  m_bonds.size(),
                                  m_pdata->getN(),
-                                 d_rtag.data,
-                                 d_n_bonds.data);
+                                 d_rtag.data);
         }
 
     // re allocate memory if needed
     if (max_bond_num > m_gpu_bondlist.getHeight())
         {
-        reallocateBondTable(max_bond_num);
+        m_gpu_bondlist.resize(m_pdata->getN(), max_bond_num);
         }
 
-    ArrayHandle<uint2> d_gpu_bondlist(m_gpu_bondlist, access_location::device, access_mode::overwrite);
-    m_transform_bond_data.gpu_create_bondtable(m_bonds.size(),
-                         d_gpu_bondlist.data,
-                         m_gpu_bondlist.getPitch());
+        {
+        ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
+        ArrayHandle<uint2> d_gpu_bondlist(m_gpu_bondlist, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+        gpu_create_bondtable(d_gpu_bondlist.data,
+                             d_n_bonds.data,
+                             d_bonds.data,
+                             d_bond_type.data,
+                             d_rtag.data,
+                             m_bonds.size(),
+                             m_gpu_bondlist.getPitch(),
+                             m_pdata->getN());
+        }
     }
 #endif
 
@@ -369,11 +378,14 @@ void BondData::updateBondTable()
             {
             unsigned int tag1 = ((uint2) m_bonds[cur_bond]).x;
             unsigned int tag2 = ((uint2) m_bonds[cur_bond]).y;
-            int idx1 = h_rtag.data[tag1];
-            int idx2 = h_rtag.data[tag2];
+            unsigned int idx1 = h_rtag.data[tag1];
+            unsigned int idx2 = h_rtag.data[tag2];
 
-            h_n_bonds.data[idx1]++;
-            h_n_bonds.data[idx2]++;
+            // only local particles are considered
+            if (idx1 < m_pdata->getN())
+                h_n_bonds.data[idx1]++;
+            if (idx2 < m_pdata->getN())
+                h_n_bonds.data[idx2]++;
             }
 
         // find the maximum number of bonds
@@ -388,7 +400,7 @@ void BondData::updateBondTable()
     // re allocate memory if needed
     if (num_bonds_max > m_gpu_bondlist.getHeight())
         {
-        reallocateBondTable(num_bonds_max);
+        m_gpu_bondlist.resize(m_pdata->getN(), num_bonds_max);
         }
 
         {
@@ -406,36 +418,28 @@ void BondData::updateBondTable()
             unsigned int tag1 = ((uint2)m_bonds[cur_bond]).x;
             unsigned int tag2 = ((uint2)m_bonds[cur_bond]).y;
             unsigned int type = m_bond_type[cur_bond];
-            int idx1 = h_rtag.data[tag1];
-            int idx2 = h_rtag.data[tag2];
+            unsigned int idx1 = h_rtag.data[tag1];
+            unsigned int idx2 = h_rtag.data[tag2];
 
             // get the number of bonds for each particle
-            int num1 = h_n_bonds.data[idx1];
-            int num2 = h_n_bonds.data[idx2];
-
             // add the new bonds to the table
-            h_gpu_bondlist.data[num1*pitch + idx1] = make_uint2(idx2, type);
-            h_gpu_bondlist.data[num2*pitch + idx2] = make_uint2(idx1, type);
-
             // increment the number of bonds
-            h_n_bonds.data[idx1]++;
-            h_n_bonds.data[idx2]++;
+            if (idx1 < m_pdata->getN())
+                {
+                unsigned int num1 = h_n_bonds.data[idx1];
+                h_gpu_bondlist.data[num1*pitch + idx1] = make_uint2(idx2, type);
+                h_n_bonds.data[idx1]++;
+                }
+            if (idx2 < m_pdata->getN())
+                {
+                unsigned int num2 = h_n_bonds.data[idx2];
+                h_gpu_bondlist.data[num2*pitch + idx2] = make_uint2(idx1, type);
+                h_n_bonds.data[idx2]++;
+                }
             }
         }
     }
 
-/*! \param height New height for the bond table
-    
-    \post Reallocates memory on the device making room for up to
-    \a height bonds per particle.
-    
-    \note updateBondTableGPU() needs to be called after so that the
-    data in the bond table will be correct.
-*/
-void BondData::reallocateBondTable(int height)
-    {
-    m_gpu_bondlist.resize(m_pdata->getN(), height);
-    }
 
 /*! \param height Height for the bond table
 */

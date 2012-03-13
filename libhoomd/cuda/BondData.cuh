@@ -54,47 +54,31 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _BONDDATA_CUH_
 
 #include <cuda_runtime.h>
+
 #include <thrust/device_vector.h>
 
 /*! \file BondData.cuh
     \brief GPU helper functions used in BondData
 */
 
-//! Helper class for transforming bond data on the GPU
-class TransformBondDataGPU
-    {
-    public:
-        //! Find the maximum number of bonds per particle
-        cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
-                                         uint2 *d_bonds,
-                                         unsigned int *d_bond_type,
-                                         unsigned int num_bonds,
-                                         unsigned int N,
-                                         unsigned int *d_rtag,
-                                         unsigned int *d_n_bonds);
+//! Find the maximum number of bonds per particle
+cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
+                                     unsigned int *d_n_bonds,
+                                     const uint2 *d_bonds,
+                                     const unsigned int num_bonds,
+                                     const unsigned int N,
+                                     const unsigned int *d_rtag);
 
-        //! Construct the GPU bond table
-        cudaError_t gpu_create_bondtable(unsigned int num_bonds,
-                                         uint2 *d_gpu_bondtable,
-                                         unsigned int pitch);
+//! Construct the GPU bond table
+cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
+                                 unsigned int *d_n_bonds,
+                                 const uint2 *d_bonds,
+                                 const unsigned int *d_bond_type,
+                                 const unsigned int *d_rtag,
+                                 const unsigned int num_bonds,
+                                 unsigned int pitch,
+                                 unsigned int N);
 
-    private:
-        #ifdef NVCC
-        //! Sorted array of the first bond member as key
-        thrust::device_vector<unsigned int> bond_sort_keys;
 
-        //! Sorted array of the second bond member and the bond type as value
-        thrust::device_vector<uint2> bond_sort_values;
-
-        //! Map of indices in the 2D GPU bond table for every first member of a bond
-        thrust::device_vector<unsigned int> bond_map;
-
-        //! Sorted list of number of bonds for each particle index
-        thrust::device_vector<unsigned int> num_bonds_sorted;
-
-        //! Sorted list of particle indices that have at least one bond
-        thrust::device_vector<unsigned int> bonded_indices;
-        #endif
-    };
 #endif
 

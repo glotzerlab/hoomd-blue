@@ -86,6 +86,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
+// forward declaration of Profiler
+class Profiler;
 
 //! Stores a bond between two particles
 /*! Each bond is given an integer \c type from 0 to \c NBondTypes-1 and the \em tags
@@ -230,6 +232,14 @@ class BondData : boost::noncopyable
         //! Initialize the bond data from a snapshot
         void initializeFromSnapshot(const SnapshotBondData& snapshot);
 
+        //! Set the profiler
+        /*! \param prof The profiler
+         */
+        void setProfiler(boost::shared_ptr<Profiler> prof)
+            {
+            m_prof = prof;
+            }
+
     private:
         const unsigned int m_n_bond_types;              //!< Number of bond types
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
@@ -257,9 +267,8 @@ class BondData : boost::noncopyable
         GPUArray<uint2> m_gpu_bondlist;     //!< List of bonds on the GPU
         GPUArray<unsigned int> m_n_bonds;   //!< Array of the number of bonds
 
+        boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
-        TransformBondDataGPU m_transform_bond_data; //!< GPU helper class to transform the bond data
-
         //! Helper function to update the bond table on the device
         void updateBondTableGPU();
 #endif
@@ -267,9 +276,6 @@ class BondData : boost::noncopyable
         //! Helper function to update the GPU bond table
         void updateBondTable();
 
-        //! Helper function to reallocate the bond table on the device
-        void reallocateBondTable(int height);
-        
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);
         
