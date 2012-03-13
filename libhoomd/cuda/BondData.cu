@@ -176,7 +176,7 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
                                  const unsigned int *d_bond_type,
                                  const unsigned int *d_rtag,
                                  const unsigned int num_bonds,
-                                 unsigned int pitch,
+
                                  unsigned int N)
     {
     unsigned int block_size = 512;
