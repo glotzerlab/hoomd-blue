@@ -85,6 +85,10 @@ minimize the CPU usage of hoomd when it runs on a GPU
 <b>--gpu_error_checking</b>
 \par
 enable error checks after every GPU kernel call
+
+<b>--user</b>
+\par
+user options
 <hr>
 
 <h2>Detailed description</h2>
@@ -120,7 +124,7 @@ it makes the same automatic choice described previously. If none are found, it r
 
 <hr>
 <h3>Automatic determination of the GPU on which to run</h3>
-If CUDA 2.2 or newer is installed on a Linux OS, free GPUs can be determined automatically. To utilize this
+Free GPUs can be determined automatically. To utilize this
 capability, the system administrator (root) must first use the \c nvidia-smi utility to enable 
 the compute-exclusive mode on all GPUs in the system (for an example, see http://forums.nvidia.com/index.php?showtopic=96638&hl=nvidia-smi).
 With this mode enabled, running hoomd with no options or with the \c --mode=gpu option will result in an automatic
@@ -139,9 +143,6 @@ hoomd some_script.hoomd --minimize-cpu-usage
 \endcode
 Tests performed indicate that enabling this option incurs a 10% overall performance reduction, 
 but the CPU usage of hoomd is reduced to only 10% of a single CPU core.
-
-\note For the --minimize-cpu-usage option to work, hoomd must be compiled and used on a system with CUDA 
-version 2.2 or newer.
 
 <hr>
 
@@ -172,6 +173,18 @@ HOOMD-blue runs in parallel on any number of local CPU cores using OpenMP. The n
 used is determined by the OpenMP runtime, which usually defaults to all CPU cores in the system. Limit the number of 
 CPU cores used by setting the environment variable OMP_NUM_THREADS before executing hoomd or by using the --ncpu
 command line option.
+
+<hr>
+
+<h3>User options</h3>
+
+User defined options may be passed to a job script via --user and retrieved by calling option.get_user(). For example,
+if hoomd is executed as
+\code
+hoomd some_script.py --gpu=2 --ignore-display-gpu --user="--N=5 --rho=0.5"
+\endcode
+then option.get_user() will return ['--N=5', '--rho=0.5'], which is a format suitable for processing by standard
+tools such as optparse.
 
 <hr>
 
