@@ -85,6 +85,10 @@ minimize the CPU usage of hoomd when it runs on a GPU
 <b>--gpu_error_checking</b>
 \par
 enable error checks after every GPU kernel call
+
+<b>--user</b>
+\par
+user options
 <hr>
 
 <h2>Detailed description</h2>
@@ -172,6 +176,18 @@ HOOMD-blue runs in parallel on any number of local CPU cores using OpenMP. The n
 used is determined by the OpenMP runtime, which usually defaults to all CPU cores in the system. Limit the number of 
 CPU cores used by setting the environment variable OMP_NUM_THREADS before executing hoomd or by using the --ncpu
 command line option.
+
+<hr>
+
+<h3>User options</h3>
+
+User defined options may be passed to a job script via --user and retrieved by calling option.get_user(). For example,
+if hoomd is executed as
+\code
+hoomd some_script.py --gpu=2 --ignore-display-gpu --user="--N=5 --rho=0.5"
+\endcode
+then option.get_user() will return ['--N=5', '--rho=0.5'], which is a format suitable for processing by standard
+tools such as optparse.
 
 <hr>
 

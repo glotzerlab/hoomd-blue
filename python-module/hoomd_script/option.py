@@ -63,6 +63,7 @@ import hoomd;
 import globals;
 import init;
 import sys;
+import shlex;
 
 ## \internal
 # \brief Storage for all option values
@@ -77,6 +78,7 @@ class options:
         self.gpu_error_checking = None;
         self.min_cpu = None;
         self.ignore_display = None;
+        self.user = [];
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -84,7 +86,8 @@ class options:
                    ncpu=self.ncpu,
                    gpu_error_checking=self.gpu_error_checking,
                    min_cpu=self.min_cpu,
-                   ignore_display=self.ignore_display);
+                   ignore_display=self.ignore_display,
+                   user=self.user);
         return str(tmp);
 
 ## Parses command line options
@@ -99,7 +102,8 @@ def _parse_command_line():
     parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
     parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
     parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
-    
+    parser.add_option("--user", dest="user", help="User options");
+
     (cmd_options, args) = parser.parse_args();
     
     # chedk for valid mode setting
@@ -143,6 +147,9 @@ def _parse_command_line():
     globals.options.gpu_error_checking = cmd_options.gpu_error_checking;
     globals.options.min_cpu = cmd_options.min_cpu;
     globals.options.ignore_display = cmd_options.ignore_display;
+
+    if cmd_options.user is not None:
+        globals.options.user = shlex.split(cmd_options.user);
 
 ## Set the execution mode
 #
@@ -252,6 +259,14 @@ def set_ignore_display(ignore_display):
             
     globals.options.ignore_display = ignore_display;
 
+## Get user options
+#
+# \return List of user options passed in via --user="arg1 arg2 ..."
+# \sa \ref page_command_line_options
+#
+def get_user():
+    return globals.options.user;
+    
 ################### Parse command line on load
 globals.options = options();
 _parse_command_line();
