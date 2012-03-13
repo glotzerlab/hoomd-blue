@@ -1,6 +1,10 @@
 #ifndef SARUPRNGCPU_H
 #define SARUPRNGCPU_H
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4307 )

@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Contains declarations for RigidData and related classes.
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __RIGID_DATA_H__
 #define __RIGID_DATA_H__
 

@@ -50,14 +50,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file SignalHandler.h
+    \brief Declares variables and functions related to handling signals
+*/
+
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __SIGNALHANDLER_H__
 #define __SIGNALHANDLER_H__
 
 #include <signal.h>
-
-/*! \file SignalHandler.h
-    \brief Declares variables and functions related to handling signals
-*/
 
 //! Value set to non-zero if SIGINT has occured
 /*! Any method that reads this value as non-zero should immediately reset it to 0

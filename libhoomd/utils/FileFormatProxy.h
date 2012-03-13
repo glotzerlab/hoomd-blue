@@ -55,6 +55,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     transparent i/o to molecular file formats.
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __FILE_FORMAT_PROXY_H__
 #define __FILE_FORMAT_PROXY_H__
 

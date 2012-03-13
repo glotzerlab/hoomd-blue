@@ -59,6 +59,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the TwoStepNPHGPU class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Integrates part of the system forward in two steps in the NPH ensemble on the GPU
 /*! Implements Andersen NPH integration through the IntegrationMethodTwoStep interface, runs on the GPU
 

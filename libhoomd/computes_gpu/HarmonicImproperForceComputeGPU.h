@@ -65,6 +65,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the HarmonicImproperForceGPU class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __HARMONICIMPROPERFORCECOMPUTEGPU_H__
 #define __HARMONICIMPROPERFORCECOMPUTEGPU_H__
 

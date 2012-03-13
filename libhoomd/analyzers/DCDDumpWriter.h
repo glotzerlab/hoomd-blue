@@ -63,6 +63,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the DCDDumpWriter class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 // The DCD Dump writer is based on code from the molfile plugin to VMD
 // and is use under the following license
 

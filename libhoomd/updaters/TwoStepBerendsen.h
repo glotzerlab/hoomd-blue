@@ -62,6 +62,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declaration of Berendsen thermostat
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 /*! Implements the Berendsen thermostat \cite Berendsen1984
 */
 class TwoStepBerendsen : public IntegrationMethodTwoStep
