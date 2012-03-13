@@ -287,6 +287,7 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             
             // evaluate the potential
             float force_divr = 0.0f;
+            float force_divr_cons = 0.0f;
             float pair_eng = 0.0f;
 
             // Special Potential Pair DPD Requirements
@@ -295,16 +296,16 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             eval.setRDotV(dot);
             eval.setT(d_T);            
             
-            eval.evalForceEnergyThermo(force_divr, pair_eng);
+            eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng);
 
             // calculate the virial (FLOPS: 3)
-            float force_div2r = 0.5f*force_divr;
-            virial[0] += dx * dx * force_div2r;
-            virial[1] += dx * dy * force_div2r;
-            virial[2] += dx * dz * force_div2r;
-            virial[3] += dy * dy * force_div2r;
-            virial[4] += dy * dz * force_div2r;
-            virial[5] += dz * dz * force_div2r;
+            float force_div2r_cons = 0.5f*force_divr_cons;
+            virial[0] += dx * dx * force_div2r_cons;
+            virial[1] += dx * dy * force_div2r_cons;
+            virial[2] += dx * dz * force_div2r_cons;
+            virial[3] += dy * dy * force_div2r_cons;
+            virial[4] += dy * dz * force_div2r_cons;
+            virial[5] += dz * dz * force_div2r_cons;
             
             // add up the force vector components (FLOPS: 7)
             #if (__CUDA_ARCH__ >= 200)
