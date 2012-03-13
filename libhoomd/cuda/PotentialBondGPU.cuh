@@ -52,7 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
-#include "BondData.cuh"
 #include "Index1D.h"
 
 #ifdef WIN32

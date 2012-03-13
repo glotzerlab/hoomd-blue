@@ -587,6 +587,7 @@ void System::setupProfiling()
     if (m_integrator)
         m_integrator->setProfiler(m_profiler);
     m_sysdef->getParticleData()->setProfiler(m_profiler);
+    m_sysdef->getBondData()->setProfiler(m_profiler);
     
     // analyzers
     vector<analyzer_item>::iterator analyzer;

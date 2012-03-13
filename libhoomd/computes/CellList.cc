@@ -104,9 +104,9 @@ uint3 CellList::computeDimensions()
     dim.y = (unsigned int)((box.yhi - box.ylo) / (m_nominal_width));
 
     if (m_has_ghost_layer[0])
-        dim.x += 4;
+        dim.x += 2;
     if (m_has_ghost_layer[1])
-        dim.y += 4;
+        dim.y += 2;
 
     if (m_sysdef->getNDimensions() == 2)
         {
@@ -125,7 +125,7 @@ uint3 CellList::computeDimensions()
         dim.z = (unsigned int)((box.zhi - box.zlo) / (m_nominal_width));
 
         if (m_has_ghost_layer[2])
-            dim.z += 4;
+            dim.z += 2;
 
         // decrease the number of bins if it exceeds the max
         if (dim.x * dim.y * dim.z > m_max_cells)
@@ -259,13 +259,13 @@ void CellList::initializeWidth()
 
     uint3 inner_dim;
     if (m_sysdef->getNDimensions() == 2)
-        inner_dim = make_uint3(m_has_ghost_layer[0] ? m_dim.x-4 : m_dim.x,
-                               m_has_ghost_layer[1] ? m_dim.y-4 : m_dim.y,
+        inner_dim = make_uint3(m_has_ghost_layer[0] ? m_dim.x-2 : m_dim.x,
+                               m_has_ghost_layer[1] ? m_dim.y-2 : m_dim.y,
                                m_dim.z);
     else
-        inner_dim = make_uint3(m_has_ghost_layer[0] ? m_dim.x-4 : m_dim.x,
-                               m_has_ghost_layer[1] ? m_dim.y-4 : m_dim.y,
-                               m_has_ghost_layer[2] ? m_dim.z-4 : m_dim.z);
+        inner_dim = make_uint3(m_has_ghost_layer[0] ? m_dim.x-2 : m_dim.x,
+                               m_has_ghost_layer[1] ? m_dim.y-2 : m_dim.y,
+                               m_has_ghost_layer[2] ? m_dim.z-2 : m_dim.z);
 
     m_width.x = (box.xhi - box.xlo) / Scalar(inner_dim.x);
     m_width.y = (box.yhi - box.ylo) / Scalar(inner_dim.y);
@@ -392,13 +392,13 @@ void CellList::computeCellList()
     Scalar3 ghost_width;
 
     if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? Scalar(2.0)*m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? Scalar(2.0)*m_width.y : Scalar(0.0),
+        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
+                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
                                    0.0);
     else
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? Scalar(2.0)*m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? Scalar(2.0)*m_width.y : Scalar(0.0),
-                                   m_has_ghost_layer[2] ? Scalar(2.0)*m_width.z : Scalar(0.0));
+        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
+                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
+                                   m_has_ghost_layer[2] ? m_width.z : Scalar(0.0));
 
     // acquire the particle data
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);

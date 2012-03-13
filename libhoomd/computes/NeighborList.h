@@ -386,6 +386,7 @@ class NeighborList : public Compute
         GPUArray<unsigned int> m_n_ex_tag;     //!< Number of exclusions for a given particle tag
         GPUArray<unsigned int> m_n_ex_idx;     //!< Number of exclusions for a given particle index
         Index2D m_ex_list_indexer;             //!< Indexer for accessing the exclusion list
+        Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
         bool m_exclusions_set;                 //!< True if any exclusions have been set
 
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal

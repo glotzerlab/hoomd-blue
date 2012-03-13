@@ -373,30 +373,20 @@ void CommunicatorGPU::exchangeGhosts()
 
     if (bdata->getNumBonds())
         {
-        // Send incomplete bond member in all directions, avoid sending to the same box twice
-        unsigned char all_neighbors = 0;
-        all_neighbors |= send_east | send_north | send_up;
-
-        if (m_neighbors[0] != m_neighbors[1])
-            all_neighbors |= send_west;
-
-        if (m_neighbors[2] != m_neighbors[3])
-            all_neighbors |= send_south;
-
-        if (m_neighbors[4] != m_neighbors[5])
-            all_neighbors |= send_down;
-
+        // Send incomplete bond member to the nearest plane in all directions
         const GPUArray<uint2>& btable = bdata->getGPUBondList();
         ArrayHandle<uint2> d_btable(btable, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_bonds(bdata->getNBondsArray(), access_location::device, access_mode::read);
         ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
         gpu_mark_particles_in_incomplete_bonds(d_btable.data,
                                                btable.getPitch(),
                                                d_n_bonds.data,
                                                d_plan.data,
-                                               m_pdata->getN(),
-                                               all_neighbors);
+                                               d_pos.data,
+                                               m_pdata->getBoxGPU(),
+                                               m_pdata->getN());
         }
 
 

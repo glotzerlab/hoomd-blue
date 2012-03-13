@@ -128,16 +128,16 @@ __global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
 //! Find the maximum number of bonds per particle
 /*! \param max_bond_num Maximum number of bonds (return value)
     \param d_n_bonds Number of bonds per particle (return array)
-    \param d_bonds Array of bonds
-    \param num_bonds Size of bond array
-    \param N Number of particles in the system
-    \param d_rtag Array of reverse-lookup particle tag . particle index
  */
-cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
-                                     unsigned int *d_n_bonds,
-                                     const uint2 *d_bonds,
-                                     const unsigned int num_bonds,
-                                     const unsigned int N,
+cudaError_t TransformBondDataGPU::gpu_find_max_bond_number(
+                                     unsigned int& max_bond_num,
+    \param d_rtag Array of reverse-lookup particle tag . particle index
+                                     uint2 *d_bonds,
+                                     unsigned int *d_bond_type,
+                                     unsigned int num_bonds,
+                                     unsigned int N,
+                                     unsigned int *d_rtag,
+                                     unsigned int *d_n_bonds)
                                      const unsigned int *d_rtag)
     {
     assert(d_bonds);
@@ -184,13 +184,13 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
     // clear n_bonds array
     cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
 
-    gpu_fill_gpu_bond_table<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
-                                                                      d_bond_type,
-                                                                      d_gpu_bondtable,
-                                                                      pitch,
-                                                                      d_rtag,
-                                                                      d_n_bonds,
-                                                                      num_bonds,
+
+    // scatter the second bond member into the 2D matrix according to the bond_map
+    thrust::scatter(bond_sort_values.begin(),
+                    bond_sort_values.begin() + num_bonded_indices,
+                    bond_map.begin(),
+                    gpu_bondtable_ptr);
+
                                                                       N);
     return cudaSuccess;
     }

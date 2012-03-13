@@ -183,6 +183,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     const gpu_boxsize& box = m_pdata->getBoxGPU();
+    const gpu_boxsize& global_box = m_pdata->getGlobalBoxGPU();
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -207,13 +208,13 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     Scalar3 ghost_width;
 
     if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? Scalar(2.0)*width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? Scalar(2.0)*width.y : Scalar(0.0),
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
                                    0.0);
     else
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? Scalar(2.0)*width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? Scalar(2.0)*width.y : Scalar(0.0),
-                                   m_cl->hasGhostLayer(2) ? Scalar(2.0)*width.z : Scalar(0.0));
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
+                                   m_cl->hasGhostLayer(2) ? width.z : Scalar(0.0));
 
     if (exec_conf->getComputeCapability() >= 200)
         {
@@ -236,6 +237,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  scale,
                                  m_cl->getDim(),
                                  box,
+                                 global_box,
                                  rmaxsq,
                                  m_block_size,
                                  m_filter_body,
@@ -281,6 +283,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     scale,
                                     m_cl->getDim(),
                                     box,
+                                    global_box,
                                     rmaxsq,
                                     m_block_size,
                                     m_filter_body,

@@ -84,13 +84,13 @@ void CellListGPU::computeCellList()
 
 
     if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? Scalar(2.0)* m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? Scalar(2.0)* m_width.y : Scalar(0.0),
+        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
+                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
                                    0.0);
     else
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? Scalar(2.0) * m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? Scalar(2.0) * m_width.y : Scalar(0.0),
-                                   m_has_ghost_layer[2] ? Scalar(2.0) * m_width.z : Scalar(0.0));
+        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
+                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
+                                   m_has_ghost_layer[2] ? m_width.z : Scalar(0.0));
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -117,7 +117,8 @@ void CellListGPU::computeCellList()
                               d_charge.data,
                               d_diameter.data,
                               d_body.data,
-                              m_pdata->getN() + m_pdata->getNGhosts(),
+                              m_pdata->getN(),
+                              m_pdata->getNGhosts(),
                               m_Nmax,
                               m_flag_charge,
                               scale,
@@ -136,7 +137,8 @@ void CellListGPU::computeCellList()
                                  d_charge.data,
                                  d_diameter.data,
                                  d_body.data,
-                                 m_pdata->getN() + m_pdata->getNGhosts(),
+                                 m_pdata->getN(),
+                                 m_pdata->getNGhosts(),
                                  m_Nmax,
                                  m_flag_charge,
                                  scale,

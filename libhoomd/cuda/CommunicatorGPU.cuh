@@ -84,8 +84,9 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
                                           const unsigned int pitch,
                                           const unsigned int *d_n_bonds,
                                           unsigned char *d_plan,
-                                          const unsigned int N,
-                                          const unsigned char send_flag);
+                                          const float4 *d_pos,
+                                          const gpu_boxsize& box,
+                                          const unsigned int N);
 
 //! Reorder the particle data
 void gpu_migrate_select_particles(unsigned int N,

@@ -1290,15 +1290,16 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     comm->setGhostLayerWidth(ghost_layer_width);
 
     // Set initial atom positions
-    // place one particle in the middle of every box (outside the ghost layer)
-    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5));
-    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5));
-    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5));
-    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5));
-    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5));
-    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5));
-    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5));
-    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5));
+    // place one particle slightly away from the middle of every box (in direction towards
+    // the center of the global box - bonds cannot extend over more than half the box length)
+    pdata->setPosition(0, make_scalar3(-0.4,-0.4,-0.4));
+    pdata->setPosition(1, make_scalar3( 0.4,-0.4,-0.4));
+    pdata->setPosition(2, make_scalar3(-0.4, 0.4,-0.4));
+    pdata->setPosition(3, make_scalar3( 0.4, 0.4,-0.4));
+    pdata->setPosition(4, make_scalar3(-0.4,-0.4, 0.4));
+    pdata->setPosition(5, make_scalar3( 0.4,-0.4, 0.4));
+    pdata->setPosition(6, make_scalar3(-0.4, 0.4, 0.4));
+    pdata->setPosition(7, make_scalar3( 0.4, 0.4, 0.4));
 
     // now bond these particles together, forming a cube
 

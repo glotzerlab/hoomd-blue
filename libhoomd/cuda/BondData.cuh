@@ -80,3 +80,4 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
 
 #endif
 
+#endif

@@ -76,7 +76,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param cadji Adjacent cell indexer listing the 27 neighboring cells
     \param cell_scale Multiplication factor (in x, y, and z) which converts positions into cell coordinates
     \param cell_dim Dimensions of the cell list
-    \param box Simulation box dimensions
+    \param lower_boundary Lower boundaries of local simulation box in every direction
+    \param global_box Global simulation box dimensions
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
     \param ghost_width Width of ghost cell layer
@@ -102,7 +103,8 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     const Index2D cadji,
                                                     const float3 cell_scale,
                                                     const uint3 cell_dim,
-                                                    const gpu_boxsize box,
+                                                    const float3 lower_boundary,
+                                                    const gpu_boxsize global_box,
                                                     const float r_maxsq,
                                                     const float r_max,
                                                     float3 ghost_width)
@@ -126,9 +128,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     float my_diameter = d_diameter[my_pidx];
     
     // FLOPS: 9
-    unsigned int ib = (unsigned int)((my_pos.x+ghost_width.x-box.xlo)*cell_scale.x);
-    unsigned int jb = (unsigned int)((my_pos.y+ghost_width.y-box.ylo)*cell_scale.y);
-    unsigned int kb = (unsigned int)((my_pos.z+ghost_width.z-box.zlo)*cell_scale.z);
+    unsigned int ib = (unsigned int)((my_pos.x+ghost_width.x-lower_boundary.x)*cell_scale.x);
+    unsigned int jb = (unsigned int)((my_pos.y+ghost_width.y-lower_boundary.y)*cell_scale.y);
+    unsigned int kb = (unsigned int)((my_pos.z+ghost_width.z-lower_boundary.z)*cell_scale.z);
     
     // need to handle the case where the particle is exactly at the box hi
     if (ib == cell_dim.x)
@@ -172,9 +174,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
             float dz = my_pos.z - neigh_pos.z;
             
             // wrap the periodic boundary conditions
-            dx = dx - box.Lx * rintf(dx * box.Lxinv);
-            dy = dy - box.Ly * rintf(dy * box.Lyinv);
-            dz = dz - box.Lz * rintf(dz * box.Lzinv);
+            dx = dx - global_box.Lx * rintf(dx * global_box.Lxinv);
+            dy = dy - global_box.Ly * rintf(dy * global_box.Lyinv);
+            dz = dz - global_box.Lz * rintf(dz * global_box.Lzinv);
 
             // compute dr squared
             float drsq = dx*dx + dy*dy + dz*dz;
@@ -232,6 +234,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const float3& cell_scale,
                                      const uint3& cell_dim,
                                      const gpu_boxsize& box,
+                                     const gpu_boxsize& global_box,
                                      const float r_maxsq,
                                      const unsigned int block_size,
                                      bool filter_body,
@@ -239,6 +242,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      float3 ghost_width)
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
+
+    float3 lower_boundary = make_float3(box.xlo, box.ylo, box.zlo);
 
     if (!filter_diameter && !filter_body)
         {
@@ -260,7 +265,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cadji,
                                                                          cell_scale,
                                                                          cell_dim,
-                                                                         box,
+                                                                         lower_boundary,
+                                                                         global_box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq),
                                                                          ghost_width);
@@ -285,7 +291,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cadji,
                                                                          cell_scale,
                                                                          cell_dim,
-                                                                         box,
+                                                                         lower_boundary,
+                                                                         global_box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq),
                                                                          ghost_width);
@@ -310,7 +317,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cadji,
                                                                          cell_scale,
                                                                          cell_dim,
-                                                                         box,
+                                                                         lower_boundary,
+                                                                         global_box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq),
                                                                          ghost_width);
@@ -335,7 +343,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cadji,
                                                                          cell_scale,
                                                                          cell_dim,
-                                                                         box,
+                                                                         lower_boundary,
+                                                                         global_box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq),
                                                                          ghost_width);
@@ -368,6 +377,7 @@ texture<float4, 2, cudaReadModeElementType> cell_tdb_tex;
     \param cell_scale Multiplication factor (in x, y, and z) which converts positions into cell coordinates
     \param cell_dim Dimensions of the cell list
     \param box Simulation box dimensions
+    \param global_box Global simulation box dimensions
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
     \param ghost_width Width of ghost cell layer
@@ -388,6 +398,7 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
                                                    const float3 cell_scale,
                                                    const uint3 cell_dim,
                                                    const gpu_boxsize box,
+                                                   const gpu_boxsize global_box,
                                                    const float r_maxsq,
                                                    const float r_max,
                                                    float3 ghost_width)
@@ -460,9 +471,9 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
             float dz = my_pos.z - neigh_pos.z;
             
             // wrap the periodic boundary conditions
-            dx = dx - box.Lx * rintf(dx * box.Lxinv);
-            dy = dy - box.Ly * rintf(dy * box.Lyinv);
-            dz = dz - box.Lz * rintf(dz * box.Lzinv);
+            dx = dx - global_box.Lx * rintf(dx * global_box.Lxinv);
+            dy = dy - global_box.Ly * rintf(dy * global_box.Lyinv);
+            dz = dz - global_box.Lz * rintf(dz * global_box.Lzinv);
             
             // compute dr squared
             float drsq = dx*dx + dy*dy + dz*dz;
@@ -518,6 +529,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         const float3& cell_scale,
                                         const uint3& cell_dim,
                                         const gpu_boxsize& box,
+                                        const gpu_boxsize& global_box,
                                         const float r_maxsq,
                                         const unsigned int block_size,
                                         bool filter_body,
@@ -557,6 +569,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         cell_scale,
                                                                         cell_dim,
                                                                         box,
+                                                                        global_box,
                                                                         r_maxsq,
                                                                         sqrtf(r_maxsq),
                                                                         ghost_width);
@@ -576,6 +589,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         cell_scale,
                                                                         cell_dim,
                                                                         box,
+                                                                        global_box,
                                                                         r_maxsq,
                                                                         sqrtf(r_maxsq),
                                                                         ghost_width);
@@ -595,6 +609,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         cell_scale,
                                                                         cell_dim,
                                                                         box,
+                                                                        global_box,
                                                                         r_maxsq,
                                                                         sqrtf(r_maxsq),
                                                                         ghost_width);
@@ -614,6 +629,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         cell_scale,
                                                                         cell_dim,
                                                                         box,
+                                                                        global_box,
                                                                         r_maxsq,
                                                                         sqrtf(r_maxsq),
                                                                         ghost_width);

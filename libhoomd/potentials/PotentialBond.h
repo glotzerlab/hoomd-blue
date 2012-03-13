@@ -124,7 +124,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
     m_log_name = std::string("bond_") + evaluator::getName() + std::string("_energy") + log_suffix;
-    m_prof_name = std::string("Pair ") + evaluator::getName();
+    m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNBondTypes(), exec_conf);

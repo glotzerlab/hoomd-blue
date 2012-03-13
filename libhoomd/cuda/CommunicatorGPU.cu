@@ -462,15 +462,17 @@ void gpu_deallocate_tmp_storage()
  * \param pitch Stride of GPU bond table
  * \param n_bonds GPU number of bonds array
  * \param plan Plan array
+ * \param d_pos Array of particle positions
+ * \param box The local box dimensions
  * \param N number of (local) particles
- * \param send_flag Send flag (plan) for ghost particles
  */
 __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *gpu_btable,
                                                          const unsigned int pitch,
                                                          const unsigned int *n_bonds,
                                                          unsigned char *plan,
-                                                         const unsigned int N,
-                                                         const unsigned char send_flag)
+                                                         const float4 *d_pos,
+                                                         const gpu_boxsize box,
+                                                         const unsigned int N)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -488,8 +490,19 @@ __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *gpu_b
 
         }
 
+    float Lx2 = box.Lx/2.0f;
+    float Ly2 = box.Ly/2.0f;
+    float Lz2 = box.Lz/2.0f;
+
     if (! is_complete)
-        plan[idx] |= send_flag;
+        {
+        float4 pos = d_pos[idx];
+        unsigned char p = plan[idx];
+        p |= (pos.x > box.xlo + Lx2) ? send_east : send_west;
+        p |= (pos.y > box.ylo + Ly2) ? send_north : send_south;
+        p |= (pos.z > box.zlo + Lz2) ? send_up : send_down;
+        plan[idx] = p;
+        }
     }
 
 //! Mark particles in incomplete bonds for sending
@@ -497,6 +510,8 @@ __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *gpu_b
  * \param pitch Stride of GPU bond table
  * \param d_n_bonds GPU number of bonds array
  * \param d_plan Plan array
+ * \param d_pos Array of particle positions
+ * \param box The local box dimensions
  * \param N number of (local) particles
  * \param send_flag Send flag (plan) for ghost particles
  */
@@ -504,8 +519,9 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
                                           const unsigned int pitch,
                                           const unsigned int *d_n_bonds,
                                           unsigned char *d_plan,
-                                          const unsigned int N,
-                                          const unsigned char send_flag)
+                                          const float4 *d_pos,
+                                          const gpu_boxsize& box,
+                                          const unsigned int N)
     {
     assert(d_gpu_btable);
     assert(pitch > 0);
@@ -518,8 +534,9 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
                                                                                     pitch,
                                                                                     d_n_bonds,
                                                                                     d_plan,
-                                                                                    N,
-                                                                                    send_flag);
+                                                                                    d_pos,
+                                                                                    box,
+                                                                                    N);
     }
 
 /*! Reorder the particles according to a migration criterium

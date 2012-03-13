@@ -586,23 +586,16 @@ void Communicator::exchangeGhosts()
 
     if (bdata->getNumBonds())
         {
-        // Send incomplete bond member in all directions, avoid sending to the same box twice
-        unsigned char all_neighbors = 0;
-        all_neighbors |= send_east | send_north | send_up;
-
-        if (m_neighbors[0] != m_neighbors[1])
-            all_neighbors |= send_west;
-
-        if (m_neighbors[2] != m_neighbors[3])
-            all_neighbors |= send_south;
-
-        if (m_neighbors[4] != m_neighbors[5])
-            all_neighbors |= send_down;
-
+        // Send incomplete bond member to the nearest plane in all directions
         const GPUArray<uint2>& btable = bdata->getGPUBondList();
         ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_bonds(bdata->getNBondsArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+        Scalar Lx2 = (box.xhi - box.xlo)/Scalar(2.0);
+        Scalar Ly2 = (box.yhi - box.ylo)/Scalar(2.0);
+        Scalar Lz2 = (box.zhi - box.zlo)/Scalar(2.0);
 
         for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
             {
@@ -624,7 +617,13 @@ void Communicator::exchangeGhosts()
                 }
 
             if (! is_complete)
-                h_plan.data[idx] |= all_neighbors;
+                {
+                Scalar4 pos = h_pos.data[idx];
+
+                h_plan.data[idx] |= (pos.x > box.xlo + Lx2) ? send_east : send_west;
+                h_plan.data[idx] |= (pos.y > box.ylo + Ly2) ? send_north : send_south;
+                h_plan.data[idx] |= (pos.z > box.zlo + Lz2) ? send_up : send_down;
+                }
             }
         }
 
@@ -711,7 +710,7 @@ void Communicator::exchangeGhosts()
             while (m_pdata->getN() + m_pdata->getNGhosts() > m_max_copy_ghosts[dir]) m_max_copy_ghosts[dir] *= 2;
 
             m_copy_ghosts[dir].resize(m_max_copy_ghosts[dir]);
-            m_plan_copybuf[dir].resize(m_num_copy_ghosts[dir]);
+            m_plan_copybuf[dir].resize(m_max_copy_ghosts[dir]);
             m_pos_copybuf[dir].resize(m_max_copy_ghosts[dir]);
             m_charge_copybuf[dir].resize(m_max_copy_ghosts[dir]);
             m_diameter_copybuf[dir].resize(m_max_copy_ghosts[dir]);

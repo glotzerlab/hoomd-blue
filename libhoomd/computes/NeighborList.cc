@@ -126,7 +126,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_conditions.swap(conditions);
     
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
-    GPUArray<unsigned int> n_ex_tag(m_pdata->getMaxN(), exec_conf);
+    GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
     GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
     m_n_ex_idx.swap(n_ex_idx);
@@ -134,7 +134,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_ex_list_tag.swap(ex_list_tag);
     GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, exec_conf);
     m_ex_list_idx.swap(ex_list_idx);
-    m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), 1);
+    m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), 1);
+    m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), 1);
     
     // allocate nlist array
     allocateNlist();
@@ -155,11 +156,10 @@ void NeighborList::reallocate()
     {
     m_n_neigh.resize(m_pdata->getMaxN());
     m_last_pos.resize(m_pdata->getMaxN());
-    m_n_ex_tag.resize(m_pdata->getMaxN());
     m_n_ex_idx.resize(m_pdata->getMaxN());
     unsigned int ex_list_height = m_ex_list_indexer.getH();
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
-    m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), ex_list_height );
+    m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
     reallocateNlist();
     }
@@ -357,13 +357,13 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         // add tag2 to tag1's exculsion list
         unsigned int pos1 = h_n_ex_tag.data[tag1];
         assert(pos1 < m_ex_list_indexer.getH());
-        h_ex_list_tag.data[m_ex_list_indexer(tag1, pos1)] = tag2;
+        h_ex_list_tag.data[m_ex_list_indexer_tag(tag1,pos1)] = tag2;
         h_n_ex_tag.data[tag1]++;
         
         // add tag1 to tag2's exclusion list
         unsigned int pos2 = h_n_ex_tag.data[tag2];
         assert(pos2 < m_ex_list_indexer.getH());
-        h_ex_list_tag.data[m_ex_list_indexer(tag2, pos2)] = tag1;
+        h_ex_list_tag.data[m_ex_list_indexer_tag(tag2,pos2)] = tag1;
         h_n_ex_tag.data[tag2]++;
         }
     
@@ -504,7 +504,7 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     unsigned int n_ex = h_n_ex_tag.data[tag1];
     for (unsigned int i = 0; i < n_ex; i++)
         {
-        if (h_ex_list_tag.data[m_ex_list_indexer(tag1, i)] == tag2)
+        if (h_ex_list_tag.data[m_ex_list_indexer_tag(tag1,i)] == tag2)
             return true;
         }
     
@@ -1091,25 +1091,27 @@ void NeighborList::updateExListIdx()
     ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx, access_location::host, access_mode::overwrite);
-    
+
     // translate the number and exclusions from one array to the other
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
         // get the tag for this index
-        unsigned int tag = h_global_tag.data[tag];
-        
+        unsigned int tag = h_global_tag.data[idx];
+
+        // copy the number of exclusions over
         unsigned int n = h_n_ex_tag.data[tag];
+        h_n_ex_idx.data[idx] = n;
         
         // construct the exclusion list
         for (unsigned int offset = 0; offset < n; offset++)
             {
-            unsigned int ex_tag = h_ex_list_tag.data[m_ex_list_indexer(tag, offset)];
+            unsigned int ex_tag = h_ex_list_tag.data[m_ex_list_indexer_tag(tag,offset)];
             unsigned int ex_idx = h_global_rtag.data[ex_tag];
-            if (ex_idx < m_pdata->getN() + m_pdata->getNGhosts())
-                // store excluded particle idx
-                h_ex_list_idx.data[m_ex_list_indexer(idx, offset)] = ex_idx;
-                // increment number of local exclusions
-                h_n_ex_idx.data[idx]++;
+
+            assert (ex_idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+            // store excluded particle idx
+            h_ex_list_idx.data[m_ex_list_indexer(idx, offset)] = ex_idx;
             }
         }
     
@@ -1177,7 +1179,7 @@ void NeighborList::allocateNlist()
     m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
     
     // allocate the memory
-    GPUArray<unsigned int> nlist(m_pdata->getN(), m_Nmax+1, exec_conf);
+    GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
     m_nlist.swap(nlist);
     
     // update the indexer
@@ -1218,27 +1220,13 @@ void NeighborList::resetConditions()
 void NeighborList::growExclusionList()
     {
     unsigned int new_height = m_ex_list_indexer.getH() + 1;
-    
-    // allocate the two new arrays
-    // we are storing a global exclusion table here
-    // this strictly violates O(N/P) memory complexity for parallel runs, but this can be improved in future versions
-    GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), new_height, exec_conf);
-    GPUArray<unsigned int> ex_list_idx(m_pdata->getNGlobal(), new_height, exec_conf);
 
-    // copy the data across to the new arrays
-        {
-        ArrayHandle<unsigned int> h_ex_list_tag_old(m_ex_list_tag, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_ex_list_tag_new(ex_list_tag, access_location::host, access_mode::overwrite);
-        
-        memcpy(h_ex_list_tag_new.data, h_ex_list_tag_old.data, sizeof(unsigned int)*m_ex_list_indexer.getNumElements());
-        }
+    m_ex_list_tag.resize(m_pdata->getNGlobal(), new_height);
+    m_ex_list_idx.resize(m_pdata->getMaxN(), new_height);
 
-    // swap the new arrays for the old
-    m_ex_list_tag.swap(ex_list_tag);
-    m_ex_list_idx.swap(ex_list_idx);
-
-    // update the indexer
-    m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), new_height);
+    // update the indexers
+    m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), new_height);
+    m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), new_height);
     
     // we didn't copy data for the new idx list, force an update so it will be correct
     forceUpdate();
