@@ -187,6 +187,7 @@ cudaError_t gpu_find_max_dihedral_number(unsigned int& max_dihedral_num,
 
 //! Construct the GPU dihedral table
 /*! \param d_gpu_dihedraltable Pointer to the dihedral table on the GPU
+    \param d_dihedrals_ABCD Table of atom positions in the dihedrals
     \param d_n_dihedrals Number of dihedrals per particle (return array)
     \param d_dihedrals Bonds array
     \param d_dihedral_type Array of dihedral types
