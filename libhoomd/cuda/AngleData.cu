@@ -205,3 +205,4 @@ cudaError_t gpu_create_angletable(uint4 *d_gpu_angletable,
 
     return cudaSuccess;
     }
+

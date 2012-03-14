@@ -302,3 +302,4 @@ template<class T> T * GPUVector<T>::acquireHost(const access_mode::Enum mode) co
     }
 
 #endif
+
