@@ -155,7 +155,6 @@ void ComputeThermoGPU::computeProperties()
    
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
     }
 
     if(PPPMData::compute_pppm_flag) {
@@ -174,6 +173,9 @@ void ComputeThermoGPU::computeProperties()
     if (mpi_comm)
         {
         ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
+
+        if (m_prof)
+            m_prof->push("mpi collectives");
 
         Scalar & T = h_properties.data[thermo_index::temperature];
         Scalar & P = h_properties.data[thermo_index::pressure];
@@ -204,9 +206,10 @@ void ComputeThermoGPU::computeProperties()
             Pyz = all_reduce(*mpi_comm, Pyz, std::plus<Scalar>());
             Pzz = all_reduce(*mpi_comm, Pzz, std::plus<Scalar>());
             }
+        if (m_prof)
+            m_prof->pop();
         }
 #endif
-
     if (m_prof) m_prof->pop();
     }
 
