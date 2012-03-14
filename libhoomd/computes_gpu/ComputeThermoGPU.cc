@@ -175,7 +175,7 @@ void ComputeThermoGPU::computeProperties()
         ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
 
         if (m_prof)
-            m_prof->push("mpi collectives");
+            m_prof->push("MPI collectives");
 
         Scalar & T = h_properties.data[thermo_index::temperature];
         Scalar & P = h_properties.data[thermo_index::pressure];

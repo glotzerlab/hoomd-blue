@@ -242,6 +242,32 @@ void NeighborListGPU::filterNlist()
     }
 
 
+//! Update the exclusion list on the GPU
+void NeighborListGPU::updateExListIdx()
+    {
+    if (m_prof)
+        m_prof->push("update-ex");
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
+
+    ArrayHandle<unsigned int> d_n_ex_tag(m_n_ex_tag, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_ex_list_tag(m_ex_list_tag, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::overwrite);
+   
+    gpu_update_exclusion_list(d_tag.data,
+                              d_rtag.data,
+                              d_n_ex_tag.data,
+                              d_ex_list_tag.data,
+                              m_ex_list_indexer_tag,
+                              d_n_ex_idx.data,
+                              d_ex_list_idx.data,
+                              m_ex_list_indexer,
+                              m_pdata->getN());
+    if (m_prof)
+        m_prof->pop();
+    }
+
 void export_NeighborListGPU()
     {
     class_<NeighborListGPU, boost::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >

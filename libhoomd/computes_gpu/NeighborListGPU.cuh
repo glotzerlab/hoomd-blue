@@ -91,5 +91,16 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const gpu_boxsize& box,
                                   const float r_maxsq);
 
+//! GPU function to update the exclusion list on the device
+cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
+                                const unsigned int *d_rtag,
+                                const unsigned int *d_n_ex_tag,
+                                const unsigned int *d_ex_list_tag,
+                                const Index2D& ex_list_tag_indexer,
+                                unsigned int *d_n_ex_idx,
+                                unsigned int *d_ex_list_idx,
+                                const Index2D& ex_list_indexer,
+                                const unsigned int N);
+ 
 #endif
 

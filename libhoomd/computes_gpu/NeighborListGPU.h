@@ -102,6 +102,10 @@ class NeighborListGPU : public NeighborList
         
         //! Benchmark the filter kernel
         double benchmarkFilter(unsigned int num_iters);
+
+        //! Update the exclusion list on the GPU
+        virtual void updateExListIdx();
+
     protected:
         GPUFlags<unsigned int> m_flags;     //!< Storage for device flags on the GPU
 

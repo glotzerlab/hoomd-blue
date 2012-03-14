@@ -369,6 +369,76 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
         }
     }
 
+//! GPU kernel to update the exclusions list
+__global__ void gpu_update_exclusion_list_kernel(const unsigned int *tags,
+                                                  const unsigned int *rtags,
+                                                  const unsigned int *n_ex_tag,
+                                                  const unsigned int *ex_list_tag,
+                                                  const Index2D ex_list_tag_indexer,
+                                                  unsigned int *n_ex_idx,
+                                                  unsigned int *ex_list_idx,
+                                                  const Index2D ex_list_indexer,
+                                                  const unsigned int N)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N)
+        return;
+
+    unsigned int tag = tags[idx];
+
+    unsigned int n = n_ex_tag[tag];
+
+    // copy over number of exclusions
+    n_ex_idx[idx] = n;
+
+    for (unsigned int offset = 0; offset < n; offset++)
+        {
+        unsigned int ex_tag = ex_list_tag[ex_list_indexer(tag, offset)];
+        unsigned int ex_idx = rtags[ex_tag];
+
+        ex_list_idx[ex_list_indexer(idx, offset)] = ex_idx;
+        }
+    }
+
+
+//! GPU function to update the exclusion list on the device
+/*! \param d_tag Array of particle tags
+    \param d_rtag Array of reverse-lookup tag->idx
+    \param d_n_ex_tag List of number of exclusions per tag
+    \param d_ex_list_tag 2D Exclusion list per tag
+    \param ex_list_tag_indexer Indexer for per-tag exclusion list
+    \param d_n_ex_idx List of number of exclusions per idx
+    \param d_ex_list_idx Exclusion list per idx
+    \param ex_list_indexer Indexer for per-idx exclusion list
+    \param N number of particles
+ */
+cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
+                                const unsigned int *d_rtag,
+                                const unsigned int *d_n_ex_tag,
+                                const unsigned int *d_ex_list_tag,
+                                const Index2D& ex_list_tag_indexer,
+                                unsigned int *d_n_ex_idx,
+                                unsigned int *d_ex_list_idx,
+                                const Index2D& ex_list_indexer,
+                                const unsigned int N)
+    {
+    unsigned int block_size = 512;
+
+    gpu_update_exclusion_list_kernel<<<N/block_size + 1, block_size>>>(d_tag,
+                                                                       d_rtag,
+                                                                       d_n_ex_tag,
+                                                                       d_ex_list_tag,
+                                                                       ex_list_tag_indexer,
+                                                                       d_n_ex_idx,
+                                                                       d_ex_list_idx,
+                                                                       ex_list_indexer,
+                                                                       N);
+
+    return cudaSuccess;
+    }
+
+
 //! Generate the neighbor list on the GPU in O(N^2) time
 cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   unsigned int *d_n_neigh,
