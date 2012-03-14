@@ -353,7 +353,7 @@ the MPI_HOME env var (if it isn't set already).
 /home/software/rhel5/openmpi-1.4.2/gcc
 \endcode
 
-<b>Compile your own MPI</b>
+<b>Compile your own MPI: MVAPICH 1.8a2</b>
 
 Or, you can compile your own MPI and run it out of your home directory. MVAPICH 1.8a2 supports CUDA integration that
 enables fast multi-GPU performance.
@@ -364,6 +364,93 @@ enables fast multi-GPU performance.
  $ ./configure --with-device=ch3:mrail --with-rdma=gen2 --prefix=${HOME}/local --enable-cuda --with-cuda=${CUDA_ROOT} --enable-shared
  $ make
  $ make install
+\endcode
+
+The following needs to be added to your environment variables in .bash_profile.
+\code
+export LD_LIBRARY_PATH=${HOME}/local/lib:${LD_LIBRARY_PATH}    # if not already there
+export MPI_HOME=${HOME}/local 
+\endcode
+Then log out and back in before attempting to build boost (so that it can find MPI).
+
+<b>Compile your own MPI: Patched OpenMPI</b>
+
+There is a patch to OpenMPI (https://bitbucket.org/rolfv/ompi-trunk-cuda-rdma-3) that also supports fast CUDA
+integration.
+
+To start off, you need to build and install the latest automake, autoconf and libtool into your home directory.
+\code
+ $ wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz
+ $ tar -xvzf libtool-2.4.2.tar.gz
+ $ cd libtool-2.4.2
+ $ ./configure --prefix=${HOME}/local
+ $ make install
+ $
+ $ wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.68.tar.bz2
+ $  tar -xvjf autoconf-2.68.tar.bz2 
+ $  cd autoconf-2.68
+ $  ./configure --prefix=${HOME}/local
+ $ make install
+ $
+ $ wget http://ftp.gnu.org/gnu/automake/automake-1.11.3.tar.gz
+ $ ./configure --prefix=${HOME}/local
+ $ make install
+\endcode
+
+Then you can clone the patch
+\code
+ $ hg clone https://bitbucket.org/rolfv/ompi-trunk-cuda-rdma-3
+ $ cd ompi-trunk-cuda-rdma-3
+\endcode
+
+However, it can't find libtool properly. Apply the following patch to the patch
+\code
+diff -r 29f3255cd2b8 autogen.pl
+--- a/autogen.pl    Fri Dec 09 07:41:26 2011 -0800
++++ b/autogen.pl    Wed Mar 14 14:45:05 2012 -0400
+@@ -157,7 +157,7 @@
+         safe_system("./autogen.sh");
+     } elsif (-f "configure.in" || -f "configure.ac") {
+         print "--- Found configure.in|ac; running autoreconf...\n";
+-        safe_system("autoreconf -ivf");
++        safe_system("autoreconf -ivf -I /home/joaander/software/libtool/2.4.2/share/aclocal");
+         print "--- Patching autotools output... :-(\n";
+         patch_autotools_output($start);
+     } else {
+@@ -1173,7 +1173,7 @@
+ # Run autoreconf
+ verbose "==> Running autoreconf\n";
+ chdir("..");
+-my $cmd = "autoreconf -ivf --warnings=all,no-obsolete,no-override -I config";
++my $cmd = "autoreconf -ivf --warnings=all,no-obsolete,no-override -I config -I /home/joaander/software/libtool/2.4.2/share/aclocal";
+ foreach my $project (@{$projects}) {
+     $cmd .= " -I $project->{dir}/config";
+ }
+diff -r 29f3255cd2b8 ompi/mca/io/romio/romio/autogen.sh
+--- a/ompi/mca/io/romio/romio/autogen.sh    Fri Dec 09 07:41:26 2011 -0800
++++ b/ompi/mca/io/romio/romio/autogen.sh    Wed Mar 14 14:45:05 2012 -0400
+@@ -1,2 +1,2 @@
+ :
+-autoreconf -ivf -I confdb
++autoreconf -ivf -I confdb -I /home/joaander/software/libtool/2.4.2/share/aclocal
+diff -r 29f3255cd2b8 opal/mca/event/libevent2013/libevent/autogen.sh
+--- a/opal/mca/event/libevent2013/libevent/autogen.sh   Fri Dec 09 07:41:26 2011 -0800
++++ b/opal/mca/event/libevent2013/libevent/autogen.sh   Wed Mar 14 14:45:05 2012 -0400
+@@ -8,7 +8,7 @@
+    ###################################
+    # Open MPI change: add -I for our m4 directory
+    ###################################
+-   exec autoreconf -ivf $OMPI
++   exec autoreconf -ivf $OMPI -I /home/joaander/software/libtool/2.4.2/share/aclocal
+ fi
+ 
+ LIBTOOLIZE=libtoolize
+ \endcode
+
+ \code
+ $ ./autogen.pl
+ $ ./configure --with-cuda=${CUDA_ROOT} --with-cuda-libdir=${CUDA_ROOT}/lib64 --prefix=${HOME}/local
+ $ make install -j6
 \endcode
 
 The following needs to be added to your environment variables in .bash_profile.
