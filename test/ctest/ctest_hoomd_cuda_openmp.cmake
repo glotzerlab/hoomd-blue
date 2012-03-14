@@ -2,10 +2,10 @@
 # this version of it tests a configuration different from the default
 
 # (set to ON to enable CUDA build)
-SET (ENABLE_CUDA "OFF")
+SET (ENABLE_CUDA "ON")
 
 # (set to ON to enable OpenMP build)
-SET (ENABLE_OPENMP "OFF")
+SET (ENABLE_OPENMP "ON")
 
 # (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
 SET (SINGLE_PRECISION "ON")
