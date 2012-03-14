@@ -76,6 +76,9 @@ texture<float2, 1, cudaReadModeElementType> improper_params_tex;
     \param d_pos Device memory of particle positions
     \param box Box dimensions for periodic boundary condition handling
     \param tlist Improper data to use in calculating the forces
+    \param dihedral_ABCD List of relative atom positions in the dihedrals
+    \param pitch Pitch of 2D dihedral list
+    \param n_dihedrals_list List of numbers of dihedrals per atom
 */
 extern "C" __global__ 
 void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
@@ -84,7 +87,11 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
                                                  unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  gpu_boxsize box,
-                                                 gpu_dihedraltable_array tlist)
+                                                 const uint4 *tlist,
+                                                 const uint1 *dihedral_ABCD,
+                                                 const unsigned int pitch,
+                                                 const unsigned int *n_dihedrals_list)
+
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -93,7 +100,7 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_impropers = tlist.n_dihedrals[idx];
+    int n_impropers = n_dihedrals_list[idx];
     
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     float4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
@@ -112,12 +119,12 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
         {
         // the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
 #ifdef _DEVICEEMU
-        uint4 cur_improper = tlist.dihedrals[tlist.pitch*improper_idx + idx];
-        uint1 cur_ABCD = tlist.dihedralABCD[tlist.pitch*improper_idx + idx];
+        uint4 cur_improper = tlist[pitch*improper_idx + idx];
+        uint1 cur_ABCD = dihedral_ABCD[pitch*improper_idx + idx];
 #else
         // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint4 cur_improper = tlist.dihedrals[tlist.pitch*improper_idx + idx];
-        volatile uint1 cur_ABCD = tlist.dihedralABCD[tlist.pitch*improper_idx + idx];
+        volatile uint4 cur_improper = tlist[pitch*improper_idx + idx];
+        volatile uint1 cur_ABCD = dihedral_ABCD[pitch*improper_idx + idx];
 #endif
         
         int cur_improper_x_idx = cur_improper.x;
@@ -318,7 +325,10 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
     \param N number of particles
     \param d_pos particle positions on the device
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
-    \param ttable List of impropers stored on the GPU
+    \param tlist Dihedral data to use in calculating the forces
+    \param dihedral_ABCD List of relative atom positions in the dihedrals
+    \param pitch Pitch of 2D dihedral list
+    \param n_dihedrals_list List of numbers of dihedrals per atom
     \param d_params K, sign,multiplicity params packed as padded float4 variables
     \param n_improper_types Number of improper types in d_params
     \param block_size Block size to use when performing calculations
@@ -335,7 +345,10 @@ cudaError_t gpu_compute_harmonic_improper_forces(float4* d_force,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const gpu_boxsize &box,
-                                                 const gpu_dihedraltable_array &ttable,
+                                                 const uint4 *tlist,
+                                                 const uint1 *dihedral_ABCD,
+                                                 const unsigned int pitch,
+                                                 const unsigned int *n_dihedrals_list,
                                                  float2 *d_params,
                                                  unsigned int n_improper_types,
                                                  int block_size)
@@ -352,7 +365,7 @@ cudaError_t gpu_compute_harmonic_improper_forces(float4* d_force,
         return error;
         
     // run the kernel
-    gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, ttable);
+    gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
     
     return cudaSuccess;
     }

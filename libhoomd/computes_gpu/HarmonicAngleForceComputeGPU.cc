@@ -116,8 +116,6 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Angle");
     
-    gpu_angletable_array& gpu_angletable = m_angle_data->acquireGPU();
-    
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -127,6 +125,9 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
     ArrayHandle<float2> d_params(m_params, access_location::device, access_mode::read);
 
+    ArrayHandle<uint4> d_gpu_anglelist(m_angle_data->getGPUAngleList(), access_location::device,access_mode::read);
+    ArrayHandle<unsigned int> d_gpu_n_angles(m_angle_data->getNAnglesArray(), access_location::device, access_mode::read);
+
     // run the kernel on the GPU
     gpu_compute_harmonic_angle_forces(d_force.data,
                                       d_virial.data,
@@ -134,7 +135,9 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
                                       m_pdata->getN(),
                                       d_pos.data,
                                       box,
-                                      gpu_angletable,
+                                      d_gpu_anglelist.data,
+                                      m_angle_data->getGPUAngleList().getPitch(),
+                                      d_gpu_n_angles.data,
                                       d_params.data,
                                       m_angle_data->getNAngleTypes(),
                                       m_block_size);

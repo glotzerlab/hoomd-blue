@@ -52,6 +52,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BondData.cuh"
 
+#include <thrust/device_ptr.h>
+#include <thrust/extrema.h>
+
 #ifdef WIN32
 #include <cassert>
 #else
@@ -59,69 +62,136 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /*! \file BondData.cu
-    \brief Defines the data structures for storing bonds on the GPU.
+    \brief Implements the helper functions (GPU version) for updating the GPU bond table
 */
 
-/*! \pre no allocations have been performed or deallocate() has been called after a previous allocate()
-    \post Memory for \a n_bonds and \a bonds is allocated on the device
-    \param num_local Number of particles local to the GPU on which this is being called
-    \param alloc_height Number of bonds to allocate for each particle
-    \note allocate() \b must be called on the GPU it is to allocate data on
-*/
-cudaError_t gpu_bondtable_array::allocate(unsigned int num_local, unsigned int alloc_height)
+//! Kernel to find the maximum number of angles per particle
+__global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
+                                             const unsigned int *d_rtag,
+                                             unsigned int *d_n_bonds,
+                                             unsigned int num_bonds,
+                                             unsigned int N)
     {
-    // sanity checks
-    assert(n_bonds == NULL);
-    assert(bonds == NULL);
-    
-    height = alloc_height;
-    
-    // allocate n_bonds and check for errors
-    cudaError_t error = cudaMalloc((void**)((void*)&n_bonds), num_local*sizeof(unsigned int));
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaMemset((void*)n_bonds, 0, num_local*sizeof(unsigned int));
-    if (error != cudaSuccess)
-        return error;
-        
-    // cudaMallocPitch fails to work for coalesced reads here (dunno why), need to calculate pitch ourselves
-    // round up to the nearest multiple of 32
-    pitch = (num_local + (32 - num_local & 31));
-    error = cudaMalloc((void**)((void*)&bonds), pitch * height * sizeof(uint2));
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaMemset((void*)bonds, 0, pitch * height * sizeof(uint2));
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
+    int bond_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (bond_idx >= num_bonds)
+        return;
+
+    uint2 bond = bonds[bond_idx];
+    unsigned int tag1 = bond.x;
+    unsigned int tag2 = bond.y;
+    unsigned int idx1 = d_rtag[tag1];
+    unsigned int idx2 = d_rtag[tag2];
+
+    if (idx1 < N)
+        atomicInc(&d_n_bonds[idx1], 0xffffffff);
+    if (idx2 < N)
+        atomicInc(&d_n_bonds[idx2], 0xffffffff);
+
+    }
+
+//! Kernel to fill the GPU bond table
+__global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
+                                        const unsigned int *bond_type,
+                                        uint2 *gpu_btable,
+                                        const unsigned int pitch,
+                                        const unsigned int *d_rtag,
+                                        unsigned int *d_n_bonds,
+                                        unsigned int num_bonds,
+                                        unsigned int N)
+    {
+    int bond_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (bond_idx >= num_bonds)
+        return;
+
+    uint2 bond = bonds[bond_idx];
+    unsigned int tag1 = bond.x;
+    unsigned int tag2 = bond.y;
+    unsigned int type = bond_type[bond_idx];
+    unsigned int idx1 = d_rtag[tag1];
+    unsigned int idx2 = d_rtag[tag2];
+
+    if (idx1 < N)
+        {
+        unsigned int num1 = atomicInc(&d_n_bonds[idx1],0xffffffff);
+        gpu_btable[num1*pitch+idx1] = make_uint2(idx2,type);
+        }
+    if (idx2 < N)
+        {
+        unsigned int num2 = atomicInc(&d_n_bonds[idx2],0xffffffff);
+        gpu_btable[num2*pitch+idx2] = make_uint2(idx1,type);
+        }
+    }
+
+
+//! Find the maximum number of bonds per particle
+/*! \param max_bond_num Maximum number of bonds (return value)
+    \param d_n_bonds Number of bonds per particle (return array)
+    \param d_bonds Array of bonds
+    \param num_bonds Size of bond array
+    \param N Number of particles in the system
+    \param d_rtag Array of reverse-lookup particle tag . particle index
+ */
+cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
+                                     unsigned int *d_n_bonds,
+                                     const uint2 *d_bonds,
+                                     const unsigned int num_bonds,
+                                     const unsigned int N,
+                                     const unsigned int *d_rtag)
+    {
+    assert(d_bonds);
+    assert(d_rtag);
+    assert(d_n_bonds);
+
+    unsigned int block_size = 512;
+
+    // clear n_bonds array
+    cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
+
+    gpu_find_max_bond_number_kernel<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
+                                                                              d_rtag,
+                                                                              d_n_bonds,
+                                                                              num_bonds,
+                                                                              N);
+
+    thrust::device_ptr<unsigned int> n_bonds_ptr(d_n_bonds);
+    max_bond_num = *thrust::max_element(n_bonds_ptr, n_bonds_ptr + N);
     return cudaSuccess;
     }
 
-/*! \pre allocate() has been called
-    \post Memory for \a n_bonds and \a bonds is freed on the device
-    \note deallocate() \b must be called on the same GPU as allocate()
-*/
-cudaError_t gpu_bondtable_array::deallocate()
+//! Construct the GPU bond table
+/*! \param d_gpu_bondtable Pointer to the bond table on the GPU
+    \param d_n_bonds Number of bonds per particle (return array)
+    \param d_bonds Bonds array
+    \param d_bond_type Array of bond types
+    \param d_rtag Reverse-lookup tag->index
+    \param num_bonds Number of bonds in bond list
+    \param pitch Pitch of 2D bondtable array
+    \param N Number of particles
+ */
+cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
+                                 unsigned int *d_n_bonds,
+                                 const uint2 *d_bonds,
+                                 const unsigned int *d_bond_type,
+                                 const unsigned int *d_rtag,
+                                 const unsigned int num_bonds,
+                                 unsigned int pitch,
+                                 unsigned int N)
     {
-    // sanity checks
-    assert(n_bonds != NULL);
-    assert(bonds != NULL);
-    
-    // free the memory
-    cudaError_t error = cudaFree((void*)n_bonds);
-    n_bonds = NULL;
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaFree((void*)bonds);
-    bonds = NULL;
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
+    unsigned int block_size = 512;
+
+    // clear n_bonds array
+    cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
+
+    gpu_fill_gpu_bond_table<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
+                                                                      d_bond_type,
+                                                                      d_gpu_bondtable,
+                                                                      pitch,
+                                                                      d_rtag,
+                                                                      d_n_bonds,
+                                                                      num_bonds,
+                                                                      N);
     return cudaSuccess;
     }
 

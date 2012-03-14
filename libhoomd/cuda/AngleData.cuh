@@ -56,41 +56,26 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 /*! \file AngleData.cuh
-    \brief GPU data structures used in AngleData
+    \brief GPU helper functions used in AngleData
 */
 
-//! Angle data stored on the GPU
-/*! gpu_angletable_array stores all of the angles between particles on the GPU.
-    It is structured similar to gpu_nlist_array in that a single column in the list
-    stores all of the angles for the particle associated with that column.
+//! Find the maximum number of angles per particle
+cudaError_t gpu_find_max_angle_number(unsigned int& max_angle_num,
+                             unsigned int *d_n_angles,
+                             const uint3 *d_angles,
+                             const unsigned int num_angles,
+                             const unsigned int N,
+                             const unsigned int *d_rtag);
 
-    To access angle \em a of particle with local index \em i, use the following indexing scheme
-    \code
-    uint2 angle = angletable.angles[a*angletable.pitch + i]
-    \endcode
-    The particle with \b index (not tag) \em i is angled with particles \em angle.x
-    and \em angle.y with angle type \em angle.z. Each particle may have a different number of angles as
-    indicated in \em n_angles[i].
-
-    Only \a num_local angles are stored on each GPU for the local particles
-
-    \ingroup gpu_data_structs
-*/
-
-
-struct gpu_angletable_array
-    {
-    unsigned int *n_angles; //!< Number of angles for each particle
-    uint4 *angles;          //!< angle list
-    unsigned int height;    //!< height of the angle list
-    unsigned int pitch;     //!< width (in elements) of the angle list
-    
-    //! Allocates memory
-    cudaError_t allocate(unsigned int num_local, unsigned int alloc_height);
-    
-    //! Frees memory
-    cudaError_t deallocate();
-    };
+//! Construct the GPU angle table
+cudaError_t gpu_create_angletable(uint4 *d_gpu_angletable,
+                                  unsigned int *d_n_angles,
+                                  const uint3 *d_angles,
+                                  const unsigned int *d_angle_type,
+                                  const unsigned int *d_rtag,
+                                  const unsigned int num_angles,
+                                  const unsigned int pitch,
+                                  const unsigned int N);
 
 #endif
 
