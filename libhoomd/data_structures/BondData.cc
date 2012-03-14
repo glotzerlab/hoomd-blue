@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BondData.h"
 #include "ParticleData.h"
+#include "Profiler.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -83,7 +84,10 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&BondData::setDirty, this));
-    
+
+    // attach to max particle num change connection
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&BondData::reallocate, this));
+
     // offer a default type mapping
     for (unsigned int i = 0; i < n_bond_types; i++)
         {
@@ -102,6 +106,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
 BondData::~BondData()
     {
     m_sort_connection.disconnect();
+    m_max_particle_num_change_connection.disconnect();
     }
 
 /*! \post A bond between particles specified in \a bond is created.
@@ -120,7 +125,7 @@ BondData::~BondData()
 unsigned int BondData::addBond(const Bond& bond)
     {
     // check for some silly errors a user could make
-    if (bond.a >= m_pdata->getN() || bond.b >= m_pdata->getN())
+    if (bond.a >= m_pdata->getNGlobal() || bond.b >= m_pdata->getNGlobal())
         {
         cerr << endl << "***Error! Particle tag out of bounds when attempting to add bond: " << bond.a << "," << bond.b << endl << endl;
         throw runtime_error("Error adding bond");
@@ -296,6 +301,9 @@ const GPUArray<uint2>& BondData::getGPUBondList()
     {
     if (m_bonds_dirty)
         {
+        if (m_prof)
+            m_prof->push("update btable");
+
 #ifdef ENABLE_CUDA
         // update bond table
         if (exec_conf->isCUDAEnabled())
@@ -306,6 +314,9 @@ const GPUArray<uint2>& BondData::getGPUBondList()
         updateBondTable();
 #endif
         m_bonds_dirty = false;
+
+        if (m_prof)
+            m_prof->pop();
         }
     return m_gpu_bondlist;
     }
@@ -324,7 +335,7 @@ void BondData::updateBondTableGPU()
 
         {
         ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
         gpu_find_max_bond_number(max_bond_num,
                                  d_n_bonds.data,
@@ -337,7 +348,7 @@ void BondData::updateBondTableGPU()
     // re allocate memory if needed
     if (max_bond_num > m_gpu_bondlist.getHeight())
         {
-        m_gpu_bondlist.resize(m_pdata->getN(), max_bond_num);
+        m_gpu_bondlist.resize(m_pdata->getMaxN(), max_bond_num);
         }
 
         {
@@ -345,7 +356,7 @@ void BondData::updateBondTableGPU()
         ArrayHandle<uint2> d_gpu_bondlist(m_gpu_bondlist, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
         gpu_create_bondtable(d_gpu_bondlist.data,
                              d_n_bonds.data,
                              d_bonds.data,
@@ -367,7 +378,7 @@ void BondData::updateBondTableGPU()
 void BondData::updateBondTable()
     {
 
-    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
 
     unsigned int num_bonds_max = 0;
         {
@@ -404,7 +415,7 @@ void BondData::updateBondTable()
     // re allocate memory if needed
     if (num_bonds_max > m_gpu_bondlist.getHeight())
         {
-        m_gpu_bondlist.resize(m_pdata->getN(), num_bonds_max);
+        m_gpu_bondlist.resize(m_pdata->getMaxN(), num_bonds_max);
         }
 
         {
@@ -444,6 +455,12 @@ void BondData::updateBondTable()
         }
     }
 
+//! Helper function to reallocate the GPU bond table
+void BondData::reallocate()
+    {
+    m_gpu_bondlist.resize(m_pdata->getMaxN(), m_gpu_bondlist.getHeight());
+    m_n_bonds.resize(m_pdata->getMaxN());
+    }
 
 /*! \param height Height for the bond table
 */
@@ -452,10 +469,10 @@ void BondData::allocateBondTable(int height)
     // make sure the arrays have been deallocated
     assert(m_n_bonds.isNull());
     
-    GPUArray<uint2> gpu_bondlist(m_pdata->getN(), height, exec_conf);
+    GPUArray<uint2> gpu_bondlist(m_pdata->getMaxN(), height, exec_conf);
     m_gpu_bondlist.swap(gpu_bondlist);
         
-    GPUArray<unsigned int> n_bonds(m_pdata->getN(), exec_conf);
+    GPUArray<unsigned int> n_bonds(m_pdata->getMaxN(), exec_conf);
     m_n_bonds.swap(n_bonds);
 
     }

@@ -244,6 +244,9 @@ class BondData : boost::noncopyable
             m_prof = prof;
             }
 
+        //! Helper function to reallocate the GPU bond table
+        void reallocate();
+
     private:
         const unsigned int m_n_bond_types;              //!< Number of bond types
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
@@ -257,7 +260,8 @@ class BondData : boost::noncopyable
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
-        
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to maximum particle number change signal
+
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_bonds_dirty flag when partciles are sorted or a bond is added.
