@@ -117,6 +117,8 @@ void ComputeThermoGPU::computeProperties()
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
     gpu_boxsize box = m_pdata->getGlobalBoxGPU();
     
+    PDataFlags flags = m_pdata->getFlags();
+
     { // scope these array handles so they are released before the additional terms are added
     // access the net force, pe, and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -142,8 +144,6 @@ void ComputeThermoGPU::computeProperties()
     args.block_size = m_block_size;
     args.n_blocks = m_num_blocks;
 
-    PDataFlags flags = m_pdata->getFlags();
-    
     // perform the computation on the GPU
     gpu_compute_thermo( d_properties.data,
                         d_vel.data,
@@ -186,15 +186,24 @@ void ComputeThermoGPU::computeProperties()
         Scalar & Pyz =  h_properties.data[thermo_index::pressure_yz];
         Scalar & Pzz =  h_properties.data[thermo_index::pressure_zz];
         T = all_reduce(*mpi_comm, T, std::plus<Scalar>());
-        P = all_reduce(*mpi_comm, P, std::plus<Scalar>());
+
+        if (flags[pdata_flag::isotropic_virial])
+            P = all_reduce(*mpi_comm, P, std::plus<Scalar>());
+
         ke = all_reduce(*mpi_comm, ke, std::plus<Scalar>());
-        pe = all_reduce(*mpi_comm, pe, std::plus<Scalar>());
-        Pxx = all_reduce(*mpi_comm, Pxx, std::plus<Scalar>());
-        Pxy = all_reduce(*mpi_comm, Pxy, std::plus<Scalar>());
-        Pxz = all_reduce(*mpi_comm, Pxz, std::plus<Scalar>());
-        Pyy = all_reduce(*mpi_comm, Pyy, std::plus<Scalar>());
-        Pyz = all_reduce(*mpi_comm, Pyz, std::plus<Scalar>());
-        Pzz = all_reduce(*mpi_comm, Pzz, std::plus<Scalar>());
+
+        if (flags[pdata_flag::potential_energy])
+            pe = all_reduce(*mpi_comm, pe, std::plus<Scalar>());
+
+        if (flags[pdata_flag::pressure_tensor])
+            {
+            Pxx = all_reduce(*mpi_comm, Pxx, std::plus<Scalar>());
+            Pxy = all_reduce(*mpi_comm, Pxy, std::plus<Scalar>());
+            Pxz = all_reduce(*mpi_comm, Pxz, std::plus<Scalar>());
+            Pyy = all_reduce(*mpi_comm, Pyy, std::plus<Scalar>());
+            Pyz = all_reduce(*mpi_comm, Pyz, std::plus<Scalar>());
+            Pzz = all_reduce(*mpi_comm, Pzz, std::plus<Scalar>());
+            }
         }
 #endif
 
