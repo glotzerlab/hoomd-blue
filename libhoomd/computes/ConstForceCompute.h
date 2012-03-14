@@ -59,6 +59,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a class for computing constant forces
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __CONSTFORCECOMPUTE_H__
 #define __CONSTFORCECOMPUTE_H__
 

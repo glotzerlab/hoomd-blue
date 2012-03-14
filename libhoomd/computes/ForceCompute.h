@@ -69,6 +69,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the ForceCompute class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
 

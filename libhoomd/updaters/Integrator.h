@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the Integrator base class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __INTEGRATOR_H__
 #define __INTEGRATOR_H__
 

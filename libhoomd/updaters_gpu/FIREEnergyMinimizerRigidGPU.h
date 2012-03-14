@@ -61,6 +61,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a class for rigid body energy minimization on GPU
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
     

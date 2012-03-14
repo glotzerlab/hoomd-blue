@@ -61,6 +61,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a base class for all energy minimization methods
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
     

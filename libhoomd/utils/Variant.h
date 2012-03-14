@@ -53,6 +53,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the Variant and related classes
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __VARIANT_H__
 #define __VARIANT_H__
 

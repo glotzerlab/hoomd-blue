@@ -66,6 +66,10 @@ Moscow group.
     \brief Declares the class EAMForceComputeGPU
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __EAMForceComputeGPU_H__
 #define __EAMForceComputeGPU_H__
 

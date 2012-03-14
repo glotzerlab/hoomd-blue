@@ -65,6 +65,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares ExecutionConfiguration and related classes
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU

@@ -126,9 +126,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
-#include "EvaluatorPairDPDThermo.h"
-#include "PotentialPairDPDLJThermo.h"
-#include "EvaluatorPairDPDLJThermo.h"
 #include "PotentialPair.h"
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
@@ -369,8 +366,8 @@ BOOST_PYTHON_MODULE(hoomd)
     class_<std::vector<int> >("std_vector_int")
     .def(vector_indexing_suite<std::vector<int> >());
 
-    class_<std::vector<Scalar3> >("std_vector_float3")
-    .def(vector_indexing_suite<std::vector<float3> >());
+    class_<std::vector<Scalar3> >("std_vector_scalar3")
+    .def(vector_indexing_suite<std::vector<Scalar3> >());
     
     InstallSIGINTHandler();
     
@@ -421,7 +418,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");   
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
-    export_PotentialPairDPDLJThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>("PotentialPairDPDLJThermoDPD");
+    export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>("PotentialPairDPDLJThermoDPD");
     export_PotentialBond<PotentialBondHarmonic>("PotentialBondHarmonic");
     export_PotentialBond<PotentialBondFENE>("PotentialBondFENE");
     export_EAMForceCompute();
@@ -446,7 +443,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");    
-    export_PotentialPairDPDLJThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");    
+    export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>("PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>("PotentialBondFENEGPU");
     export_TablePotentialGPU();

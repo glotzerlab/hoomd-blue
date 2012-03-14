@@ -74,6 +74,10 @@ class Communicator;
     \brief Declares the System class and associated helper classes
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Ties Analyzers, Updaters, and Computes together to run a full MD simulation
 /*! The System class is responsible for making all the time steps in an MD simulation.
     It brings Analyzers, Updaters, and Computes all in one place to implement the full

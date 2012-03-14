@@ -61,6 +61,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a class for computing harmonic impropers
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __HARMONICIMPROPERFORCECOMPUTE_H__
 #define __HARMONICIMPROPERFORCECOMPUTE_H__
 

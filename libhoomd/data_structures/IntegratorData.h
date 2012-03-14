@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Contains declarations for IntegratorData.
  */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __INTEGRATORDATA_H__
 #define __INTEGRATORDATA_H__
 

@@ -101,6 +101,9 @@ communicator = None;
 ## Global variable for storing the MPI domain decomposition class
 mpi_partition = None;
 
+## Global options
+options = None;
+
 ## \internal
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()

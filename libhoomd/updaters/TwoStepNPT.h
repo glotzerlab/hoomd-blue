@@ -61,6 +61,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the TwoStepNPT class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements Nose-Hoover/Anderson NPT integration through the IntegrationMethodTwoStep interface
     

@@ -2054,8 +2054,8 @@ class eam(force._force):
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
 #
-# pair.dpdlj is a standard %pair potential and supports a number of energy shift / smoothing modes for the conservative LJ potential. See hoomd_script.pair.pair for a full
-# description of the various options.
+# pair.dpdlj is a standard %pair potential and supports an energy shif for the conservative LJ potential.
+# See hoomd_script.pair.pair for a full description of the various options. XPLOR smoothing is not available.
 #
 class dpdlj(pair):
     ## Specify the DPD %pair %force and thermostat
@@ -2139,6 +2139,10 @@ class dpdlj(pair):
             self.cpp_force.setT(T.cpp_variant); 
         
         if mode is not None:
+            if mode == "xplor":
+                print >> sys.stderr, "\n***Error! XPLOR is smoothing is not supported with pair.dpdlj\n";
+                raise RuntimeError("Error changing parameters in pair force");
+
             #use the inherited set_params
             pair.set_params(self, mode=mode)
                

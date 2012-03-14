@@ -235,13 +235,18 @@ class EvaluatorPairDPDThermo
             
         //! Evaluate the force and energy using the thermostat
         /*! \param force_divr Output parameter to write the computed force divided by r.
+            \param force_divr_cons Output parameter to write the computed conservative force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
+            \param energy_shift Ignored. DPD always goes to 0 at the cutoff.
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
                   in PotentialPair.
+
+            \note The conservative part \b only must be output to \a force_divr_cons so that the virial may be
+                  computed correctly.
             
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
-        DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& pair_eng)
+        DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& force_divr_cons, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
             if (rsq < rcutsq)
@@ -275,10 +280,13 @@ class EvaluatorPairDPDThermo
                 // conservative dpd
                 //force_divr = FDIV(a,r)*(Scalar(1.0) - r*rcutinv);
                 force_divr = a*(rinv - rcutinv);
+
+                //  conservative force only
+                force_divr_cons = force_divr;
                 
                 //  Drag Term 
                 force_divr -=  gamma*m_dot*(rinv - rcutinv)*(rinv - rcutinv);
-                
+
                 //  Random Force 
                 force_divr += RSQRT(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
                 

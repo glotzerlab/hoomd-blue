@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the ParticleData class and associated utilities
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 )

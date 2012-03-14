@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the GPUArray class
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __GPUARRAY_H__
 #define __GPUARRAY_H__
 

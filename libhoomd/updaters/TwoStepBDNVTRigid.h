@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares an updater that implements BD NVT dynamics for rigid bodies
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include "TwoStepNVERigid.h"
 #include "Variant.h"
 #include "saruprng.h"

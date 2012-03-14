@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Contains declarations for RandomGenerator and related classes.
  */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include "ParticleData.h"
 #include "BondData.h"
 

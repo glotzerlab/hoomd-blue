@@ -60,6 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the class CGCMMForceComputeGPU
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #ifndef __CGCMMFORCECOMPUTEGPU_H__
 #define __CGCMMFORCECOMPUTEGPU_H__
 

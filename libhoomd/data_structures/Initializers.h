@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a few initializers for setting up ParticleData instances
 */
 
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
 #include "ParticleData.h"
 
 #ifndef __INITIALIZERS_H__
