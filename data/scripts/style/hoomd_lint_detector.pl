@@ -119,10 +119,10 @@ sub process_file_lines
         {
         $message .= "lines overlength:    $overlength_count\n";
         }
-    if (not $last_line =~ /^\n/)
-        {
-        $message .= "end of file newline: missing\n";
-        }
+    #if (not $last_line =~ /^\n/)
+    #    {
+    #    $message .= "end of file newline: missing\n";
+    #    }
 
     return ($message, $line_count);
     }
