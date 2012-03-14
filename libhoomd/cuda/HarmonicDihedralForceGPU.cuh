@@ -50,7 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#include "DihedralData.cuh"
 #include "ParticleData.cuh"
 #include "HOOMDMath.h"
 
@@ -68,7 +67,10 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const gpu_boxsize &box,
-                                                 const gpu_dihedraltable_array &ttable,
+                                                 const uint4 *tlist,
+                                                 const uint1 *dihedral_ABCD,
+                                                 const unsigned int pitch,
+                                                 const unsigned int *n_dihedrals_list,
                                                  float4 *d_params,
                                                  unsigned int n_dihedral_types,
                                                  int block_size);

@@ -50,48 +50,33 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#ifndef _DIHEDRALDATA_CUH_
-#define _DIHEDRALDATA_CUH_
+#ifndef _ANGLEDATA_CUH_
+#define _ANGLEDATA_CUH_
 
 #include <cuda_runtime.h>
 
 /*! \file DihedralData.cuh
-    \brief GPU data structures used in DihedralData
+    \brief GPU helper functions used in DihedralData
 */
 
-//! Dihedral data stored on the GPU
-/*! gpu_dihedraltable_array stores all of the dihedral between particles on the GPU.
-    It is structured similar to gpu_nlist_array in that a single column in the list
-    stores all of the dihedrals for the particle associated with that column.
+//! Find the maximum number of dihedrals per particle
+cudaError_t gpu_find_max_dihedral_number(unsigned int& max_dihedral_num,
+                             unsigned int *d_n_dihedrals,
+                             const uint4 *d_dihedrals,
+                             const unsigned int num_dihedrals,
+                             const unsigned int N,
+                             const unsigned int *d_rtag);
 
-    To access dihedral \em a of particle with local index \em i, use the following indexing scheme
-    \code
-    uint2 dihedral = dihedraltable.dihedrals[a*dihedraltable.pitch + i]
-    \endcode
-    The particle with \b index (not tag) \em i is dihedral'd with particles \em dihedral.x
-    and \em dihedral.y  with angle type \em angle.z. Each particle may have a different number of angles as
-    indicated in \em n_angles[i].
-
-    Only \a num_local angles are stored on each GPU for the local particles
-
-    \ingroup gpu_data_structs
-*/
-
-
-struct gpu_dihedraltable_array
-    {
-    unsigned int *n_dihedrals;  //!< Number of dihedrals for each particle
-    uint4 *dihedrals;       //!< dihedral atoms 1, 2, 3, type
-    uint1 *dihedralABCD;        //!< for each dihedral, this tells atom a, b, c, or d
-    unsigned int height;    //!< height of the dihedral list
-    unsigned int pitch; //!< width (in elements) of the dihedral list
-    
-    //! Allocates memory
-    cudaError_t allocate(unsigned int num_local, unsigned int alloc_height);
-    
-    //! Frees memory
-    cudaError_t deallocate();
-    };
+//! Construct the GPU dihedral table
+cudaError_t gpu_create_dihedraltable(uint4 *d_gpu_dihedraltable,
+                                  uint1 *d_dihedrals_ABCD,
+                                  unsigned int *d_n_dihedrals,
+                                  const uint4 *d_dihedrals,
+                                  const unsigned int *d_dihedral_type,
+                                  const unsigned int *d_rtag,
+                                  const unsigned int num_dihedrals,
+                                  const unsigned int pitch,
+                                  const unsigned int N);
 
 #endif
 

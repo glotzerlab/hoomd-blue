@@ -115,8 +115,10 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Dihedral");
     
-    gpu_dihedraltable_array& gpu_dihedraltable = m_dihedral_data->acquireGPU();
-    
+    ArrayHandle<uint4> d_gpu_dihedral_list(m_dihedral_data->getGPUDihedralList(), access_location::device,access_mode::read);
+    ArrayHandle<unsigned int> d_n_dihedrals(m_dihedral_data->getNDihedralsArray(), access_location::device, access_mode::read);
+    ArrayHandle<uint1> d_dihedrals_ABCD(m_dihedral_data->getDihedralABCD(), access_location::device, access_mode::read);
+
     // the dihedral table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     gpu_boxsize box = m_pdata->getBoxGPU();
@@ -132,7 +134,10 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
                                          m_pdata->getN(),
                                          d_pos.data,
                                          box,
-                                         gpu_dihedraltable,
+                                         d_gpu_dihedral_list.data,
+                                         d_dihedrals_ABCD.data,
+                                         m_dihedral_data->getGPUDihedralList().getPitch(),
+                                         d_n_dihedrals.data,
                                          d_params.data,
                                          m_dihedral_data->getNDihedralTypes(),
                                          m_block_size);

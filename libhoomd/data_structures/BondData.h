@@ -81,10 +81,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.cuh"
 #endif
 
+#include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+#include "HOOMDMath.h"
+
+// Sentinel value in bond reverse-lookup map for unassigned bond tags
+#define NO_BOND 0xffffffff
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
+// forward declaration of Profiler
+class Profiler;
 
 //! Stores a bond between two particles
 /*! Each bond is given an integer \c type from 0 to \c NBondTypes-1 and the \em tags
@@ -102,6 +109,23 @@ struct Bond
     unsigned int type;  //!< The type index of the bond
     unsigned int a;     //!< The tag of the first particle in the bond
     unsigned int b;     //!< The tag of the second particle in the bond
+    };
+
+//! Handy structure for passing around and initializing the bond data
+struct SnapshotBondData
+    {
+    //! Constructor
+    /*! \param n_bonds Number of bonds contained in the snapshot
+     */
+    SnapshotBondData(unsigned int n_bonds)
+        {
+        type_id.resize(n_bonds);
+        bonds.resize(n_bonds);
+        }
+
+    std::vector<unsigned int> type_id;             //!< Stores type for each bond
+    std::vector<uint2> bonds;                      //!< .x and .y are tags of the two particles in the bond
+    std::vector<std::string> type_mapping;         //!< Names of bond types
     };
 
 //! Stores all bonds in the simulation and mangages the GPU bond data structure
@@ -141,13 +165,16 @@ class BondData : boost::noncopyable
         //! Get a given bond
         /*! \param i Bond to access
         */
-        const Bond& getBond(unsigned int i) const
+        const Bond getBond(unsigned int i) const
             {
-            assert(i < m_bonds.size()); return m_bonds[i];
+            assert(i < m_bonds.size());
+            assert(i < m_bond_type.size());
+            uint2 bond = m_bonds[i];
+            return Bond(m_bond_type[i], bond.x, bond.y);
             }
 
         //! Get bond by tag value
-        const Bond& getBondByTag(unsigned int tag) const;
+        const Bond getBondByTag(unsigned int tag) const;
 
         //! Get tag given an id
         unsigned int getBondTag(unsigned int id) const;
@@ -168,25 +195,69 @@ class BondData : boost::noncopyable
         
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
-        
-# ifdef ENABLE_CUDA
+
+        //! Gets the bond table
+        const GPUVector<uint2>& getBondTable()
+            {
+            return m_bonds;
+            }
+
+        //! Gets the bond types
+        const GPUVector<unsigned int>& getBondTypes()
+            {
+            return m_bond_type;
+            }
+
+
+        //! Gets the list of bond tags
+        const GPUVector<unsigned int>& getBondTags() const
+            {
+            return m_tags;
+            }
+
+        //! Gets the list of bond reverse-lookup tags
+        const GPUVector<unsigned int>& getBondRTags() const
+            {
+            return m_bond_rtag;
+            }
+
+        //! Gets the number of bonds array
+        const GPUArray<unsigned int>& getNBondsArray() const
+            {
+            return m_n_bonds;
+            }
+
         //! Access the bonds on the GPU
-        gpu_bondtable_array& acquireGPU();
-#endif
+        const GPUArray<uint2>& getGPUBondList();
         
+        //! Takes a snapshot of the current bond data
+        void takeSnapshot(SnapshotBondData& snapshot);
+
+        //! Initialize the bond data from a snapshot
+        void initializeFromSnapshot(const SnapshotBondData& snapshot);
+
+        //! Set the profiler
+        /*! \param prof The profiler
+         */
+        void setProfiler(boost::shared_ptr<Profiler> prof)
+            {
+            m_prof = prof;
+            }
+
     private:
         const unsigned int m_n_bond_types;              //!< Number of bond types
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
-        std::vector<Bond> m_bonds;                      //!< List of bonds on the CPU
-        std::vector<unsigned int> m_tags;               //!< Reverse lookup table for tags
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
+        GPUVector<uint2> m_bonds;                       //!< List of bonds (x: tag a, y: tag b)
+        GPUVector<unsigned int> m_bond_type;            //!< List of bond types
+        GPUVector<unsigned int> m_tags;                 //!< Bond tags
         std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
-        std::tr1::unordered_map<unsigned int,unsigned int> m_bond_map; //!< Map to support lookup of bonds by tag
+        GPUVector<unsigned int> m_bond_rtag;            //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
         
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_bonds_dirty flag when partciles are sorted or a bond is added.
@@ -197,27 +268,21 @@ class BondData : boost::noncopyable
             m_bonds_dirty = true;
             }
             
+        GPUArray<uint2> m_gpu_bondlist;     //!< List of bonds on the GPU
+        GPUArray<unsigned int> m_n_bonds;   //!< Array of the number of bonds
+
+        boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
-        gpu_bondtable_array m_gpu_bonddata; //!< List of bonds on the GPU
-        uint2 *m_host_bonds;                //!< Host copy of the bond list
-        unsigned int *m_host_n_bonds;       //!< Host copy of the number of bonds
-        
         //! Helper function to update the bond table on the device
+        void updateBondTableGPU();
+#endif
+
+        //! Helper function to update the GPU bond table
         void updateBondTable();
-        
-        //! Helper function to reallocate the bond table on the device
-        void reallocateBondTable(int height);
-        
+
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);
         
-        //! Helper function to free the bond table
-        void freeBondTable();
-        
-        //! Copies the bond table to the device
-        void copyBondTable();
-        
-#endif
     };
 
 //! Exports BondData to python

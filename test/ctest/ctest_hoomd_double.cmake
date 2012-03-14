@@ -15,8 +15,8 @@ SET (ENABLE_STATIC "OFF")
 
 # (set tests to ignore, see the example for the format) 
 # (bdnvt and npt take minutes to run, and an enternity with valgrind enabled, so they are ignored by default)
-# SET (IGNORE_TESTS "")
-SET (IGNORE_TESTS "-E \"test_bdnvt_integrator|test_npt_integrator\"")
+SET (IGNORE_TESTS "")
+#SET (IGNORE_TESTS "-E \"test_bdnvt_integrator|test_npt_integrator\"")
 
 # (location of valgrind: Leave blank unless you REALLY want the long valgrind tests to run
 SET (MEMORYCHECK_COMMAND "")
@@ -27,6 +27,9 @@ SET (CUDA_ARCH_LIST 12 13 20)
 
 # (set to ON to enable coverage tests: these extensive tests don't really need to be done on every single build)
 SET (ENABLE_COVERAGE OFF)
+
+# Build type
+SET (BUILD_TYPE Release)
 
 # Bring in the settings common to all ctest scripts
 include(site_options.cmake)

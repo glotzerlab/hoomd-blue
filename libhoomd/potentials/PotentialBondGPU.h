@@ -139,9 +139,6 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
 
-    // access bond data
-    gpu_bondtable_array& gpu_bondtable = this->m_bond_data->acquireGPU();
-
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
@@ -156,6 +153,10 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
         {
+        // Access the bond table for reading
+        ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getGPUBondList(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(), access_location::device, access_mode::read);
+
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
 
@@ -167,7 +168,9 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              d_charge.data,
                              d_diameter.data,
                              box,
-                             gpu_bondtable,
+                             d_gpu_bondlist.data,
+                             this->m_bond_data->getGPUBondList().getPitch(),
+                             d_gpu_n_bonds.data,
                              this->m_bond_data->getNBondTypes(),
                              m_block_size),
                  d_params.data,

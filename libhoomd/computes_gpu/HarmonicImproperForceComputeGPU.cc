@@ -116,8 +116,11 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Improper");
     
-    gpu_dihedraltable_array& gpu_impropertable = m_improper_data->acquireGPU();
-    
+
+    ArrayHandle<uint4> d_gpu_dihedral_list(m_improper_data->getGPUDihedralList(), access_location::device,access_mode::read);
+    ArrayHandle<unsigned int> d_n_dihedrals(m_improper_data->getNDihedralsArray(), access_location::device, access_mode::read);
+    ArrayHandle<uint1> d_dihedrals_ABCD(m_improper_data->getDihedralABCD(), access_location::device, access_mode::read);
+
     // the improper table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     gpu_boxsize box = m_pdata->getBoxGPU();
@@ -133,7 +136,10 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
                                          m_pdata->getN(),
                                          d_pos.data,
                                          box,
-                                         gpu_impropertable,
+                                         d_gpu_dihedral_list.data,
+                                         d_dihedrals_ABCD.data,
+                                         m_improper_data->getGPUDihedralList().getPitch(),
+                                         d_n_dihedrals.data,
                                          d_params.data,
                                          m_improper_data->getNDihedralTypes(),
                                          m_block_size);
