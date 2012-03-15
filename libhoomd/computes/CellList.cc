@@ -443,6 +443,16 @@ void CellList::computeCellList()
         if (kb == m_dim.z)
             kb = 0;
 
+#ifdef ENABLE_MPI
+        if (n >= m_pdata->getN())
+            {
+            // if a ghost particle is out of bounds, silently ignore it
+
+            if (ib > m_dim.x || jb > m_dim.y || kb > m_dim.z)
+                continue;
+            }
+#endif
+
         // sanity check
         assert(ib < (unsigned int)(m_dim.x) && jb < (unsigned int)(m_dim.y) && kb < (unsigned int)(m_dim.z));
         

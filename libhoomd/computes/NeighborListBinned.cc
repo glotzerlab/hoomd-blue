@@ -122,13 +122,13 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     Scalar3 ghost_width;
     if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? Scalar(2.0)*width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? Scalar(2.0)*width.y : Scalar(0.0),
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
                                    0.0);
     else
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? Scalar(2.0)*width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? Scalar(2.0)*width.y : Scalar(0.0),
-                                   m_cl->hasGhostLayer(2) ? Scalar(2.0)*width.z : Scalar(0.0));
+        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
+                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
+                                   m_cl->hasGhostLayer(2) ? width.z : Scalar(0.0));
 
 
     // acquire the particle data and box dimension
@@ -137,6 +137,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
+    const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -145,10 +146,10 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
 
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    // precalculate global box lengths for minimum image convention
+    Scalar Lx = global_box.xhi - global_box.xlo;
+    Scalar Ly = global_box.yhi - global_box.ylo;
+    Scalar Lz = global_box.zhi - global_box.zlo;
     Scalar Lx2 = Lx / Scalar(2.0);
     Scalar Ly2 = Ly / Scalar(2.0);
     Scalar Lz2 = Lz / Scalar(2.0);

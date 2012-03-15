@@ -192,7 +192,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
@@ -214,15 +214,15 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
-    // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getBox();
+    // get a local copy of the global simulation box too
+    const BoxDim& global_box = m_pdata->getGlobalBox();
     // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    assert(global_box.xhi > global_box.xlo && global_box.yhi > global_box.ylo && global_box.zhi > global_box.zlo);
 
     // precalculate box lengths
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar Lx = global_box.xhi - global_box.xlo;
+    Scalar Ly = global_box.yhi - global_box.ylo;
+    Scalar Lz = global_box.zhi - global_box.zlo;
     Scalar Lx2 = Lx / Scalar(2.0);
     Scalar Ly2 = Ly / Scalar(2.0);
     Scalar Lz2 = Lz / Scalar(2.0);
@@ -233,15 +233,18 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the bond
         const Bond& bond = m_bond_data->getBond(i);
-        assert(bond.a < m_pdata->getN());
-        assert(bond.b < m_pdata->getN());
+        assert(bond.a < m_pdata->getNGlobal());
+        assert(bond.b < m_pdata->getNGlobal());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[bond.a];
         unsigned int idx_b = h_rtag.data[bond.b];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
+
+#ifdef ENABLE_MPI
+        // ignore bonds that do not have at least one local member
+        if (idx_a >= m_pdata->getN() && idx_b >= m_pdata->getN())
+            continue;
 
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
             {
@@ -251,7 +254,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
                  << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
-
+#endif
         // calculate d\vec{r}
         // (MEM TRANSFER: 6 Scalars / FLOPS: 3)
         Scalar dx = h_pos.data[idx_b].x - h_pos.data[idx_a].x;

@@ -206,7 +206,7 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
         if (cur_bond_idx == NOT_LOCAL)
             {
             *d_flags = 2;
-            break;
+            return;
             }
         int cur_bond_type = cur_bond.y;
 
@@ -269,6 +269,7 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
         else
             {
             *d_flags = 1;
+            return;
             }
         }
 
