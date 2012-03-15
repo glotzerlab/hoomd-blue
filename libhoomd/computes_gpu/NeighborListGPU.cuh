@@ -88,6 +88,7 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const Index2D& nli,
                                   const float4 *d_pos,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const gpu_boxsize& box,
                                   const float r_maxsq);
 

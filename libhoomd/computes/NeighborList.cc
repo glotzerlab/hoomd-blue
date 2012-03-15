@@ -944,8 +944,10 @@ void NeighborList::buildNlist(unsigned int timestep)
     assert(h_body.data);
 
     // get a local copy of the simulation box too
+    const BoxDim& global_box = m_pdata->getGlobalBox();
     const BoxDim& box = m_pdata->getBox();
     // sanity check
+    assert(global_box.xhi > global_box.xlo && global_box.yhi > global_box.ylo && global_box.zhi > global_box.zlo);
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
     
     // start by creating a temporary copy of r_cut sqaured
@@ -969,9 +971,9 @@ void NeighborList::buildNlist(unsigned int timestep)
     // simple algorithm follows:
     
     // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar Lx = global_box.xhi - global_box.xlo;
+    Scalar Ly = global_box.yhi - global_box.ylo;
+    Scalar Lz = global_box.zhi - global_box.zlo;
     Scalar Lx2 = Lx / Scalar(2.0);
     Scalar Ly2 = Ly / Scalar(2.0);
     Scalar Lz2 = Lz / Scalar(2.0);
@@ -990,8 +992,8 @@ void NeighborList::buildNlist(unsigned int timestep)
         Scalar di = h_diameter.data[i];
         unsigned int bodyi = h_body.data[i];
         
-        // for each other particle with i < j
-        for (unsigned int j = i + 1; j < m_pdata->getN(); j++)
+        // for each other particle with i < j, including ghost particles
+        for (unsigned int j = i + 1; j < m_pdata->getN() + m_pdata->getNGhosts(); j++)
             {
             // calculate dr
             Scalar dx = h_pos.data[j].x - xi;
@@ -1016,9 +1018,9 @@ void NeighborList::buildNlist(unsigned int timestep)
                 dz += Lz;
 
             // sanity check
-            assert(dx >= box.xlo && dx <= box.xhi);
-            assert(dy >= box.ylo && dy <= box.yhi);
-            assert(dz >= box.zlo && dz <= box.zhi);
+            assert(dx >= -Lx2 && dz <= Lx2);
+            assert(dy >= -Ly2 && dy <= Ly2);
+            assert(dz >= -Lz2 && dz <= Lz2);
 
             bool excluded = false;
             if (m_filter_body && bodyi != NO_BODY)
@@ -1049,14 +1051,18 @@ void NeighborList::buildNlist(unsigned int timestep)
                             h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[i]+1);
                         
                         h_n_neigh.data[i]++;
-                        
-                        unsigned int posj = h_n_neigh.data[j];
-                        if (posj < m_Nmax)
-                            h_nlist.data[m_nlist_indexer(j, posj)] = i;
-                        else
-                            h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[j]+1);
+                       
+                        if (j < m_pdata->getN())
+                            {
+                            // only store in particle j's neighbor list if it is not a ghost particle
+                            unsigned int posj = h_n_neigh.data[j];
+                            if (posj < m_Nmax)
+                                h_nlist.data[m_nlist_indexer(j, posj)] = i;
+                            else
+                                h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[j]+1);
 
-                        h_n_neigh.data[j]++;
+                            h_n_neigh.data[j]++;
+                            }
                         }
                     }
                 else

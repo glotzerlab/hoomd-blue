@@ -275,6 +275,7 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
                                   const Index2D nli,
                                   const float4 *d_pos,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const gpu_boxsize box,
                                   const float r_maxsq)
     {
@@ -300,11 +301,12 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
     
     // each block is going to loop over all N particles (this assumes memory is padded to a multiple of blockDim.x)
     // in blocks of blockDim.x
-    for (int start = 0; start < N; start += NLIST_BLOCK_SIZE)
+    // include ghosts as neighbors
+    for (int start = 0; start < N + n_ghost; start += NLIST_BLOCK_SIZE)
         {
         // load data
         float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        if (start + threadIdx.x < N)
+        if (start + threadIdx.x < N + n_ghost)
             neigh_pos = d_pos[start + threadIdx.x];
             
         // make sure everybody is caught up before we stomp on the memory
@@ -320,7 +322,7 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
         // now each thread loops over every particle in shmem, but doesn't loop past the end of the particle list (since
         // the block might extend that far)
         int end_offset= NLIST_BLOCK_SIZE;
-        end_offset = min(end_offset, N - start);
+        end_offset = min(end_offset, N + n_ghost - start);
         
         if (pidx < N)
             {
@@ -447,6 +449,7 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const Index2D& nli,
                                   const float4 *d_pos,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const gpu_boxsize& box,
                                   const float r_maxsq)
     {
@@ -463,6 +466,7 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                                       nli,
                                                       d_pos,
                                                       N,
+                                                      n_ghost,
                                                       box,
                                                       r_maxsq);
 

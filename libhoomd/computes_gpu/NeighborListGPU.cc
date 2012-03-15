@@ -138,7 +138,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    gpu_boxsize gpubox = m_pdata->getBoxGPU();
+    gpu_boxsize gpu_global_box = m_pdata->getGlobalBoxGPU();
     
     // access the nlist data arrays
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
@@ -160,7 +160,8 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
                           m_nlist_indexer,
                           d_pos.data,
                           m_pdata->getN(),
-                          gpubox,
+                          m_pdata->getNGhosts(),
+                          gpu_global_box,
                           rmaxsq);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())

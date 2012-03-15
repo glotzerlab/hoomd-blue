@@ -513,7 +513,8 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
 
                 
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
-                if (third_law)
+                // only add force to local particles
+                if (third_law && j < m_pdata->getN())
                     {
                     unsigned int mem_idx = m_index_thread_partial(j,tid);
                     m_fdata_partial[mem_idx].x -= dx*force_divr;
