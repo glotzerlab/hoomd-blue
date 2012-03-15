@@ -184,12 +184,12 @@ class SystemDefinition
 
 #ifdef ENABLE_MPI
         //! Sets the communicator
-        void setCommunicator(boost::shared_ptr<Communicator> comm);
+        void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm);
 
         //! Returns the communicator
-        boost::shared_ptr<Communicator> getCommunicator()
+        boost::shared_ptr<boost::mpi::communicator> getMPICommunicator()
             {
-            return m_comm;
+            return m_mpi_comm;
             }
 #endif
 
@@ -205,7 +205,7 @@ class SystemDefinition
         boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data for the system
         boost::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //!< The communicator used
+        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The MPI communicator used
 #endif
     };
 
