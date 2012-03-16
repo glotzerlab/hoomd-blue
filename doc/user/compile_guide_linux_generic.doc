@@ -449,7 +449,7 @@ diff -r 29f3255cd2b8 opal/mca/event/libevent2013/libevent/autogen.sh
 
  \code
  $ ./autogen.pl
- $ ./configure --with-cuda=${CUDA_ROOT} --with-cuda-libdir=${CUDA_ROOT}/lib64 --prefix=${HOME}/local
+ $ ./configure --with-cuda=${CUDA_ROOT} --with-cuda-libdir=${CUDA_ROOT}/lib64 --prefix=${HOME}/local --with-hwloc=internal --with-openib=/usr
  $ make install -j6
 \endcode
 
