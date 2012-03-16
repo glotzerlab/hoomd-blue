@@ -455,8 +455,16 @@ void CommunicatorGPU::exchangeGhosts()
 
         m_num_copy_ghosts[dir] = 0;
 
-        // resize ghost send tags buffer
-        m_copy_ghosts[dir].resize(m_pdata->getN());
+        // resize array of ghost particle tags to copy 
+        unsigned int max_copy_ghosts = m_pdata->getN() + m_pdata->getNGhosts();
+        m_copy_ghosts[dir].resize(max_copy_ghosts);
+        
+        // resize buffers
+        m_pos_copybuf.resize(max_copy_ghosts);
+        m_charge_copybuf.resize(max_copy_ghosts);
+        m_diameter_copybuf.resize(max_copy_ghosts);
+        m_plan_copybuf.resize(max_copy_ghosts);
+
 
             {
             // Fill send buffer
@@ -473,7 +481,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> d_diameter_copybuf(m_diameter_copybuf, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned char> d_plan_copybuf(m_plan_copybuf, access_location::device, access_mode::overwrite);
 
-            gpu_make_exchange_ghost_list(m_pdata->getN(),
+            gpu_make_exchange_ghost_list(m_pdata->getN()+m_pdata->getNGhosts(),
                                          dir,
                                          d_plan.data,
                                          d_global_tag.data,
@@ -491,53 +499,6 @@ void CommunicatorGPU::exchangeGhosts()
                                 d_diameter_copybuf.data,
                                 d_plan.data,
                                 d_plan_copybuf.data);
-            }
-
-        // resize array of ghost particle tags to copy if necessary
-        unsigned int max_copy_ghosts = m_pdata->getN() + m_pdata->getNGhosts();
-        m_copy_ghosts[dir].resize(max_copy_ghosts);
-        
-        // resize buffers
-        m_pos_copybuf.resize(max_copy_ghosts);
-        m_charge_copybuf.resize(max_copy_ghosts);
-        m_diameter_copybuf.resize(max_copy_ghosts);
-        m_plan_copybuf.resize(max_copy_ghosts);
-
-            {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::read);
-
-            ArrayHandle<unsigned int> d_copy_ghosts(m_copy_ghosts[dir], access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> d_charge_copybuf(m_charge_copybuf, access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> d_diameter_copybuf(m_diameter_copybuf, access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned char> d_plan_copybuf(m_plan_copybuf, access_location::device, access_mode::readwrite);
-
-            unsigned int num_forward_ghosts;
-            gpu_make_exchange_ghost_list(m_pdata->getNGhosts(),
-                                         dir,
-                                         d_plan.data + m_pdata->getN(),
-                                         d_global_tag.data + m_pdata->getN(),
-                                         d_copy_ghosts.data + m_num_copy_ghosts[dir],
-                                         num_forward_ghosts);
-
-            gpu_exchange_ghosts(num_forward_ghosts,
-                                d_copy_ghosts.data + m_num_copy_ghosts[dir],
-                                d_global_rtag.data,
-                                d_pos.data,
-                                d_pos_copybuf.data + m_num_copy_ghosts[dir],
-                                d_charge.data,
-                                d_charge_copybuf.data + m_num_copy_ghosts[dir],
-                                d_diameter.data,
-                                d_diameter_copybuf.data + m_num_copy_ghosts[dir],
-                                d_plan.data,
-                                d_plan_copybuf.data + m_num_copy_ghosts[dir]);
-
-            m_num_copy_ghosts[dir] += num_forward_ghosts;
             }
 
         unsigned int send_neighbor = m_neighbors[dir];
@@ -571,9 +532,6 @@ void CommunicatorGPU::exchangeGhosts()
         // resize plan array
         m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
-        // resize tag copy list
-        m_copy_ghosts[dir].resize(m_pdata->getN() + m_pdata->getNGhosts());
-        
         // exchange particle data, write directly to the particle data arrays
         if (m_prof)
             m_prof->push("MPI send/recv");

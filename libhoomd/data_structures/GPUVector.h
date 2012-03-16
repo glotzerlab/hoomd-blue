@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 
 //! The factor with which the array size is incremented
-#define RESIZE_FACTOR 9./8.
+#define RESIZE_FACTOR 9.f/8.f
 
 template<class T> class GPUArray;
 //! Class for managing a vector of elements on the GPU mirrored to the CPU
@@ -262,7 +262,7 @@ template<class T> void GPUVector<T>::reallocate(unsigned int size)
 
         // double the size as often as necessary
         while (size > new_allocated_size)
-            new_allocated_size = (unsigned int) (((float) new_allocated_size) * RESIZE_FACTOR) + 1 ;
+            new_allocated_size = ((unsigned int) (((float) new_allocated_size) * RESIZE_FACTOR)) + 1 ;
 
         // actually resize the underlying GPUArray
         GPUArray<T>::resize(new_allocated_size);

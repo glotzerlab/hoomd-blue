@@ -709,8 +709,16 @@ void Communicator::exchangeGhosts()
 
         m_num_copy_ghosts[dir] = 0;
 
-       // resize ghost send tags buffer
-       m_copy_ghosts[dir].resize(m_pdata->getN());
+        // resize array of ghost particle tags
+        unsigned int max_copy_ghosts = m_pdata->getN() + m_pdata->getNGhosts();
+        m_copy_ghosts[dir].resize(max_copy_ghosts);
+
+        // resize buffers
+        m_plan_copybuf.resize(max_copy_ghosts);
+        m_pos_copybuf.resize(max_copy_ghosts);
+        m_charge_copybuf.resize(max_copy_ghosts);
+        m_diameter_copybuf.resize(max_copy_ghosts);
+
       
             {
             // Fill send buffer
@@ -726,7 +734,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::overwrite);
 
-            for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+            for (unsigned int idx = 0; idx < m_pdata->getN() + m_pdata->getNGhosts(); idx++)
                 {
 
                 if (h_plan.data[idx] & (1 << dir))
@@ -742,48 +750,6 @@ void Communicator::exchangeGhosts()
                     }
                 }
             }
-
-        // resize array of ghost particle tags
-        unsigned int max_copy_ghosts = m_pdata->getN() + m_pdata->getNGhosts();
-        m_copy_ghosts[dir].resize(max_copy_ghosts);
-
-        // resize buffers
-        m_plan_copybuf.resize(max_copy_ghosts);
-        m_pos_copybuf.resize(max_copy_ghosts);
-        m_charge_copybuf.resize(max_copy_ghosts);
-        m_diameter_copybuf.resize(max_copy_ghosts);
-
-            {
-            // Fill send buffer with forwarded ghost particles
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::read);
-
-            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf, access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::readwrite);
-
-            // check plans of ghost particles, include into send buffer if necessary
-            for (unsigned int idx = m_pdata->getN(); idx < m_pdata->getN() + m_pdata->getNGhosts(); idx++)
-                {
-                if (h_plan.data[idx] & (1 << dir))
-                    {
-                    // send with next message
-                    h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
-                    h_charge_copybuf.data[m_num_copy_ghosts[dir]] = h_charge.data[idx];
-                    h_diameter_copybuf.data[m_num_copy_ghosts[dir]] = h_diameter.data[idx];
-                    h_plan_copybuf.data[m_num_copy_ghosts[dir]] = h_plan.data[idx];
-
-                    h_copy_ghosts.data[m_num_copy_ghosts[dir]] = h_global_tag.data[idx];
-                    m_num_copy_ghosts[dir]++;
-                    }
-                }
-            }
-
         unsigned int send_neighbor = m_neighbors[dir];
 
         // we receive from the direction opposite to the one we send to
@@ -814,9 +780,6 @@ void Communicator::exchangeGhosts()
 
         // resize plan array
         m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
-
-        // resize tag copy list
-        m_copy_ghosts[dir].resize(m_pdata->getN() + m_pdata->getNGhosts());
 
         // exchange particle data, write directly to the particle data arrays
         if (m_prof)
