@@ -569,9 +569,11 @@ void CommunicatorGPU::exchangeGhosts()
         m_pdata->addGhostParticles(m_num_recv_ghosts[dir]);
 
         // resize plan array
-        if (m_pdata->getN() + m_pdata->getNGhosts() > m_plan.size())
-            m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
+        m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
+        // resize tag copy list
+        m_copy_ghosts[dir].resize(m_pdata->getN() + m_pdata->getNGhosts());
+        
         // exchange particle data, write directly to the particle data arrays
         if (m_prof)
             m_prof->push("MPI send/recv");

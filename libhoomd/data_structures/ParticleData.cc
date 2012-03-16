@@ -772,7 +772,7 @@ void ParticleData::addParticles(const unsigned int n)
     if (m_nparticles + n > max_nparticles)
         {
         while (m_nparticles + n > max_nparticles)
-            max_nparticles = (unsigned int) (((float) max_nparticles) * m_resize_factor) + 1 ;
+            max_nparticles = ((unsigned int) (((float) max_nparticles) * m_resize_factor)) + 1 ;
 
         // actually reallocate particle data arrays
         reallocate(max_nparticles);
@@ -801,7 +801,7 @@ void ParticleData::addGhostParticles(const unsigned int nghosts)
     if (m_nparticles + m_nghosts > max_nparticles)
         {
         while (m_nparticles + m_nghosts > max_nparticles)
-            max_nparticles = (unsigned int) (((float) max_nparticles) * m_resize_factor) + 1 ;
+            max_nparticles = ((unsigned int) (((float) max_nparticles) * m_resize_factor)) + 1 ;
 
         // reallocate particle data arrays
         reallocate(max_nparticles);
