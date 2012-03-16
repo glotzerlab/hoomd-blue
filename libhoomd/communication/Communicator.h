@@ -325,8 +325,8 @@ class Communicator
         //! Helper function to allocate internal buffers
         void allocate();
 
-        GPUArray<char> m_sendbuf[6];             //!< Per-direction buffer for particles that are sent
-        GPUArray<char> m_recvbuf[6];             //!< Per-direction buffer for particles that are received
+        GPUArray<char> m_sendbuf;             //!< Buffer for particles that are sent
+        GPUArray<char> m_recvbuf;             //!< Buffer for particles that are received
 
         //! The flags used for indicating the itinerary of a ghost particle
         enum Enum
@@ -339,29 +339,23 @@ class Communicator
             send_down = 32
             };
 
-
-        GPUArray<Scalar4> m_pos_copybuf[6];      //!< Per-direction send buffer for particle positions to be copied
-        GPUArray<Scalar> m_charge_copybuf[6];    //!< Per-direction send buffer for particle charges to be copied
-        GPUArray<Scalar> m_diameter_copybuf[6];  //!< Per-direction send buffer for particle diameters to be copied
-        GPUArray<unsigned char> m_plan_copybuf[6]; //!< Per-direction send buffer for particle plans
-
-        GPUArray<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts to neighboring processors
-        unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
-        unsigned int m_num_recv_ghosts[6];       //!< Number of ghosts received per direction
-
-
-        unsigned int m_max_copy_ghosts[6];       //!< Max size of m_copy_ghosts array
-        unsigned int m_max_ghost_copybuf;        //!< Max  size of ghost particle data buffer
-
-        unsigned int m_neighbors[6];             //!< MPI rank of neighbor domain  in every direction
-        bool m_is_at_boundary[6];                //!< Per-direction flas to indicate whether the box is at a a boundary
-
         boost::shared_ptr<SystemDefinition> m_sysdef;              //!< System definition
         boost::shared_ptr<ParticleData> m_pdata;                   //!< Particle data
         boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Execution configuration
         boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communciator
         boost::shared_ptr<Profiler> m_prof;                        //!< Profiler
 
+        GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
+        GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
+        GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
+        GPUVector<unsigned char> m_plan_copybuf;  //!< Buffer for particle plans
+
+        GPUVector<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of tags of particles to send as ghosts to neighboring processors
+        unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
+        unsigned int m_num_recv_ghosts[6];       //!< Number of ghosts received per direction
+
+        unsigned int m_neighbors[6];             //!< MPI rank of neighbor domain  in every direction
+        bool m_is_at_boundary[6];                //!< Per-direction flas to indicate whether the box is at a a boundary
         const uint3 m_dim;                        //!< Dimensions of global simulation box (number of boxes along every axis)
         BoxDim m_global_box;                     //!< Global simulation box
         unsigned int m_packed_size;              //!< Size of packed particle data element in bytes

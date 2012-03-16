@@ -979,6 +979,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
         resizeDeviceArray(num_elements);
 #endif
     m_num_elements = num_elements;
+    m_pitch = num_elements;
     }
 
 /*! \param width new width of array

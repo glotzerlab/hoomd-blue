@@ -63,6 +63,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GPUArray.h"
 
+//! The factor with which the array size is incremented
+#define RESIZE_FACTOR 9./8.
+
 template<class T> class GPUArray;
 //! Class for managing a vector of elements on the GPU mirrored to the CPU
 /*! The GPUVector class is a simple container for a variable number of elements. Its interface is inspired
@@ -79,10 +82,15 @@ template<class T> class GPUArray;
 template<class T> class GPUVector : public GPUArray<T>
     {
     public:
+        //! Default constructor
+        GPUVector();
+
         //! Constructs an empty GPUVector
         GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+ 
         //! Constructs a GPUVector
         GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+
         //! Frees memory
         virtual ~GPUVector() {}
 
@@ -176,7 +184,7 @@ template<class T> class GPUVector : public GPUArray<T>
     private:
         unsigned int m_size;                    //!< Number of elements
 
-        //! Helper function to reallocate the GPUArray (using amortized doubling)
+        //! Helper function to reallocate the GPUArray (using amortized array resizing)
         void reallocate(unsigned int new_size);
 
         //! Acquire the underlying GPU array on the host
@@ -189,6 +197,16 @@ template<class T> class GPUVector : public GPUArray<T>
 //******************************************
 // GPUVector implementation
 // *****************************************
+
+//! Default constructor
+/*! \warning When using this constructor, a properly initialized GPUVector with an exec_conf needs
+             to be swapped in later, after construction of the GPUVector.
+ */
+template<class T> GPUVector<T>::GPUVector()
+    : GPUArray<T>(), m_size(0)
+    {
+    }
+
 
 //! Constructs an empty GPUVector
 /*! \param exec_conf Shared pointer to the execution configuration
@@ -223,15 +241,15 @@ template<class T> GPUVector<T>& GPUVector<T>::operator=(const GPUVector& rhs)
 
 /*! \param from GPUVector to swap \a this with
 */
-template<class T> void GPUVector<T>::swap(GPUVector& from)
+template<class T> void GPUVector<T>::swap(GPUVector<T>& from)
     {
-    std::swap(m_size, from.size);
+    std::swap(m_size, from.m_size);
     GPUArray<T>::swap(from);
     }
 
 /*! \param size New requested size of allocated memory
  *
- * Internally, this method uses amortized doubling of allocated memory to
+ * Internally, this method uses amortized resizing of allocated memory to
  * avoid excessive copying of data. The GPUArray is only reallocated if necessary,
  * i.e. if the requested size is larger than the current size, which is a power of two.
  */
@@ -243,7 +261,8 @@ template<class T> void GPUVector<T>::reallocate(unsigned int size)
         unsigned int new_allocated_size = GPUArray<T>::getNumElements() ? GPUArray<T>::getNumElements() : 1;
 
         // double the size as often as necessary
-        while (size > new_allocated_size) new_allocated_size *= 2;
+        while (size > new_allocated_size)
+            new_allocated_size = (unsigned int) (((float) new_allocated_size) * RESIZE_FACTOR) + 1 ;
 
         // actually resize the underlying GPUArray
         GPUArray<T>::resize(new_allocated_size);

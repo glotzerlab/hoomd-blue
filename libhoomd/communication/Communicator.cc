@@ -133,6 +133,10 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_pdata(sysdef->getParticleData()),
             exec_conf(m_pdata->getExecConf()),
             m_mpi_comm(mpi_comm),
+            m_pos_copybuf(exec_conf),
+            m_charge_copybuf(exec_conf),
+            m_diameter_copybuf(exec_conf),
+            m_plan_copybuf(exec_conf),
             m_dim(dim),
             m_global_box(m_pdata->getGlobalBox()),
             m_is_allocated(false),
@@ -147,6 +151,9 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         {
         m_neighbors[dir] = neighbor_rank[dir];
         m_is_at_boundary[dir] = is_at_boundary[dir];
+
+        GPUVector<unsigned int> copy_ghosts(exec_conf);
+        m_copy_ghosts[dir].swap(copy_ghosts);
         }
 
     m_packed_size = sizeof(pdata_element);
@@ -174,38 +181,11 @@ void Communicator::allocate()
     // used for allocation of the buffers
     unsigned int buf_size = m_pdata->getN() * m_packed_size;
 
-    for (int dir = 0; dir < 6; dir++)
-        {
-        GPUArray<char> sendbuf(buf_size, exec_conf);
-        m_sendbuf[dir].swap(sendbuf);
-        }
+    GPUArray<char> sendbuf(buf_size, exec_conf);
+    m_sendbuf.swap(sendbuf);
 
-    // the number of particles in this domain may not be sufficient for the receive buffer buf_size
-    for (int dir = 0; dir < 6; dir++)
-        {
-        GPUArray<char> recvbuf(buf_size, exec_conf);
-        m_recvbuf[dir].swap(recvbuf);
-        }
-
-    for (unsigned int dir = 0; dir < 6; dir++)
-        {
-        m_max_copy_ghosts[dir] = m_pdata->getN(); // initial value
-        GPUArray<unsigned int> copy_ghosts(m_max_copy_ghosts[dir], exec_conf);
-        m_copy_ghosts[dir].swap(copy_ghosts);
-
-        GPUArray<unsigned char> plan_copybuf(m_max_copy_ghosts[dir], exec_conf);
-        m_plan_copybuf[dir].swap(plan_copybuf);
-
-        GPUArray<Scalar4> pos_copybuf(m_max_copy_ghosts[dir], exec_conf);
-        m_pos_copybuf[dir].swap(pos_copybuf);
-
-        GPUArray<Scalar> charge_copybuf(m_max_copy_ghosts[dir], exec_conf);
-        m_charge_copybuf[dir].swap(charge_copybuf);
-
-        GPUArray<Scalar> diameter_copybuf(m_max_copy_ghosts[dir], exec_conf);
-        m_diameter_copybuf[dir].swap(diameter_copybuf);
-
-        }
+    GPUArray<char> recvbuf(buf_size, exec_conf);
+    m_recvbuf.swap(recvbuf);
 
     // allocate temp storage for particle data
     GPUArray<Scalar4> pos_tmp(m_pdata->getPositions().getNumElements(), exec_conf);
@@ -412,13 +392,13 @@ void Communicator::migrateAtoms()
             }
 
 
-            // resize send buffer if necessary
-            if (n_send_ptls*m_packed_size > m_sendbuf[dir].getNumElements())
-                {
-                unsigned int new_size = m_sendbuf[dir].getNumElements();
-                while (new_size < n_send_ptls * m_packed_size) new_size *= 2;
-                m_sendbuf[dir].resize(new_size);
-                }
+        // resize send buffer if necessary
+        if (n_send_ptls*m_packed_size > m_sendbuf.getNumElements())
+            {
+            unsigned int new_size = m_sendbuf.getNumElements();
+            while (new_size < n_send_ptls * m_packed_size) new_size *= 2;
+            m_sendbuf.resize(new_size);
+            }
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -433,7 +413,7 @@ void Communicator::migrateAtoms()
 
             ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
 
-            ArrayHandle<char> h_sendbuf(m_sendbuf[dir], access_location::host, access_mode::overwrite);
+            ArrayHandle<char> h_sendbuf(m_sendbuf, access_location::host, access_mode::overwrite);
 
             for (unsigned int i = 0;  i<  n_send_ptls; i++)
                 {
@@ -481,9 +461,17 @@ void Communicator::migrateAtoms()
         reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,n_recv_ptls);
         boost::mpi::wait_all(reqs,reqs+2);
 
+        // Resize receive buffer if necessary
+        if (n_recv_ptls*m_packed_size > m_recvbuf.getNumElements())
             {
-            ArrayHandle<char> h_sendbuf(m_sendbuf[dir], access_location::host, access_mode::read);
-            ArrayHandle<char> h_recvbuf(m_recvbuf[dir], access_location::host, access_mode::overwrite);
+            unsigned int new_size = m_recvbuf.getNumElements();
+            while (new_size < n_recv_ptls*m_packed_size) new_size *= 2;
+            m_recvbuf.resize(new_size);
+            }
+
+            {
+            ArrayHandle<char> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
             // exchange actual particle data
             reqs[0] = m_mpi_comm->isend(send_neighbor,1,h_sendbuf.data,n_send_ptls*m_packed_size);
             reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,h_recvbuf.data,n_recv_ptls*m_packed_size);
@@ -495,7 +483,7 @@ void Communicator::migrateAtoms()
 
             {
             // wrap received particles across a global boundary back into global box
-            ArrayHandle<char> h_recvbuf(m_recvbuf[dir], access_location::host, access_mode::readwrite);
+            ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
             for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
                 {
                 pdata_element& p = ((pdata_element *) h_recvbuf.data)[idx];
@@ -559,7 +547,7 @@ void Communicator::migrateAtoms()
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
 
-            ArrayHandle<char> h_recvbuf(m_recvbuf[dir], access_location::host, access_mode::read);
+            ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::read);
             for (unsigned int i = 0; i < n_recv_ptls; i++)
                 {
                 pdata_element& p =  ((pdata_element *) h_recvbuf.data)[i];
@@ -705,6 +693,13 @@ void Communicator::exchangeGhosts()
     /*
      * Fill send buffers, exchange particles according to plans
      */
+
+    // resize buffers
+    m_plan_copybuf.resize(m_pdata->getN());
+    m_pos_copybuf.resize(m_pdata->getN());
+    m_charge_copybuf.resize(m_pdata->getN());
+    m_diameter_copybuf.resize(m_pdata->getN());
+
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         // If the grid is only one box wide in the current direction, avoid communicating with ourselves
@@ -714,7 +709,9 @@ void Communicator::exchangeGhosts()
 
         m_num_copy_ghosts[dir] = 0;
 
-
+       // resize ghost send tags buffer
+       m_copy_ghosts[dir].resize(m_pdata->getN());
+      
             {
             // Fill send buffer
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -724,10 +721,10 @@ void Communicator::exchangeGhosts()
             ArrayHandle<unsigned char>  h_plan(m_plan, access_location::host, access_mode::read);
 
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf[dir], access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf[dir], access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf[dir], access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::overwrite);
 
             for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                 {
@@ -746,17 +743,15 @@ void Communicator::exchangeGhosts()
                 }
             }
 
-        // resize array of ghost particle ids to copy if necessary
-        if (m_pdata->getN() + m_pdata->getNGhosts() > m_max_copy_ghosts[dir])
-            {
-            while (m_pdata->getN() + m_pdata->getNGhosts() > m_max_copy_ghosts[dir]) m_max_copy_ghosts[dir] *= 2;
+        // resize array of ghost particle tags
+        unsigned int max_copy_ghosts = m_pdata->getN() + m_pdata->getNGhosts();
+        m_copy_ghosts[dir].resize(max_copy_ghosts);
 
-            m_copy_ghosts[dir].resize(m_max_copy_ghosts[dir]);
-            m_plan_copybuf[dir].resize(m_max_copy_ghosts[dir]);
-            m_pos_copybuf[dir].resize(m_max_copy_ghosts[dir]);
-            m_charge_copybuf[dir].resize(m_max_copy_ghosts[dir]);
-            m_diameter_copybuf[dir].resize(m_max_copy_ghosts[dir]);
-            }
+        // resize buffers
+        m_plan_copybuf.resize(max_copy_ghosts);
+        m_pos_copybuf.resize(max_copy_ghosts);
+        m_charge_copybuf.resize(max_copy_ghosts);
+        m_diameter_copybuf.resize(max_copy_ghosts);
 
             {
             // Fill send buffer with forwarded ghost particles
@@ -767,10 +762,10 @@ void Communicator::exchangeGhosts()
             ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::read);
 
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf[dir], access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf[dir], access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf[dir], access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::readwrite);
 
             // check plans of ghost particles, include into send buffer if necessary
             for (unsigned int idx = m_pdata->getN(); idx < m_pdata->getN() + m_pdata->getNGhosts(); idx++)
@@ -827,10 +822,10 @@ void Communicator::exchangeGhosts()
 
             {
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
-            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf[dir], access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf[dir], access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf[dir], access_location::host, access_mode::read);
+            ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::read);
 
             ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -914,7 +909,7 @@ void Communicator::copyGhosts()
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
 
@@ -954,7 +949,7 @@ void Communicator::copyGhosts()
             boost::mpi::request reqs[2];
 
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf[dir], access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
             reqs[0] = m_mpi_comm->isend(send_neighbor,1,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
