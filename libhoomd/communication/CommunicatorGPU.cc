@@ -129,19 +129,6 @@ void CommunicatorGPU::migrateAtoms()
         if (m_prof)
             m_prof->push("remove ptls");
 
-        if (m_pdata->getMaxN() > m_pos_tmp.getNumElements())
-            {
-            m_pos_tmp.resize(m_pdata->getMaxN());
-            m_vel_tmp.resize(m_pdata->getMaxN());
-            m_accel_tmp.resize(m_pdata->getMaxN());
-            m_image_tmp.resize(m_pdata->getMaxN());
-            m_charge_tmp.resize(m_pdata->getMaxN());
-            m_diameter_tmp.resize(m_pdata->getMaxN());
-            m_body_tmp.resize(m_pdata->getMaxN());
-            m_orientation_tmp.resize(m_pdata->getMaxN());
-            m_tag_tmp.resize(m_pdata->getMaxN());
-            }
-
             {
             // remove all particles from our domain that are going to be sent in the current direction
 

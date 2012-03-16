@@ -177,6 +177,34 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
 //! Distribute particle data onto processors
 void MPIInitializer::scatter(unsigned int root)
     {
+    // Define per-processor particle data
+    std::vector< std::vector<Scalar3> > pos_proc;              // Position array of every processor
+    std::vector< std::vector<Scalar3> > vel_proc;              // Velocities array of every processor
+    std::vector< std::vector<Scalar3> > accel_proc;            // Accelerations array of every processor
+    std::vector< std::vector<unsigned int> > type_proc;        // Particle types array of every processor
+    std::vector< std::vector<Scalar > > mass_proc;             // Particle masses array of every processor
+    std::vector< std::vector<Scalar > > charge_proc;           // Particle charges array of every processor
+    std::vector< std::vector<Scalar > > diameter_proc;         // Particle diameters array of every processor
+    std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
+    std::vector< std::vector<unsigned int > > rtag_proc;       // Particle reverse-lookup tags array of every processor
+    std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
+    std::vector< std::vector<unsigned int > > global_tag_proc; // Global tags of every processor
+    std::vector< unsigned int > N_proc;                        // Number of particles on every processor
+
+    // resize to number of ranks in communicator
+    pos_proc.resize(m_mpi_comm->size());
+    vel_proc.resize(m_mpi_comm->size());
+    accel_proc.resize(m_mpi_comm->size());
+    type_proc.resize(m_mpi_comm->size());
+    mass_proc.resize(m_mpi_comm->size());
+    charge_proc.resize(m_mpi_comm->size());
+    diameter_proc.resize(m_mpi_comm->size());
+    image_proc.resize(m_mpi_comm->size());
+    body_proc.resize(m_mpi_comm->size());
+    global_tag_proc.resize(m_mpi_comm->size());
+
+    N_proc.resize(m_mpi_comm->size());
+
     if (m_rank == root)
         {
         // get number of particle types
@@ -192,33 +220,6 @@ void MPIInitializer::scatter(unsigned int root)
 
         // get global number of particles
         m_nglobal = m_pdata->getN();
-
-        // first clear per-processor particle data
-        m_pos_proc.clear();
-        m_vel_proc.clear();
-        m_accel_proc.clear();
-        m_type_proc.clear();
-        m_mass_proc.clear();
-        m_charge_proc.clear();
-        m_diameter_proc.clear();
-        m_image_proc.clear();
-        m_body_proc.clear();
-        m_global_tag_proc.clear();
-        m_N_proc.clear();
-
-        // resize to number of ranks in communicator
-        m_pos_proc.resize(m_mpi_comm->size());
-        m_vel_proc.resize(m_mpi_comm->size());
-        m_accel_proc.resize(m_mpi_comm->size());
-        m_type_proc.resize(m_mpi_comm->size());
-        m_mass_proc.resize(m_mpi_comm->size());
-        m_charge_proc.resize(m_mpi_comm->size());
-        m_diameter_proc.resize(m_mpi_comm->size());
-        m_image_proc.resize(m_mpi_comm->size());
-        m_body_proc.resize(m_mpi_comm->size());
-        m_global_tag_proc.resize(m_mpi_comm->size());
-
-        m_N_proc.resize(m_mpi_comm->size(),0);
 
         SnapshotParticleData global_snapshot(m_pdata->getN());
         m_pdata->takeSnapshot(global_snapshot);
@@ -254,17 +255,17 @@ void MPIInitializer::scatter(unsigned int root)
             assert(rank <= (unsigned int) m_mpi_comm->size());
 
             // fill up per-processor data structures
-            m_pos_proc[rank].push_back(global_snapshot.pos[idx]);
-            m_vel_proc[rank].push_back(global_snapshot.vel[idx]);
-            m_accel_proc[rank].push_back(global_snapshot.accel[idx]);
-            m_type_proc[rank].push_back(global_snapshot.type[idx]);
-            m_mass_proc[rank].push_back(global_snapshot.mass[idx]);
-            m_charge_proc[rank].push_back(global_snapshot.charge[idx]);
-            m_diameter_proc[rank].push_back(global_snapshot.diameter[idx]);
-            m_image_proc[rank].push_back(global_snapshot.image[idx]);
-            m_body_proc[rank].push_back(global_snapshot.body[idx]);
-            m_global_tag_proc[rank].push_back(global_snapshot.global_tag[idx]);
-            m_N_proc[rank]++;
+            pos_proc[rank].push_back(global_snapshot.pos[idx]);
+            vel_proc[rank].push_back(global_snapshot.vel[idx]);
+            accel_proc[rank].push_back(global_snapshot.accel[idx]);
+            type_proc[rank].push_back(global_snapshot.type[idx]);
+            mass_proc[rank].push_back(global_snapshot.mass[idx]);
+            charge_proc[rank].push_back(global_snapshot.charge[idx]);
+            diameter_proc[rank].push_back(global_snapshot.diameter[idx]);
+            image_proc[rank].push_back(global_snapshot.image[idx]);
+            body_proc[rank].push_back(global_snapshot.body[idx]);
+            global_tag_proc[rank].push_back(global_snapshot.global_tag[idx]);
+            N_proc[rank]++;
 
             }
         }
@@ -277,41 +278,41 @@ void MPIInitializer::scatter(unsigned int root)
     boost::mpi::broadcast(*m_mpi_comm, m_type_mapping, root);
 
     // distribute number of particles
-    unsigned int N = 0;
-    boost::mpi::scatter(*m_mpi_comm, m_N_proc, N,root);
+    unsigned int N;
+    boost::mpi::scatter(*m_mpi_comm, N_proc, N,root);
 
     // initialize snapshot
     SnapshotParticleData snap(N);
 
     // distribute positions
-    boost::mpi::scatter(*m_mpi_comm, m_pos_proc,snap.pos,root);
+    boost::mpi::scatter(*m_mpi_comm, pos_proc,snap.pos,root);
 
     // distribute velocities
-    boost::mpi::scatter(*m_mpi_comm, m_vel_proc,snap.vel,root);
+    boost::mpi::scatter(*m_mpi_comm, vel_proc,snap.vel,root);
 
     // distribute accelerations
-    boost::mpi::scatter(*m_mpi_comm, m_accel_proc, snap.accel, root);
+    boost::mpi::scatter(*m_mpi_comm, accel_proc, snap.accel, root);
 
     // distribute particle types
-    boost::mpi::scatter(*m_mpi_comm, m_type_proc, snap.type, root);
+    boost::mpi::scatter(*m_mpi_comm, type_proc, snap.type, root);
 
     // distribute particle masses
-    boost::mpi::scatter(*m_mpi_comm, m_mass_proc, snap.mass, root);
+    boost::mpi::scatter(*m_mpi_comm, mass_proc, snap.mass, root);
 
     // distribute particle charges
-    boost::mpi::scatter(*m_mpi_comm, m_charge_proc, snap.charge, root);
+    boost::mpi::scatter(*m_mpi_comm, charge_proc, snap.charge, root);
 
     // distribute particle diameters`
-    boost::mpi::scatter(*m_mpi_comm, m_diameter_proc, snap.diameter, root);
+    boost::mpi::scatter(*m_mpi_comm, diameter_proc, snap.diameter, root);
 
     // distribute particle images
-    boost::mpi::scatter(*m_mpi_comm, m_image_proc, snap.image, root);
+    boost::mpi::scatter(*m_mpi_comm, image_proc, snap.image, root);
 
     // distribute body ids
-    boost::mpi::scatter(*m_mpi_comm, m_body_proc, snap.body, root);
+    boost::mpi::scatter(*m_mpi_comm, body_proc, snap.body, root);
 
     // distribute global tags
-    boost::mpi::scatter(*m_mpi_comm, m_global_tag_proc, snap.global_tag, root);
+    boost::mpi::scatter(*m_mpi_comm, global_tag_proc, snap.global_tag, root);
 
     // broadcast global number of particles
     boost::mpi::broadcast(*m_mpi_comm, m_nglobal, root);
@@ -353,18 +354,46 @@ void MPIInitializer::gatherSnapshot(SnapshotParticleData& global_snapshot, unsig
 
     m_pdata->takeSnapshot(snap);
 
+    std::vector< std::vector<Scalar3> > pos_proc;              // Position array of every processor
+    std::vector< std::vector<Scalar3> > vel_proc;              // Velocities array of every processor
+    std::vector< std::vector<Scalar3> > accel_proc;            // Accelerations array of every processor
+    std::vector< std::vector<unsigned int> > type_proc;        // Particle types array of every processor
+    std::vector< std::vector<Scalar > > mass_proc;             // Particle masses array of every processor
+    std::vector< std::vector<Scalar > > charge_proc;           // Particle charges array of every processor
+    std::vector< std::vector<Scalar > > diameter_proc;         // Particle diameters array of every processor
+    std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
+    std::vector< std::vector<unsigned int > > rtag_proc;       // Particle reverse-lookup tags array of every processor
+    std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
+    std::vector< std::vector<unsigned int > > global_tag_proc; // Global tags of every processor
+    std::vector< unsigned int > N_proc;                        // Number of particles on every processor
+
+    // resize to number of ranks in communicator
+    pos_proc.resize(m_mpi_comm->size());
+    vel_proc.resize(m_mpi_comm->size());
+    accel_proc.resize(m_mpi_comm->size());
+    type_proc.resize(m_mpi_comm->size());
+    mass_proc.resize(m_mpi_comm->size());
+    charge_proc.resize(m_mpi_comm->size());
+    diameter_proc.resize(m_mpi_comm->size());
+    image_proc.resize(m_mpi_comm->size());
+    body_proc.resize(m_mpi_comm->size());
+    global_tag_proc.resize(m_mpi_comm->size());
+
+    N_proc.resize(m_mpi_comm->size(),0);
+
+
     // collect all particle data on the root processor
-    boost::mpi::gather(*m_mpi_comm, snap.pos, m_pos_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.vel, m_vel_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.accel, m_accel_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.type, m_type_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.mass, m_mass_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.charge, m_charge_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.diameter, m_diameter_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.image, m_image_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.body, m_body_proc, root);
-    boost::mpi::gather(*m_mpi_comm, snap.global_tag, m_global_tag_proc, root);
-    boost::mpi::gather(*m_mpi_comm, m_pdata->getN(), m_N_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.pos, pos_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.vel, vel_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.accel, accel_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.type, type_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.mass, mass_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.charge, charge_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.diameter, diameter_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.image, image_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.body, body_proc, root);
+    boost::mpi::gather(*m_mpi_comm, snap.global_tag, global_tag_proc, root);
+    boost::mpi::gather(*m_mpi_comm, m_pdata->getN(), N_proc, root);
 
     std::vector< std::map<unsigned int, unsigned int> > global_rtag_proc;
     global_rtag_proc.resize(m_mpi_comm->size());
@@ -403,15 +432,15 @@ void MPIInitializer::gatherSnapshot(SnapshotParticleData& global_snapshot, unsig
 
             // rank contains the processor rank on which the particle was found
             unsigned int idx = it->second;
-            global_snapshot.pos[tag] = m_pos_proc[rank][idx];
-            global_snapshot.vel[tag] = m_vel_proc[rank][idx];
-            global_snapshot.accel[tag] = m_accel_proc[rank][idx];
-            global_snapshot.type[tag] = m_type_proc[rank][idx];
-            global_snapshot.mass[tag] = m_mass_proc[rank][idx];
-            global_snapshot.charge[tag] = m_charge_proc[rank][idx];
-            global_snapshot.diameter[tag] = m_diameter_proc[rank][idx];
-            global_snapshot.image[tag] = m_image_proc[rank][idx];
-            global_snapshot.body[tag] = m_body_proc[rank][idx];
+            global_snapshot.pos[tag] = pos_proc[rank][idx];
+            global_snapshot.vel[tag] = vel_proc[rank][idx];
+            global_snapshot.accel[tag] = accel_proc[rank][idx];
+            global_snapshot.type[tag] = type_proc[rank][idx];
+            global_snapshot.mass[tag] = mass_proc[rank][idx];
+            global_snapshot.charge[tag] = charge_proc[rank][idx];
+            global_snapshot.diameter[tag] = diameter_proc[rank][idx];
+            global_snapshot.image[tag] = image_proc[rank][idx];
+            global_snapshot.body[tag] = body_proc[rank][idx];
             global_snapshot.global_tag[tag] = tag;
             global_snapshot.global_rtag.insert(std::pair<unsigned int, unsigned int>(tag, tag));
             }

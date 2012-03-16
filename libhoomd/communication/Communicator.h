@@ -202,6 +202,7 @@ class Communicator
                      std::vector<unsigned int> neighbor_rank,
                      std::vector<bool> is_at_boundary,
                      uint3 dim);
+        virtual ~Communicator();
 
         //! \name accessor methods
         //@{
@@ -307,6 +308,9 @@ class Communicator
 
         //@}
 
+        //! Reallocate temporary storage
+        void reallocate();
+
     protected:
 
         //! Set size of a packed data element
@@ -384,6 +388,9 @@ class Communicator
         GPUArray<unsigned int> m_body_tmp;       //!< Temporary storage of particle body ids
         GPUArray<Scalar4> m_orientation_tmp;     //!< Temporary storage of particle orientations
         GPUArray<unsigned int> m_tag_tmp;        //!< Temporary storage of particle tags
+
+    private:
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
 
     };
 

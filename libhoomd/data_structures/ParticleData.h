@@ -882,7 +882,8 @@ class ParticleData : boost::noncopyable
         GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
         GPUArray< Scalar4 > m_orientation;           //!< Orientation quaternion for each particle (ignored if not anisotropic)
         std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle
-        
+
+        const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         
 #ifdef ENABLE_CUDA

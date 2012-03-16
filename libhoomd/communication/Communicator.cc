@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #include "System.h"
 
+#include <boost/bind.hpp>
 #include <boost/mpi.hpp>
 #include <boost/python.hpp>
 #include <algorithm>
@@ -157,6 +158,15 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
         }
+
+    // Connect to maximum particle number change signal
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(boost::bind(&Communicator::reallocate, this));
+    }
+
+//! Destructor
+Communicator::~Communicator()
+    {
+    m_max_particle_num_change_connection.disconnect();
     }
 
 //! Allocate internal buffers
@@ -220,6 +230,20 @@ void Communicator::allocate()
     m_tag_tmp.swap(tag_tmp);
 
     m_is_allocated = true;
+    }
+
+//! Rellocate temporary storage
+void Communicator::reallocate()
+    {
+    m_pos_tmp.resize(m_pdata->getMaxN());
+    m_vel_tmp.resize(m_pdata->getMaxN());
+    m_accel_tmp.resize(m_pdata->getMaxN());
+    m_image_tmp.resize(m_pdata->getMaxN());
+    m_charge_tmp.resize(m_pdata->getMaxN());
+    m_diameter_tmp.resize(m_pdata->getMaxN());
+    m_body_tmp.resize(m_pdata->getMaxN());
+    m_orientation_tmp.resize(m_pdata->getMaxN());
+    m_tag_tmp.resize(m_pdata->getMaxN());
     }
 
 //! Interface to the communication methods.

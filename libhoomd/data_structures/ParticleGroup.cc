@@ -329,14 +329,7 @@ ParticleGroup::~ParticleGroup()
 
 void ParticleGroup::reallocate()
     {
-    unsigned int max_particle_num = m_is_member.getNumElements();
-
-    if (max_particle_num < m_pdata->getMaxN())
-        {
-        // only resize if needed
-        while (max_particle_num < m_pdata->getMaxN()) max_particle_num *= 2;
-        m_is_member.resize(max_particle_num);
-        }
+    m_is_member.resize(m_pdata->getMaxN());
 
     // rebuild index list
     rebuildIndexList();

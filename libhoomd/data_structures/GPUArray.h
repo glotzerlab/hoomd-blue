@@ -791,10 +791,6 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     // if not allocated, do nothing
     if (isNull()) return NULL;
 
-    // do not resize unless array is extended
-    if (num_elements <= m_num_elements)
-        return NULL;
-
     // allocate resized array
     T *h_tmp;
 #ifdef ENABLE_CUDA
@@ -812,8 +808,10 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 
     // clear memory
     memset(h_tmp, 0, sizeof(T)*num_elements);
+
     // copy over data
-    memcpy(h_tmp, h_data, sizeof(T)*m_num_elements);
+    unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
+    memcpy(h_tmp, h_data, sizeof(T)*num_copy_elements);
 
     // free old memory location
 #ifdef ENABLE_CUDA
@@ -859,8 +857,10 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 
     // copy over data
     // every column is copied separately such as to align with the new pitch
-    for (unsigned int i = 0; i < height; i++)
-        memcpy(h_tmp + i * new_pitch, h_data + i*pitch, sizeof(T)*pitch);
+    unsigned int num_copy_rows = height > new_height ? new_height : height;
+    unsigned int num_copy_columns = pitch > new_pitch ? new_pitch : pitch;
+    for (unsigned int i = 0; i < num_copy_rows; i++)
+        memcpy(h_tmp + i * new_pitch, h_data + i*pitch, sizeof(T)*num_copy_columns);
 
     // free old memory location
 #ifdef ENABLE_CUDA
@@ -899,7 +899,8 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     CHECK_CUDA_ERROR();
 
     // copy over data
-    cudaMemcpy(d_tmp, d_data, sizeof(T)*m_num_elements,cudaMemcpyDeviceToDevice);
+    unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
+    cudaMemcpy(d_tmp, d_data, sizeof(T)*num_copy_elements,cudaMemcpyDeviceToDevice);
     CHECK_CUDA_ERROR();
 
     // free old memory location
@@ -933,9 +934,12 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
 
     // copy over data
     // every column is copied separately such as to align with the new pitch
-    for (unsigned int i = 0; i < height; i++)
+    unsigned int num_copy_rows = height > new_height ? new_height : height;
+    unsigned int num_copy_columns = pitch > new_pitch ? new_pitch : pitch;
+
+    for (unsigned int i = 0; i < num_copy_rows; i++)
         {
-        cudaMemcpy(d_tmp + i * new_pitch, d_data + i * pitch, sizeof(T)*pitch,cudaMemcpyDeviceToDevice);
+        cudaMemcpy(d_tmp + i * new_pitch, d_data + i * pitch, sizeof(T)*num_copy_columns,cudaMemcpyDeviceToDevice);
         CHECK_CUDA_ERROR();
         }
 
@@ -950,8 +954,11 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
 #endif
     }
 
-
 /*! \param num_elements new size of array
+ *  
+ * \warning An array can be expanded or shrunk, depending on the parameters supplied.
+ *          It is the responsibility of the caller to ensure that no data is inadvertently lost when
+ *          reducing the size of the array.
 */
 template<class T> void GPUArray<T>::resize(unsigned int num_elements)
     {
@@ -966,10 +973,6 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
         return;
         };
 
-    // do not resize unless array is extended
-    if (num_elements <= m_num_elements)
-        return;
-
     resizeHostArray(num_elements);
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
@@ -980,8 +983,10 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
 
 /*! \param width new width of array
 *   \param height new height of array
-* \warning Resizing a 2D array can actually invalidate the stored data (as the pitch may change).
-* It should not be expected that after a resize of a 2D array the contents are still accessible.
+*
+*   \warning An array can be expanded or shrunk, depending on the parameters supplied.
+*   It is the responsibility of the caller to ensure that no data is inadvertently lost when
+*   reducing the size of the array.
 */
 template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int height)
     {
@@ -992,17 +997,6 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
 
     unsigned int num_elements = new_pitch * height;
     assert(num_elements > 0);
-
-    // do not resize unless array is extended
-    if (new_pitch <= m_pitch && height <= m_height)
-        return;
-
-    // it is allowed to resize only one dimension, then the other dimension
-    // is forced to stay the same
-    if (m_pitch > new_pitch)
-        new_pitch = m_pitch;
-    if (m_height > height)
-        height = m_height;
 
     // if not allocated, simply allocate
     if (isNull())

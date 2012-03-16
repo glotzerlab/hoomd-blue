@@ -154,7 +154,7 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
     Type mappings assign particle types "A", "B", "C", ....
 */
 ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf)
-        : m_box(box), m_exec_conf(exec_conf), m_ntypes(n_types), m_nghosts(0), m_nglobal(0)
+        : m_box(box), m_exec_conf(exec_conf), m_ntypes(n_types), m_nghosts(0), m_nglobal(0), m_resize_factor(9./8.)
     {
     // check the input for errors
     if (m_ntypes == 0)
@@ -238,7 +238,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
     \param init Initializer to use
     \param exec_conf Execution configuration to run on
 */
-ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_ntypes(0), m_nghosts(0), m_nglobal(0)
+ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_ntypes(0), m_nghosts(0), m_nglobal(0), m_resize_factor(9./8.)
     {
     // allocate memory
     allocate(init.getNumParticles());
@@ -562,25 +562,20 @@ void ParticleData::setNGlobal(unsigned int nglobal)
         m_global_rtag.swap(global_rtag);
        }
 
-   // Set global particle number
+    // Set global particle number
     m_nglobal = nglobal;
+
     }
 
-/*! \param max_n new maximum size of particle data arrays (has to be greater than the current maximum size)
+/*! \param max_n new maximum size of particle data arrays (can be greater or smaller than the current maxium size)
  *  To inform classes that allocate arrays for per-particle information of the change of the particle data size,
  *  this method issues a m_max_particle_num_signal().
  *
- * \post The contents of the net_virial array are not guaranteed to be valid after reallocation. It has to be ensured that
- *       reallocate is called before that array is recalculated.
+ *  \note To keep unnecessary data copying to a minimum, arrays are not reallocated with every change of the
+ *  particle number, rather an amortized array expanding strategy is used.
  */
 void ParticleData::reallocate(unsigned int max_n)
     {
-    // check the input
-    if (max_n <= getN())
-        {
-        cerr << endl << "***Error! New particle data array size has to be greater than the present maximum size" << endl << endl;
-        throw runtime_error("Error reallocating ParticleData");
-        }
 
     m_max_nparticles = max_n;
 
@@ -644,6 +639,18 @@ bool ParticleData::inBox()
 //! \post the particle data arrays are initialized from the snapshot, in index order
 void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
+    m_nparticles = snapshot.size;
+
+    // reallocate particle data such that we can accomodate the particles
+    reallocate(snapshot.size);
+
+    if (getNGlobal() < snapshot.size)
+        {
+        cerr << endl << "***Error! Global number of particles must be greater or equal the number "
+             << " of local particles." << endl << endl;
+        throw std::runtime_error("Error initializing ParticleData");
+        }
+
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
     ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::overwrite);
     ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::overwrite);
@@ -655,21 +662,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::readwrite);
-
-    if (snapshot.size > m_nparticles)
-        {
-        // reallocate particle data such that we can accomodate the particles
-        reallocate(snapshot.size);
-
-        if (getNGlobal() < snapshot.size)
-            {
-            cerr << endl << "***Error! Global number of particles must be greater or equal the number "
-                 << " of local particles." << endl << endl;
-            throw std::runtime_error("Error initializing ParticleData");
-            }
-        }
-
-    m_nparticles = snapshot.size;
 
     // first reset all reverse look-up tags
     for (unsigned int idx = 0; idx < m_nparticles; idx++)
@@ -765,8 +757,10 @@ void ParticleData::removeParticles(const unsigned int n)
     }
 
 //! Add a number of particles to the local particle data
-/*! This function uses amortized doubling of the particle data structures in the system
+/*! This function uses amortized array resizing of the particle data structures in the system
     to accomodate the new partices.
+
+    The arrays are resized to the (rounded integer value) of the closes power of m_resize_factor
 
     \param n number of particles to add
     \post The maximum size of the particle data arrays (accessible via getMaxN()) is
@@ -777,7 +771,7 @@ void ParticleData::addParticles(const unsigned int n)
     unsigned int max_nparticles = m_max_nparticles;
     if (m_nparticles + n > max_nparticles)
         {
-        while (m_nparticles + n > max_nparticles) max_nparticles *= 2;
+        while (m_nparticles + n > max_nparticles) max_nparticles = ((float) max_nparticles) * m_resize_factor;
 
         // actually reallocate particle data arrays
         reallocate(max_nparticles);
@@ -805,7 +799,7 @@ void ParticleData::addGhostParticles(const unsigned int nghosts)
 
     if (m_nparticles + m_nghosts > max_nparticles)
         {
-        while (m_nparticles + m_nghosts > max_nparticles) max_nparticles *= 2;
+        while (m_nparticles + m_nghosts > max_nparticles) max_nparticles = ((float) max_nparticles) * m_resize_factor;
 
         // reallocate particle data arrays
         reallocate(max_nparticles);

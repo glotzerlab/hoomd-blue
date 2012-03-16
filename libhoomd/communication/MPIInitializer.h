@@ -211,19 +211,6 @@ class MPIInitializer
        unsigned int m_N;              //!< Number of particles on this processor
        unsigned int m_nglobal;        //!< Global number of particles
 
-       std::vector< std::vector<Scalar3> > m_pos_proc;              //!< Position array of every processor
-       std::vector< std::vector<Scalar3> > m_vel_proc;              //!< Velocities array of every processor
-       std::vector< std::vector<Scalar3> > m_accel_proc;            //!< Accelerations array of every processor
-       std::vector< std::vector<unsigned int> > m_type_proc;        //!< Particle types array of every processor
-       std::vector< std::vector<Scalar > > m_mass_proc;             //!< Particle masses array of every processor
-       std::vector< std::vector<Scalar > >m_charge_proc;            //!< Particle charges array of every processor
-       std::vector< std::vector<Scalar > >m_diameter_proc;          //!< Particle diameters array of every processor
-       std::vector< std::vector<int3 > > m_image_proc;              //!< Particle images array of every processor
-       std::vector< std::vector<unsigned int > > m_rtag_proc;       //!< Particle reverse-lookup tags array of every processor
-       std::vector< std::vector<unsigned int > > m_body_proc;       //!< Body ids of every processor
-       std::vector< std::vector<unsigned int > > m_global_tag_proc; //!< Global tags of every processor
-       std::vector< unsigned int > m_N_proc;                        //!< Number of particles on every processor
-
        unsigned int m_rank;                             //!< Rank of this processor
        std::vector<BoxDim> m_box_proc;                  //!< Box dimensions of every processor
        std::vector<uint3> m_grid_pos_proc;              //!< Grid position of every processor

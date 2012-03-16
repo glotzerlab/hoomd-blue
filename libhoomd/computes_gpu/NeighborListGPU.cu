@@ -396,7 +396,7 @@ __global__ void gpu_update_exclusion_list_kernel(const unsigned int *tags,
 
     for (unsigned int offset = 0; offset < n; offset++)
         {
-        unsigned int ex_tag = ex_list_tag[ex_list_indexer(tag, offset)];
+        unsigned int ex_tag = ex_list_tag[ex_list_tag_indexer(tag, offset)];
         unsigned int ex_idx = rtags[ex_tag];
 
         ex_list_idx[ex_list_indexer(idx, offset)] = ex_idx;
