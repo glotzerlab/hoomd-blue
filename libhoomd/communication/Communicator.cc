@@ -151,8 +151,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_packed_size = sizeof(pdata_element);
 
-    allocate();
-
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         m_num_copy_ghosts[dir] = 0;
