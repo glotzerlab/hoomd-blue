@@ -88,6 +88,9 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     // attach to max particle num change connection
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&BondData::reallocate, this));
 
+    // attach to ghost particle number change connection
+    m_ghost_particle_num_change_connection = m_pdata->connectGhostParticleNumberChange(bind(&BondData::setDirty, this));
+
     // offer a default type mapping
     for (unsigned int i = 0; i < n_bond_types; i++)
         {
@@ -107,6 +110,7 @@ BondData::~BondData()
     {
     m_sort_connection.disconnect();
     m_max_particle_num_change_connection.disconnect();
+    m_ghost_particle_num_change_connection.disconnect();
     }
 
 /*! \post A bond between particles specified in \a bond is created.

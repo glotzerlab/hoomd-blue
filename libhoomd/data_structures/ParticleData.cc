@@ -421,11 +421,27 @@ boost::signals::connection ParticleData::connectBoxChange(const boost::function<
     via \b con.disconnect where \b con is the return value of this function.
 
     \note A change in maximum particle number does not necessarily imply a change in sort order,
-          and no extra notifyParticleSort() is called.
+          and notifyParticleSort() needs to be called separately after all particle data is available
+          on the local processor.
 */
 boost::signals::connection ParticleData::connectMaxParticleNumberChange(const boost::function<void ()> &func)
     {
     return m_max_particle_num_signal.connect(func);
+    }
+
+/*! \param func Function to be called when the number of ghost particles changes
+    \return Connection to manage the signal
+ */
+boost::signals::connection ParticleData::connectGhostParticleNumberChange(const boost::function<void ()> &func)
+    {
+    return m_ghost_particle_num_signal.connect(func);
+    }
+
+/*! This function must be called any time the ghost particles are updated.
+ */
+void ParticleData::notifyGhostParticleNumberChange()
+    {
+    m_ghost_particle_num_signal();
     }
 
 /*! \param name Type name to get the index of

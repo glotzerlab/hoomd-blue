@@ -230,11 +230,14 @@ void Communicator::communicate(unsigned int timestep)
         // If so, migrate atoms
         migrateAtoms();
 
+        // notify ParticleData that addition / removal of particles is complete
+        m_pdata->notifyParticleSort();
+
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
 
-        // notify ParticleData that addition / removal of particles is complete
-        m_pdata->notifyParticleSort();
+        // we have updated ghost particles, so inform ParticleData about this
+        m_pdata->notifyGhostParticleNumberChange();
         }
     else
         {

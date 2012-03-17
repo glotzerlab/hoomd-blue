@@ -261,6 +261,7 @@ class BondData : boost::noncopyable
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to maximum particle number change signal
+        boost::signals::connection m_ghost_particle_num_change_connection; //!< Connection to ghost particle number change signal
 
         
         //! Helper function to set the dirty flag when particles are resorted
