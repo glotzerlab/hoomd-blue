@@ -133,6 +133,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_pdata(sysdef->getParticleData()),
             exec_conf(m_pdata->getExecConf()),
             m_mpi_comm(mpi_comm),
+            m_sendbuf(exec_conf),
+            m_recvbuf(exec_conf),
             m_pos_copybuf(exec_conf),
             m_charge_copybuf(exec_conf),
             m_diameter_copybuf(exec_conf),
@@ -179,14 +181,6 @@ void Communicator::allocate()
     {
     // the size of the data element may be different between CPU and GPU. It is just
     // used for allocation of the buffers
-    unsigned int buf_size = m_pdata->getN() * m_packed_size;
-
-    GPUArray<char> sendbuf(buf_size, exec_conf);
-    m_sendbuf.swap(sendbuf);
-
-    GPUArray<char> recvbuf(buf_size, exec_conf);
-    m_recvbuf.swap(recvbuf);
-
     // allocate temp storage for particle data
     GPUArray<Scalar4> pos_tmp(m_pdata->getPositions().getNumElements(), exec_conf);
     m_pos_tmp.swap(pos_tmp);
@@ -392,13 +386,8 @@ void Communicator::migrateAtoms()
             }
 
 
-        // resize send buffer if necessary
-        if (n_send_ptls*m_packed_size > m_sendbuf.getNumElements())
-            {
-            unsigned int new_size = m_sendbuf.getNumElements();
-            while (new_size < n_send_ptls * m_packed_size) new_size *= 2;
-            m_sendbuf.resize(new_size);
-            }
+        // resize send buffer
+        m_sendbuf.resize(n_send_ptls*m_packed_size);
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -461,13 +450,8 @@ void Communicator::migrateAtoms()
         reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,n_recv_ptls);
         boost::mpi::wait_all(reqs,reqs+2);
 
-        // Resize receive buffer if necessary
-        if (n_recv_ptls*m_packed_size > m_recvbuf.getNumElements())
-            {
-            unsigned int new_size = m_recvbuf.getNumElements();
-            while (new_size < n_recv_ptls*m_packed_size) new_size *= 2;
-            m_recvbuf.resize(new_size);
-            }
+        // Resize receive buffer 
+        m_recvbuf.resize(n_recv_ptls*m_packed_size);
 
             {
             ArrayHandle<char> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);

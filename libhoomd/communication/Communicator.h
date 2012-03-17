@@ -325,9 +325,6 @@ class Communicator
         //! Helper function to allocate internal buffers
         void allocate();
 
-        GPUArray<char> m_sendbuf;             //!< Buffer for particles that are sent
-        GPUArray<char> m_recvbuf;             //!< Buffer for particles that are received
-
         //! The flags used for indicating the itinerary of a ghost particle
         enum Enum
             {
@@ -345,6 +342,9 @@ class Communicator
         boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communciator
         boost::shared_ptr<Profiler> m_prof;                        //!< Profiler
 
+
+        GPUVector<char> m_sendbuf;             //!< Buffer for particles that are sent
+        GPUVector<char> m_recvbuf;             //!< Buffer for particles that are received
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied

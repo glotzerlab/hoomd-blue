@@ -212,13 +212,8 @@ void CommunicatorGPU::migrateAtoms()
         // scan all atom positions and fill the send buffers with those that have left the domain boundaries,
         // and remove those particles from the local domain
 
-        // Check if send buffer is large enough and resize if necessary
-        if (n_send_ptls*m_packed_size > m_sendbuf.getNumElements())
-            {
-            unsigned int new_size = m_sendbuf.getNumElements();
-            while (new_size < n_send_ptls * m_packed_size) new_size *= 2;
-            m_sendbuf.resize(new_size);
-            }
+        // Resize send buffer
+        m_sendbuf.resize(n_send_ptls*m_packed_size);
 
         unsigned int send_buf_size;
 
@@ -273,13 +268,8 @@ void CommunicatorGPU::migrateAtoms()
         reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,recv_buf_size);
         boost::mpi::wait_all(reqs,reqs+2);
 
-        // Check if receive buffer is large enough and resize if necessary
-        if (recv_buf_size > m_recvbuf.getNumElements())
-            {
-            unsigned int new_size = m_recvbuf.getNumElements();
-            while (new_size < recv_buf_size) new_size *= 2;
-            m_recvbuf.resize(new_size);
-            }
+        // Resize receive buffer
+        m_recvbuf.resize(recv_buf_size);
 
 #ifdef ENABLE_MPI_CUDA
             {
