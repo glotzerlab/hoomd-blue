@@ -370,6 +370,9 @@ void CommunicatorGPU::migrateAtoms()
         }
 #endif
 
+    // notify ParticleData that addition / removal of particles is complete
+    m_pdata->notifyParticleSort();
+
     if (m_prof)
         m_prof->pop();
     }
@@ -616,6 +619,9 @@ void CommunicatorGPU::exchangeGhosts()
 
             }
         }
+
+    // we have updated ghost particles, so inform ParticleData about this
+    m_pdata->notifyGhostParticleNumberChange();
 
     if (m_prof)
         m_prof->pop();

@@ -230,14 +230,8 @@ void Communicator::communicate(unsigned int timestep)
         // If so, migrate atoms
         migrateAtoms();
 
-        // notify ParticleData that addition / removal of particles is complete
-        m_pdata->notifyParticleSort();
-
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
-
-        // we have updated ghost particles, so inform ParticleData about this
-        m_pdata->notifyGhostParticleNumberChange();
         }
     else
         {
@@ -568,6 +562,9 @@ void Communicator::migrateAtoms()
         }
 #endif
 
+    // notify ParticleData that addition / removal of particles is complete
+    m_pdata->notifyParticleSort();
+ 
     if (m_prof)
         m_prof->pop();
     }
@@ -834,6 +831,9 @@ void Communicator::exchangeGhosts()
                 }
             }
         } // end dir loop
+
+    // we have updated ghost particles, so inform ParticleData about this
+    m_pdata->notifyGhostParticleNumberChange();
 
     if (m_prof)
         m_prof->pop();
