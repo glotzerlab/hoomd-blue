@@ -283,9 +283,8 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     if (m_comm)
         {
         Scalar rmax = m_r_cut + m_r_buff;
-        // add d_max - 1.0, if diameter filtering is not already taking care of it
-        if (!m_filter_diameter)
-            rmax += m_d_max - Scalar(1.0);
+        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
+        rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(rmax);
         }
 #endif
@@ -1197,6 +1196,7 @@ void NeighborList::reallocateNlist()
     // round up to the nearest multiple of 8
     m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
 
+    cout << "Allocating nlist: " << float(m_pdata->getMaxN()*(m_Nmax+1)*sizeof(unsigned int))/(1024.0f*1024.0f) << " MB" << endl;
     m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
     }
@@ -1242,21 +1242,19 @@ void NeighborList::growExclusionList()
 //! Set the communicator to use
 void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     {
-    if (m_comm)
+    if (!m_comm)
         {
-        cerr << endl << "***Error! Attempting to set communicator twice in NeighborList." << endl << endl;
-        throw runtime_error("Error setting up communication.");
+        // only add the migrate request on the first call
+        comm->addMigrateRequest(bind(&NeighborList::requestParticleMigrate, this, _1));
         }
 
     if (comm)
         {
-        comm->addMigrateRequest(bind(&NeighborList::requestParticleMigrate, this, _1));
         m_comm = comm;
 
         Scalar rmax = m_r_cut + m_r_buff;
-        // add d_max - 1.0, if diameter filtering is not already taking care of it
-        if (!m_filter_diameter)
-            rmax += m_d_max - Scalar(1.0);
+        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
+        rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(rmax);
         }
     }
