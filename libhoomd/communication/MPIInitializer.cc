@@ -79,7 +79,11 @@ BOOST_IS_MPI_DATATYPE(int3)
  */
 MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
                                boost::shared_ptr<boost::mpi::communicator> comm,
-                               unsigned int root)
+                               unsigned int root,
+                               unsigned int nx,
+                               unsigned int ny,
+                               unsigned int nz
+                               )
       : m_sysdef(sysdef),
         m_pdata(sysdef->getParticleData()),
         m_mpi_comm(comm),
@@ -93,35 +97,21 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
         // get global box dimensions
         m_global_box = m_pdata->getBox();
 
-        double Lx_g = m_global_box.xhi - m_global_box.xlo;
-        double Ly_g = m_global_box.yhi - m_global_box.ylo;
-        double Lz_g = m_global_box.zhi - m_global_box.zlo;
-
-        // Calulate the number of sub-domains in every direction
-        // by minimizing the surface area between domains at constant number of domains
-        double min_surface_area = Lx_g*Ly_g*m_mpi_comm->size()+Lx_g*Lz_g+Ly_g*Lz_g;
-
-        // initial guess
-        m_nx = 1; m_ny = 1; m_nz = m_mpi_comm->size();
-
-        for (unsigned int nx = 1; nx <= (unsigned int) m_mpi_comm->size(); nx++)
+        bool found_decomposition = findDecomposition(nx, ny, nz);
+        if (! found_decomposition)
             {
-            for (unsigned int ny = 1; nx*ny <= (unsigned int) m_mpi_comm->size(); ny++)
-                {
-                for (unsigned int nz = 1; nx*ny*nz <= (unsigned int) m_mpi_comm->size(); nz++)
-                    {
-                    if (nx*ny*nz != (unsigned int) m_mpi_comm->size()) continue;
-                    double surface_area = Lx_g*Ly_g*nz + Lx_g*Lz_g*ny + Ly_g*Lz_g*nx;
-                    if (surface_area < min_surface_area)
-                        {
-                        m_nx = nx;
-                        m_ny = ny;
-                        m_nz = nz;
-                        min_surface_area = surface_area;
-                        }
-                    }
-                }
+            cerr << endl << "***Warning! Unable to find a decomposition of total number of domains == "
+                 << m_mpi_comm->size()
+                 << endl << "            with requested dimensions. Choosing default decomposition."
+                 << endl << endl;
+
+            nx = ny = nz = 0;
+            findDecomposition(nx,ny,nz);
             }
+        
+        m_nx = nx;
+        m_ny = ny;
+        m_nz = nz;
 
         // Print out information about the domain decomposition
         std::cout << "Domain decomposition: n_x = " << m_nx << " n_y = " << m_ny << " n_z = " << m_nz << std::endl;
@@ -172,6 +162,61 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
 
     // distribute grid positions
     boost::mpi::scatter(*m_mpi_comm, m_grid_pos_proc, m_grid_pos, root);
+    }
+
+//! Find a domain decomposition with given parameters
+bool MPIInitializer::findDecomposition(unsigned int& nx, unsigned int& ny, unsigned int& nz)
+    {
+    Scalar Lx_g = m_global_box.xhi - m_global_box.xlo;
+    Scalar Ly_g = m_global_box.yhi - m_global_box.ylo;
+    Scalar Lz_g = m_global_box.zhi - m_global_box.zlo;
+    assert(Lx_g > 0);
+    assert(Ly_g > 0);
+    assert(Lz_g > 0);
+
+    // Calulate the number of sub-domains in every direction
+    // by minimizing the surface area between domains at constant number of domains
+    double min_surface_area = Lx_g*Ly_g*m_mpi_comm->size()+Lx_g*Lz_g+Ly_g*Lz_g;
+
+    unsigned int nx_in = nx;
+    unsigned int ny_in = ny;
+    unsigned int nz_in = nz;
+
+    bool found_decomposition = (nx_in == 0 && ny_in == 0 && nz_in == 0);
+
+    // initial guess
+    nx = 1;
+    ny = 1;
+    nz = m_mpi_comm->size();
+
+
+    for (unsigned int nx_try = 1; nx_try <= (unsigned int) m_mpi_comm->size(); nx_try++)
+        {
+        if (nx_in != 0 && nx_try != nx_in)
+            continue;
+        for (unsigned int ny_try = 1; nx_try*ny_try <= (unsigned int) m_mpi_comm->size(); ny_try++)
+            {
+            if (ny_in != 0 && ny_try != ny_in)
+                continue;
+            for (unsigned int nz_try = 1; nx_try*ny_try*nz_try <= (unsigned int) m_mpi_comm->size(); nz_try++)
+                {
+                if (nz_in != 0 && nz_try != nz_in)
+                    continue;
+                if (nx_try*ny_try*nz_try != (unsigned int) m_mpi_comm->size()) continue;
+                double surface_area = Lx_g*Ly_g*nz_try + Lx_g*Lz_g*ny_try + Ly_g*Lz_g*nx_try;
+                if (surface_area < min_surface_area || !found_decomposition)
+                    {
+                    nx = nx_try;
+                    ny = ny_try;
+                    nz = nz_try;
+                    min_surface_area = surface_area;
+                    found_decomposition = true;
+                    }
+                }
+            }
+        }
+
+    return found_decomposition;
     }
 
 //! Distribute particle data onto processors
@@ -515,7 +560,8 @@ bool MPIInitializer::isAtBoundary(unsigned int dir) const
 void export_MPIInitializer()
     {
     class_<MPIInitializer, bases<ParticleDataInitializer>, boost::noncopyable >("MPIInitializer",
-           init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<boost::mpi::communicator>, unsigned int>())
+           init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<boost::mpi::communicator>,
+           unsigned int, unsigned int, unsigned int, unsigned int>())
     .def("getNeighborRank", &MPIInitializer::getNeighborRank)
     .def("getGlobalBox", &MPIInitializer::getGlobalBox)
     .def("getDimension", &MPIInitializer::getDimension)

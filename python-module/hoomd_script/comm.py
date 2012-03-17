@@ -102,7 +102,7 @@ mpi_comm = None;
 #
 class mpi_partition:
     ## Specify the domain decomposition of the simulation domain
-    def __init__(self, mpi_comm_in=None, root=0):
+    def __init__(self, mpi_comm_in=None, root=0, nx=0, ny=0, nz=0, linear=False):
         util.print_status_line()
         if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create MPI partition before intialization.\n"
@@ -119,8 +119,12 @@ class mpi_partition:
             # check if boost MPI is available
             check_boost_mpi()
             mpi_comm = mpi.world
-
-        self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, mpi_comm, root);
+        
+        if linear is True:
+            # set up linear decomposition
+            nz = mpi_comm.size
+    
+        self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, mpi_comm, root, nx, ny, nz);
 
         # Get ranks of neighboring processors
         self.neighbor_ranks = hoomd.std_vector_uint();

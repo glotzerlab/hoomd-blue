@@ -1196,7 +1196,7 @@ void NeighborList::reallocateNlist()
     // round up to the nearest multiple of 8
     m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
 
-    cout << "Allocating nlist: " << float(m_pdata->getMaxN()*(m_Nmax+1)*sizeof(unsigned int))/(1024.0f*1024.0f) << " MB" << endl;
+//    cout << "Allocating nlist: " << float(m_pdata->getMaxN()*(m_Nmax+1)*sizeof(unsigned int))/(1024.0f*1024.0f) << " MB" << endl;
     m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
     }
