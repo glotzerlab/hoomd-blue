@@ -70,6 +70,11 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include <boost/mpi.hpp>
+#endif
+
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
     \post \c force and \c virial GPUarrays are initialized
@@ -174,7 +179,13 @@ Scalar ForceCompute::calcEnergySum()
         {
         pe_total += (double)h_force.data[i].w;
         }
-        
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // reduce potential energy on all processors
+        pe_total = all_reduce(*m_comm->getMPICommunicator(), pe_total, std::plus<double>());
+        }
+#endif
     return Scalar(pe_total);
     }
 
