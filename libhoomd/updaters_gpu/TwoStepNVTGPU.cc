@@ -63,6 +63,10 @@ using namespace boost;
 #include "TwoStepNVTGPU.h"
 #include "TwoStepNVTGPU.cuh"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 /*! \file TwoStepNVTGPU.h
     \brief Contains code for the TwoStepNVTGPU class
 */
@@ -161,7 +165,17 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     Scalar curr_T = m_thermo->getTemperature();
     xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
     eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
-    
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        assert(m_comm->getMPICommunicator()->size());
+        // broadcast integrator variables from rank 0 to other processors
+        broadcast(*m_comm->getMPICommunicator(), eta, 0);
+        broadcast(*m_comm->getMPICommunicator(), xi, 0);
+        }
+#endif
+  
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVT step 2");
