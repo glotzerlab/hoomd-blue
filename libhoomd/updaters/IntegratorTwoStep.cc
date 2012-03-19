@@ -343,6 +343,19 @@ PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
     return flags;
     }
 
+#ifdef ENABLE_MPI
+//! Set the communicator to use
+void IntegratorTwoStep::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    // set Communicator in all methods
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+            (*method)->setCommunicator(comm);
+
+    Integrator::setCommunicator(comm);
+    }
+#endif
+
 void export_IntegratorTwoStep()
     {
     class_<IntegratorTwoStep, boost::shared_ptr<IntegratorTwoStep>, bases<Integrator>, boost::noncopyable>

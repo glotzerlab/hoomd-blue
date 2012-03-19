@@ -95,9 +95,6 @@ thermos = [];
 ## Cached all group
 group_all = None;
 
-## Global variable for storing the communicator
-communicator = None;
-
 ## Global variable for storing the MPI domain decomposition class
 mpi_partition = None;
 

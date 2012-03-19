@@ -94,15 +94,12 @@ def check_boost_mpi():
             print >> sys.stderr, "\n***Error! Could not load Boost.MPI python bindings.\n"
             raise RuntimeError('Error initializing MPI');
 
-## Boost MPI communicator
-mpi_comm = None;
-
 ## Setup up domain decomposition
 # \brief Initialize the domain decomposition of the global simulation domain
 #
 class mpi_partition:
     ## Specify the domain decomposition of the simulation domain
-    def __init__(self, mpi_comm_in=None, root=0, nx=0, ny=0, nz=0, linear=False):
+    def __init__(self, mpi_comm=None, root=0, nx=0, ny=0, nz=0, linear=False,n_replicas=1):
         util.print_status_line()
         if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create MPI partition before intialization.\n"
@@ -111,19 +108,44 @@ class mpi_partition:
         # Check if HOOMD has been compiled with MPI support
         check_mpi()
 
-        global mpi_comm
-        mpi_comm = mpi_comm_in
+        comm_world = mpi_comm
 
-        if mpi_comm is None:
+        if comm_world is None:
             # Create an MPI environment
             # check if boost MPI is available
             check_boost_mpi()
-            mpi_comm = mpi.world
+            comm_world = mpi.world
+      
+        self.num_replicas = n_replicas;
+
+        # Check if we can split the communicator into replicas
+        if (comm_world.size % self.num_replicas) != 0:
+            print >> sys.stderr, "\n***Error! The total number of MPI ranks (%d) has to be a multiple of " \
+                                 "\n          the number of replicas (%d).\n" % (comm_world.size, self.num_replicas)
+            raise RuntimeError('Error splitting MPI communicator')
+
+        # construct intra-replica communicator
+        self.this_replica = int(comm_world.rank*self.num_replicas/comm_world.size )
+        self.replica_comm = comm_world.split(self.this_replica)
+    
+        # construct global communicator
+        if not (root >= 0 and root < comm_world.size/self.num_replicas):
+            print >> sys.stderr, "\n***Warning! The root processor rank supplied (%d) is larger than the number %d of" \
+                                 "              processors %d per replica. Proceeding with root=0.\n" \
+                                 % (root, comm_world.size())
+
+        self.global_comm = comm_world.split(0 if ((comm_world.rank - root) % self.num_replicas == 0) else 1)
         
+        if (comm_world.rank - root) % self.num_replicas == 1:
+            # Only set global communicator on the root nodes
+            self.global_comm = None;
+
+        # Initialize this replica
+
         if linear is True:
             # set up linear decomposition
-            nz = mpi_comm.size
-    
+            nz = self.replica_comm.size
+   
         # take a snapshot of the global system
         pdata = globals.system_definition.getParticleData()
         nglobal = pdata.getNGlobal();
@@ -131,7 +153,7 @@ class mpi_partition:
         pdata.takeSnapshot(snap,root)
 
         # initialize domain decomposition
-        self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, mpi_comm, root, nx, ny, nz);
+        self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, self.replica_comm, root, nx, ny, nz);
 
         # Get ranks of neighboring processors
         self.neighbor_ranks = hoomd.std_vector_uint();
@@ -148,18 +170,18 @@ class mpi_partition:
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
-            globals.communicator = hoomd.Communicator(globals.system_definition, mpi_comm, self.neighbor_ranks, \
+            self.communicator = hoomd.Communicator(globals.system_definition, self.replica_comm, self.neighbor_ranks, \
                                                      self.is_at_boundary, self.dim);
         else:
-            globals.communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi_comm, self.neighbor_ranks, \
-                                                     self.is_at_boundary, self.dim);
+            self.communicator = hoomd.CommunicatorGPU(globals.system_definition, self.replica_comm, self.neighbor_ranks, \
+                                                    self.is_at_boundary, self.dim);
 
 
         # set Communicator in C++ System
-        globals.system.setCommunicator(globals.communicator)
+        globals.system.setCommunicator(self.communicator)
 
         # set Communicator in SystemDefinition
-        globals.system_definition.setMPICommunicator(mpi_comm)
+        globals.system_definition.setMPICommunicator(self.replica_comm)
 
         # initialize domains from global snapshot
         pdata.initializeFromSnapshot(snap,root)
