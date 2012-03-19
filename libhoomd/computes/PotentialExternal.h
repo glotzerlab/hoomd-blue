@@ -111,9 +111,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
 
     unsigned int nparticles = m_pdata->getN();
 
@@ -136,7 +134,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
         Scalar virial[6];
 
         param_type params = h_params.data[type];
-        evaluator eval(X, Lx, Ly, Lz, params);
+        evaluator eval(X, L.x, L.y, L.z, params);
         eval.evalForceEnergyAndVirial(F, energy, virial);
 
         // apply the constraint force

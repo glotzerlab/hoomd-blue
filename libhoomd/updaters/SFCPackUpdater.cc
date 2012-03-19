@@ -440,13 +440,6 @@ void SFCPackUpdater::getSortedOrder2D()
     
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    Scalar binx = (box.xhi - box.xlo) / Scalar(m_grid);
-    Scalar biny = (box.yhi - box.ylo) / Scalar(m_grid);
-    
-    // precompute scale factors to eliminate division in inner loop
-    Scalar scalex = Scalar(1.0) / binx;
-    Scalar scaley = Scalar(1.0) / biny;
     
     // put the particles in the bins
     {
@@ -456,12 +449,14 @@ void SFCPackUpdater::getSortedOrder2D()
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((h_pos.data[n].x-box.xlo)*scalex) % m_grid;
-        unsigned int jb = (unsigned int)((h_pos.data[n].y-box.ylo)*scaley) % m_grid;
-        
+        Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
+        Scalar3 f = box.makeFraction(p);
+        unsigned int ib = (unsigned int)(f.x * m_grid) % m_grid;
+        unsigned int jb = (unsigned int)(f.y * m_grid) % m_grid;
+
         // record its bin
         unsigned int bin = ib*m_grid + jb;
-        
+
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(bin, n);
         }
     }
@@ -484,15 +479,6 @@ void SFCPackUpdater::getSortedOrder3D()
     
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    Scalar binx = (box.xhi - box.xlo) / Scalar(m_grid);
-    Scalar biny = (box.yhi - box.ylo) / Scalar(m_grid);
-    Scalar binz = (box.zhi - box.zlo) / Scalar(m_grid);
-    
-    // precompute scale factors to eliminate division in inner loop
-    Scalar scalex = Scalar(1.0) / binx;
-    Scalar scaley = Scalar(1.0) / biny;
-    Scalar scalez = Scalar(1.0) / binz;
     
     // reallocate memory arrays if m_grid changed
     // also regenerate the traversal order
@@ -541,21 +527,15 @@ void SFCPackUpdater::getSortedOrder3D()
     // for each particle
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
-        Scalar x, y, z;
+        Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
+        Scalar3 f = box.makeFraction(p);
+        unsigned int ib = (unsigned int)(f.x * m_grid) % m_grid;
+        unsigned int jb = (unsigned int)(f.y * m_grid) % m_grid;
+        unsigned int kb = (unsigned int)(f.z * m_grid) % m_grid;
 
-        // bin them by particle position if they are in no body
-        x = (h_pos.data[n].x-box.xlo)*scalex;
-        y = (h_pos.data[n].y-box.ylo)*scaley;
-        z = (h_pos.data[n].z-box.zlo)*scalez;
-        
-        // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)(x) % m_grid;
-        unsigned int jb = (unsigned int)(y) % m_grid;
-        unsigned int kb = (unsigned int)(z) % m_grid;
-        
         // record its bin
         unsigned int bin = ib*(m_grid*m_grid) + jb * m_grid + kb;
-        
+
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(m_traversal_order[bin], n);
         }
     

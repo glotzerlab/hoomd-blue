@@ -186,16 +186,6 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    Scalar Lx2 = Lx / Scalar(2.0);
-    Scalar Ly2 = Ly / Scalar(2.0);
-    Scalar Lz2 = Lz / Scalar(2.0);
     
     // for each of the impropers
     const unsigned int size = (unsigned int)m_improper_data->getNumDihedrals();
@@ -220,107 +210,38 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         assert(idx_d < m_pdata->getN());
         
         // calculate d\vec{r}
-        // MEM_TRANSFER: 18 Scalars / FLOPS 9
-        Scalar dxab = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
-        Scalar dyab = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
-        Scalar dzab = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
+        Scalar3 dab;
+        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
         
-        Scalar dxcb = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
-        Scalar dycb = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
-        Scalar dzcb = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
+        Scalar3 dcb;
+        dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
+        dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
+        dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
         
-        Scalar dxdc = h_pos.data[idx_d].x - h_pos.data[idx_c].x;
-        Scalar dydc = h_pos.data[idx_d].y - h_pos.data[idx_c].y;
-        Scalar dzdc = h_pos.data[idx_d].z - h_pos.data[idx_c].z;
+        Scalar3 ddc;
+        ddc.x = h_pos.data[idx_d].x - h_pos.data[idx_c].x;
+        ddc.y = h_pos.data[idx_d].y - h_pos.data[idx_c].y;
+        ddc.z = h_pos.data[idx_d].z - h_pos.data[idx_c].z;
         
-        // if the a->b vector crosses the box, pull it back
-        // (total FLOPS: 27 (worst case: first branch is missed, the 2nd is taken and the add is done, for each))
-        if (dxab >= Lx2)
-            dxab -= Lx;
-        else if (dxab < -Lx2)
-            dxab += Lx;
-            
-        if (dyab >= Ly2)
-            dyab -= Ly;
-        else if (dyab < -Ly2)
-            dyab += Ly;
-            
-        if (dzab >= Lz2)
-            dzab -= Lz;
-        else if (dzab < -Lz2)
-            dzab += Lz;
-            
-        // if the b<-c vector crosses the box, pull it back
-        if (dxcb >= Lx2)
-            dxcb -= Lx;
-        else if (dxcb < -Lx2)
-            dxcb += Lx;
-            
-        if (dycb >= Ly2)
-            dycb -= Ly;
-        else if (dycb < -Ly2)
-            dycb += Ly;
-            
-        if (dzcb >= Lz2)
-            dzcb -= Lz;
-        else if (dzcb < -Lz2)
-            dzcb += Lz;
-            
-        // if the d<-c vector crosses the box, pull it back
-        if (dxdc >= Lx2)
-            dxdc -= Lx;
-        else if (dxdc < -Lx2)
-            dxdc += Lx;
-            
-        if (dydc >= Ly2)
-            dydc -= Ly;
-        else if (dydc < -Ly2)
-            dydc += Ly;
-            
-        if (dzdc >= Lz2)
-            dzdc -= Lz;
-        else if (dzdc < -Lz2)
-            dzdc += Lz;
-            
-            
-        // sanity check
-        assert((dxab >= box.xlo && dxab < box.xhi) && (dxcb >= box.xlo && dxcb < box.xhi) && (dxdc >= box.xlo && dxdc < box.xhi));
-        assert((dyab >= box.ylo && dyab < box.yhi) && (dycb >= box.ylo && dycb < box.yhi) && (dydc >= box.ylo && dydc < box.yhi));
-        assert((dzab >= box.zlo && dzab < box.zhi) && (dzcb >= box.zlo && dzcb < box.zhi) && (dzdc >= box.zlo && dzdc < box.zhi));
-        
-        Scalar dxcbm = -dxcb;
-        Scalar dycbm = -dycb;
-        Scalar dzcbm = -dzcb;
-        
-        // if the d->c vector crosses the box, pull it back
-        if (dxcbm >= Lx2)
-            dxcbm -= Lx;
-        else if (dxcbm < -Lx2)
-            dxcbm += Lx;
-            
-        if (dycbm >= Ly2)
-            dycbm -= Ly;
-        else if (dycbm < -Ly2)
-            dycbm += Ly;
-            
-        if (dzcbm >= Lz2)
-            dzcbm -= Lz;
-        else if (dzcbm < -Lz2)
-            dzcbm += Lz;
-            
-            
-        Scalar ss1 = 1.0 / (dxab*dxab + dyab*dyab + dzab*dzab);
-        Scalar ss2 = 1.0 / (dxcb*dxcb + dycb*dycb + dzcb*dzcb);
-        Scalar ss3 = 1.0 / (dxdc*dxdc + dydc*dydc + dzdc*dzdc);
+        // apply periodic boundary conditions
+        dab = box.minImage(dab);
+        dcb = box.minImage(dcb);
+        ddc = box.minImage(ddc);
+
+        Scalar ss1 = 1.0 / (dab.x*dab.x + dab.y*dab.y + dab.z*dab.z);
+        Scalar ss2 = 1.0 / (dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z);
+        Scalar ss3 = 1.0 / (ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z);
         
         Scalar r1 = sqrt(ss1);
         Scalar r2 = sqrt(ss2);
         Scalar r3 = sqrt(ss3);
         
         // Cosine and Sin of the angle between the planes
-        Scalar c0 = (dxab*dxdc + dyab*dydc + dzab*dzdc)* r1 * r3;
-        Scalar c1 = (dxab*dxcb + dyab*dycb + dzab*dzcb)* r1 * r2;
-        Scalar c2 = -(dxdc*dxcb + dydc*dycb + dzdc*dzcb)* r3 * r2;
+        Scalar c0 = (dab.x*ddc.x + dab.y*ddc.y + dab.z*ddc.z)* r1 * r3;
+        Scalar c1 = (dab.x*dcb.x + dab.y*dcb.y + dab.z*dcb.z)* r1 * r2;
+        Scalar c2 = -(ddc.x*dcb.x + ddc.y*dcb.y + ddc.z*dcb.z)* r3 * r2;
         
         Scalar s1 = 1.0 - c1*c1;
         if (s1 < SMALL) s1 = SMALL;
@@ -358,22 +279,22 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         Scalar a13 = -r1*r3*s12;
         Scalar a23 = r2*r3*(c2*c*s2 + c1*s12);
         
-        Scalar sx2  = a22*dxcb + a23*dxdc + a12*dxab;
-        Scalar sy2  = a22*dycb + a23*dydc + a12*dyab;
-        Scalar sz2  = a22*dzcb + a23*dzdc + a12*dzab;
+        Scalar sx2  = a22*dcb.x + a23*ddc.x + a12*dab.x;
+        Scalar sy2  = a22*dcb.y + a23*ddc.y + a12*dab.y;
+        Scalar sz2  = a22*dcb.z + a23*ddc.z + a12*dab.z;
         
         // calculate the forces for each particle
-        Scalar ffax = a12*dxcb + a13*dxdc + a11*dxab;
-        Scalar ffay = a12*dycb + a13*dydc + a11*dyab;
-        Scalar ffaz = a12*dzcb + a13*dzdc + a11*dzab;
+        Scalar ffax = a12*dcb.x + a13*ddc.x + a11*dab.x;
+        Scalar ffay = a12*dcb.y + a13*ddc.y + a11*dab.y;
+        Scalar ffaz = a12*dcb.z + a13*ddc.z + a11*dab.z;
         
         Scalar ffbx = -sx2 - ffax;
         Scalar ffby = -sy2 - ffay;
         Scalar ffbz = -sz2 - ffaz;
         
-        Scalar ffdx = a23*dxcb + a33*dxdc + a13*dxab;
-        Scalar ffdy = a23*dycb + a33*dydc + a13*dyab;
-        Scalar ffdz = a23*dzcb + a33*dzdc + a13*dzab;
+        Scalar ffdx = a23*dcb.x + a33*ddc.x + a13*dab.x;
+        Scalar ffdy = a23*dcb.y + a33*ddc.y + a13*dab.y;
+        Scalar ffdz = a23*dcb.z + a33*ddc.z + a13*dab.z;
         
         Scalar ffcx = sx2 - ffdx;
         Scalar ffcy = sy2 - ffdy;
@@ -382,15 +303,15 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         // and calculate the virial (symmetrized version)
         // compute 1/4 of the virial, 1/4 for each atom in the improper
         Scalar improper_virial[6];
-        improper_virial[0] = (1./4.)*(dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx);
-        improper_virial[1] = (1./8.)*((dxab*ffay + dxcb*ffcy + (dxdc+dxcb)*ffdy)
-                                     +(dyab*ffax + dycb*ffcx + (dydc+dycb)*ffdx));
-        improper_virial[2] = (1./8.)*((dxab*ffaz + dxcb*ffcz + (dxdc+dxcb)*ffdz)
-                                     +(dzab*ffax + dzcb*ffcx + (dzdc+dzcb)*ffdx));
-        improper_virial[3] = (1./4.)*(dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy);
-        improper_virial[4] = (1./8.)*((dyab*ffaz + dycb*ffcz + (dydc+dycb)*ffdz)
-                                     +(dzab*ffay + dzcb*ffcy + (dzdc+dzcb)*ffdy));
-        improper_virial[5] = (1./4.)*(dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz);
+        improper_virial[0] = (1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
+        improper_virial[1] = (1./8.)*((dab.x*ffay + dcb.x*ffcy + (ddc.x+dcb.x)*ffdy)
+                                     +(dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx));
+        improper_virial[2] = (1./8.)*((dab.x*ffaz + dcb.x*ffcz + (ddc.x+dcb.x)*ffdz)
+                                     +(dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx));
+        improper_virial[3] = (1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
+        improper_virial[4] = (1./8.)*((dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz)
+                                     +(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy));
+        improper_virial[5] = (1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
         
         
         // accumulate the forces

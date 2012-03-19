@@ -190,11 +190,6 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(this->m_params, access_location::host, access_mode::read);
 
-    // precalculate box lengths for use in the periodic imaging
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-
 #pragma omp parallel
     {
     #ifdef ENABLE_OPENMP
@@ -212,13 +207,8 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     for (int i = 0; i < (int)this->m_pdata->getN(); i++)
         {
         // access the particle's position, velocity, and type (MEM TRANSFER: 7 scalars)
-        Scalar xi = h_pos.data[i].x;
-        Scalar yi = h_pos.data[i].y;
-        Scalar zi = h_pos.data[i].z;
-
-        Scalar vxi = h_vel.data[i].x;
-        Scalar vyi = h_vel.data[i].y;
-        Scalar vzi = h_vel.data[i].z;
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        Scalar3 vi = make_scalar3(h_vel.data[i].x, h_vel.data[i].y, h_vel.data[i].z);
 
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
 
@@ -226,14 +216,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
         assert(typei < this->m_pdata->getNTypes());
 
         // initialize current particle force, potential energy, and virial to 0
-        Scalar fxi = 0.0;
-        Scalar fyi = 0.0;
-        Scalar fzi = 0.0;
+        Scalar3 fi = make_scalar3(0,0,0);
         Scalar pei = 0.0;
         Scalar viriali[6];
         for (unsigned int l = 0; l < 6; l++)
             viriali[l] = 0.0;
-
 
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
@@ -244,40 +231,25 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             assert(j < this->m_pdata->getN());
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - h_pos.data[j].x;
-            Scalar dy = yi - h_pos.data[j].y;
-            Scalar dz = zi - h_pos.data[j].z;
+            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 dx = pi - pj;
 
             // calculate dv_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dvx = vxi - h_vel.data[j].x;
-            Scalar dvy = vyi - h_vel.data[j].y;
-            Scalar dvz = vzi - h_vel.data[j].z;
+            Scalar3 vj = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+            Scalar3 dv = vi - vj;
 
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < this->m_pdata->getNTypes());
 
-            // apply periodic boundary conditions (FLOPS: 9)
-            if (dx >= box.xhi)
-                dx -= Lx;
-            else if (dx < box.xlo)
-                dx += Lx;
-
-            if (dy >= box.yhi)
-                dy -= Ly;
-            else if (dy < box.ylo)
-                dy += Ly;
-
-            if (dz >= box.zhi)
-                dz -= Lz;
-            else if (dz < box.zlo)
-                dz += Lz;
+            // apply periodic boundary conditions
+            dx = box.minImage(dx);
 
             // calculate r_ij squared (FLOPS: 5)
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar rsq = dot(dx, dx);
 
             //calculate the drag term r \dot v
-            Scalar dot = dx*dvx + dy*dvy + dz*dvz;
+            Scalar rdotv = dot(dx, dv);
 
             // get parameters for this type pair
             unsigned int typpair_idx = this->m_typpair_idx(typei, typej);
@@ -300,7 +272,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             const Scalar currentTemp = m_T->getValue(timestep);
             eval.set_seed_ij_timestep(m_seed,i,j,timestep);
             eval.setDeltaT(this->m_deltaT);
-            eval.setRDotV(dot);
+            eval.setRDotV(rdotv);
             eval.setT(currentTemp);
 
             bool evaluated = eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
@@ -309,32 +281,28 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
                 {
                 // compute the virial (FLOPS: 2)
                 Scalar pair_virial[6];
-                pair_virial[0] = Scalar(0.5) * dx * dx * force_divr_cons;
-                pair_virial[1] = Scalar(0.5) * dx * dy * force_divr_cons;
-                pair_virial[2] = Scalar(0.5) * dx * dz * force_divr_cons;
-                pair_virial[3] = Scalar(0.5) * dy * dy * force_divr_cons;
-                pair_virial[4] = Scalar(0.5) * dy * dz * force_divr_cons;
-                pair_virial[5] = Scalar(0.5) * dz * dz * force_divr_cons;
+                pair_virial[0] = Scalar(0.5) * dx.x * dx.x * force_divr_cons;
+                pair_virial[1] = Scalar(0.5) * dx.x * dx.y * force_divr_cons;
+                pair_virial[2] = Scalar(0.5) * dx.x * dx.z * force_divr_cons;
+                pair_virial[3] = Scalar(0.5) * dx.y * dx.y * force_divr_cons;
+                pair_virial[4] = Scalar(0.5) * dx.y * dx.z * force_divr_cons;
+                pair_virial[5] = Scalar(0.5) * dx.z * dx.z * force_divr_cons;
 
 
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)
-                fxi += dx*force_divr;
-                fyi += dy*force_divr;
-                fzi += dz*force_divr;
+                fi += dx*force_divr;
                 pei += pair_eng * Scalar(0.5);
                 for (unsigned int l = 0; l < 6; l++)
                     viriali[l] += pair_virial[l];
 
-                // NOTE, If we are using the (third_law) then we need to calculate the drag part of the force on the other particle too!
-                // and NOT include the drag force of the first particle
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 if (third_law)
                     {
                     unsigned int mem_idx = this->m_index_thread_partial(j,tid);
-                    this->m_fdata_partial[mem_idx].x -= dx*force_divr;
-                    this->m_fdata_partial[mem_idx].y -= dy*force_divr;
-                    this->m_fdata_partial[mem_idx].z -= dz*force_divr;
+                    this->m_fdata_partial[mem_idx].x -= dx.x*force_divr;
+                    this->m_fdata_partial[mem_idx].y -= dx.y*force_divr;
+                    this->m_fdata_partial[mem_idx].z -= dx.z*force_divr;
                     this->m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
                     for (unsigned int l = 0; l < 6; l++)
                         this->m_virial_partial[l+6*mem_idx] += pair_virial[l];
@@ -345,9 +313,9 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 
         // finally, increment the force, potential energy and virial for particle i
         unsigned int mem_idx = this->m_index_thread_partial(i,tid);
-        this->m_fdata_partial[mem_idx].x += fxi;
-        this->m_fdata_partial[mem_idx].y += fyi;
-        this->m_fdata_partial[mem_idx].z += fzi;
+        this->m_fdata_partial[mem_idx].x += fi.x;
+        this->m_fdata_partial[mem_idx].y += fi.y;
+        this->m_fdata_partial[mem_idx].z += fi.z;
         this->m_fdata_partial[mem_idx].w += pei;
         for (unsigned int l = 0; l < 6; l++)
             this->m_virial_partial[l+6*mem_idx] += viriali[l];

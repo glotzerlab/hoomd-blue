@@ -174,46 +174,101 @@ inline int __scalar_as_int(Scalar b)
     return u.a;
     }
 
+// ------------ Vector math functions --------------------------
 //! Comparison operator needed for export of std::vector<Scalar3>
-bool operator== (const Scalar3 &a, const Scalar3 &b);
+HOSTDEVICE inline bool operator== (const Scalar3 &a, const Scalar3 &b)
+    {
+    return (a.x == b.x &&
+            a.y == b.y &&
+            a.z == b.z);
+    }
+
+//! Vector addition
+HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
+    {
+    return make_scalar3(a.x + b.x,
+                        a.y + b.y,
+                        a.z + b.z);
+    }
+//! Vector addition
+HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
+    {
+    a.x += b.x;
+    a.y += b.y;
+    a.z += b.z;
+    return a;
+    }
+
+//! Vector subtraction
+HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a, const Scalar3 &b)
+    {
+    return make_scalar3(a.x - b.x,
+                        a.y - b.y,
+                        a.z - b.z);
+    }
+//! Vector multiplication (component-wise)
+HOSTDEVICE inline Scalar3 operator* (const Scalar3 &a, const Scalar3 &b)
+    {
+    return make_scalar3(a.x * b.x,
+                        a.y * b.y,
+                        a.z * b.z);
+    }
+//! Vector division (component-wise)
+HOSTDEVICE inline Scalar3 operator/ (const Scalar3 &a, const Scalar3 &b)
+    {
+    return make_scalar3(a.x / b.x,
+                        a.y / b.y,
+                        a.z / b.z);
+    }
+//! Scalar - vector multiplcation
+HOSTDEVICE inline Scalar3 operator* (const Scalar &a, const Scalar3 &b)
+    {
+    return make_scalar3(a*b.x,
+                        a*b.y,
+                        a*b.z);
+    }
+//! Scalar - vector multiplcation
+HOSTDEVICE inline Scalar3 operator* (const Scalar3 &a, const Scalar &b)
+    {
+    return make_scalar3(a.x*b,
+                        a.y*b,
+                        a.z*b);
+    }
+//! Vector - scalar division
+HOSTDEVICE inline Scalar3 operator/ (const Scalar3 &a, const Scalar &b)
+    {
+    return make_scalar3(a.x/b,
+                        a.y/b,
+                        a.z/b);
+    }
+//! Vector - scalar division
+HOSTDEVICE inline Scalar3 operator/ (const Scalar &a, const Scalar3 &b)
+    {
+    return make_scalar3(a/b.x,
+                        a/b.y,
+                        a/b.z);
+    }
+//! Vector unary -
+HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a)
+    {
+    return make_scalar3(-a.x,
+                        -a.y,
+                        -a.z);
+    }
+//! Vector dot product
+HOSTDEVICE inline Scalar dot(const Scalar3& a, const Scalar3& b)
+    {
+    return a.x*b.x + a.y*b.y + a.z*b.z;
+    }
 
 //! Export relevant hoomd math functions to python
 void export_hoomd_math_functions();
 
-#ifndef NVCC
-
-// fixups for windows math compilation
-#ifdef WIN32
-// windoze calls isnan by a different name....
-#include <float.h>
-#define isnan _isnan
-
-// windows feels that rintf should not exist.....
-//! replacement for rint in windows
-inline double rint(double x)
-    {
-    return floor(x+.5);
-    }
-
-//! replacement for rint in windows
-inline double rintf(float x)
-    {
-    return floorf(x+.5f);
-    }
-
-//! Test if number is finite
-inline int isfinite(float x)
-    {
-    return _finite(x);
-    }
-#endif
-
-#endif
-
-// constants
-
 //! Small epsilon value
 const Scalar EPSILON=1.0e-6;
+
+// undefine HOSTDEVICE so we don't interfere with other headers
+#undef HOSTDEVICE
 
 #endif // __HOOMD_MATH_H__
 

@@ -222,10 +222,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    Scalar Lx,Ly,Lz;
-    Lx=Scalar(box.xhi-box.xlo);
-    Ly=Scalar(box.yhi-box.ylo);
-    Lz=Scalar(box.zhi-box.zlo);
+    Scalar3 L = box.getL();
     
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
@@ -236,7 +233,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_vizsigma_set)
         f << "vizsigma=\"" << m_vizsigma << "\" ";
     f << ">" << "\n";
-    f << "<box " << "lx=\"" << Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << "\n";
+    f << "<box " << "lx=\"" << L.x << "\" ly=\""<< L.y << "\" lz=\""<< L.z << "\"/>" << "\n";
     
     f.precision(12);
 

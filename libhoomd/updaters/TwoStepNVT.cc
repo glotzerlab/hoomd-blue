@@ -169,11 +169,6 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
     
     // particles may have been moved slightly outside the box by the above steps, wrap them back into place
     const BoxDim& box = m_pdata->getBox();
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
 
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
@@ -181,38 +176,7 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         // wrap the particles around the box
-        if (h_pos.data[j].x >= box.xhi)
-            {
-            h_pos.data[j].x -= Lx;
-            h_image.data[j].x++;
-            }
-        else if (h_pos.data[j].x < box.xlo)
-            {
-            h_pos.data[j].x += Lx;
-            h_image.data[j].x--;
-            }
-
-        if (h_pos.data[j].y >= box.yhi)
-            {
-            h_pos.data[j].y -= Ly;
-            h_image.data[j].y++;
-            }
-        else if (h_pos.data[j].y < box.ylo)
-            {
-            h_pos.data[j].y += Ly;
-            h_image.data[j].y--;
-            }
-
-        if (h_pos.data[j].z >= box.zhi)
-            {
-            h_pos.data[j].z -= Lz;
-            h_image.data[j].z++;
-            }
-        else if (h_pos.data[j].z < box.zlo)
-            {
-            h_pos.data[j].z += Lz;
-            h_image.data[j].z--;
-            }
+        box.wrap(h_pos.data[j], h_image.data[j]);
         }
     
     // done profiling

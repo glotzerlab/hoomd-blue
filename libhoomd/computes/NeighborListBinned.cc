@@ -105,12 +105,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "compute");
 
-    // precompute scale factor
-    Scalar3 width = m_cl->getWidth();
-    Scalar3 scale = make_scalar3(Scalar(1.0) / width.x,
-                                 Scalar(1.0) / width.y,
-                                 Scalar(1.0) / width.z);
-    
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
@@ -124,11 +118,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
-
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
@@ -155,10 +144,11 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         Scalar di = h_diameter.data[i];
         
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((my_pos.x-box.xlo)*scale.x);
-        unsigned int jb = (unsigned int)((my_pos.y-box.ylo)*scale.y);
-        unsigned int kb = (unsigned int)((my_pos.z-box.zlo)*scale.z);
-        
+        Scalar3 f = box.makeFraction(my_pos);
+        unsigned int ib = (unsigned int)(f.x * dim.x);
+        unsigned int jb = (unsigned int)(f.y * dim.y);
+        unsigned int kb = (unsigned int)(f.z * dim.z);
+
         // need to handle the case where the particle is exactly at the box hi
         if (ib == dim.x)
             ib = 0;
@@ -184,23 +174,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
                 
-                Scalar dx = my_pos.x - neigh_pos.x;
-                if (dx >= Lx/2.0)
-                    dx -= Lx;
-                if (dx <= -Lx/2.0)
-                    dx += Lx;
-                    
-                Scalar dy = my_pos.y - neigh_pos.y;
-                if (dy >= Ly/2.0)
-                    dy -= Ly;
-                if (dy <= -Ly/2.0)
-                    dy += Ly;
-                    
-                Scalar dz = my_pos.z - neigh_pos.z;
-                if (dz >= Lz/2.0)
-                    dz -= Lz;
-                if (dz <= -Lz/2.0)
-                    dz += Lz;
+                Scalar3 dx = my_pos - neigh_pos;
+                
+                dx = box.minImage(dx);
 
                 bool excluded = (i == (int)cur_neigh);
                 
@@ -217,7 +193,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     sqshift = (delta + Scalar(2.0) * rmax) * delta;
                     }
 
-                Scalar dr_sq = dx*dx + dy*dy + dz*dz;
+                Scalar dr_sq = dot(dx,dx);
                 
                 if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {

@@ -168,9 +168,6 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
     
     // precalculate box lengths for use in the periodic imaging
     BoxDim box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
     
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -194,7 +191,7 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
         {
         // Initialize some force variables to be used as temporary
         // storage in each iteration, initialized to 0 from which the force will be computed
-        Scalar fx = 0.0, fy = 0.0, fz = 0.0;
+        Scalar3 f = make_scalar3(0, 0, 0);
         Scalar pe = 0.0;
         
         // Grab particle data from all the arrays for this loop
@@ -217,29 +214,16 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
                                   + cur_wall.normal_z * (pz - cur_wall.origin_z);
                                   
             // use the distance to create a vector pointing from the plane to the particle
-            Scalar dx = cur_wall.normal_x * distFromWall;
-            Scalar dy = cur_wall.normal_y * distFromWall;
-            Scalar dz = cur_wall.normal_z * distFromWall;
+            Scalar3 dx = make_scalar3(cur_wall.normal_x * distFromWall,
+                                      cur_wall.normal_y * distFromWall,
+                                      cur_wall.normal_z * distFromWall);
             
             // continue with the evaluation of the LJ force copied from LJForceCompute
             // apply periodic boundary conditions
-            if (dx >= box.xhi)
-                dx -= Lx;
-            else if (dx < box.xlo)
-                dx += Lx;
-                
-            if (dy >= box.yhi)
-                dy -= Ly;
-            else if (dy < box.ylo)
-                dy += Ly;
-                
-            if (dz >= box.zhi)
-                dz -= Lz;
-            else if (dz < box.zlo)
-                dz += Lz;
-                
+            dx = box.minImage(dx);
+            
             // start computing the force
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar rsq = dot(dx,dx);
             
             // only compute the force if the particles are closer than the cuttoff
             if (rsq < r_cut_sq)
@@ -252,16 +236,14 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
                 Scalar tmp_eng = r6inv * (m_lj1[type]*r6inv - m_lj2[type]);
                 
                 // accumulate the force vector
-                fx += dx*fforce;
-                fy += dy*fforce;
-                fz += dz*fforce;
+                f += dx * fforce;
                 pe += tmp_eng;
                 }
             }
             
-        h_force.data[i].x = fx;
-        h_force.data[i].y = fy;
-        h_force.data[i].z = fz;
+        h_force.data[i].x = f.x;
+        h_force.data[i].y = f.y;
+        h_force.data[i].z = f.z;
         h_force.data[i].w = pe;
         }
      

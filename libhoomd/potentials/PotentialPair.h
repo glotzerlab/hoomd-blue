@@ -341,11 +341,6 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
     
-    // precalculate box lengths for use in the periodic imaging
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    
 #pragma omp parallel
     {
     #ifdef ENABLE_OPENMP
@@ -363,9 +358,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = h_pos.data[i].x;
-        Scalar yi = h_pos.data[i].y;
-        Scalar zi = h_pos.data[i].z;
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
@@ -379,9 +372,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             qi = h_charge.data[i];
         
         // initialize current particle force, potential energy, and virial to 0
-        Scalar fxi = 0.0;
-        Scalar fyi = 0.0;
-        Scalar fzi = 0.0;
+        Scalar3 fi = make_scalar3(0, 0, 0);
         Scalar pei = 0.0;
         Scalar virialxxi = 0.0;
         Scalar virialxyi = 0.0;
@@ -399,9 +390,8 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             assert(j < m_pdata->getN());
             
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - h_pos.data[j].x;
-            Scalar dy = yi - h_pos.data[j].y;
-            Scalar dz = zi - h_pos.data[j].z;
+            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 dx = pi - pj;
             
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
@@ -415,24 +405,11 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             if (evaluator::needsCharge())
                 qj = h_charge.data[j];
             
-            // apply periodic boundary conditions (FLOPS: 9)
-            if (dx >= box.xhi)
-                dx -= Lx;
-            else if (dx < box.xlo)
-                dx += Lx;
-                
-            if (dy >= box.yhi)
-                dy -= Ly;
-            else if (dy < box.ylo)
-                dy += Ly;
-                
-            if (dz >= box.zhi)
-                dz -= Lz;
-            else if (dz < box.zlo)
-                dz += Lz;
+            // apply periodic boundary conditions
+            dx = box.minImage(dx);
                 
             // calculate r_ij squared (FLOPS: 5)
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar rsq = dot(dx, dx);
             
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
@@ -496,41 +473,39 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 Scalar force_div2r = force_divr * Scalar(0.5);
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)
-                fxi += dx*force_divr;
-                fyi += dy*force_divr;
-                fzi += dz*force_divr;
+                fi += dx*force_divr;
                 pei += pair_eng * Scalar(0.5);
-                virialxxi += force_div2r*dx*dx;
-                virialxyi += force_div2r*dx*dy;
-                virialxzi += force_div2r*dx*dz;
-                virialyyi += force_div2r*dy*dy;
-                virialyzi += force_div2r*dy*dz;
-                virialzzi += force_div2r*dz*dz;
+                virialxxi += force_div2r*dx.x*dx.x;
+                virialxyi += force_div2r*dx.x*dx.y;
+                virialxzi += force_div2r*dx.x*dx.z;
+                virialyyi += force_div2r*dx.y*dx.y;
+                virialyzi += force_div2r*dx.y*dx.z;
+                virialzzi += force_div2r*dx.z*dx.z;
 
                 
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 if (third_law)
                     {
                     unsigned int mem_idx = m_index_thread_partial(j,tid);
-                    m_fdata_partial[mem_idx].x -= dx*force_divr;
-                    m_fdata_partial[mem_idx].y -= dy*force_divr;
-                    m_fdata_partial[mem_idx].z -= dz*force_divr;
+                    m_fdata_partial[mem_idx].x -= dx.x*force_divr;
+                    m_fdata_partial[mem_idx].y -= dx.y*force_divr;
+                    m_fdata_partial[mem_idx].z -= dx.z*force_divr;
                     m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
-                    m_virial_partial[0+6*mem_idx] += force_div2r*dx*dx;
-                    m_virial_partial[1+6*mem_idx] += force_div2r*dx*dy;
-                    m_virial_partial[2+6*mem_idx] += force_div2r*dx*dz;
-                    m_virial_partial[3+6*mem_idx] += force_div2r*dy*dy;
-                    m_virial_partial[4+6*mem_idx] += force_div2r*dy*dz;
-                    m_virial_partial[5+6*mem_idx] += force_div2r*dz*dz;
+                    m_virial_partial[0+6*mem_idx] += force_div2r*dx.x*dx.x;
+                    m_virial_partial[1+6*mem_idx] += force_div2r*dx.x*dx.y;
+                    m_virial_partial[2+6*mem_idx] += force_div2r*dx.x*dx.z;
+                    m_virial_partial[3+6*mem_idx] += force_div2r*dx.y*dx.y;
+                    m_virial_partial[4+6*mem_idx] += force_div2r*dx.y*dx.z;
+                    m_virial_partial[5+6*mem_idx] += force_div2r*dx.z*dx.z;
                     }
                 }
             }
             
         // finally, increment the force, potential energy and virial for particle i
         unsigned int mem_idx = m_index_thread_partial(i,tid);
-        m_fdata_partial[mem_idx].x += fxi;
-        m_fdata_partial[mem_idx].y += fyi;
-        m_fdata_partial[mem_idx].z += fzi;
+        m_fdata_partial[mem_idx].x += fi.x;
+        m_fdata_partial[mem_idx].y += fi.y;
+        m_fdata_partial[mem_idx].z += fi.z;
         m_fdata_partial[mem_idx].w += pei;
         m_virial_partial[0+6*mem_idx] += virialxxi;
         m_virial_partial[1+6*mem_idx] += virialxyi;

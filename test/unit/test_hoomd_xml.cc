@@ -1178,9 +1178,9 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(sysdef->getNDimensions(), (unsigned int)2);
     BOOST_CHECK_EQUAL(pdata->getN(), (unsigned int)6);
     BOOST_CHECK_EQUAL(pdata->getNTypes(), (unsigned int)6);
-    MY_BOOST_CHECK_CLOSE(pdata->getBox().xhi - pdata->getBox().xlo, 20.05, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getBox().yhi - pdata->getBox().ylo, 32.12345, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getBox().zhi - pdata->getBox().zlo, 45.098, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getBox().getL().x, 20.05, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getBox().getL().y, 32.12345, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getBox().getL().z, 45.098, tol);
     
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);

@@ -196,7 +196,8 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
     if (quantity == "volume")
         {
         BoxDim box = m_pdata->getBox();
-        return (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+        Scalar3 L = box.getL();
+        return L.x*L.y*L.z;
         }
     else if (quantity == "momentum")
         return computeTotalMomentum(timestep);

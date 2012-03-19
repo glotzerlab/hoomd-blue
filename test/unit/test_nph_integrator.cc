@@ -221,7 +221,8 @@ void nph_updater_test(twostepnph_creator nph_creator, boost::shared_ptr<Executio
 
     compute_thermo->compute(0);
     BoxDim box = pdata->getBox();
-    Scalar volume = (box.xhi-box.xlo)*(box.yhi-box.ylo)*(box.zhi-box.zlo);
+    Scalar3 L = box.getL();
+    Scalar volume = L.x*L.y*L.z;
     Scalar enthalpy =  compute_thermo->getKineticEnergy() + compute_thermo->getPotentialEnergy() + P * volume;
     Scalar barostat_energy = nph->getLogValue("nph_barostat_energy", 0);
     Scalar H_ref = enthalpy + barostat_energy; // the conserved quantity
@@ -243,7 +244,7 @@ void nph_updater_test(twostepnph_creator nph_creator, boost::shared_ptr<Executio
 
     compute_thermo->compute(count+1);
     box = pdata->getBox();
-    volume = (box.xhi-box.xlo)*(box.yhi-box.ylo)*(box.zhi-box.zlo);
+    volume = L.x*L.y*L.z;
     enthalpy =  compute_thermo->getKineticEnergy() + compute_thermo->getPotentialEnergy() + P * volume;
     barostat_energy = nph->getLogValue("nph_barostat_energy", count+1);
     Scalar H_final = enthalpy + barostat_energy;

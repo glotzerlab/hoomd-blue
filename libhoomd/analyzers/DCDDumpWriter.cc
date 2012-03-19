@@ -284,9 +284,10 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     double unitcell[6];
     BoxDim box = m_pdata->getBox();
     // set box dimensions
-    unitcell[0] = box.xhi - box.xlo;
-    unitcell[2] = box.yhi - box.ylo;
-    unitcell[5] = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
+    unitcell[0] = L.x;
+    unitcell[2] = L.y;
+    unitcell[5] = L.z;
     // box angles are 90 degrees
     unitcell[1] = 0.0f;
     unitcell[3] = 0.0f;
@@ -318,9 +319,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
     BoxDim box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
     
     unsigned int nparticles = m_group->getNumMembers();
 
@@ -332,13 +331,13 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
 
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].x) * Lx;
+            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].x) * L.x;
         else if (m_unwrap_rigid)
             {
             if (h_body.data[h_rtag.data[i]] != NO_BODY)
                 {
                 int body_ix = body_image_handle.data[h_body.data[h_rtag.data[i]]].x;
-                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].x - body_ix) * Lx;
+                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].x - body_ix) * L.x;
                 }
             }
         }
@@ -355,13 +354,13 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
         
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].y) * Ly;
+            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].y) * L.y;
         else if (m_unwrap_rigid)
             {
             if (h_body.data[h_rtag.data[i]] != NO_BODY)
                 {
                 int body_iy = body_image_handle.data[h_body.data[h_rtag.data[i]]].y;
-                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].y - body_iy) * Ly;
+                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].y - body_iy) * L.y;
                 }
             }
         }
@@ -378,13 +377,13 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
         
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].z) * Lz;
+            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].z) * L.z;
         else if (m_unwrap_rigid)
             {
             if (h_body.data[h_rtag.data[i]] != NO_BODY)
                 {
                 int body_iz = body_image_handle.data[h_body.data[h_rtag.data[i]]].z;
-                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].z - body_iz) * Lz;
+                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].z - body_iz) * L.z;
                 }
             }
          }

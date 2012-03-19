@@ -91,10 +91,10 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     
     // precalculate box lengths
     const BoxDim& box = m_pdata->getBox();
-    
-    m_Lx = box.xhi - box.xlo;
-    m_Ly = box.yhi - box.ylo;
-    m_Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
+    m_Lx = L.x;
+    m_Ly = L.y;
+    m_Lz = L.z;
     
     m_V = m_Lx*m_Ly*m_Lz;   // volume
     
@@ -129,6 +129,8 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     if (group_size == 0)
         return;
 
+    BoxDim box = m_pdata->getBox();
+    
     // profile this step
     if (m_prof)
         m_prof->push("NPT step 1");
@@ -208,8 +210,10 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     // 1. particles may have been moved slightly outside the box by the above steps, wrap them back into place
     // 2. all particles in the box are rescaled to fit in the new box 
 
+    box.setL(make_scalar3(m_Lx, m_Ly, m_Lz));
+    
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
+    
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         if (!m_partial_scale)
@@ -218,40 +222,7 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
             h_pos.data[j].y *= box_len_scale;
             h_pos.data[j].z *= box_len_scale;
             }
-        
-        // wrap the particle around the box
-        if (h_pos.data[j].x >= Scalar(m_Lx/2.0))
-            {
-            h_pos.data[j].x -= m_Lx;
-            h_image.data[j].x++;
-            }
-        else if (h_pos.data[j].x < Scalar(-m_Lx/2.0))
-            {
-            h_pos.data[j].x += m_Lx;
-            h_image.data[j].x--;
-            }
-            
-        if (h_pos.data[j].y >= Scalar(m_Ly/2.0))
-            {
-            h_pos.data[j].y -= m_Ly;
-            h_image.data[j].y++;
-            }
-        else if (h_pos.data[j].y < Scalar(-m_Ly/2.0))
-            {
-            h_pos.data[j].y += m_Ly;
-            h_image.data[j].y--;
-            }
-            
-        if (h_pos.data[j].z >= Scalar(m_Lz/2.0))
-            {
-            h_pos.data[j].z -= m_Lz;
-            h_image.data[j].z++;
-            }
-        else if (h_pos.data[j].z < Scalar(-m_Lz/2.0))
-            {
-            h_pos.data[j].z += m_Lz;
-            h_image.data[j].z--;
-            }
+        box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
     } // end of GPUArray scope
@@ -261,7 +232,7 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
         
-    m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
+    m_pdata->setBox(box);
     }
         
 /*! \param timestep Current time step

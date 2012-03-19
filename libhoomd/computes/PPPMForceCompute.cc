@@ -181,10 +181,6 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     const BoxDim& box = m_pdata->getBox();
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-
     // get system charge
     m_q = 0.f;
     m_q2 = 0.0;
@@ -197,14 +193,15 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         cout << "***Warning! system in not neutral, the net charge is " << m_q << endl;
 
     // compute RMS force error
-    Scalar hx =  Lx/(Scalar)Nx;
-    Scalar hy =  Ly/(Scalar)Ny;
-    Scalar hz =  Lz/(Scalar)Nz;
-    Scalar lprx = PPPMForceCompute::rms(hx, Lx, (int)m_pdata->getN());
-    Scalar lpry = PPPMForceCompute::rms(hy, Ly, (int)m_pdata->getN());
-    Scalar lprz = PPPMForceCompute::rms(hz, Lz, (int)m_pdata->getN());
+    Scalar3 L = box.getL();
+    Scalar hx =  L.x/(Scalar)Nx;
+    Scalar hy =  L.y/(Scalar)Ny;
+    Scalar hz =  L.z/(Scalar)Nz;
+    Scalar lprx = PPPMForceCompute::rms(hx, L.x, (int)m_pdata->getN());
+    Scalar lpry = PPPMForceCompute::rms(hy, L.y, (int)m_pdata->getN());
+    Scalar lprz = PPPMForceCompute::rms(hz, L.z, (int)m_pdata->getN());
     Scalar lpr = sqrt(lprx*lprx + lpry*lpry + lprz*lprz) / sqrt(3.0);
-    Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)m_pdata->getN()*m_rcut*Lx*Ly*Lz);
+    Scalar spr = 2.0*m_q2*exp(-m_kappa*m_kappa*m_rcut*m_rcut) / sqrt((int)m_pdata->getN()*m_rcut*L.x*L.y*L.z);
 
     double RMS_error = MAX(lpr,spr);
     if(RMS_error > 0.1) {
@@ -217,10 +214,10 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
      PPPMForceCompute::compute_rho_coeff();
 
     Scalar3 inverse_lattice_vector;
-    Scalar invdet = 2.0f*M_PI/(Lx*Ly*Lz);
-    inverse_lattice_vector.x = invdet*Ly*Lz;
-    inverse_lattice_vector.y = invdet*Lx*Lz;
-    inverse_lattice_vector.z = invdet*Lx*Ly;
+    Scalar invdet = 2.0f*M_PI/(L.x*L.y*L.z);
+    inverse_lattice_vector.x = invdet*L.y*L.z;
+    inverse_lattice_vector.y = invdet*L.x*L.z;
+    inverse_lattice_vector.z = invdet*L.x*L.y;
 
     ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
     // Set up the k-vectors
@@ -277,14 +274,14 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     Scalar sum1, dot1, dot2;
     Scalar numerator, denominator, sqk;
 
-    Scalar unitkx = (2.0*M_PI/Lx);
-    Scalar unitky = (2.0*M_PI/Ly);
-    Scalar unitkz = (2.0*M_PI/Lz);
+    Scalar unitkx = (2.0*M_PI/L.x);
+    Scalar unitky = (2.0*M_PI/L.y);
+    Scalar unitkz = (2.0*M_PI/L.z);
    
     
-    Scalar xprd = Lx; 
-    Scalar yprd = Ly; 
-    Scalar zprd_slab = Lz; 
+    Scalar xprd = L.x; 
+    Scalar yprd = L.y; 
+    Scalar zprd_slab = L.z; 
     
     Scalar form = 1.0;
 
@@ -356,7 +353,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
             }
         }
     Scalar scale = 1.0f/((Scalar)(Nx * Ny * Nz));
-    m_energy_virial_factor = 0.5 * Lx * Ly * Lz * scale * scale;
+    m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
 
     PPPMData::Nx = m_Nx;
     PPPMData::Ny = m_Ny;
@@ -429,12 +426,10 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     if(m_box_changed)
         {
         const BoxDim& box = m_pdata->getBox();
-        Scalar Lx = box.xhi - box.xlo;
-        Scalar Ly = box.yhi - box.ylo;
-        Scalar Lz = box.zhi - box.zlo;
+        Scalar3 L = box.getL();
         PPPMForceCompute::reset_kvec_green_hat_cpu();
         Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
-        m_energy_virial_factor = 0.5 * Lx * Ly * Lz * scale * scale;
+        m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
         PPPMData::energy_virial_factor = m_energy_virial_factor;
         m_box_changed = false;
         }
@@ -638,15 +633,13 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
     {
     ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
     const BoxDim& box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
 
     Scalar3 inverse_lattice_vector;
-    Scalar invdet = 2.0f*M_PI/(Lx*Ly*Lz);
-    inverse_lattice_vector.x = invdet*Ly*Lz;
-    inverse_lattice_vector.y = invdet*Lx*Lz;
-    inverse_lattice_vector.z = invdet*Lx*Ly;
+    Scalar invdet = 2.0f*M_PI/(L.x*L.y*L.z);
+    inverse_lattice_vector.x = invdet*L.y*L.z;
+    inverse_lattice_vector.y = invdet*L.x*L.z;
+    inverse_lattice_vector.z = invdet*L.x*L.y;
 
     // Set up the k-vectors
     int ix, iy, iz, kper, lper, mper, k, l, m;
@@ -702,14 +695,14 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
     Scalar sum1, dot1, dot2;
     Scalar numerator, denominator, sqk;
 
-    Scalar unitkx = (2.0*M_PI/Lx);
-    Scalar unitky = (2.0*M_PI/Ly);
-    Scalar unitkz = (2.0*M_PI/Lz);
+    Scalar unitkx = (2.0*M_PI/L.x);
+    Scalar unitky = (2.0*M_PI/L.y);
+    Scalar unitkz = (2.0*M_PI/L.z);
    
     
-    Scalar xprd = Lx; 
-    Scalar yprd = Ly; 
-    Scalar zprd_slab = Lz; 
+    Scalar xprd = L.x; 
+    Scalar yprd = L.y; 
+    Scalar zprd_slab = L.z; 
     
     Scalar form = 1.0;
 
@@ -786,10 +779,7 @@ void PPPMForceCompute::assign_charges_to_grid()
     {
 
     const BoxDim& box = m_pdata->getBox();
-
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
@@ -807,14 +797,14 @@ void PPPMForceCompute::assign_charges_to_grid()
         posi.y = h_pos.data[i].y;
         posi.z = h_pos.data[i].z;
 
-        Scalar box_dx = Lx / ((Scalar)m_Nx);
-        Scalar box_dy = Ly / ((Scalar)m_Ny);
-        Scalar box_dz = Lz / ((Scalar)m_Nz);
+        Scalar box_dx = L.x / ((Scalar)m_Nx);
+        Scalar box_dy = L.y / ((Scalar)m_Ny);
+        Scalar box_dz = L.z / ((Scalar)m_Nz);
  
         //normalize position to gridsize:
-        posi.x += Lx / 2.0f;
-        posi.y += Ly / 2.0f;
-        posi.z += Lz / 2.0f;
+        posi.x += L.x / 2.0f;
+        posi.y += L.y / 2.0f;
+        posi.z += L.z / 2.0f;
    
         posi.x /= box_dx;
         posi.y /= box_dy;
@@ -918,11 +908,8 @@ void PPPMForceCompute::combined_green_e()
 void PPPMForceCompute::calculate_forces()
     {
     const BoxDim& box = m_pdata->getBox();
-
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-
+    Scalar3 L = box.getL();
+    
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
@@ -950,14 +937,14 @@ void PPPMForceCompute::calculate_forces()
         posi.y = h_pos.data[i].y;
         posi.z = h_pos.data[i].z;
 
-        Scalar box_dx = Lx / ((Scalar)m_Nx);
-        Scalar box_dy = Ly / ((Scalar)m_Ny);
-        Scalar box_dz = Lz / ((Scalar)m_Nz);
+        Scalar box_dx = L.x / ((Scalar)m_Nx);
+        Scalar box_dy = L.y / ((Scalar)m_Ny);
+        Scalar box_dz = L.z / ((Scalar)m_Nz);
  
         //normalize position to gridsize:
-        posi.x += Lx / 2.0f;
-        posi.y += Ly / 2.0f;
-        posi.z += Lz / 2.0f;
+        posi.x += L.x / 2.0f;
+        posi.y += L.y / 2.0f;
+        posi.z += L.z / 2.0f;
    
         posi.x /= box_dx;
         posi.y /= box_dy;
@@ -1052,14 +1039,6 @@ void PPPMForceCompute::fix_exclusions_cpu()
     ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::host, access_mode::read);
     Index2D nex = m_nlist->getExListIndexer();
 
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-
-    Scalar Lxinv = 1.0/Lx;
-    Scalar Lyinv = 1.0/Ly;
-    Scalar Lzinv = 1.0/Lz;
-
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
@@ -1070,7 +1049,7 @@ void PPPMForceCompute::fix_exclusions_cpu()
         for (unsigned int k = 0; k < 6; k++)
             virial[k] = 0.0f;
         unsigned int idx = d_group_members.data[i];
-        Scalar4 posi;
+        Scalar3 posi;
         posi.x = h_pos.data[idx].x;
         posi.y = h_pos.data[idx].y;
         posi.z = h_pos.data[idx].z;
@@ -1084,34 +1063,31 @@ void PPPMForceCompute::fix_exclusions_cpu()
             {
             cur_j = d_exlist.data[nex(idx, neigh_idx)];
            // get the neighbor's position
-            Scalar4 posj;
+            Scalar3 posj;
             posj.x = h_pos.data[cur_j].x;
             posj.y = h_pos.data[cur_j].y;
             posj.z = h_pos.data[cur_j].z;
             Scalar qj = h_charge.data[cur_j];
-            Scalar dx = posi.x - posj.x;
-            Scalar dy = posi.y - posj.y;
-            Scalar dz = posi.z - posj.z;
+            Scalar3 dx = posi - posj;
             
-            // apply periodic boundary conditions: (FLOPS 12)
-            dx -= Lx * rintf(dx * Lxinv);
-            dy -= Ly * rintf(dy * Lyinv);
-            dz -= Lz * rintf(dz * Lzinv);
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            // apply periodic boundary conditions: 
+            dx = box.minImage(dx);
+            
+            Scalar rsq = dot(dx, dx);
             Scalar r = sqrtf(rsq);
             Scalar qiqj = qi * qj;
             Scalar erffac = erf(m_kappa * r) / r;
             Scalar force_divr = qiqj * (-2.0f * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
             Scalar pair_eng = qiqj * erffac; 
-            virial[0]+= Scalar(0.5) * dx * dx * force_divr;
-            virial[1]+= Scalar(0.5) * dy * dx * force_divr;
-            virial[2]+= Scalar(0.5) * dz * dx * force_divr;
-            virial[3]+= Scalar(0.5) * dy * dy * force_divr;
-            virial[4]+= Scalar(0.5) * dz * dy * force_divr;
-            virial[5]+= Scalar(0.5) * dz * dz * force_divr;
-            force.x += dx * force_divr;
-            force.y += dy * force_divr;
-            force.z += dz * force_divr;
+            virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
+            virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
+            virial[2]+= Scalar(0.5) * dx.z * dx.x * force_divr;
+            virial[3]+= Scalar(0.5) * dx.y * dx.y * force_divr;
+            virial[4]+= Scalar(0.5) * dx.z * dx.y * force_divr;
+            virial[5]+= Scalar(0.5) * dx.z * dx.z * force_divr;
+            force.x += dx.x * force_divr;
+            force.y += dx.y * force_divr;
+            force.z += dx.z * force_divr;
             force.w += pair_eng;
             }
         force.w *= 0.5f;
