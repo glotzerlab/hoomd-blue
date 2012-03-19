@@ -366,6 +366,7 @@ const BoxDim & ParticleData::getGlobalBox() const
 void ParticleData::setGlobalBox(const BoxDim &global_box)
     {
     m_global_box = global_box;
+
 #ifdef ENABLE_CUDA
     // setup the box
     m_gpu_global_box.Lx = m_global_box.xhi - m_global_box.xlo;
@@ -381,8 +382,6 @@ void ParticleData::setGlobalBox(const BoxDim &global_box)
     m_gpu_global_box.yhi = m_global_box.yhi;
     m_gpu_global_box.zhi = m_global_box.zhi;
 #endif
-    
-    m_boxchange_signal();
     }
 
 /*! \param func Function to call when the particles are resorted

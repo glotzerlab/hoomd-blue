@@ -163,6 +163,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "MPIInitializer.h"
+#ifdef ENABLE_CUDA
+#include "CommunicatorGPU.h"
+#endif
+#endif
+
 #include "SignalHandler.h"
 
 #include "HOOMDVersion.h"

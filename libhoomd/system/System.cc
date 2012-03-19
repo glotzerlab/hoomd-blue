@@ -406,8 +406,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     int64_t initial_time = m_clk.getTime();
     m_last_status_time = initial_time;
     setupProfiling();
-    
-    resetStats();
 
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
     // but set the flags before prepRun, as prepRun may remove some flags that it cannot generate on the first step
@@ -426,11 +424,18 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
             compute->second->setCommunicator(m_comm);
 
+        // Set communicator in all Analyzers
+        vector<analyzer_item>::iterator analyzer;
+        for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+            analyzer->m_analyzer->setCommunicator(m_comm);
+
         // Set communicator in Integrator
         if (m_integrator)
             m_integrator->setCommunicator(m_comm);
         }
 #endif
+
+    resetStats();
 
     // Prepare the run
     if (!m_integrator)
