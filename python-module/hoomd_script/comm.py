@@ -130,9 +130,11 @@ class mpi_partition:
     
         # construct global communicator
         if not (root >= 0 and root < comm_world.size/self.num_replicas):
-            print >> sys.stderr, "\n***Warning! The root processor rank supplied (%d) is larger than the number %d of" \
-                                 "              processors %d per replica. Proceeding with root=0.\n" \
-                                 % (root, comm_world.size())
+            print >> sys.stderr, "\n***Warning! The root processor rank supplied (%d) is not between 0 and the"\
+                                 "\n            number %d of processors available for this replica."\
+                                 "\n            Proceeding with root=0.\n" \
+                                 % (root, comm_world.size/self.num_replicas)
+            root = 0
 
         self.global_comm = comm_world.split(0 if ((comm_world.rank - root) % self.num_replicas == 0) else 1)
         
