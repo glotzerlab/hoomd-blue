@@ -265,17 +265,17 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     # handle the optional arguments
     box = globals.system_definition.getParticleData().getBox();
     if xmin is None:
-        xmin = box.xlo - 0.5;
+        xmin = box.getLo().x - 0.5;
     if xmax is None:
-        xmax = box.xhi + 0.5;
+        xmax = box.getHi().x + 0.5;
     if ymin is None:
-        ymin = box.ylo - 0.5;
+        ymin = box.getLo().y - 0.5;
     if ymax is None:
-        ymax = box.yhi + 0.5;
+        ymax = box.getHi().y + 0.5;
     if zmin is None:
-        zmin = box.zlo - 0.5;
+        zmin = box.getLo().z - 0.5;
     if zmax is None:
-        zmax = box.zhi + 0.5;
+        zmax = box.getHi().z + 0.5;
     
     ll = hoomd.Scalar3();
     ur = hoomd.Scalar3();
