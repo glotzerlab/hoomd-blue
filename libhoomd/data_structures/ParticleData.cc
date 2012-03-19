@@ -80,8 +80,16 @@ using namespace boost::python;
 #include "Communicator.h"
 
 #include <boost/mpi.hpp>
-#include <boost/mpi/collectives.hpp>
+#include <boost/serialization/map.hpp>
 using namespace boost::mpi;
+
+// Define some of our types as fixed-size MPI datatypes for performance optimization
+BOOST_IS_MPI_DATATYPE(Scalar4)
+BOOST_IS_MPI_DATATYPE(Scalar3)
+BOOST_IS_MPI_DATATYPE(Scalar)
+BOOST_IS_MPI_DATATYPE(uint3)
+BOOST_IS_MPI_DATATYPE(int3)
+
 #endif
 
 #include <boost/bind.hpp>
@@ -322,7 +330,7 @@ const BoxDim & ParticleData::getBox() const
 void ParticleData::setBox(const BoxDim &box)
     {
     m_box = box;
-    assert(inBox());
+    //assert(inBox());
     
 #ifdef ENABLE_CUDA
     // setup the box
@@ -358,7 +366,6 @@ const BoxDim & ParticleData::getGlobalBox() const
 void ParticleData::setGlobalBox(const BoxDim &global_box)
     {
     m_global_box = global_box;
-    assert(inBox());
 #ifdef ENABLE_CUDA
     // setup the box
     m_gpu_global_box.Lx = m_global_box.xhi - m_global_box.xlo;
@@ -571,6 +578,7 @@ void ParticleData::setNGlobal(unsigned int nglobal)
             {
             // resize array of global reverse lookup tags
             m_global_rtag.resize(nglobal);
+
             }
         }
     else
@@ -578,7 +586,7 @@ void ParticleData::setNGlobal(unsigned int nglobal)
         // allocate array
         GPUArray< unsigned int> global_rtag(nglobal, m_exec_conf);
         m_global_rtag.swap(global_rtag);
-       }
+        }
 
     // Set global particle number
     m_nglobal = nglobal;
@@ -653,83 +661,249 @@ bool ParticleData::inBox()
     }
 
 //! Initialize from a snapshot
-//! \param snapshot the initial particle data
-//! \post the particle data arrays are initialized from the snapshot, in index order
-void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
+/*! \param snapshot the initial particle data
+    \param root The rank of the root processor that holds the initial snapshot
+
+    \post the particle data arrays are initialized from the snapshot, in index order
+
+    \pre In parallel simulations, the local box size must be set before a call to initializeFromSnapshot().
+ */
+void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot, unsigned int root)
     {
-    m_nparticles = snapshot.size;
 
-    // reallocate particle data such that we can accomodate the particles
-    reallocate(snapshot.size);
-
-    if (getNGlobal() < snapshot.size)
+#ifdef ENABLE_MPI
+    if (m_mpi_comm)
         {
-        cerr << endl << "***Error! Global number of particles must be greater or equal the number "
-             << " of local particles." << endl << endl;
-        throw std::runtime_error("Error initializing ParticleData");
+        // gather box information from all processors
+        std::vector<BoxDim> box_proc(m_mpi_comm->size(),BoxDim(1.0,1.0,1.0));
+        gather(*m_mpi_comm, getBox(), box_proc, root);
+       
+        // Define per-processor particle data
+        std::vector< std::vector<Scalar3> > pos_proc;              // Position array of every processor
+        std::vector< std::vector<Scalar3> > vel_proc;              // Velocities array of every processor
+        std::vector< std::vector<Scalar3> > accel_proc;            // Accelerations array of every processor
+        std::vector< std::vector<unsigned int> > type_proc;        // Particle types array of every processor
+        std::vector< std::vector<Scalar > > mass_proc;             // Particle masses array of every processor
+        std::vector< std::vector<Scalar > > charge_proc;           // Particle charges array of every processor
+        std::vector< std::vector<Scalar > > diameter_proc;         // Particle diameters array of every processor
+        std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
+        std::vector< std::vector<unsigned int > > rtag_proc;       // Particle reverse-lookup tags array of every processor
+        std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
+        std::vector< std::vector<unsigned int > > global_tag_proc; // Global tags of every processor
+        std::vector< unsigned int > N_proc;                        // Number of particles on every processor
+ 
+        // resize to number of ranks in communicator
+        pos_proc.resize(m_mpi_comm->size());
+        vel_proc.resize(m_mpi_comm->size());
+        accel_proc.resize(m_mpi_comm->size());
+        type_proc.resize(m_mpi_comm->size());
+        mass_proc.resize(m_mpi_comm->size());
+        charge_proc.resize(m_mpi_comm->size());
+        diameter_proc.resize(m_mpi_comm->size());
+        image_proc.resize(m_mpi_comm->size());
+        body_proc.resize(m_mpi_comm->size());
+        global_tag_proc.resize(m_mpi_comm->size());
+        N_proc.resize(m_mpi_comm->size());
+
+        if (m_mpi_comm->rank() == (int)root)
+            {
+            // loop over particles in snapshot, place them into domains
+            for (std::vector<Scalar3>::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
+                {
+                unsigned int placed_particle = false;
+
+                // determine domain the particle is placed into
+                unsigned int rank;
+                for (rank = 0; rank < (unsigned int) m_mpi_comm->size(); rank++)
+                    {
+                    const BoxDim & box = box_proc[rank];
+                    if (box.xlo <= it->x && it->x < box.xhi &&
+                        box.ylo <= it->y && it->y < box.yhi &&
+                        box.zlo <= it->z && it->z < box.zhi)
+                        {
+                        placed_particle = true;
+                        break;
+                        }
+                    }
+                unsigned int tag = it - snapshot.pos.begin();
+                if (! placed_particle)
+                    {
+                    cerr << endl << "***Error! Particle " << tag << " out of bounds (could not place on any processor). "
+                         << endl << endl;
+                    throw std::runtime_error("Error initializing ParticleData");
+                    }
+
+                unsigned int idx = it - snapshot.pos.begin() ;
+                // fill up per-processor data structures
+                pos_proc[rank].push_back(snapshot.pos[idx]);
+                vel_proc[rank].push_back(snapshot.vel[idx]);
+                accel_proc[rank].push_back(snapshot.accel[idx]);
+                type_proc[rank].push_back(snapshot.type[idx]);
+                mass_proc[rank].push_back(snapshot.mass[idx]);
+                charge_proc[rank].push_back(snapshot.charge[idx]);
+                diameter_proc[rank].push_back(snapshot.diameter[idx]);
+                image_proc[rank].push_back(snapshot.image[idx]);
+                body_proc[rank].push_back(snapshot.body[idx]);
+                global_tag_proc[rank].push_back(tag);
+                N_proc[rank]++;
+                }
+
+            }
+
+        // get number of particle types
+        m_ntypes = snapshot.type_mapping.size();
+
+        // get type mapping
+        m_type_mapping = snapshot.type_mapping;
+
+        // broadcast number of particle types
+        boost::mpi::broadcast(*m_mpi_comm, m_ntypes, root);
+
+        // broadcast type mapping
+        boost::mpi::broadcast(*m_mpi_comm, m_type_mapping, root);
+
+        // broadcast global number of particles
+        unsigned int nglobal = snapshot.size;
+        boost::mpi::broadcast(*m_mpi_comm, nglobal, root);
+
+        setNGlobal(nglobal);
+
+        // Local particle data 
+        std::vector<Scalar3> pos;
+        std::vector<Scalar3> vel;
+        std::vector<Scalar3> accel;
+        std::vector<unsigned int> type;
+        std::vector<Scalar> mass;
+        std::vector<Scalar> charge;
+        std::vector<Scalar> diameter;
+        std::vector<int3> image;
+        std::vector<unsigned int> body;
+        std::vector<unsigned int> global_tag;
+ 
+        // distribute particle data
+        boost::mpi::scatter(*m_mpi_comm, pos_proc,pos,root);
+        boost::mpi::scatter(*m_mpi_comm, vel_proc,vel,root);
+        boost::mpi::scatter(*m_mpi_comm, accel_proc, accel, root);
+        boost::mpi::scatter(*m_mpi_comm, type_proc, type, root);
+        boost::mpi::scatter(*m_mpi_comm, mass_proc, mass, root);
+        boost::mpi::scatter(*m_mpi_comm, charge_proc, charge, root);
+        boost::mpi::scatter(*m_mpi_comm, diameter_proc, diameter, root);
+        boost::mpi::scatter(*m_mpi_comm, image_proc, image, root);
+        boost::mpi::scatter(*m_mpi_comm, body_proc, body, root);
+        boost::mpi::scatter(*m_mpi_comm, global_tag_proc, global_tag, root);
+
+        // distribute number of particles
+        boost::mpi::scatter(*m_mpi_comm, N_proc, m_nparticles, root);
+
+        // reset all reverse lookup tags to NOT_LOCAL flag
+            {
+            ArrayHandle<unsigned int> h_global_rtag(getGlobalRTags(), access_location::host, access_mode::overwrite);
+            for (unsigned int tag = 0; tag < m_nglobal; tag++)
+                h_global_rtag.data[tag] = NOT_LOCAL;
+            }
+
+        // reallocate particle data such that we can accomodate the particles
+        reallocate(m_nparticles);
+
+        // Load particle data
+        ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::overwrite);
+        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::readwrite);
+
+        for (unsigned int idx = 0; idx < m_nparticles; idx++)
+            {
+            h_pos.data[idx] = make_scalar4(pos[idx].x,pos[idx].y, pos[idx].z, __int_as_scalar(type[idx]));
+            h_vel.data[idx] = make_scalar4(vel[idx].x, vel[idx].y, vel[idx].z, mass[idx]);
+            h_accel.data[idx] = accel[idx];
+            h_charge.data[idx] = snapshot.charge[idx];
+            h_diameter.data[idx] = snapshot.diameter[idx];
+            h_image.data[idx] = snapshot.image[idx];
+            h_global_tag.data[idx] = global_tag[idx];
+            h_global_rtag.data[global_tag[idx]] = idx;
+            h_body.data[idx] = snapshot.body[idx];
+            }
+        }
+    else
+#endif
+        {
+        // Initialize number of particles
+        setNGlobal(snapshot.size);
+        m_nparticles = snapshot.size;
+
+        // reallocate particle data such that we can accomodate the particles
+        reallocate(snapshot.size);
+
+        ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::overwrite);
+        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::readwrite);
+
+        for (unsigned int tag = 0; tag < m_nparticles; tag++)
+            {
+            h_pos.data[tag] = make_scalar4(snapshot.pos[tag].x,
+                                           snapshot.pos[tag].y,
+                                           snapshot.pos[tag].z,
+                                           __int_as_scalar(snapshot.type[tag]));
+            h_vel.data[tag] = make_scalar4(snapshot.vel[tag].x,
+                                             snapshot.vel[tag].y,
+                                             snapshot.vel[tag].z,
+                                             snapshot.mass[tag]);
+            h_accel.data[tag] = snapshot.accel[tag];
+            h_charge.data[tag] = snapshot.charge[tag];
+            h_diameter.data[tag] = snapshot.diameter[tag];
+            h_image.data[tag] = snapshot.image[tag];
+            h_global_tag.data[tag] = tag;
+            h_global_rtag.data[tag] = tag;
+            h_body.data[tag] = snapshot.body[tag];
+            }
+
+        // initialize number of particle types
+        m_ntypes = snapshot.num_particle_types;
+
+        if (m_ntypes == 0)
+            {
+            cerr << endl << "***Error! Number of particle types must be greater than 0." << endl << endl;
+            throw std::runtime_error("Error initializing ParticleData");
+            }
+
+        // initialize type mapping
+        m_type_mapping = snapshot.type_mapping;
+        assert(m_type_mapping.size() == m_ntypes);
         }
 
-    ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
-    ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::overwrite);
-    ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::overwrite);
-    ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::overwrite);
-    ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::overwrite);
-    ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::readwrite);
+    notifyParticleSort();
 
-    // first reset all reverse look-up tags
-    for (unsigned int idx = 0; idx < m_nparticles; idx++)
-        {
-        h_pos.data[idx].x = snapshot.pos[idx].x;
-        h_pos.data[idx].y = snapshot.pos[idx].y;
-        h_pos.data[idx].z = snapshot.pos[idx].z;
-        h_pos.data[idx].w = __int_as_scalar(snapshot.type[idx]);
-
-        h_vel.data[idx].x = snapshot.vel[idx].x;
-        h_vel.data[idx].y = snapshot.vel[idx].y;
-        h_vel.data[idx].z = snapshot.vel[idx].z;
-        h_vel.data[idx].w = snapshot.mass[idx];
-
-        h_accel.data[idx] = snapshot.accel[idx];
-
-        h_charge.data[idx] = snapshot.charge[idx];
-
-        h_diameter.data[idx] = snapshot.diameter[idx];
-
-        h_image.data[idx] = snapshot.image[idx];
-
-        h_global_tag.data[idx] = snapshot.global_tag[idx];
-        h_global_rtag.data[snapshot.global_tag[idx]] = idx;
-
-        h_body.data[idx] = snapshot.body[idx];
-        }
-
-    // initialize number of particle types
-    m_ntypes = snapshot.num_particle_types;
-
-    if (m_ntypes == 0)
-        {
-        cerr << endl << "***Error! Number of particle types must be greater than 0." << endl << endl;
-        throw std::runtime_error("Error initializing ParticleData");
-        }
-
-    // initialize type mapping
-    m_type_mapping = snapshot.type_mapping;
-    assert(m_type_mapping.size() == m_ntypes);
     }
 
 //! take a particle data snapshot
-/* \param snapshot the snapshot to write to
- * \pre snapshot has to be allocated with a number of elements equal or greater than the number of particles)
+/* \param snapshot The snapshot to write to
+   \param root The processor rank on which the snapshot is gathered
+
+   \pre snapshot has to be allocated with a number of elements equal to the global number of particles)
 */
-void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
+void ParticleData::takeSnapshot(SnapshotParticleData &snapshot, unsigned int root)
     {
-    assert(snapshot.size >= getN());
-    assert(inBox());
+    // construct global snapshot
+    if (snapshot.size != getNGlobal())
+        {
+        cerr << endl << "***Error! Number of particles in snapshot must be equal to global number of particles." << endl << endl;
+        throw std::runtime_error("Error taking ParticleDataSnapshot");
+        }
 
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
@@ -740,21 +914,128 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::read);
 
-    for (unsigned int idx = 0; idx < m_nparticles; idx++)
+#ifdef ENABLE_MPI
+    if (m_mpi_comm)
         {
-        snapshot.pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-        snapshot.vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
-        snapshot.accel[idx] = h_accel.data[idx];
-        snapshot.type[idx] = __scalar_as_int(h_pos.data[idx].w);
-        snapshot.mass[idx] = h_vel.data[idx].w;
-        snapshot.charge[idx] = h_charge.data[idx];
-        snapshot.diameter[idx] = h_diameter.data[idx];
-        snapshot.image[idx] = h_image.data[idx];
-        snapshot.global_tag[idx] = h_global_tag.data[idx];
-        snapshot.body[idx] = h_body.data[idx];
+        // gather a global snapshot
+        std::vector<Scalar3> pos(m_nparticles);
+        std::vector<Scalar3> vel(m_nparticles);
+        std::vector<Scalar3> accel(m_nparticles);
+        std::vector<unsigned int> type(m_nparticles);
+        std::vector<Scalar> mass(m_nparticles);
+        std::vector<Scalar> charge(m_nparticles);
+        std::vector<Scalar> diameter(m_nparticles);
+        std::vector<int3> image(m_nparticles);
+        std::vector<unsigned int> body(m_nparticles);
+        std::vector<unsigned int> global_tag(m_nparticles);
+        std::map<unsigned int, unsigned int> rtag_map;
 
-        // insert reverse lookup global tag -> idx
-        snapshot.global_rtag.insert(std::pair<unsigned int, unsigned int>(h_global_tag.data[idx], idx));
+        for (unsigned int idx = 0; idx < m_nparticles; idx++)
+            {
+            pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+            accel[idx] = h_accel.data[idx];
+            type[idx] = __scalar_as_int(h_pos.data[idx].w);
+            mass[idx] = h_vel.data[idx].w;
+            charge[idx] = h_charge.data[idx];
+            diameter[idx] = h_diameter.data[idx];
+            image[idx] = h_image.data[idx];
+            body[idx] = h_body.data[idx];
+
+            // insert reverse lookup global tag -> idx
+            rtag_map.insert(std::pair<unsigned int, unsigned int>(h_global_tag.data[idx], idx));
+            }
+
+        std::vector< std::vector<Scalar3> > pos_proc;              // Position array of every processor
+        std::vector< std::vector<Scalar3> > vel_proc;              // Velocities array of every processor
+        std::vector< std::vector<Scalar3> > accel_proc;            // Accelerations array of every processor
+        std::vector< std::vector<unsigned int> > type_proc;        // Particle types array of every processor
+        std::vector< std::vector<Scalar > > mass_proc;             // Particle masses array of every processor
+        std::vector< std::vector<Scalar > > charge_proc;           // Particle charges array of every processor
+        std::vector< std::vector<Scalar > > diameter_proc;         // Particle diameters array of every processor
+        std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
+        std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
+
+        std::vector< std::map<unsigned int, unsigned int> > rtag_map_proc; // List of reverse-lookup maps
+
+        // resize to number of ranks in communicator
+        pos_proc.resize(m_mpi_comm->size());
+        vel_proc.resize(m_mpi_comm->size());
+        accel_proc.resize(m_mpi_comm->size());
+        type_proc.resize(m_mpi_comm->size());
+        mass_proc.resize(m_mpi_comm->size());
+        charge_proc.resize(m_mpi_comm->size());
+        diameter_proc.resize(m_mpi_comm->size());
+        image_proc.resize(m_mpi_comm->size());
+        body_proc.resize(m_mpi_comm->size());
+        rtag_map_proc.resize(m_mpi_comm->size());
+
+        // collect all particle data on the root processor
+        boost::mpi::gather(*m_mpi_comm, pos, pos_proc, root);
+        boost::mpi::gather(*m_mpi_comm, vel, vel_proc, root);
+        boost::mpi::gather(*m_mpi_comm, accel, accel_proc, root);
+        boost::mpi::gather(*m_mpi_comm, type, type_proc, root);
+        boost::mpi::gather(*m_mpi_comm, mass, mass_proc, root);
+        boost::mpi::gather(*m_mpi_comm, charge, charge_proc, root);
+        boost::mpi::gather(*m_mpi_comm, diameter, diameter_proc, root);
+        boost::mpi::gather(*m_mpi_comm, image, image_proc, root);
+        boost::mpi::gather(*m_mpi_comm, body, body_proc, root);
+
+        // gather the reverse-lookup maps
+        boost::mpi::gather(*m_mpi_comm, rtag_map, rtag_map_proc, root);
+
+        if (m_mpi_comm->rank() == (int) root)
+            {
+            std::map<unsigned int, unsigned int>::iterator it;
+
+            for (unsigned int tag = 0; tag < getNGlobal(); tag++)
+                {
+                bool found = false;
+                unsigned int rank;
+                for (rank = 0; rank < (unsigned int) m_mpi_comm->size(); rank ++)
+                    {
+                    it = rtag_map_proc[rank].find(tag);
+                    if (it != rtag_map_proc[rank].end())
+                        {
+                        found = true;
+                        break;
+                        }
+                    }
+                if (! found)
+                    {
+                    cerr << endl << "***Error! Could not find particle " << tag << " on any processor. " << endl << endl;
+                    throw std::runtime_error("Error gathering ParticleData");
+                    }
+
+                // rank contains the processor rank on which the particle was found
+                unsigned int idx = it->second;
+                snapshot.pos[tag] = pos_proc[rank][idx];
+                snapshot.vel[tag] = vel_proc[rank][idx];
+                snapshot.accel[tag] = accel_proc[rank][idx];
+                snapshot.type[tag] = type_proc[rank][idx];
+                snapshot.mass[tag] = mass_proc[rank][idx];
+                snapshot.charge[tag] = charge_proc[rank][idx];
+                snapshot.diameter[tag] = diameter_proc[rank][idx];
+                snapshot.image[tag] = image_proc[rank][idx];
+                snapshot.body[tag] = body_proc[rank][idx];
+                }
+            } 
+        }
+    else
+#endif
+        {
+        for (unsigned int idx = 0; idx < m_nparticles; idx++)
+            {
+            snapshot.pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            snapshot.vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+            snapshot.accel[idx] = h_accel.data[idx];
+            snapshot.type[idx] = __scalar_as_int(h_pos.data[idx].w);
+            snapshot.mass[idx] = h_vel.data[idx].w;
+            snapshot.charge[idx] = h_charge.data[idx];
+            snapshot.diameter[idx] = h_diameter.data[idx];
+            snapshot.image[idx] = h_image.data[idx];
+            snapshot.body[idx] = h_body.data[idx];
+            }
         }
 
     snapshot.num_particle_types = m_ntypes;
@@ -1399,6 +1680,8 @@ void export_ParticleData()
     .def("setType", &ParticleData::setType)
     .def("setOrientation", &ParticleData::setOrientation)
     .def("setInertiaTensor", &ParticleData::setInertiaTensor)
+    .def("takeSnapshot", &ParticleData::takeSnapshot)
+    .def("initializeFromSnapshot", &ParticleData::initializeFromSnapshot)
     ;
     }
 
@@ -1414,7 +1697,6 @@ void export_SnapshotParticleData()
     .def_readwrite("diameter", &SnapshotParticleData::diameter)
     .def_readwrite("image", &SnapshotParticleData::image)
     .def_readwrite("body", &SnapshotParticleData::body)
-    .def_readwrite("global_tag", &SnapshotParticleData::global_tag)
     .def_readwrite("num_particle_types", &SnapshotParticleData::num_particle_types)
     .def_readwrite("type_mapping", &SnapshotParticleData::type_mapping)
     ;

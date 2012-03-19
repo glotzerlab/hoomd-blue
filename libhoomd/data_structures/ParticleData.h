@@ -227,16 +227,15 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
  * - Initializing the ParticleData from a ParticleDataInitializer
- * - inside an Analyzer to iterate over the current ParticleDat
+ * - inside an Analyzer to iterate over the current ParticleData
  *
  * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
  * (such as type, mass, diameter). Then a snapshot of this initial state is taken and pased to the
  * ParticleDataInitializer, which may modify any of the fields of the snapshot. It then returns it to
  * ParticleData, which in turn initializes its internal arrays from the snapshot using ParticleData::initializeFromSnapshot().
  *
- * To support the second scenerio it is necessary that particles can be accessed in global tag order. For this purporse,
- * the snapshot contains a map which supports lookup between global tags and local snapshot indices. This is updated
- * whenever a snapshot is taken using ParticleData::takeSnapshot().
+ * To support the second scenerio it is necessary that particles can be accessed in global tag order. Therefore,
+ * the data in a snapshot is stored in global tag order.
  * \ingroup data_structs
  */
 struct SnapshotParticleData {
@@ -254,7 +253,6 @@ struct SnapshotParticleData {
        charge.resize(N);
        diameter.resize(N);
        image.resize(N);
-       global_tag.resize(N);
        body.resize(N);
        size = N;
        }
@@ -267,12 +265,10 @@ struct SnapshotParticleData {
     std::vector<Scalar> charge;     //!< charges
     std::vector<Scalar> diameter;   //!< diameters
     std::vector<int3> image;        //!< images
-    std::vector<unsigned int> global_tag; //!< global tag
     std::vector<unsigned int> body; //!< body ids
     unsigned int size;              //!< number of particles in this snapshot
     unsigned int num_particle_types;//!< Number of particle types defined
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
-    std::map<unsigned int,unsigned int> global_rtag; //!< Maps a global tag onto a local snapshot index
     };
 
 //! Abstract interface for initializing a ParticleData
@@ -814,10 +810,10 @@ class ParticleData : boost::noncopyable
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
         //! Initialize from a snapshot
-        void initializeFromSnapshot(const SnapshotParticleData & snapshot);
+        void initializeFromSnapshot(const SnapshotParticleData & snapshot, unsigned int root = 0);
 
         //! Take a snapshot
-        void takeSnapshot(SnapshotParticleData &snapshot);
+        void takeSnapshot(SnapshotParticleData &snapshot, unsigned int root = 0);
 
         //! Remove particles from the local particle data
         void removeParticles(const unsigned int n);

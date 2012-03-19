@@ -133,16 +133,7 @@ class ParticleData;
 */
 
 //! Class that initializes every processor using spatial domain-decomposition
-/*! This class is used to set up the initial state of the particle data on every processor.
- *  The global simulation box is sub-divided into domains which are assigned to
- *  individual processors. The criterium whether a particle belongs into a certain box is
- *  based upon its position.
- *
- *  There are two main methods defined by this class: scatter() and gather().
- *
- *  The scatter() method distributes ParticleData from the processor with rank \b root to the other processors,
- *
- *  The gather() method recombines all ParticleData of the processors on the processor with rank \b root.
+/*! This class is used to divide the global simulation box into sub-domains and to assign a box to every processor.
  *
  *  <b>Implementation details</b>
  *
@@ -168,17 +159,6 @@ class MPIInitializer
                        unsigned int nx = 0,
                        unsigned int ny = 0,
                        unsigned int nz = 0);
- 
-        //! Distribute particles onto processors
-        /*! \param root Rank of the processor to distribute particles from
-         */
-        void scatter(unsigned int root);
- 
-        //! Gather particle data from all processors into a snapshot on a single processor
-        /*! \param root Rank of processor to gather particle data on
-         *  \param global_snapshot Snapshot to collect particle data in
-         */
-        void gatherSnapshot(SnapshotParticleData &global_snapshot, unsigned int root);
  
         //! Calculate MPI ranks of neighboring domain
         /*! \param dir neighbor direction to calculate rank for<br>

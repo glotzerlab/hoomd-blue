@@ -70,11 +70,13 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-
+ 
+    SnapshotParticleData snap(N);
+    pdata_1->takeSnapshot(snap);
     // initialize domain decomposition on system one
     boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef_1, world, 0));
-    mpi_init->scatter(0);
     pdata_1->setMPICommunicator(world);
+    pdata_1->initializeFromSnapshot(snap,0);
 
     boost::shared_ptr<Communicator> comm;
     std::vector<unsigned int> neighbor_rank;
@@ -154,6 +156,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     nvt_1->addIntegrationMethod(two_step_nvt_1);
     nvt_1->addForceCompute(fc_1);
+    nvt_1->setCommunicator(comm);
 
     nvt_2->addIntegrationMethod(two_step_nvt_2);
     nvt_2->addForceCompute(fc_2);
@@ -171,14 +174,15 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // we cannot go further than ~5 steps since the (chaotic) trajectories will diverge
     for (int i=0; i< 5; i++)
        {
-       BOOST_CHECK_CLOSE(thermo_1->getTemperature(), thermo_2->getTemperature(), tol_small);
+       if (world->rank() == 0)
+            BOOST_CHECK_CLOSE(thermo_1->getTemperature(), thermo_2->getTemperature(), tol_small);
       
 //       if (world->rank() ==0)
 //           std::cout << "step " << i << std::endl;
        Scalar rough_tol = 2.0;
 
        // compare the snapshot of the parallel simulation
-       mpi_init->gatherSnapshot(snap_1,0);
+       pdata_1->takeSnapshot(snap_1,0);
        // ... against the serial simulation
        pdata_2->takeSnapshot(snap_2);
 
@@ -187,7 +191,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
            // check position, velocity and acceleration
            for (unsigned int j = 0; j < N; j++)
                {
-               // we do not check positions (or we would need to pull back vectories over the boundaries)
+               // we do not check positions (or we would need to pull back vectors over the boundaries)
                //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].x, snap_2.pos[j].x, rough_tol);
                //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].y, snap_2.pos[j].y, rough_tol);
                //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].z, snap_2.pos[j].z, rough_tol);

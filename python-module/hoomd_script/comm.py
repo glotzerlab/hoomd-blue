@@ -124,6 +124,13 @@ class mpi_partition:
             # set up linear decomposition
             nz = mpi_comm.size
     
+        # take a snapshot of the global system
+        pdata = globals.system_definition.getParticleData()
+        nglobal = pdata.getNGlobal();
+        snap = hoomd.SnapshotParticleData(nglobal)
+        pdata.takeSnapshot(snap,root)
+
+        # initialize domain decomposition
         self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, mpi_comm, root, nx, ny, nz);
 
         # Get ranks of neighboring processors
@@ -147,21 +154,16 @@ class mpi_partition:
             globals.communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi_comm, self.neighbor_ranks, \
                                                      self.is_at_boundary, self.dim);
 
+
         # set Communicator in C++ System
         globals.system.setCommunicator(globals.communicator)
 
-        # set Communicator in ParticleData
+        # set Communicator in SystemDefinition
         globals.system_definition.setMPICommunicator(mpi_comm)
+
+        # initialize domains from global snapshot
+        pdata.initializeFromSnapshot(snap,root)
 
         # store this object in the global variables
         globals.mpi_partition = self
 
-        # distribute particle data on processors
-        self.scatter(root);
-
-    ## Scatter particle data
-    # \brief Distributes particle data from processor with rank root on the other processors
-    #
-    # \param root Rank of processor that contains the complete particle data
-    def scatter(self, root=0):
-        self.cpp_mpi_init.scatter(root)

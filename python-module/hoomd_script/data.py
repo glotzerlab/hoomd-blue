@@ -432,7 +432,7 @@ class particle_data:
     ## \internal
     # \brief Get the number of particles
     def __len__(self):
-        return self.pdata.getN();
+        return self.pdata.getNGlobal();
     
     ## \internal
     # \brief Get an informal string representing the object

@@ -75,13 +75,7 @@ void test_mpi_initializer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
 
 
-    // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
-                                                                  world,
-                                                                  0));
-
     boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
-    pdata->setMPICommunicator(world);
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -119,8 +113,17 @@ void test_mpi_initializer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         h_pos.data[7].z = 0.5;
         }
 
-    // distribute particle data on processors
-    mpi_init->scatter(0);
+    SnapshotParticleData snap(8);
+    pdata->takeSnapshot(snap,0);
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
+                                                                  world,
+                                                                  0));
+
+    pdata->setMPICommunicator(world);
+
+    pdata->initializeFromSnapshot(snap,0);
 
     // check that every domain has exactly one particle
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
@@ -199,15 +202,8 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
 
 
 
-    // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
-                                                                  world,
-                                                                  0));
-
     boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
-    pdata->setMPICommunicator(world);
 
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
 
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -246,8 +242,19 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
         h_pos.data[7].z = 0.5;
         }
 
-    // distribute particle data on processors
-    mpi_init->scatter(0);
+    SnapshotParticleData snap(8);
+
+    pdata->takeSnapshot(snap,0);
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
+                                                                  world,
+                                                                  0));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
+
+    pdata->setMPICommunicator(world);
+
+    pdata->initializeFromSnapshot(snap,0);
 
     // migrate atoms
     comm->migrateAtoms();
@@ -463,18 +470,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
 
 
-    // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
-                                                                  world,
-                                                                  0));
-
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
-
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
-
-    // width of ghost layer
-    Scalar ghost_layer_width = Scalar(0.1);
-    comm->setGhostLayerWidth(ghost_layer_width);
+   boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
@@ -505,10 +501,22 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     pdata->setPosition(15, make_scalar3( 0.01, -0.0123, -0.09));
 
     // distribute particle data on processors
-    mpi_init->scatter(0);
+    SnapshotParticleData snap(16);
+    pdata->takeSnapshot(snap,0);
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
+                                                                  world,
+                                                                  0));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
 
     pdata->setMPICommunicator(world);
 
+    pdata->initializeFromSnapshot(snap,0);
+    
+    // width of ghost layer
+    Scalar ghost_layer_width = Scalar(0.1);
+    comm->setGhostLayerWidth(ghost_layer_width);
     // Check number of particles
     switch (world->rank())
         {
@@ -1276,18 +1284,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
 
 
 
-    // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
-                                                                  world,
-                                                                  0));
-
     boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
-
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
-
-    // width of ghost layer
-    Scalar ghost_layer_width = Scalar(0.1);
-    comm->setGhostLayerWidth(ghost_layer_width);
 
     // Set initial atom positions
     // place one particle slightly away from the middle of every box (in direction towards
@@ -1318,10 +1315,23 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     bdata->addBond(Bond(0,5,7));
     bdata->addBond(Bond(0,6,7));
 
-    // distribute particle data on processors
-    mpi_init->scatter(0);
+    SnapshotParticleData snap(8);
+    pdata->takeSnapshot(snap,0);
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
+                                                                  world,
+                                                                  0));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
+
+    // width of ghost layer
+    Scalar ghost_layer_width = Scalar(0.1);
+    comm->setGhostLayerWidth(ghost_layer_width);
 
     pdata->setMPICommunicator(world);
+
+    // distribute particle data on processors
+    pdata->initializeFromSnapshot(snap,0);
 
     // we should have zero ghost particles
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
