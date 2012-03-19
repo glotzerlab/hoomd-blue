@@ -74,6 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ExecutionConfiguration.h"
+#include "BoxDim.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
@@ -181,29 +182,6 @@ struct InertiaTensor
         }
     
     Scalar components[6];   //!< Stores the components of the inertia tensor
-    };
-
-//! Stores box dimensions
-/*! All particles in the ParticleData structure are inside of a box. This struct defines
-    that box. Inside is defined as x >= xlo && x < xhi, and similarly for y and z.
-    \note Requirements state that xhi = -xlo, and the same goes for y and z
-    \ingroup data_structs
-*/
-struct BoxDim
-    {
-    Scalar xlo; //!< Minimum x coord of the box
-    Scalar xhi; //!< Maximum x coord of the box
-    Scalar ylo; //!< Minimum y coord of the box
-    Scalar yhi; //!< Maximum y coord of the box
-    Scalar zlo; //!< Minimum z coord of the box
-    Scalar zhi; //!< Maximum z coord of the box
-    
-    //! Constructs a useless box
-    BoxDim();
-    //! Constructs a box from -Len/2 to Len/2
-    BoxDim(Scalar Len);
-    //! Constructs a box from -Len_x/2 to Len_x/2 for each dimension x
-    BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z);
     };
 
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
