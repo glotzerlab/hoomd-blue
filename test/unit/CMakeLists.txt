@@ -99,7 +99,6 @@ if(ENABLE_MPI)
     ENDMACRO(ADD_TO_MPI_TESTS)
 
     # define every test together with the number of processors
-    ADD_TO_MPI_TESTS(test_domain_decomposition 3)
     ADD_TO_MPI_TESTS(test_communication 8)
     ADD_TO_MPI_TESTS(test_nvt_integrator_mpi 3)
 endif(ENABLE_MPI)
