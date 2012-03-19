@@ -239,6 +239,11 @@ const unsigned int NOT_LOCAL = 0xffffffff;
  * \ingroup data_structs
  */
 struct SnapshotParticleData {
+    //! Empty snapshot
+    SnapshotParticleData()
+        : size(0), num_particle_types(0)
+        { }
+
     //! constructor
     /*! \param N number of particles to allocate memory for
      */
