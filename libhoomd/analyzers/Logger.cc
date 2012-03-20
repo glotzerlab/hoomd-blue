@@ -71,6 +71,11 @@ using namespace boost::filesystem;
 #include <iomanip>
 using namespace std;
 
+#ifdef ENABLE_MPI
+#include <boost/mpi.hpp>
+#include "Communicator.h"
+#endif
+
 /*! \param sysdef Specified for Analyzer, but not used directly by Logger
     \param fname File name to write the log to
     \param header_prefix String to write before the header
@@ -82,24 +87,33 @@ Logger::Logger(boost::shared_ptr<SystemDefinition> sysdef,
                const std::string& fname,
                const std::string& header_prefix,
                bool overwrite)
-    : Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_appending(false)
+    : Analyzer(sysdef), m_delimiter("\t"), m_filename(fname), m_header_prefix(header_prefix), m_appending(!overwrite), m_is_initialized(false)
     {
+    }
+
+void Logger::openOutputFiles()
+    {
+#ifdef ENABLE_MPI
+    // only output to file on root processor
+    if (m_comm)
+        if (m_comm->getMPICommunicator()->rank() != (int) m_comm->getRootRank())
+            return;
+#endif
     // open the file
-    if (exists(fname) && !overwrite)
+    if (exists(m_filename) && m_appending)
         {
-        cout << "Notice: Appending log to existing file \"" << fname << "\"" << endl;
-        m_file.open(fname.c_str(), ios_base::in | ios_base::out | ios_base::ate);
-        m_appending = true;
+        cout << "Notice: Appending log to existing file \"" << m_filename << "\"" << endl;
+        m_file.open(m_filename.c_str(), ios_base::in | ios_base::out | ios_base::ate);
         }
     else
         {
-        cout << "Notice: Creating new log in file \"" << fname << "\"" << endl;
-        m_file.open(fname.c_str(), ios_base::out);
+        cout << "Notice: Creating new log in file \"" << m_filename << "\"" << endl;
+        m_file.open(m_filename.c_str(), ios_base::out);
         }
         
     if (!m_file.good())
         {
-        cerr << endl << "***Error! Error opening log file " << fname << endl << endl;
+        cerr << endl << "***Error! Error opening log file " << m_filename << endl << endl;
         throw runtime_error("Error initializing Logger");
         }
     }
@@ -167,7 +181,14 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
     // prepare or adjust storage for caching the logger properties.
     cached_timestep = -1;
     cached_quantities.resize(quantities.size());
-    
+
+#ifdef ENABLE_MPI
+    // only output to file on root processor
+    if (m_comm)
+        if (m_comm->getMPICommunicator()->rank() != (int) m_comm->getRootRank())
+            return;
+#endif
+
     // only write the header if this is a new file
     if (!m_appending)
         {
@@ -232,7 +253,18 @@ void Logger::analyze(unsigned int timestep)
     // update info in cache for later use and for immediate output.
     for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
         cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
-        
+
+#ifdef ENABLE_MPI
+    // only output to file on root processor
+    if (m_comm)
+        if (m_comm->getMPICommunicator()->rank() != (int) m_comm->getRootRank())
+            {
+            if (m_prof) m_prof->pop();
+            return;
+            }
+#endif
+
+       
     // write all but the last of the quantities separated by the delimiter
     for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)
         m_file << setprecision(10) << cached_quantities[i] << m_delimiter;
