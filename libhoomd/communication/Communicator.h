@@ -196,12 +196,15 @@ class Communicator
          *  \param mpi_comm the underlying MPI communicator
          *  \param neighbor_rank list of neighbor processor ranks
          *  \param dim Dimensions of global simulation box (number of boxes along every axis)
+         *  \param root Rank of the root processor of this domain decomposition (responsible
+         *              for printing out information and gathering global particle data)
          */
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                      std::vector<unsigned int> neighbor_rank,
                      std::vector<bool> is_at_boundary,
-                     uint3 dim);
+                     uint3 dim,
+                     unsigned int root=0);
         virtual ~Communicator();
 
         //! \name accessor methods
@@ -262,6 +265,12 @@ class Communicator
             {
             assert(ghost_width > 0);
             m_r_ghost = ghost_width;
+            }
+
+        //! Get the rank of the root processor
+        unsigned int getRootRank()
+            {
+            return m_root;
             }
 
         //@}
@@ -383,6 +392,7 @@ class Communicator
         GPUArray<Scalar4> m_orientation_tmp;     //!< Temporary storage of particle orientations
         GPUArray<unsigned int> m_tag_tmp;        //!< Temporary storage of particle tags
 
+        unsigned int m_root;                     //!< MPI rank of root processor
     private:
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
 

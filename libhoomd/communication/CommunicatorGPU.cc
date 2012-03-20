@@ -79,8 +79,9 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                                  std::vector<unsigned int> neighbor_rank,
                                  std::vector<bool> is_at_boundary,
-                                 uint3 dim)
-    : Communicator(sysdef, mpi_comm, neighbor_rank, is_at_boundary, dim)
+                                 uint3 dim,
+                                 unsigned int root)
+    : Communicator(sysdef, mpi_comm, neighbor_rank, is_at_boundary, dim,root)
     {
     // initialize send buffer size with size of particle data element on the GPU
     setPackedSize(gpu_pdata_element_size());
@@ -732,7 +733,8 @@ void export_CommunicatorGPU()
                 boost::shared_ptr<boost::mpi::communicator>,
                 std::vector<unsigned int>,
                 std::vector<bool>,
-                uint3>())
+                uint3,
+                unsigned int>())
     ;
     }
 

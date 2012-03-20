@@ -80,7 +80,8 @@ class CommunicatorGPU : public Communicator
                         boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                         std::vector<unsigned int> neighbor_rank,
                         std::vector<bool> is_at_boundary,
-                        uint3 dim);
+                        uint3 dim,
+                        unsigned int root=0);
         virtual ~CommunicatorGPU();
 
         //! \name communication methods

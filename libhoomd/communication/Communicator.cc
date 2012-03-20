@@ -128,7 +128,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                            std::vector<unsigned int> neighbor_rank,
                            std::vector<bool> is_at_boundary,
-                           uint3 dim)
+                           uint3 dim,
+                           unsigned int root)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             exec_conf(m_pdata->getExecConf()),
@@ -143,11 +144,14 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_global_box(m_pdata->getGlobalBox()),
             m_is_allocated(false),
             m_r_ghost(Scalar(0.0)),
-            m_plan(exec_conf)
+            m_plan(exec_conf),
+            m_root(root)
     {
     // initialize array of neighbor processor ids
     assert(neighbor_rank.size() == 6);
     assert(is_at_boundary.size() == 6);
+    assert(m_mpi_comm);
+    assert(m_root < m_mpi_comm->size());
 
     for (unsigned int dir = 0; dir < 6; dir++)
         {
@@ -955,7 +959,8 @@ void export_Communicator()
                 boost::shared_ptr<boost::mpi::communicator>,
                 std::vector<unsigned int>,
                 std::vector<bool>,
-                uint3 >())
+                uint3,
+                unsigned int>())
     ;
     }
 #endif // ENABLE_MPI
