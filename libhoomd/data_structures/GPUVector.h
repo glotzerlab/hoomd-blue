@@ -64,9 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 
 //! The factor with which the array size is incremented
-//#define RESIZE_FACTOR 9.f/8.f
-#define RESIZE_FACTOR 2.0 // workaround for OMPI
-
+#define RESIZE_FACTOR 9.f/8.f
 
 template<class T> class GPUArray;
 //! Class for managing a vector of elements on the GPU mirrored to the CPU
