@@ -62,19 +62,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "GPUArray.h"
 #include "GPUVector.h"
-#include "MPIInitializer.h"
+#include "ParticleData.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
-
-//! Forward declarations
-namespace boost
-    {
-    namespace mpi
-        {
-        class communicator;
-        }
-    }
+#include <boost/mpi.hpp>
 
 /*! \ingroup hoomd_lib
     @{
@@ -94,6 +86,42 @@ class SystemDefinition;
 class Profiler;
 class BoxDim;
 class ParticleData;
+
+namespace boost
+   {
+    //! Serialization functions for some of our data types
+    namespace serialization
+        {
+        //! Serialization of Scalar3
+        template<class Archive>
+        void serialize(Archive & ar, Scalar3 & s, const unsigned int version)
+            {
+            ar & s.x;
+            ar & s.y;
+            ar & s.z;
+            }
+
+        //! Serialization of Scalar4
+        template<class Archive>
+        void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
+            {
+            ar & s.x;
+            ar & s.y;
+            ar & s.z;
+            ar & s.w;
+            }
+
+        //! Serialization of int3
+        template<class Archive>
+        void serialize(Archive & ar, int3 & i, const unsigned int version)
+            {
+            ar & i.x;
+            ar & i.y;
+            ar & i.z;
+            }
+
+        }
+    }
 
 //! Structure to store packed particle data
 struct pdata_element
@@ -194,17 +222,11 @@ class Communicator
         //! Constructor
         /*! \param sysdef system definition the communicator is associated with
          *  \param mpi_comm the underlying MPI communicator
-         *  \param neighbor_rank list of neighbor processor ranks
-         *  \param dim Dimensions of global simulation box (number of boxes along every axis)
-         *  \param root Rank of the root processor of this domain decomposition (responsible
-         *              for printing out information and gathering global particle data)
+         *  \param decomposition Information about the decomposition of the global simulation domain
          */
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                     std::vector<unsigned int> neighbor_rank,
-                     std::vector<bool> is_at_boundary,
-                     uint3 dim,
-                     unsigned int root=0);
+                     const DomainDecomposition decomposition);
         virtual ~Communicator();
 
         //! \name accessor methods
@@ -234,15 +256,15 @@ class Communicator
             {
             assert(dir < 3);
             switch(dir)
-                {
+               {
                 case 0:
-                    return m_dim.x;
+                    return m_decomposition.nx;
                     break;
                 case 1:
-                    return m_dim.y;
-                    break;
+                    return m_decomposition.ny;
+                   break;
                 case 2:
-                    return m_dim.z;
+                    return m_decomposition.nz;
                     break;
                 }
 
@@ -267,10 +289,10 @@ class Communicator
             m_r_ghost = ghost_width;
             }
 
-        //! Get the rank of the root processor
-        unsigned int getRootRank()
+        //! Returns true if this is the root processor
+        bool isRoot()
             {
-            return m_root;
+            return (m_decomposition.root == (unsigned int) m_mpi_comm->rank());
             }
 
         //@}
@@ -363,9 +385,6 @@ class Communicator
         unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
         unsigned int m_num_recv_ghosts[6];       //!< Number of ghosts received per direction
 
-        unsigned int m_neighbors[6];             //!< MPI rank of neighbor domain  in every direction
-        bool m_is_at_boundary[6];                //!< Per-direction flas to indicate whether the box is at a a boundary
-        const uint3 m_dim;                        //!< Dimensions of global simulation box (number of boxes along every axis)
         BoxDim m_global_box;                     //!< Global simulation box
         unsigned int m_packed_size;              //!< Size of packed particle data element in bytes
         bool m_is_allocated;                     //!< True if internal buffers have been allocated
@@ -392,7 +411,7 @@ class Communicator
         GPUArray<Scalar4> m_orientation_tmp;     //!< Temporary storage of particle orientations
         GPUArray<unsigned int> m_tag_tmp;        //!< Temporary storage of particle tags
 
-        unsigned int m_root;                     //!< MPI rank of root processor
+        const DomainDecomposition m_decomposition;  //!< Holds information about the domain decomposition
     private:
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
 

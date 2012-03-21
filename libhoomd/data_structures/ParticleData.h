@@ -81,6 +81,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/utility.hpp>
 #include <boost/dynamic_bitset.hpp>
 
+#ifdef ENABLE_MPI
+#include <boost/mpi.hpp>
+#endif
+
 #include <stdlib.h>
 #include <vector>
 #include <string>
@@ -125,17 +129,6 @@ class RigidData;
 
 // Forward declaration of IntegratorData
 class IntegratorData;
-
-#ifdef ENABLE_MPI
-// Forward declaration of boost::mp::communicator
-namespace boost
-    {
-    namespace mpi
-        {
-        class communicator;
-        }
-    }
-#endif
 
 //! List of optional fields that can be enabled in ParticleData
 struct pdata_flag
@@ -275,6 +268,33 @@ struct SnapshotParticleData {
     unsigned int num_particle_types;//!< Number of particle types defined
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
     };
+
+#ifdef ENABLE_MPI
+//! Structure that holds information about the domain decomposition
+/*! This structure contains data about the global grid and about the role of the local processor in the grid.
+ *  Specifically, it contains information about the neighbors and boundaries
+ *  of the local simulation box, for all six spatial directions.
+ *  A direction is referred to by an integer value \b dir, where
+ *  dir =<br>
+ *        0 <-> east <br>
+ *        1 <-> west <br>
+ *        2 <-> north <br>
+ *        3 <-> south <br>
+ *        4 <-> up <br>
+ *        5 <-> down <br>
+ */
+struct DomainDecomposition
+    {
+    unsigned int nx;           //!< Number of processors along the x-axis
+    unsigned int ny;           //!< Number of processors along the y-axis
+    unsigned int nz;           //!< Number of processors along the z-axis
+
+    uint3 grid_pos;            //!< Grid position of this processor
+    unsigned int neighbors[6]; //!< Rank of neighbors in every spatial direction
+    bool is_at_boundary[6];    //!< whether this box shares a boundary with the global simulation box (per direction)
+    unsigned int root;         //!< Rank of the root processor
+    };
+#endif
 
 //! Abstract interface for initializing a ParticleData
 /*! A ParticleDataInitializer should only be used with the appropriate constructor
@@ -815,10 +835,10 @@ class ParticleData : boost::noncopyable
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
         //! Initialize from a snapshot
-        void initializeFromSnapshot(const SnapshotParticleData & snapshot, unsigned int root = 0);
+        void initializeFromSnapshot(const SnapshotParticleData & snapshot);
 
         //! Take a snapshot
-        void takeSnapshot(SnapshotParticleData &snapshot, unsigned int root = 0);
+        void takeSnapshot(SnapshotParticleData &snapshot);
 
         //! Remove particles from the local particle data
         void removeParticles(const unsigned int n);
@@ -841,6 +861,12 @@ class ParticleData : boost::noncopyable
             m_mpi_comm = mpi_comm;
             }
 
+        //! Set domain decomposition information
+        void setDomainDecomposition(const DomainDecomposition decomposition)
+            {
+            m_decomposition = decomposition;
+            }
+
         //! Get the communicator
         boost::shared_ptr<const boost::mpi::communicator> getMPICommunicator()
             {
@@ -854,6 +880,7 @@ class ParticleData : boost::noncopyable
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
 #ifdef ENABLE_MPI
         boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
+        DomainDecomposition m_decomposition;        //!< Domain decomposition data
 #endif
         unsigned int m_ntypes;                      //!< Number of particle types
         

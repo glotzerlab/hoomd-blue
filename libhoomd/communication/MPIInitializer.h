@@ -61,15 +61,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "ParticleData.h"
 
-
+#include <boost/mpi.hpp>
 namespace boost
    {
-   namespace mpi
-       {
-       //! Forward declaration
-       class communicator;
-       }
-
     //! Serialization functions for some of our data types
     namespace serialization
         {
@@ -93,35 +87,6 @@ namespace boost
             ar & box.zlo;
             ar & box.zhi;
             }
-
-        //! Serialization of Scalar3
-        template<class Archive>
-        void serialize(Archive & ar, Scalar3 & s, const unsigned int version)
-            {
-            ar & s.x;
-            ar & s.y;
-            ar & s.z;
-            }
-
-        //! Serialization of Scalar4
-        template<class Archive>
-        void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
-            {
-            ar & s.x;
-            ar & s.y;
-            ar & s.z;
-            ar & s.w;
-            }
-
-        //! Serialization of int3
-        template<class Archive>
-        void serialize(Archive & ar, int3 & i, const unsigned int version)
-            {
-            ar & i.x;
-            ar & i.y;
-            ar & i.z;
-            }
-
         }
     }
 
@@ -160,70 +125,36 @@ class MPIInitializer
                        unsigned int ny = 0,
                        unsigned int nz = 0);
  
-        //! Calculate MPI ranks of neighboring domain
-        /*! \param dir neighbor direction to calculate rank for<br>
-        *  dir =<br>
-        *        0 <-> east <br>
-        *        1 <-> west <br>
-        *        2 <-> north <br>
-        *        3 <-> south <br>
-        *        4 <-> up <br>
-        *        5 <-> down <br>
-        *
-        *  \return rank of neighbor in the specified direction
-        */
-        virtual unsigned int getNeighborRank(unsigned int dir);
- 
-        //! Get the global simulation box
-        /*! \return Dimensions of the global simulation box
-        */
-        virtual const BoxDim getGlobalBox()
-        {
-        return m_global_box;
-        }
- 
-        //! Get the number of simulation boxes along a certain direction
-        /*! \param dir Direction (\b dir = 0, 1, 2)
-         * \return Number of boxes along the specified direction
-         */
-        virtual unsigned int getDimension(unsigned int dir) const;
- 
-        //! Determine whether this box shares a boundary with the global simulation box
-        /*! \param dir Direction (0 <= \b dir < 6)
-         */
-        bool isAtBoundary(unsigned int dir) const;
- 
-    private:
-        unsigned int m_N;              //!< Number of particles on this processor
-        unsigned int m_nglobal;        //!< Global number of particles
+        //! Get the domain decomposition information
+        const DomainDecomposition getDomainDecomposition()
+            {
+            return m_decomposition;
+            }
 
-        unsigned int m_rank;                             //!< Rank of this processor
-        std::vector<BoxDim> m_box_proc;                  //!< Box dimensions of every processor
-        std::vector<uint3> m_grid_pos_proc;              //!< Grid position of every processor
-        unsigned m_num_particle_types;                   //!< Number of particle types
-        std::vector<std::string> m_type_mapping;         //!< Number of particle types
- 
- 
-        Scalar m_Lx;         //!< Length of this box in x direction
-        Scalar m_Ly;         //!< Length of this box in y direction
-        Scalar m_Lz;         //!< Length of this box in z direction
- 
-        uint3  m_grid_pos;   //!< This processor's position in the grid
- 
-        unsigned int m_nx;   //!< Grid dimensions in x direction
-        unsigned int m_ny;   //!< Grid dimensions in y direction
-        unsigned int m_nz;   //!< Grid dimensions in z direction
- 
+    private:
+        DomainDecomposition m_decomposition;          //!< Stores information about the domain decomposition
+
         boost::shared_ptr<SystemDefinition> m_sysdef; //!< Definition of the local simulation
         boost::shared_ptr<ParticleData> m_pdata;      //!< Local particle data
         boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
  
         BoxDim m_global_box;                             //!< Global simulation box
-        BoxDim m_box;                                    //!< Dimensions of this box
  
         //! Find a domain decomposition with given parameters
         bool findDecomposition(unsigned int& nx, unsigned int& ny, unsigned int& nz);
+
+        //! Get global box dimensions along a specified direction
+        unsigned int getDimension(unsigned int dir);
+
+        //! Calculate MPI ranks of neighboring domain.
+        unsigned int getNeighborRank(unsigned int dir);
+
+        //! Determines whether the local box shares a boundary with the global box
+        bool isAtBoundary(unsigned int dir);
     };
+
+//! Export the domain decomposition information
+void export_DomainDecomposition();
 
 //! Declare function that exports MPIInitializer to python
 void export_MPIInitializer();

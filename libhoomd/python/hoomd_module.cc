@@ -512,6 +512,7 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef ENABLE_MPI
     export_Communicator();
     export_MPIInitializer();
+    export_DomainDecomposition();
 #ifdef ENABLE_CUDA
     export_CommunicatorGPU();
 #endif // ENABLE_CUDA

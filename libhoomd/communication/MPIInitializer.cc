@@ -87,12 +87,11 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
       : m_sysdef(sysdef),
         m_pdata(sysdef->getParticleData()),
         m_mpi_comm(comm),
-        m_global_box(1.0,1.0,1.0),
-        m_box(1.0,1.0,1.0)
+        m_global_box(1.0,1.0,1.0)
     {
-    m_rank = m_mpi_comm->rank();
+    unsigned int rank = m_mpi_comm->rank();
 
-    if (m_rank == root)
+    if (rank == root)
         {
         // get global box dimensions
         m_global_box = m_pdata->getBox();
@@ -109,31 +108,31 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
             findDecomposition(nx,ny,nz);
             }
         
-        m_nx = nx;
-        m_ny = ny;
-        m_nz = nz;
+        m_decomposition.nx = nx;
+        m_decomposition.ny = ny;
+        m_decomposition.nz = nz;
 
         // Print out information about the domain decomposition
-        std::cout << "Domain decomposition: n_x = " << m_nx << " n_y = " << m_ny << " n_z = " << m_nz << std::endl;
+        std::cout << "Domain decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << std::endl;
         }
 
     // calculate physical box dimensions of every processor
 
-    m_box_proc.resize(m_mpi_comm->size(),BoxDim(1.0,1.0,1.0));
-    m_grid_pos_proc.resize(m_mpi_comm->size());
-    if (m_rank == root)
+    std::vector<BoxDim> box_proc(m_mpi_comm->size(),BoxDim(1.0));
+    std::vector<uint3> grid_pos_proc(m_mpi_comm->size());
+    if (rank == root)
         {
         for (unsigned int rank = 0; rank < (unsigned int) m_mpi_comm->size(); rank++)
             {
             BoxDim box(1.0,1.0,1.0);
-            double Lx = (m_global_box.xhi-m_global_box.xlo)/(double)m_nx;
-            double Ly = (m_global_box.yhi-m_global_box.ylo)/(double)m_ny;
-            double Lz = (m_global_box.zhi-m_global_box.zlo)/(double)m_nz;
+            double Lx = (m_global_box.xhi-m_global_box.xlo)/(double)m_decomposition.nx;
+            double Ly = (m_global_box.yhi-m_global_box.ylo)/(double)m_decomposition.ny;
+            double Lz = (m_global_box.zhi-m_global_box.zlo)/(double)m_decomposition.nz;
 
             // position of this domain in the grid
-            unsigned int k = rank/(m_nx*m_ny);
-            unsigned int j = (rank % (m_nx*m_ny)) / m_nx;
-            unsigned int i = (rank % (m_nx*m_ny)) % m_nx;
+            unsigned int k = rank/(m_decomposition.nx*m_decomposition.ny);
+            unsigned int j = (rank % (m_decomposition.nx*m_decomposition.ny)) / m_decomposition.nx;
+            unsigned int i = (rank % (m_decomposition.nx*m_decomposition.ny)) % m_decomposition.nx;
 
             box.xlo = m_global_box.xlo + (double)i * Lx;
             box.xhi = box.xlo + Lx;
@@ -144,8 +143,8 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
             box.zlo = m_global_box.zlo + (double)k * Lz;
             box.zhi = box.zlo + Lz;
 
-            m_grid_pos_proc[rank] = make_uint3(i,j,k);
-            m_box_proc[rank] = box;
+            grid_pos_proc[rank] = make_uint3(i,j,k);
+            box_proc[rank] = box;
             }
         }
 
@@ -153,22 +152,31 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
     boost::mpi::broadcast(*m_mpi_comm, m_global_box, root);
 
     // distribute local box dimensions
-    boost::mpi::scatter(*m_mpi_comm, m_box_proc, m_box, root);
+    BoxDim box(1.0);
+    boost::mpi::scatter(*m_mpi_comm, box_proc, box, root);
 
     // broadcast grid dimensions
-    boost::mpi::broadcast(*m_mpi_comm, m_nx, root);
-    boost::mpi::broadcast(*m_mpi_comm, m_ny, root);
-    boost::mpi::broadcast(*m_mpi_comm, m_nz, root);
+    boost::mpi::broadcast(*m_mpi_comm, m_decomposition.nx, root);
+    boost::mpi::broadcast(*m_mpi_comm, m_decomposition.ny, root);
+    boost::mpi::broadcast(*m_mpi_comm, m_decomposition.nz, root);
 
     // distribute grid positions
-    boost::mpi::scatter(*m_mpi_comm, m_grid_pos_proc, m_grid_pos, root);
+    boost::mpi::scatter(*m_mpi_comm, grid_pos_proc, m_decomposition.grid_pos, root);
+
+    // Set up neighbor ranks & boundary information
+    for (unsigned int dir=0; dir < 6; dir++)
+        {
+        m_decomposition.neighbors[dir] = getNeighborRank(dir);
+        m_decomposition.is_at_boundary[dir] = isAtBoundary(dir);
+        }
+
+    m_decomposition.root = root;
 
     // set simulation box
-    m_pdata->setBox(m_box);
+    m_pdata->setBox(box);
 
     // set global simulation box
     m_pdata->setGlobalBox(m_global_box);
- 
     }
 
 //! Find a domain decomposition with given parameters
@@ -234,72 +242,59 @@ unsigned int MPIInitializer::getNeighborRank(unsigned int dir)
     int adj[6][3] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
 
     // determine neighbor position
-    int ineigh = (int)m_grid_pos.x + adj[dir][0];
-    int jneigh = (int)m_grid_pos.y + adj[dir][1];
-    int kneigh = (int)m_grid_pos.z + adj[dir][2];
+    int ineigh = (int)m_decomposition.grid_pos.x + adj[dir][0];
+    int jneigh = (int)m_decomposition.grid_pos.y + adj[dir][1];
+    int kneigh = (int)m_decomposition.grid_pos.z + adj[dir][2];
 
     // wrap across boundaries
     if (ineigh < 0)
-        ineigh += m_nx;
-    else if (ineigh == (int) m_nx)
-        ineigh -= m_nx;
+        ineigh += m_decomposition.nx;
+    else if (ineigh == (int) m_decomposition.nx)
+        ineigh -= m_decomposition.nx;
 
     if (jneigh < 0)
-        jneigh += m_ny;
-    else if (jneigh == (int) m_ny)
-        jneigh -= m_ny;
+        jneigh += m_decomposition.ny;
+    else if (jneigh == (int) m_decomposition.ny)
+        jneigh -= m_decomposition.ny;
 
     if (kneigh < 0)
-        kneigh += m_nz;
-    else if (kneigh == (int) m_nz)
-        kneigh -= m_nz;
+        kneigh += m_decomposition.nz;
+    else if (kneigh == (int) m_decomposition.nz)
+        kneigh -= m_decomposition.nz;
 
-    return kneigh*m_nx*m_ny + jneigh * m_nx + ineigh;
+    return kneigh*m_decomposition.nx*m_decomposition.ny + jneigh * m_decomposition.nx + ineigh;
     }
 
-//! Get global box dimensions along a specified direction
-unsigned int MPIInitializer::getDimension(unsigned int dir) const
+//! Determines whether the local box shares a boundary with the global box
+bool MPIInitializer::isAtBoundary(unsigned int dir) 
     {
-    assert(dir < 3);
-    unsigned int dim = 0;
-
-    if (dir ==0)
-        {
-        dim = m_nx;
-        }
-    else if (dir == 1)
-        {
-        dim = m_ny;
-        }
-    else if (dir == 2)
-        {
-        dim = m_nz;
-        }
-
-    return dim;
+        return ( (dir == 0 && m_decomposition.grid_pos.x == m_decomposition.nx - 1) ||
+                 (dir == 1 && m_decomposition.grid_pos.x == 0)        ||
+                 (dir == 2 && m_decomposition.grid_pos.y == m_decomposition.ny - 1) ||
+                 (dir == 3 && m_decomposition.grid_pos.y == 0)        ||
+                 (dir == 4 && m_decomposition.grid_pos.z == m_decomposition.nz - 1) ||
+                 (dir == 5 && m_decomposition.grid_pos.z == 0));
     }
 
-//! Determine whether this box shares a boundary with the global simulation box
-bool MPIInitializer::isAtBoundary(unsigned int dir) const
+//! Export the domain decomposition information
+void export_DomainDecomposition()
     {
-        return ( (dir == 0 && m_grid_pos.x == m_nx - 1) ||
-                 (dir == 1 && m_grid_pos.x == 0)        ||
-                 (dir == 2 && m_grid_pos.y == m_ny - 1) ||
-                 (dir == 3 && m_grid_pos.y == 0)        ||
-                 (dir == 4 && m_grid_pos.z == m_nz - 1) ||
-                 (dir == 5 && m_grid_pos.z == 0));
+    class_<DomainDecomposition>("DomainDecomposition")
+        .def_readonly("grid_pos", &DomainDecomposition::grid_pos)
+        .def_readonly("nx", &DomainDecomposition::nx)
+        .def_readonly("ny", &DomainDecomposition::ny)
+        .def_readonly("nz", &DomainDecomposition::nz)
+        .def_readonly("root", &DomainDecomposition::root)
+        ;
     }
 
 //! Export MPIInitializer class to python
 void export_MPIInitializer()
     {
-    class_<MPIInitializer, bases<ParticleDataInitializer>, boost::noncopyable >("MPIInitializer",
+    class_<MPIInitializer, boost::noncopyable >("MPIInitializer",
            init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<boost::mpi::communicator>,
            unsigned int, unsigned int, unsigned int, unsigned int>())
-    .def("getNeighborRank", &MPIInitializer::getNeighborRank)
-    .def("getGlobalBox", &MPIInitializer::getGlobalBox)
-    .def("getDimension", &MPIInitializer::getDimension)
-    .def("isAtBoundary", &MPIInitializer::isAtBoundary)
+    .def("getDomainDecomposition", &MPIInitializer::getDomainDecomposition)
     ;
     }
 #endif // ENABLE_MPI

@@ -77,11 +77,8 @@ BOOST_CLASS_TRACKING(Scalar4,track_never)
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                                 std::vector<unsigned int> neighbor_rank,
-                                 std::vector<bool> is_at_boundary,
-                                 uint3 dim,
-                                 unsigned int root)
-    : Communicator(sysdef, mpi_comm, neighbor_rank, is_at_boundary, dim,root)
+                                 const DomainDecomposition decomposition)
+    : Communicator(sysdef, mpi_comm, decomposition)
     {
     // initialize send buffer size with size of particle data element on the GPU
     setPackedSize(gpu_pdata_element_size());
@@ -251,14 +248,14 @@ void CommunicatorGPU::migrateAtoms()
             send_buf_size = d_send_buf_end - d_sendbuf.data;
             }
 
-        unsigned int send_neighbor = m_neighbors[dir];
+        unsigned int send_neighbor = m_decomposition.neighbors[dir];
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_neighbors[dir+1];
+            recv_neighbor = m_decomposition.neighbors[dir+1];
         else
-            recv_neighbor = m_neighbors[dir-1];
+            recv_neighbor = m_decomposition.neighbors[dir-1];
 
         if (m_prof)
             m_prof->push("MPI send/recv");
@@ -312,7 +309,7 @@ void CommunicatorGPU::migrateAtoms()
                                                 n_recv_ptl,
                                                 m_global_box_gpu,
                                                 dir,
-                                                m_is_at_boundary);
+                                                m_decomposition.is_at_boundary);
             }
 
             {
@@ -495,14 +492,14 @@ void CommunicatorGPU::exchangeGhosts()
                                 d_plan_copybuf.data);
             }
 
-        unsigned int send_neighbor = m_neighbors[dir];
+        unsigned int send_neighbor = m_decomposition.neighbors[dir];
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_neighbors[dir+1];
+            recv_neighbor = m_decomposition.neighbors[dir+1];
         else
-            recv_neighbor = m_neighbors[dir-1];
+            recv_neighbor = m_decomposition.neighbors[dir-1];
 
 
         if (m_prof)
@@ -611,7 +608,7 @@ void CommunicatorGPU::exchangeGhosts()
                               d_pos.data + start_idx,
                               m_global_box_gpu,
                               m_r_ghost,
-                              m_is_at_boundary);
+                              m_decomposition.is_at_boundary);
 
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
@@ -654,14 +651,14 @@ void CommunicatorGPU::copyGhosts()
             gpu_copy_ghosts(m_num_copy_ghosts[dir], d_pos.data, d_copy_ghosts.data, d_pos_copybuf.data,d_rtag.data);
             }
 
-        unsigned int send_neighbor = m_neighbors[dir];
+        unsigned int send_neighbor = m_decomposition.neighbors[dir];
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_neighbors[dir+1];
+            recv_neighbor = m_decomposition.neighbors[dir+1];
         else
-            recv_neighbor = m_neighbors[dir-1];
+            recv_neighbor = m_decomposition.neighbors[dir-1];
 
         unsigned int start_idx;
 
@@ -716,7 +713,7 @@ void CommunicatorGPU::copyGhosts()
                            d_pos.data + start_idx,
                            m_global_box_gpu,
                            m_r_ghost,
-                           m_is_at_boundary);
+                           m_decomposition.is_at_boundary);
              }
 
         } // end dir loop
@@ -731,10 +728,7 @@ void export_CommunicatorGPU()
     class_<CommunicatorGPU, bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<boost::mpi::communicator>,
-                std::vector<unsigned int>,
-                std::vector<bool>,
-                uint3,
-                unsigned int>())
+                const DomainDecomposition>())
     ;
     }
 

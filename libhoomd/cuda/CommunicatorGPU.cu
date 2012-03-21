@@ -93,7 +93,7 @@ struct wrap_ghost_particle
      * \param _dir Direction along which particle was received
      * \param _is_at_boundary Flags to indicate whether the local box shares a boundary with the global box
      */
-    wrap_ghost_particle(gpu_boxsize _box, float _rghost, unsigned int _dir, bool _is_at_boundary[])
+    wrap_ghost_particle(const gpu_boxsize _box, const float _rghost, const unsigned int _dir, const bool _is_at_boundary[])
         : box(_box), rghost(_rghost), dir(_dir)
         {
         for (unsigned int dir = 0; dir < 6; dir++)
@@ -288,7 +288,7 @@ struct wrap_received_particle
         \param _dir Direciton along whic the particle was received
         \param _is_at_boundary Flags to indicate whether the local box shares a boundary with the global box
      */
-    wrap_received_particle(const gpu_boxsize _box, unsigned int _dir, bool _is_at_boundary[])
+    wrap_received_particle(const gpu_boxsize _box, const unsigned int _dir, const bool _is_at_boundary[])
         : box(_box), dir(_dir)
         {
         for (unsigned int dir = 0; dir < 6; dir++)
@@ -762,7 +762,7 @@ void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  unsigned int &n_recv_ptl,
                                  const gpu_boxsize& global_box,
                                  unsigned int dir,
-                                 bool is_at_boundary[])
+                                 const bool is_at_boundary[])
     {
     thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
     thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
@@ -843,7 +843,7 @@ void gpu_wrap_ghost_particles(unsigned int dir,
                               float4 *d_pos,
                               gpu_boxsize global_box,
                               float rghost,
-                              bool is_at_boundary[])
+                              const bool is_at_boundary[])
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);
     thrust::transform(pos_ptr, pos_ptr +n, pos_ptr, wrap_ghost_particle(global_box, rghost, dir, is_at_boundary));

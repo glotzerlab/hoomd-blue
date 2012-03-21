@@ -102,7 +102,7 @@ class mpi_partition:
     def __init__(self, mpi_comm=None, root=0, nx=0, ny=0, nz=0, linear=False,n_replicas=1):
         util.print_status_line()
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create MPI partition before intialization.\n"
+            print >> sys.stderr, "\n***Error! Cannot create MPI partition before initialization.\n"
             raise RuntimeError('Error setting up MPI partition');
 
         # Check if HOOMD has been compiled with MPI support
@@ -126,7 +126,7 @@ class mpi_partition:
 
         # construct intra-replica communicator
         self.replica_rank = int(comm_world.rank*self.num_replicas/comm_world.size )
-        self.replica_comm = comm_world.split(self.replica_rank)
+        self.local_comm = comm_world.split(self.replica_rank)
 
         self.root = root
         # construct global communicator
@@ -137,58 +137,44 @@ class mpi_partition:
                                  % (self.root, comm_world.size/self.num_replicas)
             self.root = 0
 
-        self.global_comm = comm_world.split(0 if ((comm_world.rank - self.root) % self.num_replicas == 0) else 1)
-        
+        self.replica_comm = comm_world.split(0 if ((comm_world.rank - self.root) % self.num_replicas == 0) else 1)
         if (comm_world.rank - self.root) % self.num_replicas == 1:
             # Only set global communicator on the root nodes
-            self.global_comm = None;
+            self.replica_comm = None;
 
         # Initialize this replica
 
         if linear is True:
             # set up linear decomposition
-            nz = self.replica_comm.size
+            nz = self.local_comm.size
    
         # take a snapshot of the global system
         pdata = globals.system_definition.getParticleData()
         nglobal = pdata.getNGlobal();
         snap = hoomd.SnapshotParticleData(nglobal)
-        pdata.takeSnapshot(snap,self.root)
+        pdata.takeSnapshot(snap)
 
         # initialize domain decomposition
-        self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, self.replica_comm, self.root, nx, ny, nz);
-
-        # Get ranks of neighboring processors
-        self.neighbor_ranks = hoomd.std_vector_uint();
-        self.is_at_boundary = hoomd.std_vector_bool();
-
-        for dir in range(6):
-            self.neighbor_ranks.append(self.cpp_mpi_init.getNeighborRank(dir));
-            self.is_at_boundary.append(self.cpp_mpi_init.isAtBoundary(dir));
-
-        # Get dimensions of domain decomposition
-        self.dim = hoomd.make_uint3(self.cpp_mpi_init.getDimension(0), \
-                                   self.cpp_mpi_init.getDimension(1), \
-                                   self.cpp_mpi_init.getDimension(2));
+        self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, self.local_comm, self.root, nx, ny, nz);
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
-            self.communicator = hoomd.Communicator(globals.system_definition, self.replica_comm, self.neighbor_ranks, \
-                                                     self.is_at_boundary, self.dim, self.root);
+            self.communicator = hoomd.Communicator(globals.system_definition, self.local_comm, self.cpp_mpi_init.getDomainDecomposition())
         else:
-            self.communicator = hoomd.CommunicatorGPU(globals.system_definition, self.replica_comm, self.neighbor_ranks, \
-                                                    self.is_at_boundary, self.dim, self.root);
-
+            self.communicator = hoomd.CommunicatorGPU(globals.system_definition, self.local_comm, self.cpp_mpi_init.getDomainDecomposition())
 
         # set Communicator in C++ System
         globals.system.setCommunicator(self.communicator)
 
         # set Communicator in SystemDefinition
-        globals.system_definition.setMPICommunicator(self.replica_comm)
+        globals.system_definition.setMPICommunicator(self.local_comm)
 
         # initialize domains from global snapshot
-        pdata.initializeFromSnapshot(snap,self.root)
+        pdata.initializeFromSnapshot(snap)
 
         # store this object in the global variables
         globals.mpi_partition = self
 
+    ## Returns true if this is the root processor
+    def isRoot(self):
+        return (self.root==self.local_comm.rank)

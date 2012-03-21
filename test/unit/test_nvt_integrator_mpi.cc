@@ -76,26 +76,17 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // initialize domain decomposition on system one
     boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef_1, world, 0));
     pdata_1->setMPICommunicator(world);
-    pdata_1->initializeFromSnapshot(snap,0);
+    pdata_1->setDomainDecomposition(mpi_init->getDomainDecomposition());
+    pdata_1->initializeFromSnapshot(snap);
+
 
     boost::shared_ptr<Communicator> comm;
-    std::vector<unsigned int> neighbor_rank;
-    std::vector<bool> is_at_boundary;
-    for (unsigned int i = 0; i < 6; i++)
-        {
-        neighbor_rank.push_back(mpi_init->getNeighborRank(i));
-        is_at_boundary.push_back(mpi_init->isAtBoundary(i));
-        }
-
-    uint3 dim = make_uint3(mpi_init->getDimension(0),
-                         mpi_init->getDimension(1),
-                         mpi_init->getDimension(2));
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
-        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef_1, world, neighbor_rank, is_at_boundary,dim));
+        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef_1, world, mpi_init->getDomainDecomposition()));
     else
 #endif
-        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef_1,world,neighbor_rank, is_at_boundary, dim));
+        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef_1,world,mpi_init->getDomainDecomposition()));
 
     shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
     shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
@@ -182,7 +173,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
        Scalar rough_tol = 2.0;
 
        // compare the snapshot of the parallel simulation
-       pdata_1->takeSnapshot(snap_1,0);
+       pdata_1->takeSnapshot(snap_1);
        // ... against the serial simulation
        pdata_2->takeSnapshot(snap_2);
 

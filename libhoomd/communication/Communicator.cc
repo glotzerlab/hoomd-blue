@@ -126,10 +126,7 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
 //! Constructor
 Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                           std::vector<unsigned int> neighbor_rank,
-                           std::vector<bool> is_at_boundary,
-                           uint3 dim,
-                           unsigned int root)
+                           const DomainDecomposition decomposition)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             exec_conf(m_pdata->getExecConf()),
@@ -140,32 +137,25 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_charge_copybuf(exec_conf),
             m_diameter_copybuf(exec_conf),
             m_plan_copybuf(exec_conf),
-            m_dim(dim),
             m_global_box(m_pdata->getGlobalBox()),
             m_is_allocated(false),
             m_r_ghost(Scalar(0.0)),
             m_plan(exec_conf),
-            m_root(root)
+            m_decomposition(decomposition)
     {
     // initialize array of neighbor processor ids
-    assert(neighbor_rank.size() == 6);
-    assert(is_at_boundary.size() == 6);
     assert(m_mpi_comm);
-    assert(m_root < m_mpi_comm->size());
 
-    for (unsigned int dir = 0; dir < 6; dir++)
-        {
-        m_neighbors[dir] = neighbor_rank[dir];
-        m_is_at_boundary[dir] = is_at_boundary[dir];
-
-        GPUVector<unsigned int> copy_ghosts(exec_conf);
-        m_copy_ghosts[dir].swap(copy_ghosts);
-        }
+    // set the MPI communicator and the domain decomposition information in ParticleData
+    m_pdata->setMPICommunicator(m_mpi_comm);
+    m_pdata->setDomainDecomposition(m_decomposition);
 
     m_packed_size = sizeof(pdata_element);
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
+        GPUVector<unsigned int> copy_ghosts(exec_conf);
+        m_copy_ghosts[dir].swap(copy_ghosts);
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
         }
@@ -431,14 +421,14 @@ void Communicator::migrateAtoms()
         if (m_prof)
             m_prof->pop();
 
-        unsigned int send_neighbor = m_neighbors[dir];
+        unsigned int send_neighbor = m_decomposition.neighbors[dir];
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_neighbors[dir+1];
+            recv_neighbor = m_decomposition.neighbors[dir+1];
         else
-            recv_neighbor = m_neighbors[dir-1];
+            recv_neighbor = m_decomposition.neighbors[dir-1];
 
         if (m_prof)
             m_prof->push("MPI send/recv");
@@ -475,34 +465,34 @@ void Communicator::migrateAtoms()
                 Scalar4& pos = p.pos;
                 int3& image = p.image;
 
-                if (dir == 0 && m_is_at_boundary[1])
+                if (dir == 0 && m_decomposition.is_at_boundary[1])
                     {
                     pos.x -= m_global_box.xhi - m_global_box.xlo;
                     image.x++;
                     }
-                else if (dir == 1 && m_is_at_boundary[0])
+                else if (dir == 1 && m_decomposition.is_at_boundary[0])
                     {
                     pos.x += m_global_box.xhi - m_global_box.xlo;
                     image.x--;
                     }
 
-                if (dir == 2 && m_is_at_boundary[3])
+                if (dir == 2 && m_decomposition.is_at_boundary[3])
                     {
                     pos.y -= m_global_box.yhi - m_global_box.ylo;
                     image.y++;
                     }
-                else if (dir == 3 && m_is_at_boundary[2])
+                else if (dir == 3 && m_decomposition.is_at_boundary[2])
                     {
                     pos.y += m_global_box.yhi - m_global_box.ylo;
                     image.y--;
                     }
 
-                if (dir == 4 && m_is_at_boundary[5])
+                if (dir == 4 && m_decomposition.is_at_boundary[5])
                     {
                     pos.z -= m_global_box.zhi - m_global_box.zlo;
                     image.z++;
                     }
-                else if (dir == 5 && m_is_at_boundary[4])
+                else if (dir == 5 && m_decomposition.is_at_boundary[4])
                     {
                     pos.z += m_global_box.zhi - m_global_box.zlo;
                     image.z--;
@@ -738,14 +728,14 @@ void Communicator::exchangeGhosts()
                     }
                 }
             }
-        unsigned int send_neighbor = m_neighbors[dir];
+        unsigned int send_neighbor = m_decomposition.neighbors[dir];
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_neighbors[dir+1];
+            recv_neighbor = m_decomposition.neighbors[dir+1];
         else
-            recv_neighbor = m_neighbors[dir-1];
+            recv_neighbor = m_decomposition.neighbors[dir-1];
 
 
         if (m_prof)
@@ -816,17 +806,17 @@ void Communicator::exchangeGhosts()
                 Scalar4& pos = h_pos.data[idx];
 
                 // wrap particles received across a global boundary back into global box
-                if (dir==0 && m_is_at_boundary[1])
+                if (dir==0 && m_decomposition.is_at_boundary[1])
                     pos.x -= m_global_box.xhi - m_global_box.xlo;
-                else if (dir==1 && m_is_at_boundary[0])
+                else if (dir==1 && m_decomposition.is_at_boundary[0])
                     pos.x += m_global_box.xhi - m_global_box.xlo;
-                else if (dir==2 && m_is_at_boundary[3])
+                else if (dir==2 && m_decomposition.is_at_boundary[3])
                     pos.y -= m_global_box.yhi - m_global_box.ylo;
-                else if (dir==3 && m_is_at_boundary[2])
+                else if (dir==3 && m_decomposition.is_at_boundary[2])
                     pos.y += m_global_box.yhi - m_global_box.ylo;
-                else if (dir==4 && m_is_at_boundary[5])
+                else if (dir==4 && m_decomposition.is_at_boundary[5])
                     pos.z -= m_global_box.zhi - m_global_box.zlo;
-                else if (dir==5 && m_is_at_boundary[4])
+                else if (dir==5 && m_decomposition.is_at_boundary[4])
                     pos.z += m_global_box.zhi - m_global_box.zlo;
 
                 // set reverse-lookup tag -> idx
@@ -881,14 +871,14 @@ void Communicator::copyGhosts()
                 }
             }
 
-        unsigned int send_neighbor = m_neighbors[dir];
+        unsigned int send_neighbor = m_decomposition.neighbors[dir];
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_neighbors[dir+1];
+            recv_neighbor = m_decomposition.neighbors[dir+1];
         else
-            recv_neighbor = m_neighbors[dir-1];
+            recv_neighbor = m_decomposition.neighbors[dir-1];
 
         unsigned int start_idx;
         {
@@ -926,17 +916,17 @@ void Communicator::copyGhosts()
                  Scalar4& pos = h_pos.data[idx];
 
                  // wrap particles received across a global boundary back into global box
-                 if (dir==0 && m_is_at_boundary[1] )
+                 if (dir==0 && m_decomposition.is_at_boundary[1] )
                      pos.x -= m_global_box.xhi - m_global_box.xlo;
-                 else if (dir==1 && m_is_at_boundary[0])
+                 else if (dir==1 && m_decomposition.is_at_boundary[0])
                      pos.x += m_global_box.xhi - m_global_box.xlo;
-                 else if (dir==2 && m_is_at_boundary[3])
+                 else if (dir==2 && m_decomposition.is_at_boundary[3])
                      pos.y -= m_global_box.yhi - m_global_box.ylo;
-                 else if (dir==3 && m_is_at_boundary[2])
+                 else if (dir==3 && m_decomposition.is_at_boundary[2])
                      pos.y += m_global_box.yhi - m_global_box.ylo;
-                 else if (dir==4 && m_is_at_boundary[5])
+                 else if (dir==4 && m_decomposition.is_at_boundary[5])
                      pos.z -= m_global_box.zhi - m_global_box.zlo;
-                 else if (dir==5 && m_is_at_boundary[4])
+                 else if (dir==5 && m_decomposition.is_at_boundary[4])
                      pos.z += m_global_box.zhi - m_global_box.zlo;
 
                  }
@@ -957,10 +947,7 @@ void export_Communicator()
     class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<boost::mpi::communicator>,
-                std::vector<unsigned int>,
-                std::vector<bool>,
-                uint3,
-                unsigned int>())
+                const DomainDecomposition>())
     ;
     }
 #endif // ENABLE_MPI

@@ -138,7 +138,7 @@ void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  unsigned int &n_recv_ptl,
                                  const gpu_boxsize& global_box,
                                  unsigned int dir,
-                                 bool is_at_boundary[]);
+                                 const bool is_at_boundary[]);
 
 //! Add received particles to local box if their positions are inside the local boundaries
 void gpu_migrate_add_particles(  char *d_recv_buf,
@@ -161,7 +161,7 @@ void gpu_wrap_ghost_particles(unsigned int dir,
                               float4 *d_pos,
                               gpu_boxsize global_box,
                               float rghost,
-                              bool is_at_boundary[]);
+                              const bool is_at_boundary[]);
 
 //! Construct plans for sending non-bonded ghost particles
 void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,

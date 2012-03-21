@@ -114,7 +114,7 @@ void test_mpi_initializer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         }
 
     SnapshotParticleData snap(8);
-    pdata->takeSnapshot(snap,0);
+    pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
@@ -122,8 +122,9 @@ void test_mpi_initializer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
                                                                   0));
 
     pdata->setMPICommunicator(world);
+    pdata->setDomainDecomposition(mpi_init->getDomainDecomposition());
 
-    pdata->initializeFromSnapshot(snap,0);
+    pdata->initializeFromSnapshot(snap);
 
     // check that every domain has exactly one particle
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
@@ -244,7 +245,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
 
     SnapshotParticleData snap(8);
 
-    pdata->takeSnapshot(snap,0);
+    pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
@@ -254,7 +255,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
 
     pdata->setMPICommunicator(world);
 
-    pdata->initializeFromSnapshot(snap,0);
+    pdata->initializeFromSnapshot(snap);
 
     // migrate atoms
     comm->migrateAtoms();
@@ -502,7 +503,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
     // distribute particle data on processors
     SnapshotParticleData snap(16);
-    pdata->takeSnapshot(snap,0);
+    pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
@@ -512,7 +513,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
     pdata->setMPICommunicator(world);
 
-    pdata->initializeFromSnapshot(snap,0);
+    pdata->initializeFromSnapshot(snap);
     
     // width of ghost layer
     Scalar ghost_layer_width = Scalar(0.1);
@@ -1316,7 +1317,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     bdata->addBond(Bond(0,6,7));
 
     SnapshotParticleData snap(8);
-    pdata->takeSnapshot(snap,0);
+    pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
@@ -1331,7 +1332,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     pdata->setMPICommunicator(world);
 
     // distribute particle data on processors
-    pdata->initializeFromSnapshot(snap,0);
+    pdata->initializeFromSnapshot(snap);
 
     // we should have zero ghost particles
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
@@ -1410,38 +1411,14 @@ shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefini
                                                          shared_ptr<boost::mpi::communicator> mpi_comm,
                                                          shared_ptr<MPIInitializer> mpi_init)
     {
-    std::vector<unsigned int> neighbor_rank;
-    std::vector<bool> is_at_boundary;
-    for (unsigned int i = 0; i < 6; i++)
-        {
-        neighbor_rank.push_back(mpi_init->getNeighborRank(i));
-        is_at_boundary.push_back(mpi_init->isAtBoundary(i));
-        }
-
-    uint3 dim = make_uint3(mpi_init->getDimension(0),
-                         mpi_init->getDimension(1),
-                         mpi_init->getDimension(2));
-
-    return shared_ptr<Communicator>(new Communicator(sysdef,mpi_comm, neighbor_rank, is_at_boundary, dim));
+    return shared_ptr<Communicator>(new Communicator(sysdef,mpi_comm, mpi_init->getDomainDecomposition()));
     }
 
 shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                   shared_ptr<boost::mpi::communicator> mpi_comm,
                                                   shared_ptr<MPIInitializer> mpi_init)
     {
-    std::vector<unsigned int> neighbor_rank;
-    std::vector<bool> is_at_boundary;
-    for (unsigned int i = 0; i < 6; i++)
-        {
-        neighbor_rank.push_back(mpi_init->getNeighborRank(i));
-        is_at_boundary.push_back(mpi_init->isAtBoundary(i));
-        }
-
-    uint3 dim = make_uint3(mpi_init->getDimension(0),
-                         mpi_init->getDimension(1),
-                         mpi_init->getDimension(2));
-
-    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef,mpi_comm, neighbor_rank, is_at_boundary, dim) );
+    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef,mpi_comm, mpi_init->getDomainDecomposition()) );
     }
 
 

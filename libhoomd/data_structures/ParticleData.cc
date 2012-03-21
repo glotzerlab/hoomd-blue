@@ -661,22 +661,20 @@ bool ParticleData::inBox()
 
 //! Initialize from a snapshot
 /*! \param snapshot the initial particle data
-    \param root The rank of the root processor that holds the initial snapshot
 
     \post the particle data arrays are initialized from the snapshot, in index order
 
     \pre In parallel simulations, the local box size must be set before a call to initializeFromSnapshot().
  */
-void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot, unsigned int root)
+void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
 
 #ifdef ENABLE_MPI
     if (m_mpi_comm)
         {
         // gather box information from all processors
-        std::vector<BoxDim> box_proc(m_mpi_comm->size(),BoxDim(1.0,1.0,1.0));
-        gather(*m_mpi_comm, getBox(), box_proc, root);
-       
+        unsigned int root = m_decomposition.root;
+
         // Define per-processor particle data
         std::vector< std::vector<Scalar3> > pos_proc;              // Position array of every processor
         std::vector< std::vector<Scalar3> > vel_proc;              // Velocities array of every processor
@@ -709,40 +707,38 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot, 
             // loop over particles in snapshot, place them into domains
             for (std::vector<Scalar3>::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
-                unsigned int placed_particle = false;
 
                 // determine domain the particle is placed into
-                unsigned int rank;
-                for (rank = 0; rank < (unsigned int) m_mpi_comm->size(); rank++)
-                    {
-                    const BoxDim & box = box_proc[rank];
-                    if (box.xlo <= it->x && it->x < box.xhi &&
-                        box.ylo <= it->y && it->y < box.yhi &&
-                        box.zlo <= it->z && it->z < box.zhi)
-                        {
-                        placed_particle = true;
-                        break;
-                        }
-                    }
-                unsigned int tag = it - snapshot.pos.begin();
-                if (! placed_particle)
-                    {
-                    cerr << endl << "***Error! Particle " << tag << " out of bounds (could not place on any processor). "
-                         << endl << endl;
-                    throw std::runtime_error("Error initializing ParticleData");
-                    }
+                int i= (it->x - m_global_box.zlo)/(m_box.xhi - m_box.xlo);
+                int j= (it->y - m_global_box.ylo)/(m_box.yhi - m_box.ylo);
+                int k= (it->z - m_global_box.zlo)/(m_box.zhi - m_box.zlo);
 
-                unsigned int idx = it - snapshot.pos.begin() ;
+                // treat particles lying exactly on the boundary
+                assert(m_decomposition.nx);
+                assert(m_decomposition.ny);
+                assert(m_decomposition.nz);
+                if (i == (int) m_decomposition.nx)
+                    i--;
+                   
+                if (j == (int) m_decomposition.ny)
+                    j--;
+
+                if (k == (int) m_decomposition.nz)
+                    k--;
+            
+                unsigned int rank = k*m_decomposition.nx*m_decomposition.ny + j * m_decomposition.nx + i;
+
+                unsigned int tag = it - snapshot.pos.begin() ;
                 // fill up per-processor data structures
-                pos_proc[rank].push_back(snapshot.pos[idx]);
-                vel_proc[rank].push_back(snapshot.vel[idx]);
-                accel_proc[rank].push_back(snapshot.accel[idx]);
-                type_proc[rank].push_back(snapshot.type[idx]);
-                mass_proc[rank].push_back(snapshot.mass[idx]);
-                charge_proc[rank].push_back(snapshot.charge[idx]);
-                diameter_proc[rank].push_back(snapshot.diameter[idx]);
-                image_proc[rank].push_back(snapshot.image[idx]);
-                body_proc[rank].push_back(snapshot.body[idx]);
+                pos_proc[rank].push_back(snapshot.pos[tag]);
+                vel_proc[rank].push_back(snapshot.vel[tag]);
+                accel_proc[rank].push_back(snapshot.accel[tag]);
+                type_proc[rank].push_back(snapshot.type[tag]);
+                mass_proc[rank].push_back(snapshot.mass[tag]);
+                charge_proc[rank].push_back(snapshot.charge[tag]);
+                diameter_proc[rank].push_back(snapshot.diameter[tag]);
+                image_proc[rank].push_back(snapshot.image[tag]);
+                body_proc[rank].push_back(snapshot.body[tag]);
                 global_tag_proc[rank].push_back(tag);
                 N_proc[rank]++;
                 }
@@ -891,11 +887,10 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot, 
 
 //! take a particle data snapshot
 /* \param snapshot The snapshot to write to
-   \param root The processor rank on which the snapshot is gathered
 
    \pre snapshot has to be allocated with a number of elements equal to the global number of particles)
 */
-void ParticleData::takeSnapshot(SnapshotParticleData &snapshot, unsigned int root)
+void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     {
     // construct global snapshot
     if (snapshot.size != getNGlobal())
@@ -969,6 +964,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot, unsigned int roo
         body_proc.resize(m_mpi_comm->size());
         rtag_map_proc.resize(m_mpi_comm->size());
 
+        unsigned int root = m_decomposition.root;
         // collect all particle data on the root processor
         boost::mpi::gather(*m_mpi_comm, pos, pos_proc, root);
         boost::mpi::gather(*m_mpi_comm, vel, vel_proc, root);
