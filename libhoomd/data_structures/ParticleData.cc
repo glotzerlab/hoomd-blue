@@ -726,7 +726,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 if (k == (int) m_decomposition.nz)
                     k--;
             
-                unsigned int rank = k*m_decomposition.nx*m_decomposition.ny + j * m_decomposition.nx + i;
+                unsigned int rank = m_decomposition.index(i,j,k);
 
                 unsigned int tag = it - snapshot.pos.begin() ;
                 // fill up per-processor data structures

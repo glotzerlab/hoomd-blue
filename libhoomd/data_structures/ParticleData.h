@@ -82,6 +82,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/dynamic_bitset.hpp>
 
 #ifdef ENABLE_MPI
+#include "Index1D.h"
 #include <boost/mpi.hpp>
 #endif
 
@@ -290,6 +291,7 @@ struct DomainDecomposition
     unsigned int nz;           //!< Number of processors along the z-axis
 
     uint3 grid_pos;            //!< Grid position of this processor
+    Index3D index;             //!< Index to the 3D processor grid
     unsigned int neighbors[6]; //!< Rank of neighbors in every spatial direction
     bool is_at_boundary[6];    //!< whether this box shares a boundary with the global simulation box (per direction)
     unsigned int root;         //!< Rank of the root processor

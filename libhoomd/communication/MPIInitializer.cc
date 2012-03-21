@@ -111,7 +111,7 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
         m_decomposition.nx = nx;
         m_decomposition.ny = ny;
         m_decomposition.nz = nz;
-
+        
         // Print out information about the domain decomposition
         std::cout << "Domain decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << std::endl;
         }
@@ -159,6 +159,9 @@ MPIInitializer::MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
     boost::mpi::broadcast(*m_mpi_comm, m_decomposition.nx, root);
     boost::mpi::broadcast(*m_mpi_comm, m_decomposition.ny, root);
     boost::mpi::broadcast(*m_mpi_comm, m_decomposition.nz, root);
+
+    // Initialize domain indexer
+    m_decomposition.index = Index3D(m_decomposition.nx,m_decomposition.ny,m_decomposition.nz);
 
     // distribute grid positions
     boost::mpi::scatter(*m_mpi_comm, grid_pos_proc, m_decomposition.grid_pos, root);
@@ -262,7 +265,7 @@ unsigned int MPIInitializer::getNeighborRank(unsigned int dir)
     else if (kneigh == (int) m_decomposition.nz)
         kneigh -= m_decomposition.nz;
 
-    return kneigh*m_decomposition.nx*m_decomposition.ny + jneigh * m_decomposition.nx + ineigh;
+    return m_decomposition.index(ineigh, jneigh, kneigh);
     }
 
 //! Determines whether the local box shares a boundary with the global box
