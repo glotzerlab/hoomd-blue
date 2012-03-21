@@ -70,7 +70,6 @@ using namespace boost::python;
 //! Define some of our types as fixed-size MPI datatypes for performance optimization
 BOOST_IS_MPI_DATATYPE(Scalar4)
 BOOST_IS_MPI_DATATYPE(Scalar3)
-BOOST_IS_MPI_DATATYPE(uint3)
 BOOST_IS_MPI_DATATYPE(int3)
 
 
@@ -192,7 +191,7 @@ void Communicator::allocate()
     m_body_tmp.swap(body_tmp);
     GPUArray<Scalar4> orientation_tmp(m_pdata->getOrientationArray().getNumElements(), exec_conf);
     m_orientation_tmp.swap(orientation_tmp);
-    GPUArray<unsigned int> tag_tmp(m_pdata->getTags().getNumElements(), exec_conf);
+    GPUArray<unsigned int> tag_tmp(m_pdata->getGlobalTags().getNumElements(), exec_conf);
     m_tag_tmp.swap(tag_tmp);
 
     m_is_allocated = true;

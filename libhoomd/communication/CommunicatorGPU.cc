@@ -69,7 +69,6 @@ using namespace boost::python;
 //! Define some of our types as fixed-size MPI datatypes for performance optimization
 BOOST_IS_MPI_DATATYPE(Scalar4)
 BOOST_IS_MPI_DATATYPE(Scalar3)
-BOOST_IS_MPI_DATATYPE(uint3)
 BOOST_IS_MPI_DATATYPE(int3)
 
 BOOST_CLASS_TRACKING(Scalar4,track_never)
