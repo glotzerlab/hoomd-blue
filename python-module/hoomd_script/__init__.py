@@ -194,7 +194,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     # If running in MPI mode
     if globals.mpi_partition:
         # set quiet flag on all processors other than rank zero
-        if (globals.mpi_partition.replica_comm.rank != 0):
+        if (globals.mpi_partition.local_comm.rank != 0):
             quiet = True;
 
     # if rigid bodies, setxv  
