@@ -123,6 +123,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
 #include "EvaluatorPairDPDThermo.h"
+#include "PotentialPairDPDLJThermo.h"
+#include "EvaluatorPairDPDLJThermo.h"
 #include "PotentialPair.h"
 #include "PPPMForceCompute.h"
 
