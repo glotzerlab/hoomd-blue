@@ -123,11 +123,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
-#include "EvaluatorPairDPDThermo.h"
-#include "PotentialPairDPDLJThermo.h"
-#include "EvaluatorPairDPDLJThermo.h"
 #include "PotentialPair.h"
 #include "PPPMForceCompute.h"
+#include "AllExternalPotentials.h"
 
 
 // include GPU classes
@@ -161,7 +159,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #endif
-
 
 #include "SignalHandler.h"
 
