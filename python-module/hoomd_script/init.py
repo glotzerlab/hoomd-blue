@@ -603,10 +603,13 @@ def _create_exec_conf():
         if globals.options.ncpu > hoomd.get_num_procs():
             print "\n***Warning! Requesting more CPU cores than there are available in the system";
         hoomd.set_num_threads(globals.options.ncpu);
-    
+
+    # initialize the messenger
+    msg = hoomd.Messenger();
+
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:
-        exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display);
+        exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, msg);
     else:
         # determine the GPU on which to execute
         if globals.options.gpu is not None:
@@ -616,9 +619,9 @@ def _create_exec_conf():
         
         # create the specified configuration
         if globals.options.mode == "cpu":
-            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display);
+            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, msg);
         elif globals.options.mode == "gpu":
-            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display);
+            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, msg);
         else:
             raise RuntimeError("Error initializing");
     

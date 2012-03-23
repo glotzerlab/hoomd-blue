@@ -61,6 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
+#include "Messenger.h"
+
 /*! \file ExecutionConfiguration.h
     \brief Declares ExecutionConfiguration and related classes
 */
@@ -95,16 +97,17 @@ struct ExecutionConfiguration : boost::noncopyable
         };
         
     //! Default constructor
-    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false);
+    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false, const Messenger& _msg=Messenger());
     
     //! Force a mode selection
-    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false);
+    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false, const Messenger& _msg=Messenger());
     
     ~ExecutionConfiguration();
     
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
+    boost::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
 
     //! Returns true if CUDA is enabled
     bool isCUDAEnabled() const

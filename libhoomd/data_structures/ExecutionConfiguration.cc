@@ -84,12 +84,14 @@ using namespace boost;
 
 /*! \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
+    \param _msg Messenger to use for status message printing
 
     If there are capable GPUs present in the system, the default chosen by CUDA will be used. Specifically,
     cudaSetDevice is not called, so systems with compute-exclusive GPUs will see automatic choice of free GPUs.
     If there are no capable GPUs present in the system, then the execution mode will revert run on the CPU.
 */
-ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display) : m_cuda_error_checking(false)
+ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display, const Messenger& _msg)
+    : m_cuda_error_checking(false), msg(boost::shared_ptr<Messenger>(new Messenger(_msg)))
     {
 #ifdef ENABLE_CUDA
     // scan the available GPUs
@@ -118,12 +120,17 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     \param gpu_id ID of the GPU on which to run, or -1 for automatic selection
     \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
+    \param _msg Messenger to use for status message printing
 
     Explicitly force the use of either CPU or GPU execution. If GPU exeuction is selected, then a default GPU choice
     is made by not calling cudaSetDevice.
 */
-ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, bool min_cpu, bool ignore_display)
-    : m_cuda_error_checking(false)
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
+                                               int gpu_id,
+                                               bool min_cpu,
+                                               bool ignore_display,
+                                               const Messenger& _msg)
+    : m_cuda_error_checking(false), msg(boost::shared_ptr<Messenger>(new Messenger(_msg)))
     {
     exec_mode = mode;
     
@@ -587,12 +594,13 @@ void ExecutionConfiguration::setupStats()
 void export_ExecutionConfiguration()
     {
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-                         ("ExecutionConfiguration", init< bool, bool >())
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool>())
+                         ("ExecutionConfiguration", init< bool, bool, const Messenger& >())
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, const Messenger&>())
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
                          .def("getGPUName", &ExecutionConfiguration::getGPUName)
                          .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
+                         .def_readonly("msg", &ExecutionConfiguration::msg)
 #ifdef ENABLE_CUDA
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
