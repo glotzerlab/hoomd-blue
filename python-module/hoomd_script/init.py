@@ -606,6 +606,7 @@ def _create_exec_conf():
 
     # initialize the messenger
     msg = hoomd.Messenger();
+    msg.setNoticeLevel(globals.options.notice_level);
 
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:

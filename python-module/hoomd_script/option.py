@@ -79,6 +79,7 @@ class options:
         self.min_cpu = None;
         self.ignore_display = None;
         self.user = [];
+        self.notice_level = 1;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -87,7 +88,8 @@ class options:
                    gpu_error_checking=self.gpu_error_checking,
                    min_cpu=self.min_cpu,
                    ignore_display=self.ignore_display,
-                   user=self.user);
+                   user=self.user,
+                   notice_level=self.notice_level);
         return str(tmp);
 
 ## Parses command line options
@@ -102,6 +104,7 @@ def _parse_command_line():
     parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
     parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
     parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
+    parser.add_option("--notice-level", dest="notice_level", help="Minimum level of notice messages to print");
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();
@@ -140,6 +143,13 @@ def _parse_command_line():
         except ValueError:
             parser.error('--gpu must be an integer')
 
+    # convert notice_level to an integer
+    if cmd_options.notice_level is not None:
+        try:
+            cmd_options.notice_level = int(cmd_options.notice_level);
+        except ValueError:
+            parser.error('--notice-level must be an integer')
+
     # copy command line options over to global options
     globals.options.mode = cmd_options.mode;
     globals.options.gpu = cmd_options.gpu;
@@ -147,6 +157,9 @@ def _parse_command_line():
     globals.options.gpu_error_checking = cmd_options.gpu_error_checking;
     globals.options.min_cpu = cmd_options.min_cpu;
     globals.options.ignore_display = cmd_options.ignore_display;
+
+    if cmd_options.notice_level is not None:
+        globals.options.notice_level = cmd_options.notice_level;
 
     if cmd_options.user is not None:
         globals.options.user = shlex.split(cmd_options.user);
@@ -266,7 +279,29 @@ def set_ignore_display(ignore_display):
 #
 def get_user():
     return globals.options.user;
+
+## Set the notice level
+#
+# \param notice_level Specifies the maximum notice level to print (an integer)
+#
+# The notice level may be changed before or after initialization, and may be changed many times during a job script.
+#
+# \note Overrides --notice_level on the command line.
+# \sa \ref page_command_line_options
+#
+def set_notice_level(notice_level):
+    try:
+        notice_level = int(notice_level);
+    except ValueError:
+        print >> sys.stderr, "\n***Error! ncpu must be an integer\n";
+        raise RuntimeError('Error setting option');
+
+
+    if init.is_initialized():
+        globals.exec_conf.msg.setNoticeLevel(notice_level);
     
+    globals.options. = gpu_error_checking;
+
 ################### Parse command line on load
 globals.options = options();
 _parse_command_line();
