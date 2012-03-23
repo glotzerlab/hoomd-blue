@@ -144,10 +144,10 @@ struct ExecutionConfiguration : boost::noncopyable
     unsigned int getComputeCapability() const;
 
     //! Handle cuda error message
-    static void handleCUDAError(cudaError_t err, const char *file, unsigned int line);
+    void handleCUDAError(cudaError_t err, const char *file, unsigned int line);
     
     //! Check for cuda errors
-    static void checkCUDAError(const char *file, unsigned int line);
+    void checkCUDAError(const char *file, unsigned int line);
     
 private:
     //! Initialize the GPU with the given id
@@ -181,7 +181,7 @@ private:
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time
-#define CHECK_CUDA_ERROR() ExecutionConfiguration::checkCUDAError(__FILE__, __LINE__);
+#define CHECK_CUDA_ERROR() m_exec_conf->checkCUDAError(__FILE__, __LINE__);
 
 //! Exports ExecutionConfiguration to python
 void export_ExecutionConfiguration();
