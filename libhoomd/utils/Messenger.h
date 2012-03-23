@@ -114,6 +114,32 @@ struct nullstream: std::ostream
      - Arbitrary streams may be set - however, since they are stored by pointer the caller is responsible for
        deleting them when set in this manner.
      - An alternate interface openFile opens a file for overwrite for all output levels, owned by the Messenger.
+
+    \b HOOMD specific
+
+    One global Messenger will be initialized in python and passed to the ExecutionConfiguration. From there, all C++
+    classes can print messages via commands like m_exec_conf->msg->notice(1) << "blah". Maybe a macro NOTICE() to 
+    simplify the typing??? Need to debate that.
+
+    The following notice levels will be used:
+    - Error: Any condtition that is erroneous and will prevent the run from continuing
+        - Generally followed by a thrown exception
+    - Warning: Out of bounds parameters, settings that will use a lot of memory, etc... Things that won't prevent
+      continued execution, but that may lead to incorrect behavior.
+    - 1: typical status messages
+        - python command echos
+        - TPS reports
+        - which hardware is active
+    - 2: notifications of general interest that most people want to see
+        - notices that certain hardware is unavailable
+        - status information printed at the end of a run
+    - 3,4: Additional details on top of 2.
+    - 5-10: Varying debug messages, number chosen arbitrarily based on how often the message is likely to print
+        - Some examples for consistency
+        - 5 construction/desctruction messages from every major class
+        - 6 memory allocation/reallocation notices from every major class
+        - 7 memory allocation/reallocation notices from GPUArray
+    - 10: Trace messages that may print many times per time step.
 */
 class Messenger
     {
