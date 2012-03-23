@@ -260,4 +260,7 @@ class Messenger
         unsigned int m_notice_level;    //!< Notice level
     };
 
+//! Exports Messenger to python
+void export_Messenger();
+
 #endif // #ifndef __MESSENGER_H__

@@ -58,6 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 using namespace std;
 
+#include <boost/python.hpp>
+using namespace boost::python;
+
 /*! \post Warning and error streams are set to cerr
     \post The notice stream is set to cout
     \post The notice level is set to 1
@@ -163,4 +166,23 @@ void Messenger::openFile(const std::string& fname)
     m_err_stream = m_file.get();
     m_warning_stream = m_file.get();
     m_notice_stream = m_file.get();
+    }
+
+void export_Messenger()
+    {
+    class_<Messenger, boost::shared_ptr<Messenger>, boost::noncopyable >
+         ("Messenger", init< >())
+         .def("error", &Messenger::errorStr)
+         .def("warning", &Messenger::warningStr)
+         .def("notice", &Messenger::noticeStr)
+         .def("getNoticeLevel", &Messenger::getNoticeLevel)
+         .def("setNoticeLevel", &Messenger::setNoticeLevel)
+         .def("getErrorPrefix", &Messenger::getErrorPrefix, return_value_policy<copy_const_reference>())
+         .def("setErrorPrefix", &Messenger::setErrorPrefix)
+         .def("getWarningPrefix", &Messenger::getWarningPrefix, return_value_policy<copy_const_reference>())
+         .def("setWarningPrefix", &Messenger::setWarningPrefix)
+         .def("getNoticePrefix", &Messenger::getNoticePrefix, return_value_policy<copy_const_reference>())
+         .def("setWarningPrefix", &Messenger::setWarningPrefix)
+         .def("openFile", &Messenger::openFile)
+         ;
     }
