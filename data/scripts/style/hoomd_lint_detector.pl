@@ -9,8 +9,6 @@ my $max_line_len = 121;
 my $overlength_threshold = 25;
 my $astyle_changes_threshold = 25;
 
-my $skip_svn_processing = 0;
-
 # format with astyle and count the number of lines that it changed
 sub process_file_astyle
     {
@@ -49,41 +47,11 @@ sub process_file_astyle
     return $message;
     }
 
-# check that the file has the proper svn properties set
-sub process_file_svn
-    {
-    my $fname = $_[0];
-    
-    my $message = "";
-
-    if ($skip_svn_processing)
-        {
-        return $message;
-        }
-    
-    # check keywords
-    my $keywords = `svn propget svn:keywords $fname`;
-    chomp $keywords;
-    if (not ($keywords =~ /Id/ and $keywords =~ /URL/))
-        {
-        $message .= "invalid svn:keywords:  $keywords\n";
-        }
-
-    # check eol-style
-    my $eolstyle = `svn propget svn:eol-style $fname`;
-    chomp $eolstyle;
-    if (not ($eolstyle =~ /^native$/))
-        {
-        $message .= "invalid svn:eol-style: $eolstyle\n";
-        }
-
-    return $message;
-    }
-
 # process all the lines in the file and check for tabs, eof newline, overlength conditions, etc.
 sub process_file_lines
     {
     my $fname = $_[0];
+    my $fullpath = $_[1];
     # for checking the final newline
     my $last_line;
     
@@ -94,6 +62,9 @@ sub process_file_lines
     my $tab_count = 0;
     my $line_count = 0;
     my $overlength_count = 0;
+    my $has_doxygen_file = 0;
+    my $has_doxygen_package = 0;
+
     # loop through all lines in the file and add up counters
     while (<FILE>)
         {
@@ -105,6 +76,15 @@ sub process_file_lines
             $overlength_count += 1;
             }
 
+        if ($_ =~ /\\file (.*)$/)
+            {
+            $has_doxygen_file = 1;
+            }
+
+        if ($_ =~ /\\package (.*)$/)
+            {
+            $has_doxygen_package = 1;
+            }
         $line_count += 1;
         }
     close(FILE);
@@ -119,6 +99,15 @@ sub process_file_lines
         {
         $message .= "lines overlength:    $overlength_count\n";
         }
+    if (!$has_doxygen_file && !($fname =~ /\.py$/ or $fullpath =~ /\/test\//))
+        {
+        $message .= "missing doxygen \\file\n";
+        }
+    if (!$has_doxygen_package && ($fullpath =~ /\/python-module\//))
+        {
+        $message .= "missing doxygen \\package\n";
+        }
+    
     #if (not $last_line =~ /^\n/)
     #    {
     #    $message .= "end of file newline: missing\n";
@@ -160,9 +149,8 @@ sub wanted
         my $full_message = "";
         my $message;
         my $line_count;
-        ($message, $line_count) = process_file_lines($fname);
+        ($message, $line_count) = process_file_lines($fname, $File::Find::name);
         $full_message .= $message;
-        $full_message .= process_file_svn($fname);
         #$full_message .= process_file_astyle($fname, $line_count);
 
         if ($full_message)
@@ -172,14 +160,6 @@ sub wanted
             print "\n";
             }
         }
-    }
-
-# turn off svn processing if this is not in a svn checkout
-my $svnversion = `svnversion`;
-if ($svnversion =~ /exported/)
-    {
-    print "Not a svn checkout, skipping svn properties checks\n\n";
-    $skip_svn_processing = 1;
     }
 
 # grep through the source and look for problems
