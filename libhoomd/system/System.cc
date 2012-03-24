@@ -452,11 +452,24 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         // check if the time limit has exceeded
         if (limit_hours != 0.0f)
             {
-            int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
-            if (int64_t(cur_time) - initial_time > time_limit && (m_cur_tstep % limit_multiple) == 0)
+            if (m_cur_tstep % limit_multiple == 0)
                 {
-                cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
-                break;
+                unsigned char end_run = 0;
+                int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
+                if (int64_t(cur_time) - initial_time > time_limit)
+                    end_run = 1;
+
+#ifdef ENABLE_MPI
+                // if any processor wants to end the run, end it on all processors
+                if (m_comm)
+                    end_run = all_reduce(*m_comm->getMPICommunicator(), end_run, std::plus<unsigned char>());
+
+                if (end_run)
+#endif
+                    {
+                    cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+                    break;
+                    }
                 }
             }
         // execute python callback, if present and needed
