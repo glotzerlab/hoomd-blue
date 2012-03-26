@@ -353,16 +353,17 @@ the MPI_HOME env var (if it isn't set already).
 /home/software/rhel5/openmpi-1.4.2/gcc
 \endcode
 
-<b>Compile your own MPI: MVAPICH 1.8a2</b>
+<b>Compile your own MPI: MVAPICH 1.8rc1</b>
 
-Or, you can compile your own MPI and run it out of your home directory. MVAPICH 1.8a2 supports CUDA integration that
+Or, you can compile your own MPI and run it out of your home directory. MVAPICH 1.8rc1 supports CUDA integration that
 enables fast multi-GPU performance.
 
 \code
- $ tar -xvzf mvapich2-1.8a2.tgz
- $ cd mvapich2-1.8a2
+ $ tar -xvzf mvapich2-1.8rc1.tgz
+ $ cd mvapich2-1.8rc1
  $ ./configure --with-device=ch3:mrail --with-rdma=gen2 --prefix=${HOME}/local --enable-cuda --with-cuda=${CUDA_ROOT} --enable-shared
  $ make
+ $ # note: I got errors when compiling with make -j6 !!
  $ make install
 \endcode
 
@@ -370,6 +371,17 @@ The following needs to be added to your environment variables in .bash_profile.
 \code
 export LD_LIBRARY_PATH=${HOME}/local/lib:${LD_LIBRARY_PATH}    # if not already there
 export MPI_HOME=${HOME}/local 
+
+# configure MPI CUDA settings
+export MV2_USE_CUDA=1
+export MV2_CUDA_BLOCK_SIZE=262144
+export MV2_CUDA_EVENT_SYNC=1
+export MV2_CUDA_IPC=1
+export MV2_CUDA_IPC_THRESHOLD=0
+
+# if using nodes without IB adapters
+export MV2_USE_SHARED_MEM=1 
+export MV2_SMP_SEND_BUF_SIZE=262144
 \endcode
 Then log out and back in before attempting to build boost (so that it can find MPI).
 
