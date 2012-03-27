@@ -77,7 +77,7 @@ cudaError_t gpu_nph_step_one(Scalar4 *d_pos,
 cudaError_t gpu_nph_wrap_particles(const unsigned int N,
                              Scalar4 *d_pos,
                              int3 *d_image,
-                             const gpu_boxsize& box);
+                             const BoxDim& box);
 
 //! Kernel driver for the the second step of the computation called by NPHUpdaterGPU
 cudaError_t gpu_nph_step_two(Scalar4 *d_pos,

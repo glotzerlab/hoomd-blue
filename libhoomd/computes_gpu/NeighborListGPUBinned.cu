@@ -74,8 +74,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param ci Cell indexer for indexing cells
     \param cli Cell list indexer for indexing into d_cell_xyzf
     \param cadji Adjacent cell indexer listing the 27 neighboring cells
-    \param cell_scale Multiplication factor (in x, y, and z) which converts positions into cell coordinates
-    \param cell_dim Dimensions of the cell list
     \param box Simulation box dimensions
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
@@ -99,45 +97,46 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     const Index3D ci,
                                                     const Index2D cli,
                                                     const Index2D cadji,
-                                                    const float3 cell_scale,
-                                                    const uint3 cell_dim,
-                                                    const gpu_boxsize box,
+                                                    const BoxDim box,
                                                     const float r_maxsq,
                                                     const float r_max)
     {
     bool filter_body = filter_flags & 1;
     bool filter_diameter = filter_flags & 2;
-    
+
     // each thread is going to compute the neighbor list for a single particle
     int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
 
     // track the number of neighbors needed
     unsigned int n_neigh_needed = 0;
-    
+
     // quit early if we are past the end of the array
     if (my_pidx >= N)
         return;
-    
+
     // first, determine which bin this particle belongs to
-    float4 my_pos = d_pos[my_pidx];
+    float4 my_postype = d_pos[my_pidx];
+    float3 my_pos = make_float3(my_postype.x, my_postype.y, my_postype.z);
+
     unsigned int my_body = d_body[my_pidx];
     float my_diameter = d_diameter[my_pidx];
-    
-    // FLOPS: 9
-    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*cell_scale.x);
-    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*cell_scale.y);
-    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*cell_scale.z);
-    
+
+    // find the bin each particle belongs in
+    Scalar3 f = box.makeFraction(my_pos);
+    unsigned int ib = (unsigned int)(f.x * ci.getW());
+    unsigned int jb = (unsigned int)(f.y * ci.getH());
+    unsigned int kb = (unsigned int)(f.z * ci.getD());
+
     // need to handle the case where the particle is exactly at the box hi
-    if (ib == cell_dim.x)
+    if (ib == ci.getW())
         ib = 0;
-    if (jb == cell_dim.y)
+    if (jb == ci.getH())
         jb = 0;
-    if (kb == cell_dim.z)
+    if (kb == ci.getD())
         kb = 0;
-        
+
     int my_cell = ci(ib,jb,kb);
-    
+
     // each thread will determine the neighborlist of a single particle
     // count number of neighbors found so far in n_neigh
     int n_neigh = 0;
@@ -147,7 +146,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
         {
         int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
         unsigned int size = d_cell_size[neigh_cell];
-        
+    
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
             {
@@ -157,31 +156,26 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                 cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
             unsigned int neigh_body = __float_as_int(cur_tdb.z);
             float neigh_diameter = cur_tdb.y;
-                        
-            float3 neigh_pos;
-            neigh_pos.x = cur_xyzf.x;
-            neigh_pos.y = cur_xyzf.y;
-            neigh_pos.z = cur_xyzf.z;
+
+            float3 neigh_pos = make_float3(cur_xyzf.x,
+                                           cur_xyzf.y,
+                                           cur_xyzf.z);
             int cur_neigh = __float_as_int(cur_xyzf.w);
-            
+
             // compute the distance between the two particles
-            float dx = my_pos.x - neigh_pos.x;
-            float dy = my_pos.y - neigh_pos.y;
-            float dz = my_pos.z - neigh_pos.z;
-            
+            float3 dx = my_pos - neigh_pos;
+
             // wrap the periodic boundary conditions
-            dx = dx - box.Lx * rintf(dx * box.Lxinv);
-            dy = dy - box.Ly * rintf(dy * box.Lyinv);
-            dz = dz - box.Lz * rintf(dz * box.Lzinv);
-            
+            dx = box.minImage(dx);
+
             // compute dr squared
-            float drsq = dx*dx + dy*dy + dz*dz;
-            
+            float drsq = dot(dx,dx);
+
             bool excluded = (my_pidx == cur_neigh);
-            
+
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
-            
+
             float sqshift = 0.0f;
             if (filter_diameter)
                 {
@@ -198,15 +192,15 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                     d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
                 else
                     n_neigh_needed = n_neigh+1;
-                
+
                 n_neigh++;
                 }
             }
         }
-    
+
     d_n_neigh[my_pidx] = n_neigh;
-    d_last_updated_pos[my_pidx] = my_pos;
-    
+    d_last_updated_pos[my_pidx] = my_postype;
+
     if (n_neigh_needed > 0)
         atomicMax(&d_conditions[0], n_neigh_needed);
     }
@@ -227,9 +221,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const Index3D& ci,
                                      const Index2D& cli,
                                      const Index2D& cadji,
-                                     const float3& cell_scale,
-                                     const uint3& cell_dim,
-                                     const gpu_boxsize& box,
+                                     const BoxDim& box,
                                      const float r_maxsq,
                                      const unsigned int block_size,
                                      bool filter_body,
@@ -254,8 +246,6 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          ci,
                                                                          cli,
                                                                          cadji,
-                                                                         cell_scale,
-                                                                         cell_dim,
                                                                          box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq));
@@ -278,8 +268,6 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          ci,
                                                                          cli,
                                                                          cadji,
-                                                                         cell_scale,
-                                                                         cell_dim,
                                                                          box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq));
@@ -302,8 +290,6 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          ci,
                                                                          cli,
                                                                          cadji,
-                                                                         cell_scale,
-                                                                         cell_dim,
                                                                          box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq));
@@ -326,8 +312,6 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          ci,
                                                                          cli,
                                                                          cadji,
-                                                                         cell_scale,
-                                                                         cell_dim,
                                                                          box,
                                                                          r_maxsq,
                                                                          sqrtf(r_maxsq));
@@ -357,8 +341,6 @@ texture<float4, 2, cudaReadModeElementType> cell_tdb_tex;
     \param d_diameter Particle diameters
     \param N Number of particles
     \param ci Cell indexer for indexing cells
-    \param cell_scale Multiplication factor (in x, y, and z) which converts positions into cell coordinates
-    \param cell_dim Dimensions of the cell list
     \param box Simulation box dimensions
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
@@ -376,45 +358,46 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
                                                    const float *d_diameter,
                                                    const unsigned int N,
                                                    const Index3D ci,
-                                                   const float3 cell_scale,
-                                                   const uint3 cell_dim,
-                                                   const gpu_boxsize box,
+                                                   const BoxDim box,
                                                    const float r_maxsq,
                                                    const float r_max)
     {
     bool filter_body = filter_flags & 1;
     bool filter_diameter = filter_flags & 2;
-    
+
     // each thread is going to compute the neighbor list for a single particle
     int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
 
     // count the number of neighbors needed
     unsigned int n_neigh_needed = 0;
-    
+
     // quit early if we are past the end of the array
     if (my_pidx >= N)
         return;
-    
+
     // first, determine which bin this particle belongs to
-    float4 my_pos = d_pos[my_pidx];
+    float4 my_postype = d_pos[my_pidx];
+    float3 my_pos = make_float3(my_postype.x, my_postype.y, my_postype.z);
+
     unsigned int my_body = d_body[my_pidx];
     float my_diameter = d_diameter[my_pidx];
 
-    // FLOPS: 9
-    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*cell_scale.x);
-    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*cell_scale.y);
-    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*cell_scale.z);
-    
+    // find the bin each particle belongs in
+    Scalar3 f = box.makeFraction(my_pos);
+    unsigned int ib = (unsigned int)(f.x * ci.getW());
+    unsigned int jb = (unsigned int)(f.y * ci.getH());
+    unsigned int kb = (unsigned int)(f.z * ci.getD());
+
     // need to handle the case where the particle is exactly at the box hi
-    if (ib == cell_dim.x)
+    if (ib == ci.getW())
         ib = 0;
-    if (jb == cell_dim.y)
+    if (jb == ci.getH())
         jb = 0;
-    if (kb == cell_dim.z)
+    if (kb == ci.getD())
         kb = 0;
-        
+
     int my_cell = ci(ib,jb,kb);
-    
+
     // each thread will determine the neighborlist of a single particle
     // count number of neighbors found so far in n_neigh
     int n_neigh = 0;
@@ -424,7 +407,7 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
         {
         int neigh_cell = tex2D(cell_adj_tex, cur_adj, my_cell);
         unsigned int size = tex1Dfetch(cell_size_tex, neigh_cell);
-        
+
         float4 next_xyzf = tex2D(cell_xyzf_tex, 0, neigh_cell);
 
         // now, we are set to loop through the array
@@ -438,30 +421,26 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
             unsigned int neigh_body = __float_as_int(cur_tdb.z);
             float neigh_diameter = cur_tdb.y;
 
-            float3 neigh_pos;
-            neigh_pos.x = cur_xyzf.x;
-            neigh_pos.y = cur_xyzf.y;
-            neigh_pos.z = cur_xyzf.z;
+            float3 neigh_pos = make_float3(cur_xyzf.x,
+                                           cur_xyzf.y,
+                                           cur_xyzf.z);
             int cur_neigh = __float_as_int(cur_xyzf.w);
-            
+
             // compute the distance between the two particles
-            float dx = my_pos.x - neigh_pos.x;
-            float dy = my_pos.y - neigh_pos.y;
-            float dz = my_pos.z - neigh_pos.z;
-            
+            float3 dx = my_pos - neigh_pos;
+
             // wrap the periodic boundary conditions
-            dx = dx - box.Lx * rintf(dx * box.Lxinv);
-            dy = dy - box.Ly * rintf(dy * box.Lyinv);
-            dz = dz - box.Lz * rintf(dz * box.Lzinv);
-            
+            dx = box.minImage(dx);
+
             // compute dr squared
-            float drsq = dx*dx + dy*dy + dz*dz;
-            
+            float drsq = dot(dx,dx);
+
+
             bool excluded = (my_pidx == cur_neigh);
-            
+
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
-            
+
             float sqshift = 0.0f;
             if (filter_diameter)
                 {
@@ -478,15 +457,15 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
                     d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
                 else
                     n_neigh_needed = n_neigh+1;
-                
+
                 n_neigh++;
                 }
             }
         }
-    
+
     d_n_neigh[my_pidx] = n_neigh;
-    d_last_updated_pos[my_pidx] = my_pos;
-        
+    d_last_updated_pos[my_pidx] = my_postype;
+
     if (n_neigh_needed > 0)
         atomicMax(&d_conditions[0], n_neigh_needed);
     }
@@ -505,9 +484,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         const cudaArray *dca_cell_tdb,
                                         const cudaArray *dca_cell_adj,
                                         const Index3D& ci,
-                                        const float3& cell_scale,
-                                        const uint3& cell_dim,
-                                        const gpu_boxsize& box,
+                                        const BoxDim& box,
                                         const float r_maxsq,
                                         const unsigned int block_size,
                                         bool filter_body,
@@ -527,7 +504,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
     if (err != cudaSuccess)
         return err;
     
-    err = cudaBindTexture(0, cell_size_tex, d_cell_size, sizeof(unsigned int)*cell_dim.x*cell_dim.y*cell_dim.z);
+    err = cudaBindTexture(0, cell_size_tex, d_cell_size, sizeof(unsigned int)*ci.getNumElements());
     if (err != cudaSuccess)
         return err;
     
@@ -543,8 +520,6 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         d_diameter,
                                                                         N,
                                                                         ci,
-                                                                        cell_scale,
-                                                                        cell_dim,
                                                                         box,
                                                                         r_maxsq,
                                                                         sqrtf(r_maxsq));
@@ -561,8 +536,6 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         d_diameter,
                                                                         N,
                                                                         ci,
-                                                                        cell_scale,
-                                                                        cell_dim,
                                                                         box,
                                                                         r_maxsq,
                                                                         sqrtf(r_maxsq));
@@ -579,8 +552,6 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         d_diameter,
                                                                         N,
                                                                         ci,
-                                                                        cell_scale,
-                                                                        cell_dim,
                                                                         box,
                                                                         r_maxsq,
                                                                         sqrtf(r_maxsq));
@@ -597,8 +568,6 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         d_diameter,
                                                                         N,
                                                                         ci,
-                                                                        cell_scale,
-                                                                        cell_dim,
                                                                         box,
                                                                         r_maxsq,
                                                                         sqrtf(r_maxsq));

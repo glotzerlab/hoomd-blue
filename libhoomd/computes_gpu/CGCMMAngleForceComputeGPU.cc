@@ -149,7 +149,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
    
     //Not necessary - force and virial are zeroed in the kernel
     //m_force.memclear();

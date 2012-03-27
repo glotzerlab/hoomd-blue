@@ -147,20 +147,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         name[1] = '\0';
         m_type_mapping.push_back(string(name));
         }
-        
-    // if this is a GPU build, initialize the graphics card mirror data structures
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // setup the box
-        m_gpu_box.Lx = m_box.xhi - m_box.xlo;
-        m_gpu_box.Ly = m_box.yhi - m_box.ylo;
-        m_gpu_box.Lz = m_box.zhi - m_box.zlo;
-        m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
-        m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
-        m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
-        }
-#endif
     }
 
 /*! Calls the initializer's members to determine the number of particles, box size and then
@@ -250,17 +236,7 @@ void ParticleData::setBox(const BoxDim &box)
     {
     m_box = box;
     assert(inBox());
-    
-#ifdef ENABLE_CUDA
-    // setup the box
-    m_gpu_box.Lx = m_box.xhi - m_box.xlo;
-    m_gpu_box.Ly = m_box.yhi - m_box.ylo;
-    m_gpu_box.Lz = m_box.zhi - m_box.zlo;
-    m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
-    m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
-    m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
-#endif
-    
+
     m_boxchange_signal();
     }
 
@@ -528,6 +504,7 @@ void export_BoxDim()
     class_<BoxDim>("BoxDim")
     .def(init<Scalar>())
     .def(init<Scalar, Scalar, Scalar>())
+    .def(init<Scalar3>())
     .def(init<Scalar3, Scalar3, uchar3>())
     .def("getPeriodic", &BoxDim::getPeriodic)
     .def("setPeriodic", &BoxDim::setPeriodic)

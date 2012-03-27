@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _PARTICLEDATA_CUH_
 
 #include <cuda_runtime.h>
+#include "BoxDim.h"
 
 /*! \file ParticleData.cuh
     \brief Declares GPU kernel code and data structure functions used by ParticleData
@@ -63,22 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
 #endif
-
-//! Store the box size on the GPU
-/*! \note For performance reasons, the GPU code is allowed to assume that the box goes
-    from -L/2 to L/2, and the box dimensions in this structure must reflect that.
-
-    \ingroup gpu_data_structs
-*/
-struct gpu_boxsize
-    {
-    float Lx;   //!< Length of the box in the x-direction
-    float Ly;   //!< Length of the box in the y-direction
-    float Lz;   //!< Length of teh box in the z-direction
-    float Lxinv;//!< 1.0f/Lx
-    float Lyinv;//!< 1.0f/Ly
-    float Lzinv;//!< 1.0f/Lz
-    };
 
 #endif
 

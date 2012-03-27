@@ -90,58 +90,55 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
                                                                  const unsigned int virial_pitch,
                                                                  const unsigned int N,
                                                                  const Scalar4 *d_pos,
-                                                                 gpu_boxsize box,
+                                                                 BoxDim box,
                                                                  const uint4 *alist,
                                                                  const unsigned int pitch,
                                                                  const unsigned int *n_angles_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;    
-    
+
     if (idx >= N)
         return;
-        
+
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_angles =n_angles_list[idx];
-    
+
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
-    float4 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
-    
+    float4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
+    float3 idx_pos = make_float3(idx_postype.x, idx_postype.y, idx_postype.z);
+    float3 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
+
     // initialize the force to 0
     float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    
+
     float fab[3], fcb[3];
     float fac, eac, vac[6];
-    
+
     // initialize the virial to 0
     float virial_idx[6];
     for (int i = 0; i < 6; i++)
         virial_idx[i] = 0.0f;
-    
+
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
         {
-        // the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
-#ifdef _DEVICEEMU
         uint4 cur_angle = alist[pitch*angle_idx + idx];
-#else
-        // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint4 cur_angle = alist[pitch*angle_idx + idx];
-#endif
-        
+
         int cur_angle_x_idx = cur_angle.x;
         int cur_angle_y_idx = cur_angle.y;
-        
+
         // store the a and c positions to accumlate their forces
         int cur_angle_type = cur_angle.z;
         int cur_angle_abc = cur_angle.w;
-        
+
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
-        float4 x_pos = d_pos[cur_angle_x_idx];
+        float4 x_postype = d_pos[cur_angle_x_idx];
+        float3 x_pos = make_float3(x_postype.x, x_postype.y, x_postype.z);
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 y_pos = d_pos[cur_angle_y_idx];
-        
+        float4 y_postype = d_pos[cur_angle_y_idx];
+        float3 y_pos = make_float3(y_postype.x, y_postype.y, y_postype.z);
+
         if (cur_angle_abc == 0)
             {
             a_pos = idx_pos;
@@ -160,57 +157,39 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
             a_pos = x_pos;
             b_pos = y_pos;
             }
-            
-        // calculate dr for a-b,c-b,and a-c(FLOPS: 9)
-        float dxab = a_pos.x - b_pos.x;
-        float dyab = a_pos.y - b_pos.y;
-        float dzab = a_pos.z - b_pos.z;
-        
-        float dxcb = c_pos.x - b_pos.x;
-        float dycb = c_pos.y - b_pos.y;
-        float dzcb = c_pos.z - b_pos.z;
-        
-        float dxac = a_pos.x - c_pos.x;
-        float dyac = a_pos.y - c_pos.y;
-        float dzac = a_pos.z - c_pos.z;
-        
-        // apply periodic boundary conditions (FLOPS: 36)
-        dxab -= box.Lx * rintf(dxab * box.Lxinv);
-        dxcb -= box.Lx * rintf(dxcb * box.Lxinv);
-        dxac -= box.Lx * rintf(dxac * box.Lxinv);
-        
-        dyab -= box.Ly * rintf(dyab * box.Lyinv);
-        dycb -= box.Ly * rintf(dycb * box.Lyinv);
-        dyac -= box.Ly * rintf(dyac * box.Lyinv);
-        
-        dzab -= box.Lz * rintf(dzab * box.Lzinv);
-        dzcb -= box.Lz * rintf(dzcb * box.Lzinv);
-        dzac -= box.Lz * rintf(dzac * box.Lzinv);
-        
+
+        // calculate dr for a-b,c-b,and a-c
+        Scalar3 dab = a_pos - b_pos;
+        Scalar3 dcb = c_pos - b_pos;
+        Scalar3 dac = a_pos - c_pos;
+
+        // apply periodic boundary conditions
+        dab = box.minImage(dab);
+        dcb = box.minImage(dcb);
+        dac = box.minImage(dac);
+
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         float2 params = tex1Dfetch(angle_params_tex, cur_angle_type);
         float K = params.x;
         float t_0 = params.y;
-        
-        // FLOPS: was 16, now... ?
-        float rsqab = dxab*dxab+dyab*dyab+dzab*dzab;
+
+        float rsqab = dot(dab, dab);
         float rab = sqrtf(rsqab);
-        float rsqcb = dxcb*dxcb+dycb*dycb+dzcb*dzcb;
+        float rsqcb = dot(dcb, dcb);;
         float rcb = sqrtf(rsqcb);
-        float rsqac = dxac*dxac+dyac*dyac+dzac*dzac;
+        float rsqac = dot(dac, dac);
         float rac = sqrtf(rsqac);
-        
-        float c_abbc = dxab*dxcb+dyab*dycb+dzab*dzcb;
+
+        float c_abbc = dot(dab, dcb);
         c_abbc /= rab*rcb;
-        
-        
+
         if (c_abbc > 1.0f) c_abbc = 1.0f;
         if (c_abbc < -1.0f) c_abbc = -1.0f;
-        
+
         float s_abbc = sqrtf(1.0f - c_abbc*c_abbc);
         if (s_abbc < SMALL) s_abbc = SMALL;
         s_abbc = 1.0f/s_abbc;
-        
+
         //////////////////////////////////////////
         // THIS CODE DOES THE 1-3 LJ repulsions //
         //////////////////////////////////////////////////////////////////////////////
@@ -218,78 +197,78 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
         eac = 0.0f;
         for (int i=0; i < 6; i++)
             vac[i] = 0.0f;
-        
+
         // get the angle E-S-R parameters (MEM TRANSFER: 12 bytes)
         const float2 cgSR = tex1Dfetch(angle_CGCMMsr_tex, cur_angle_type);
-        
+
         float cgsigma = cgSR.x;
         float cgrcut = cgSR.y;
-        
+
         if (rac < cgrcut)
             {
             const float4 cgEPOW = tex1Dfetch(angle_CGCMMepow_tex, cur_angle_type);
-            
+
             // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
             float cgeps = cgEPOW.x;
             float cgpow1 = cgEPOW.y;
             float cgpow2 = cgEPOW.z;
             float cgpref = cgEPOW.w;
-            
+
             float cgratio = cgsigma/rac;
             // INTERESTING NOTE: __powf has weird behavior depending
             // on the inputted parameters.  Try sigma=2.05, versus sigma=0.05
             // in cgcmm_angle_force_test.cc 4 particle test
             fac = cgpref*cgeps / rsqac * (cgpow1*__powf(cgratio,cgpow1) - cgpow2*__powf(cgratio,cgpow2));
             eac = cgeps + cgpref*cgeps * (__powf(cgratio,cgpow1) - __powf(cgratio,cgpow2));
-            
-            vac[0] = fac * dxac*dxac;
-            vac[1] = fac * dxac*dyac;
-            vac[2] = fac * dxac*dzac;
-            vac[3] = fac * dyac*dyac;
-            vac[4] = fac * dyac*dzac;
-            vac[5] = fac * dzac*dzac;
+
+            vac[0] = fac * dac.x*dac.x;
+            vac[1] = fac * dac.x*dac.y;
+            vac[2] = fac * dac.x*dac.z;
+            vac[3] = fac * dac.y*dac.y;
+            vac[4] = fac * dac.y*dac.z;
+            vac[5] = fac * dac.z*dac.z;
             }
         //////////////////////////////////////////////////////////////////////////////
-        
+
         // actually calculate the force
         float dth = acosf(c_abbc) - t_0;
         float tk = K*dth;
-        
+
         float a = -1.0f * tk * s_abbc;
         float a11 = a*c_abbc/rsqab;
         float a12 = -a / (rab*rcb);
         float a22 = a*c_abbc / rsqcb;
-        
-        fab[0] = a11*dxab + a12*dxcb;
-        fab[1] = a11*dyab + a12*dycb;
-        fab[2] = a11*dzab + a12*dzcb;
-        
-        fcb[0] = a22*dxcb + a12*dxab;
-        fcb[1] = a22*dycb + a12*dyab;
-        fcb[2] = a22*dzcb + a12*dzab;
-        
+
+        fab[0] = a11*dab.x + a12*dcb.x;
+        fab[1] = a11*dab.y + a12*dcb.y;
+        fab[2] = a11*dab.z + a12*dcb.z;
+
+        fcb[0] = a22*dcb.x + a12*dab.x;
+        fcb[1] = a22*dcb.y + a12*dab.y;
+        fcb[2] = a22*dcb.z + a12*dab.z;
+
         // compute 1/3 of the energy, 1/3 for each atom in the angle
         float angle_eng = (0.5f*tk*dth + eac)*float(1.0f/3.0f);
 
         float angle_virial[6];
-        angle_virial[0] = (1.f/3.f) * ( dxab*fab[0] + dxcb*fcb[0] );
-        angle_virial[1] = (1.f/6.f) * ( dxab*fab[1] + dxcb*fcb[1]
-                                      + dyab*fab[0] + dycb*fcb[0] );
-        angle_virial[2] = (1.f/6.f) * ( dxab*fab[2] + dxcb*fcb[2]
-                                      + dzab*fab[0] + dzcb*fcb[0] );
-        angle_virial[3] = (1.f/3.f) * ( dyab*fab[1] + dycb*fcb[1] );
-        angle_virial[4] = (1.f/6.f) * ( dyab*fab[2] + dycb*fcb[2]
-                                      + dzab*fab[1] + dzcb*fcb[1] );
-        angle_virial[5] = (1.f/3.f) * ( dzab*fab[2] + dzcb*fcb[2] );
+        angle_virial[0] = (1.f/3.f) * ( dab.x*fab[0] + dcb.x*fcb[0] );
+        angle_virial[1] = (1.f/6.f) * ( dab.x*fab[1] + dcb.x*fcb[1]
+                                      + dab.y*fab[0] + dcb.y*fcb[0] );
+        angle_virial[2] = (1.f/6.f) * ( dab.x*fab[2] + dcb.x*fcb[2]
+                                      + dab.z*fab[0] + dcb.z*fcb[0] );
+        angle_virial[3] = (1.f/3.f) * ( dab.y*fab[1] + dcb.y*fcb[1] );
+        angle_virial[4] = (1.f/6.f) * ( dab.y*fab[2] + dcb.y*fcb[2]
+                                      + dab.z*fab[1] + dcb.z*fcb[1] );
+        angle_virial[5] = (1.f/3.f) * ( dab.z*fab[2] + dcb.z*fcb[2] );
 
         for (int i = 0; i < 6; i++)
             angle_virial[i] += (1.f/3.f)*vac[i];
 
         if (cur_angle_abc == 0)
             {
-            force_idx.x += fab[0] + fac*dxac;
-            force_idx.y += fab[1] + fac*dyac;
-            force_idx.z += fab[2] + fac*dzac;
+            force_idx.x += fab[0] + fac*dac.x;
+            force_idx.y += fab[1] + fac*dac.y;
+            force_idx.z += fab[2] + fac*dac.z;
             }
         if (cur_angle_abc == 1)
             {
@@ -299,17 +278,16 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(float4* d_force
             }
         if (cur_angle_abc == 2)
             {
-            force_idx.x += fcb[0] - fac*dxac;
-            force_idx.y += fcb[1] - fac*dyac;
-            force_idx.z += fcb[2] - fac*dzac;
+            force_idx.x += fcb[0] - fac*dac.x;
+            force_idx.y += fcb[1] - fac*dac.y;
+            force_idx.z += fcb[2] - fac*dac.z;
             }
-            
+
         force_idx.w += angle_eng;
         for (int i = 0; i < 6; i++)
             virial_idx[i] += angle_virial[i];
-        
         }
-        
+
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force_idx;
     for (int i = 0; i < 6; i++)
@@ -342,7 +320,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
                                            const unsigned int virial_pitch,
                                            const unsigned int N,
                                            const Scalar4 *d_pos,
-                                           const gpu_boxsize &box,
+                                           const BoxDim& box,
                                            const uint4 *atable,
                                            const unsigned int pitch,
                                            const unsigned int *n_angles_list,
@@ -355,28 +333,28 @@ cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
     assert(d_params);
     assert(d_CGCMMsr);
     assert(d_CGCMMepow);
-    
-    
+
+
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // bind the textures
     cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(float2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
-        
+
     error = cudaBindTexture(0, angle_CGCMMsr_tex, d_CGCMMsr, sizeof(float2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
-        
+
     error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(float4) * n_angle_types);
     if (error != cudaSuccess)
         return error;
-        
+
     // run the kernel
     gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, atable, pitch, n_angles_list);
-    
+
     return cudaSuccess;
     }
 

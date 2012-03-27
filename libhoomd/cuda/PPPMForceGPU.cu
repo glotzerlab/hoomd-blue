@@ -118,7 +118,7 @@ extern "C" __global__
 void assign_charges_to_grid_kernel(const unsigned int N,
                                    const Scalar4 *d_pos,
                                    const Scalar *d_charge,
-                                   gpu_boxsize box, 
+                                   BoxDim box, 
                                    cufftComplex *rho_real_space, 
                                    int Nx, 
                                    int Ny, 
@@ -138,15 +138,16 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         if(fabs(qi) > 0.0f) {
             float4 posi = tex1Dfetch(pdata_pos_tex, idx);
             //calculate dx, dy, dz for the charge density grid:
-            float box_dx = box.Lx / ((float)Nx);
-            float box_dy = box.Ly / ((float)Ny);
-            float box_dz = box.Lz / ((float)Nz);
+            Scalar3 L = box.getL();
+            float box_dx = L.x / ((float)Nx);
+            float box_dy = L.y / ((float)Ny);
+            float box_dz = L.z / ((float)Nz);
     
         
             //normalize position to gridsize:
-            posi.x += box.Lx / 2.0f;
-            posi.y += box.Ly / 2.0f;
-            posi.z += box.Lz / 2.0f;
+            posi.x += L.x / 2.0f;
+            posi.y += L.y / 2.0f;
+            posi.z += L.z / 2.0f;
    
             posi.x /= box_dx;
             posi.y /= box_dy;
@@ -295,7 +296,7 @@ void calculate_forces_kernel(float4 *d_force,
                              const unsigned int N,
                              const Scalar4 *d_pos,
                              const Scalar *d_charge,
-                             gpu_boxsize box,
+                             BoxDim box,
                              float3 *E_field,
                              int Nx,
                              int Ny,
@@ -315,14 +316,15 @@ void calculate_forces_kernel(float4 *d_force,
             float4 posi = tex1Dfetch(pdata_pos_tex, idx);
     
             //calculate dx, dy, dz for the charge density grid:
-            float box_dx = box.Lx / ((float)Nx);
-            float box_dy = box.Ly / ((float)Ny);
-            float box_dz = box.Lz / ((float)Nz);
+            Scalar3 L = box.getL();
+            float box_dx = L.x / ((float)Nx);
+            float box_dy = L.y / ((float)Ny);
+            float box_dz = L.z / ((float)Nz);
     
             //normalize position to gridsize:
-            posi.x += box.Lx * 0.5f;
-            posi.y += box.Ly * 0.5f;
-            posi.z += box.Lz * 0.5f;
+            posi.x += L.x * 0.5f;
+            posi.y += L.y * 0.5f;
+            posi.z += L.z * 0.5f;
    
             posi.x /= box_dx;
             posi.y /= box_dy;
@@ -407,7 +409,7 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
                                     const unsigned int N,
                                     const Scalar4 *d_pos,
                                     const Scalar *d_charge,
-                                    const gpu_boxsize &box,
+                                    const BoxDim& box,
                                     int Nx,
                                     int Ny,
                                     int Nz,
@@ -768,7 +770,7 @@ float2 gpu_compute_pppm_thermo(int Nx,
 
 
 
-__global__ void reset_kvec_green_hat_kernel(gpu_boxsize box, 
+__global__ void reset_kvec_green_hat_kernel(BoxDim box, 
                                             int Nx, 
                                             int Ny, 
                                             int Nz, 
@@ -792,13 +794,14 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
         int yn = (idx - xn*N2)/Nz;
         int zn = (idx - xn*N2 - yn*Nz);
 
-        float invdet = 6.28318531f/(box.Lx*box.Ly*box.Lz);
+        Scalar3 L = box.getL();
+        float invdet = 6.28318531f/(L.x*L.y*L.z);
         float3 inverse_lattice_vector, j;
         float kappa2 = kappa*kappa;
 
-        inverse_lattice_vector.x = invdet*box.Ly*box.Lz;
-        inverse_lattice_vector.y = invdet*box.Lx*box.Lz;
-        inverse_lattice_vector.z = invdet*box.Lx*box.Ly;
+        inverse_lattice_vector.x = invdet*L.y*L.z;
+        inverse_lattice_vector.y = invdet*L.x*L.z;
+        inverse_lattice_vector.z = invdet*L.x*L.y;
 
         j.x = xn > Nx/2 ? (float)(xn - Nx) : (float)xn;
         j.y = yn > Ny/2 ? (float)(yn - Ny) : (float)yn;
@@ -820,9 +823,9 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
             vg[idx].z = 1.0f+vterm*kvec_array[idx].z*kvec_array[idx].z;
             }
 
-        float unitkx = (6.28318531f/box.Lx);
-        float unitky = (6.28318531f/box.Ly);
-        float unitkz = (6.28318531f/box.Lz);
+        float unitkx = (6.28318531f/L.x);
+        float unitky = (6.28318531f/L.y);
+        float unitkz = (6.28318531f/L.z);
         int ix, iy, iz, kper, lper, mper;
         float snx, sny, snz, snx2, sny2, snz2;
         float argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
@@ -830,15 +833,15 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
         float numerator, denominator;
 
         mper = zn - Nz*(2*zn/Nz);
-        snz = sinf(0.5f*unitkz*mper*box.Lz/Nz);
+        snz = sinf(0.5f*unitkz*mper*L.z/Nz);
         snz2 = snz*snz;
 
         lper = yn - Ny*(2*yn/Ny);
-        sny = sinf(0.5f*unitky*lper*box.Ly/Ny);
+        sny = sinf(0.5f*unitky*lper*L.y/Ny);
         sny2 = sny*sny;
 
         kper = xn - Nx*(2*xn/Nx);
-        snx = sinf(0.5f*unitkx*kper*box.Lx/Nx);
+        snx = sinf(0.5f*unitkx*kper*L.x/Nx);
         snx2 = snx*snx;
         sqk = unitkx*kper*unitkx*kper + unitky*lper*unitky*lper + unitkz*mper*unitkz*mper;
 
@@ -861,19 +864,19 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
                 qx = unitkx*(kper+(float)(Nx*ix));
                 sx = expf(-.25f*qx*qx/kappa2);
                 wx = 1.0f;
-                argx = 0.5f*qx*box.Lx/(float)Nx;
+                argx = 0.5f*qx*L.x/(float)Nx;
                 if (argx != 0.0f) wx = powf(sinf(argx)/argx,order);
                 for (iy = -nby; iy <= nby; iy++) {
                     qy = unitky*(lper+(float)(Ny*iy));
                     sy = expf(-.25f*qy*qy/kappa2);
                     wy = 1.0f;
-                    argy = 0.5f*qy*box.Ly/(float)Ny;
+                    argy = 0.5f*qy*L.y/(float)Ny;
                     if (argy != 0.0f) wy = powf(sinf(argy)/argy,order);
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = unitkz*(mper+(float)(Nz*iz));
                         sz = expf(-.25f*qz*qz/kappa2);
                         wz = 1.0f;
-                        argz = 0.5f*qz*box.Lz/(float)Nz;
+                        argz = 0.5f*qz*L.z/(float)Nz;
                         if (argz != 0.0f) wz = powf(sinf(argz)/argz,order);
 
                         dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
@@ -888,7 +891,7 @@ __global__ void reset_kvec_green_hat_kernel(gpu_boxsize box,
         }
     }
 
-cudaError_t reset_kvec_green_hat(const gpu_boxsize &box,
+cudaError_t reset_kvec_green_hat(const BoxDim& box,
                                  int Nx,
                                  int Ny,
                                  int Nz,
@@ -916,7 +919,7 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                                           const unsigned int N,
                                           const Scalar4 *d_pos,
                                           const Scalar *d_charge,
-                                          const gpu_boxsize box,
+                                          const BoxDim box,
                                           const unsigned int *d_n_neigh,
                                           const unsigned int *d_nlist,
                                           const Index2D nli,
@@ -931,7 +934,9 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
         unsigned int idx = d_group_members[group_idx];
         const float sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
-        float4 posi =  tex1Dfetch(pdata_pos_tex, idx);
+        float4 postypei =  tex1Dfetch(pdata_pos_tex, idx);
+        float3 posi = make_float3(postypei.x, postypei.y, postypei.z);
+
         float  qi = tex1Dfetch(pdata_charge_tex, idx);
         // initialize the force to 0
         float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -956,24 +961,21 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                     // prefetch the next value and set the current one
                     cur_j = next_j;
                     next_j = d_nlist[nli(idx, neigh_idx+1)];
-            
+
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                    float4 posj = tex1Dfetch(pdata_pos_tex, cur_j);
-            
+                    float4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
+                    float3 posj = make_float3(postypej.x, postypej.y, postypej.z);
+
                     float qj = tex1Dfetch(pdata_charge_tex, cur_j);
-                
+
                     // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-                    float dx = posi.x - posj.x;
-                    float dy = posi.y - posj.y;
-                    float dz = posi.z - posj.z;
-            
+                    float3 dx = posi - posj;
+
                     // apply periodic boundary conditions: (FLOPS 12)
-                    dx -= box.Lx * rintf(dx * box.Lxinv);
-                    dy -= box.Ly * rintf(dy * box.Lyinv);
-                    dz -= box.Lz * rintf(dz * box.Lzinv);
-            
+                    dx = box.minImage(dx);
+
                     // calculate r squard (FLOPS: 5)
-                    float rsq = dx*dx + dy*dy + dz*dz;
+                    float rsq = dot(dx,dx);
                     float r = sqrtf(rsq);
                     float qiqj = qi * qj;
                     float erffac = erf(kappa * r) / r;
@@ -981,24 +983,24 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                     float pair_eng = qiqj * erffac; 
 
                     float force_div2r = float(0.5) * force_divr;
-                    virial[0] += dx * dx * force_div2r;
-                    virial[1] += dx * dy * force_div2r;
-                    virial[2] += dx * dz * force_div2r;
-                    virial[3] += dy * dy * force_div2r;
-                    virial[4] += dy * dz * force_div2r;
-                    virial[5] += dz * dz * force_div2r;
+                    virial[0] += dx.x * dx.x * force_div2r;
+                    virial[1] += dx.x * dx.y * force_div2r;
+                    virial[2] += dx.x * dx.z * force_div2r;
+                    virial[3] += dx.y * dx.y * force_div2r;
+                    virial[4] += dx.y * dx.z * force_div2r;
+                    virial[5] += dx.z * dx.z * force_div2r;
 
 #if (__CUDA_ARCH__ >= 200)
-                    force.x += dx * force_divr;
-                    force.y += dy * force_divr;
-                    force.z += dz * force_divr;
+                    force.x += dx.x * force_divr;
+                    force.y += dx.y * force_divr;
+                    force.z += dx.z * force_divr;
 #else
                     // fmad causes momentum drift here, prevent it from being used
-                    force.x += __fmul_rn(dx, force_divr);
-                    force.y += __fmul_rn(dy, force_divr);
-                    force.z += __fmul_rn(dz, force_divr);
+                    force.x += __fmul_rn(dx.x, force_divr);
+                    force.y += __fmul_rn(dx.y, force_divr);
+                    force.z += __fmul_rn(dx.z, force_divr);
 #endif
-            
+
                     force.w += pair_eng;
                     }
                 }
@@ -1019,7 +1021,7 @@ cudaError_t fix_exclusions(float4 *d_force,
                            const unsigned int N,
                            const Scalar4 *d_pos,
                            const Scalar *d_charge,
-                           const gpu_boxsize &box,
+                           const BoxDim& box,
                            const unsigned int *d_n_ex,
                            const unsigned int *d_exlist,
                            const Index2D nex,

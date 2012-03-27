@@ -144,7 +144,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     ArrayHandle<cufftComplex> d_rho_real_space(PPPMData::m_rho_real_space, access_location::device, access_mode::readwrite);
     ArrayHandle<cufftComplex> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
     ArrayHandle<cufftComplex> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
@@ -161,12 +161,12 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     if(m_box_changed) {
-
-        Scalar temp = floor(((m_kappa*box.Lx/(M_PI*m_Nx)) *  pow(-log(EPS_HOC),0.25)));
+        Scalar3 L = box.getL();
+        Scalar temp = floor(((m_kappa*L.x/(M_PI*m_Nx)) *  pow(-log(EPS_HOC),0.25)));
         int nbx = (int)temp;
-        temp = floor(((m_kappa*box.Ly/(M_PI*m_Ny)) * pow(-log(EPS_HOC),0.25)));
+        temp = floor(((m_kappa*L.y/(M_PI*m_Ny)) * pow(-log(EPS_HOC),0.25)));
         int nby = (int)temp;
-        temp =  floor(((m_kappa*box.Lz/(M_PI*m_Nz)) *  pow(-log(EPS_HOC),0.25)));
+        temp =  floor(((m_kappa*L.z/(M_PI*m_Nz)) *  pow(-log(EPS_HOC),0.25)));
         int nbz = (int)temp;
 
         ArrayHandle<Scalar3> d_vg(PPPMData::m_vg, access_location::device, access_mode::readwrite);;
@@ -189,7 +189,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 
 
         Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
-        m_energy_virial_factor = 0.5 * box.Lx * box.Ly * box.Lz * scale * scale;
+        m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
         PPPMData::energy_virial_factor = m_energy_virial_factor;
         m_box_changed = false;
         }

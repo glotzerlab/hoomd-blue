@@ -132,6 +132,15 @@ class BoxDim
             m_periodic = make_uchar3(1,1,1);
             }
 
+        //! Constructs a box from -L/2 to L/2 for each dimension
+        /*! \param L box lengths
+            \post periodic = (1,1,1)
+        */
+        HOSTDEVICE BoxDim(Scalar3 L)
+            {
+            BoxDim::BoxDim(L.x, L.y, L.z);
+            }
+
         //! Construct a box from specific lo and hi values
         /*! \param lo Lo coordinate in the box
             \param hi Hi coordinate in the box

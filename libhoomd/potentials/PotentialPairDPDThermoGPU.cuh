@@ -72,7 +72,7 @@ struct dpd_pair_args_t
                     const unsigned int _N,
                     const Scalar4 *_d_pos,
                     const Scalar4 *_d_vel,
-                    const gpu_boxsize &_box,
+                    const BoxDim& _box,
                     const unsigned int *_d_n_neigh,
                     const unsigned int *_d_nlist,
                     const Index2D& _nli,
@@ -115,7 +115,7 @@ struct dpd_pair_args_t
     const unsigned int N;           //!< number of particles
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar4 *d_vel;           //!< particle velocities
-    const gpu_boxsize &box;         //!< Simulation box in GPU format
+    const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const Index2D& nli;             //!< Indexer for accessing d_nlist
@@ -184,7 +184,7 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
                                               const Scalar4 *d_vel,
-                                              gpu_boxsize box,
+                                              BoxDim box,
                                               const unsigned int *d_n_neigh,
                                               const unsigned int *d_nlist,
                                               const Index2D nli,
@@ -231,11 +231,13 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 posi = tex1Dfetch(pdata_dpd_pos_tex, idx);
+    float4 postypei = tex1Dfetch(pdata_dpd_pos_tex, idx);
+    float3 posi = make_float3(postypei.x, postypei.y, postypei.z);
 
     // read in the velocity of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 veli = tex1Dfetch(pdata_dpd_vel_tex, idx);
+    float4 velmassi = tex1Dfetch(pdata_dpd_vel_tex, idx);
+    float3 veli = make_float3(velmassi.x, velmassi.y, velmassi.z);
 
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -267,33 +269,29 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 posj = tex1Dfetch(pdata_dpd_pos_tex, cur_j);
+            float4 postypej = tex1Dfetch(pdata_dpd_pos_tex, cur_j);
+            float3 posj = make_float3(postypej.x, postypej.y, postypej.z);
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 velj = tex1Dfetch(pdata_dpd_vel_tex, cur_j);
+            float4 velmassj = tex1Dfetch(pdata_dpd_vel_tex, cur_j);
+            float3 velj = make_float3(velmassj.x, velmassj.y, velmassj.z);;
 
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-            float dx = posi.x - posj.x;
-            float dy = posi.y - posj.y;
-            float dz = posi.z - posj.z;
+            float3 dx = posi - posj;
 
             // apply periodic boundary conditions: (FLOPS 12)
-            dx -= box.Lx * rintf(dx * box.Lxinv);
-            dy -= box.Ly * rintf(dy * box.Lyinv);
-            dz -= box.Lz * rintf(dz * box.Lzinv);
+            dx = box.minImage(dx);
 
             // calculate r squard (FLOPS: 5)
-            float rsq = dx*dx + dy*dy + dz*dz;
+            float rsq = dot(dx,dx);
 
             // calculate dv (FLOPS: 3)
-            float dvx = veli.x - velj.x;
-            float dvy = veli.y - velj.y;
-            float dvz = veli.z - velj.z;
+            float3 dv = veli - velj;
 
-            float dot = dx*dvx + dy*dvy + dz*dvz;
+            float rdotv = dot(dx, dv);
 
             // access the per type pair parameters
-            unsigned int typpair = typpair_idx(__float_as_int(posi.w), __float_as_int(posj.w));
+            unsigned int typpair = typpair_idx(__float_as_int(postypei.w), __float_as_int(postypej.w));
             float rcutsq = s_rcutsq[typpair];
             typename evaluator::param_type param = s_params[typpair];
 
@@ -314,7 +312,7 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             // Special Potential Pair DPD Requirements
             eval.set_seed_ij_timestep(d_seed,idx,cur_j,d_timestep);
             eval.setDeltaT(d_deltaT);
-            eval.setRDotV(dot);
+            eval.setRDotV(rdotv);
             eval.setT(d_T);
 
             eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
@@ -323,24 +321,24 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             if (compute_virial)
                 {
                 Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
-                virial[0] = dx * dx * force_div2r_cons;
-                virial[1] = dx * dy * force_div2r_cons;
-                virial[2] = dx * dz * force_div2r_cons;
-                virial[3] = dy * dy * force_div2r_cons;
-                virial[4] = dy * dz * force_div2r_cons;
-                virial[5] = dz * dz * force_div2r_cons;
+                virial[0] = dx.x * dx.x * force_div2r_cons;
+                virial[1] = dx.x * dx.y * force_div2r_cons;
+                virial[2] = dx.x * dx.z * force_div2r_cons;
+                virial[3] = dx.y * dx.y * force_div2r_cons;
+                virial[4] = dx.y * dx.z * force_div2r_cons;
+                virial[5] = dx.z * dx.z * force_div2r_cons;
                 }
 
             // add up the force vector components (FLOPS: 7)
             #if (__CUDA_ARCH__ >= 200)
-            force.x += dx * force_divr;
-            force.y += dy * force_divr;
-            force.z += dz * force_divr;
+            force.x += dx.x * force_divr;
+            force.y += dx.y * force_divr;
+            force.z += dx.z * force_divr;
             #else
             // fmad causes momentum drift here, prevent it from being used
-            force.x += __fmul_rn(dx, force_divr);
-            force.y += __fmul_rn(dy, force_divr);
-            force.z += __fmul_rn(dz, force_divr);
+            force.x += __fmul_rn(dx.x, force_divr);
+            force.y += __fmul_rn(dx.y, force_divr);
+            force.z += __fmul_rn(dx.z, force_divr);
             #endif
 
             force.w += pair_eng;

@@ -68,7 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param N Number of particles
     \param Nmax Maximum number of particles that can be placed in a single cell
     \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
-    \param scale Multipler to convert from particle coordinates to grid coordinates
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
@@ -86,8 +85,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              const unsigned int N,
                                              const unsigned int Nmax,
                                              const bool flag_charge,
-                                             const Scalar3 scale,
-                                             const gpu_boxsize box,
+                                             const BoxDim box,
                                              const Index3D ci,
                                              const Index2D cli)
     {
@@ -95,8 +93,10 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= N)
         return;
-        
-    float4 pos = d_pos[idx];
+
+    float4 postype = d_pos[idx];
+    float3 pos = make_float3(postype.x, postype.y, postype.z);
+
     float flag = 0.0f;
     float diameter = 0.0f;
     float body = 0;
@@ -105,9 +105,9 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         {
         diameter = d_diameter[idx];
         body = __int_as_float(d_body[idx]);
-        type = pos.w;
+        type = postype.w;
         }
-        
+
     if (flag_charge)
         flag = d_charge[idx];
     else
@@ -119,12 +119,13 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         d_conditions[1] = idx+1;
         return;
         }
-    
-    // determine which bin it belongs in
-    unsigned int ib = (unsigned int)((pos.x+box.Lx/2.0f)*scale.x);
-    unsigned int jb = (unsigned int)((pos.y+box.Ly/2.0f)*scale.y);
-    unsigned int kb = (unsigned int)((pos.z+box.Lz/2.0f)*scale.z);
-    
+
+    // find the bin each particle belongs in
+    Scalar3 f = box.makeFraction(pos);
+    unsigned int ib = (unsigned int)(f.x * ci.getW());
+    unsigned int jb = (unsigned int)(f.y * ci.getH());
+    unsigned int kb = (unsigned int)(f.z * ci.getD());
+
     // need to handle the case where the particle is exactly at the box hi
     if (ib == ci.getW())
         ib = 0;
@@ -132,7 +133,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         jb = 0;
     if (kb == ci.getD())
         kb = 0;
-        
+
     unsigned int bin = ci(ib, jb, kb);
 
     // check if the particle is inside the dimensions
@@ -141,7 +142,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         d_conditions[2] = idx+1;
         return;
         }
-    
+
     unsigned int size = atomicInc(&d_cell_size[bin], 0xffffffff);
     if (size < Nmax)
         {
@@ -168,8 +169,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const unsigned int N,
                                   const unsigned int Nmax,
                                   const bool flag_charge,
-                                  const Scalar3& scale,
-                                  const gpu_boxsize& box,
+                                  const BoxDim& box,
                                   const Index3D& ci,
                                   const Index2D& cli)
     {
@@ -193,7 +193,6 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                                            N,
                                                            Nmax,
                                                            flag_charge,
-                                                           scale,
                                                            box,
                                                            ci,
                                                            cli);
@@ -344,7 +343,6 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
     \param N Number of particles
     \param Nmax Maximum number of particles that can be placed in a single cell
     \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
-    \param scale Multipler to convert from particle coordinates to grid coordinates
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
@@ -363,8 +361,7 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
                                                 const unsigned int N,
                                                 const unsigned int Nmax,
                                                 const bool flag_charge,
-                                                const Scalar3 scale,
-                                                const gpu_boxsize box,
+                                                const BoxDim box,
                                                 const Index3D ci,
                                                 const Index2D cli)
     {
@@ -373,16 +370,19 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
 
     // read in the particle that belongs to this thread
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-        
-    float4 pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    if (idx < N)
-        pos = d_pos[idx];
 
-    // determine which bin it belongs in
-    unsigned int ib = (unsigned int)((pos.x+box.Lx/2.0f)*scale.x);
-    unsigned int jb = (unsigned int)((pos.y+box.Ly/2.0f)*scale.y);
-    unsigned int kb = (unsigned int)((pos.z+box.Lz/2.0f)*scale.z);
-    
+    float4 postype = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    if (idx < N)
+        postype = d_pos[idx];
+
+    float3 pos = make_float3(postype.x, postype.y, postype.z);
+
+    // find the bin each particle belongs in
+    Scalar3 f = box.makeFraction(pos);
+    unsigned int ib = (unsigned int)(f.x * ci.getW());
+    unsigned int jb = (unsigned int)(f.y * ci.getH());
+    unsigned int kb = (unsigned int)(f.z * ci.getD());
+
     // need to handle the case where the particle is exactly at the box hi
     if (ib == ci.getW())
         ib = 0;
@@ -512,8 +512,7 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const unsigned int N,
                                      const unsigned int Nmax,
                                      const bool flag_charge,
-                                     const Scalar3& scale,
-                                     const gpu_boxsize& box,
+                                     const BoxDim& box,
                                      const Index3D& ci,
                                      const Index2D& cli)
     {
@@ -538,7 +537,6 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                                               N,
                                                               Nmax,
                                                               flag_charge,
-                                                              scale,
                                                               box,
                                                               ci,
                                                               cli);

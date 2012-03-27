@@ -202,55 +202,33 @@ extern "C" __global__
 void gpu_npt_boxscale_kernel(const unsigned int N,
                              Scalar4 *d_pos,
                              int3 *d_image,
-                             gpu_boxsize box,
+                             BoxDim box,
                              bool partial_scale,
                              float box_len_scale)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     // scale ALL particles in the box
     if (idx < N)
         {
         // fetch particle position
-        float4 pos = d_pos[idx];
-        
-        float px = pos.x;
-        float py = pos.y;
-        float pz = pos.z;
-        float pw = pos.w;
-        
+        float4 postype = d_pos[idx];
+        float3 pos = make_float3(postype.x, postype.y, postype.z);
+
         if (!partial_scale)
             {
-            px *= box_len_scale;
-            py *= box_len_scale;
-            pz *= box_len_scale;
+            pos *= box_len_scale;
             }
-        
+
         // read in the image flags
         int3 image = d_image[idx];
-        
+
         // fix periodic boundary conditions
-        float x_shift = rintf(px * box.Lxinv);
-        px -= box.Lx * x_shift;
-        image.x += (int)x_shift;
-        
-        float y_shift = rintf(py * box.Lyinv);
-        py -= box.Ly * y_shift;
-        image.y += (int)y_shift;
-        
-        float z_shift = rintf(pz * box.Lzinv);
-        pz -= box.Lz * z_shift;
-        image.z += (int)z_shift;
-        
-        Scalar4 pos2;
-        pos2.x = px;
-        pos2.y = py;
-        pos2.z = pz;
-        pos2.w = pw;
-        
+        box.wrap(pos, image);
+
         // write out the results
-        d_pos[idx] = pos2;
+        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
         d_image[idx] = image;
         }
     }
@@ -268,7 +246,7 @@ void gpu_npt_boxscale_kernel(const unsigned int N,
 cudaError_t gpu_npt_boxscale(const unsigned int N,
                              Scalar4 *d_pos,
                              int3 *d_image,
-                             const gpu_boxsize& box,
+                             const BoxDim& box,
                              bool partial_scale,
                              float Eta,
                              float deltaT)
@@ -281,13 +259,7 @@ cudaError_t gpu_npt_boxscale(const unsigned int N,
     float box_len_scale = exp(Eta*deltaT);  // box length dilatation factor
     
     // scale the box before running the kernel
-    gpu_boxsize scaled_box = box;
-    scaled_box.Lx *= box_len_scale;
-    scaled_box.Ly *= box_len_scale;
-    scaled_box.Lz *= box_len_scale;
-    scaled_box.Lxinv = 1.0f/scaled_box.Lx;
-    scaled_box.Lyinv = 1.0f/scaled_box.Ly;
-    scaled_box.Lzinv = 1.0f/scaled_box.Lz;
+    BoxDim scaled_box(box.getL()*box_len_scale);
 
     // run the kernel
     gpu_npt_boxscale_kernel<<< grid, threads >>>(N, d_pos, d_image, scaled_box, partial_scale, box_len_scale);

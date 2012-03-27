@@ -499,17 +499,7 @@ class ParticleData : boost::noncopyable
         //! return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
 
-#ifdef ENABLE_CUDA
-        //! Get the box for the GPU
-        /*! \returns Box dimensions suitable for passing to the GPU code
-        */
-        const gpu_boxsize& getBoxGPU() const
-            {
-            return m_gpu_box;
-            }
-            
-#endif
-        
+
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
         */
@@ -818,11 +808,6 @@ class ParticleData : boost::noncopyable
         std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle
         
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
-        
-#ifdef ENABLE_CUDA
-        //! Simple type for identifying where the most up to date particle data is
-        gpu_boxsize m_gpu_box;              //!< Mirror structure of m_box for the GPU
-#endif
         
         //! Helper function to allocate CPU data
         void allocate(unsigned int N);

@@ -163,7 +163,7 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::read);
 
-    gpu_boxsize box = this->m_pdata->getBoxGPU();
+    BoxDim box = this->m_pdata->getBox();
 
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);

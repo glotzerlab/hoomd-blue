@@ -107,85 +107,72 @@ extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
                                                         unsigned int *d_rigid_group,
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
-                                                        gpu_boxsize box,
+                                                        BoxDim box,
                                                         gpu_npt_rigid_data npt_rdata)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= n_group_bodies)
         return;
-        
-    unsigned int idx_body = d_rigid_group[group_idx];
-        
-    float oldlo, oldhi, ctr;
-    float xlo, xhi, ylo, yhi, zlo, zhi, Lx, Ly, Lz;
-    float4 pos, delta;
-    float dilation = npt_rdata.dilation;
-    
-    xlo = -box.Lx/2.0f;
-    xhi = box.Lx/2.0f;
-    ylo = -box.Ly/2.0f;
-    yhi = box.Ly/2.0f;
-    zlo = -box.Lz/2.0f;
-    zhi = box.Lz/2.0f;
-    Lz = zhi - zlo;
-    
-    float4 com = rdata_com[idx_body];
-    
-    delta.x = com.x - xlo;
-    delta.y = com.y - ylo;
-    delta.z = com.z - zlo;
 
-    pos.x = box.Lxinv * delta.x;
-    pos.y = box.Lyinv * delta.y;
-    pos.z = box.Lzinv * delta.z;
-    
+    unsigned int idx_body = d_rigid_group[group_idx];
+
+    float oldlo, oldhi, ctr;
+    float3 pos, delta;
+    float dilation = npt_rdata.dilation;
+
+    Scalar3 lo = box.getLo();
+    Scalar3 hi = box.getHi();
+    Scalar3 L = box.getL();
+
+    float4 com = rdata_com[idx_body];
+
+    delta.x = com.x - lo.x;
+    delta.y = com.y - lo.y;
+    delta.z = com.z - lo.z;
+
+    pos.x = 1.0f / L.x * delta.x;
+    pos.y = 1.0f / L.y * delta.y;
+    pos.z = 1.0f / L.z * delta.z;
+
     // reset box to new size/shape
-    oldlo = xlo;
-    oldhi = xhi;
+    oldlo = lo.x;
+    oldhi = hi.x;
     ctr = 0.5f * (oldlo + oldhi);
-    xlo = (oldlo - ctr) * dilation + ctr;
-    xhi = (oldhi - ctr) * dilation + ctr;
-    Lx = xhi - xlo;
-    
-    oldlo = ylo;
-    oldhi = yhi;
+    lo.x = (oldlo - ctr) * dilation + ctr;
+    hi.x = (oldhi - ctr) * dilation + ctr;
+    L.x = hi.x - lo.x;
+
+    oldlo = lo.y;
+    oldhi = hi.y;
     ctr = 0.5f * (oldlo + oldhi);
-    ylo = (oldlo - ctr) * dilation + ctr;
-    yhi = (oldhi - ctr) * dilation + ctr;
-    Ly = yhi - ylo;
-    
+    lo.y = (oldlo - ctr) * dilation + ctr;
+    hi.y = (oldhi - ctr) * dilation + ctr;
+    L.y = hi.y - lo.y;
+
     if (npt_rdata.dimension == 3)
         {
-        oldlo = zlo;
-        oldhi = zhi;
+        oldlo = lo.z;
+        oldhi = hi.z;
         ctr = 0.5f * (oldlo + oldhi);
-        zlo = (oldlo - ctr) * dilation + ctr;
-        zhi = (oldhi - ctr) * dilation + ctr;
-        Lz = zhi - zlo;
+        lo.z = (oldlo - ctr) * dilation + ctr;
+        hi.z = (oldhi - ctr) * dilation + ctr;
+        L.z = hi.z - lo.z;
         }
-    
+
     // convert rigid body COMs back to box coords
-    float4 newboxlo;
-    newboxlo.x = -Lx/2.0f;
-    newboxlo.y = -Ly/2.0f;
-    newboxlo.z = -Lz/2.0f;
-    
-    pos.x = Lx * pos.x + newboxlo.x;
-    pos.y = Ly * pos.y + newboxlo.y;
-    pos.z = Lz * pos.z + newboxlo.z;
-    
+    float3 newboxlo = -L/2.0f;
+    pos = L * pos + newboxlo;
+
     // write out results
-    rdata_com[idx_body].x = pos.x;
-    rdata_com[idx_body].y = pos.y;
-    rdata_com[idx_body].z = pos.z;
-    
+    rdata_com[idx_body] = make_float4(pos.x, pos.y, pos.z, 0.0f);
+
     if (idx_body == 0)
         {
-        *(npt_rdata.new_box) = make_float4(Lx, Ly, Lz, 0.0f);
+        *(npt_rdata.new_box) = make_float4(L.x, L.y, L.z, 0.0f);
         }
     }
 
-    
+
 #pragma mark RIGID_STEP_ONE_KERNEL
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
     \param rdata_com Body center of mass
@@ -237,14 +224,14 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
                                                             unsigned int npt_rdata_nf_t,
                                                             unsigned int npt_rdata_nf_r,
                                                             unsigned int npt_rdata_dimension, 
-                                                            gpu_boxsize box, 
+                                                            BoxDim box, 
                                                             float deltaT)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx >= n_group_bodies)
         return;
-        
+
     // do velocity verlet update
     // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
     // r(t+deltaT) = r(t) + v(t+deltaT/2)*deltaT
@@ -276,12 +263,12 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     force = d_rigid_force[idx_body];
     torque = d_rigid_torque[idx_body];
     conjqm = rdata_conjqm[idx_body];
-    
+
     exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
-    
+
     // update velocity
     float dtfm = dt_half / body_mass;
-    
+
     float4 vel2;
     vel2.x = vel.x + dtfm * force.x;
     vel2.y = vel.y + dtfm * force.y;
@@ -290,53 +277,40 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     vel2.y *= scale_t;
     vel2.z *= scale_t;
     vel2.w = vel.w;
-    
+
     tmp = vel2.x * vel2.x + vel2.y * vel2.y + vel2.z * vel2.z;
     akin_t = body_mass * tmp;
-    
+
     // update position
-    float4 pos2;
+    float3 pos2;
     pos2.x = com.x + vel2.x * scale_v;
     pos2.y = com.y + vel2.y * scale_v;
     pos2.z = com.z + vel2.z * scale_v;
-    pos2.w = com.w;
-    
-    // read in body's image
+
     // time to fix the periodic boundary conditions
-    float x_shift = rintf(pos2.x * box.Lxinv);
-    pos2.x -= box.Lx * x_shift;
-    body_image.x += (int)x_shift;
-    
-    float y_shift = rintf(pos2.y * box.Lyinv);
-    pos2.y -= box.Ly * y_shift;
-    body_image.y += (int)y_shift;
-    
-    float z_shift = rintf(pos2.z * box.Lzinv);
-    pos2.z -= box.Lz * z_shift;
-    body_image.z += (int)z_shift;
-    
+    box.wrap(pos2, body_image);
+
     matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
     quatvec(orientation, tbody, fquat);
-    
+
     float4 conjqm2;
     conjqm2.x = conjqm.x + deltaT * fquat.x;
     conjqm2.y = conjqm.y + deltaT * fquat.y;
     conjqm2.z = conjqm.z + deltaT * fquat.z;
     conjqm2.w = conjqm.w + deltaT * fquat.w;
-    
+
     conjqm2.x *= scale_r;
     conjqm2.y *= scale_r;
     conjqm2.z *= scale_r;
     conjqm2.w *= scale_r;
-    
+
     // use no_squish rotate to update p and q
-    
     no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
     no_squish_rotate(2, conjqm2, orientation, moment_inertia, dt_half);
     no_squish_rotate(1, conjqm2, orientation, moment_inertia, deltaT);
     no_squish_rotate(2, conjqm2, orientation, moment_inertia, dt_half);
     no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
-    
+
     // update the exyz_space
     // transform p back to angmom
     // update angular velocity
@@ -344,26 +318,25 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
     invquatvec(orientation, conjqm2, mbody);
     transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
-    
+
     angmom2.x *= 0.5f;
     angmom2.y *= 0.5f;
     angmom2.z *= 0.5f;
-    
+
     float4 angvel2;
     computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel2);
-    
-    akin_r = angmom2.x * angvel2.x + angmom2.y * angvel2.y + angmom2.z * angvel2.z;
-    
-    // write out the results (MEM_TRANSFER: ? bytes)
 
-    rdata_com[idx_body] = pos2;
+    akin_r = angmom2.x * angvel2.x + angmom2.y * angvel2.y + angmom2.z * angvel2.z;
+
+    // write out the results (MEM_TRANSFER: ? bytes)
+    rdata_com[idx_body] = make_float4(pos2.x, pos2.y, pos2.z, com.w);
     rdata_vel[idx_body] = vel2;
     rdata_angmom[idx_body] = angmom2;
     rdata_angvel[idx_body] = angvel2;
     rdata_orientation[idx_body] = orientation;
     rdata_body_image[idx_body] = body_image;
     rdata_conjqm[idx_body] = conjqm2;
-    
+
     npt_rdata_partial_Ksum_t[idx_body] = akin_t;
     npt_rdata_partial_Ksum_r[idx_body] = akin_r;
     }
@@ -381,7 +354,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
-                                   const gpu_boxsize &box, 
+                                   const BoxDim& box, 
                                    const gpu_npt_rigid_data& npt_rdata,
                                    float deltaT)
     {
@@ -476,7 +449,7 @@ extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(float4* rdata_vel,
                                                           unsigned int npt_rdata_nf_t,
                                                           unsigned int npt_rdata_nf_r,
                                                           unsigned int npt_rdata_dimension,
-                                                          gpu_boxsize box, 
+                                                          BoxDim box, 
                                                           float deltaT)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -573,7 +546,7 @@ cudaError_t gpu_npt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int group_size,
                                     float4 *d_net_force,
                                     float *d_net_virial,
-                                    const gpu_boxsize &box, 
+                                    const BoxDim& box, 
                                     const gpu_npt_rigid_data& npt_rdata,
                                     float deltaT)
     {

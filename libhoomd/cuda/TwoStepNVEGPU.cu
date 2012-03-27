@@ -92,7 +92,7 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
                              int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             gpu_boxsize box,
+                             BoxDim box,
                              float deltaT,
                              bool limit,
                              float limit_val,
@@ -110,71 +110,43 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
         // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 
         // read the particle's posision (MEM TRANSFER: 16 bytes)
-        Scalar4 pos = d_pos[idx];
-        
-        float px = pos.x;
-        float py = pos.y;
-        float pz = pos.z;
-        float pw = pos.w;
-        
+        Scalar4 postype = d_pos[idx];
+        Scalar3 pos = make_float3(postype.x, postype.y, postype.z);
+
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 vel = d_vel[idx];
+        float4 velmass = d_vel[idx];
+        float3 vel = make_float3(velmass.x, velmass.y, velmass.z);
+
         Scalar3 accel = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         if (!zero_force)
             accel = d_accel[idx];
-        
+
         // update the position (FLOPS: 15)
-        float dx = vel.x * deltaT + (1.0f/2.0f) * accel.x * deltaT * deltaT;
-        float dy = vel.y * deltaT + (1.0f/2.0f) * accel.y * deltaT * deltaT;
-        float dz = vel.z * deltaT + (1.0f/2.0f) * accel.z * deltaT * deltaT;
-        
+        float3 dx = vel * deltaT + (1.0f/2.0f) * accel * deltaT * deltaT;
+
         // limit the movement of the particles
         if (limit)
             {
-            float len = sqrtf(dx*dx + dy*dy + dz*dz);
+            float len = sqrtf(dot(dx, dx));
             if (len > limit_val)
-                {
                 dx = dx / len * limit_val;
-                dy = dy / len * limit_val;
-                dz = dz / len * limit_val;
-                }
             }
-            
+
         // FLOPS: 3
-        px += dx;
-        py += dy;
-        pz += dz;
-        
+        pos += dx;
+
         // update the velocity (FLOPS: 9)
-        vel.x += (1.0f/2.0f) * accel.x * deltaT;
-        vel.y += (1.0f/2.0f) * accel.y * deltaT;
-        vel.z += (1.0f/2.0f) * accel.z * deltaT;
-        
+        vel += (1.0f/2.0f) * accel * deltaT;
+
         // read in the particle's image (MEM TRANSFER: 16 bytes)
         int3 image = d_image[idx];
-        
+
         // fix the periodic boundary conditions (FLOPS: 15)
-        float x_shift = rintf(px * box.Lxinv);
-        px -= box.Lx * x_shift;
-        image.x += (int)x_shift;
-        
-        float y_shift = rintf(py * box.Lyinv);
-        py -= box.Ly * y_shift;
-        image.y += (int)y_shift;
-        
-        float z_shift = rintf(pz * box.Lzinv);
-        pz -= box.Lz * z_shift;
-        image.z += (int)z_shift;
-        
-        Scalar4 pos2;
-        pos2.x = px;
-        pos2.y = py;
-        pos2.z = pz;
-        pos2.w = pw;
-        
+        box.wrap(pos, image);
+
         // write out the results (MEM_TRANSFER: 48 bytes)
-        d_pos[idx] = pos2;
-        d_vel[idx] = vel;
+        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
+        d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, velmass.w);
         d_image[idx] = image;
         }
     }
@@ -200,7 +172,7 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             const gpu_boxsize &box,
+                             const BoxDim& box,
                              float deltaT,
                              bool limit,
                              float limit_val,

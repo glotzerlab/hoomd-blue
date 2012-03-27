@@ -172,15 +172,13 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
         {
         ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
         const BoxDim& box = m_pdata->getBox();
-        Scalar Lx = box.xhi - box.xlo;
-        Scalar Ly = box.yhi - box.ylo;
-        Scalar Lz = box.zhi - box.zlo;
+        Scalar3 L = box.getL();
         
         Scalar vol;   // volume
         if (dimension == 2) 
-            vol = Lx * Ly;
+            vol = L.x * L.y;
         else 
-            vol = Lx * Ly * Lz;
+            vol = L.x * L.y * L.z;
 
         Scalar p_target = m_pressure->getValue(timestep);
         
@@ -216,7 +214,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "NPT rigid step 1");
     
     // access all the needed data
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -369,7 +367,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NPT rigid step 2");
     
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();

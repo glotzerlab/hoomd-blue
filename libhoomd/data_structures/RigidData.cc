@@ -761,7 +761,7 @@ void RigidData::setRVGPU(bool set_x)
     // access all the needed data
     ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
     
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     
     ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::device, access_mode::read);

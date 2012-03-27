@@ -82,7 +82,7 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                Scalar4 *d_vel,
                                unsigned int *d_group_members,
                                unsigned int group_size,
-                               const gpu_boxsize &box,
+                               const BoxDim& box,
                                const compute_thermo_args& args,
                                const bool compute_pressure_tensor
                                );

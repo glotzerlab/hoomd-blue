@@ -245,7 +245,7 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(float *d_scratch,
 __global__ void gpu_compute_thermo_final_sums(float *d_properties,
                                               float4 *d_scratch,
                                               unsigned int ndof,
-                                              gpu_boxsize box,
+                                              BoxDim box,
                                               unsigned int D,
                                               unsigned int group_size,
                                               unsigned int num_partial_sums)
@@ -301,17 +301,18 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
         // volume/area & other 2D stuff needed
 
         Scalar volume;
+        Scalar3 L = box.getL();
 
         if (D == 2)
             {
             // "volume" is area in 2D
-            volume = box.Lx * box.Ly;
+            volume = L.x * L.y;
             // W needs to be corrected since the 1/3 factor is built in
             W *= Scalar(3.0)/Scalar(2.0);
             }
         else
             {
-            volume = box.Lx * box.Ly * box.Lz;
+            volume = L.x * L.y * L.z;
             }
 
         // pressure: P = (N * K_B * T + W)/V
@@ -339,7 +340,7 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
 */
 __global__ void gpu_compute_pressure_tensor_final_sums(float *d_properties,
                                               float *d_scratch,
-                                              gpu_boxsize box,
+                                              BoxDim box,
                                               unsigned int group_size,
                                               unsigned int num_partial_sums)
     {
@@ -387,7 +388,8 @@ __global__ void gpu_compute_pressure_tensor_final_sums(float *d_properties,
         // fill out the GPUArray
         // we have thus far calculated the sum of the kinetic part of the pressure tensor
         // and the virial part, the definition includes an inverse factor of the box volume
-        float V = box.Lx * box.Ly * box.Lz;
+        Scalar3 L = box.getL();
+        float V = L.x * L.y * L.z;
 
         d_properties[thermo_index::pressure_xx] = final_sum[0]/V;
         d_properties[thermo_index::pressure_xy] = final_sum[1]/V;
@@ -414,7 +416,7 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                Scalar4 *d_vel,
                                unsigned int *d_group_members,
                                unsigned int group_size,
-                               const gpu_boxsize &box,
+                               const BoxDim& box,
                                const compute_thermo_args& args,
                                const bool compute_pressure_tensor
                                )

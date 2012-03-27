@@ -77,7 +77,7 @@ cudaError_t gpu_npt_step_one(Scalar4 *d_pos,
 cudaError_t gpu_npt_boxscale(const unsigned int N,
                              Scalar4 *d_pos,
                              int3 *d_image,
-                             const gpu_boxsize& box,
+                             const BoxDim& box,
                              bool partial_scale,
                              float Eta,
                              float deltaT);

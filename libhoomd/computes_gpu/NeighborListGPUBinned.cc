@@ -172,7 +172,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -212,8 +212,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
                                  scale,
-                                 m_cl->getDim(),
-                                 box,
                                  rmaxsq,
                                  m_block_size,
                                  m_filter_body,
@@ -255,8 +253,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     dca_cell_tdb,
                                     dca_cell_adj,
                                     m_cl->getCellIndexer(),
-                                    scale,
-                                    m_cl->getDim(),
                                     box,
                                     rmaxsq,
                                     m_block_size,

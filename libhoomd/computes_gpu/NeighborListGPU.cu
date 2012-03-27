@@ -75,7 +75,7 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const float4 *d_last_pos,
                                                         const float4 *d_pos,
                                                         const unsigned int N,
-                                                        const gpu_boxsize box,
+                                                        const BoxDim box,
                                                         const float maxshiftsq,
                                                         const unsigned int checkn)
     {
@@ -86,19 +86,15 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
 
     if (idx < N)
         {
-        float4 cur_pos = d_pos[idx];
-        float4 last_pos = d_last_pos[idx];
-        float dx = cur_pos.x - last_pos.x;
-        float dy = cur_pos.y - last_pos.y;
-        float dz = cur_pos.z - last_pos.z;
+        float4 cur_postype = d_pos[idx];
+        float3 cur_pos = make_float3(cur_postype.x, cur_postype.y, cur_postype.z);
+        float4 last_postype = d_last_pos[idx];
+        float3 last_pos = make_float3(last_postype.x, last_postype.y, last_postype.z);
 
-        dx = dx - box.Lx * rintf(dx * box.Lxinv);
-        dy = dy - box.Ly * rintf(dy * box.Lyinv);
-        dz = dz - box.Lz * rintf(dz * box.Lzinv);
+        float3 dx = cur_pos - last_pos;
+        dx = box.minImage(dx);
 
-        float drsq = dx*dx + dy*dy + dz*dz;
-        
-        if (drsq >= maxshiftsq)
+        if (dot(dx, dx) >= maxshiftsq)
             {
             *d_result = checkn;
             }
@@ -109,7 +105,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const float4 *d_last_pos,
                                              const float4 *d_pos,
                                              const unsigned int N,
-                                             const gpu_boxsize& box,
+                                             const BoxDim& box,
                                              const float maxshiftsq,
                                              const unsigned int checkn)
     {
@@ -275,29 +271,29 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
                                   const Index2D nli,
                                   const float4 *d_pos,
                                   const unsigned int N,
-                                  const gpu_boxsize box,
+                                  const BoxDim box,
                                   const float r_maxsq)
     {
     // shared data to store all of the particles we compare against
     __shared__ float sdata[NLIST_BLOCK_SIZE*4];
-    
+
     // load in the particle
     int pidx = blockIdx.x * NLIST_BLOCK_SIZE + threadIdx.x;
 
     // store the max number of neighbors needed for this thread
     unsigned int n_neigh_needed = 0;
-    
+
     float4 pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     if (pidx < N)
         pos = d_pos[pidx];
-        
+
     float px = pos.x;
     float py = pos.y;
     float pz = pos.z;
-    
+
     // track the number of neighbors added so far
     int n_neigh = 0;
-    
+
     // each block is going to loop over all N particles (this assumes memory is padded to a multiple of blockDim.x)
     // in blocks of blockDim.x
     for (int start = 0; start < N; start += NLIST_BLOCK_SIZE)
@@ -306,64 +302,52 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
         float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         if (start + threadIdx.x < N)
             neigh_pos = d_pos[start + threadIdx.x];
-            
+
         // make sure everybody is caught up before we stomp on the memory
         __syncthreads();
         sdata[threadIdx.x] = neigh_pos.x;
         sdata[threadIdx.x + NLIST_BLOCK_SIZE] = neigh_pos.y;
         sdata[threadIdx.x + 2*NLIST_BLOCK_SIZE] = neigh_pos.z;
         sdata[threadIdx.x + 3*NLIST_BLOCK_SIZE] = neigh_pos.w; //< unused, but try to get compiler to fully coalesce reads
-        
+
         // ensure all data is loaded
         __syncthreads();
-        
+
         // now each thread loops over every particle in shmem, but doesn't loop past the end of the particle list (since
         // the block might extend that far)
         int end_offset= NLIST_BLOCK_SIZE;
         end_offset = min(end_offset, N - start);
-        
+
         if (pidx < N)
             {
             for (int cur_offset = 0; cur_offset < end_offset; cur_offset++)
                 {
                 // calculate dr
-                float dx = px - sdata[cur_offset];
-                dx = dx - box.Lx * rintf(dx * box.Lxinv);
-                
-                if (dx*dx <= r_maxsq)
+                float3 dx = make_float3(px - sdata[cur_offset],
+                                        py - sdata[cur_offset + NLIST_BLOCK_SIZE],
+                                        pz - sdata[cur_offset + 2*NLIST_BLOCK_SIZE]);
+                dx = box.minImage(dx);
+
+                // we don't add if we are comparing to ourselves, and we don't add if we are above the cut
+                if ((dot(dx,dx) <= r_maxsq) && ((start + cur_offset) != pidx))
                     {
-                    float dy = py - sdata[cur_offset + NLIST_BLOCK_SIZE];
-                    dy = dy - box.Ly * rintf(dy * box.Lyinv);
-                    
-                    if (dy*dy <= r_maxsq)
-                        {
-                        float dz = pz - sdata[cur_offset + 2*NLIST_BLOCK_SIZE];
-                        dz = dz - box.Lz * rintf(dz * box.Lzinv);
-                        
-                        float drsq = dx*dx + dy*dy + dz*dz;
-                        
-                        // we don't add if we are comparing to ourselves, and we don't add if we are above the cut
-                        if ((drsq <= r_maxsq) && ((start + cur_offset) != pidx))
-                            {
-                            if (n_neigh < nli.getH())
-                                d_nlist[nli(pidx, n_neigh)] = start+cur_offset;
-                            else
-                                n_neigh_needed = n_neigh+1;
-                            
-                            n_neigh++;
-                            }
-                        }
+                    if (n_neigh < nli.getH())
+                        d_nlist[nli(pidx, n_neigh)] = start+cur_offset;
+                    else
+                        n_neigh_needed = n_neigh+1;
+
+                    n_neigh++;
                     }
                 }
             }
         }
-        
+
     // now that we are done: update the first row that lists the number of neighbors
     if (pidx < N)
         {
         d_n_neigh[pidx] = n_neigh;
         d_last_updated_pos[pidx] = d_pos[pidx];
-        
+
         if (n_neigh_needed > 0)
             atomicMax(&d_conditions[0], n_neigh_needed);
         }
@@ -377,7 +361,7 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const Index2D& nli,
                                   const float4 *d_pos,
                                   const unsigned int N,
-                                  const gpu_boxsize& box,
+                                  const BoxDim& box,
                                   const float r_maxsq)
     {
     // setup the grid to run the kernel

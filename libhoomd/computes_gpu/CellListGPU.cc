@@ -85,7 +85,7 @@ void CellListGPU::computeCellList()
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cell_size, access_location::device, access_mode::overwrite);
@@ -107,7 +107,6 @@ void CellListGPU::computeCellList()
                               m_pdata->getN(),
                               m_Nmax,
                               m_flag_charge,
-                              scale,
                               box,
                               m_cell_indexer,
                               m_cell_list_indexer);
@@ -125,7 +124,6 @@ void CellListGPU::computeCellList()
                                  m_pdata->getN(),
                                  m_Nmax,
                                  m_flag_charge,
-                                 scale,
                                  box,
                                  m_cell_indexer,
                                  m_cell_list_indexer);
