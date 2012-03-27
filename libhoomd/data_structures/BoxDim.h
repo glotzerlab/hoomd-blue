@@ -97,7 +97,7 @@ class BoxDim
         //! Constructs a useless box
         /*! \post All dimensions are 0.0
         */
-        HOSTDEVICE BoxDim()
+        HOSTDEVICE explicit BoxDim()
             {
             m_lo = m_hi = m_Linv = m_L = make_scalar3(0, 0, 0);
             m_periodic = make_uchar3(1,1,1);
@@ -108,7 +108,7 @@ class BoxDim
             \post Box ranges from \c -Len/2 to \c +Len/2 in all 3 dimensions
             \post periodic = (1,1,1)
         */
-        HOSTDEVICE BoxDim(Scalar Len)
+        HOSTDEVICE explicit BoxDim(Scalar Len)
             {
             m_hi = make_scalar3(Len/Scalar(2.0), Len/Scalar(2.0), Len/Scalar(2.0));
             m_lo = -m_hi;
@@ -123,7 +123,7 @@ class BoxDim
             \param Len_z Length of the x dimension of the box
             \post periodic = (1,1,1)
         */
-        HOSTDEVICE BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
+        HOSTDEVICE explicit BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
             {
             m_hi = make_scalar3(Len_x/Scalar(2.0), Len_y/Scalar(2.0), Len_z/Scalar(2.0));
             m_lo = -m_hi;
@@ -136,7 +136,7 @@ class BoxDim
         /*! \param L box lengths
             \post periodic = (1,1,1)
         */
-        HOSTDEVICE BoxDim(Scalar3 L)
+        HOSTDEVICE explicit BoxDim(Scalar3 L)
             {
             BoxDim::BoxDim(L.x, L.y, L.z);
             }
@@ -146,7 +146,7 @@ class BoxDim
             \param hi Hi coordinate in the box
             \param periodic Periodic flags
         */
-        HOSTDEVICE BoxDim(Scalar3 lo, Scalar3 hi, uchar3 periodic)
+        HOSTDEVICE explicit BoxDim(Scalar3 lo, Scalar3 hi, uchar3 periodic)
             {
             m_hi = hi;
             m_lo = lo;

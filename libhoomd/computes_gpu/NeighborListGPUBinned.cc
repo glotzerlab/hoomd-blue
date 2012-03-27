@@ -161,12 +161,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "compute");
 
-    // precompute scale factor
-    Scalar3 width = m_cl->getWidth();
-    Scalar3 scale = make_scalar3(Scalar(1.0) / width.x,
-                                 Scalar(1.0) / width.y,
-                                 Scalar(1.0) / width.z);
-    
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
@@ -211,7 +205,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellIndexer(),
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
-                                 scale,
+                                 box,
                                  rmaxsq,
                                  m_block_size,
                                  m_filter_body,
