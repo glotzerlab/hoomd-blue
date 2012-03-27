@@ -1,5 +1,5 @@
 /*
-HighL.y Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
 (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
 Iowa State University and The Regents of the University of Michigan All rights
 reserved.
@@ -13,7 +13,7 @@ and binary forms, provided you abide by the following conditions:
 
 * Redistributions of source code must retain the above copyright notice, this
 list of conditions, and the following disclaimer both in the code and
-prominentL.y in any materials provided with the distribution.
+prominently in any materials provided with the distribution.
 
 * Redistributions in binary form must reproduce the above copyright notice, this
 list of conditions, and the following disclaimer in the documentation and/or
@@ -101,7 +101,7 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
         }
         
     // target a bin size of 7.0 * max_radius
-    // the requirement is realL.y onL.y 2, 7 is to save memory
+    // the requirement is really only 2, 7 is to save memory
     Scalar target_size = Scalar(7.0)*max_radius;
     // cap the size to a minimum of 2 to prevent small sizes from blowing up the memory uszge
     if (target_size < Scalar(2.0))
@@ -642,13 +642,13 @@ static Scalar random01(boost::mt19937& rnd)
 /////////////////////////////////////////////////////////////////////////////////////////
 // PolymerParticleGenerator
 /*! \param bond_len Bond length to generate
-    \param types Vector of type names. One element per bead of the poL.ymer.
+    \param types Vector of type names. One element per bead of the polymer.
     \param bond_a List of the first particle in each bond
     \param bond_b List of the 2nd particle in each bond
     \param bond_type List of the bond type names for each bond
     \param max_attempts The maximum number of attempts to place each particle
 
-    A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the poL.ymer.
+    A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
     Hence, the sizes of \a bond_a and \a bond_b \b must be the same.
 */
 PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts)
@@ -675,7 +675,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
     Scalar3 L = box.getL();
     Scalar3 lo = box.getLo();
     
-    // make a maximum of m_max_attempts tries to generate the poL.ymer
+    // make a maximum of m_max_attempts tries to generate the polymer
     for (unsigned int attempt = 0; attempt < m_max_attempts; attempt++)
         {
         // generate the position of the first particle
@@ -693,7 +693,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
         if (generateNextParticle(particles, rnd, 1, start_idx, p))
             {
             // success! we are done
-            // create the bonds for this poL.ymer now (poL.ymers are simpL.y linear for now)
+            // create the bonds for this polymer now (polymers are simpL.y linear for now)
             for (unsigned int i = 0; i < m_bond_a.size(); i++)
                 {
                 particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i], m_bond_type[i]);
@@ -706,18 +706,18 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
         cout << "Notice: Polymer generator is trying particle " << start_idx << " again" << endl;
         }
         
-    // we've failed to place a poL.ymer, this is an unrecoverable error
-    cerr << endl << "***Error! The poL.ymer generator failed to place a poL.ymer, the system is too dense or the separation radii are set too high" << endl << endl;
-    throw runtime_error("Error generating poL.ymer system");
+    // we've failed to place a polymer, this is an unrecoverable error
+    cerr << endl << "***Error! The polymer generator failed to place a polymer, the system is too dense or the separation radii are set too high" << endl << endl;
+    throw runtime_error("Error generating polymer system");
     }
 
 /*! \param particles Data to place particles in
     \param rnd Random number generator
-    \param i Index of the bead in the poL.ymer to place
+    \param i Index of the bead in the polymer to place
     \param start_idx Index to start generating particles at
     \param prev_particle Previous particle placed
 
-    \returns true When all particles in the poL.ymer > i are able to be placed
+    \returns true When all particles in the polymer > i are able to be placed
 */
 bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int i, unsigned int start_idx,  const GeneratedParticles::particle& prev_particle)
     {
@@ -728,10 +728,10 @@ bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particle
     GeneratedParticles::particle p;
     p.type = m_types[i];
     
-    // make a maximum of m_max_attempts tries to generate the poL.ymer
+    // make a maximum of m_max_attempts tries to generate the polymer
     for (unsigned int attempt = 0; attempt < m_max_attempts; attempt++)
         {
-        // generate a vector to move by to get to the next poL.ymer bead
+        // generate a vector to move by to get to the next polymer bead
         Scalar r = m_bond_len;
         
         Scalar dy = Scalar(2.0 * random01(rnd) - 1.0);
