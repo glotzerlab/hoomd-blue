@@ -71,16 +71,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
     that box. Inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y and z.
     
-    Boxesn constructed via length default to periodic in all 3 directions. Any direction may be made non-periodic with
-    setPeriodic(). Boxes constructed via lo and hi directly default to periodic for those directions where lo == -hi.
+    Boxes constructed via length default to periodic in all 3 directions. Any direction may be made non-periodic with
+    setPeriodic(). Boxes constructed via lo and hi must be explicity given periodic flags for each direction.
     The lo value \b must equal the negative for the high value for any direction that is set periodic. This is due to
     performance optimizations used in the minimum image convention. Callers that specify lo and hi directly must be
-    aware of this fact. getPeriodic() can be used to query which directions are periodic.
+    aware of this fact. BoxDim does not check for erroneous input regarding \a lo, \a hi and the periodic flags.
+    getPeriodic() can be used to query which directions are periodic.
     
-    setL() can be used to update boxes where lo == -hi in all directions. setLoHi() can be used to update boxes where this
-    is not the case.
+    setL() can be used to update boxes where lo == -hi in all directions. setLoHi() can be used to update boxes where
+    this is not the case.
     
-    BoxDim comes with several analysis/computaiton methods to aid in working with vectors in boxes. 
+    BoxDim comes with several analysis/computaiton methods to aid in working with vectors in boxes.
      - makeFraction() takes a vector in a box and computes a vector where all components are between 0 and 1. 0,0,0 is 
        lo and 1,1,1 is hi with a linear interpolation between.
      - minImage() takes a vector and wraps it back into the box following the minimum image convention, but only for
@@ -134,22 +135,16 @@ class BoxDim
         //! Construct a box from specific lo and hi values
         /*! \param lo Lo coordinate in the box
             \param hi Hi coordinate in the box
-            \post periodic is set to 1 for any dimension where lo == -hi
+            \param periodic Periodic flags
         */
-        HOSTDEVICE BoxDim(Scalar3 lo, Scalar3 hi)
+        HOSTDEVICE BoxDim(Scalar3 lo, Scalar3 hi, uchar3 periodic)
             {
             m_hi = hi;
             m_lo = lo;
             m_Linv = Scalar(1.0)/(m_hi - m_lo);
             m_L = m_hi - m_lo;
-            
-            m_periodic = make_uchar3(0,0,0);
-            if (m_lo.x == -m_hi.x)
-                m_periodic.x = 1;
-            if (m_lo.y == -m_hi.y)
-                m_periodic.y = 1;
-            if (m_lo.z == -m_hi.z)
-                m_periodic.z = 1;
+
+            m_periodic = periodic;
             }
 
         //! Get the periodic flags
@@ -253,7 +248,7 @@ class BoxDim
                 else if (w.x < m_lo.x)
                     w.x += L.x;
                 }
-            
+
             if (m_periodic.y)
                 {
                 if (w.y >= m_hi.y)
@@ -261,7 +256,7 @@ class BoxDim
                 else if (w.y < m_lo.y)
                     w.y += L.y;
                 }
-            
+
             if (m_periodic.z)
                 {
                 if (w.z >= m_hi.z)
@@ -352,5 +347,5 @@ class BoxDim
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE
-    
+
 #endif // __BOXDIM_H__
