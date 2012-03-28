@@ -232,10 +232,10 @@ void nph_updater_test(twostepnph_creator nph_creator, boost::shared_ptr<Executio
         if (i % 100 == 0)
             {
             compute_thermo->compute(i);
-            PressureTensor P = compute_thermo->getPressureTensor();
-            avrPxx += P.xx;
-            avrPyy += P.yy;
-            avrPzz += P.zz;
+            PressureTensor P_current = compute_thermo->getPressureTensor();
+            avrPxx += P_current.xx;
+            avrPyy += P_current.yy;
+            avrPzz += P_current.zz;
 
             count++;
             }
@@ -244,6 +244,7 @@ void nph_updater_test(twostepnph_creator nph_creator, boost::shared_ptr<Executio
 
     compute_thermo->compute(count+1);
     box = pdata->getBox();
+    L = box.getL();
     volume = L.x*L.y*L.z;
     enthalpy =  compute_thermo->getKineticEnergy() + compute_thermo->getPotentialEnergy() + P * volume;
     barostat_energy = nph->getLogValue("nph_barostat_energy", count+1);
