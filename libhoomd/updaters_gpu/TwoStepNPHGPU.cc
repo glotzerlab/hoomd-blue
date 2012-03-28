@@ -143,9 +143,6 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
     Scalar &etaz = v.variable[2];
 
     // obtain box lengths
-    Scalar Lx = Scalar(0.0);
-    Scalar Ly = Scalar(0.0);
-    Scalar Lz = Scalar(0.0);
     Scalar volume = Scalar(0.0);
 
     BoxDim box = m_pdata->getBox();
@@ -225,7 +222,7 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
                      d_index_array.data,
                      group_size,
                      make_scalar3(Lx_old,Ly_old,Lz_old),
-                     make_scalar3(Lx,Ly,Lz),
+                     make_scalar3(L.x,L.y,L.z),
                      make_scalar3(Lx_final,Ly_final,Lz_final),
                      m_deltaT);
 
