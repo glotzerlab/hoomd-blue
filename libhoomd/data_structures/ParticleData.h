@@ -453,7 +453,7 @@ class ParticleData : boost::noncopyable
                      boost::shared_ptr<ExecutionConfiguration> exec_conf);
         
         //! Destructor
-        virtual ~ParticleData() {}
+        virtual ~ParticleData();
         
         //! Get the simulation box
         const BoxDim& getBox() const;

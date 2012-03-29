@@ -85,6 +85,7 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
+    m_exec_conf->msg->notice(5) << "Constructing AngleData" << endl;
 
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&AngleData::setDirty, this));
@@ -106,6 +107,7 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
 
 AngleData::~AngleData()
     {
+    m_exec_conf->msg->notice(5) << "Destroying AngleData" << endl;
     m_sort_connection.disconnect();
     }
 

@@ -81,6 +81,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
+    m_exec_conf->msg->notice(5) << "Constructing BondData" << endl;
 
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&BondData::setDirty, this));
@@ -102,6 +103,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
 
 BondData::~BondData()
     {
+    m_exec_conf->msg->notice(5) << "Destroying AngleData" << endl;
     m_sort_connection.disconnect();
     }
 

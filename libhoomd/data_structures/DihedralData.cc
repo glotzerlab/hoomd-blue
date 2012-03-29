@@ -85,6 +85,7 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
+    m_exec_conf->msg->notice(5) << "Constructing DihedralData" << endl;
 
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&DihedralData::setDirty, this));
@@ -106,6 +107,7 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
 
 DihedralData::~DihedralData()
     {
+    m_exec_conf->msg->notice(5) << "Destroying AngleData" << endl;
     m_sort_connection.disconnect();
     }
 

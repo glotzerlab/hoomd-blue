@@ -148,6 +148,8 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
 ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf)
         : m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
+
     // check the input for errors
     if (m_ntypes == 0)
         {
@@ -213,6 +215,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 */
 ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
+
     m_ntypes = init.getNumParticleTypes();
     // check the input for errors
     if (m_ntypes == 0)
@@ -275,6 +279,11 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
+    }
+
+ParticleData::~ParticleData()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying ParticleData" << endl;
     }
 
 /*! \return Simulation box dimensions
