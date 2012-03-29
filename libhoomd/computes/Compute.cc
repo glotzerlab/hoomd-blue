@@ -77,6 +77,7 @@ Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef),
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
+    m_exec_conf = exec_conf;
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark

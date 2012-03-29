@@ -87,9 +87,12 @@ RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
     // leave arrays initialized to NULL. There are currently 0 bodies and their
     // initialization is delayed because we cannot reasonably determine when that initialization
     // must be done
-    
+
     // connect the sort signal
     m_sort_connection = m_pdata->connectParticleSort(bind(&RigidData::recalcIndices, this));
+
+    // save the execution configuration
+    m_exec_conf = m_pdata->getExecConf();
     }
 
 RigidData::~RigidData()

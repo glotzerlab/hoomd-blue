@@ -77,7 +77,8 @@ IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefin
     assert(m_sysdef);
     assert(m_pdata);
     assert(m_group);
-    
+    m_exec_conf = exec_conf;
+
     m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
     }
 
