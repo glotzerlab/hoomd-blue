@@ -79,7 +79,7 @@ class options:
         self.min_cpu = None;
         self.ignore_display = None;
         self.user = [];
-        self.notice_level = 1;
+        self.notice_level = 2;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -300,7 +300,7 @@ def set_notice_level(notice_level):
     if init.is_initialized():
         globals.exec_conf.msg.setNoticeLevel(notice_level);
     
-    globals.options. = gpu_error_checking;
+    globals.options.notice_level = notice_level;
 
 ################### Parse command line on load
 globals.options = options();
