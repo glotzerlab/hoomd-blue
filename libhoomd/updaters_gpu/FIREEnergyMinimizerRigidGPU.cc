@@ -84,7 +84,7 @@ FIREEnergyMinimizerRigidGPU::FIREEnergyMinimizerRigidGPU(boost::shared_ptr<Syste
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a FIREEnergyMinimizerRigidGPU with no GPUs in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a FIREEnergyMinimizerRigidGPU with no GPUs in the execution configuration" << endl;
         throw std::runtime_error("Error initializing FIREEnergyMinimizerRigidGPU");
         }
     
@@ -158,7 +158,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         
     if (m_n_bodies <= 0)
         {
-        cerr << endl << "***Error! FIREENergyMinimizerRigid: There is no rigid body for this integrator" << endl << endl;
+        m_exec_conf->msg->error() << "FIREENergyMinimizerRigid: There is no rigid body for this integrator" << endl;
         throw runtime_error("Error update for FIREEnergyMinimizerRigid (no rigid body)");
         return;
         }
