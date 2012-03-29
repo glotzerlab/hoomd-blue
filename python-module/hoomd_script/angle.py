@@ -154,7 +154,7 @@ class harmonic(force._force):
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.angle_types_set:
-                print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in angle.harmonic\n";
+                globals.msg.error(str(cur_type) + " coefficients missing in angle.harmonic\n");
                 raise RuntimeError("Error updating coefficients");
 
 ## CGCMM %angle force
@@ -300,7 +300,7 @@ class cgcmm(force._force):
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.angle_types_set:
-                print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in angle.cgcmm\n";
+                globals.msg.error(str(cur_type) + " coefficients missing in angle.cgcmm\n");
                 raise RuntimeError("Error updating coefficients");
 
 

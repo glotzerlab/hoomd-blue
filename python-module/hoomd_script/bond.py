@@ -269,7 +269,7 @@ class _bond(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.bond_coeff.verify(coeff_list):
-           print >> sys.stderr, "\n***Error: Not all force coefficients are set\n";
+           globals.msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params

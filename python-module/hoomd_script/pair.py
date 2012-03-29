@@ -769,7 +769,7 @@ class pair(force._force):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(coeff_list):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set\n";
+            globals.msg.error("Not all pair coefficients are set\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
@@ -1396,7 +1396,7 @@ class cgcmm(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["epsilon", "sigma", "alpha", "exponents"]):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.cgcmm\n";
+            globals.msg.error("Not all pair coefficients are set in pair.cgcmm\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
@@ -1562,7 +1562,7 @@ class table(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set for pair.table\n";
+            globals.msg.error("Not all pair coefficients are set for pair.table\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
