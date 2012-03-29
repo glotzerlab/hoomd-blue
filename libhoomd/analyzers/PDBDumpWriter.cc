@@ -90,6 +90,12 @@ using namespace boost;
 PDBDumpWriter::PDBDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_bond(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing PDBDumpWriter: " << base_fname << endl;
+    }
+
+PDBDumpWriter::~PDBDumpWriter()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying PDBDumpWriter" << endl;
     }
 
 /*! \param timestep Current time step of the simulation
@@ -126,7 +132,7 @@ void PDBDumpWriter::writeFile(std::string fname)
     
     if (!f.good())
         {
-        cerr << endl << "***Error! Unable to open dump file for writing: " << fname << endl << endl;
+        m_exec_conf->msg->error() << "dump.pdb: Unable to open file for writing: " << fname << endl;
         throw runtime_error("Error writting pdb dump file");
         }
         
@@ -159,14 +165,14 @@ void PDBDumpWriter::writeFile(std::string fname)
         // first check that everything will fit into the PDB output
         if (h_pos.data[i].x < -999.9994f || h_pos.data[i].x > 9999.9994f || h_pos.data[i].y < -999.9994f || h_pos.data[i].y > 9999.9994f || h_pos.data[i].z < -999.9994f || h_pos.data[i].z > 9999.9994f)
             {
-            cerr << "***Error! Coordinate " << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << " is out of range for PDB writing" << endl << endl;
+            m_exec_conf->msg->error() << "dump.pdb: Coordinate " << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << " is out of range for PDB writing" << endl;
             throw runtime_error("Error writing PDB file");
             }
         // check the length of the type name
         const string &type_name = m_pdata->getNameByType(__scalar_as_int(h_pos.data[i].w));
         if (type_name.size() > 4)
             {
-            cerr << "***Error! Type " << type_name << " is too long for PDB writing" << endl << endl;
+            m_exec_conf->msg->error() << "dump.pdb: Type " << type_name << " is too long for PDB writing" << endl;
             throw runtime_error("Error writing PDB file");
             }
             
@@ -223,7 +229,7 @@ void PDBDumpWriter::writeFile(std::string fname)
         // error check: pdb files cannot contain bonds with 100,000 or more atom records
         if (m_pdata->getN() >= 100000)
             {
-            cerr << endl << "***Error! PDB files with bonds cannot hold more than 99,999 atoms!" << endl << endl;
+            m_exec_conf->msg->error() << "dump.pdb: PDB files with bonds cannot hold more than 99,999 atoms!" << endl;
             throw runtime_error("Error dumping PDB file");
             }
             

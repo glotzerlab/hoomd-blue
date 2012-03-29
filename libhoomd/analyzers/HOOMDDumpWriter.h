@@ -95,7 +95,10 @@ class HOOMDDumpWriter : public Analyzer
     public:
         //! Construct the writer
         HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
-        
+
+        //! Destructor
+        ~HOOMDDumpWriter();
+
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
         //! Enables/disables the writing of the particle positions

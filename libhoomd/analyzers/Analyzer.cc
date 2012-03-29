@@ -67,7 +67,8 @@ using namespace boost::python;
 /*! \param sysdef System definition this analyzer will act on. Must not be NULL.
     \post The Analyzer is constructed with the given particle data and a NULL profiler.
 */
-Analyzer::Analyzer(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData())
+Analyzer::Analyzer(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
+    m_exec_conf(m_pdata->getExecConf())
     {
     // sanity check
     assert(m_sysdef);

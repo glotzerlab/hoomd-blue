@@ -87,22 +87,24 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     : Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_appending(false),
       m_columns_changed(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing MSDAnalyzer: " << fname << " " << header_prefix << " " << overwrite << endl;
+
     // open the file
     if (exists(fname) && !overwrite)
         {
-        cout << "Notice: Appending msd to existing file \"" << fname << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.msd: Appending msd to existing file \"" << fname << "\"" << endl;
         m_file.open(fname.c_str(), ios_base::in | ios_base::out | ios_base::ate);
         m_appending = true;
         }
     else
         {
-        cout << "Notice: Creating new msd in file \"" << fname << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.msd: Creating new msd in file \"" << fname << "\"" << endl;
         m_file.open(fname.c_str(), ios_base::out);
         }
         
     if (!m_file.good())
         {
-        cerr << endl << "***Error! Error opening msd file " << fname << endl << endl;
+        m_exec_conf->msg->error() << "analyze.msd: Unable to open file " << fname << endl;
         throw runtime_error("Error initializing analyze.msd");
         }
     
@@ -133,6 +135,11 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
         }
     }
 
+MSDAnalyzer::~MSDAnalyzer()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying MSDAnalyzer" << endl;
+    }
+
 /*!\param timestep Current time step of the simulation
 
     analyze() will first write out the file header if the columns have changed.
@@ -147,7 +154,7 @@ void MSDAnalyzer::analyze(unsigned int timestep)
     // error check
     if (m_columns.size() == 0)
         {
-        cout << "***Warning! No columns specified in the MSD analysis" << endl;
+        m_exec_conf->msg->warning() << "analyze.msd: No columns specified in the MSD analysis" << endl;
         return;
         }
     
@@ -206,8 +213,8 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
     unsigned int nparticles = m_pdata->getN();
     if (nparticles != xml.getPos().size())
         {
-        cerr << endl << "***Error! Found " << xml.getPos().size() << " particles in "
-             << xml_fname << ", but there are " << nparticles << " in the current simulation." << endl << endl;
+        m_exec_conf->msg->error() << "analyze.msd: Found " << xml.getPos().size() << " particles in "
+             << xml_fname << ", but there are " << nparticles << " in the current simulation." << endl;
         throw runtime_error("Error setting r0 in analyze.msd");
         }
     
@@ -215,7 +222,7 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
     bool have_image = (xml.getImage().size() == nparticles);
     if (!have_image)
         {
-        cout << "***Warning! Image data missing or corrupt in " << xml_fname
+        m_exec_conf->msg->warning() << "analyze.msd: Image data missing or corrupt in " << xml_fname
              << ". Computed msd values will not be correct." << endl;
         }
     
@@ -258,7 +265,7 @@ void MSDAnalyzer::writeHeader()
     
     if (m_columns.size() == 0)
         {
-        cout << "***Warning! No columns specified in the MSD analysis" << endl;
+        m_exec_conf->msg->warning() << "analyze.msd: No columns specified in the MSD analysis" << endl;
         return;
         }
         
@@ -294,7 +301,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
     // handle the case where there are 0 members gracefully
     if (group->getNumMembers() == 0)
         {
-        cout << "***Warning! Group has 0 members, reporting a calculated msd of 0.0" << endl;
+        m_exec_conf->msg->warning() << "analyze.msd: Group has 0 members, reporting a calculated msd of 0.0" << endl;
         return Scalar(0.0);
         }
         
@@ -350,7 +357,7 @@ void MSDAnalyzer::writeRow(unsigned int timestep)
     
     if (!m_file.good())
         {
-        cerr << endl << "***Error! Unexpected error writing msd file" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.msd: I/O error while writing file" << endl;
         throw runtime_error("Error writting msd file");
         }
         

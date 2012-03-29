@@ -79,6 +79,9 @@ class PDBDumpWriter : public Analyzer
         //! Construct the writer
         PDBDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
         
+        //! Destructor
+        ~PDBDumpWriter();
+        
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
         

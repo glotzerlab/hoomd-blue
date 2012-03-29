@@ -78,6 +78,12 @@ using namespace std;
 MOL2DumpWriter::MOL2DumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname_base)
         : Analyzer(sysdef), m_base_fname(fname_base)
     {
+    m_exec_conf->msg->notice(5) << "Constructing MOL2DumpWriter: " << fname_base << endl;
+    }
+
+MOL2DumpWriter::~MOL2DumpWriter()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying PDBDumpWriter" << endl;
     }
 
 /*! \param timestep Current time step of the simulation
@@ -108,7 +114,7 @@ void MOL2DumpWriter::writeFile(std::string fname)
     
     if (!f.good())
         {
-        cerr << endl << "***Error! Unable to open dump file for writing: " << fname << endl << endl;
+        m_exec_conf->msg->error() << "dump.mol2: Unable to open dump file for writing: " << fname << endl;
         throw runtime_error("Error writting mol2 dump file");
         }
         
@@ -146,8 +152,7 @@ void MOL2DumpWriter::writeFile(std::string fname)
         // this is intended to go to VMD, so limit the type name to 15 characters
         if (type_name.size() > 15)
             {
-            cerr << endl << "Error! Type name <" << type_name << "> too long: please limit to 15 characters" 
-                 << endl << endl;
+            m_exec_conf->msg->error() << "dump.mol2: Type name <" << type_name << "> too long: please limit to 15 characters" << endl;
             throw runtime_error("Error writting mol2 dump file");
             }
             
@@ -155,7 +160,7 @@ void MOL2DumpWriter::writeFile(std::string fname)
         
         if (!f.good())
             {
-            cerr << endl << "***Error! Unexpected error writing MOL2 dump file" << endl << endl;
+            m_exec_conf->msg->error() << "dump.mol2: I/O error while writing MOL2 dump file" << endl;
             throw runtime_error("Error writting mol2 dump file");
             }
         }
@@ -177,7 +182,7 @@ void MOL2DumpWriter::writeFile(std::string fname)
         
     if (!f.good())
         {
-        cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+        m_exec_conf->msg->error() << "dump.mol2: I/O error while writing file" << endl;
         throw runtime_error("Error writting mol2 dump file");
         }
         

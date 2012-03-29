@@ -91,11 +91,13 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
                            float force_scale)
     : Analyzer(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing IMDInterface: " << port << " " << pause << " " << rate << " " << force_scale << endl;
+
     int err = 0;
     
     if (port <= 0)
         {
-        cerr << endl << "***Error! Invalid port specified" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.imd: Invalid port specified" << endl;
         throw runtime_error("Error initializing IMDInterface");
         }
         
@@ -109,7 +111,7 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
     // check for errors
     if (m_listen_sock == NULL)
         {
-        cerr << endl << "***Error! Unable to create listening socket" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.imd: Unable to create listening socket" << endl;
         throw runtime_error("Error initializing IMDInterface");
         }
         
@@ -119,7 +121,7 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
     
     if (err == -1)
         {
-        cerr << endl << "***Error! Unable to bind listening socket" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.imd: Unable to bind listening socket" << endl;
         throw runtime_error("Error initializing IMDInterface");
         }
         
@@ -127,11 +129,11 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
     
     if (err == -1)
         {
-        cerr << endl << "***Error! Unable to listen on listening socket" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.imd: Unable to listen on listening socket" << endl;
         throw runtime_error("Error initializing IMDInterface");
         }
         
-    cout << "analyze.imd: listening on port " << port << endl;
+    m_exec_conf->msg->notice(2) << "analyze.imd: listening on port " << port << endl;
     
     // initialize state
     m_active = false;
@@ -146,6 +148,8 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
 
 IMDInterface::~IMDInterface()
     {
+    m_exec_conf->msg->notice(5) << "Destroying IMDInterface" << endl;
+    
     // free all used memory
     delete[] m_tmp_coords;
     vmdsock_destroy(m_connected_sock);
@@ -219,7 +223,7 @@ void IMDInterface::dispatch()
     // check to see if there are any errors
     if (res == -1)
         {
-        cout << "analyze.imd: connection appears to have been terminated" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.imd: connection appears to have been terminated" << endl;
         processDeadConnection();
         return;
         }
@@ -253,7 +257,7 @@ void IMDInterface::dispatch()
                 processIMD_IOERROR();
                 break;
             default:
-                cout << "analyze.imd: received an unimplemented command (" << header << "), disconnecting" << endl;
+                m_exec_conf->msg->notice(3) << "analyze.imd: received an unimplemented command (" << header << "), disconnecting" << endl;
                 processDeadConnection();
                 break;
             }
@@ -269,7 +273,7 @@ bool IMDInterface::messagesAvailable()
     
     if (res == -1)
         {
-        cout << "analyze.imd: connection appears to have been terminated" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.imd: connection appears to have been terminated" << endl;
         processDeadConnection();
         return false;
         }
@@ -291,7 +295,7 @@ void IMDInterface::processIMD_GO()
     // unpause and start transmitting data
     m_paused = false;
     m_active = true;
-    cout << "analyze.imd: Received IMD_GO, transmitting data now" << endl;
+    m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_GO, transmitting data now" << endl;
     }
 
 void IMDInterface::processIMD_KILL()
@@ -299,7 +303,7 @@ void IMDInterface::processIMD_KILL()
     // disconnect (no different from handling a dead connection)
     processDeadConnection();
     // terminate the simulation
-    cout << "analyze.imd: Received IMD_KILL message, stopping the simulation" << endl;
+    m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_KILL message, stopping the simulation" << endl;
     throw runtime_error("Received IMD_KILL message");
     }
 
@@ -313,7 +317,7 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
     
     if (err)
         {
-        cerr << endl << "***Error! Error receiving mdcomm data, disconnecting" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.imd: Error receiving mdcomm data, disconnecting" << endl;
         processDeadConnection();
         return;
         }
@@ -333,13 +337,13 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
         }
     else
         {
-        cout << "***Warning! Receiving forces over IMD, but no force was given to analyze.imd. Doing nothing" << endl;
+        m_exec_conf->msg->warning() << "analyze.imd: Receiving forces over IMD, but no force was given to analyze.imd. Doing nothing" << endl;
         }
     }
     
 void IMDInterface::processIMD_TRATE(int rate)
     {
-    cout << "analyze.imd: Received IMD_TRATE, setting trate to " << rate << endl;
+    m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_TRATE, setting trate to " << rate << endl;
     m_trate = rate;
     }
 
@@ -347,12 +351,12 @@ void IMDInterface::processIMD_PAUSE()
     {
     if (!m_paused)
         {
-        cout << "analyze.imd: Received IMD_PAUSE, pausing simulation" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_PAUSE, pausing simulation" << endl;
         m_paused = true;
         }
     else
         {
-        cout << "analyze.imd: Received IMD_PAUSE, unpausing simulation" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_PAUSE, unpausing simulation" << endl;
         m_paused = false;
         }
     }
@@ -362,7 +366,7 @@ void IMDInterface::processIMD_IOERROR()
     // disconnect (no different from handling a dead connection)
     processDeadConnection();
     // terminate the simulation
-    cerr << endl << "***Error! Received IMD_IOERROR message, dropping the connection" << endl << endl;
+    m_exec_conf->msg->error() << "analyze.imd: Received IMD_IOERROR message, dropping the connection" << endl;
     }
 
 void IMDInterface::processDeadConnection()
@@ -404,7 +408,7 @@ void IMDInterface::establishConnectionAttempt()
             }
         else
             {
-            cout << "analyze.imd: accepted connection" << endl;
+            m_exec_conf->msg->notice(2) << "analyze.imd: accepted connection" << endl;
             }
         }
     }
@@ -434,7 +438,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
     int err = imd_send_energies(m_connected_sock, &energies);
     if (err)
         {
-        cerr << endl << "***Error! Error sending energies, disconnecting" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.imd: I/O error while sending energies, disconnecting" << endl;
         processDeadConnection();
         return;
         }
@@ -453,7 +457,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
     
     if (err)
         {
-        cerr << "***Error! Error sending coordinates, disconnecting" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.imd: I/O error while sending coordinates, disconnecting" << endl;
         processDeadConnection();
         return;
         }

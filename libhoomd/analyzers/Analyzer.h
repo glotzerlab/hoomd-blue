@@ -145,6 +145,8 @@ class Analyzer : boost::noncopyable
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this analyzer is to use
+        
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 //! Export the Analyzer class to python
