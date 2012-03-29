@@ -208,7 +208,7 @@ unsigned int ExecutionConfiguration::getComputeCapability() const
     return result;
     }
     
-void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line)
+void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line) const
     {
     // if there was an error
     if (err != cudaSuccess)
@@ -226,7 +226,7 @@ void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, 
         }
     }
     
-void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line)
+void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line) const
     {
     cudaThreadSynchronize();
     cudaError_t err = cudaGetLastError();
@@ -297,7 +297,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         // initialize the default CUDA context
         cudaFree(0);
         }
-    CHECK_CUDA_ERROR();
+    checkCUDAError(__FILE__, __LINE__);
     }
 
 /*! Prints out a status line for the selected GPU
