@@ -110,10 +110,7 @@ class BoxDim
         */
         HOSTDEVICE explicit BoxDim(Scalar Len)
             {
-            m_hi = make_scalar3(Len/Scalar(2.0), Len/Scalar(2.0), Len/Scalar(2.0));
-            m_lo = -m_hi;
-            m_Linv = make_scalar3(Scalar(1.0)/Len, Scalar(1.0)/Len, Scalar(1.0)/Len);
-            m_L = make_scalar3(Len, Len, Len);
+            setL(make_scalar3(Len, Len, Len));
             m_periodic = make_uchar3(1,1,1);
             }
 
@@ -125,10 +122,7 @@ class BoxDim
         */
         HOSTDEVICE explicit BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
             {
-            m_hi = make_scalar3(Len_x/Scalar(2.0), Len_y/Scalar(2.0), Len_z/Scalar(2.0));
-            m_lo = -m_hi;
-            m_Linv = make_scalar3(Scalar(1.0)/Len_x, Scalar(1.0)/Len_y, Scalar(1.0)/Len_z);
-            m_L = make_scalar3(Len_x, Len_y, Len_z);
+            setL(make_scalar3(Len_x, Len_y, Len_z));
             m_periodic = make_uchar3(1,1,1);
             }
 
@@ -138,7 +132,8 @@ class BoxDim
         */
         HOSTDEVICE explicit BoxDim(Scalar3 L)
             {
-            BoxDim::BoxDim(L.x, L.y, L.z);
+            setL(L);
+            m_periodic = make_uchar3(1,1,1);
             }
 
         //! Construct a box from specific lo and hi values
@@ -148,11 +143,7 @@ class BoxDim
         */
         HOSTDEVICE explicit BoxDim(Scalar3 lo, Scalar3 hi, uchar3 periodic)
             {
-            m_hi = hi;
-            m_lo = lo;
-            m_Linv = Scalar(1.0)/(m_hi - m_lo);
-            m_L = m_hi - m_lo;
-
+            setLoHi(lo, hi);
             m_periodic = periodic;
             }
 
