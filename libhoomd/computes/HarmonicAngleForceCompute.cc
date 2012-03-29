@@ -80,24 +80,27 @@ using namespace std;
 HarmonicAngleForceCompute::HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
     :  ForceCompute(sysdef), m_K(NULL), m_t_0(NULL)
     {
+    m_exec_conf->msg->notice(5) << "Constructing HarmonicAngleForceCompute" << endl;
+
     // access the angle data for later use
     m_angle_data = m_sysdef->getAngleData();
-    
+
     // check for some silly errors a user could make
     if (m_angle_data->getNAngleTypes() == 0)
         {
-        cout << endl << "***Error! No angle types specified" << endl << endl;
+        m_exec_conf->msg->error() << "angle.harmonic: No angle types specified" << endl;
         throw runtime_error("Error initializing HarmonicAngleForceCompute");
         }
-        
+
     // allocate the parameters
     m_K = new Scalar[m_angle_data->getNAngleTypes()];
     m_t_0 = new Scalar[m_angle_data->getNAngleTypes()];
-    
     }
 
 HarmonicAngleForceCompute::~HarmonicAngleForceCompute()
     {
+    m_exec_conf->msg->notice(5) << "Destroying HarmonicAngleForceCompute" << endl;
+
     delete[] m_K;
     delete[] m_t_0;
     m_K = NULL;
@@ -115,7 +118,7 @@ void HarmonicAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_
     // make sure the type is valid
     if (type >= m_angle_data->getNAngleTypes())
         {
-        cout << endl << "***Error! Invalid angle type specified" << endl << endl;
+        m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
         throw runtime_error("Error setting parameters in HarmonicAngleForceCompute");
         }
         
@@ -124,9 +127,9 @@ void HarmonicAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_
     
     // check for some silly errors a user could make
     if (K <= 0)
-        cout << "***Warning! K <= 0 specified for harmonic angle" << endl;
+        m_exec_conf->msg->warning() << "angle.harmonic: specified K <= 0" << endl;
     if (t_0 <= 0)
-        cout << "***Warning! t_0 <= 0 specified for harmonic angle" << endl;
+        m_exec_conf->msg->warning() << "angle.harmonic: specified t_0 <= 0" << endl;
     }
 
 /*! AngleForceCompute provides
@@ -151,7 +154,7 @@ Scalar HarmonicAngleForceCompute::getLogValue(const std::string& quantity, unsig
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for AngleForceCompute" << endl << endl;
+        m_exec_conf->msg->error() << "angle.harmonic: " << quantity << " is not a valid log quantity for AngleForceCompute" << endl;
         throw runtime_error("Error getting log value");
         }
     }

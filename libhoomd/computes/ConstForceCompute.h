@@ -76,6 +76,9 @@ class ConstForceCompute : public ForceCompute
         ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz);
         ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
 
+        //! Destructor
+        ~ConstForceCompute();
+
         //! Set the force to a new value
         void setForce(Scalar fx, Scalar fy, Scalar fz);
         

@@ -77,12 +77,14 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
                                      Scalar r_cut)
     : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
     {
+    m_exec_conf->msg->notice(5) << "Constructing CGCMMForceCompute" << endl;
+
     assert(m_pdata);
     assert(m_nlist);
     
     if (r_cut < 0.0)
         {
-        cerr << endl << "***Error! Negative r_cut in CGCMMForceCompute makes no sense" << endl << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: Negative r_cut makes no sense" << endl;
         throw runtime_error("Error initializing CGCMMForceCompute");
         }
         
@@ -111,6 +113,8 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 
 CGCMMForceCompute::~CGCMMForceCompute()
     {
+    m_exec_conf->msg->notice(5) << "Destroying CGCMMForceCompute" << endl;
+
     // deallocate our memory
     delete[] m_lj12;
     delete[] m_lj9;
@@ -160,7 +164,7 @@ void CGCMMForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar l
     {
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        cerr << endl << "***Error! Trying to set CGCMM params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: Trying to set params for a non existant type! " << typ1 << "," << typ2 << endl;
         throw runtime_error("Error setting parameters in CGCMMForceCompute");
         }
         
@@ -200,7 +204,7 @@ Scalar CGCMMForceCompute::getLogValue(const std::string& quantity, unsigned int 
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for CGCMMForceCompute" << endl << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }

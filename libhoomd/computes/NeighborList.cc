@@ -86,16 +86,18 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
       m_dist_check(true)
     {
+    m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
+
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)
         {
-        cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
         throw runtime_error("Error initializing NeighborList");
         }
         
     if (m_r_buff < 0.0)
         {
-        cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error initializing NeighborList");
         }
         
@@ -139,6 +141,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
 
 NeighborList::~NeighborList()
     {
+    m_exec_conf->msg->notice(5) << "Destroying Neighborlist" << endl;
+
     m_sort_connection.disconnect();
     }
 
@@ -174,7 +178,6 @@ void NeighborList::compute(unsigned int timestep)
             if (overflowed)
                 {
                 allocateNlist();
-                // cout << "Notice: neighbor list overflow, allocating " << m_Nmax << " slots per particle" << endl;
                 resetConditions();
                 }
             } while (overflowed);
@@ -237,13 +240,13 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)
         {
-        cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
         
     if (m_r_buff < 0.0)
         {
-        cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
         
@@ -369,34 +372,32 @@ void NeighborList::countExclusions()
         excluded_count[num_excluded] += 1;
         }
 
-    cout << "-- Neighborlist exclusion statistics -- :" << endl;
+    m_exec_conf->msg->notice(2) << "-- Neighborlist exclusion statistics -- :" << endl;
     for (unsigned int i=0; i <= MAX_COUNT_EXCLUDED; ++i)
         {
         if (excluded_count[i] > 0)
-            cout << "Particles with " << i << " exclusions             : " << excluded_count[i] << endl;
+            m_exec_conf->msg->notice(2) << "Particles with " << i << " exclusions             : " << excluded_count[i] << endl;
         }
 
     if (excluded_count[MAX_COUNT_EXCLUDED+1])
         {
-        cout << "Particles with more than " << MAX_COUNT_EXCLUDED << " exclusions: "
+        m_exec_conf->msg->notice(2) << "Particles with more than " << MAX_COUNT_EXCLUDED << " exclusions: "
              << excluded_count[MAX_COUNT_EXCLUDED+1] << endl;
         }
-    
-    cout << "Neighbors excluded by diameter (slj)    : ";
-    if (m_filter_diameter)
-        cout << "yes" << endl;
-    else
-        cout << "no" << endl;
 
-    cout << "Neighbors excluded when in the same body: ";
-    if (m_filter_body)
-        cout << "yes" << endl;
+    if (m_filter_diameter)
+        m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : yes" << endl;
     else
-        cout << "no" << endl;
+        m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : no" << endl;
+
+    if (m_filter_body)
+        m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: yes" << endl;
+    else
+        m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: no" << endl;
         
     if (!m_filter_body && m_sysdef->getRigidData()->getNumBodies() > 0)
         {
-        cout << "***Warning! Disabling the body exclusion will cause rigid bodies to behave erratically" << endl
+        m_exec_conf->msg->warning() << "Disabling the body exclusion will cause rigid bodies to behave erratically" << endl
              << "            unless inter-body pair forces are very small." << endl;
         }
     }
@@ -485,7 +486,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
     
     if (nBonds == 0)
         {
-        cout << "***Warning! No bonds defined while trying to add topology derived 1-3 exclusions" << endl;
+        m_exec_conf->msg->warning() << "nlist: No bonds defined while trying to add topology derived 1-3 exclusions" << endl;
         return;
         }
         
@@ -506,15 +507,15 @@ void NeighborList::addOneThreeExclusionsFromTopology()
         
         if (nBondsA >= MAXNBONDS)
             {
-            cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagA << endl
-                 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+            m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA << endl;
+            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
             
         if (nBondsB >= MAXNBONDS)
             {
-            cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagB << endl
-                 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+            m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB << endl;
+            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
             
@@ -561,7 +562,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     
     if (nBonds == 0)
         {
-        cout << "***Warning! No bonds defined while trying to add topology derived 1-4 exclusions" << endl;
+        m_exec_conf->msg->warning() << "nlist: No bonds defined while trying to add topology derived 1-4 exclusions" << endl;
         return;
         }
         
@@ -582,15 +583,15 @@ void NeighborList::addOneFourExclusionsFromTopology()
         
         if (nBondsA >= MAXNBONDS)
             {
-            cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagA << endl
-                 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+            m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA << endl;
+            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
             
         if (nBondsB >= MAXNBONDS)
             {
-            cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagB << endl
-                 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+            m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB << endl;
+            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
             
@@ -788,7 +789,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     // warn the user if this is a dangerous build
     if (result && dangerous)
         {
-        cout << "***Warning! Dangerous neighborlist build occured. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
+        m_exec_conf->msg->notice(2) << "nlist: Dangerous neighborlist build occured. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
         m_dangerous_updates += 1;
         }
         
@@ -801,17 +802,21 @@ bool NeighborList::needsUpdating(unsigned int timestep)
  */
 void NeighborList::printStats()
     {
-    cout << "-- Neighborlist stats:" << endl;
-    cout << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
-    
+    // return earsly if the notice level is less than 1
+    if (m_exec_conf->msg->getNoticeLevel() < 1)
+        return;
+
+    m_exec_conf->msg->notice(1) << "-- Neighborlist stats:" << endl;
+    m_exec_conf->msg->notice(1) << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
+
     // access the number of neighbors to generate stats
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::read);
-    
+
     // build some simple statistics of the number of neighbors
     unsigned int n_neigh_min = m_pdata->getN();
     unsigned int n_neigh_max = 0;
     Scalar n_neigh_avg = 0.0;
-    
+
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         unsigned int n_neigh = (unsigned int)h_n_neigh.data[i];
@@ -819,20 +824,15 @@ void NeighborList::printStats()
             n_neigh_min = n_neigh;
         if (n_neigh > n_neigh_max)
             n_neigh_max = n_neigh;
-            
+
         n_neigh_avg += Scalar(n_neigh);
         }
-        
+
     // divide to get the average
     n_neigh_avg /= Scalar(m_pdata->getN());
-    
-    cout << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
-    /*cout << "update period counts: ";
-    for (unsigned int i = 0; i < m_update_periods.size(); i++)
-        cout << m_update_periods[i] << " ";
-    cout << endl;*/
-   
-    cout << "shortest rebuild period: " << getSmallestRebuild() << endl;
+    m_exec_conf->msg->notice(1) << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
+
+    m_exec_conf->msg->notice(1) << "shortest rebuild period: " << getSmallestRebuild() << endl;
     }
 
 void NeighborList::resetStats()
@@ -889,7 +889,7 @@ void NeighborList::buildNlist(unsigned int timestep)
     
     if ((box.xhi - box.xlo) <= (rmax) * 2.0 || (box.yhi - box.ylo) <= (rmax) * 2.0 || (box.zhi - box.zlo) <= (rmax) * 2.0)
         {
-        cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");
         }
         

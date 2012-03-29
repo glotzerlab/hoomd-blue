@@ -81,7 +81,7 @@ class HarmonicAngleForceCompute : public ForceCompute
         HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
         
         //! Destructor
-        ~HarmonicAngleForceCompute();
+        virtual ~HarmonicAngleForceCompute();
         
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
