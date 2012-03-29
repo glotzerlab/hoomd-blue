@@ -1107,7 +1107,9 @@ void NeighborList::allocateNlist()
     
     // round up to the nearest multiple of 8
     m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
-    
+
+    m_exec_conf->msg->notice(6) << "nlist: Allocating " << m_pdata->getN() << " x " << m_Nmax+1 << endl;
+
     // allocate the memory
     GPUArray<unsigned int> nlist(m_pdata->getN(), m_Nmax+1, exec_conf);
     m_nlist.swap(nlist);

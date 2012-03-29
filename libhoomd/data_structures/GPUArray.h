@@ -502,6 +502,8 @@ template<class T> void GPUArray<T>::swap(GPUArray& from) const
 */
 template<class T> void GPUArray<T>::allocate()
     {
+    m_exec_conf->msg->notice(7) << "GPUArray: Allocating " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
+    
     // don't allocate anything if there are zero elements
     if (m_num_elements == 0)
         return;
@@ -970,6 +972,8 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
     if (num_elements <= m_num_elements)
         return;
 
+    m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
+
     resizeHostArray(num_elements);
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
@@ -996,6 +1000,8 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
     // do not resize unless array is extended
     if (new_pitch <= m_pitch && height <= m_height)
         return;
+
+    m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
 
     // it is allowed to resize only one dimension, then the other dimension
     // is forced to stay the same

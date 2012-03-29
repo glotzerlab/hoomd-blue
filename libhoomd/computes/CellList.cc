@@ -258,7 +258,7 @@ void CellList::initializeMemory()
     {
     if (m_prof)
         m_prof->push("init");
-    
+
     // if it is still set at 0, estimate Nmax
     if (m_Nmax == 0)
         {
@@ -271,7 +271,10 @@ void CellList::initializeMemory()
         if ((m_Nmax & 7) != 0)
             m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
         }
-    
+
+    m_exec_conf->msg->notice(6) << "cell list: allocating " << m_dim.x << " x " << m_dim.y << " x " << m_dim.z
+                                << " x " << m_Nmax << endl;
+
     // initialize indexers
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
