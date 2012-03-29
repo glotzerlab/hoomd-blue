@@ -332,8 +332,8 @@ class bin(analyze._analyzer):
         if file1 is not None:
             self.cpp_analyzer.setAlternatingWrites(file1, file2)
             if period is None:
-                print "\n***Warning! Alternating file output set for dump.bin, but period is not set."
-                print "No output will be written.\n"
+                globals.msg.warning("Alternating file output set for dump.bin, but period is not set.\n");
+                globals.msg.warning("No output will be written.\n");
         
         if period is not None:
             self.setupAnalyzer(period);

@@ -137,7 +137,7 @@ class _compute:
         
         # check if we are already disabled
         if not self.enabled:
-            print "***Warning! Ignoring command to disable a compute that is already disabled";
+            globals.msg.warning("Ignoring command to disable a compute that is already disabled");
             return;
         
         globals.system.removeCompute(self.compute_name);
@@ -157,7 +157,7 @@ class _compute:
         
         # check if we are already disabled
         if self.enabled:
-            print "***Warning! Ignoring command to enable a compute that is already enabled";
+            globals.msg.warning("Ignoring command to enable a compute that is already enabled");
             return;
             
         globals.system.addCompute(self.cpp_compute, self.compute_name);
@@ -219,9 +219,9 @@ class thermo(_compute):
         # warn user if an existing compute thermo already uses this group or name
         for t in globals.thermos:
             if t.group is group:
-                print "***Warning! compute.thermo already specified for this group";
+                globals.msg.warning("compute.thermo already specified for this group");
             elif t.group.name == group.name:
-                print "***Warning! compute.thermo already specified for a group with name", group.name;
+                globals.msg.warning("compute.thermo already specified for a group with name " + str(group.name) + "\n");
         
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():

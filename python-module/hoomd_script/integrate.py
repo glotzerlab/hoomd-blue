@@ -269,7 +269,7 @@ class _integration_method:
         
         # check if we are already disabled
         if not self.enabled:
-            print "***Warning! Ignoring command to disable an integration method that is already disabled";
+            globals.msg.warning("Ignoring command to disable an integration method that is already disabled");
             return;
         
         self.enabled = False;
@@ -289,7 +289,7 @@ class _integration_method:
         
         # check if we are already disabled
         if self.enabled:
-            print "***Warning! Ignoring command to enable an integration method that is already enabled";
+            globals.msg.warning("Ignoring command to enable an integration method that is already enabled");
             return;
         
         self.enabled = True;

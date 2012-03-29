@@ -184,7 +184,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         raise RuntimeError('Error running');
         
     if globals.integrator is None:
-        print "***Warning! Starting a run without an integrator set";
+        globals.msg.warning("Starting a run without an integrator set");
     else:
         globals.integrator.update_forces();
         globals.integrator.update_methods();
@@ -205,7 +205,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     # detect 0 hours remaining properly
     if limit_hours == 0.0:
-        print "***Warning! Requesting a run() with a 0 time limit, doing nothing.\n";
+        globals.msg.warning("Requesting a run() with a 0 time limit, doing nothing.\n");
         return;
     if limit_hours is None:
         limit_hours = 0.0
@@ -246,7 +246,7 @@ def run_upto(step, **keywords):
     cur_step = globals.system.getCurrentTimeStep();
     
     if cur_step >= step:
-        print "***Warning! Requesting run up to a time step that has already passed, doing nothing\n";
+        globals.msg.warning("Requesting run up to a time step that has already passed, doing nothing\n");
         return;
     
     n_steps = step - cur_step;

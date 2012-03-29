@@ -62,6 +62,8 @@
 # "globals." to the variable name. For example, to access the 
 # global SystemDefinition, a user script can access \c globals.system_definition .
 
+import hoomd;
+
 ## Global variable that holds the execution configuration for reference by the python API
 exec_conf = None;
 

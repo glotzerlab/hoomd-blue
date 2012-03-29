@@ -489,7 +489,7 @@ def type(type, name=None):
         type_list.append(globals.system_definition.getParticleData().getNameByType(i));
     
     if type not in type_list:
-        print "***Warning!", type, " does not exist in the system, creating an empty group";
+        globals.msg.warning(str(type) + " does not exist in the system, creating an empty group\n");
         cpp_list = hoomd.std_vector_uint();
         cpp_group = hoomd.ParticleGroup(globals.system_definition, cpp_list);
     else:

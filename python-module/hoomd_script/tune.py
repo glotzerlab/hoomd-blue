@@ -106,7 +106,7 @@ def _save_override_file(common_optimal_db):
     
     # see if the user really wants to overwrite the file
     if os.path.isfile(fname):
-        print "\n***Warning!", fname, "exists. This file is being overwritten with new settings\n";
+        globals.msg.warning(fname + " exists. This file is being overwritten with new settings\n");
 
     # save the file
     f = file(fname, 'w');
@@ -149,8 +149,8 @@ def _load_override_file():
         # read and verify the version this was tuned on
         hoomd_version = pickle.load(f);
         if hoomd_version != hoomd.get_hoomd_version():
-            print >> sys.stderr, "\n***Warning! ~/.hoomd_block_tuning was created with", hoomd_version, \
-                                ", but this is", hoomd.get_hoomd_version(), ". Reverting to default performance tuning.\n";
+            globals.system.warning("~/.hoomd_block_tuning was created with" + str(hoomd_version) + \
+                                ", but this is " + str(hoomd.get_hoomd_version()) + ". Reverting to default performance tuning.\n");
             return;
         
         # read the compute capability of the GPU this was tuned on
@@ -192,8 +192,8 @@ def _get_optimal_block_size(name):
                 globals.msg.error("Block size override db does not contain a value for " + str(name) + ".\n");
                 raise RuntimeError("Error retrieving optimal block size");
         else:
-            print "\n***Warning! The compute capability of the current GPU is", compute_cap, "while the override was tuned on a", _override_block_size_compute_cap, "GPU"
-            print "            Ignoring the saved override in ~/.hoomd_block_tuning and reverting to the default.\n"
+            globals.msg.warning("The compute capability of the current GPU is " + str(compute_cap) + " while the override was tuned on a " + str(_override_block_size_compute_cap) + " GPU\n");
+            globals.msg.warning("Ignoring the saved override in ~/.hoomd_block_tuning and reverting to the default.\n");
 
 
     # check in the default db
@@ -204,13 +204,13 @@ def _get_optimal_block_size(name):
             globals.msg.error("Default block size db does not contain a value for " + str(name) + ".\n");
             raise RuntimeError("Error retrieving optimal block size");
     else:
-        print "\n***Warning! Optimal block size tuning values are not present for your hardware with compute capability", compute_cap;
-        print "            To obtain better performance, execute the following hoomd script to determine the optimal"
-        print "            settings and save them in your home directory. Future invocations of hoomd will use these"
-        print "            saved values\n"
-        print "            # block size tuning script"
-        print "            from hoomd_script import *"
-        print "            tune.find_optimal_block_sizes()\n"
+        globals.msg.warning("Optimal block size tuning values are not present for your hardware with compute capability " + str(compute_cap) + "\n");
+        globals.msg.warning("To obtain better performance, execute the following hoomd script to determine the optimal\n");
+        globals.msg.warning("settings and save them in your home directory. Future invocations of hoomd will use these\n");
+        globals.msg.warning("saved values\n");
+        globals.msg.warning("# block size tuning script\n");
+        globals.msg.warning("from hoomd_script import *\n");
+        globals.msg.warning("tune.find_optimal_block_sizes()\n");
         return 64
 
 

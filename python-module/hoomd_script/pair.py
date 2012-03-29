@@ -346,10 +346,10 @@ class nlist:
             is_small_box = is_small_box or (box.zhi - box.zlo) < min_width_for_bin;
         if  is_small_box:
             if globals.system_definition.getParticleData().getN() >= 2000:
-                print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";
-                print "             EXTREMELY SLOW O(N^2) calculation for the neighbor list."
+                globals.msg.warning("At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an\n");
+                globals.msg.warning("EXTREMELY SLOW O(N^2) calculation for the neighbor list.\n");
             else:
-                print "Notice: The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation."
+                globals.msg.notice(2, "The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation.\n");
                 
             mode = "nsq";
         

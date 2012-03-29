@@ -154,7 +154,7 @@ class _constraint_force:
             
         # check if we are already disabled
         if not self.enabled:
-            print "***Warning! Ignoring command to disable a force that is already disabled";
+            globals.msg.warning("Ignoring command to disable a force that is already disabled");
             return;
         
         self.enabled = False;
@@ -210,7 +210,7 @@ class _constraint_force:
             
         # check if we are already disabled
         if self.enabled:
-            print "***Warning! Ignoring command to enable a force that is already enabled";
+            globals.msg.warning("Ignoring command to enable a force that is already enabled");
             return;
         
         # add the compute back to the system

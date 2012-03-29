@@ -108,7 +108,7 @@ def is_initialized():
 # \endcode
 def reset():
     if not is_initialized():
-        print "\n***Warning! Trying to reset an uninitialized system";
+        globals.msg.warning("Trying to reset an uninitialized system\n");
         return;
 
     # perform some reference counting magic to verify that the user has cleared all saved variables
@@ -122,13 +122,14 @@ def reset():
     # passed to it in the argument
     expected_count = 2
     if count != expected_count:
-        print "\n***Warning! Not all saved variables were cleared before calling reset()";
-        print count-expected_count, "references to the particle data still exist somewhere\n"
-        raise RuntimeError('Error resetting');
+        globals.msg.warning("Not all saved variables were cleared before calling reset()\n");
+        globals.msg.warning(str(count-expected_count) + " references to the particle data still exist somewhere\n");
+        globals.msg.warning("Going to try and reset anyways, further errors (such as out of memory) may result\n");
 
     del sysdef
     gc.collect();
-    
+    gc.collect();
+
 ## Create an empty system
 #
 # \param N Number of particles to create
@@ -601,7 +602,7 @@ def _create_exec_conf():
     # set the openmp thread limits
     if globals.options.ncpu is not None:
         if globals.options.ncpu > hoomd.get_num_procs():
-            print "\n***Warning! Requesting more CPU cores than there are available in the system";
+            globals.msg.warning("Requesting more CPU cores than there are available in the system\n");
         hoomd.set_num_threads(globals.options.ncpu);
 
     # initialize the messenger
