@@ -96,6 +96,8 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         m_deltaT_set(dt/Scalar(10.0)),
         m_run_minsteps(10)
     {
+    m_exec_conf->msg->notice(5) << "Constructing FIREEnergyMinimizer" << endl;
+
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
@@ -107,6 +109,11 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         addIntegrationMethod(integrator);
         setDeltaT(m_deltaT_set);      
         }
+    }
+
+FIREEnergyMinimizer::~FIREEnergyMinimizer()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying FIREEnergyMinimizer" << endl;
     }
 
 //void FIREEnergyMinimizer::createIntegrator()

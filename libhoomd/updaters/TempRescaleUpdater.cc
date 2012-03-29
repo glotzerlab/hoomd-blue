@@ -79,8 +79,15 @@ TempRescaleUpdater::TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysde
                                        boost::shared_ptr<Variant> tset)
         : Updater(sysdef), m_thermo(thermo), m_tset(tset)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TempRescaleUpdater" << endl;
+
     assert(m_pdata);
     assert(thermo);
+    }
+
+TempRescaleUpdater::~TempRescaleUpdater()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TempRescaleUpdater" << endl;
     }
 
 

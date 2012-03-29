@@ -112,7 +112,7 @@ class TwoStepNPH : public IntegrationMethodTwoStep
                    integrationMode mode,
                    const std::string& suffix);
 
-        virtual ~TwoStepNPH() {};
+        virtual ~TwoStepNPH();
 
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);

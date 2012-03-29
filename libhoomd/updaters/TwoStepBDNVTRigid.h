@@ -84,7 +84,7 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
                           boost::shared_ptr<Variant> T,
                           unsigned int seed,
                           bool gamma_diam);
-        virtual ~TwoStepBDNVTRigid() {};
+        virtual ~TwoStepBDNVTRigid();
         
         //! Set a new temperature
         /*! \param T new temperature to set */

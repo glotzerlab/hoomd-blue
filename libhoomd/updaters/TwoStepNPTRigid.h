@@ -85,7 +85,7 @@ class TwoStepNPTRigid : public TwoStepNVERigid
                    boost::shared_ptr<Variant> T,
                    boost::shared_ptr<Variant> P,
                    bool skip_restart=false);
-        virtual ~TwoStepNPTRigid() {};
+        virtual ~TwoStepNPTRigid();
         
         //! Update the temperature
         /*! \param T New temperature to set

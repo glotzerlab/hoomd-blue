@@ -74,9 +74,14 @@ using namespace std;
 ZeroMomentumUpdater::ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ZeroMomentumUpdater" << endl;
     assert(m_pdata);
     }
 
+ZeroMomentumUpdater::~ZeroMomentumUpdater()
+    {
+    m_exec_conf->msg->notice(5) << "Destroyinging ZeroMomentumUpdater" << endl;
+    }
 
 /*! Perform the needed calculations to zero the system's momentum
     \param timestep Current time step of the simulation

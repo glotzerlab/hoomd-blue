@@ -76,7 +76,10 @@ class Enforce2DUpdater : public Updater
     public:
         //! Constructor
         Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef);
-        
+
+        //! Destructor
+        virtual ~Enforce2DUpdater();
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
     };

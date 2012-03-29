@@ -91,7 +91,7 @@ class TwoStepNPT : public IntegrationMethodTwoStep
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
                    boost::shared_ptr<Variant> P);
-        virtual ~TwoStepNPT() {};
+        virtual ~TwoStepNPT();
         
         //! Update the temperature
         /*! \param T New temperature to set

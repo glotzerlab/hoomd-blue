@@ -93,6 +93,7 @@ class TwoStepNVTRigid : public TwoStepNVERigid
                         boost::shared_ptr<Variant> T,
                         Scalar tau=10.0,
                         bool skip_restart=false);
+        ~TwoStepNVTRigid();
         
         //! Setup the initial net forces, torques and angular momenta
         void setup();

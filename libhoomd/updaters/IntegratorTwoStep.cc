@@ -70,10 +70,12 @@ using namespace boost;
 IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
     }
 
 IntegratorTwoStep::~IntegratorTwoStep()
     {
+    m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
     }
 
 /*! \param prof The profiler to set

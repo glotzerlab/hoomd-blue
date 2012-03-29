@@ -75,7 +75,7 @@ class TwoStepNVE : public IntegrationMethodTwoStep
         TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
                    boost::shared_ptr<ParticleGroup> group,
                    bool skip_restart=false);
-        virtual ~TwoStepNVE() {};
+        virtual ~TwoStepNVE();
         
         //! Sets the movement limit
         void setLimit(Scalar limit);

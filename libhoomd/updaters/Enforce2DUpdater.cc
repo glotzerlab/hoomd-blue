@@ -74,6 +74,8 @@ using namespace std;
 Enforce2DUpdater::Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing Enforce2DUpdater" << endl;
+
     assert(m_pdata);
     if (m_sysdef->getNDimensions() != 2)
         {
@@ -82,6 +84,10 @@ Enforce2DUpdater::Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef)
         }
     }
 
+Enforce2DUpdater::~Enforce2DUpdater()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying Enforce2DUpdater" << endl;
+    }
 
 /*! Perform the needed calculations to zero the system's momentum
     \param timestep Current time step of the simulation

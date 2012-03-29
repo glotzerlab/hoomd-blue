@@ -77,6 +77,8 @@ using namespace std;
 SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef), m_last_grid(0), m_last_dim(0)
     {
+    m_exec_conf->msg->notice(5) << "Constructing SFCPackUpdater" << endl;
+
     // perform lots of sanity checks
     assert(m_pdata);
     
@@ -90,6 +92,11 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
         m_grid = 4096;
     else
         m_grid = 256;
+    }
+
+SFCPackUpdater::~SFCPackUpdater()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying SFCPackUpdater" << endl;
     }
 
 /*! Performs the sort.

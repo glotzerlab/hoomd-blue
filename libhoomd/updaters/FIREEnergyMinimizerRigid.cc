@@ -77,6 +77,7 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
                                                     bool reset_and_create_integrator)
     :   FIREEnergyMinimizer(sysdef, group, dt, false), m_wtol(Scalar(1e-1)) // using false for the parent class
     {
+    m_exec_conf->msg->notice(5) << "Constructing FIREEnergyMinimizerRigid" << endl;
 
     m_nparticles = m_pdata->getN();
     
@@ -107,6 +108,11 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
         addIntegrationMethod(integrator);
         setDeltaT(m_deltaT);
         }
+    }
+
+FIREEnergyMinimizerRigid::~FIREEnergyMinimizerRigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying FIREEnergyMinimizerRigid" << endl;
     }
 
 /*! Reset minimizer parameters and zero velocities

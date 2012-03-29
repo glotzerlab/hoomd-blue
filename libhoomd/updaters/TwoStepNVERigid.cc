@@ -78,6 +78,8 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVERigid" << endl;
+
     if (!skip_restart)
         {
         setRestartIntegratorVariables();
@@ -97,6 +99,11 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
         {
         m_exec_conf->msg->warning() << "integrate.*_rigid: Empty group." << endl;
         }
+    }
+
+TwoStepNVERigid::~TwoStepNVERigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVERigid" << endl;
     }
 
 void TwoStepNVERigid::setRestartIntegratorVariables()

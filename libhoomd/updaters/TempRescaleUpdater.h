@@ -81,6 +81,9 @@ class TempRescaleUpdater : public Updater
         TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<ComputeThermo> thermo,
                            boost::shared_ptr<Variant> tset);
+
+        //! Destructor
+        ~TempRescaleUpdater();
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);

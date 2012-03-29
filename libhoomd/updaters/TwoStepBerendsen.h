@@ -77,7 +77,7 @@ class TwoStepBerendsen : public IntegrationMethodTwoStep
                          boost::shared_ptr<ComputeThermo> thermo,
                          Scalar tau,
                          boost::shared_ptr<Variant> T);
-        virtual ~TwoStepBerendsen() {};
+        virtual ~TwoStepBerendsen();
 
         //! Update the temperature
         //! \param T New temperature to set

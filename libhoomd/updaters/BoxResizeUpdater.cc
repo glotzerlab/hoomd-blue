@@ -87,6 +87,13 @@ BoxResizeUpdater::BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef,
     assert(m_Lx);
     assert(m_Ly);
     assert(m_Lz);
+
+    m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
+    }
+
+BoxResizeUpdater::~BoxResizeUpdater()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying BoxResizeUpdater" << endl;
     }
 
 /*! \param scale_particles Set to true to scale particles with the box. Set to false to leave particle positions alone

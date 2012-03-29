@@ -86,7 +86,7 @@ class TwoStepBDNVT : public TwoStepNVE
                      unsigned int seed,
                      bool gamma_diam,
                      const std::string& suffix = std::string(""));
-        virtual ~TwoStepBDNVT() {};
+        virtual ~TwoStepBDNVT();
         
         //! Set a new temperature
         /*! \param T new temperature to set */

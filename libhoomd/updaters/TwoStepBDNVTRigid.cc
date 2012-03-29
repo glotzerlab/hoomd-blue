@@ -79,6 +79,8 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                            bool gamma_diam)
     : TwoStepNVERigid(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepBDNVTRigid" << endl;
+
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
 
@@ -99,6 +101,11 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.getNumElements(); i++)
         h_gamma.data[i] = Scalar(1.0);
+    }
+
+TwoStepBDNVTRigid::~TwoStepBDNVTRigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepBDNVTRigid" << endl;
     }
 
 /*! \param typ Particle type to set gamma for

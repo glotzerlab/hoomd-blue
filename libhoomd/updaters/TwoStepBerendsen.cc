@@ -78,10 +78,16 @@ TwoStepBerendsen::TwoStepBerendsen(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<Variant> T)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepBerendsen" << endl;
+
     if (m_tau <= 0.0)
         m_exec_conf->msg->warning() << "integrate.berendsen: tau set less than 0.0" << endl;
     }
 
+TwoStepBerendsen::~TwoStepBerendsen()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepBerendsen" << endl;
+    }
 
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
