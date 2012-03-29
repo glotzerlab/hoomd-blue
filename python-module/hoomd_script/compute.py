@@ -80,7 +80,7 @@ class _compute:
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create compute before initialization\n";
+            globals.msg.error("Cannot create compute before initialization\n");
             raise RuntimeError('Error creating compute');
         
         self.cpp_compute = None;

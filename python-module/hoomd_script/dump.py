@@ -327,7 +327,7 @@ class bin(analyze._analyzer):
         # handle the alternation setting
         # first, check that they are both set
         if (file1 is not None and file2 is None) or (file2 is not None and file1 is None):
-            print >> sys.stderr, "\n***Error! file1 and file2 must either both be set or both left as None.\n";
+            globals.msg.error("file1 and file2 must either both be set or both left as None.\n");
             raise RuntimeError('Error initializing dump.bin');
         if file1 is not None:
             self.cpp_analyzer.setAlternatingWrites(file1, file2)
@@ -512,13 +512,13 @@ class dcd(analyze._analyzer):
         util.print_status_line();
         
         if self.enabled == False:
-            print >> sys.stderr, "\n***Error! you cannot re-enable DCD output after it has been disabled\n";
+            globals.msg.error("you cannot re-enable DCD output after it has been disabled\n");
             raise RuntimeError('Error enabling updater');
     
     def set_period(self, period):
         util.print_status_line();
         
-        print >> sys.stderr, "\n***Error! you cannot change the period of a dcd dump writer\n";
+        globals.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
 

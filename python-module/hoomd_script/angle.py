@@ -97,7 +97,7 @@ class harmonic(force._force):
         util.print_status_line();
         # check that some angles are defined
         if globals.system_definition.getAngleData().getNumAngles() == 0:
-            print >> sys.stderr, "\n***Error! No angles are defined.\n";
+            globals.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating angle forces");
         
         # initialize the base class
@@ -207,7 +207,7 @@ class cgcmm(force._force):
         util.print_status_line();
         # check that some angles are defined
         if globals.system_definition.getAngleData().getNumAngles() == 0:
-            print >> sys.stderr, "\n***Error! No angles are defined.\n";
+            globals.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating CGCMM angle forces");
         
         # initialize the base class

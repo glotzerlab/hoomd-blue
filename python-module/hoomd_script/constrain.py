@@ -92,7 +92,7 @@ class _constraint_force:
     def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create force before initialization\n";
+            globals.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating constraint force');
         
         self.cpp_force = None;

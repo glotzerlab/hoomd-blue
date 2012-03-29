@@ -82,7 +82,7 @@ class _force:
     def __init__(self, name=None):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create force before initialization\n";
+            globals.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating force');
         
         # Allow force to store a name.  Used for discombobulation in the logger

@@ -99,7 +99,7 @@ class harmonic(force._force):
         util.print_status_line();
         # check that some impropers are defined
         if globals.system_definition.getImproperData().getNumDihedrals() == 0:
-            print >> sys.stderr, "\n***Error! No impropers are defined.\n";
+            globals.msg.error("No impropers are defined.\n");
             raise RuntimeError("Error creating improper forces");
         
         # initialize the base class

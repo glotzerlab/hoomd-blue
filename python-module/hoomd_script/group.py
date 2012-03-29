@@ -195,7 +195,7 @@ def all():
 
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
     
     # the all group is special: when the first one is created, it is cached in globals and future calls to group.all()
@@ -203,7 +203,7 @@ def all():
     if globals.group_all is not None:
         expected_N = globals.system_definition.getParticleData().getN();
         if len(globals.group_all) != expected_N:
-            print >> sys.stderr, "\n***Error! globals.group_all does not appear to be the group of all particles!\n";
+            globals.msg.error("globals.group_all does not appear to be the group of all particles!\n");
             raise RuntimeError('Error creating group');
         
         return globals.group_all;
@@ -259,7 +259,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
     
     # handle the optional arguments
@@ -316,7 +316,7 @@ def nonrigid():
     
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
@@ -350,7 +350,7 @@ def rigid():
     
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
@@ -390,7 +390,7 @@ def tags(tag_min, tag_max=None, name=None):
     
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
     
     # handle the optional argument
@@ -435,7 +435,7 @@ def tag_list(name, tags):
     
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
     
     # build a vector of the tags
@@ -476,7 +476,7 @@ def type(type, name=None):
     
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     if name is None:
@@ -523,7 +523,7 @@ def charged(name='charged'):
     
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
     
     util._disable_status_lines = True;

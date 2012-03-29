@@ -77,7 +77,7 @@ except ImportError:
 def series(warmup=100000, repeat=20, steps=10000):
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot tune r_buff before initialization\n";
+        globals.msg.error("Cannot tune r_buff before initialization\n");
 
     tps_list = [];
     

@@ -130,7 +130,7 @@ class _analyzer:
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create analyzer before initialization\n";
+            globals.msg.error("Cannot create analyzer before initialization\n");
             raise RuntimeError('Error creating analyzer');
         
         self.cpp_analyzer = None;
@@ -160,7 +160,7 @@ class _analyzer:
             globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000);
             globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
         else:
-            print >> sys.stderr, "\n***Error! I don't know what to do with a period of type", type(period), "expecting an int or a function\n";
+            globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
             raise RuntimeError('Error creating analyzer');
             
     ## \var enabled

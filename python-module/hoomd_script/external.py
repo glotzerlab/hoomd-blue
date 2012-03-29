@@ -163,7 +163,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            print >> sys.stderr, "\n***Error! No coefficents specified\n";
+            globals.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -183,7 +183,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot verify force coefficients before initialization\n";
+            globals.msg.error("Cannot verify force coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
@@ -207,7 +207,7 @@ class coeff:
                     count += 1;
 
             if count != len(required_coeffs):
-                print >> sys.stderr, "\n***Error! Particle type", type, "is missing required coefficients\n";
+                globals.msg.error("Particle type", type, "is missing required coefficients\n");
                 valid = False;
 
         return valid;

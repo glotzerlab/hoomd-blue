@@ -159,7 +159,7 @@ def _load_override_file():
         _override_block_size_db = pickle.load(f);
         
     else:
-        print >> sys.stderr, "\n***Error! Unknown ~/.hoomd_block_tuning format", ver, ".\n";
+        globals.msg.error("Unknown ~/.hoomd_block_tuning format " + str(ver) + ".\n");
         raise RuntimeError("Error loading .hoomd_block_tuning");
     
     f.close();
@@ -189,7 +189,7 @@ def _get_optimal_block_size(name):
             if name in _override_block_size_db:
                 return _override_block_size_db[name];
             else:
-                print >> sys.stderr, "\n***Error! Block size override db does not contain a value for", name, ".\n";
+                globals.msg.error("Block size override db does not contain a value for " + str(name) + ".\n");
                 raise RuntimeError("Error retrieving optimal block size");
         else:
             print "\n***Warning! The compute capability of the current GPU is", compute_cap, "while the override was tuned on a", _override_block_size_compute_cap, "GPU"
@@ -201,7 +201,7 @@ def _get_optimal_block_size(name):
         if name in _default_block_size_db[compute_cap]:
             return _default_block_size_db[compute_cap][name];
         else:
-            print >> sys.stderr, "\n***Error! Default block size db does not contain a value for", name, ".\n";
+            globals.msg.error("Default block size db does not contain a value for " + str(name) + ".\n");
             raise RuntimeError("Error retrieving optimal block size");
     else:
         print "\n***Warning! Optimal block size tuning values are not present for your hardware with compute capability", compute_cap;
@@ -640,11 +640,11 @@ import globals;
 def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot tune r_buff before initialization\n";
+        globals.msg.error("Cannot tune r_buff before initialization\n");
     
     # check that there is a nlist
     if globals.neighbor_list is None:
-        print >> sys.stderr, "\n***Error! Cannot tune r_buff when there is no neighbor list\n";
+        globals.msg.error("Cannot tune r_buff when there is no neighbor list\n");
 
     # start off at a check_period of 1
     globals.neighbor_list.set_params(check_period=1);

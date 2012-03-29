@@ -98,6 +98,11 @@ group_all = None;
 ## Global options
 options = None;
 
+## Global Messenger
+# \note This is initialized to a default messenger on load so that python code may have a unified path for sending
+# messages
+msg = hoomd.Messenger();
+
 ## \internal
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()

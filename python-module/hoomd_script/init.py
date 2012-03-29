@@ -173,7 +173,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     
     # check if initialization has already occurred
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
     
     my_exec_conf = _create_exec_conf();
@@ -228,7 +228,7 @@ def read_xml(filename, time_step = None):
     
     # check if initialization has already occurred
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
     my_exec_conf = _create_exec_conf();
@@ -276,7 +276,7 @@ def read_bin(filename):
     
     # check if initialization has already occurred
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
     my_exec_conf = _create_exec_conf();
@@ -320,7 +320,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
     
     # check if initialization has already occurred
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
     my_exec_conf = _create_exec_conf();
@@ -462,15 +462,15 @@ def create_random_polymers(box, polymers, separation, seed=1):
         
     # check if initialization has already occured
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error creating random polymers");
     
     if type(polymers) != type([]) or len(polymers) == 0:
-        print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
+        globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
     
     if type(separation) != type(dict()) or len(separation) == 0:
-        print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
+        globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
     
     # create the generator
@@ -551,14 +551,14 @@ def create_random_polymers(box, polymers, separation, seed=1):
     # check that all used types are in the separation list
     for t in types_used:
         if not t in separation:
-            print >> sys.stderr, "\n***Error! No separation radius specified for type ", t, "\n";
+            globals.msg.error("No separation radius specified for type " + str(t) + "\n");
             raise RuntimeError("Error creating random polymers");
             
     # set the separation radii, checking that it is within the minimum bond length
     for t,r in separation.items():
         generator.setSeparationRadius(t, r);
         if 2*r >= min_bond_len:
-            print >> sys.stderr, "\n***Error! Separation radius", r, "is too big for the minimum bond length of", min_bond_len, "specified\n";
+            globals.msg.error("Separation radius " + str(r) + " is too big for the minimum bond length of " + str(min_bond_len) + " specified\n");
             raise RuntimeError("Error creating random polymers");
         
     # generate the particles

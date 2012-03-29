@@ -117,7 +117,7 @@ class _integrator:
     def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create integrator before initialization\n";
+            globals.msg.error("Cannot create integrator before initialization\n");
             raise RuntimeError('Error creating integrator');
         
         # by default, integrators do not support methods
@@ -221,7 +221,7 @@ class _integration_method:
     def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create an integration method before initialization\n";
+            globals.msg.error("Cannot create an integration method before initialization\n");
             raise RuntimeError('Error creating integration method');
         
         self.cpp_method = None;
@@ -605,7 +605,7 @@ class nph(_integration_method):
             elif (mode == "tetragonal"):
                 cpp_mode = hoomd.TwoStepNPH.integrationMode.tetragonal;
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in integrate.nph");
             self.cpp_method = hoomd.TwoStepNPH(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
         else:
@@ -616,7 +616,7 @@ class nph(_integration_method):
             elif (mode == "tetragonal"):
                 cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.tetragonal;
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in integrate.nph");
             self.cpp_method = hoomd.TwoStepNPHGPU(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
 
@@ -659,7 +659,7 @@ class nph(_integration_method):
             elif (mode == "tetragonal"):
                 self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.tetragonal);
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in integrate.nph");
 
 ## NVE Integration via Velocity-Verlet

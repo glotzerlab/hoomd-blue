@@ -54,7 +54,8 @@ import sys;
 import traceback;
 import os.path;
 import linecache;
-import re
+import re;
+import globals;
 
 ## \internal
 # \package hoomd_script.util

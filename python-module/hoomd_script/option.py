@@ -173,12 +173,12 @@ def _parse_command_line():
 #
 def set_mode(mode):
     if init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot change mode after initialization\n";
+            globals.msg.error("Cannot change mode after initialization\n");
             raise RuntimeError('Error setting option');
     
     if mode is not None:
         if not (mode == "cpu" or mode == "gpu"):
-            print >> sys.stderr, "\n***Error! Invalid mode setting\n";
+            globals.msg.error("Invalid mode setting\n");
             raise RuntimeError('Error setting option');
         
     globals.options.mode = mode;
@@ -193,14 +193,14 @@ def set_mode(mode):
 #
 def set_gpu(gpu):
     if init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot change gpu after initialization\n";
+            globals.msg.error("Cannot change gpu after initialization\n");
             raise RuntimeError('Error setting option');
     
     if gpu is not None:
         try:
             gpu = int(gpu);
         except ValueError:
-            print >> sys.stderr, "\n***Error! gpu must be an integer\n";
+            globals.msg.error("gpu must be an integer\n");
             raise RuntimeError('Error setting option');
         
         # imply mode=gpu
@@ -218,14 +218,14 @@ def set_gpu(gpu):
 #
 def set_ncpu(ncpu):
     if init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot change number of threads after initialization\n";
+            globals.msg.error("Cannot change number of threads after initialization\n");
             raise RuntimeError('Error setting option');
     
     if ncpu is not None:
         try:
             ncpu = int(ncpu);
         except ValueError:
-            print >> sys.stderr, "\n***Error! ncpu must be an integer\n";
+            globals.msg.error("ncpu must be an integer\n");
             raise RuntimeError('Error setting option');
         
         # imply mode=cpu
@@ -241,7 +241,7 @@ def set_ncpu(ncpu):
 #
 def set_gpu_error_checking(gpu_error_checking):
     if init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot change error checking flag after initialization\n";
+            globals.msg.error("Cannot change error checking flag after initialization\n");
             raise RuntimeError('Error setting option');
             
     globals.options.gpu_error_checking = gpu_error_checking;
@@ -254,7 +254,7 @@ def set_gpu_error_checking(gpu_error_checking):
 #
 def set_min_cpu(min_cpu):
     if init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot change minimize cpu usage flag after initialization\n";
+            globals.msg.error("Cannot change minimize cpu usage flag after initialization\n");
             raise RuntimeError('Error setting option');
             
     globals.options.min_cpu = min_cpu;
@@ -267,7 +267,7 @@ def set_min_cpu(min_cpu):
 #
 def set_ignore_display(ignore_display):
     if init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot change ignore display GPU flag after initialization\n";
+            globals.msg.error("Cannot change ignore display GPU flag after initialization\n");
             raise RuntimeError('Error setting option');
             
     globals.options.ignore_display = ignore_display;
@@ -293,7 +293,7 @@ def set_notice_level(notice_level):
     try:
         notice_level = int(notice_level);
     except ValueError:
-        print >> sys.stderr, "\n***Error! ncpu must be an integer\n";
+        globals.msg.error("ncpu must be an integer\n");
         raise RuntimeError('Error setting option');
 
 

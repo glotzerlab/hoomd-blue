@@ -227,7 +227,7 @@ class coeff:
         
         # update each of the values provided
         if len(coeffs) == 0:
-            print >> sys.stderr, "\n***Error! No coefficents specified\n";
+            globals.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[cur_pair][name] = val;
         
@@ -247,7 +247,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot verify pair coefficients before initialization\n";
+            globals.msg.error("Cannot verify pair coefficients before initialization\n");
             raise RuntimeError('Error verifying pair coefficients');
         
         # get a list of types from the particle data
@@ -283,7 +283,7 @@ class coeff:
                         count += 1;
                 
                 if count != len(required_coeffs):
-                    print >> sys.stderr, "\n***Error! Type pair", (a,b), "is missing required coefficients\n";
+                    globals.msg.error("Type pair " + str((a,b)) + " is missing required coefficients\n");
                     valid = False;
                 
             
@@ -362,7 +362,7 @@ class nlist:
             elif mode == "nsq":
                 self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
             else:
-                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
         else:
             if mode == "binned":
@@ -375,7 +375,7 @@ class nlist:
                 self.cpp_nlist = hoomd.NeighborListGPU(globals.system_definition, r_cut, default_r_buff)
                 self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
-                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
             
         self.cpp_nlist.setEvery(1, True);
@@ -758,11 +758,11 @@ class pair(force._force):
             elif mode == "xplor":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
     
     def process_coeff(self, coeff):
-        print >> sys.stderr, "\n***Error! Bug in hoomd_script, please report\n";
+        globals.msg.error("Bug in hoomd_script, please report\n");
         raise RuntimeError("Error processing coefficients");
     
     def update_coeffs(self):
@@ -1135,7 +1135,7 @@ class slj(pair):
         util.print_status_line();
         
         if mode == "xplor":
-            print >> sys.stderr, "\n***Error! XPLOR is smoothing is not supported with slj\n";
+            globals.msg.error("XPLOR is smoothing is not supported with slj\n");
             raise RuntimeError("Error changing parameters in pair force");
         
         pair.set_params(self, mode=mode);
@@ -2131,7 +2131,7 @@ class dpdlj(pair):
         
         if mode is not None:
             if mode == "xplor":
-                print >> sys.stderr, "\n***Error! XPLOR is smoothing is not supported with pair.dpdlj\n";
+                globals.msg.error("XPLOR is smoothing is not supported with pair.dpdlj\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
             #use the inherited set_params

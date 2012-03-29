@@ -81,7 +81,7 @@ class _updater:
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create updater before initialization\n";
+            globals.msg.error("Cannot create updater before initialization\n");
             raise RuntimeError('Error creating updater');
         
         self.cpp_updater = None;
@@ -113,7 +113,7 @@ class _updater:
             globals.system.addUpdater(self.cpp_updater, self.updater_name, 1000);
             globals.system.setUpdaterPeriodVariable(self.updater_name, period);
         else:
-            print >> sys.stderr, "\n***Error! I don't know what to do with a period of type", type(period), "expecting an int or a function\n";
+            globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + "expecting an int or a function\n");
             raise RuntimeError('Error creating updater');
 
     ## \var enabled

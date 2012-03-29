@@ -180,7 +180,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
+        globals.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
         
     if globals.integrator is None:
@@ -238,7 +238,7 @@ def run_upto(step, **keywords):
         util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
+        globals.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
     
     # determine the number of steps to run
