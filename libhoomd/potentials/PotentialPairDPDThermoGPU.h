@@ -122,15 +122,8 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boos
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
         {
-        std::cerr << std::endl << "***Error! Creating a PotentialPairDPDThermoGPU with no GPU in the execution configuration"
-                  << std::endl << std::endl;
-        throw std::runtime_error("Error initializing PotentialPairDPDThermoGPU");
-        }
-
-    if (this->m_pdata->getNTypes() > 44)
-        {
-        std::cerr << std::endl << "***Error! PotentialPairDPDThermoGPU cannot handle " << this->m_pdata->getNTypes() << " types"
-                  << std::endl << std::endl;
+        this->m_exec_conf->msg->error() << "Creating a PotentialPairDPDThermoGPU with no GPU in the execution configuration"
+                  << std::endl;
         throw std::runtime_error("Error initializing PotentialPairDPDThermoGPU");
         }
     }
@@ -149,7 +142,7 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        std::cerr << std::endl << "***Error! PotentialPairDPDThermoGPU cannot handle a half neighborlist"
+        this->m_exec_conf->msg->error() << "PotentialPairDPDThermoGPU cannot handle a half neighborlist"
                   << std::endl << std::endl;
         throw std::runtime_error("Error computing forces in PotentialPairDPDThermoGPU");
         }

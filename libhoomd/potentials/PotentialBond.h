@@ -142,7 +142,7 @@ void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& 
     // make sure the type is valid
     if (type >= m_bond_data->getNBondTypes())
         {
-        cout << endl << "***Error! Invalid bond type specified" << endl << endl;
+        this->m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
         }
 
@@ -174,8 +174,7 @@ Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsi
         }
     else
         {
-        std::cerr << std::endl << "***Error! " << quantity << " is not a valid log quantity for PotentialPair"
-                  << std::endl << endl;
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }
@@ -340,7 +339,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             }
         else
             {
-            cerr << endl << "***Error! << " << evaluator::getName() << " bond out of bounds" << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }

@@ -220,8 +220,8 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        std::cerr << std::endl << "***Error! Trying to set pair params for a non existant type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existant type! "
+                  << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }
     
@@ -241,8 +241,8 @@ void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, S
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        std::cerr << std::endl << "***Error! Trying to set rcut for a non existant type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set rcut for a non existant type! "
+                  << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }
     
@@ -262,8 +262,8 @@ void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Sc
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        std::cerr << std::endl << "***Error! Trying to set ron for a non existant type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set ron for a non existant type! "
+                  << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }
     
@@ -297,8 +297,8 @@ Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, unsi
         }
     else
         {
-        std::cerr << std::endl << "***Error! " << quantity << " is not a valid log quantity for PotentialPair" 
-                  << std::endl << endl;
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" 
+                  << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }
