@@ -134,7 +134,7 @@ void FIREEnergyMinimizer::setFinc(Scalar finc)
     {
     if (!(finc > 1.0))
         {
-        cerr << endl << "***Error! FIREENergyMinimizer: fractional increase in timestep should be > 1" << endl << endl;
+        m_exec_conf->msg->error() << "integrate.mode_minimize_fire: fractional increase in timestep should be > 1" << endl;
         throw runtime_error("Error setting parameters for FIREEnergyMinimizer");
         }
         m_finc = finc;
@@ -146,7 +146,7 @@ void FIREEnergyMinimizer::setFdec(Scalar fdec)
     {
     if (!(fdec < 1.0 && fdec >= 0.0))
         {
-        cerr << endl << "***Error! FIREENergyMinimizer: fractional decrease in timestep should be between 0 and 1" << endl << endl;
+        m_exec_conf->msg->error() << "integrate.mode_minimize_fire: fractional decrease in timestep should be between 0 and 1" << endl;
         throw runtime_error("Error setting parameters for FIREEnergyMinimizer");
         }
         m_fdec = fdec;
@@ -163,7 +163,7 @@ void FIREEnergyMinimizer::setAlphaStart(Scalar alpha_start)
     {
     if (!(alpha_start < 1.0 && alpha_start > 0.0))
         {
-        cerr << endl << "***Error! FIREENergyMinimizer: alpha_start should be between 0 and 1" << endl << endl;
+        m_exec_conf->msg->error() << "integrate.mode_minimize_fire: alpha_start should be between 0 and 1" << endl;
         throw runtime_error("Error setting parameters for FIREEnergyMinimizer");
         }
         m_alpha_start = alpha_start;
@@ -180,7 +180,7 @@ void FIREEnergyMinimizer::setFalpha(Scalar falpha)
     {
     if (!(falpha < 1.0 && falpha > 0.0))
         {
-        cerr << endl << "***Error! FIREENergyMinimizer: falpha should be between 0 and 1" << endl << endl;
+        m_exec_conf->msg->error() << "integrate.mode_minimize_fire: falpha should be between 0 and 1" << endl;
         throw runtime_error("Error setting parameters for FIREEnergyMinimizer");
         }
         m_falpha = falpha;

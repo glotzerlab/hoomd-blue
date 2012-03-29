@@ -77,7 +77,7 @@ Enforce2DUpdater::Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef)
     assert(m_pdata);
     if (m_sysdef->getNDimensions() != 2)
         {
-        cerr << endl << "***Error! Enforce2DUpdater used for 3 dimensional system" << endl << endl;
+        m_exec_conf->msg->error() << "update.enforce2d: used for 3 dimensional system" << endl;
         throw runtime_error("Error initializing Enforce2DUpdater");
         }
     }

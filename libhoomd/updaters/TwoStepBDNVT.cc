@@ -116,12 +116,12 @@ void TwoStepBDNVT::setGamma(unsigned int typ, Scalar gamma)
     // check for user errors
     if (m_gamma_diam)
         {
-        cerr << endl << "***Error! Trying to set gamma when it is set to be the diameter! " << typ << endl << endl;
+        m_exec_conf->msg->error() << "intergae.bdnvt: Trying to set gamma when it is set to be the diameter! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepBDNVT");
         }
     if (typ >= m_pdata->getNTypes())
         {
-        cerr << endl << "***Error! Trying to set gamma for a non existant type! " << typ << endl << endl;
+        m_exec_conf->msg->error() << "intergae.bdnvt: Trying to set gamma for a non existant type! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepBDNVT");
         }
         

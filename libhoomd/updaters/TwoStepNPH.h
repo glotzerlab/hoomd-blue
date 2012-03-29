@@ -171,7 +171,7 @@ class TwoStepNPH : public IntegrationMethodTwoStep
             {
             if (m_state_initialized)
                 {
-                cerr << endl << "***Error! Trying to set eta after integrator has already been initialized! " <<  endl << endl;
+                m_exec_conf->msg->error() << "integrate.nph: Trying to set eta after integrator has already been initialized! " <<  endl;
                 throw runtime_error("Error setting params in TwoStepNPH");
                 }
             IntegratorVariables v = getIntegratorVariables();

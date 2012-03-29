@@ -79,7 +79,7 @@ TwoStepBerendsen::TwoStepBerendsen(boost::shared_ptr<SystemDefinition> sysdef,
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
     {
     if (m_tau <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in Berendsen thermostat" << endl;
+        m_exec_conf->msg->warning() << "integrate.berendsen: tau set less than 0.0" << endl;
     }
 
 

@@ -136,7 +136,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {
-        cout << "***Warning! No integration methods are set, continuing anyways." << endl;
+        m_exec_conf->msg->warning() << "itegrate.mode_standard: No integration methods are set, continuing anyways." << endl;
         m_gave_warning = true;
         }
     
@@ -214,7 +214,7 @@ void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethod
     shared_ptr<ParticleGroup> new_group = new_method->getGroup();
     
     if (new_group->getNumMembers() == 0)
-        cout << "***Warning! An integration method has been added that operates on zero particles." << endl;
+        m_exec_conf->msg->warning() << "itegrate.mode_standard: An integration method has been added that operates on zero particles." << endl;
     
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
@@ -224,7 +224,7 @@ void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethod
         
         if (intersection->getNumMembers() > 0)
             {
-            cerr << endl << "***Error! Multiple integration methods are applied to the same particle" << endl << endl;
+            m_exec_conf->msg->error() << "itegrate.mode_standard: Multiple integration methods are applied to the same particle" << endl;
             throw std::runtime_error("Error adding integration method");
             }
         }

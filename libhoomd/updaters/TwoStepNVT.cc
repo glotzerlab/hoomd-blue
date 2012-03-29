@@ -80,7 +80,7 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
     {
     if (m_tau <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
+        m_exec_conf->msg->warning() << "integrate.nvt: tau set less than 0.0 in NVTUpdater" << endl;
     
     // set initial state
     IntegratorVariables v = getIntegratorVariables();

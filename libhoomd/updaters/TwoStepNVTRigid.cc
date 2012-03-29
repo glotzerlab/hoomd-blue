@@ -84,7 +84,7 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
 : TwoStepNVERigid(sysdef, group, true), m_thermo(thermo), m_temperature(T)
     {
     if (tau <= 0.0)
-        cout << "***Warning! tau set less than or equal to 0.0 in TwoStepNVTRigid." << endl;
+        m_exec_conf->msg->warning() << "integrate.nvt_rigid: tau set less than or equal to 0.0" << endl;
     
     t_freq = 1.0 / tau;
     

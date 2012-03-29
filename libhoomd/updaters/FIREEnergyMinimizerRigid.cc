@@ -91,7 +91,7 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
     
     if (m_n_bodies == 0)
         {
-        cout << "***Warning! Empty group of rigid bodies." << endl;
+        m_exec_conf->msg->warning() << "integrate.mode_minimize_rigid_fire: Empty group of rigid bodies." << endl;
         }
     
     // Time steps to run NVE between minimizer moves    
@@ -157,7 +157,7 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
         
     if (m_n_bodies <= 0)
         {
-        cerr << endl << "***Error! FIREENergyMinimizerRigid: There is no rigid body for this integrator" << endl << endl;
+        m_exec_conf->msg->error() << "integrate.mode_minimize_rigid_fire:  There is no rigid body for this integrator" << endl;
         throw runtime_error("Error update for FIREEnergyMinimizerRigid (no rigid body)");
         return;
         }

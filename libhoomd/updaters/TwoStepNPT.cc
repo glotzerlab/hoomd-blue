@@ -85,9 +85,9 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
       m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_state_initialized(false)
     {
     if (m_tau <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in TwoStepNPT" << endl;
+        m_exec_conf->msg->warning() << "integreate.npt: tau set less than 0.0" << endl;
     if (m_tauP <= 0.0)
-        cout << "***Warning! tauP set less than 0.0 in TwoStepNPT" << endl;
+        m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
     
     // precalculate box lengths
     const BoxDim& box = m_pdata->getBox();

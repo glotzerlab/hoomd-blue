@@ -88,9 +88,9 @@ TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepNVERigid(sysdef, group, true), m_thermo_group(thermo_group), m_thermo_all(thermo_all), m_partial_scale(false), m_temperature(T), m_pressure(P)
     {
     if (tau <= 0.0)
-        cout << "***Warning! tau set less than or equal 0.0 in TwoStepNPTRigid" << endl;
+        m_exec_conf->msg->warning() << "integrate.npt_rigid: tau set less than or equal 0.0" << endl;
     if (tauP <= 0.0)
-        cout << "***Warning! tauP set less than or equal to 0.0 in TwoStepNPTRigid" << endl;
+        m_exec_conf->msg->warning() << "integrate.npt_rigid: tauP set less than or equal to 0.0" << endl;
     
     t_freq = 1.0 / tau;
     p_freq = 1.0 / tauP;

@@ -119,21 +119,19 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(IntegratorVariables& v, std:
         good = false;
     else if (v.type != type && v.type != "")
         {
-        cout << endl;
-        cout << "***Warning! Integrator #"<<  m_integrator_id <<" type "<< type <<" does not match type ";
-        cout << v.type << " found in restart file. " << endl;
-        cout << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
-        cout << "Continuing while ignoring restart information..." << endl << endl;
+        m_exec_conf->msg->warning() << "Integrator #"<<  m_integrator_id <<" type "<< type <<" does not match type ";
+        m_exec_conf->msg->warning() << v.type << " found in restart file. " << endl;
+        m_exec_conf->msg->warning() << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
+        m_exec_conf->msg->warning() << "Continuing while ignoring restart information..." << endl;
         good = false;
         }
     else if (v.type == type)
         {
         if (v.variable.size() != nvariables)
             {
-            cout << endl;
-            cout << "***Warning! Integrator #"<< m_integrator_id <<" type "<< type << endl;
-            cout << "appears to contain bad or incomplete restart information. " << endl;
-            cout << "Continuing while ignoring restart information..." << endl << endl;
+            m_exec_conf->msg->warning() << "Integrator #"<< m_integrator_id <<" type "<< type << endl;
+            m_exec_conf->msg->warning() << "appears to contain bad or incomplete restart information. " << endl;
+            m_exec_conf->msg->warning() << "Continuing while ignoring restart information..." << endl;
             good = false;
             }
         }
@@ -172,9 +170,8 @@ void IntegrationMethodTwoStep::validateGroup()
         unsigned int tag = m_group->getMemberTag(gidx);
         if (m_pdata->getBody(tag) != NO_BODY)
             {
-            cerr << endl;
-            cerr << "***Error! Particle " << tag << " belongs to a rigid body. "
-                 << "This integration method does not operate on rigid bodies" << endl << endl;
+            m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body. "
+                 << "This integration method does not operate on rigid bodies" << endl;
                 
             throw std::runtime_error("Error initializing integration method");
             }
