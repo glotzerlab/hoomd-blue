@@ -104,14 +104,14 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
         {
-        cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
+        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
         throw runtime_error("Error computing neighbor list");
         }
 
     if (m_filter_body || m_filter_diameter)
         {
-        cerr << endl << "***Error! NeighborListGPU does not currently support body or diameter exclusions." << endl;
-        cerr << "Please contact the developers and notify them that you need this functionality" << endl << endl;
+        m_exec_conf->msg->error() << "NeighborListGPU does not currently support body or diameter exclusions." << endl;
+        m_exec_conf->msg->error() << "Please contact the developers and notify them that you need this functionality" << endl;
         
         throw runtime_error("Error computing neighbor list");
         }
@@ -123,8 +123,8 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         (box.yhi - box.ylo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
         (box.zhi - box.zlo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0)
         {
-        cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves."
-             << endl << endl;
+        m_exec_conf->msg->error() << "Simulation box is too small! Particles would be interacting with themselves."
+             << endl;
         throw runtime_error("Error computing neighbor list");
         }
 

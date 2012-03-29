@@ -83,7 +83,7 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a PPMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a PPMForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing PPMForceComputeGPU");
         }
     CHECK_CUDA_ERROR();
@@ -127,7 +127,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     {
     if (!m_params_set)
         {
-        cerr << endl << "***Error! setParams must be called prior to computeForces()" << endl << endl;
+        m_exec_conf->msg->error() << "charge.pppm: setParams must be called prior to computeForces()" << endl;
         throw std::runtime_error("Error computing forces in PPPMForceComputeGPU");
         }
     
