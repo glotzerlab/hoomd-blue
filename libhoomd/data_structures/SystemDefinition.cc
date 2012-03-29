@@ -156,8 +156,8 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
     {
     if (!(n_dimensions == 2 || n_dimensions == 3))
         {
-        cerr << endl << "***Error! hoomd supports only 2D or 3D simulations" << endl << endl;
-        throw runtime_error("Error setting dimensions");        
+        m_particle_data->getExecConf()->msg->error() << "hoomd supports only 2D or 3D simulations" << endl;
+        throw runtime_error("Error setting dimensions");
         }
     m_n_dimensions = n_dimensions;
     }

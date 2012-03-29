@@ -84,7 +84,8 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
     : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()), m_dihedrals(exec_conf), m_dihedral_type(exec_conf), m_tags(exec_conf), m_dihedral_rtag(exec_conf)
     {
     assert(pdata);
-    
+    m_exec_conf = m_pdata->getExecConf();
+
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&DihedralData::setDirty, this));
     
@@ -123,20 +124,20 @@ unsigned int DihedralData::addDihedral(const Dihedral& dihedral)
     // check for some silly errors a user could make
     if (dihedral.a >= m_pdata->getN() || dihedral.b >= m_pdata->getN() || dihedral.c >= m_pdata->getN()  || dihedral.d >= m_pdata->getN())
         {
-        cerr << endl << "***Error! Particle tag out of bounds when attempting to add dihedral/improper: " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl << endl;
+        m_exec_conf->msg->error() << "Particle tag out of bounds when attempting to add dihedral/improper: " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl;
         throw runtime_error("Error adding dihedral/improper");
         }
         
     if (dihedral.a == dihedral.b || dihedral.a == dihedral.c || dihedral.b == dihedral.c || dihedral.a == dihedral.d || dihedral.b == dihedral.d || dihedral.c == dihedral.d )
         {
-        cerr << endl << "***Error! Particle cannot included in an dihedral/improper twice! " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl << endl;
+        m_exec_conf->msg->error() << "Particle cannot included in an dihedral/improper twice! " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl;
         throw runtime_error("Error adding dihedral/improper");
         }
         
     // check that the type is within bouds
     if (dihedral.type+1 > m_n_dihedral_types)
         {
-        cerr << endl << "***Error! Invalid dihedral/improper type! " << dihedral.type << ", the number of types is " << m_n_dihedral_types << endl << endl;
+        m_exec_conf->msg->error() << "Invalid dihedral/improper type! " << dihedral.type << ", the number of types is " << m_n_dihedral_types << endl;
         throw runtime_error("Error adding dihedral/improper");
         }
 
@@ -178,7 +179,7 @@ const Dihedral DihedralData::getDihedralByTag(unsigned int tag) const
     unsigned int dihedral_idx = m_dihedral_rtag[tag];
     if (dihedral_idx == NO_DIHEDRAL)
         {
-        cerr << endl << "***Error! Trying to get dihedral tag " << tag << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to get dihedral tag " << tag << " which does not exist!" << endl;
         throw runtime_error("Error getting dihedral");
         }
     uint4 dihedral = m_dihedrals[dihedral_idx];
@@ -192,7 +193,7 @@ unsigned int DihedralData::getDihedralTag(unsigned int id) const
     {
     if (id >= getNumDihedrals())
         {
-        cerr << endl << "***Error! Trying to get dihedral tag from id " << id << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to get dihedral tag from id " << id << " which does not exist!" << endl;
         throw runtime_error("Error getting dihedral tag");
         }
     return m_tags[id];
@@ -208,7 +209,7 @@ void DihedralData::removeDihedral(unsigned int tag)
     unsigned int id = m_dihedral_rtag[tag];
     if (id == NO_DIHEDRAL)
         {
-        cerr << endl << "***Error! Trying to remove dihedral tag " << tag << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to remove dihedral tag " << tag << " which does not exist!" << endl;
         throw runtime_error("Error removing dihedral");
         }
 
@@ -261,7 +262,7 @@ unsigned int DihedralData::getTypeByName(const std::string &name)
             return i;
         }
         
-    cerr << endl << "***Error! Dihedral/Improper type " << name << " not found!" << endl;
+    m_exec_conf->msg->error() << "Dihedral/Improper type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
     }
@@ -275,7 +276,7 @@ std::string DihedralData::getNameByType(unsigned int type)
     // check for an invalid request
     if (type >= m_n_dihedral_types)
         {
-        cerr << endl << "***Error! Requesting type name for non-existant type " << type << endl << endl;
+        m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
         
@@ -509,8 +510,8 @@ void DihedralData::takeSnapshot(SnapshotDihedralData& snapshot)
     // check for an invalid request
     if (snapshot.dihedrals.size() != getNumDihedrals())
         {
-        cerr << endl << "***Error! DihedralData is being asked to initizalize a snapshot of the wrong size."
-             << endl << endl;
+        m_exec_conf->msg->error() << "DihedralData is being asked to initizalize a snapshot of the wrong size."
+             << endl;
        throw runtime_error("Error taking snapshot.");
         }
 

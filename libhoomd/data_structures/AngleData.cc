@@ -84,7 +84,8 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
         : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()), m_angles(exec_conf), m_angle_type(exec_conf), m_tags(exec_conf), m_angle_rtag(exec_conf)
     {
     assert(pdata);
-    
+    m_exec_conf = m_pdata->getExecConf();
+
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&AngleData::setDirty, this));
     
@@ -123,27 +124,27 @@ unsigned int AngleData::addAngle(const Angle& angle)
     // check for some silly errors a user could make
     if (angle.a >= m_pdata->getN() || angle.b >= m_pdata->getN() || angle.c >= m_pdata->getN())
         {
-        cerr << endl << "***Error! Particle tag out of bounds when attempting to add angle: "
+        m_exec_conf->msg->error() << "Particle tag out of bounds when attempting to add angle: "
              << angle.a << ","
              << angle.b << ","
-             << angle.c << endl << endl;
+             << angle.c << endl;
         throw runtime_error("Error adding angle");
         }
         
     if (angle.a == angle.b || angle.a == angle.c || angle.b == angle.c )
         {
-        cerr << endl << "***Error! Particle cannot included in an angle twice! "
+        m_exec_conf->msg->error() << "Particle cannot included in an angle twice! "
              << angle.a << ","
              << angle.b << ","
-             << angle.c << endl << endl;
+             << angle.c << endl;
         throw runtime_error("Error adding angle");
         }
         
     // check that the type is within bouds
     if (angle.type+1 > m_n_angle_types)
         {
-        cerr << endl << "***Error! Invalid angle type! "
-             << angle.type << ", the number of types is " << m_n_angle_types << endl << endl;
+        m_exec_conf->msg->error() << "Invalid angle type! "
+             << angle.type << ", the number of types is " << m_n_angle_types << endl;
         throw runtime_error("Error adding angle");
         }
 
@@ -185,7 +186,7 @@ const Angle AngleData::getAngleByTag(unsigned int tag) const
     unsigned int angle_idx = m_angle_rtag[tag];
     if (angle_idx == NO_ANGLE)
         {
-        cerr << endl << "***Error! Trying to get angle tag " << tag << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to get angle tag " << tag << " which does not exist!" << endl;
         throw runtime_error("Error getting angle");
         }
     uint3 angle = m_angles[angle_idx];
@@ -199,7 +200,7 @@ unsigned int AngleData::getAngleTag(unsigned int id) const
     {
     if (id >= getNumAngles())
         {
-        cerr << endl << "***Error! Trying to get angle tag from id " << id << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to get angle tag from id " << id << " which does not exist!" << endl;
         throw runtime_error("Error getting angle tag");
         }
     return m_tags[id];
@@ -215,7 +216,7 @@ void AngleData::removeAngle(unsigned int tag)
     unsigned int id = m_angle_rtag[tag];
     if (id == NO_ANGLE)
         {
-        cerr << endl << "***Error! Trying to remove angle tag " << tag << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to remove angle tag " << tag << " which does not exist!" << endl;
         throw runtime_error("Error removing angle");
         }
 
@@ -267,7 +268,7 @@ unsigned int AngleData::getTypeByName(const std::string &name)
             return i;
         }
         
-    cerr << endl << "***Error! Angle type " << name << " not found!" << endl;
+    m_exec_conf->msg->error() << "Angle type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
     }
@@ -281,7 +282,7 @@ std::string AngleData::getNameByType(unsigned int type)
     // check for an invalid request
     if (type >= m_n_angle_types)
         {
-        cerr << endl << "***Error! Requesting type name for non-existant type " << type << endl << endl;
+        m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
         
@@ -478,8 +479,8 @@ void AngleData::takeSnapshot(SnapshotAngleData& snapshot)
     // check for an invalid request
     if (snapshot.angles.size() != getNumAngles())
         {
-        cerr << endl << "***Error! AngleData is being asked to initizalize a snapshot of the wrong size."
-             << endl << endl;
+        m_exec_conf->msg->error() << "AngleData is being asked to initizalize a snapshot of the wrong size."
+             << endl;
         throw runtime_error("Error taking snapshot.");
         }
 

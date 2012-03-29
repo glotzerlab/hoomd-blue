@@ -446,7 +446,8 @@ void RigidData::initializeData()
         matrix[2][0] = matrix[0][2] = inertia_handle.data[inertia_pitch * body + 5];
         
         int error = diagonalize(matrix, evalues, evectors);
-        if (error) cout << "Insufficient Jacobi iterations for diagonalization!\n";
+        if (error) 
+            m_exec_conf->msg->warning() << "rigid data: Insufficient Jacobi iterations for diagonalization!\n";
         
         // obtain the moment inertia from eigen values
         moment_inertia_handle.data[body].x = evalues[0];
@@ -1056,7 +1057,7 @@ void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
     {
     if (body < 0 || body >= m_n_bodies) 
         {
-        cerr << "Error setting angular momentum for body " << body << "\n";
+        m_exec_conf->msg->error() << "Error setting angular momentum for body " << body << "\n";
         return;
         }
     

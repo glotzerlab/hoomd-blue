@@ -151,7 +151,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
     // check the input for errors
     if (m_ntypes == 0)
         {
-        cerr << endl << "***Error! Number of particle types must be greater than 0." << endl << endl;
+        m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
         throw std::runtime_error("Error initializing ParticleData");
         }
         
@@ -217,7 +217,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     // check the input for errors
     if (m_ntypes == 0)
         {
-        cerr << endl << "***Error! Number of particle types must be greater than 0." << endl << endl;
+        m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
         throw std::runtime_error("Error initializing ParticleData");
         }
         
@@ -266,7 +266,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     // it is an error for particles to be initialized outside of their box
     if (!inBox())
         {
-        cerr << endl << "***Error! Not all particles were found inside the given box" << endl << endl;
+        m_exec_conf->msg->error() << "Not all particles were found inside the given box" << endl;
         throw runtime_error("Error initializing ParticleData");
         }
         
@@ -354,7 +354,7 @@ unsigned int ParticleData::getTypeByName(const std::string &name) const
             return i;
         }
         
-    cerr << endl << "***Error! Type " << name << " not found!" << endl;
+    m_exec_conf->msg->error() << "Type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
     }
@@ -369,7 +369,7 @@ std::string ParticleData::getNameByType(unsigned int type) const
     // check for an invalid request
     if (type >= m_ntypes)
         {
-        cerr << endl << "***Error! Requesting type name for non-existant type " << type << endl << endl;
+        m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
         
@@ -387,7 +387,7 @@ void ParticleData::allocate(unsigned int N)
     // check the input
     if (N == 0)
         {
-        cerr << endl << "***Error! ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever" << endl << endl;
+        m_exec_conf->msg->error() << "ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever" << endl;
         throw runtime_error("Error allocating ParticleData");
         }
 
@@ -452,23 +452,23 @@ bool ParticleData::inBox()
         {
         if (h_pos.data[i].x < m_box.xlo-Scalar(1e-5) || h_pos.data[i].x > m_box.xhi+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->notice(1) << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
+            m_exec_conf->msg->notice(1) << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
             return false;
             }
         if (h_pos.data[i].y < m_box.ylo-Scalar(1e-5) || h_pos.data[i].y > m_box.yhi+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->notice(1) << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
+            m_exec_conf->msg->notice(1) << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
             return false;
             }
         if (h_pos.data[i].z < m_box.zlo-Scalar(1e-5) || h_pos.data[i].z > m_box.zhi+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->notice(1) << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
+            m_exec_conf->msg->notice(1) << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
             return false;
             }
         }
@@ -493,8 +493,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     // make sure the snapshot has the right size
     if (snapshot.size != m_nparticles)
         {
-        cerr << endl << "***Error! Snapshot size (" << snapshot.size << " particles) not equal"
-             << endl << "          not equal number of particles in system." << endl << endl;
+        m_exec_conf->msg->error() << "Snapshot size (" << snapshot.size << " particles) not equal"
+             << endl << "          not equal number of particles in system." << endl;
         throw runtime_error("Error initializing ParticleData");
         }
 

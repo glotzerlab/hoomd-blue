@@ -80,7 +80,8 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
     {
     assert(pdata);
-    
+    m_exec_conf = m_pdata->getExecConf();
+
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&BondData::setDirty, this));
     
@@ -122,20 +123,20 @@ unsigned int BondData::addBond(const Bond& bond)
     // check for some silly errors a user could make
     if (bond.a >= m_pdata->getN() || bond.b >= m_pdata->getN())
         {
-        cerr << endl << "***Error! Particle tag out of bounds when attempting to add bond: " << bond.a << "," << bond.b << endl << endl;
+        m_exec_conf->msg->error() << "Particle tag out of bounds when attempting to add bond: " << bond.a << "," << bond.b << endl;
         throw runtime_error("Error adding bond");
         }
         
     if (bond.a == bond.b)
         {
-        cerr << endl << "***Error! Particle cannot be bonded to itself! " << bond.a << "," << bond.b << endl << endl;
+        m_exec_conf->msg->error() << "Particle cannot be bonded to itself! " << bond.a << "," << bond.b << endl;
         throw runtime_error("Error adding bond");
         }
         
     // check that the type is within bouds
     if (bond.type+1 > m_n_bond_types)
         {
-        cerr << endl << "***Error! Invalid bond type! " << bond.type << ", the number of types is " << m_n_bond_types << endl << endl;
+        m_exec_conf->msg->error() << "Invalid bond type! " << bond.type << ", the number of types is " << m_n_bond_types << endl;
         throw runtime_error("Error adding bond");
         }
 
@@ -178,7 +179,7 @@ const Bond BondData::getBondByTag(unsigned int tag) const
     unsigned int bond_idx = m_bond_rtag[tag];
     if (bond_idx == NO_BOND)
         {
-        cerr << endl << "***Error! Trying to get bond tag " << tag << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to get bond tag " << tag << " which does not exist!" << endl;
         throw runtime_error("Error getting bond");
         }
 
@@ -194,7 +195,7 @@ unsigned int BondData::getBondTag(unsigned int id) const
     {
     if (id >= getNumBonds())
         {
-        cerr << endl << "***Error! Trying to get bond tag from id " << id << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to get bond tag from id " << id << " which does not exist!" << endl;
         throw runtime_error("Error getting bond tag");
         }
     return m_tags[id];
@@ -210,7 +211,7 @@ void BondData::removeBond(unsigned int tag)
     unsigned int id = m_bond_rtag[tag];
     if (id == NO_BOND)
         {
-        cerr << endl << "***Error! Trying to remove bond tag " << tag << " which does not exist!" << endl << endl;
+        m_exec_conf->msg->error() << "Trying to remove bond tag " << tag << " which does not exist!" << endl;
         throw runtime_error("Error removing bond");
         }
 
@@ -263,7 +264,7 @@ unsigned int BondData::getTypeByName(const std::string &name)
             return i;
         }
         
-    cerr << endl << "***Error! Bond type " << name << " not found!" << endl;
+    m_exec_conf->msg->error() << "Bond type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
     }
@@ -277,7 +278,7 @@ std::string BondData::getNameByType(unsigned int type)
     // check for an invalid request
     if (type >= m_n_bond_types)
         {
-        cerr << endl << "***Error! Requesting type name for non-existant type " << type << endl << endl;
+        m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
         
@@ -464,8 +465,8 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
     // check for an invalid request
     if (snapshot.bonds.size() != getNumBonds())
         {
-        cerr << endl << "***Error! BondData is being asked to initizalize a snapshot of the wrong size."
-             << endl << endl;
+        m_exec_conf->msg->error() << "BondData is being asked to initizalize a snapshot of the wrong size."
+             << endl;
         throw runtime_error("Error taking snapshot.");
         }
 
