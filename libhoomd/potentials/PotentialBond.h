@@ -90,7 +90,7 @@ class PotentialBond : public ForceCompute
                       const std::string& log_suffix="");
 
         //! Destructor
-        ~PotentialBond() { };
+        ~PotentialBond();
 
         //! Set the parameters
         virtual void setParams(unsigned int type, const param_type &param);
@@ -119,6 +119,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
                       const std::string& log_suffix)
     : ForceCompute(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">" << endl;
     assert(m_pdata);
 
     // access the bond data for later use
@@ -129,6 +130,12 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNBondTypes(), exec_conf);
     m_params.swap(params);
+    }
+
+template< class evaluator >
+PotentialBond< evaluator >::~PotentialBond()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying PotentialBond<" << evaluator::getName() << ">" << endl;
     }
 
 /*! \param type Type of the bond to set parameters for
