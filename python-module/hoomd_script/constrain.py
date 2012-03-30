@@ -125,7 +125,7 @@ class _constraint_force:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
         
 

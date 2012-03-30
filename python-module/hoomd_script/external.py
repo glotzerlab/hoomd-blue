@@ -219,7 +219,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values:
-            print >> sys.stderr, "\nBug detected in external.coeff. Please report\n"
+            globals.msg.error("Bug detected in external.coeff. Please report\n");
             raise RuntimeError("Error setting external coeff");
 
         return self.values[type][coeff_name];

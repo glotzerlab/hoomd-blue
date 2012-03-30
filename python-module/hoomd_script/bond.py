@@ -203,7 +203,7 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys():
-                print >> sys.stderr, "\n***Error! Bond type", type, "not found in bond coeff\n"
+                globals.msg.error("Bond type " +str(type) + " not found in bond coeff\n");
                 valid = False;
                 continue;
 
@@ -229,7 +229,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values.keys():
-            print >> sys.stderr, "\nBug detected in force.coeff. Please report\n"
+            globals.msg.error("Bug detected in force.coeff. Please report\n");
             raise RuntimeError("Error setting bond coeff");
 
         return self.values[type][coeff_name];

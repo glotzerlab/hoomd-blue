@@ -488,7 +488,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
         type_list = [];
         # check that all fields are specified
         if not 'bond_len' in poly:
-            print >> sys.stderr, '\n***Error! Polymer specification missing bond_len\n';
+            globals.msg.error('Polymer specification missing bond_len\n');
             raise RuntimeError("Error creating random polymers");
         
         if min_bond_len is None:
@@ -497,13 +497,13 @@ def create_random_polymers(box, polymers, separation, seed=1):
             min_bond_len = min(min_bond_len, poly['bond_len']);
         
         if not 'type' in poly:
-            print >> sys.stderr, '\n***Error! Polymer specification missing type\n';
+            globals.msg.error('Polymer specification missing type\n');
             raise RuntimeError("Error creating random polymers");
         if not 'count' in poly:
-            print >> sys.stderr, '\n***Error! Polymer specification missing count\n';
+            globals.msg.error('Polymer specification missing count\n');
             raise RuntimeError("Error creating random polymers");
         if not 'bond' in poly:
-            print >> sys.stderr, '\n***Error! Polymer specification missing bond\n';
+            globals.msg.error('Polymer specification missing bond\n');
             raise RuntimeError("Error creating random polymers");
                 
         # build type list
@@ -535,14 +535,14 @@ def create_random_polymers(box, polymers, separation, seed=1):
                 elif len(t) == 3:
                     a,b,name = t;
                 else:
-                    print >> sys.stderr, '\n***Error! Custom bond', t, 'must have either two or three elements\n';
+                    globals.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
                     raise RuntimeError("Error creating random polymers");
                                     
                 bond_a.push_back(a);
                 bond_b.push_back(b);
                 bond_name.append(name);
         else:
-            print >> sys.stderr, '\n***Error! Unexpected argument value for polymer bond\n';
+            globals.msg.error('Unexpected argument value for polymer bond\n');
             raise RuntimeError("Error creating random polymers");
         
         # create the generator

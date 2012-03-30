@@ -184,7 +184,7 @@ class _analyzer:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_analyzer is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_analyzer not set, please report\n');
             raise RuntimeError();
 
     ## Disables the analyzer
@@ -592,7 +592,7 @@ class msd(_analyzer):
     
         # it is an error to specify no groups
         if len(groups) == 0:
-            print >> sys.stderr, "\nAt least one group must be specified to analyze.msd\n";
+            globals.msg.error('At least one group must be specified to analyze.msd\n');
             raise RuntimeError('Error creating analyzer');
 
         # set the group columns

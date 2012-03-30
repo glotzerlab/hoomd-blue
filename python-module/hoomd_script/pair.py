@@ -222,7 +222,7 @@ class coeff:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+            globals.msg.error("Bug detected in pair.coeff. Please report\n");
             raise RuntimeError("Error setting pair coeff");
         
         # update each of the values provided
@@ -269,7 +269,7 @@ class coeff:
                 elif (b,a) in self.values:
                     cur_pair = (b,a);
                 else:
-                    print >> sys.stderr, "\n***Error! Type pair", (a,b), "not found in pair coeff\n"
+                    globals.msg.error("Type pair " + str((a,b)) + " not found in pair coeff\n");
                     valid = False;
                     continue;
                 
@@ -329,7 +329,7 @@ class nlist:
     def __init__(self, r_cut):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
+            globals.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
         
         # decide wether to create an all-to-all neighbor list or a binned one based on box size:
@@ -471,7 +471,7 @@ class nlist:
         util.print_status_line();
         
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
         
         # update the parameters
@@ -532,7 +532,7 @@ class nlist:
         self.is_exclusion_overridden = True;
         
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
         
         # clear all of the existing exclusions
@@ -581,7 +581,7 @@ class nlist:
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:
-            print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
+            globals.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
             raise RuntimeError('Error resetting exclusions');
 
         # collect and print statistics about the number of exclusions.
@@ -611,7 +611,7 @@ class nlist:
     def benchmark(self, n):
         # check that we have been initialized properly
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error benchmarking neighbor list');
         
         # run the benchmark
@@ -629,7 +629,7 @@ class nlist:
     #
     def query_update_period(self):
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
         
         return self.cpp_nlist.getSmallestRebuild()-1;

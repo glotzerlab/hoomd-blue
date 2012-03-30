@@ -109,7 +109,7 @@ class _compute:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_compute is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_compute not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_compute not set, please report\n');
             raise RuntimeError();
 
     ## Disables the compute
