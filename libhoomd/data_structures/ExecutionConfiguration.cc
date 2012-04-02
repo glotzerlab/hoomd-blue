@@ -90,9 +90,12 @@ using namespace boost;
     cudaSetDevice is not called, so systems with compute-exclusive GPUs will see automatic choice of free GPUs.
     If there are no capable GPUs present in the system, then the execution mode will revert run on the CPU.
 */
-ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display, const Messenger& _msg)
-    : m_cuda_error_checking(false), msg(boost::shared_ptr<Messenger>(new Messenger(_msg)))
+ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display, boost::shared_ptr<Messenger> _msg)
+    : m_cuda_error_checking(false), msg(_msg)
     {
+    if (!msg)
+        msg = boost::shared_ptr<Messenger>(new Messenger());
+
     msg->notice(5) << "Constructing ExecutionConfiguration: " << min_cpu << " " << ignore_display << endl;
 #ifdef ENABLE_CUDA
     // scan the available GPUs
@@ -130,9 +133,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
-                                               const Messenger& _msg)
-    : m_cuda_error_checking(false), msg(boost::shared_ptr<Messenger>(new Messenger(_msg)))
+                                               boost::shared_ptr<Messenger> _msg)
+    : m_cuda_error_checking(false), msg(_msg)
     {
+    if (!msg)
+        msg = boost::shared_ptr<Messenger>(new Messenger());
+
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
     
@@ -584,8 +590,8 @@ void ExecutionConfiguration::setupStats()
 void export_ExecutionConfiguration()
     {
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-                         ("ExecutionConfiguration", init< bool, bool, const Messenger& >())
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, const Messenger&>())
+                         ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger> >())
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
                          .def("getGPUName", &ExecutionConfiguration::getGPUName)

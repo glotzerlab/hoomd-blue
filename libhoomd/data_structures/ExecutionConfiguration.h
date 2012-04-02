@@ -97,10 +97,10 @@ struct ExecutionConfiguration : boost::noncopyable
         };
         
     //! Default constructor
-    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false, const Messenger& _msg=Messenger());
+    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
     
     //! Force a mode selection
-    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false, const Messenger& _msg=Messenger());
+    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
     
     ~ExecutionConfiguration();
     
