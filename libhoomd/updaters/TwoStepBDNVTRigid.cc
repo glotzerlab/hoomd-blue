@@ -79,6 +79,8 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                            bool gamma_diam)
     : TwoStepNVERigid(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepBDNVTRigid" << endl;
+
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
 
@@ -101,6 +103,11 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
         h_gamma.data[i] = Scalar(1.0);
     }
 
+TwoStepBDNVTRigid::~TwoStepBDNVTRigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepBDNVTRigid" << endl;
+    }
+
 /*! \param typ Particle type to set gamma for
     \param gamma The gamma value to set
 */
@@ -109,12 +116,12 @@ void TwoStepBDNVTRigid::setGamma(unsigned int typ, Scalar gamma)
     // check for user errors
     if (m_gamma_diam)
         {
-        cerr << endl << "***Error! Trying to set gamma when it is set to be the diameter! " << typ << endl << endl;
+        m_exec_conf->msg->error() << "intergae.bdnvt_rigid: Trying to set gamma when it is set to be the diameter! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepBDNVT");
         }
     if (typ >= m_pdata->getNTypes())
         {
-        cerr << endl << "***Error! Trying to set gamma for a non existant type! " << typ << endl << endl;
+        m_exec_conf->msg->error() << "intergae.bdnvt_rigid: Trying to set gamma for a non existant type! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepBDNVT");
         }
         

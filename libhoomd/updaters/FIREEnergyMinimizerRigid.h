@@ -77,7 +77,7 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
     public:
         //! Constructs the minimizer and associates it with the system
         FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar, bool=true);
-        virtual ~FIREEnergyMinimizerRigid() {}
+        virtual ~FIREEnergyMinimizerRigid();
         
         virtual void reset();
 

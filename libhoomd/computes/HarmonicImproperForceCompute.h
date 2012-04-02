@@ -81,7 +81,7 @@ class HarmonicImproperForceCompute : public ForceCompute
         HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
         
         //! Destructor
-        ~HarmonicImproperForceCompute();
+        virtual ~HarmonicImproperForceCompute();
         
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);

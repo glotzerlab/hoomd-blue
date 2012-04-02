@@ -117,7 +117,7 @@ class _integrator:
     def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create integrator before initialization\n";
+            globals.msg.error("Cannot create integrator before initialization\n");
             raise RuntimeError('Error creating integrator');
         
         # by default, integrators do not support methods
@@ -142,7 +142,7 @@ class _integrator:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_integrator is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_integrator not set, please report\n');
             raise RuntimeError();
 
     ## \internal
@@ -154,7 +154,7 @@ class _integrator:
         self.cpp_integrator.removeForceComputes();
         for f in globals.forces:
             if f.cpp_force is None:
-                print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+                globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
             
             if f.log or f.enabled:    
@@ -166,7 +166,7 @@ class _integrator:
         # set the constraint forces
         for f in globals.constraint_forces:
             if f.cpp_force is None:
-                print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+                globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
 
             if f.enabled:
@@ -183,16 +183,16 @@ class _integrator:
             self.cpp_integrator.removeAllIntegrationMethods();
             
             if len(globals.integration_methods) == 0:
-                print >> sys.stderr, "\nThis integrator requires that one or more integration methods be specified.";
+                globals.msg.error('This integrator requires that one or more integration methods be specified.\n');
                 raise RuntimeError('Error initializing integrator methods');
             
             for m in globals.integration_methods:
                 self.cpp_integrator.addIntegrationMethod(m.cpp_method);
         else:
             if len(globals.integration_methods) > 0:
-                print >> sys.stderr, "\nThis integrator does not support the use of integration methods,";
-                print >> sys.stderr, "but some have been specified in the script. Remove them or use";
-                print >> sys.stderr, "a different integrator.\n";
+                globals.msg.error("This integrator does not support the use of integration methods,\n");
+                globals.msg.error("but some have been specified in the script. Remove them or use\n");
+                globals.msg.error("a different integrator.\n");
                 raise RuntimeError('Error initializing integrator methods');
 
     ## \internal
@@ -221,7 +221,7 @@ class _integration_method:
     def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create an integration method before initialization\n";
+            globals.msg.error("Cannot create an integration method before initialization\n");
             raise RuntimeError('Error creating integration method');
         
         self.cpp_method = None;
@@ -242,7 +242,7 @@ class _integration_method:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_method is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_method not set, please report\n');
             raise RuntimeError();
 
     ## Disables the integration method
@@ -269,7 +269,7 @@ class _integration_method:
         
         # check if we are already disabled
         if not self.enabled:
-            print "***Warning! Ignoring command to disable an integration method that is already disabled";
+            globals.msg.warning("Ignoring command to disable an integration method that is already disabled");
             return;
         
         self.enabled = False;
@@ -289,7 +289,7 @@ class _integration_method:
         
         # check if we are already disabled
         if self.enabled:
-            print "***Warning! Ignoring command to enable an integration method that is already enabled";
+            globals.msg.warning("Ignoring command to enable an integration method that is already enabled");
             return;
         
         self.enabled = True;
@@ -605,7 +605,7 @@ class nph(_integration_method):
             elif (mode == "tetragonal"):
                 cpp_mode = hoomd.TwoStepNPH.integrationMode.tetragonal;
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in integrate.nph");
             self.cpp_method = hoomd.TwoStepNPH(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
         else:
@@ -616,7 +616,7 @@ class nph(_integration_method):
             elif (mode == "tetragonal"):
                 cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.tetragonal;
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in integrate.nph");
             self.cpp_method = hoomd.TwoStepNPHGPU(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
 
@@ -659,7 +659,7 @@ class nph(_integration_method):
             elif (mode == "tetragonal"):
                 self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.tetragonal);
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in integrate.nph");
 
 ## NVE Integration via Velocity-Verlet

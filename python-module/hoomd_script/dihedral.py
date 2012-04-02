@@ -97,7 +97,7 @@ class harmonic(force._force):
         util.print_status_line();
         # check that some dihedrals are defined
         if globals.system_definition.getDihedralData().getNumDihedrals() == 0:
-            print >> sys.stderr, "\n***Error! No dihedrals are defined.\n";
+            globals.msg.error("No dihedrals are defined.\n");
             raise RuntimeError("Error creating dihedral forces");
         
         # initialize the base class
@@ -155,6 +155,6 @@ class harmonic(force._force):
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.dihedral_types_set:
-                print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in dihedral.harmonic\n";
+                globals.msg.error(str(cur_type) + " coefficients missing in dihedral.harmonic\n");
                 raise RuntimeError("Error updating coefficients");
 

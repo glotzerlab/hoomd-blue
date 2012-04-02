@@ -102,6 +102,9 @@ class SFCPackUpdater : public Updater
     public:
         //! Constructor
         SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+
+        //! Destructor
+        virtual ~SFCPackUpdater();
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);

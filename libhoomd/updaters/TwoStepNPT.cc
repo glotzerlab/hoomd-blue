@@ -84,10 +84,12 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group), m_thermo_all(thermo_all), 
       m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_state_initialized(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPT" << endl;
+
     if (m_tau <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in TwoStepNPT" << endl;
+        m_exec_conf->msg->warning() << "integreate.npt: tau set less than 0.0" << endl;
     if (m_tauP <= 0.0)
-        cout << "***Warning! tauP set less than 0.0 in TwoStepNPT" << endl;
+        m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
     
     // precalculate box lengths
     const BoxDim& box = m_pdata->getBox();
@@ -117,6 +119,11 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
         setValidRestart(true);
 
     setIntegratorVariables(v);
+    }
+
+TwoStepNPT::~TwoStepNPT()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNPT" << endl;
     }
 
 /*! \param timestep Current time step

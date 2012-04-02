@@ -170,7 +170,10 @@ class Updater : boost::noncopyable
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
         boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration        
-        
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
+        // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
+        // merge conflicts.
     };
 
 //! Export the Updater class to python

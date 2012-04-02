@@ -77,7 +77,7 @@ Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sys
     // at least one GPU is needed
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a Enforce2DUpdaterGPU with no GPU in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a Enforce2DUpdaterGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing Enforce2DUpdaterGPU");
         }
     }

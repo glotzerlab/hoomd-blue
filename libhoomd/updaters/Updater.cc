@@ -72,6 +72,7 @@ Updater::Updater(boost::shared_ptr<SystemDefinition> sysdef)
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
+    m_exec_conf = exec_conf;
     }
 
 /*! It is useful for the user to know where computation time is spent, so all Updaters

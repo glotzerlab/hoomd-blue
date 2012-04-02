@@ -161,6 +161,8 @@ class RigidBodyGroup
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
         boost::dynamic_bitset<> m_is_member;            //!< One bit per particle, true if index is a member of the group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
+
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 #endif

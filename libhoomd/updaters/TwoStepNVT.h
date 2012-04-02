@@ -88,7 +88,7 @@ class TwoStepNVT : public IntegrationMethodTwoStep
                    Scalar tau,
                    boost::shared_ptr<Variant> T,
                    const std::string& suffix = std::string(""));
-        virtual ~TwoStepNVT() {};
+        virtual ~TwoStepNVT();
         
         //! Update the temperature
         /*! \param T New temperature to set

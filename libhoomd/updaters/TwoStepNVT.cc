@@ -79,8 +79,10 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
                        const std::string& suffix)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVT" << endl;
+
     if (m_tau <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
+        m_exec_conf->msg->warning() << "integrate.nvt: tau set less than 0.0 in NVTUpdater" << endl;
     
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
@@ -98,6 +100,11 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
 
     setIntegratorVariables(v);
     m_log_name = string("nvt_reservoir_energy") + suffix;
+    }
+
+TwoStepNVT::~TwoStepNVT()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVT" << endl;
     }
 
 /*! Returns a list of log quantities this compute calculates

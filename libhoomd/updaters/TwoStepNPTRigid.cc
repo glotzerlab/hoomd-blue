@@ -87,10 +87,12 @@ TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                        bool skip_restart)
     : TwoStepNVERigid(sysdef, group, true), m_thermo_group(thermo_group), m_thermo_all(thermo_all), m_partial_scale(false), m_temperature(T), m_pressure(P)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTRigid" << endl;
+
     if (tau <= 0.0)
-        cout << "***Warning! tau set less than or equal 0.0 in TwoStepNPTRigid" << endl;
+        m_exec_conf->msg->warning() << "integrate.npt_rigid: tau set less than or equal 0.0" << endl;
     if (tauP <= 0.0)
-        cout << "***Warning! tauP set less than or equal to 0.0 in TwoStepNPTRigid" << endl;
+        m_exec_conf->msg->warning() << "integrate.npt_rigid: tauP set less than or equal to 0.0" << endl;
     
     t_freq = 1.0 / tau;
     p_freq = 1.0 / tauP;
@@ -157,6 +159,11 @@ TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
         setRestartIntegratorVariables();
         }
         
+    }
+
+TwoStepNPTRigid::~TwoStepNPTRigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNPTRigid" << endl;
     }
 
 /* Set integrator variables for restart info

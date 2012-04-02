@@ -77,7 +77,10 @@ class ConstraintSphere : public ForceConstraint
                          boost::shared_ptr<ParticleGroup> group,
                          Scalar3 P,
                          Scalar r);
-        
+
+        //! Destructor
+        virtual ~ConstraintSphere();
+
         //! Set the force to a new value
         void setSphere(Scalar3 P, Scalar r);
 

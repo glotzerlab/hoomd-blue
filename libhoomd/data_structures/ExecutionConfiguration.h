@@ -61,6 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
+#include "Messenger.h"
+
 /*! \file ExecutionConfiguration.h
     \brief Declares ExecutionConfiguration and related classes
 */
@@ -95,16 +97,17 @@ struct ExecutionConfiguration : boost::noncopyable
         };
         
     //! Default constructor
-    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false);
+    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
     
     //! Force a mode selection
-    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false);
+    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
     
     ~ExecutionConfiguration();
     
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
+    boost::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
 
     //! Returns true if CUDA is enabled
     bool isCUDAEnabled() const
@@ -141,10 +144,10 @@ struct ExecutionConfiguration : boost::noncopyable
     unsigned int getComputeCapability() const;
 
     //! Handle cuda error message
-    static void handleCUDAError(cudaError_t err, const char *file, unsigned int line);
+    void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
     
     //! Check for cuda errors
-    static void checkCUDAError(const char *file, unsigned int line);
+    void checkCUDAError(const char *file, unsigned int line) const;
     
 private:
     //! Initialize the GPU with the given id
@@ -178,7 +181,7 @@ private:
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time
-#define CHECK_CUDA_ERROR() ExecutionConfiguration::checkCUDAError(__FILE__, __LINE__);
+#define CHECK_CUDA_ERROR() this->m_exec_conf->checkCUDAError(__FILE__, __LINE__);
 
 //! Exports ExecutionConfiguration to python
 void export_ExecutionConfiguration();

@@ -81,7 +81,7 @@ class _updater:
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create updater before initialization\n";
+            globals.msg.error("Cannot create updater before initialization\n");
             raise RuntimeError('Error creating updater');
         
         self.cpp_updater = None;
@@ -113,7 +113,7 @@ class _updater:
             globals.system.addUpdater(self.cpp_updater, self.updater_name, 1000);
             globals.system.setUpdaterPeriodVariable(self.updater_name, period);
         else:
-            print >> sys.stderr, "\n***Error! I don't know what to do with a period of type", type(period), "expecting an int or a function\n";
+            globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + "expecting an int or a function\n");
             raise RuntimeError('Error creating updater');
 
     ## \var enabled
@@ -137,7 +137,7 @@ class _updater:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_updater is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_updater not set, please report\n');
             raise RuntimeError();
 
     ## Disables the updater
@@ -165,7 +165,7 @@ class _updater:
         
         # check if we are already disabled
         if not self.enabled:
-            print "***Warning! Ignoring command to disable an updater that is already disabled";
+            globals.msg.warning("Ignoring command to disable an updater that is already disabled");
             return;
         
         self.prev_period = globals.system.getUpdaterPeriod(self.updater_name);
@@ -186,7 +186,7 @@ class _updater:
             
         # check if we are already disabled
         if self.enabled:
-            print "***Warning! Ignoring command to enable an updater that is already enabled";
+            globals.msg.warning("Ignoring command to enable an updater that is already enabled");
             return;
             
         globals.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period);
@@ -224,9 +224,9 @@ class _updater:
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
-            print "***Warning! A period cannot be changed to a variable one";
+            globals.msg.warning("A period cannot be changed to a variable one");
         else:
-            print "***Warning! I don't know what to do with a period of type", type(period), "expecting an int or a function";
+            globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
 # **************************************************************************
 

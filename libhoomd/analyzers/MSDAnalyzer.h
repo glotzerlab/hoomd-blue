@@ -94,6 +94,9 @@ class MSDAnalyzer : public Analyzer
                     std::string fname,
                     const std::string& header_prefix="",
                     bool overwrite=false);
+
+        //! Destructor
+        ~MSDAnalyzer();
         
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);

@@ -61,6 +61,8 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
                                        boost::shared_ptr<CellList> cl)
     : NeighborList(sysdef, r_cut, r_buff), m_cl(cl)
     {
+    m_exec_conf->msg->notice(5) << "Constructing NeighborListBinned" << endl;
+
     // create a default cell list if one was not specified
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
@@ -73,6 +75,8 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
 
 NeighborListBinned::~NeighborListBinned()
     {
+    m_exec_conf->msg->notice(5) << "Destroying NeighborListBinned" << endl;
+
     }
 
 void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
@@ -98,7 +102,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     uint3 dim = m_cl->getDim();
     if (dim.x < 3 || dim.y < 3 || dim.z < 3)
         {
-        cerr << endl << "***Error! NeighborListGPUBinned doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: O(N) neighbor list doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl;
         throw runtime_error("Error computing neighbor list");
         }
 

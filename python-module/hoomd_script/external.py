@@ -163,7 +163,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            print >> sys.stderr, "\n***Error! No coefficents specified\n";
+            globals.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -183,7 +183,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot verify force coefficients before initialization\n";
+            globals.msg.error("Cannot verify force coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
@@ -201,13 +201,13 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    print "Notice: Possible typo? Force coeff", coeff_name, "is specified for type", type, \
-                          ", but is not used by the external force";
+                    globals.msg.notice(3, "Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) +\
+                          ", but is not used by the external force");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                print >> sys.stderr, "\n***Error! Particle type", type, "is missing required coefficients\n";
+                globals.msg.error("Particle type", type, "is missing required coefficients\n");
                 valid = False;
 
         return valid;
@@ -219,7 +219,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values:
-            print >> sys.stderr, "\nBug detected in external.coeff. Please report\n"
+            globals.msg.error("Bug detected in external.coeff. Please report\n");
             raise RuntimeError("Error setting external coeff");
 
         return self.values[type][coeff_name];
@@ -259,7 +259,7 @@ class _external_force(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.force_coeff.verify(coeff_list):
-           print >> sys.stderr, "\n***Error: Not all force coefficients are set\n";
+           globals.msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params

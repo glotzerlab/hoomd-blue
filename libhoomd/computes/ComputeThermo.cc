@@ -75,6 +75,8 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
                              const std::string& suffix)
     : Compute(sysdef), m_group(group), m_ndof(1)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
+
     assert(m_pdata);
     GPUArray< Scalar > properties(10, exec_conf);
     m_properties.swap(properties);
@@ -87,6 +89,10 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("num_particles") + suffix);
     }
 
+ComputeThermo::~ComputeThermo()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying ComputeThermo" << endl;
+    }
 
 /*! \param ndof Number of degrees of freedom to set
 */
@@ -94,7 +100,7 @@ void ComputeThermo::setNDOF(unsigned int ndof)
     {
     if (ndof == 0)
         {
-        cout << "***Warning! compute.thermo specified for a group with 0 degrees of freedom." << endl
+        m_exec_conf->msg->warning() << "compute.thermo: given a group with 0 degrees of freedom." << endl
              << "            overriding ndof=1 to avoid divide by 0 errors" << endl;
         ndof = 1;
         }
@@ -147,7 +153,7 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for ComputeThermo" << endl << endl;
+        m_exec_conf->msg->error() << "compute.thermo: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }

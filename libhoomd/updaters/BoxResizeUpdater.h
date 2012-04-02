@@ -80,6 +80,9 @@ class BoxResizeUpdater : public Updater
                          boost::shared_ptr<Variant> Lx,
                          boost::shared_ptr<Variant> Ly,
                          boost::shared_ptr<Variant> Lz);
+
+        //! Destructor
+        virtual ~BoxResizeUpdater();
         
         //! Sets parameter flags
         void setParams(bool scale_particles);

@@ -89,16 +89,10 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a CGCMMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a CGCMMForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CGCMMForceComputeGPU");
         }
-        
-    if (m_ntypes > 44)
-        {
-        cerr << endl << "***Error! CGCMMForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
-        throw runtime_error("Error initializing CGCMMForceComputeGPU");
-        }
-        
+
     // allocate the coeff data on the CPU
     GPUArray<float4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
     m_coeffs.swap(coeffs);
@@ -155,7 +149,7 @@ void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scala
     {
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        cerr << endl << "***Error! Trying to set CGCMM params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
+        m_exec_conf->msg->error() << "pair.cgccm: Trying to set params for a non existant type! " << typ1 << "," << typ2 << endl;
         throw runtime_error("CGCMMForceComputeGpu::setParams argument error");
         }
     
@@ -184,7 +178,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        cerr << endl << "***Error! CGCMMForceComputeGPU cannot handle a half neighborlist" << endl << endl;
+        m_exec_conf->msg->error() << "CGCMMForceComputeGPU cannot handle a half neighborlist" << endl;
         throw runtime_error("Error computing forces in CGCMMForceComputeGPU");
         }
         

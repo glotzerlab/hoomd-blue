@@ -106,11 +106,11 @@ def _save_override_file(common_optimal_db):
     
     # see if the user really wants to overwrite the file
     if os.path.isfile(fname):
-        print "\n***Warning!", fname, "exists. This file is being overwritten with new settings\n";
+        globals.msg.warning(fname + " exists. This file is being overwritten with new settings\n");
 
     # save the file
     f = file(fname, 'w');
-    print 'Writing optimal block sizes to', fname
+    globals.msg.notice(2, 'Writing optimal block sizes to ' + str(fname) + '\n');
     
     # write the version of the file
     pickle.dump(0, f);
@@ -139,7 +139,7 @@ def _load_override_file():
 
     # save the file
     f = file(fname, 'r');
-    print 'Notice: Reading optimal block sizes from', fname
+    globals.msg.notice(2, 'Reading optimal block sizes from ' + str(fname) + '\n');
     
     # read the version of the file
     ver = pickle.load(f);
@@ -149,8 +149,8 @@ def _load_override_file():
         # read and verify the version this was tuned on
         hoomd_version = pickle.load(f);
         if hoomd_version != hoomd.get_hoomd_version():
-            print >> sys.stderr, "\n***Warning! ~/.hoomd_block_tuning was created with", hoomd_version, \
-                                ", but this is", hoomd.get_hoomd_version(), ". Reverting to default performance tuning.\n";
+            globals.system.warning("~/.hoomd_block_tuning was created with" + str(hoomd_version) + \
+                                ", but this is " + str(hoomd.get_hoomd_version()) + ". Reverting to default performance tuning.\n");
             return;
         
         # read the compute capability of the GPU this was tuned on
@@ -159,7 +159,7 @@ def _load_override_file():
         _override_block_size_db = pickle.load(f);
         
     else:
-        print >> sys.stderr, "\n***Error! Unknown ~/.hoomd_block_tuning format", ver, ".\n";
+        globals.msg.error("Unknown ~/.hoomd_block_tuning format " + str(ver) + ".\n");
         raise RuntimeError("Error loading .hoomd_block_tuning");
     
     f.close();
@@ -189,11 +189,11 @@ def _get_optimal_block_size(name):
             if name in _override_block_size_db:
                 return _override_block_size_db[name];
             else:
-                print >> sys.stderr, "\n***Error! Block size override db does not contain a value for", name, ".\n";
+                globals.msg.error("Block size override db does not contain a value for " + str(name) + ".\n");
                 raise RuntimeError("Error retrieving optimal block size");
         else:
-            print "\n***Warning! The compute capability of the current GPU is", compute_cap, "while the override was tuned on a", _override_block_size_compute_cap, "GPU"
-            print "            Ignoring the saved override in ~/.hoomd_block_tuning and reverting to the default.\n"
+            globals.msg.warning("The compute capability of the current GPU is " + str(compute_cap) + " while the override was tuned on a " + str(_override_block_size_compute_cap) + " GPU\n");
+            globals.msg.warning("Ignoring the saved override in ~/.hoomd_block_tuning and reverting to the default.\n");
 
 
     # check in the default db
@@ -201,16 +201,16 @@ def _get_optimal_block_size(name):
         if name in _default_block_size_db[compute_cap]:
             return _default_block_size_db[compute_cap][name];
         else:
-            print >> sys.stderr, "\n***Error! Default block size db does not contain a value for", name, ".\n";
+            globals.msg.error("Default block size db does not contain a value for " + str(name) + ".\n");
             raise RuntimeError("Error retrieving optimal block size");
     else:
-        print "\n***Warning! Optimal block size tuning values are not present for your hardware with compute capability", compute_cap;
-        print "            To obtain better performance, execute the following hoomd script to determine the optimal"
-        print "            settings and save them in your home directory. Future invocations of hoomd will use these"
-        print "            saved values\n"
-        print "            # block size tuning script"
-        print "            from hoomd_script import *"
-        print "            tune.find_optimal_block_sizes()\n"
+        globals.msg.warning("Optimal block size tuning values are not present for your hardware with compute capability " + str(compute_cap) + "\n");
+        globals.msg.warning("To obtain better performance, execute the following hoomd script to determine the optimal\n");
+        globals.msg.warning("settings and save them in your home directory. Future invocations of hoomd will use these\n");
+        globals.msg.warning("saved values\n");
+        globals.msg.warning("# block size tuning script\n");
+        globals.msg.warning("from hoomd_script import *\n");
+        globals.msg.warning("tune.find_optimal_block_sizes()\n");
         return 64
 
 
@@ -234,15 +234,14 @@ def _find_optimal_block_size_fc(fc, n):
         for block_size in xrange(64,1024+32,32):
             fc.cpp_force.setBlockSize(block_size);
             t = fc.benchmark(n);
-            print block_size, t
+            globals.msg.notice(2, str(block_size) + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
-        print "Note: Too many resources requested for launch is a normal message when finding optimal block sizes"
-        print ""
+        globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
     
     fastest = min(timings);
-    print 'fastest:', fastest[1]
-    print '---------------'
+    globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
+    globals.msg.notice(2, '---------------\n');
     
     return fastest[1];
     
@@ -263,15 +262,15 @@ def _find_optimal_block_size_nl(nl, n):
         for block_size in xrange(64,1024+32,32):
             nl.cpp_nlist.setBlockSize(block_size);
             t = nl.benchmark(n);
-            print block_size, t
+            globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
-        print "Note: Too many resources requested for launch is a normal message when finding optimal block sizes"
+        globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
     
     
     fastest = min(timings);
-    print 'fastest:', fastest[1]
-    print '---------------'
+    globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
+    globals.msg.notice(2, '---------------\n');
     nl.cpp_nlist.setBlockSize(fastest[1]);
     
     return fastest[1];
@@ -293,15 +292,15 @@ def _find_optimal_block_size_nl_filter(nl, n):
         for block_size in xrange(64,1024+32,32):
             nl.cpp_nlist.setBlockSizeFilter(block_size);
             t = nl.cpp_nlist.benchmarkFilter(n);
-            print block_size, t
+            globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
-        print "Note: Too many resources requested for launch is a normal message when finding optimal block sizes"
+        globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
     
     
     fastest = min(timings);
-    print 'fastest:', fastest[1]
-    print '---------------'
+    globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
+    globals.msg.notice(2, '---------------\n');
     nl.cpp_nlist.setBlockSizeFilter(fastest[1]);
     
     return fastest[1];
@@ -336,7 +335,7 @@ def _choose_optimal_block_sizes(optimal_dbs):
         common_optimal_db[entry] = common_optimal;
         
         if len(common_optimal_list) > 1:
-            print "Notice: more than one common optimal block size found for", entry, ", using", common_optimal;
+            globals.msg.notice(2, "More than one common optimal block size found for " + str(entry) + ", using" + str(common_optimal) + '\n');
     
     return common_optimal_db;
 
@@ -434,7 +433,7 @@ def find_optimal_block_sizes(save = True, only=None):
             if only and (not fc_name in only):
                 continue
 
-            print 'Benchmarking ', fc_name
+            globals.msg.notice(2, 'Benchmarking ' + str(fc_name) + '\n');
             # create it and benchmark it
             fc = eval(fc_init + '()')
             optimal = _find_optimal_block_size_fc(fc, n)
@@ -446,7 +445,7 @@ def find_optimal_block_sizes(save = True, only=None):
         
         # now, benchmark the neighbor list
         if (only is None) or (only == 'nlist'):
-            print 'Benchmarking nlist'
+            globals.msg.notice(2, 'Benchmarking nlist\n');
             lj = pair_lj_setup();
             optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
             optimal_db['nlist'] = optimal;
@@ -454,7 +453,7 @@ def find_optimal_block_sizes(save = True, only=None):
         
         # and the neighbor list filtering
         if (only is None) or (only == 'nlist.filter'):
-            print 'Benchmarking nlist.filter'
+            globals.msg.notice(2, 'Benchmarking nlist.filter\n');
             lj = pair_lj_setup();
             globals.neighbor_list.reset_exclusions(exclusions = ['bond', 'angle'])
             optimal = _find_optimal_block_size_nl_filter(globals.neighbor_list, 200)
@@ -465,18 +464,17 @@ def find_optimal_block_sizes(save = True, only=None):
         optimal_dbs.append(optimal_db);
     
     # print out all the optimal block sizes
-    print '*****************'
-    print 'Optimal block sizes found: '
+    globals.msg.notice(2, '*****************\n');
+    globals.msg.notice(2, 'Optimal block sizes found:\n');
     for db in optimal_dbs:
-        print db;
+        globals.msg.notice(2, str(db) + '\n');
     
     # create a new db with the common optimal settings
-    print "Chosing common optimal block sizes:"
+    globals.msg.notice(2, "Chosing common optimal block sizes:\n");
     common_optimal_db = _choose_optimal_block_sizes(optimal_dbs);
-    print common_optimal_db;
+    globals.msg.notice(2, str(common_optimal_db) + '\n');
         
-    print '*****************'
-    print
+    globals.msg.notice(2, '*****************\n')
     if save:
         _save_override_file(common_optimal_db);
     
@@ -640,11 +638,11 @@ import globals;
 def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
     # check if initialization has occurred
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot tune r_buff before initialization\n";
+        globals.msg.error("Cannot tune r_buff before initialization\n");
     
     # check that there is a nlist
     if globals.neighbor_list is None:
-        print >> sys.stderr, "\n***Error! Cannot tune r_buff when there is no neighbor list\n";
+        globals.msg.error("Cannot tune r_buff when there is no neighbor list\n");
 
     # start off at a check_period of 1
     globals.neighbor_list.set_params(check_period=1);
@@ -686,11 +684,10 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     hoomd_script.run(warmup);
 
     # notify the user of the benchmark results
-    print "Notice: r_buff =", r_buff_list
-    print "Notice: tps =", tps_list
-    print
-    print "**Notice: Optimal r_buff:", fastest_r_buff;
-    print "**Notice: Maximum check_period:", globals.neighbor_list.query_update_period()
+    globals.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
+    globals.msg.notice(2, "tps = " + str(tps_list) + '\n');
+    globals.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
+    globals.msg.notice(2, "Maximum check_period: " + str(globals.neighbor_list.query_update_period()) + '\n');
     
     # set the found max check period
     if set_max_check_period:

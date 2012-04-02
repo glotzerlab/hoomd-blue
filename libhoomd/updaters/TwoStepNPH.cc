@@ -81,6 +81,8 @@ TwoStepNPH::TwoStepNPH(boost::shared_ptr<SystemDefinition> sysdef,
                        const std::string& suffix)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_W(W), m_P(P), m_mode(mode), m_state_initialized(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPH" << endl;
+
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
 
@@ -103,6 +105,11 @@ TwoStepNPH::TwoStepNPH(boost::shared_ptr<SystemDefinition> sysdef,
     m_log_name = string("nph_barostat_energy") + suffix;
 
     m_curr_P_diag = make_scalar3(0.0,0.0,0.0);
+    }
+
+TwoStepNPH::~TwoStepNPH()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNPH" << endl;
     }
 
 /*! \param timestep Current time step

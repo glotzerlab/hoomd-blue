@@ -80,13 +80,15 @@ using namespace std;
 CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
     : ForceCompute(sysdef), m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
     {
+    m_exec_conf->msg->notice(5) << "Constructing CGCMMAngleForceCompute" << endl;
+
     // access the angle data for later use
     m_CGCMMAngle_data = m_sysdef->getAngleData();
     
     // check for some silly errors a user could make
     if (m_CGCMMAngle_data->getNAngleTypes() == 0)
         {
-        cout << endl << "***Error! No CGCMMAngle types specified" << endl << endl;
+        m_exec_conf->msg->error() << "angle.cgcmm: No angle types specified" << endl;
         throw runtime_error("Error initializing CGCMMAngleForceCompute");
         }
         
@@ -130,6 +132,8 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
 
 CGCMMAngleForceCompute::~CGCMMAngleForceCompute()
     {
+    m_exec_conf->msg->notice(5) << "Destroying CGCMMAngleForceCompute" << endl;
+
     delete[] m_K;
     delete[] m_t_0;
     delete[] m_cg_type;
@@ -158,7 +162,7 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
     // make sure the type is valid
     if (type >= m_CGCMMAngle_data->getNAngleTypes())
         {
-        cout << endl << "***Error! Invalid CGCMMAngle typee specified" << endl << endl;
+        m_exec_conf->msg->error() << "angle.cgcmm: Invalid angle type specified" << endl;
         throw runtime_error("Error setting parameters in CGCMMAngleForceCompute");
         }
         
@@ -176,15 +180,15 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
     
     // check for some silly errors a user could make
     if (cg_type > 3)
-        cout << "***Warning! Unrecognized exponents specified for CGCMM Angle" << endl;
+        m_exec_conf->msg->warning() << "angle.cgcmm: Unrecognized exponents specified" << endl;
     if (K <= 0)
-        cout << "***Warning! K <= 0 specified for CGCMM Angle" << endl;
+        m_exec_conf->msg->warning() << "angle.cgcmm: specified K <= 0" << endl;
     if (t_0 <= 0)
-        cout << "***Warning! t_0 <= 0 specified for CGCMM Angle" << endl;
+        m_exec_conf->msg->warning() << "angle.cgcmm: specified t_0 <= 0" << endl;
     if (eps <= 0)
-        cout << "***Warning! eps <= 0 specified for CGCMM Angle" << endl;
+        m_exec_conf->msg->warning() << "angle.cgcmm: specified eps <= 0" << endl;
     if (sigma <= 0)
-        cout << "***Warning! sigma <= 0 specified for CGCMM Angle" << endl;
+        m_exec_conf->msg->warning() << "angle.cgcmm: specified sigma <= 0" << endl;
     }
 
 /*! CGCMMAngleForceCompute provides
@@ -209,7 +213,7 @@ Scalar CGCMMAngleForceCompute::getLogValue(const std::string& quantity, unsigned
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for CGCMMAngleForceCompute" << endl << endl;
+        m_exec_conf->msg->error() << "angle.cgcmm: " << quantity << " is not a valid log quantity for CGCMMAngleForceCompute" << endl;
         throw runtime_error("Error getting log value");
         }
     }

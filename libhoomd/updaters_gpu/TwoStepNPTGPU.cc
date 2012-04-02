@@ -90,7 +90,7 @@ TwoStepNPTGPU::TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepNPTGPU with CUDA disabled" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a TwoStepNPTGPU with CUDA disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
     }

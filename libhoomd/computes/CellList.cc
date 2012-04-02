@@ -66,6 +66,8 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0f)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
       m_flag_charge(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
+
     // allocation is deferred until the first compute() call - initialize values to dummy variables
     m_width = make_scalar3(0.0, 0.0, 0.0);
     m_dim = make_uint3(0,0,0);
@@ -82,6 +84,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
 
 CellList::~CellList()
     {
+    m_exec_conf->msg->notice(5) << "Destroying CellList" << endl;
     m_sort_connection.disconnect();
     m_boxchange_connection.disconnect();
     }
@@ -180,7 +183,6 @@ void CellList::compute(unsigned int timestep)
             if (overflowed)
                 {
                 initializeAll();
-                // cout << "Notice: cell list overflow, allocating " << m_Nmax << " slots per cell" << endl;
                 resetConditions();
                 }
             } while (overflowed);
@@ -257,7 +259,7 @@ void CellList::initializeMemory()
     {
     if (m_prof)
         m_prof->push("init");
-    
+
     // if it is still set at 0, estimate Nmax
     if (m_Nmax == 0)
         {
@@ -270,7 +272,10 @@ void CellList::initializeMemory()
         if ((m_Nmax & 7) != 0)
             m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
         }
-    
+
+    m_exec_conf->msg->notice(6) << "cell list: allocating " << m_dim.x << " x " << m_dim.y << " x " << m_dim.z
+                                << " x " << m_Nmax << endl;
+
     // initialize indexers
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
@@ -467,7 +472,7 @@ bool CellList::checkConditions()
     if (h_conditions.data[1])
         {
         unsigned int n = h_conditions.data[1] - 1;
-        cerr << endl << "***Error! Particle " << n << " has NaN for its position." << endl << endl;
+        m_exec_conf->msg->error() << "Particle " << n << " has NaN for its position." << endl;
         throw runtime_error("Error computing cell list");
         }
 
@@ -475,7 +480,7 @@ bool CellList::checkConditions()
     if (h_conditions.data[2])
         {
         unsigned int n = h_conditions.data[2] - 1;
-        cerr << endl << "***Error! Particle " << n << " is no longer in the simulation box." << endl
+        m_exec_conf->msg->error() << "Particle " << n << " is no longer in the simulation box." << endl
              << endl;
         throw runtime_error("Error computing cell list");
         }

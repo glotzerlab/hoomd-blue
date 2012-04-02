@@ -80,13 +80,15 @@ using namespace std;
 HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
     : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL)
     {
+    m_exec_conf->msg->notice(5) << "Constructing HarmonicDihedralForceCompute" << endl;
+
     // access the dihedral data for later use
     m_dihedral_data = m_sysdef->getDihedralData();
     
     // check for some silly errors a user could make
     if (m_dihedral_data->getNDihedralTypes() == 0)
         {
-        cout << endl << "***Error! No dihedral types specified" << endl << endl;
+        m_exec_conf->msg->error() << "dihedral.harmonic: No dihedral types specified" << endl;
         throw runtime_error("Error initializing HarmonicDihedralForceCompute");
         }
         
@@ -99,6 +101,8 @@ HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<Sys
 
 HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
     {
+    m_exec_conf->msg->notice(5) << "Destroying HarmonicDihedralForceCompute" << endl;
+
     delete[] m_K;
     delete[] m_sign;
     delete[] m_multi;
@@ -119,7 +123,7 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
     // make sure the type is valid
     if (type >= m_dihedral_data->getNDihedralTypes())
         {
-        cout << endl << "***Error! Invalid dihedral type specified" << endl << endl;
+        m_exec_conf->msg->error() << "dihedral.harmonic: Invalid dihedral type specified" << endl;
         throw runtime_error("Error setting parameters in HarmonicDihedralForceCompute");
         }
         
@@ -129,9 +133,9 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
     
     // check for some silly errors a user could make
     if (K <= 0)
-        cout << "***Warning! K <= 0 specified for harmonic dihedral" << endl;
+        m_exec_conf->msg->warning() << "dihedral.harmonic: specified K <= 0" << endl;
     if (sign != 1 && sign != -1)
-        cout << "***Warning! a non unitary sign was specified for harmonic dihedral" << endl;
+        m_exec_conf->msg->warning() << "dihedral.harmonic: a non unitary sign was specified" << endl;
     }
 
 /*! DihedralForceCompute provides
@@ -156,9 +160,7 @@ Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, un
         }
     else
         {
-        cerr << endl << "***Error! " 
-             << quantity << " is not a valid log quantity for DihedralForceCompute" 
-             << endl << endl;
+        m_exec_conf->msg->error() << "dihedral.harmonic: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }

@@ -73,6 +73,8 @@ TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
                        bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVE" << endl;
+
     if (!skip_restart)
         {
         // set a named, but otherwise blank set of integrator variables
@@ -89,6 +91,11 @@ TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
 
         setIntegratorVariables(v);
         }
+    }
+
+TwoStepNVE::~TwoStepNVE()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVE" << endl;
     }
 
 /*! \param limit Distance to limit particle movement each time step

@@ -88,22 +88,12 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a EAMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a EAMForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing EAMForceComputeGPU");
-        }
-
-    if (m_ntypes > 44)
-        {
-        cerr << endl << "***Error! EAMForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
-        throw runtime_error("Error initializing EAMForceComputeGPU");
         }
 
     m_block_size = 64;
 
-/*
-    if (m_slj) cout << "Notice: Using Diameter-Shifted EAM Pair Potential for EAMForceComputeGPU" << endl;
-    else cout << "Diameter-Shifted EAM Pair Potential is NOT set for EAMForceComputeGPU" << endl;
-*/
     // allocate the coeff data on the GPU
     loadFile(filename, type_of_file);
     eam_data.nr = nr;
@@ -175,7 +165,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        cerr << endl << "***Error! EAMForceComputeGPU cannot handle a half neighborlist" << endl << endl;
+        m_exec_conf->msg->error() << "EAMForceComputeGPU cannot handle a half neighborlist" << endl;
         throw runtime_error("Error computing forces in EAMForceComputeGPU");
         }
 

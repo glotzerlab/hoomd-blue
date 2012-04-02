@@ -222,12 +222,12 @@ class coeff:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+            globals.msg.error("Bug detected in pair.coeff. Please report\n");
             raise RuntimeError("Error setting pair coeff");
         
         # update each of the values provided
         if len(coeffs) == 0:
-            print >> sys.stderr, "\n***Error! No coefficents specified\n";
+            globals.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[cur_pair][name] = val;
         
@@ -247,7 +247,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot verify pair coefficients before initialization\n";
+            globals.msg.error("Cannot verify pair coefficients before initialization\n");
             raise RuntimeError('Error verifying pair coefficients');
         
         # get a list of types from the particle data
@@ -269,7 +269,7 @@ class coeff:
                 elif (b,a) in self.values:
                     cur_pair = (b,a);
                 else:
-                    print >> sys.stderr, "\n***Error! Type pair", (a,b), "not found in pair coeff\n"
+                    globals.msg.error("Type pair " + str((a,b)) + " not found in pair coeff\n");
                     valid = False;
                     continue;
                 
@@ -277,13 +277,13 @@ class coeff:
                 count = 0;
                 for coeff_name in self.values[cur_pair].keys():
                     if not coeff_name in required_coeffs:
-                        print "Notice: Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), \
-                              ", but is not used by the pair force";
+                        globals.msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
+                              ", but is not used by the pair force");
                     else:
                         count += 1;
                 
                 if count != len(required_coeffs):
-                    print >> sys.stderr, "\n***Error! Type pair", (a,b), "is missing required coefficients\n";
+                    globals.msg.error("Type pair " + str((a,b)) + " is missing required coefficients\n");
                     valid = False;
                 
             
@@ -302,7 +302,7 @@ class coeff:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+            globals.msg.error("Bug detected in pair.coeff. Please report\n");
             raise RuntimeError("Error setting pair coeff");
         
         return self.values[cur_pair][coeff_name];
@@ -329,7 +329,7 @@ class nlist:
     def __init__(self, r_cut):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
+            globals.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
         
         # decide wether to create an all-to-all neighbor list or a binned one based on box size:
@@ -346,10 +346,10 @@ class nlist:
             is_small_box = is_small_box or box.getL().z < min_width_for_bin;
         if  is_small_box:
             if globals.system_definition.getParticleData().getN() >= 2000:
-                print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";
-                print "             EXTREMELY SLOW O(N^2) calculation for the neighbor list."
+                globals.msg.warning("At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an\n");
+                globals.msg.warning("EXTREMELY SLOW O(N^2) calculation for the neighbor list.\n");
             else:
-                print "Notice: The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation."
+                globals.msg.notice(2, "The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation.\n");
                 
             mode = "nsq";
         
@@ -362,7 +362,7 @@ class nlist:
             elif mode == "nsq":
                 self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
             else:
-                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
         else:
             if mode == "binned":
@@ -375,7 +375,7 @@ class nlist:
                 self.cpp_nlist = hoomd.NeighborListGPU(globals.system_definition, r_cut, default_r_buff)
                 self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
-                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
             
         self.cpp_nlist.setEvery(1, True);
@@ -471,7 +471,7 @@ class nlist:
         util.print_status_line();
         
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
         
         # update the parameters
@@ -532,7 +532,7 @@ class nlist:
         self.is_exclusion_overridden = True;
         
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
         
         # clear all of the existing exclusions
@@ -581,7 +581,7 @@ class nlist:
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:
-            print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
+            globals.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
             raise RuntimeError('Error resetting exclusions');
 
         # collect and print statistics about the number of exclusions.
@@ -611,7 +611,7 @@ class nlist:
     def benchmark(self, n):
         # check that we have been initialized properly
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error benchmarking neighbor list');
         
         # run the benchmark
@@ -629,7 +629,7 @@ class nlist:
     #
     def query_update_period(self):
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
         
         return self.cpp_nlist.getSmallestRebuild()-1;
@@ -758,18 +758,18 @@ class pair(force._force):
             elif mode == "xplor":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
     
     def process_coeff(self, coeff):
-        print >> sys.stderr, "\n***Error! Bug in hoomd_script, please report\n";
+        globals.msg.error("Bug in hoomd_script, please report\n");
         raise RuntimeError("Error processing coefficients");
     
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(coeff_list):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set\n";
+            globals.msg.error("Not all pair coefficients are set\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
@@ -1084,7 +1084,7 @@ class slj(pair):
         if d_max is None :
             sysdef = globals.system_definition;
             d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
-            print "Notice: slj set d_max=", d_max
+            globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
                         
         neighbor_list = _update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut());
@@ -1135,7 +1135,7 @@ class slj(pair):
         util.print_status_line();
         
         if mode == "xplor":
-            print >> sys.stderr, "\n***Error! XPLOR is smoothing is not supported with slj\n";
+            globals.msg.error("XPLOR is smoothing is not supported with slj\n");
             raise RuntimeError("Error changing parameters in pair force");
         
         pair.set_params(self, mode=mode);
@@ -1396,7 +1396,7 @@ class cgcmm(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["epsilon", "sigma", "alpha", "exponents"]):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.cgcmm\n";
+            globals.msg.error("Not all pair coefficients are set in pair.cgcmm\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
@@ -1562,7 +1562,7 @@ class table(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set for pair.table\n";
+            globals.msg.error("Not all pair coefficients are set for pair.table\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
@@ -1963,7 +1963,7 @@ class eam(force._force):
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 
-        print "Set r_cut = ",r_cut_new, " from potential`s file '", file , "'.\n";
+        globals.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         self.pair_coeff = coeff();
@@ -2131,7 +2131,7 @@ class dpdlj(pair):
         
         if mode is not None:
             if mode == "xplor":
-                print >> sys.stderr, "\n***Error! XPLOR is smoothing is not supported with pair.dpdlj\n";
+                globals.msg.error("XPLOR is smoothing is not supported with pair.dpdlj\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
             #use the inherited set_params

@@ -84,13 +84,15 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
                                const std::string& log_suffix)
         : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TablePotential" << endl;
+
     // sanity checks
     assert(m_pdata);
     assert(m_nlist);
     
     if (table_width == 0)
         {
-        cerr << endl << "***Error! Table width of 0 given to TablePotential makes no sense" << endl << endl;
+        m_exec_conf->msg->error() << "pair.table: Table width of 0 is invalid" << endl;
         throw runtime_error("Error initializing TablePotential");
         }
         
@@ -112,6 +114,11 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     allocateThreadPartial();
     
     m_log_name = std::string("pair_table_energy") + log_suffix;
+    }
+    
+TablePotential::~TablePotential()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TablePotential" << endl;
     }
 
 /*! \param typ1 First particle type index in the pair to set
@@ -142,14 +149,14 @@ void TablePotential::setTable(unsigned int typ1,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        cerr << endl << "***Error! rmin, rmax (" << rmin << "," << rmax
-             << ") given to TablePotential make no sense." << endl << endl;
+        m_exec_conf->msg->error() << "pair.table rmin, rmax (" << rmin << "," << rmax
+             << ") is invalid" << endl;
         throw runtime_error("Error initializing TablePotential");
         }
         
     if (V.size() != m_table_width || F.size() != m_table_width)
         {
-        cerr << endl << "***Error! table provided to setTable is not of the correct size" << endl << endl;
+        m_exec_conf->msg->error() << "pair.table: table provided to setTable is not of the correct size" << endl;
         throw runtime_error("Error initializing TablePotential");
         }
         
@@ -185,7 +192,7 @@ Scalar TablePotential::getLogValue(const std::string& quantity, unsigned int tim
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for TablePotential" << endl << endl;
+        m_exec_conf->msg->error() << "pair.table: " << quantity << " is not a valid log quantity for TablePotential" << endl;
         throw runtime_error("Error getting log value");
         }
     }

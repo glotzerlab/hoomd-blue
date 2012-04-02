@@ -81,7 +81,7 @@ class HarmonicDihedralForceCompute : public ForceCompute
         HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
         
         //! Destructor
-        ~HarmonicDihedralForceCompute();
+        virtual ~HarmonicDihedralForceCompute();
         
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity);

@@ -73,7 +73,7 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a CGCMMAngleForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a CGCMMAngleForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CGCMMAngleForceComputeGPU");
         }
         

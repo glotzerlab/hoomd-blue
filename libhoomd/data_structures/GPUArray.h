@@ -287,8 +287,12 @@ template<class T> class GPUArray
         
         mutable bool m_acquired;                //!< Tracks whether the data has been aquired
         mutable data_location::Enum m_data_location;    //!< Tracks the current location of the data
+    
+    // ok, this looks weird, but I want m_exec_conf to be protected and not have to go reorder all of the initializers
+    protected:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
-        
+    
+    private:
 #ifdef ENABLE_CUDA
         mutable T* d_data;      //!< Pointer to allocated device memory
 #endif
@@ -502,6 +506,8 @@ template<class T> void GPUArray<T>::swap(GPUArray& from) const
 */
 template<class T> void GPUArray<T>::allocate()
     {
+    m_exec_conf->msg->notice(7) << "GPUArray: Allocating " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
+    
     // don't allocate anything if there are zero elements
     if (m_num_elements == 0)
         return;
@@ -658,7 +664,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
                 m_data_location = data_location::host;
             else
                 {
-                std::cerr << std::endl << "Invalid access mode requested" << std::endl << std::endl;
+                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
                 throw std::runtime_error("Error acquiring data");
                 }
                 
@@ -689,7 +695,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
                 }
             else
                 {
-                std::cerr << std::endl << "Invalid access mode requested" << std::endl << std::endl;
+                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
                 throw std::runtime_error("Error acquiring data");
                 }
                 
@@ -698,7 +704,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
 #endif
         else
             {
-            std::cerr << std::endl << "Invalid data location state" << std::endl << std::endl;
+            m_exec_conf->msg->error() << "Invalid data location state" << std::endl;
             throw std::runtime_error("Error acquiring data");
             return NULL;
             }
@@ -709,7 +715,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
         // check that a GPU is actually specified
         if (!m_exec_conf || !m_exec_conf->isCUDAEnabled())
             {
-            std::cerr << std::endl << "Reqesting device aquire, but no GPU in the Execution Configuration" << std::endl << std::endl;
+            m_exec_conf->msg->error() << "Reqesting device aquire, but no GPU in the Execution Configuration" << std::endl;
             throw std::runtime_error("Error acquiring data");
             }
             
@@ -739,7 +745,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
                 }
             else
                 {
-                std::cerr << std::endl << "Invalid access mode requested" << std::endl << std::endl;
+                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
                 throw std::runtime_error("Error acquiring data");
                 }
                 
@@ -756,7 +762,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
                 m_data_location = data_location::device;
             else
                 {
-                std::cerr << std::endl << "Invalid access mode requested" << std::endl << std::endl;
+                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
                 throw std::runtime_error("Error acquiring data");
                 }
             return d_data;
@@ -768,7 +774,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
             }
         else
             {
-            std::cerr << std::endl << "Invalid data_location state" << std::endl << std::endl;
+            m_exec_conf->msg->error() << "Invalid data_location state" << std::endl;
             throw std::runtime_error("Error acquiring data");
             return NULL;
             }
@@ -776,7 +782,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
 #endif
     else
         {
-        std::cerr << std::endl << "Invalid location requested" << std::endl << std::endl;
+        m_exec_conf->msg->error() << "Invalid location requested" << std::endl;
         throw std::runtime_error("Error acquiring data");
         return NULL;
         }
@@ -970,6 +976,8 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
     if (num_elements <= m_num_elements)
         return;
 
+    m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
+
     resizeHostArray(num_elements);
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
@@ -996,6 +1004,8 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
     // do not resize unless array is extended
     if (new_pitch <= m_pitch && height <= m_height)
         return;
+
+    m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
 
     // it is allowed to resize only one dimension, then the other dimension
     // is forced to stay the same

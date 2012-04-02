@@ -83,6 +83,7 @@ System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_
     {
     // sanity check
     assert(m_sysdef);
+    m_exec_conf = m_sysdef->getParticleData()->getExecConf();
     }
 
 /*! \param analyzer Shared pointer to the Analyzer to add
@@ -107,7 +108,7 @@ void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string
         {
         if (i->m_name == name)
             {
-            cerr << "***Error! Analyzer " << name << " already exists" << endl;
+            m_exec_conf->msg->error() << "Analyzer " << name << " already exists" << endl;
             throw runtime_error("System: cannot add Analyzer");
             }
         }
@@ -131,7 +132,7 @@ std::vector<System::analyzer_item>::iterator System::findAnalyzerItem(const std:
             }
         }
         
-    cerr << "***Error! Analyzer " << name << " not found" << endl;
+    m_exec_conf->msg->error() << "Analyzer " << name << " not found" << endl;
     throw runtime_error("System: cannot find Analyzer");
     // dummy return
     return m_analyzers.begin();
@@ -203,7 +204,7 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
             }
         }
         
-    cerr << "***Error! Updater " << name << " not found" << endl;
+    m_exec_conf->msg->error() << "Updater " << name << " not found" << endl;
     throw runtime_error("System: cannot find Updater");
     // dummy return
     return m_updaters.begin();
@@ -232,7 +233,7 @@ void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& n
         {
         if (i->m_name == name)
             {
-            cerr << "***Error! Updater " << name << " already exists" << endl;
+            m_exec_conf->msg->error() << "Updater " << name << " already exists" << endl;
             throw runtime_error("System: cannot add Updater");
             }
         }
@@ -310,7 +311,7 @@ void System::addCompute(boost::shared_ptr<Compute> compute, const std::string& n
         m_computes[name] = compute;
     else
         {
-        cerr << "***Error! Compute " << name << " already exists" << endl;
+        m_exec_conf->msg->error() << "Compute " << name << " already exists" << endl;
         throw runtime_error("System: cannot add compute");
         }
     }
@@ -324,7 +325,7 @@ void System::removeCompute(const std::string& name)
     map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
         {
-        cerr << "***Error! Compute " << name << " not found" << endl;
+        m_exec_conf->msg->error() << "Compute " << name << " not found" << endl;
         throw runtime_error("System: cannot remove compute");
         }
     else
@@ -340,7 +341,7 @@ boost::shared_ptr<Compute> System::getCompute(const std::string& name)
     map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
         {
-        cerr << "***Error! Compute " << name << " not found" << endl;
+        m_exec_conf->msg->error() << "Compute " << name << " not found" << endl;
         throw runtime_error("System: cannot retrieve compute");
         return boost::shared_ptr<Compute>();
         }
@@ -403,7 +404,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     
     // Prepare the run
     if (!m_integrator)
-        cout << "***Warning! You are running without an integrator." << endl;
+        m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
     else
         m_integrator->prepRun(m_cur_tstep);
     
@@ -419,7 +420,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
             if (int64_t(cur_time) - initial_time > time_limit && (m_cur_tstep % limit_multiple) == 0)
                 {
-                cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+                m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
                 break;
                 }
             }
@@ -431,7 +432,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             extract<int> extracted_rv(rv);
             if (extracted_rv.check() && extracted_rv() < 0)
                 {
-                cout << "Notice: End of run requested by python callback at step "
+                m_exec_conf->msg->notice(2) << "End of run requested by python callback at step "
                      << m_cur_tstep << " / " << m_end_tstep << endl;
                 break;
                 }
@@ -491,12 +492,12 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     // calculate averate TPS
     Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
     if (!m_quiet_run)
-        cout << "Average TPS: " << TPS << endl;
+        m_exec_conf->msg->notice(1) << "Average TPS: " << TPS << endl;
     m_last_TPS = TPS;
     
     // write out the profile data
     if (m_profiler)
-        cout << *m_profiler;
+        m_exec_conf->msg->notice(1) << *m_profiler;
         
     if (!m_quiet_run)
         printStats();
@@ -569,7 +570,7 @@ void System::setupProfiling()
 
 void System::printStats()
     {
-    cout << "---------" << endl;
+    m_exec_conf->msg->notice(1) << "---------" << endl;
     // print the stats for everything
     if (m_integrator)
         m_integrator->printStats();
@@ -630,7 +631,7 @@ void System::generateStatusLine()
     string ETA = ClockSource::formatHMS(int64_t((m_end_tstep - m_cur_tstep) / TPS * Scalar(1e9)));
     
     // write the line
-    cout << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
+    m_exec_conf->msg->notice(1) << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
     }
 
 /*! \param tstep Time step for which to determine the flags

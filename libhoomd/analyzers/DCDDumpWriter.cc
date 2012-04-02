@@ -118,10 +118,12 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
     m_rigid_data(sysdef->getRigidData()), m_num_frames_written(0), m_last_written_step(0), m_appending(false), 
       m_unwrap_full(false), m_unwrap_rigid(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing DCDDumpWriter: " << fname << " " << period << " " << overwrite << endl;
+
     // handle appending to an existing file if it is requested
     if (!overwrite && exists(fname))
         {
-        cout << "Notice: Appending to existing DCD file \"" << fname << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "dump.dcd: Appending to existing DCD file \"" << fname << "\"" << endl;
         
         // open the file and get data from the header
         fstream file;
@@ -134,14 +136,14 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
         
         // warn the user if we are now dumping at a different period
         if (file_period != m_period)
-            cout << "***Warning! DCDDumpWriter is appending to a file that has period " << file_period << " that is not the same as the requested period of " << m_period << endl;
+            m_exec_conf->msg->warning() << "dump.dcd: appending to a file that has period " << file_period << " that is not the same as the requested period of " << m_period << endl;
             
         m_last_written_step = read_int(file);
         
         // check for errors
         if (!file.good())
             {
-            cerr << endl << "***Error! Error reading DCD header data" << endl << endl;
+            m_exec_conf->msg->error() << "dump.dcd: I/O error while reading DCD header data" << endl;
             throw runtime_error("Error appending to DCD file");
             }
             
@@ -153,6 +155,7 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
 
 DCDDumpWriter::~DCDDumpWriter()
     {
+    m_exec_conf->msg->notice(5) << "Destroying DCDDumpWriter" << endl;
     delete[] m_staging_buffer;
     }
 
@@ -183,7 +186,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         {
         if (m_appending && timestep <= m_last_written_step)
             {
-            cout << "***Warning! DCDDumpWriter is not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
+            m_exec_conf->msg->warning() << "dump.dcd: not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
             
             if (m_prof)
                 m_prof->pop();
@@ -195,7 +198,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         
         // verify the period on subsequent frames
         if ( (timestep - m_start_timestep) % m_period != 0)
-            cout << "***Warning! DCDDumpWriter is writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
+            m_exec_conf->msg->warning() << "dump.dcd: writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
         }
         
     // write the data for the current time step
@@ -270,7 +273,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     // check for errors
     if (!file.good())
         {
-        cerr << endl << "***Error! Error writing DCD header" << endl << endl;
+        m_exec_conf->msg->error() << "dump.dcd: I/O rrror when writing DCD header" << endl;
         throw runtime_error("Error writing DCD file");
         }
     }
@@ -300,7 +303,7 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     // check for errors
     if (!file.good())
         {
-        cerr << endl << "***Error! Error writing DCD frame header" << endl << endl;
+        m_exec_conf->msg->error() << "dump.dcd: I/O rrror while writing DCD frame header" << endl;
         throw runtime_error("Error writing DCD file");
         }
     }
@@ -395,7 +398,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     // check for errors
     if (!file.good())
         {
-        cerr << endl << "***Error! Error writing DCD frame data" << endl << endl;
+        m_exec_conf->msg->error() << "I/O error while writing DCD frame data" << endl;
         throw runtime_error("Error writing DCD file");
         }
     }

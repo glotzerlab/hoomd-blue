@@ -78,23 +78,22 @@ using namespace std;
 EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
     : ForceCompute(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
+
     assert(m_pdata);
-
-
 
     loadFile(filename, type_of_file);
     // initialize the number of types value
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
-
-
     }
 
 
 EAMForceCompute::~EAMForceCompute()
     {
-
+    m_exec_conf->msg->notice(5) << "Destroying EAMForceCompute" << endl;
     }
+
 /*
 type_of_file = 0 => EAM/Alloy
 type_of_file = 1 => EAM/FS
@@ -113,7 +112,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     fp = fopen(filename,"r");
     if (fp == NULL)
         {
-        cerr << endl << "***Error! Can not load EAM file" << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: Can not load EAM file" << endl;
         throw runtime_error("Error loading file");
         }
     for(i = 0; i < 3; i++) while(fgetc(fp) != '\n');
@@ -121,7 +120,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     fscanf(fp, "%d", &m_ntypes);
     if(m_ntypes < 1 || m_ntypes > MAX_TYPE_NUMBER ) 
         {
-        cerr << endl << "***Error! Invalid EAM file format: Type number is greater than " << MAX_TYPE_NUMBER << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Type number is greater than " << MAX_TYPE_NUMBER << endl;
         throw runtime_error("Error loading file");
         }
     // temporary array to count used types
@@ -139,13 +138,10 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     //Check that all types of atopms in xml file have description in potential file
     if(m_pdata->getNTypes() != types_set.count())
         {
-        cerr << endl << "***Error! not all atom types are defined in EAM potential file!!!" << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: not all atom types are defined in EAM potential file!!!" << endl;
         throw runtime_error("Error loading file");
         }
-/*    for(i = 0; i < m_ntypes; i++){
-        cout << i << " : " << types[i] << " " << names[i] << endl;
-    }
-    */
+
     //Load parameters.
     fscanf(fp,"%d", &nrho);
     fscanf(fp,"%lg", &tmp);
@@ -159,7 +155,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     m_r_cut = tmp;
     if (nrho < 1 || nr < 1 || nrho > MAX_POINT_NUMBER || nr > MAX_POINT_NUMBER)
         {
-        cerr << endl << "***Error! Invalid EAM file format: Point number is greater than " << MAX_POINT_NUMBER << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Point number is greater than " << MAX_POINT_NUMBER << endl;
         throw runtime_error("Error loading file");
         }
     //Resize arrays for tables
@@ -210,7 +206,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     
     if(res == EOF || res == 0)
         {
-        cerr << endl << "***Error! EAM file is truncated " << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: EAM file is truncated " << endl;
         throw runtime_error("Error loading file");        
         }
     //Read V(r)'s arrays
@@ -289,7 +285,7 @@ Scalar EAMForceCompute::getLogValue(const std::string& quantity, unsigned int ti
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for EAMForceCompute" << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }

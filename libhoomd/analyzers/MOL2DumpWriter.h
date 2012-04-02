@@ -78,6 +78,9 @@ class MOL2DumpWriter : public Analyzer
     public:
         //! Construct the writer
         MOL2DumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname_base);
+
+        //! Destructor
+        ~MOL2DumpWriter();
         
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);

@@ -101,6 +101,12 @@ static void write_string(ostream &f, const string& str)
 HOOMDBinaryDumpWriter::HOOMDBinaryDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
         : Analyzer(sysdef), m_base_fname(base_fname), m_alternating(false), m_cur_file(1), m_enable_compression(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing HOOMDBinaryDumpWriter: " << base_fname << endl;
+    }
+
+HOOMDBinaryDumpWriter::~HOOMDBinaryDumpWriter()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying HOOMDBinaryDumpWriter" << endl;
     }
 
 /*! \param fname File name to write
@@ -116,13 +122,13 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
          
     if (gz_ext && !m_enable_compression)
         {
-        cout << endl << "***Warning! Writing compressed binary file without a .gz extension.";
-        cout << "init.read_bin will not recognize that this file is compressed" << endl << endl;
+        m_exec_conf->msg->warning() << "dump.bin: Writing compressed binary file without a .gz extension.";
+        m_exec_conf->msg->warning() << "init.read_bin will not recognize that this file is compressed" << endl;
         }
     if (!gz_ext && m_enable_compression)
         {
-        cout << endl << "***Warning! Writing uncompressed binary file with a .gz extension.";
-        cout << "init.read_bin will not recognize that this file is uncompressed" << endl << endl;
+        m_exec_conf->msg->warning() << "dump.bin: Writing uncompressed binary file with a .gz extension.";
+        m_exec_conf->msg->warning() << "init.read_bin will not recognize that this file is uncompressed" << endl;
         }
 
     // setup the file output for compression
@@ -135,7 +141,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     
     if (!f.good())
         {
-        cerr << endl << "***Error! Unable to open dump file for writing: " << fname << endl << endl;
+        m_exec_conf->msg->error() << "dump.bin: Unable to open dump file for writing: " << fname << endl;
         throw runtime_error("Error writing hoomd binary dump file");
         }
     
@@ -216,7 +222,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     if (!f.good())
         {
-        cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+        m_exec_conf->msg->error() << "dump.bin: I/P error writing HOOMD dump file" << endl;
         throw runtime_error("Error writing HOOMD dump file");
         }
     
@@ -418,7 +424,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 
     if (!f.good())
         {
-        cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+        m_exec_conf->msg->error() << "dump.bin: I/O error writing HOOMD dump file" << endl;
         throw runtime_error("Error writing HOOMD dump file");
         }
         
@@ -484,8 +490,8 @@ void HOOMDBinaryDumpWriter::enableCompression(bool enable_compression)
     m_enable_compression = false;
     if (enable_compression)
         {
-        cout << endl << "***Warning! This build of hoomd was compiled with ENABLE_ZLIB=off.";
-        cout << "binary data output will NOT be compressed" << endl << endl;
+        m_exec_conf->msg->warning() << "dump.bin: This build of hoomd was compiled with ENABLE_ZLIB=off.";
+        m_exec_conf->msg->warning() << "binary data output will NOT be compressed" << endl;
         }
     #endif
     }

@@ -73,7 +73,7 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(boost::shared_ptr<SystemDefinition> sys
     {
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a BerendsenGPU when CUDA is disabled" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a BerendsenGPU when CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing BerendsenGPU");
         }
 

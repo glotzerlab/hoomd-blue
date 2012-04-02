@@ -74,9 +74,11 @@ using namespace std;
 LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut):
         ForceCompute(sysdef), m_r_cut(r_cut)
     {
+    m_exec_conf->msg->notice(5) << "Constructing LJWallForceCompute" << endl;
+
     if (r_cut < 0.0)
         {
-        cerr << endl << "***Error! Negative r_cut in LJWallForceCompute doesn't make sense." << endl << endl;
+        m_exec_conf->msg->error() << "wall.lj: Negative r_cut doesn't make sense." << endl;
         throw runtime_error("Error initializing LJWallForceCompute");
         }
         
@@ -101,6 +103,8 @@ LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysde
 */
 LJWallForceCompute::~LJWallForceCompute()
     {
+    m_exec_conf->msg->notice(5) << "Destroying LJWallForceCompute" << endl;
+
     delete[] m_lj1;
     delete[] m_lj2;
     m_lj1 = NULL;
@@ -120,7 +124,7 @@ void LJWallForceCompute::setParams(unsigned int typ, Scalar lj1, Scalar lj2)
     {
     if (typ >= m_pdata->getNTypes())
         {
-        cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ << endl << endl;
+        m_exec_conf->msg->error() << "wall.lj: Trying to set params for a non existant type! " << typ << endl;
         throw runtime_error("Error setting params in LJWallForceCompute");
         }
         
@@ -148,7 +152,7 @@ Scalar LJWallForceCompute::getLogValue(const std::string& quantity, unsigned int
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for LJWallForceCompute" << endl << endl;
+        m_exec_conf->msg->error() << "wall.lj" << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }

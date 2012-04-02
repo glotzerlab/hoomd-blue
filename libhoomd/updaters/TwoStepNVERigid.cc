@@ -78,6 +78,8 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVERigid" << endl;
+
     if (!skip_restart)
         {
         setRestartIntegratorVariables();
@@ -95,8 +97,13 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     m_body_group = boost::shared_ptr<RigidBodyGroup>(new RigidBodyGroup(sysdef, m_group));
     if (m_body_group->getNumMembers() == 0)
         {
-        cout << "***Warning! Empty group for rigid body integration." << endl;
+        m_exec_conf->msg->warning() << "integrate.*_rigid: Empty group." << endl;
         }
+    }
+
+TwoStepNVERigid::~TwoStepNVERigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVERigid" << endl;
     }
 
 void TwoStepNVERigid::setRestartIntegratorVariables()
@@ -576,10 +583,9 @@ void TwoStepNVERigid::validateGroup()
         unsigned int tag = m_group->getMemberTag(gidx);
         if (m_pdata->getBody(tag) == NO_BODY)
             {
-            cerr << endl;
-            cerr << "***Error! Particle " << tag << " does not belong to a rigid body. "
-                 << "This integration method does not operate on free particles." << endl << endl;
-                
+            m_exec_conf->msg->error() << "integreate.*_rigid: Particle " << tag << " does not belong to a rigid body. "
+                 << "This integration method does not operate on free particles." << endl;
+
             throw std::runtime_error("Error initializing integration method");
             }
         }

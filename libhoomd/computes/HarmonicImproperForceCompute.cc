@@ -80,24 +80,27 @@ using namespace std;
 HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
     : ForceCompute(sysdef), m_K(NULL), m_chi(NULL)
     {
+    m_exec_conf->msg->notice(5) << "Constructing HarmonicImproperForceCompute" << endl;
+
     // access the improper data for later use
     m_improper_data = m_sysdef->getImproperData();
     
     // check for some silly errors a user could make
     if (m_improper_data->getNDihedralTypes() == 0)
         {
-        cout << endl << "***Error! No improper types specified" << endl << endl;
+        m_exec_conf->msg->error() << "improper.harmonic: No improper types specified" << endl;
         throw runtime_error("Error initializing HarmonicImproperForceCompute");
         }
         
     // allocate the parameters
     m_K = new Scalar[m_improper_data->getNDihedralTypes()];
     m_chi = new Scalar[m_improper_data->getNDihedralTypes()];
-    
     }
 
 HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
     {
+    m_exec_conf->msg->notice(5) << "Destroying HarmonicImproperForceCompute" << endl;
+
     delete[] m_K;
     delete[] m_chi;
     m_K = NULL;
@@ -115,7 +118,7 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
     // make sure the type is valid
     if (type >= m_improper_data->getNDihedralTypes())
         {
-        cout << endl << "***Error! Invalid improper type specified" << endl << endl;
+        m_exec_conf->msg->error() << "improper.harmonic: Invalid improper type specified" << endl;
         throw runtime_error("Error setting parameters in HarmonicImproperForceCompute");
         }
         
@@ -124,9 +127,9 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
     
     // check for some silly errors a user could make
     if (K <= 0)
-        cout << "***Warning! K <= 0 specified for harmonic improper" << endl;
+        m_exec_conf->msg->warning() << "improper.harmonic: specified K <= 0" << endl;
     if (chi <= 0)
-        cout << "***Warning! Chi <= 0 specified for harmonic improper" << endl;
+        m_exec_conf->msg->warning() << "improper.harmonic: specified Chi <= 0" << endl;
     }
 
 /*! ImproperForceCompute provides
@@ -151,9 +154,7 @@ Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, un
         }
     else
         {
-        cerr << endl << "***Error! " 
-             << quantity << " is not a valid log quantity for ImproperForceCompute" 
-             << endl << endl;
+        m_exec_conf->msg->error() << "improper.harmonic: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }

@@ -108,7 +108,7 @@ def is_initialized():
 # \endcode
 def reset():
     if not is_initialized():
-        print "\n***Warning! Trying to reset an uninitialized system";
+        globals.msg.warning("Trying to reset an uninitialized system\n");
         return;
 
     # perform some reference counting magic to verify that the user has cleared all saved variables
@@ -122,13 +122,14 @@ def reset():
     # passed to it in the argument
     expected_count = 2
     if count != expected_count:
-        print "\n***Warning! Not all saved variables were cleared before calling reset()";
-        print count-expected_count, "references to the particle data still exist somewhere\n"
-        raise RuntimeError('Error resetting');
+        globals.msg.warning("Not all saved variables were cleared before calling reset()\n");
+        globals.msg.warning(str(count-expected_count) + " references to the particle data still exist somewhere\n");
+        globals.msg.warning("Going to try and reset anyways, further errors (such as out of memory) may result\n");
 
     del sysdef
     gc.collect();
-    
+    gc.collect();
+
 ## Create an empty system
 #
 # \param N Number of particles to create
@@ -173,7 +174,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     
     # check if initialization has already occurred
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
     
     my_exec_conf = _create_exec_conf();
@@ -228,7 +229,7 @@ def read_xml(filename, time_step = None):
     
     # check if initialization has already occurred
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
     my_exec_conf = _create_exec_conf();
@@ -276,7 +277,7 @@ def read_bin(filename):
     
     # check if initialization has already occurred
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
     my_exec_conf = _create_exec_conf();
@@ -320,7 +321,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
     
     # check if initialization has already occurred
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
     my_exec_conf = _create_exec_conf();
@@ -462,15 +463,15 @@ def create_random_polymers(box, polymers, separation, seed=1):
         
     # check if initialization has already occured
     if is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error creating random polymers");
     
     if type(polymers) != type([]) or len(polymers) == 0:
-        print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
+        globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
     
     if type(separation) != type(dict()) or len(separation) == 0:
-        print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
+        globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
     
     # create the generator
@@ -487,7 +488,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
         type_list = [];
         # check that all fields are specified
         if not 'bond_len' in poly:
-            print >> sys.stderr, '\n***Error! Polymer specification missing bond_len\n';
+            globals.msg.error('Polymer specification missing bond_len\n');
             raise RuntimeError("Error creating random polymers");
         
         if min_bond_len is None:
@@ -496,13 +497,13 @@ def create_random_polymers(box, polymers, separation, seed=1):
             min_bond_len = min(min_bond_len, poly['bond_len']);
         
         if not 'type' in poly:
-            print >> sys.stderr, '\n***Error! Polymer specification missing type\n';
+            globals.msg.error('Polymer specification missing type\n');
             raise RuntimeError("Error creating random polymers");
         if not 'count' in poly:
-            print >> sys.stderr, '\n***Error! Polymer specification missing count\n';
+            globals.msg.error('Polymer specification missing count\n');
             raise RuntimeError("Error creating random polymers");
         if not 'bond' in poly:
-            print >> sys.stderr, '\n***Error! Polymer specification missing bond\n';
+            globals.msg.error('Polymer specification missing bond\n');
             raise RuntimeError("Error creating random polymers");
                 
         # build type list
@@ -534,14 +535,14 @@ def create_random_polymers(box, polymers, separation, seed=1):
                 elif len(t) == 3:
                     a,b,name = t;
                 else:
-                    print >> sys.stderr, '\n***Error! Custom bond', t, 'must have either two or three elements\n';
+                    globals.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
                     raise RuntimeError("Error creating random polymers");
                                     
                 bond_a.push_back(a);
                 bond_b.push_back(b);
                 bond_name.append(name);
         else:
-            print >> sys.stderr, '\n***Error! Unexpected argument value for polymer bond\n';
+            globals.msg.error('Unexpected argument value for polymer bond\n');
             raise RuntimeError("Error creating random polymers");
         
         # create the generator
@@ -551,14 +552,14 @@ def create_random_polymers(box, polymers, separation, seed=1):
     # check that all used types are in the separation list
     for t in types_used:
         if not t in separation:
-            print >> sys.stderr, "\n***Error! No separation radius specified for type ", t, "\n";
+            globals.msg.error("No separation radius specified for type " + str(t) + "\n");
             raise RuntimeError("Error creating random polymers");
             
     # set the separation radii, checking that it is within the minimum bond length
     for t,r in separation.items():
         generator.setSeparationRadius(t, r);
         if 2*r >= min_bond_len:
-            print >> sys.stderr, "\n***Error! Separation radius", r, "is too big for the minimum bond length of", min_bond_len, "specified\n";
+            globals.msg.error("Separation radius " + str(r) + " is too big for the minimum bond length of " + str(min_bond_len) + " specified\n");
             raise RuntimeError("Error creating random polymers");
         
     # generate the particles
@@ -601,12 +602,12 @@ def _create_exec_conf():
     # set the openmp thread limits
     if globals.options.ncpu is not None:
         if globals.options.ncpu > hoomd.get_num_procs():
-            print "\n***Warning! Requesting more CPU cores than there are available in the system";
+            globals.msg.warning("Requesting more CPU cores than there are available in the system\n");
         hoomd.set_num_threads(globals.options.ncpu);
-    
+
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:
-        exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display);
+        exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
     else:
         # determine the GPU on which to execute
         if globals.options.gpu is not None:
@@ -616,9 +617,9 @@ def _create_exec_conf():
         
         # create the specified configuration
         if globals.options.mode == "cpu":
-            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display);
+            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, msg);
         elif globals.options.mode == "gpu":
-            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display);
+            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, msg);
         else:
             raise RuntimeError("Error initializing");
     

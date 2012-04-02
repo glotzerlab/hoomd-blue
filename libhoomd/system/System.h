@@ -459,6 +459,7 @@ class System
         std::vector<updater_item>::iterator findUpdaterItem(const std::string &name);
         
         Scalar m_last_TPS;  //!< Stores the average TPS from the last run
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 //! Exports the System class to python

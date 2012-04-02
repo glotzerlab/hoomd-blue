@@ -87,9 +87,12 @@ RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
     // leave arrays initialized to NULL. There are currently 0 bodies and their
     // initialization is delayed because we cannot reasonably determine when that initialization
     // must be done
-    
+
     // connect the sort signal
     m_sort_connection = m_pdata->connectParticleSort(bind(&RigidData::recalcIndices, this));
+
+    // save the execution configuration
+    m_exec_conf = m_pdata->getExecConf();
     }
 
 RigidData::~RigidData()
@@ -441,7 +444,8 @@ void RigidData::initializeData()
         matrix[2][0] = matrix[0][2] = inertia_handle.data[inertia_pitch * body + 5];
         
         int error = diagonalize(matrix, evalues, evectors);
-        if (error) cout << "Insufficient Jacobi iterations for diagonalization!\n";
+        if (error) 
+            m_exec_conf->msg->warning() << "rigid data: Insufficient Jacobi iterations for diagonalization!\n";
         
         // obtain the moment inertia from eigen values
         moment_inertia_handle.data[body].x = evalues[0];
@@ -1020,7 +1024,7 @@ void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
     {
     if (body < 0 || body >= m_n_bodies) 
         {
-        cerr << "Error setting angular momentum for body " << body << "\n";
+        m_exec_conf->msg->error() << "Error setting angular momentum for body " << body << "\n";
         return;
         }
     

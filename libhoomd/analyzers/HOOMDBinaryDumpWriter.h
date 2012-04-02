@@ -95,7 +95,10 @@ class HOOMDBinaryDumpWriter : public Analyzer
     public:
         //! Construct the writer
         HOOMDBinaryDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
-        
+
+        //! Destructor
+        ~HOOMDBinaryDumpWriter();
+
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);        
         //! Writes a file at the current time step

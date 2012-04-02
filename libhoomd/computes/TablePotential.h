@@ -112,7 +112,7 @@ class TablePotential : public ForceCompute
                        const std::string& log_suffix="");
                        
         //! Destructor
-        virtual ~TablePotential() { }
+        virtual ~TablePotential();
         
         //! Set the table for a given type pair
         virtual void setTable(unsigned int typ1,

@@ -101,6 +101,8 @@ PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ParticleGroup> group)
     : ForceCompute(sysdef), m_params_set(false), m_nlist(nlist), m_group(group)
     {
+    m_exec_conf->msg->notice(5) << "Constructing PPPMForceCompute" << endl;
+
     assert(m_pdata);
     assert(m_nlist);
 
@@ -110,6 +112,8 @@ PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 
 PPPMForceCompute::~PPPMForceCompute()
     {
+    m_exec_conf->msg->notice(5) << "Destroying PPPMForceCompute" << endl;
+
     m_boxchange_connection.disconnect();
     }
 
@@ -136,24 +140,24 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     PPPMData::compute_pppm_flag = 1;
     if(!(m_Nx == 2)&& !(m_Nx == 4)&& !(m_Nx == 8)&& !(m_Nx == 16)&& !(m_Nx == 32)&& !(m_Nx == 64)&& !(m_Nx == 128)&& !(m_Nx == 256)&& !(m_Nx == 512)&& !(m_Nx == 1024))
         {
-        cout << "***Warning! PPPM X gridsize should be a power of 2 for the best performance" << endl;
+        m_exec_conf->msg->warning() << "charge.pppm: PPPM X gridsize should be a power of 2 for the best performance" << endl;
         }
     if(!(m_Ny == 2)&& !(m_Ny == 4)&& !(m_Ny == 8)&& !(m_Ny == 16)&& !(m_Ny == 32)&& !(m_Ny == 64)&& !(m_Ny == 128)&& !(m_Ny == 256)&& !(m_Ny == 512)&& !(m_Ny == 1024))
         {
-        cout << "***Warning! PPPM Y gridsize should be a power of 2 for the best performance" << endl;
+        m_exec_conf->msg->warning() << "charge.pppm: PPPM Y gridsize should be a power of 2 for the best performance" << endl;
         }
     if(!(m_Nz == 2)&& !(m_Nz == 4)&& !(m_Nz == 8)&& !(m_Nz == 16)&& !(m_Nz == 32)&& !(m_Nz == 64)&& !(m_Nz == 128)&& !(m_Nz == 256)&& !(m_Nz == 512)&& !(m_Nz == 1024))
         {
-        cout << "***Warning! PPPM Z gridsize should be a power of 2 for the best performance" << endl;
+        m_exec_conf->msg->warning() << "charge.pppm: PPPM Z gridsize should be a power of 2 for the best performance" << endl;
         }
     if (m_order * (2*m_order +1) > CONSTANT_SIZE)
         {
-        cerr << endl << "***Error! interpolation order too high, doesn't fit into constant array" << endl << endl;
+        m_exec_conf->msg->error() << "charge.pppm: interpolation order too high, doesn't fit into constant array" << endl;
         throw std::runtime_error("Error initializing PPPMForceCompute");
         }
     if (m_order > MaxOrder)
         {
-        cerr << endl << "***Error! interpolation order too high, max is " << MaxOrder << endl << endl;
+        m_exec_conf->msg->error() << "charge.pppm: interpolation order too high, max is " << MaxOrder << endl;
         throw std::runtime_error("Error initializing PPPMForceCompute");
         }
 
@@ -190,7 +194,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         }
     PPPMData::q = m_q;
     if(fabs(m_q) > 0.0)
-        cout << "***Warning! system in not neutral, the net charge is " << m_q << endl;
+        m_exec_conf->msg->warning() << "charge.pppm: system in not neutral, the net charge is " << m_q << endl;
 
     // compute RMS force error
     Scalar3 L = box.getL();
@@ -384,7 +388,7 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for PPPMForceCompute" << endl << endl;
+        m_exec_conf->msg->error() << "charge.pppm: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -397,7 +401,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     {
     if (!m_params_set)
         {
-        cerr << endl << "***Error! setParams must be called prior to computeForces()" << endl << endl;
+        m_exec_conf->msg->error() << "charge.pppm: setParams must be called prior to computeForces()" << endl;
         throw std::runtime_error("Error computing forces in PPPMForceCompute");
         }
     
