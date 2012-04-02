@@ -605,13 +605,9 @@ def _create_exec_conf():
             globals.msg.warning("Requesting more CPU cores than there are available in the system\n");
         hoomd.set_num_threads(globals.options.ncpu);
 
-    # initialize the messenger
-    msg = hoomd.Messenger();
-    msg.setNoticeLevel(globals.options.notice_level);
-
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:
-        exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, msg);
+        exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
     else:
         # determine the GPU on which to execute
         if globals.options.gpu is not None:

@@ -160,6 +160,7 @@ def _parse_command_line():
 
     if cmd_options.notice_level is not None:
         globals.options.notice_level = cmd_options.notice_level;
+        globals.msg.setNoticeLevel(globals.options.notice_level);
 
     if cmd_options.user is not None:
         globals.options.user = shlex.split(cmd_options.user);
@@ -296,10 +297,7 @@ def set_notice_level(notice_level):
         globals.msg.error("ncpu must be an integer\n");
         raise RuntimeError('Error setting option');
 
-
-    if init.is_initialized():
-        globals.exec_conf.msg.setNoticeLevel(notice_level);
-    
+    globals.msg.setNoticeLevel(notice_level);
     globals.options.notice_level = notice_level;
 
 ################### Parse command line on load
