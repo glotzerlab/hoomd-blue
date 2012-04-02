@@ -211,8 +211,8 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    print "Notice: Possible typo? Force coeff", coeff_name, "is specified for type", type, \
-                          ", but is not used by the bond force";
+                    globals.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                          ", but is not used by the bond force\n");
                 else:
                     count += 1;
 
@@ -340,7 +340,7 @@ class harmonic(_bond):
     # \param type bond type
     # \param coeffs named bond coefficients
     def set_coeff(self, type, **coeffs):
-        print "*** Warning: Syntax bond.harmonic.set_coeff deprecated."
+        globals.msg.warning("Syntax bond.harmonic.set_coeff deprecated.\n");
         self.bond_coeff.set(type,**coeffs)
         
     def process_coeff(self, coeff):
@@ -411,7 +411,7 @@ class fene(_bond):
     # \param type bond type
     # \param coeffs named bond coefficients
     def set_coeff(self, type, **coeffs):
-        print "*** Warning: Syntax bond.fene.set_coeff deprecated."
+        globals.msg.warning("Syntax bond.fene.set_coeff deprecated.\n");
         self.bond_coeff.set(type, **coeffs)
 
     def process_coeff(self, coeff):

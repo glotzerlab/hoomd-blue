@@ -110,7 +110,7 @@ def _save_override_file(common_optimal_db):
 
     # save the file
     f = file(fname, 'w');
-    print 'Writing optimal block sizes to', fname
+    globals.msg.notice(2, 'Writing optimal block sizes to ' + str(fname) + '\n');
     
     # write the version of the file
     pickle.dump(0, f);
@@ -139,7 +139,7 @@ def _load_override_file():
 
     # save the file
     f = file(fname, 'r');
-    print 'Notice: Reading optimal block sizes from', fname
+    globals.msg.notice(2, 'Reading optimal block sizes from ' + str(fname) + '\n');
     
     # read the version of the file
     ver = pickle.load(f);
@@ -234,15 +234,14 @@ def _find_optimal_block_size_fc(fc, n):
         for block_size in xrange(64,1024+32,32):
             fc.cpp_force.setBlockSize(block_size);
             t = fc.benchmark(n);
-            print block_size, t
+            globals.msg.notice(2, str(block_size) + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
-        print "Note: Too many resources requested for launch is a normal message when finding optimal block sizes"
-        print ""
+        globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
     
     fastest = min(timings);
-    print 'fastest:', fastest[1]
-    print '---------------'
+    globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
+    globals.msg.notice(2, '---------------\n');
     
     return fastest[1];
     
@@ -263,15 +262,15 @@ def _find_optimal_block_size_nl(nl, n):
         for block_size in xrange(64,1024+32,32):
             nl.cpp_nlist.setBlockSize(block_size);
             t = nl.benchmark(n);
-            print block_size, t
+            globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
-        print "Note: Too many resources requested for launch is a normal message when finding optimal block sizes"
+        globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
     
     
     fastest = min(timings);
-    print 'fastest:', fastest[1]
-    print '---------------'
+    globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
+    globals.msg.notice(2, '---------------\n');
     nl.cpp_nlist.setBlockSize(fastest[1]);
     
     return fastest[1];
@@ -293,15 +292,15 @@ def _find_optimal_block_size_nl_filter(nl, n):
         for block_size in xrange(64,1024+32,32):
             nl.cpp_nlist.setBlockSizeFilter(block_size);
             t = nl.cpp_nlist.benchmarkFilter(n);
-            print block_size, t
+            globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
-        print "Note: Too many resources requested for launch is a normal message when finding optimal block sizes"
+        globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
     
     
     fastest = min(timings);
-    print 'fastest:', fastest[1]
-    print '---------------'
+    globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
+    globals.msg.notice(2, '---------------\n');
     nl.cpp_nlist.setBlockSizeFilter(fastest[1]);
     
     return fastest[1];
@@ -336,7 +335,7 @@ def _choose_optimal_block_sizes(optimal_dbs):
         common_optimal_db[entry] = common_optimal;
         
         if len(common_optimal_list) > 1:
-            print "Notice: more than one common optimal block size found for", entry, ", using", common_optimal;
+            globals.msg.notice(2, "More than one common optimal block size found for " + str(entry) + ", using" + str(common_optimal) + '\n');
     
     return common_optimal_db;
 
@@ -434,7 +433,7 @@ def find_optimal_block_sizes(save = True, only=None):
             if only and (not fc_name in only):
                 continue
 
-            print 'Benchmarking ', fc_name
+            globals.msg.notice(2, 'Benchmarking ' + str(fc_name) + '\n');
             # create it and benchmark it
             fc = eval(fc_init + '()')
             optimal = _find_optimal_block_size_fc(fc, n)
@@ -446,7 +445,7 @@ def find_optimal_block_sizes(save = True, only=None):
         
         # now, benchmark the neighbor list
         if (only is None) or (only == 'nlist'):
-            print 'Benchmarking nlist'
+            globals.msg.notice(2, 'Benchmarking nlist\n');
             lj = pair_lj_setup();
             optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
             optimal_db['nlist'] = optimal;
@@ -454,7 +453,7 @@ def find_optimal_block_sizes(save = True, only=None):
         
         # and the neighbor list filtering
         if (only is None) or (only == 'nlist.filter'):
-            print 'Benchmarking nlist.filter'
+            globals.msg.notice(2, 'Benchmarking nlist.filter\n');
             lj = pair_lj_setup();
             globals.neighbor_list.reset_exclusions(exclusions = ['bond', 'angle'])
             optimal = _find_optimal_block_size_nl_filter(globals.neighbor_list, 200)
@@ -465,18 +464,17 @@ def find_optimal_block_sizes(save = True, only=None):
         optimal_dbs.append(optimal_db);
     
     # print out all the optimal block sizes
-    print '*****************'
-    print 'Optimal block sizes found: '
+    globals.msg.notice(2, '*****************\n');
+    globals.msg.notice(2, 'Optimal block sizes found:\n');
     for db in optimal_dbs:
-        print db;
+        globals.msg.notice(2, str(db) + '\n');
     
     # create a new db with the common optimal settings
-    print "Chosing common optimal block sizes:"
+    globals.msg.notice(2, "Chosing common optimal block sizes:\n");
     common_optimal_db = _choose_optimal_block_sizes(optimal_dbs);
-    print common_optimal_db;
+    globals.msg.notice(2, str(common_optimal_db) + '\n');
         
-    print '*****************'
-    print
+    globals.msg.notice(2, '*****************\n')
     if save:
         _save_override_file(common_optimal_db);
     
@@ -686,11 +684,10 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     hoomd_script.run(warmup);
 
     # notify the user of the benchmark results
-    print "Notice: r_buff =", r_buff_list
-    print "Notice: tps =", tps_list
-    print
-    print "**Notice: Optimal r_buff:", fastest_r_buff;
-    print "**Notice: Maximum check_period:", globals.neighbor_list.query_update_period()
+    globals.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
+    globals.msg.notice(2, "tps = " + str(tps_list) + '\n');
+    globals.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
+    globals.msg.notice(2, "Maximum check_period: " + str(globals.neighbor_list.query_update_period()) + '\n');
     
     # set the found max check period
     if set_max_check_period:

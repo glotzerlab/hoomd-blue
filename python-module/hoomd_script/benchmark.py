@@ -87,10 +87,9 @@ def series(warmup=100000, repeat=20, steps=10000):
         tps_list.append(globals.system.getLastTPS());
     
     if numpy is not None:
-        print
-        print "**Notice: Series average TPS: %4.2f" % numpy.average(tps_list);
-        print "          Series median TPS : %4.2f" % numpy.median(tps_list);
-        print "          Series TPS std dev: %4.2f" % numpy.std(tps_list);
+        globals.msg.notice(1, "**Notice: Series average TPS: %4.2f\n" % numpy.average(tps_list));
+        globals.msg.notice(1, "          Series median TPS : %4.2f\n" % numpy.median(tps_list));
+        globals.msg.notice(1, "          Series TPS std dev: %4.2f" % numpy.std(tps_list));
     
     return tps_list;
 

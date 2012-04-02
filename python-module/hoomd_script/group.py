@@ -218,7 +218,7 @@ def all():
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles\n');
 
     # cache it and then return it in the wrapper class
     globals.group_all = group(name, cpp_group);
@@ -291,7 +291,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -325,7 +325,7 @@ def nonrigid():
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -359,7 +359,7 @@ def rigid():
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -409,7 +409,7 @@ def tags(tag_min, tag_max=None, name=None):
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -447,7 +447,7 @@ def tag_list(name, tags):
     cpp_group = hoomd.ParticleGroup(globals.system_definition, cpp_list);
 
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -498,7 +498,7 @@ def type(type, name=None):
         cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
     
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -566,7 +566,7 @@ def charged(name='charged'):
 def difference(name, a, b):
     new_cpp_group = hoomd.ParticleGroup.groupDifference(a.cpp_group, b.cpp_group);
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles\n');
     return group(name, new_cpp_group);
 
 ## Create a new group from the set intersection of two existing groups
@@ -587,7 +587,7 @@ def difference(name, a, b):
 def intersection(name, a, b):
     new_cpp_group = hoomd.ParticleGroup.groupIntersection(a.cpp_group, b.cpp_group);
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles\n');
     return group(name, new_cpp_group);
 
 ## Create a new group from the set union of two existing groups
@@ -608,7 +608,7 @@ def intersection(name, a, b):
 def union(name, a, b):
     new_cpp_group = hoomd.ParticleGroup.groupUnion(a.cpp_group, b.cpp_group);
     # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles';
+    globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles\n');
     return group(name, new_cpp_group);
 
 # @}

@@ -211,10 +211,10 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         limit_hours = 0.0
 
     if not quiet:
-        print "** starting run **"
+        globals.msg.notice(1, "** starting run **\n");
     globals.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
-        print "** run complete **"
+        globals.msg.notice(1, "** run complete **\n");
 
 ## \brief Runs the simulation up to a given time step number
 #

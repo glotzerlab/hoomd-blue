@@ -201,8 +201,8 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    print "Notice: Possible typo? Force coeff", coeff_name, "is specified for type", type, \
-                          ", but is not used by the external force";
+                    globals.msg.notice(3, "Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) +\
+                          ", but is not used by the external force");
                 else:
                     count += 1;
 

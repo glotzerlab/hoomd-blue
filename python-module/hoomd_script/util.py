@@ -73,7 +73,7 @@ def print_status_line():
     # get the traceback info first
     stack = traceback.extract_stack();
     if len(stack) < 3:
-        print "hoomd_script executing unknown command";
+        globals.msg.notice(2, "hoomd_script executing unknown command\n");
     file_name, line, module, code = stack[-3];
     
     # if we are in interactive mode, there is no need to print anything: the
@@ -86,7 +86,7 @@ def print_status_line():
     # piped input from stdin doesn't provide a code line, handle the situation 
     if not code:
         message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  <unknown code>";
-        print message;
+        globals.msg.notice(1, message + '\n');
     else:
         # build and print the message line
         # Go upwards in the source until you match the closing paren
@@ -101,6 +101,6 @@ def print_status_line():
             line = line - 1
         
         message.insert(0,os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  ")
-        print ''.join(message).rstrip('\n')
+        globals.msg.notice(1, ''.join(message).rstrip('\n') + '\n');
         linecache.clearcache()
 

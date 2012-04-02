@@ -277,8 +277,8 @@ class coeff:
                 count = 0;
                 for coeff_name in self.values[cur_pair].keys():
                     if not coeff_name in required_coeffs:
-                        print "Notice: Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), \
-                              ", but is not used by the pair force";
+                        globals.msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
+                              ", but is not used by the pair force");
                     else:
                         count += 1;
                 
@@ -302,7 +302,7 @@ class coeff:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+            globals.msg.error("Bug detected in pair.coeff. Please report\n");
             raise RuntimeError("Error setting pair coeff");
         
         return self.values[cur_pair][coeff_name];
@@ -1084,7 +1084,7 @@ class slj(pair):
         if d_max is None :
             sysdef = globals.system_definition;
             d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
-            print "Notice: slj set d_max=", d_max
+            globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
                         
         neighbor_list = _update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut());
@@ -1963,7 +1963,7 @@ class eam(force._force):
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 
-        print "Set r_cut = ",r_cut_new, " from potential`s file '", file , "'.\n";
+        globals.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         self.pair_coeff = coeff();
