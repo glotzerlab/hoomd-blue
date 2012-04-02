@@ -506,16 +506,16 @@ template<class T> void GPUArray<T>::swap(GPUArray& from) const
 */
 template<class T> void GPUArray<T>::allocate()
     {
-    m_exec_conf->msg->notice(7) << "GPUArray: Allocating " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
-    
     // don't allocate anything if there are zero elements
     if (m_num_elements == 0)
         return;
-        
+
+    if (m_exec_conf)
+        m_exec_conf->msg->notice(7) << "GPUArray: Allocating " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
+
     // sanity check
     assert(h_data == NULL);
 
-        
     // allocate memory
 #ifdef ENABLE_CUDA
     assert(d_data == NULL);
