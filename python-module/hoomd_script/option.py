@@ -80,6 +80,7 @@ class options:
         self.ignore_display = None;
         self.user = [];
         self.notice_level = 2;
+        self.msg_file = None;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -89,7 +90,8 @@ class options:
                    min_cpu=self.min_cpu,
                    ignore_display=self.ignore_display,
                    user=self.user,
-                   notice_level=self.notice_level);
+                   notice_level=self.notice_level,
+                   msg_file=self.msg_file);
         return str(tmp);
 
 ## Parses command line options
@@ -105,6 +107,7 @@ def _parse_command_line():
     parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
     parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
     parser.add_option("--notice-level", dest="notice_level", help="Minimum level of notice messages to print");
+    parser.add_option("--msg-file", dest="msg_file", help="Name of file to write messages to");
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();
@@ -161,6 +164,10 @@ def _parse_command_line():
     if cmd_options.notice_level is not None:
         globals.options.notice_level = cmd_options.notice_level;
         globals.msg.setNoticeLevel(globals.options.notice_level);
+
+    if cmd_options.msg_file is not None:
+        globals.options.msg_file = cmd_options.msg_file;
+        globals.msg.openFile(globals.options.msg_file);
 
     if cmd_options.user is not None:
         globals.options.user = shlex.split(cmd_options.user);
@@ -287,7 +294,7 @@ def get_user():
 #
 # The notice level may be changed before or after initialization, and may be changed many times during a job script.
 #
-# \note Overrides --notice_level on the command line.
+# \note Overrides --notice-level on the command line.
 # \sa \ref page_command_line_options
 #
 def set_notice_level(notice_level):
@@ -299,6 +306,25 @@ def set_notice_level(notice_level):
 
     globals.msg.setNoticeLevel(notice_level);
     globals.options.notice_level = notice_level;
+
+## Set the message file
+#
+# \param fname Specifies the name of the file to write. The file will be overwritten. Set to None to direct messages
+#              back to stdout/stderr.
+#
+# The message file may be changed before or after initialization, and may be changed many times during a job script.
+# Changing the message file will only affect messages sent after the change.
+#
+# \note Overrides --msg-file on the command line.
+# \sa \ref page_command_line_options
+#
+def set_msg_file(fname):
+    if fname is not None:
+        globals.msg.openFile(fname);
+    else:
+        globals.msg.openStd();
+
+    globals.options.msg_file = fname;
 
 ################### Parse command line on load
 globals.options = options();
