@@ -70,7 +70,7 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
   - boost >= 1.32.0
   - CMake >= 2.6.2
   - C++ Compiler (must be compatible with CUDA)
-  - CUDA Toolkit >= 3.0
+  - CUDA Toolkit >= 4.0
 - Useful developer tools
   - Git >= 1.7.0
   - Doxygen  >= 1.7.5
@@ -125,7 +125,7 @@ There are a few options for controlling the CUDA compilation.
                        By default, all known architectures supported by the installed CUDA toolkit are activated in the list.
                        There is no disadvantage to doing so, except perhaps a slightly larger executable size and compile times.
                        The CUDA programming guide contains list of which GPUs are which compute version in Appendix A.
-                       Note: while sm_21 is a hardware architecture, nvcc does not treat it differently from sm_20. 20
+                       Note: while sm_21 is a hardware architecture, nvcc does not treat it differently from sm_20. 21
                        should not be added to CUDA_ARCH_LIST.
  - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.
  - \b NVCC_FLAGS - Allows additional flags to be passed to nvcc.

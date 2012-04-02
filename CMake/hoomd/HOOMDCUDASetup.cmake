@@ -8,9 +8,9 @@ if (SINGLE_PRECISION)
         # the package is needed
         find_package(CUDA REQUIRED REQUIRED)
         
-        if (${CUDA_VERSION} VERSION_LESS 2.3)
-            message(SEND_ERROR "CUDA 2.2 and older are not supported")
-        endif (${CUDA_VERSION} VERSION_LESS 2.3)
+        if (${CUDA_VERSION} VERSION_LESS 4.0)
+            message(SEND_ERROR "CUDA 3.2 and older are not supported")
+        endif (${CUDA_VERSION} VERSION_LESS 4.0)
 
         include_directories(${CUDA_INCLUDE_DIRS})
 
