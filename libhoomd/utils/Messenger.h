@@ -81,7 +81,7 @@ struct nullstream: std::ostream
     notice levels need to be printed in every run. A notice level can be set to control how much information is printed.
     Furthermore, in MPI runs not all processes need to print messages or one may wan to log the output of every rank to
     a different file.
-    
+
     The Messenger class solves these issues. It provides a set of message levels that can be linked to chosen streams.
     The streams are returned by function calls so that users of this class can do the following:
     \code
@@ -91,7 +91,7 @@ struct nullstream: std::ostream
     msg.notice(5) << "Info that nobody cares about, unless they are debugging" << endl;
     \endcode
     Calls to notice(N) with N > the notice level will return a null stream so that the output is not printed.
-    
+
     Furthermore, a chosen header may be added to messages of each type. So that the screen output from the previous
     could be:
     \code
@@ -100,12 +100,12 @@ struct nullstream: std::ostream
     Some useful info
     notice(5): Info that nobody cares about, unless they are debugging
     \endcode
-    
+
     Messenger is copyable. This enables use cases where one global Messegner (possibly even having an open file)
     is copied into a local class and local settings changes applied.
-    
+
     \b Implemntation
-    
+
      - Errors and warnings are always printed.
      - Notice messages are printed when n <= the notice level.
      - 1 Should be the minimum notice level actually used so that all noticed messages may be silenced by setting 0.
@@ -175,7 +175,7 @@ class Messenger
             {
             return m_notice_level;
             }
-        
+
         //! Set the notice level
         /*! \param level Notice level to set
         */
@@ -183,7 +183,7 @@ class Messenger
             {
             m_notice_level = level;
             }
-        
+
         //! Set the error stream
         /*! If not a built-in stream, the caller is responsible for deleting it
         */
@@ -191,7 +191,7 @@ class Messenger
             {
             m_err_stream = &stream;
             }
-        
+
         //! Set the warning stream
         /*! If not a built-in stream, the caller is responsible for deleting it
         */
@@ -207,7 +207,7 @@ class Messenger
             {
             m_notice_stream = &stream;
             }
-        
+
         //! Get the null stream
         /*! Use this with set*Stream: i.e. msg.setNoticeStream(msg.getNullStream()).
             Since this is passing an internal reference back in, there are no dangling reference problems. And there is
@@ -217,7 +217,7 @@ class Messenger
             {
             return *m_nullstream;
             }
-        
+
         //! Get the error prefix
         /*! \returns Current prefix applied to error messages
         */
@@ -225,7 +225,7 @@ class Messenger
             {
             return m_err_prefix;
             }
-        
+
         //! Set the error prefix
         /*! \param prefix Prefix to apply to error messages
             \note ": " is appened to the end of the prefix
@@ -242,7 +242,7 @@ class Messenger
             {
             return m_warning_prefix;
             }
-        
+
         //! Set the warning prefix
         /*! \param prefix Prefix to apply to warning messages
             \note ": " is appened to the end of the prefix
@@ -259,7 +259,7 @@ class Messenger
             {
             return m_notice_prefix;
             }
-        
+
         //! Set the notice prefix
         /*! \param prefix Prefix to apply to notice messages
             \note "(level): " is appened to the end of the prefix when level > 1
@@ -268,17 +268,20 @@ class Messenger
             {
             m_notice_prefix = prefix;
             }
-        
+
         //! Open a file for error, warning, and notice streams
         void openFile(const std::string& fname);
+
+        //! Open stdout and stderr again, closing any open file
+        void openStd();
     private:
         std::ostream *m_err_stream;     //!< error stream
         std::ostream *m_warning_stream; //!< warning stream
         std::ostream *m_notice_stream;  //!< notice stream
-        
+
         boost::shared_ptr<nullstream>    m_nullstream;   //!< null stream
         boost::shared_ptr<std::ofstream> m_file;         //!< File stream
-        
+
         std::string m_err_prefix;       //!< Prefix for error messages
         std::string m_warning_prefix;   //!< Prefix for warning messages
         std::string m_notice_prefix;    //!< Prefix for notice messages

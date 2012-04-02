@@ -129,7 +129,7 @@ void Messenger::warningStr(const std::string& msg) const
 /*! \returns The notice stream for use in printing notice messages
     \post If the notice prefix is not the empty string and the level is greater than 1 the message is preceded with
     "${notice_prefix}(n): ".
-    
+
     If level is greater than the notice level, a null stream is returned so that the output is not printed.
 */
 std::ostream& Messenger::notice(unsigned int level) const
@@ -168,6 +168,16 @@ void Messenger::openFile(const std::string& fname)
     m_notice_stream = m_file.get();
     }
 
+/*! Any open file is closed. stdout is opened again for notices and stderr for warnings and errors.
+*/
+void Messenger::openStd()
+    {
+    m_file = boost::shared_ptr<std::ofstream>();
+    m_err_stream = &cerr;
+    m_warning_stream = &cerr;
+    m_notice_stream = &cout;
+    }
+
 void export_Messenger()
     {
     class_<Messenger, boost::shared_ptr<Messenger>, boost::noncopyable >
@@ -184,5 +194,6 @@ void export_Messenger()
          .def("getNoticePrefix", &Messenger::getNoticePrefix, return_value_policy<copy_const_reference>())
          .def("setWarningPrefix", &Messenger::setWarningPrefix)
          .def("openFile", &Messenger::openFile)
+         .def("openStd", &Messenger::openStd)
          ;
     }
