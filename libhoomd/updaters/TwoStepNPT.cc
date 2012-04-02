@@ -232,7 +232,7 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
         
-    m_pdata->setBox(box);
+    m_pdata->setGlobalBoxL(box.getL());
     }
         
 /*! \param timestep Current time step

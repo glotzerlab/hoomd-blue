@@ -294,7 +294,7 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
     }
 
     // update the simulation box
-    m_pdata->setBox(box);
+    m_pdata->setGlobalBoxL(box.getL());
 
     setIntegratorVariables(v);
 

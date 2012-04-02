@@ -195,7 +195,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
             }
         
         // set the new box
-        m_pdata->setBox(newBox);
+        m_pdata->setGlobalBoxL(newBox.getL());
 
         // update the body particle positions to reflect the new rigid body positions
         rigid_data->setRV(true);

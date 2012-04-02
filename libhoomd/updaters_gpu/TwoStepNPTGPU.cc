@@ -191,7 +191,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
 
     } //end of GPUArray scope
 
-    m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
+    m_pdata->setGlobalBoxL(make_scalar3(m_Lx, m_Ly, m_Lz));
     setIntegratorVariables(v);
     }
 

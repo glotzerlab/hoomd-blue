@@ -231,7 +231,9 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
 
     }
 
-    BoxDim box_final(Lx_final, Ly_final, Lz_final);
+    BoxDim box_final(box);
+    box_final.setL(make_scalar3(Lx_final, Ly_final, Lz_final));
+
     {
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
@@ -244,7 +246,7 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
     }
 
     // update simulation box
-    m_pdata->setBox(box_final);
+    m_pdata->setGlobalBoxL(box_final.getL());
 
 
     setIntegratorVariables(v);

@@ -292,8 +292,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     MY_BOOST_CHECK_CLOSE(c.getHi().y,15.0, tol);
     MY_BOOST_CHECK_CLOSE(c.getHi().z,25.0, tol);
     
-    BoxDim box2(5.0, 5.0, 5.0);
-    a.setBox(box2);
+    a.setGlobalBoxL(make_scalar3(5.0, 5.0, 5.0));
     const BoxDim& d = a.getBox();
     MY_BOOST_CHECK_CLOSE(d.getLo().x,-2.5, tol);
     MY_BOOST_CHECK_CLOSE(d.getLo().y,-2.5, tol);

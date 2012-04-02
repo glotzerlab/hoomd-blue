@@ -250,7 +250,7 @@ class bond_data_access_tests (unittest.TestCase):
         init.reset();
 
 # pair.lj
-class particle_data_access_tests (unittest.TestCase):
+class pair_access_tests (unittest.TestCase):
     def setUp(self):
         print
         init.create_random(N=100, phi_p=0.05);

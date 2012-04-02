@@ -259,7 +259,8 @@ cudaError_t gpu_npt_boxscale(const unsigned int N,
     float box_len_scale = exp(Eta*deltaT);  // box length dilatation factor
     
     // scale the box before running the kernel
-    BoxDim scaled_box(box.getL()*box_len_scale);
+    BoxDim scaled_box(box);
+    scaled_box.setL(box.getL()*box_len_scale);
 
     // run the kernel
     gpu_npt_boxscale_kernel<<< grid, threads >>>(N, d_pos, d_image, scaled_box, partial_scale, box_len_scale);

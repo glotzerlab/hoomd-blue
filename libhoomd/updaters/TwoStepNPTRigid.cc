@@ -664,8 +664,7 @@ void TwoStepNPTRigid::remap()
         L.z = hi.z - lo.z;
         }
     
-    box.setL(L);
-    m_pdata->setBox(box);
+    m_pdata->setGlobalBoxL(L);
     
     // convert rigid body COMs back to box coords
     Scalar4 newboxlo;

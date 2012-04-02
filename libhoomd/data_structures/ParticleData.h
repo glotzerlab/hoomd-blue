@@ -435,8 +435,8 @@ class ParticleData : boost::noncopyable
         
         //! Get the simulation box
         const BoxDim& getBox() const;
-        //! Set the simulation box
-        void setBox(const BoxDim &box);
+        //! Set the simulation box Lengths
+        void setGlobalBoxL(const Scalar3 &L);
 
         //! Access the execution configuration
         boost::shared_ptr<const ExecutionConfiguration> getExecConf() const

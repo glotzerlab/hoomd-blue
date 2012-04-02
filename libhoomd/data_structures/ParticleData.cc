@@ -191,7 +191,8 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             }
         }
         
-    setBox(init.getBox());        
+    m_box = init.getBox();
+
     SnapshotParticleData snapshot(getN());
     // initialize the snapshot with default values
     takeSnapshot(snapshot);
@@ -227,14 +228,14 @@ const BoxDim & ParticleData::getBox() const
     return m_box;
     }
 
-/*! \param box New box to set
+/*! \param L New box lengths to set
     \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
         it is the responsibility of the caller to ensure that all particles lie within
         the new box.
 */
-void ParticleData::setBox(const BoxDim &box)
+void ParticleData::setGlobalBoxL(const Scalar3 &L)
     {
-    m_box = box;
+    m_box.setL(L);
     assert(inBox());
 
     m_boxchange_signal();
@@ -264,7 +265,7 @@ void ParticleData::notifyParticleSort()
 /*! \param func Function to call when the box size changes
     \return Connection to manage the signal/slot connection
     Calls are performed by using boost::signals. The function passed in
-    \a func will be called every time the the box size is changed via setBox()
+    \a func will be called every time the the box size is changed via setGlobalBoxL()
     \note If the caller class is destroyed, it needs to disconnect the signal connection
     via \b con.disconnect where \b con is the return value of this function.
 */
@@ -582,7 +583,7 @@ void export_ParticleData()
     class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
     .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
-    .def("setBox", &ParticleData::setBox)
+    .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
     .def("getN", &ParticleData::getN)
     .def("getNTypes", &ParticleData::getNTypes)
     .def("getMaximumDiameter", &ParticleData::getMaxDiameter)
@@ -602,6 +603,7 @@ void export_ParticleData()
     .def("getType", &ParticleData::getType)
     .def("getOrientation", &ParticleData::getOrientation)
     .def("getPNetForce", &ParticleData::getPNetForce)
+    .def("getNetTorque", &ParticleData::getNetTorque)
     .def("getInertiaTensor", &ParticleData::getInertiaTensor, return_value_policy<copy_const_reference>())
     .def("setPosition", &ParticleData::setPosition)
     .def("setVelocity", &ParticleData::setVelocity)

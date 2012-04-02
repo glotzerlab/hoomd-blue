@@ -305,7 +305,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     Scalar Lx = new_box_handle.data[0].x;
     Scalar Ly = new_box_handle.data[0].y;
     Scalar Lz = new_box_handle.data[0].z;
-    m_pdata->setBox(BoxDim(Lx, Ly, Lz));
+    m_pdata->setGlobalBoxL(make_scalar3(Lx, Ly, Lz));
     }
     
     // update thermostats
