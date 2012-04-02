@@ -106,7 +106,7 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "NVE rigid step 1");
     
     // access all the needed data
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
@@ -195,7 +195,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NVE rigid step 2");
     
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::read);

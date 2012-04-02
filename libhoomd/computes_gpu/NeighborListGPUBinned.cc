@@ -161,18 +161,12 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "compute");
 
-    // precompute scale factor
-    Scalar3 width = m_cl->getWidth();
-    Scalar3 scale = make_scalar3(Scalar(1.0) / width.x,
-                                 Scalar(1.0) / width.y,
-                                 Scalar(1.0) / width.z);
-    
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -211,8 +205,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellIndexer(),
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
-                                 scale,
-                                 m_cl->getDim(),
                                  box,
                                  rmaxsq,
                                  m_block_size,
@@ -255,8 +247,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     dca_cell_tdb,
                                     dca_cell_adj,
                                     m_cl->getCellIndexer(),
-                                    scale,
-                                    m_cl->getDim(),
                                     box,
                                     rmaxsq,
                                     m_block_size,

@@ -142,13 +142,15 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
     BoxDim box = pdata->getBox();
+    Scalar3 lo = box.getLo();
+    Scalar3 hi = box.getHi();
     
     // setup a simple initial state
     unsigned int ibody = 0;
     unsigned int iparticle = 0;
-    Scalar x0 = box.xlo + 0.01;
-    Scalar y0 = box.ylo + 0.01;
-    Scalar z0 = box.zlo + 0.01;
+    Scalar x0 = lo.x + 0.01;
+    Scalar y0 = lo.y + 0.01;
+    Scalar z0 = lo.z + 0.01;
     Scalar xspacing = 7.0f;
     Scalar yspacing = 1.0f;
     Scalar zspacing = 2.0f;
@@ -223,18 +225,18 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
             }
             
         x0 += xspacing;
-        if (x0 + xspacing >= box.xhi)
+        if (x0 + xspacing >= hi.x)
             {
-            x0 = box.xlo + 0.01;
+            x0 = lo.x + 0.01;
             
             y0 += yspacing;
-            if (y0 + yspacing >= box.yhi)
+            if (y0 + yspacing >= hi.y)
                 {
-                y0 = box.ylo + 0.01;
+                y0 = lo.y + 0.01;
                 
                 z0 += zspacing;
-                if (z0 + zspacing >= box.zhi)
-                    z0 = box.zlo + 0.01;
+                if (z0 + zspacing >= hi.z)
+                    z0 = lo.z + 0.01;
                 }
             }
             

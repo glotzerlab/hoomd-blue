@@ -84,62 +84,38 @@ void gpu_nvt_step_one_kernel(Scalar4 *d_pos,
                              int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             gpu_boxsize box,
+                             BoxDim box,
                              float denominv,
                              float deltaT)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-   
+
         // update positions to the next timestep and update velocities to the next half step
-        float4 pos = d_pos[idx];
-        
-        float px = pos.x;
-        float py = pos.y;
-        float pz = pos.z;
-        float pw = pos.w;
-        
-        Scalar4 vel = d_vel[idx];
+        float4 postype = d_pos[idx];
+        float3 pos = make_float3(postype.x, postype.y, postype.z);
+
+        Scalar4 velmass = d_vel[idx];
+        Scalar3 vel = make_float3(velmass.x, velmass.y, velmass.z);
         float3 accel = d_accel[idx];
-        
-        vel.x = (vel.x + (1.0f/2.0f) * accel.x * deltaT) * denominv;
-        px += vel.x * deltaT;
-        
-        vel.y = (vel.y + (1.0f/2.0f) * accel.y * deltaT) * denominv;
-        py += vel.y * deltaT;
-        
-        vel.z = (vel.z + (1.0f/2.0f) * accel.z * deltaT) * denominv;
-        pz += vel.z * deltaT;
-        
+
+        // perform update computation
+        vel = (vel + (1.0f/2.0f) * accel * deltaT) * denominv;
+        pos += vel * deltaT;
+
         // read in the image flags
         int3 image = d_image[idx];
-        
+
         // time to fix the periodic boundary conditions
-        float x_shift = rintf(px * box.Lxinv);
-        px -= box.Lx * x_shift;
-        image.x += (int)x_shift;
-        
-        float y_shift = rintf(py * box.Lyinv);
-        py -= box.Ly * y_shift;
-        image.y += (int)y_shift;
-        
-        float z_shift = rintf(pz * box.Lzinv);
-        pz -= box.Lz * z_shift;
-        image.z += (int)z_shift;
-        
-        Scalar4 pos2;
-        pos2.x = px;
-        pos2.y = py;
-        pos2.z = pz;
-        pos2.w = pw;
-        
+        box.wrap(pos, image);
+
         // write out the results
-        d_pos[idx] = pos2;
-        d_vel[idx] = vel;
+        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
+        d_vel[idx] = make_float4(vel.x, vel.y, vel.z, velmass.w);
         d_image[idx] = image;
         }
     }
@@ -161,7 +137,7 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
                              int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             const gpu_boxsize &box,
+                             const BoxDim& box,
                              unsigned int block_size,
                              float Xi,
                              float deltaT)

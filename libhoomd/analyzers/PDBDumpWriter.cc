@@ -136,18 +136,15 @@ void PDBDumpWriter::writeFile(std::string fname)
 
     
     // get the box dimensions
-    Scalar Lx,Ly,Lz;
     BoxDim box = m_pdata->getBox();
-    Lx=Scalar(box.xhi-box.xlo);
-    Ly=Scalar(box.yhi-box.ylo);
-    Lz=Scalar(box.zhi-box.zlo);
-    
+    Scalar3 L = box.getL();
+
     // start writing the heinous PDB format
     const int linesize = 82;
     char buf[linesize];
     
     // output the box dimensions
-    snprintf(buf, linesize, "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1\n", Lx,Ly,Lz, 90.0, 90.0, 90.0);
+    snprintf(buf, linesize, "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1\n", L.x,L.y,L.z, 90.0, 90.0, 90.0);
     f << buf;
     
     // write out all the atoms

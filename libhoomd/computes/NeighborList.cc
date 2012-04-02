@@ -262,7 +262,8 @@ Scalar NeighborList::estimateNNeigh()
     {
     // calculate a number density of particles
     BoxDim box = m_pdata->getBox();
-    Scalar vol = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi - box.zlo);
+    Scalar3 L = box.getL();
+    Scalar vol = L.x * L.y * L.z;
     Scalar n_dens = Scalar(m_pdata->getN()) / vol;
     
     // calculate the average number of neighbors by multiplying by the volume
@@ -652,13 +653,7 @@ bool NeighborList::distanceCheck()
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
     
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     
@@ -666,27 +661,13 @@ bool NeighborList::distanceCheck()
     Scalar maxsq = (m_r_buff/Scalar(2.0))*(m_r_buff/Scalar(2.0));
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        Scalar dx = h_pos.data[i].x - h_last_pos.data[i].x;
-        Scalar dy = h_pos.data[i].y - h_last_pos.data[i].y;
-        Scalar dz = h_pos.data[i].z - h_last_pos.data[i].z;
+        Scalar3 dx = make_scalar3(h_pos.data[i].x - h_last_pos.data[i].x,
+                                  h_pos.data[i].y - h_last_pos.data[i].y,
+                                  h_pos.data[i].z - h_last_pos.data[i].z);
         
-        // if the vector crosses the box, pull it back
-        if (dx >= box.xhi)
-            dx -= Lx;
-        else if (dx < box.xlo)
-            dx += Lx;
-            
-        if (dy >= box.yhi)
-            dy -= Ly;
-        else if (dy < box.ylo)
-            dy += Ly;
-            
-        if (dz >= box.zhi)
-            dz -= Lz;
-        else if (dz < box.zlo)
-            dz += Lz;
-            
-        if (dx*dx + dy*dy + dz*dz >= maxsq)
+        dx = box.minImage(dx);
+        
+        if (dot(dx, dx) >= maxsq)
             {
             result = true;
             break;
@@ -877,8 +858,7 @@ void NeighborList::buildNlist(unsigned int timestep)
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    Scalar3 L = box.getL();
     
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -887,7 +867,7 @@ void NeighborList::buildNlist(unsigned int timestep)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
     
-    if ((box.xhi - box.xlo) <= (rmax) * 2.0 || (box.yhi - box.ylo) <= (rmax) * 2.0 || (box.zhi - box.zlo) <= (rmax) * 2.0)
+    if (L.x <= rmax * 2.0 || L.y <= rmax * 2.0 || L.z <= rmax * 2.0)
         {
         cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
         throw runtime_error("Error updating neighborlist bins");
@@ -898,17 +878,6 @@ void NeighborList::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
     
-    // simple algorithm follows:
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    Scalar Lx2 = Lx / Scalar(2.0);
-    Scalar Ly2 = Ly / Scalar(2.0);
-    Scalar Lz2 = Lz / Scalar(2.0);
-    
-    
     // start by clearing the entire list
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
     
@@ -916,9 +885,7 @@ void NeighborList::buildNlist(unsigned int timestep)
 #pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
-        Scalar xi = h_pos.data[i].x;
-        Scalar yi = h_pos.data[i].y;
-        Scalar zi = h_pos.data[i].z;
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         Scalar di = h_diameter.data[i];
         unsigned int bodyi = h_body.data[i];
         
@@ -926,31 +893,11 @@ void NeighborList::buildNlist(unsigned int timestep)
         for (unsigned int j = i + 1; j < m_pdata->getN(); j++)
             {
             // calculate dr
-            Scalar dx = h_pos.data[j].x - xi;
-            Scalar dy = h_pos.data[j].y - yi;
-            Scalar dz = h_pos.data[j].z - zi;
-            
-            // if the vector crosses the box, pull it back
-            if (dx >= Lx2)
-                dx -= Lx;
-            else if (dx < -Lx2)
-                dx += Lx;
-                
-            if (dy >= Ly2)
-                dy -= Ly;
-            else if (dy < -Ly2)
-                dy += Ly;
-                
-            if (dz >= Lz2)
-                dz -= Lz;
-            else if (dz < -Lz2)
-                dz += Lz;
-                
-            // sanity check
-            assert(dx >= box.xlo && dx <= box.xhi);
-            assert(dy >= box.ylo && dy <= box.yhi);
-            assert(dz >= box.zlo && dz <= box.zhi);
+            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 dx = pj - pi;
 
+            dx = box.minImage(dx);
+            
             bool excluded = false;
             
             if (m_filter_body && bodyi != NO_BODY)
@@ -967,7 +914,7 @@ void NeighborList::buildNlist(unsigned int timestep)
                 }
 
             // now compare rsq to rmaxsq and add to the list if it meets the criteria
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar rsq = dot(dx, dx);
             if (rsq <= (rmaxsq + sqshift) && !excluded)
                 {
                 if (m_storage_mode == full)

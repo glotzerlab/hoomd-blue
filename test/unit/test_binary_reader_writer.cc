@@ -187,12 +187,12 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_CHECK_EQUAL(pdata1->getNTypes(), (unsigned int)n_types);
     BOOST_CHECK_EQUAL(pdata2->getNTypes(), (unsigned int)n_types);
 
-    MY_BOOST_CHECK_CLOSE(pdata1->getBox().xhi - pdata1->getBox().xlo, Lx, tol);
-    MY_BOOST_CHECK_CLOSE(pdata1->getBox().yhi - pdata1->getBox().ylo, Ly, tol);
-    MY_BOOST_CHECK_CLOSE(pdata1->getBox().zhi - pdata1->getBox().zlo, Lz, tol);
-    MY_BOOST_CHECK_CLOSE(pdata2->getBox().xhi - pdata1->getBox().xlo, Lx, tol);
-    MY_BOOST_CHECK_CLOSE(pdata2->getBox().yhi - pdata1->getBox().ylo, Ly, tol);
-    MY_BOOST_CHECK_CLOSE(pdata2->getBox().zhi - pdata1->getBox().zlo, Lz, tol);
+    MY_BOOST_CHECK_CLOSE(pdata1->getBox().getL().x, Lx, tol);
+    MY_BOOST_CHECK_CLOSE(pdata1->getBox().getL().y, Ly, tol);
+    MY_BOOST_CHECK_CLOSE(pdata1->getBox().getL().z, Lz, tol);
+    MY_BOOST_CHECK_CLOSE(pdata2->getBox().getL().x, Lx, tol);
+    MY_BOOST_CHECK_CLOSE(pdata2->getBox().getL().y, Ly, tol);
+    MY_BOOST_CHECK_CLOSE(pdata2->getBox().getL().z, Lz, tol);
 
     {
     ArrayHandle<Scalar4> h_pos(pdata1->getPositions(), access_location::host, access_mode::read);

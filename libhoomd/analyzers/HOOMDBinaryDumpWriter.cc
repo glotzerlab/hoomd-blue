@@ -158,18 +158,15 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    Scalar Lx,Ly,Lz;
-    Lx=Scalar(box.xhi-box.xlo);
-    Ly=Scalar(box.yhi-box.ylo);
-    Lz=Scalar(box.zhi-box.zlo);
+    Scalar3 L = box.getL();
     unsigned int dimensions = m_sysdef->getNDimensions();
     
     //write out the timestep, dimensions, and box
     f.write((char*)&timestep, sizeof(unsigned int));
     f.write((char*)&dimensions, sizeof(unsigned int));
-    f.write((char*)&Lx, sizeof(Scalar));
-    f.write((char*)&Ly, sizeof(Scalar));
-    f.write((char*)&Lz, sizeof(Scalar));
+    f.write((char*)&L.x, sizeof(Scalar));
+    f.write((char*)&L.y, sizeof(Scalar));
+    f.write((char*)&L.z, sizeof(Scalar));
     
     //write out particle data
     unsigned int np = m_pdata->getN();

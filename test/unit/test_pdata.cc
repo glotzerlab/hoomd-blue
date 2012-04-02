@@ -74,60 +74,204 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Perform some basic tests on the boxdim structure
-BOOST_AUTO_TEST_CASE( BoxDim_test )
+BOOST_AUTO_TEST_CASE( BoxDim_basic_test )
     {
     Scalar tol = Scalar(1e-6);
     
     // test default constructor
     BoxDim a;
-    MY_BOOST_CHECK_CLOSE(a.xlo,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.ylo,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.zlo,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.xhi,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.yhi,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.zhi,0.0, tol);
+    MY_BOOST_CHECK_CLOSE(a.getLo().x,0.0, tol);
+    MY_BOOST_CHECK_CLOSE(a.getLo().y,0.0, tol);
+    MY_BOOST_CHECK_CLOSE(a.getLo().z,0.0, tol);
+    MY_BOOST_CHECK_CLOSE(a.getHi().x,0.0, tol);
+    MY_BOOST_CHECK_CLOSE(a.getHi().y,0.0, tol);
+    MY_BOOST_CHECK_CLOSE(a.getHi().z,0.0, tol);
     
     BoxDim b(10.0);
-    MY_BOOST_CHECK_CLOSE(b.xlo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.ylo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.zlo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.xhi,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.yhi,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.zhi,5.0, tol);
-    
+    MY_BOOST_CHECK_CLOSE(b.getLo().x,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getLo().y,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getLo().z,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getHi().x,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getHi().y,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getHi().z,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().x,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().y,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().z,10.0, tol);
+    BOOST_CHECK_EQUAL(b.getPeriodic().x, 1);
+    BOOST_CHECK_EQUAL(b.getPeriodic().y, 1);
+    BOOST_CHECK_EQUAL(b.getPeriodic().z, 1);
+
     BoxDim c(10.0, 30.0, 50.0);
-    MY_BOOST_CHECK_CLOSE(c.xlo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.ylo,-15.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.zlo,-25.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.xhi,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.yhi,15.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.zhi,25.0, tol);
-    
+    MY_BOOST_CHECK_CLOSE(c.getLo().x,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getLo().y,-15.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getLo().z,-25.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getHi().x,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getHi().y,15.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getHi().z,25.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getL().x,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getL().y,30.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getL().z,50.0, tol);
+    BOOST_CHECK_EQUAL(c.getPeriodic().x, 1);
+    BOOST_CHECK_EQUAL(c.getPeriodic().y, 1);
+    BOOST_CHECK_EQUAL(c.getPeriodic().z, 1);
+
     // test for assignment and copy constructor
+    c.setPeriodic(make_uchar3(1,0,1));
     BoxDim d(c);
-    MY_BOOST_CHECK_CLOSE(d.xlo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.ylo,-15.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.zlo,-25.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.xhi,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.yhi,15.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.zhi,25.0, tol);
-    
+    MY_BOOST_CHECK_CLOSE(d.getLo().x,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(d.getLo().y,-15.0, tol);
+    MY_BOOST_CHECK_CLOSE(d.getLo().z,-25.0, tol);
+    MY_BOOST_CHECK_CLOSE(d.getHi().x,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(d.getHi().y,15.0, tol);
+    MY_BOOST_CHECK_CLOSE(d.getHi().z,25.0, tol);
+    MY_BOOST_CHECK_CLOSE(d.getL().x,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(d.getL().y,30.0, tol);
+    MY_BOOST_CHECK_CLOSE(d.getL().z,50.0, tol);
+    BOOST_CHECK_EQUAL(d.getPeriodic().x, 1);
+    BOOST_CHECK_EQUAL(d.getPeriodic().y, 0);
+    BOOST_CHECK_EQUAL(d.getPeriodic().z, 1);
+
     BoxDim e;
     e = c;
-    MY_BOOST_CHECK_CLOSE(e.xlo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.ylo,-15.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.zlo,-25.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.xhi,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.yhi,15.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.zhi,25.0, tol);
-    
+    MY_BOOST_CHECK_CLOSE(e.getLo().x,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(e.getLo().y,-15.0, tol);
+    MY_BOOST_CHECK_CLOSE(e.getLo().z,-25.0, tol);
+    MY_BOOST_CHECK_CLOSE(e.getHi().x,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(e.getHi().y,15.0, tol);
+    MY_BOOST_CHECK_CLOSE(e.getHi().z,25.0, tol);
+    MY_BOOST_CHECK_CLOSE(e.getL().x,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(e.getL().y,30.0, tol);
+    MY_BOOST_CHECK_CLOSE(e.getL().z,50.0, tol);
+    BOOST_CHECK_EQUAL(d.getPeriodic().x, 1);
+    BOOST_CHECK_EQUAL(d.getPeriodic().y, 0);
+    BOOST_CHECK_EQUAL(d.getPeriodic().z, 1);
+
     b = b;
-    MY_BOOST_CHECK_CLOSE(b.xlo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.ylo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.zlo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.xhi,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.yhi,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.zhi,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getLo().x,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getLo().y,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getLo().z,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getHi().x,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getHi().y,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getHi().z,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().x,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().y,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().z,10.0, tol);
+    BOOST_CHECK_EQUAL(b.getPeriodic().x, 1);
+    BOOST_CHECK_EQUAL(b.getPeriodic().y, 1);
+    BOOST_CHECK_EQUAL(b.getPeriodic().z, 1);
+    }
+
+BOOST_AUTO_TEST_CASE( BoxDim_functionality_test1 )
+    {
+    BoxDim b(5.0);
+    MY_BOOST_CHECK_CLOSE(b.getL().x,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().y,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().z,5.0, tol);
+
+    b.setL(make_scalar3(10.0, 10.0, 10.0));
+    MY_BOOST_CHECK_CLOSE(b.getL().x,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().y,10.0, tol);
+    MY_BOOST_CHECK_CLOSE(b.getL().z,10.0, tol);
+
+    Scalar3 v = b.makeFraction(make_scalar3(5.0, 5.0, 5.0));
+    MY_BOOST_CHECK_CLOSE(v.x,1.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,1.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,1.0, tol);
+
+    v = b.makeFraction(make_scalar3(1.0, -2.0, 3.0));
+    MY_BOOST_CHECK_CLOSE(v.x,0.6, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,0.3, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,0.8, tol);
+
+    v = b.minImage(make_scalar3(1.0, -2.0, 3.0));
+    MY_BOOST_CHECK_CLOSE(v.x,1.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,-2.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,3.0, tol);
+
+    // test minimum image
+    v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
+    MY_BOOST_CHECK_CLOSE(v.x,-4.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,3.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,-2.0, tol);
+
+    b.setPeriodic(make_uchar3(0,0,0));
+    v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
+    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
+
+    b.setPeriodic(make_uchar3(1,0,0));
+    v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
+    MY_BOOST_CHECK_CLOSE(v.x,-4.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
+
+    b.setPeriodic(make_uchar3(0,1,0));
+    v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
+    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,3.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
+
+    b.setPeriodic(make_uchar3(0,0,1));
+    v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
+    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,-2.0, tol);
+
+    // test wrap
+    b.setPeriodic(make_uchar3(1,1,1));
+    int3 image = make_int3(10,20,30);
+    v = make_scalar3(1.0, -2.0, 3.0);
+    b.wrap(v, image);
+    MY_BOOST_CHECK_CLOSE(v.x,1.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,-2.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,3.0, tol);
+    BOOST_CHECK_EQUAL(image.x, 10);
+    BOOST_CHECK_EQUAL(image.y, 20);
+    BOOST_CHECK_EQUAL(image.z, 30);
+
+    image = make_int3(10,20,30);
+    v = make_scalar3(6.0, -7.0, 8.0);
+    b.wrap(v, image);
+    MY_BOOST_CHECK_CLOSE(v.x,-4.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,3.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,-2.0, tol);
+    BOOST_CHECK_EQUAL(image.x, 11);
+    BOOST_CHECK_EQUAL(image.y, 19);
+    BOOST_CHECK_EQUAL(image.z, 31);
+
+    b.setPeriodic(make_uchar3(1,0,0));
+    image = make_int3(10,20,30);
+    v = make_scalar3(6.0, -7.0, 8.0);
+    b.wrap(v, image);
+    MY_BOOST_CHECK_CLOSE(v.x,-4.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
+    BOOST_CHECK_EQUAL(image.x, 11);
+    BOOST_CHECK_EQUAL(image.y, 20);
+    BOOST_CHECK_EQUAL(image.z, 30);
+
+    b.setPeriodic(make_uchar3(0,1,0));
+    image = make_int3(10,20,30);
+    v = make_scalar3(6.0, -7.0, 8.0);
+    b.wrap(v, image);
+    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,3.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
+    BOOST_CHECK_EQUAL(image.x, 10);
+    BOOST_CHECK_EQUAL(image.y, 19);
+    BOOST_CHECK_EQUAL(image.z, 30);
+
+    b.setPeriodic(make_uchar3(0,0,1));
+    image = make_int3(10,20,30);
+    v = make_scalar3(6.0, -7.0, 8.0);
+    b.wrap(v, image);
+    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_BOOST_CHECK_CLOSE(v.z,-2.0, tol);
+    BOOST_CHECK_EQUAL(image.x, 10);
+    BOOST_CHECK_EQUAL(image.y, 20);
+    BOOST_CHECK_EQUAL(image.z, 31);
     }
 
 //! Test operation of the particle data class
@@ -141,22 +285,21 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     
     // make sure the box is working
     const BoxDim& c = a.getBox();
-    MY_BOOST_CHECK_CLOSE(c.xlo,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.ylo,-15.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.zlo,-25.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.xhi,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.yhi,15.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.zhi,25.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getLo().x,-5.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getLo().y,-15.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getLo().z,-25.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getHi().x,5.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getHi().y,15.0, tol);
+    MY_BOOST_CHECK_CLOSE(c.getHi().z,25.0, tol);
     
-    BoxDim box2(5.0, 5.0, 5.0);
-    a.setBox(box2);
+    a.setGlobalBoxL(make_scalar3(5.0, 5.0, 5.0));
     const BoxDim& d = a.getBox();
-    MY_BOOST_CHECK_CLOSE(d.xlo,-2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.ylo,-2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.zlo,-2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.xhi,2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.yhi,2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.zhi,2.5, tol);
+    MY_BOOST_CHECK_CLOSE(d.getLo().x,-2.5, tol);
+    MY_BOOST_CHECK_CLOSE(d.getLo().y,-2.5, tol);
+    MY_BOOST_CHECK_CLOSE(d.getLo().z,-2.5, tol);
+    MY_BOOST_CHECK_CLOSE(d.getHi().x,2.5, tol);
+    MY_BOOST_CHECK_CLOSE(d.getHi().y,2.5, tol);
+    MY_BOOST_CHECK_CLOSE(d.getHi().z,2.5, tol);
     
     // make sure that getN is working
     BOOST_CHECK(a.getN() == 1);
@@ -395,12 +538,12 @@ BOOST_AUTO_TEST_CASE( Random_test )
     
     // check that the distances between particles are OK
     BoxDim box = pdata.getBox();
-    Scalar L = box.xhi - box.xlo;
+    Scalar L = box.getL().x;
     for (unsigned int i = 0; i < pdata.getN(); i++)
         {
-        BOOST_CHECK(h_pos.data[i].x <= box.xhi && h_pos.data[i].x >= box.xlo);
-        BOOST_CHECK(h_pos.data[i].y <= box.yhi && h_pos.data[i].y >= box.ylo);
-        BOOST_CHECK(h_pos.data[i].z <= box.zhi && h_pos.data[i].z >= box.zlo);
+        BOOST_CHECK(h_pos.data[i].x <= box.getHi().x && h_pos.data[i].x >= box.getLo().x);
+        BOOST_CHECK(h_pos.data[i].y <= box.getHi().y && h_pos.data[i].y >= box.getLo().y);
+        BOOST_CHECK(h_pos.data[i].z <= box.getHi().z && h_pos.data[i].z >= box.getLo().z);
         
         for (unsigned int j = 0; j < pdata.getN(); j++)
             {

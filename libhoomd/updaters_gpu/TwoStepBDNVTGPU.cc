@@ -117,7 +117,7 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "NVE step 1");
     
     // access all the needed data
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
 

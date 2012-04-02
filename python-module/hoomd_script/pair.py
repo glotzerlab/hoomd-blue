@@ -341,9 +341,9 @@ class nlist:
         min_width_for_bin = (default_r_buff + r_cut)*3.0;
         
         # only check the z dimesion of the box in 3D systems
-        is_small_box = (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin;
+        is_small_box = box.getL().x < min_width_for_bin or box.getL().y < min_width_for_bin;
         if globals.system_definition.getNDimensions() == 3:
-            is_small_box = is_small_box or (box.zhi - box.zlo) < min_width_for_bin;
+            is_small_box = is_small_box or box.getL().z < min_width_for_bin;
         if  is_small_box:
             if globals.system_definition.getParticleData().getN() >= 2000:
                 print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";

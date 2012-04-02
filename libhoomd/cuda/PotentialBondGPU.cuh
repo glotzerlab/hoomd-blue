@@ -79,7 +79,7 @@ struct bond_args_t
               const Scalar4 *_d_pos,
               const Scalar *_d_charge,
               const Scalar *_d_diameter,
-              const gpu_boxsize &_box,
+              const BoxDim& _box,
               const uint2 *_d_gpu_bondlist,
               const unsigned int _pitch,
               const unsigned int *_d_gpu_n_bonds,
@@ -108,7 +108,7 @@ struct bond_args_t
     const Scalar4 *d_pos;              //!< particle positions
     const Scalar *d_charge;            //!< particle charges
     const Scalar *d_diameter;          //!< particle diameters
-    const gpu_boxsize &box;            //!< Simulation box in GPU format
+    const BoxDim& box;            //!< Simulation box in GPU format
     const uint2 *d_gpu_bondlist;       //!< List of bonds stored on the GPU
     const unsigned int pitch;          //!< Pitch of 2D bond list
     const unsigned int *d_gpu_n_bonds; //!< List of number of bonds stored on the GPU
@@ -149,7 +149,7 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_charge,
                                                const Scalar *d_diameter,
-                                               const gpu_boxsize box,
+                                               const BoxDim box,
                                                const uint2 *blist,
                                                const unsigned int pitch,
                                                const unsigned int *n_bonds_list,
@@ -177,7 +177,8 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
     __syncthreads();
 
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
-    Scalar4 pos = d_pos[idx];
+    Scalar4 postype = d_pos[idx];
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // read in the diameter of our particle if needed
     float diam = 0;
@@ -207,22 +208,19 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
         int cur_bond_type = cur_bond.y;
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
-        float4 neigh_pos = d_pos[cur_bond_idx];
+        float4 neigh_postype = d_pos[cur_bond_idx];
+        float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (FLOPS: 3)
-        float dx = pos.x - neigh_pos.x;
-        float dy = pos.y - neigh_pos.y;
-        float dz = pos.z - neigh_pos.z;
+        float3 dx = pos - neigh_pos;
 
         // apply periodic boundary conditions (FLOPS: 12)
-        dx -= box.Lx * rintf(dx * box.Lxinv);
-        dy -= box.Ly * rintf(dy * box.Lyinv);
-        dz -= box.Lz * rintf(dz * box.Lzinv);
+        dx = box.minImage(dx);
 
         // get the bond parameters (MEM TRANSFER: 8 bytes)
         typename evaluator::param_type param = s_params[cur_bond_type];
 
-        float rsq = dx*dx + dy*dy + dz*dz;
+        float rsq = dot(dx, dx);
 
         // evaluate the potential
         float force_divr = 0.0f;
@@ -248,17 +246,17 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
             {
             // add up the virial (double counting, multiply by 0.5)
             float force_div2r = force_divr/2.0f;
-            virial[0] += dx * dx * force_div2r; // xx
-            virial[1] += dx * dy * force_div2r; // xy
-            virial[2] += dx * dz * force_div2r; // xz
-            virial[3] += dy * dy * force_div2r; // yy
-            virial[4] += dy * dz * force_div2r; // yz
-            virial[5] += dz * dz * force_div2r; // zz
+            virial[0] += dx.x * dx.x * force_div2r; // xx
+            virial[1] += dx.x * dx.y * force_div2r; // xy
+            virial[2] += dx.x * dx.z * force_div2r; // xz
+            virial[3] += dx.y * dx.y * force_div2r; // yy
+            virial[4] += dx.y * dx.z * force_div2r; // yz
+            virial[5] += dx.z * dx.z * force_div2r; // zz
 
             // add up the forces
-            force.x += dx * force_divr;
-            force.y += dy * force_divr;
-            force.z += dz * force_divr;
+            force.x += dx.x * force_divr;
+            force.y += dx.y * force_divr;
+            force.z += dx.z * force_divr;
             // energy is double counted: multiply by 0.5
             force.w += bond_eng * 0.5f;
             }

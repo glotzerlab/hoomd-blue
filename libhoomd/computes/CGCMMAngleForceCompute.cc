@@ -242,16 +242,6 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    Scalar Lx2 = Lx / Scalar(2.0);
-    Scalar Ly2 = Ly / Scalar(2.0);
-    Scalar Lz2 = Lz / Scalar(2.0);
     
     // allocate forces
     Scalar fab[3], fcb[3];
@@ -280,88 +270,38 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         
         // calculate d\vec{r}
         // MEM_TRANSFER: 18 Scalars / FLOPS 9
-        Scalar dxab = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
-        Scalar dyab = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
-        Scalar dzab = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
+        Scalar3 dab;
+        dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+        dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+        dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
         
-        Scalar dxcb = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
-        Scalar dycb = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
-        Scalar dzcb = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
+        Scalar3 dcb;
+        dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
+        dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
+        dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
         
-        Scalar dxac = h_pos.data[idx_a].x - h_pos.data[idx_c].x; // used for the 1-3 JL interaction
-        Scalar dyac = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
-        Scalar dzac = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+        Scalar3 dac;
+        dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x; // used for the 1-3 JL interaction
+        dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+        dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
         
-        // if the a->b vector crosses the box, pull it back
-        // (total FLOPS: 27 (worst case: first branch is missed, the 2nd is taken and the add is done, for each))
-        
-        
-        if (dxab >= Lx2)
-            dxab -= Lx;
-        else if (dxab < -Lx2)
-            dxab += Lx;
-            
-        if (dyab >= Ly2)
-            dyab -= Ly;
-        else if (dyab < -Ly2)
-            dyab += Ly;
-            
-        if (dzab >= Lz2)
-            dzab -= Lz;
-        else if (dzab < -Lz2)
-            dzab += Lz;
-            
-        // if the b->c vector crosses the box, pull it back
-        if (dxcb >= Lx2)
-            dxcb -= Lx;
-        else if (dxcb < -Lx2)
-            dxcb += Lx;
-            
-        if (dycb >= Ly2)
-            dycb -= Ly;
-        else if (dycb < -Ly2)
-            dycb += Ly;
-            
-        if (dzcb >= Lz2)
-            dzcb -= Lz;
-        else if (dzcb < -Lz2)
-            dzcb += Lz;
-            
-        // if the a->c vector crosses the box, pull it back
-        if (dxac >= Lx2)
-            dxac -= Lx;
-        else if (dxac < -Lx2)
-            dxac += Lx;
-            
-        if (dyac >= Ly2)
-            dyac -= Ly;
-        else if (dyac < -Ly2)
-            dyac += Ly;
-            
-        if (dzac >= Lz2)
-            dzac -= Lz;
-        else if (dzac < -Lz2)
-            dzac += Lz;
-            
-            
-        // sanity check
-        assert((dxab >= box.xlo && dxab < box.xhi) && (dxcb >= box.xlo && dxcb < box.xhi) && (dxac >= box.xlo && dxac < box.xhi));
-        assert((dyab >= box.ylo && dyab < box.yhi) && (dycb >= box.ylo && dycb < box.yhi) && (dyac >= box.ylo && dyac < box.yhi));
-        assert((dzab >= box.zlo && dzab < box.zhi) && (dzcb >= box.zlo && dzcb < box.zhi) && (dzac >= box.zlo && dzac < box.zhi));
-        
+        // apply minimum image conventions to all 3 vectors
+        dab = box.minImage(dab);
+        dcb = box.minImage(dcb);
+        dac = box.minImage(dac);
+
         // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
         
-        
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Scalar rsqab = dxab*dxab+dyab*dyab+dzab*dzab;
+        Scalar rsqab = dab.x*dab.x+dab.y*dab.y+dab.z*dab.z;
         Scalar rab = sqrt(rsqab);
-        Scalar rsqcb = dxcb*dxcb+dycb*dycb+dzcb*dzcb;
+        Scalar rsqcb = dcb.x*dcb.x+dcb.y*dcb.y+dcb.z*dcb.z;
         Scalar rcb = sqrt(rsqcb);
-        Scalar rsqac = dxac*dxac+dyac*dyac+dzac*dzac;
+        Scalar rsqac = dac.x*dac.x+dac.y*dac.y+dac.z*dac.z;
         Scalar rac = sqrt(rsqac);
         
-        Scalar c_abbc = dxab*dxcb+dyab*dycb+dzab*dzcb;
+        Scalar c_abbc = dab.x*dcb.x+dab.y*dcb.y+dab.z*dcb.z;
         c_abbc /= rab*rcb;
         
         if (c_abbc > 1.0) c_abbc = 1.0;
@@ -392,12 +332,12 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
             fac = cg_pref*cg_eps / rsqac * (cg_pow1*pow(cg_ratio,cg_pow1) - cg_pow2*pow(cg_ratio,cg_pow2));
             eac = cg_eps + cg_pref*cg_eps * (pow(cg_ratio,cg_pow1) - pow(cg_ratio,cg_pow2));
 
-            vac[0] = fac * dxac*dxac;
-            vac[1] = fac * dxac*dyac;
-            vac[2] = fac * dxac*dzac;
-            vac[3] = fac * dyac*dyac;
-            vac[4] = fac * dyac*dzac;
-            vac[5] = fac * dzac*dzac;
+            vac[0] = fac * dac.x*dac.x;
+            vac[1] = fac * dac.x*dac.y;
+            vac[2] = fac * dac.x*dac.z;
+            vac[3] = fac * dac.y*dac.y;
+            vac[4] = fac * dac.y*dac.z;
+            vac[5] = fac * dac.z*dac.z;
             }
         //////////////////////////////////////////////////////////////////////////////
         
@@ -410,13 +350,13 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         Scalar a12 = -a / (rab*rcb);
         Scalar a22 = a*c_abbc / rsqcb;
         
-        fab[0] = a11*dxab + a12*dxcb;
-        fab[1] = a11*dyab + a12*dycb;
-        fab[2] = a11*dzab + a12*dzcb;
+        fab[0] = a11*dab.x + a12*dcb.x;
+        fab[1] = a11*dab.y + a12*dcb.y;
+        fab[2] = a11*dab.z + a12*dcb.z;
         
-        fcb[0] = a22*dxcb + a12*dxab;
-        fcb[1] = a22*dycb + a12*dyab;
-        fcb[2] = a22*dzcb + a12*dzab;
+        fcb[0] = a22*dcb.x + a12*dab.x;
+        fcb[1] = a22*dcb.y + a12*dab.y;
+        fcb[2] = a22*dcb.z + a12*dab.z;
         
         // compute 1/3 of the energy, 1/3 for each atom in the angle
         Scalar angle_eng = (0.5*tk*dth + eac)*Scalar(1.0/3.0);
@@ -424,24 +364,24 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         // compute 1/3 of the virial, 1/3 for each atom in the angle
         // symmetrized version of virial tensor
         Scalar angle_virial[6];
-        angle_virial[0] = Scalar(1./3.) * ( dxab*fab[0] + dxcb*fcb[0] );
-        angle_virial[1] = Scalar(1./6.) * ( dxab*fab[1] + dxcb*fcb[1]
-                                          + dyab*fab[0] + dycb*fcb[0] );
-        angle_virial[2] = Scalar(1./6.) * ( dxab*fab[2] + dxcb*fcb[2]
-                                          + dzab*fab[0] + dzcb*fcb[0] );
-        angle_virial[3] = Scalar(1./3.) * ( dyab*fab[1] + dycb*fcb[1] );
-        angle_virial[4] = Scalar(1./6.) * ( dyab*fab[2] + dycb*fcb[2]
-                                          + dzab*fab[1] + dzcb*fcb[1] );
-        angle_virial[5] = Scalar(1./3.) * ( dzab*fab[2] + dzcb*fcb[2] );
+        angle_virial[0] = Scalar(1./3.) * ( dab.x*fab[0] + dcb.x*fcb[0] );
+        angle_virial[1] = Scalar(1./6.) * ( dab.x*fab[1] + dcb.x*fcb[1]
+                                          + dab.y*fab[0] + dcb.y*fcb[0] );
+        angle_virial[2] = Scalar(1./6.) * ( dab.x*fab[2] + dcb.x*fcb[2]
+                                          + dab.z*fab[0] + dcb.z*fcb[0] );
+        angle_virial[3] = Scalar(1./3.) * ( dab.y*fab[1] + dcb.y*fcb[1] );
+        angle_virial[4] = Scalar(1./6.) * ( dab.y*fab[2] + dcb.y*fcb[2]
+                                          + dab.z*fab[1] + dcb.z*fcb[1] );
+        angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
         Scalar virial[6];
         for (unsigned int k=0; k < 6; k++)
             virial[k] = angle_virial[k] + Scalar(1./3.)*vac[k];
 
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
             
-        h_force.data[idx_a].x += fab[0] + fac*dxac;
-        h_force.data[idx_a].y += fab[1] + fac*dyac;
-        h_force.data[idx_a].z += fab[2] + fac*dzac;
+        h_force.data[idx_a].x += fab[0] + fac*dac.x;
+        h_force.data[idx_a].y += fab[1] + fac*dac.y;
+        h_force.data[idx_a].z += fab[2] + fac*dac.z;
         h_force.data[idx_a].w += angle_eng;
         for (int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+idx_a] += virial[k];
@@ -453,9 +393,9 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         for (int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+idx_b] += virial[k];
         
-        h_force.data[idx_c].x += fcb[0] - fac*dxac;
-        h_force.data[idx_c].y += fcb[1] - fac*dyac;
-        h_force.data[idx_c].z += fcb[2] - fac*dzac;
+        h_force.data[idx_c].x += fcb[0] - fac*dac.x;
+        h_force.data[idx_c].y += fcb[1] - fac*dac.y;
+        h_force.data[idx_c].z += fcb[2] - fac*dac.z;
         h_force.data[idx_c].w += angle_eng;
         for (int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+idx_c] += virial[k];

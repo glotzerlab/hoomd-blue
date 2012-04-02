@@ -94,9 +94,9 @@ uint3 CellList::computeDimensions()
     
     // calculate the bin dimensions
     const BoxDim& box = m_pdata->getBox();
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    dim.x = (unsigned int)((box.xhi - box.xlo) / (m_nominal_width));
-    dim.y = (unsigned int)((box.yhi - box.ylo) / (m_nominal_width));
+    Scalar3 L = box.getL();
+    dim.x = (unsigned int)((L.x) / (m_nominal_width));
+    dim.y = (unsigned int)((L.y) / (m_nominal_width));
     
     if (m_sysdef->getNDimensions() == 2)
         {
@@ -112,7 +112,7 @@ uint3 CellList::computeDimensions()
         }
     else
         {
-        dim.z = (unsigned int)((box.zhi - box.zlo) / (m_nominal_width));
+        dim.z = (unsigned int)((L.z) / (m_nominal_width));
 
         // decrease the number of bins if it exceeds the max
         if (dim.x * dim.y * dim.z > m_max_cells)
@@ -243,9 +243,10 @@ void CellList::initializeWidth()
     m_dim = computeDimensions();
 
     const BoxDim& box = m_pdata->getBox();
-    m_width.x = (box.xhi - box.xlo) / Scalar(m_dim.x);
-    m_width.y = (box.yhi - box.ylo) / Scalar(m_dim.y);
-    m_width.z = (box.zhi - box.zlo) / Scalar(m_dim.z);
+    Scalar3 L = box.getL();
+    m_width.x = (L.x) / Scalar(m_dim.x);
+    m_width.y = (L.y) / Scalar(m_dim.y);
+    m_width.z = (L.z) / Scalar(m_dim.z);
 
     if (m_prof)
         m_prof->pop();
@@ -359,11 +360,6 @@ void CellList::computeCellList()
     if (m_prof)
         m_prof->push("compute");
     
-    // precompute scale factor
-    Scalar3 scale = make_scalar3(Scalar(1.0) / m_width.x,
-                                 Scalar(1.0) / m_width.y,
-                                 Scalar(1.0) / m_width.z);
-    
     // acquire the particle data
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
@@ -387,16 +383,18 @@ void CellList::computeCellList()
     // for each particle
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
-        if (isnan(h_pos.data[n].x) || isnan(h_pos.data[n].y) || isnan(h_pos.data[n].z))
+        Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
+        if (isnan(p.x) || isnan(p.y) || isnan(p.z))
             {
             h_conditions.data[1] = n+1;
             continue;
             }
             
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((h_pos.data[n].x-box.xlo)*scale.x);
-        unsigned int jb = (unsigned int)((h_pos.data[n].y-box.ylo)*scale.y);
-        unsigned int kb = (unsigned int)((h_pos.data[n].z-box.zlo)*scale.z);
+        Scalar3 f = box.makeFraction(p);
+        unsigned int ib = (unsigned int)(f.x * m_dim.x);
+        unsigned int jb = (unsigned int)(f.y * m_dim.y);
+        unsigned int kb = (unsigned int)(f.z * m_dim.z);
         
         // need to handle the case where the particle is exactly at the box hi
         if (ib == m_dim.x)

@@ -364,22 +364,11 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     for (unsigned int i = 0; i < N; i++)
         {
         h_pos.data[i].x += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.01);
-        if (h_pos.data[i].x < box.xlo)
-            h_pos.data[i].x = box.xlo;
-        if (h_pos.data[i].x > box.xhi)
-            h_pos.data[i].x = box.xhi;
-            
         h_pos.data[i].y += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.05);
-        if (h_pos.data[i].y < box.ylo)
-            h_pos.data[i].y = box.ylo;
-        if (h_pos.data[i].y > box.yhi)
-            h_pos.data[i].y = box.yhi;
-            
         h_pos.data[i].z += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.001);
-        if (h_pos.data[i].z < box.zlo)
-            h_pos.data[i].z = box.zlo;
-        if (h_pos.data[i].z > box.zhi)
-            h_pos.data[i].z = box.zhi;
+        
+        int3 img;
+        box.wrap(h_pos.data[i], img);
         }
     }
 

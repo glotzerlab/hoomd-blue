@@ -65,7 +65,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
-                             const gpu_boxsize &box,
+                             const BoxDim& box,
                              float deltaT);
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVERigidGPU
@@ -74,7 +74,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
                              unsigned int group_size,
                              float4 *d_net_force,
                              float *d_net_virial,
-                             const gpu_boxsize &box, 
+                             const BoxDim& box, 
                              float deltaT);
 
 //! Kernel driver for the force and torque computes
@@ -83,7 +83,7 @@ cudaError_t gpu_rigid_force( const gpu_rigid_data_arrays& rigid_data,
                              unsigned int group_size,
                              float4 *d_net_force,
                              float4 *d_net_torque,
-                             const gpu_boxsize &box, 
+                             const BoxDim& box, 
                              float deltaT);
 
 #endif //__TWO_STEP_NVE_RIGID_GPU_CUH__

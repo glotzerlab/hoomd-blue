@@ -96,7 +96,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
                                                 const unsigned virial_pitch,
                                                 const unsigned int N,
                                                 const Scalar4 *d_pos,
-                                                const gpu_boxsize box,
+                                                const BoxDim box,
                                                 const unsigned int *d_n_neigh,
                                                 const unsigned int *d_nlist,
                                                 const Index2D nli,
@@ -107,7 +107,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
     // index calculation helpers
     Index2DUpperTriangular table_index(ntypes);
     Index2D table_value(table_width);
-    
+
     // read in params for easy and fast access in the kernel
     extern __shared__ float4 s_params[];
     for (unsigned int cur_offset = 0; cur_offset < table_index.getNumElements(); cur_offset += blockDim.x)
@@ -116,20 +116,21 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
             s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
         }
     __syncthreads();
-    
+
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (idx >= N)
         return;
-    
+
     // load in the length of the list
     unsigned int n_neigh = d_n_neigh[idx];
-    
+
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
-    Scalar4 pos = tex1Dfetch(pdata_pos_tex, idx);
-    unsigned int typei = __float_as_int(pos.w);
-    
+    Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+    unsigned int typei = __float_as_int(postype.w);
+
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float virialxx = 0.0f;
@@ -142,7 +143,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
     unsigned int next_neigh = d_nlist[nli(idx, 0)];
-    
+
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
@@ -161,37 +162,34 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
             // prefetch the next value and set the current one
             cur_neigh = next_neigh;
             next_neigh = d_nlist[nli(idx, (neigh_idx+1))];
-            
+
             // get the neighbor's position
-            float4 neigh_pos =  tex1Dfetch(pdata_pos_tex, cur_neigh);
-            
+            float4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
+            float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+
             // calculate dr (with periodic boundary conditions)
-            float dx = pos.x - neigh_pos.x;
-            float dy = pos.y - neigh_pos.y;
-            float dz = pos.z - neigh_pos.z;
-            
+            float3 dx = pos - neigh_pos;
+
             // apply periodic boundary conditions
-            dx -= box.Lx * rintf(dx * box.Lxinv);
-            dy -= box.Ly * rintf(dy * box.Lyinv);
-            dz -= box.Lz * rintf(dz * box.Lzinv);
-            
+            dx = box.minImage(dx);
+
             // access needed parameters
-            unsigned int typej = __float_as_int(neigh_pos.w);
+            unsigned int typej = __float_as_int(neigh_postype.w);
             unsigned int cur_table_index = table_index(typei, typej);
             float4 params = s_params[cur_table_index];
             float rmin = params.x;
             float rmax = params.y;
             float delta_r = params.z;
-            
+
             // calculate r
-            float rsq = dx*dx + dy*dy + dz*dz;
+            float rsq = dot(dx, dx);
             float r = sqrtf(rsq);
-            
+
             if (r < rmax && r >= rmin)
                 {
                 // precomputed term
                 float value_f = (r - rmin) / delta_r;
-                
+
                 // compute index into the table and read in values
                 unsigned int value_i = floor(value_f);
                 float2 VF0 = tex1Dfetch(tables_tex, table_value(value_i, cur_table_index));
@@ -201,14 +199,14 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
                 float V1 = VF1.x;
                 float F0 = VF0.y;
                 float F1 = VF1.y;
-                
+
                 // compute the linear interpolation coefficient
                 float f = value_f - float(value_i);
-                
+
                 // interpolate to get V and F;
                 float V = V0 + f * (V1 - V0);
                 float F = F0 + f * (F1 - F0);
-                
+
                 // convert to standard variables used by the other pair computes in HOOMD-blue
                 float forcemag_divr = 0.0f;
                 if (r > 0.0f)
@@ -216,22 +214,22 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
                 float pair_eng = V;
                 // calculate the virial
                 float force_div2r = float(0.5) * forcemag_divr;
-                virialxx +=  dx * dx * force_div2r;
-                virialxy +=  dx * dy * force_div2r;
-                virialxz +=  dx * dz * force_div2r;
-                virialyy +=  dy * dy * force_div2r;
-                virialyz +=  dy * dz * force_div2r;
-                virialzz +=  dz * dz * force_div2r;
-                
+                virialxx +=  dx.x * dx.x * force_div2r;
+                virialxy +=  dx.x * dx.y * force_div2r;
+                virialxz +=  dx.x * dx.z * force_div2r;
+                virialyy +=  dx.y * dx.y * force_div2r;
+                virialyz +=  dx.y * dx.z * force_div2r;
+                virialzz +=  dx.z * dx.z * force_div2r;
+
                 // add up the force vector components (FLOPS: 7)
-                force.x += dx * forcemag_divr;
-                force.y += dy * forcemag_divr;
-                force.z += dz * forcemag_divr;
+                force.x += dx.x * forcemag_divr;
+                force.y += dx.y * forcemag_divr;
+                force.z += dx.z * forcemag_divr;
                 force.w += pair_eng;
                 }
             }
         }
-        
+
     // potential energy per particle must be halved
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result
@@ -266,7 +264,7 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
-                                     const gpu_boxsize &box,
+                                     const BoxDim& box,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
                                      const Index2D& nli,
@@ -280,10 +278,10 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
     assert(d_tables);
     assert(ntypes > 0);
     assert(table_width > 1);
-    
+
     // index calculation helper
     Index2DUpperTriangular table_index(ntypes);
-    
+
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
@@ -301,10 +299,10 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
     error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_width * table_index.getNumElements());
     if (error != cudaSuccess)
         return error;
-        
+
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(float4)*table_index.getNumElements() >>>
             (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
-    
+
     return cudaSuccess;
     }
 

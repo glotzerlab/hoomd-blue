@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file ParticleData.cc
-    \brief Contains all code for BoxDim, ParticleData, and SnapshotParticleData.
+    \brief Contains all code for ParticleData, and SnapshotParticleData.
  */
 
 #ifdef WIN32
@@ -80,49 +80,6 @@ using namespace boost::python;
 
 using namespace boost::signals;
 using namespace boost;
-
-///////////////////////////////////////////////////////////////////////////
-// BoxDim constructors
-
-/*! \post All dimensions are 0.0
-*/
-BoxDim::BoxDim()
-    {
-    xlo = xhi = ylo = yhi = zlo = zhi = 0.0;
-    }
-
-/*! \param Len Length of one side of the box
-    \post Box ranges from \c -Len/2 to \c +Len/2 in all 3 dimensions
- */
-BoxDim::BoxDim(Scalar Len)
-    {
-    // sanity check
-    assert(Len > 0);
-    
-    // assign values
-    xlo = ylo = zlo = -Len/Scalar(2.0);
-    xhi = zhi = yhi = Len/Scalar(2.0);
-    }
-
-/*! \param Len_x Length of the x dimension of the box
-    \param Len_y Length of the x dimension of the box
-    \param Len_z Length of the x dimension of the box
- */
-BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
-    {
-    // sanity check
-    assert(Len_x > 0 && Len_y > 0 && Len_z > 0);
-    
-    // assign values
-    xlo = -Len_x/Scalar(2.0);
-    xhi = Len_x/Scalar(2.0);
-    
-    ylo = -Len_y/Scalar(2.0);
-    yhi = Len_y/Scalar(2.0);
-    
-    zlo = -Len_z/Scalar(2.0);
-    zhi = Len_z/Scalar(2.0);
-    }
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
@@ -190,20 +147,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         name[1] = '\0';
         m_type_mapping.push_back(string(name));
         }
-        
-    // if this is a GPU build, initialize the graphics card mirror data structures
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // setup the box
-        m_gpu_box.Lx = m_box.xhi - m_box.xlo;
-        m_gpu_box.Ly = m_box.yhi - m_box.ylo;
-        m_gpu_box.Lz = m_box.zhi - m_box.zlo;
-        m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
-        m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
-        m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
-        }
-#endif
     }
 
 /*! Calls the initializer's members to determine the number of particles, box size and then
@@ -248,7 +191,8 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             }
         }
         
-    setBox(init.getBox());        
+    m_box = init.getBox();
+
     SnapshotParticleData snapshot(getN());
     // initialize the snapshot with default values
     takeSnapshot(snapshot);
@@ -284,26 +228,16 @@ const BoxDim & ParticleData::getBox() const
     return m_box;
     }
 
-/*! \param box New box to set
+/*! \param L New box lengths to set
     \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
         it is the responsibility of the caller to ensure that all particles lie within
         the new box.
 */
-void ParticleData::setBox(const BoxDim &box)
+void ParticleData::setGlobalBoxL(const Scalar3 &L)
     {
-    m_box = box;
+    m_box.setL(L);
     assert(inBox());
-    
-#ifdef ENABLE_CUDA
-    // setup the box
-    m_gpu_box.Lx = m_box.xhi - m_box.xlo;
-    m_gpu_box.Ly = m_box.yhi - m_box.ylo;
-    m_gpu_box.Lz = m_box.zhi - m_box.zlo;
-    m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
-    m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
-    m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
-#endif
-    
+
     m_boxchange_signal();
     }
 
@@ -331,7 +265,7 @@ void ParticleData::notifyParticleSort()
 /*! \param func Function to call when the box size changes
     \return Connection to manage the signal/slot connection
     Calls are performed by using boost::signals. The function passed in
-    \a func will be called every time the the box size is changed via setBox()
+    \a func will be called every time the the box size is changed via setGlobalBoxL()
     \note If the caller class is destroyed, it needs to disconnect the signal connection
     via \b con.disconnect where \b con is the return value of this function.
 */
@@ -446,29 +380,31 @@ void ParticleData::allocate(unsigned int N)
 */
 bool ParticleData::inBox()
     {
+    Scalar3 lo = m_box.getLo();
+    Scalar3 hi = m_box.getHi();
 
     ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
     for (unsigned int i = 0; i < getN(); i++)
         {
-        if (h_pos.data[i].x < m_box.xlo-Scalar(1e-5) || h_pos.data[i].x > m_box.xhi+Scalar(1e-5))
+        if (h_pos.data[i].x < lo.x-Scalar(1e-5) || h_pos.data[i].x > hi.x+Scalar(1e-5))
             {
             cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            cout << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            cout << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
-        if (h_pos.data[i].y < m_box.ylo-Scalar(1e-5) || h_pos.data[i].y > m_box.yhi+Scalar(1e-5))
+        if (h_pos.data[i].y < lo.y-Scalar(1e-5) || h_pos.data[i].y > hi.y+Scalar(1e-5))
             {
             cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            cout << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            cout << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
-        if (h_pos.data[i].z < m_box.zlo-Scalar(1e-5) || h_pos.data[i].z > m_box.zhi+Scalar(1e-5))
+        if (h_pos.data[i].z < lo.z-Scalar(1e-5) || h_pos.data[i].z > hi.z+Scalar(1e-5))
             {
             cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            cout << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            cout << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
         }
@@ -564,33 +500,22 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
     }
 
-
-//! Helper for python __str__ for BoxDim
-/*! Formats the box dim into a nice string
-    \param box Box to format
-*/
-string print_boxdim(BoxDim *box)
-    {
-    assert(box);
-    // turn the box dim into a nicely formatted string
-    ostringstream s;
-    s << "x: (" << box->xlo << "," << box->xhi << ") / y: (" << box->ylo << "," << box->yhi << ") / z: ("
-    << box->zlo << "," << box->zhi << ")";
-    return s.str();
-    }
-
 void export_BoxDim()
     {
     class_<BoxDim>("BoxDim")
     .def(init<Scalar>())
     .def(init<Scalar, Scalar, Scalar>())
-    .def_readwrite("xlo", &BoxDim::xlo)
-    .def_readwrite("xhi", &BoxDim::xhi)
-    .def_readwrite("ylo", &BoxDim::ylo)
-    .def_readwrite("yhi", &BoxDim::yhi)
-    .def_readwrite("zlo", &BoxDim::zlo)
-    .def_readwrite("zhi", &BoxDim::zhi)
-    .def("__str__", &print_boxdim)
+    .def(init<Scalar3>())
+    .def(init<Scalar3, Scalar3, uchar3>())
+    .def("getPeriodic", &BoxDim::getPeriodic)
+    .def("setPeriodic", &BoxDim::setPeriodic)
+    .def("getL", &BoxDim::getL)
+    .def("setL", &BoxDim::setL)
+    .def("getLo", &BoxDim::getLo)
+    .def("getHi", &BoxDim::getHi)
+    .def("setLoHi", &BoxDim::setLoHi)
+    .def("makeFraction", &BoxDim::makeFraction)
+    .def("minImage", &BoxDim::minImage)
     ;
     }
 
@@ -658,7 +583,7 @@ void export_ParticleData()
     class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
     .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
-    .def("setBox", &ParticleData::setBox)
+    .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
     .def("getN", &ParticleData::getN)
     .def("getNTypes", &ParticleData::getNTypes)
     .def("getMaximumDiameter", &ParticleData::getMaxDiameter)
@@ -678,6 +603,7 @@ void export_ParticleData()
     .def("getType", &ParticleData::getType)
     .def("getOrientation", &ParticleData::getOrientation)
     .def("getPNetForce", &ParticleData::getPNetForce)
+    .def("getNetTorque", &ParticleData::getNetTorque)
     .def("getInertiaTensor", &ParticleData::getInertiaTensor, return_value_policy<copy_const_reference>())
     .def("setPosition", &ParticleData::setPosition)
     .def("setVelocity", &ParticleData::setVelocity)

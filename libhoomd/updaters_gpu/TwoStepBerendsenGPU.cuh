@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "HOOMDMath.h"
 
+
 #ifndef _BERENDSEN_GPU_CUH_
 #define _BERENDSEN_GPU_CUH_
 
@@ -67,7 +68,7 @@ cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
                                    int3 *d_image,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
-                                   const gpu_boxsize &box,
+                                   const BoxDim& box,
                                    unsigned int block_size,
                                    float lambda,
                                    float deltaT);

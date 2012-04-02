@@ -75,8 +75,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const unsigned int N,
                                   const unsigned int Nmax,
                                   const bool flag_charge,
-                                  const Scalar3& scale,
-                                  const gpu_boxsize& box,
+                                  const BoxDim& box,
                                   const Index3D& ci,
                                   const Index2D& cli);
 
@@ -92,8 +91,7 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const unsigned int N,
                                      const unsigned int Nmax,
                                      const bool flag_charge,
-                                     const Scalar3& scale,
-                                     const gpu_boxsize& box,
+                                     const BoxDim& box,
                                      const Index3D& ci,
                                      const Index2D& cli);
 

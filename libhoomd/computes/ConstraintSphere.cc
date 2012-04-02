@@ -170,10 +170,12 @@ void ConstraintSphere::computeForces(unsigned int timestep)
 void ConstraintSphere::validate()
     {
     BoxDim box = m_pdata->getBox();
+    Scalar3 lo = box.getLo();
+    Scalar3 hi = box.getHi();
     
-    if (m_P.x + m_r > box.xhi || m_P.x - m_r < box.xlo ||
-        m_P.y + m_r > box.yhi || m_P.y - m_r < box.ylo ||
-        m_P.z + m_r > box.zhi || m_P.z - m_r < box.zlo)
+    if (m_P.x + m_r > hi.x || m_P.x - m_r < lo.x ||
+        m_P.y + m_r > hi.y || m_P.y - m_r < lo.y ||
+        m_P.z + m_r > hi.z || m_P.z - m_r < lo.z)
         {
         cout << "***Warning! Sphere constraint is outside of the box. Constrained particle positions may be incorrect"
              << endl;

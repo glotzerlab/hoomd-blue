@@ -93,7 +93,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     const unsigned int virial_pitch,
     const unsigned int N,
     const Scalar4 *d_pos,
-    gpu_boxsize box,
+    BoxDim box,
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,
     const Index2D nli,
@@ -110,7 +110,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
+    float4 postype = tex1Dfetch(pdata_pos_tex, idx);
+    float3 pos = make_float3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -118,7 +119,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     // prefetch neighbor index
     int cur_neigh = 0;
     int next_neigh = d_nlist[nli(idx, 0)];
-    int typei  = __float_as_int(pos.w);
+    int typei  = __float_as_int(postype.w);
     // loop over neighbors
 
     float atomElectronDensity  = 0.0f;
@@ -132,20 +133,17 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+        float4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
+        float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-        float dx = pos.x - neigh_pos.x;
-        float dy = pos.y - neigh_pos.y;
-        float dz = pos.z - neigh_pos.z;
-        int typej  = __float_as_int(neigh_pos.w);
+        float3 dx = pos - neigh_pos;
+        int typej  = __float_as_int(neigh_postype.w);
         // apply periodic boundary conditions: (FLOPS 12)
-        dx -= box.Lx * rintf(dx * box.Lxinv);
-        dy -= box.Ly * rintf(dy * box.Lyinv);
-        dz -= box.Lz * rintf(dz * box.Lzinv);
+        dx = box.minImage(dx);
 
         // calculate r squard (FLOPS: 5)
-        float rsq = dx*dx + dy*dy + dz*dz;
+        float rsq = dot(dx, dx);;
         if (rsq < eam_data_ti.r_cutsq)
             {
             float position_float = sqrtf(rsq) * eam_data_ti.rdr;
@@ -169,7 +167,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     const unsigned int virial_pitch,
     const unsigned int N,
     const Scalar4 *d_pos,
-    gpu_boxsize box,
+    BoxDim box,
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,
     const Index2D nli,
@@ -186,8 +184,9 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
-    int typei = __float_as_int(pos.w);
+    float4 postype = tex1Dfetch(pdata_pos_tex, idx);
+    float3 pos = make_float3(postype.x, postype.y, postype.z);
+    int typei = __float_as_int(postype.w);
     // prefetch neighbor index
     float position;
     int cur_neigh = 0;
@@ -214,20 +213,17 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        float4 neigh_pos = tex1Dfetch(pdata_pos_tex,cur_neigh);
+        float4 neigh_postype = tex1Dfetch(pdata_pos_tex,cur_neigh);
+        float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-        float dx = pos.x - neigh_pos.x;
-        float dy = pos.y - neigh_pos.y;
-        float dz = pos.z - neigh_pos.z;
-        int typej = __float_as_int(neigh_pos.w);
+        float3 dx = pos - neigh_pos;
+        int typej = __float_as_int(neigh_postype.w);
         // apply periodic boundary conditions: (FLOPS 12)
-        dx -= box.Lx * rintf(dx * box.Lxinv);
-        dy -= box.Ly * rintf(dy * box.Lyinv);
-        dz -= box.Lz * rintf(dz * box.Lzinv);
+        dx = box.minImage(dx);
 
         // calculate r squard (FLOPS: 5)
-        float rsq = dx*dx + dy*dy + dz*dz;
+        float rsq = dot(dx, dx);
 
         if (rsq > eam_data_ti.r_cutsq) continue;
 
@@ -248,19 +244,19 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
                 atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
         pairForce = - fullDerivativePhi * inverseR;
         float pairForceover2 = 0.5f *pairForce;
-        virial[0] += dx * dx *pairForceover2;
-        virial[1] += dx * dy *pairForceover2;
-        virial[2] += dx * dz *pairForceover2;
-        virial[3] += dy * dy *pairForceover2;
-        virial[4] += dy * dz *pairForceover2;
-        virial[5] += dz * dz *pairForceover2;
+        virial[0] += dx.x * dx.x *pairForceover2;
+        virial[1] += dx.x * dx.y *pairForceover2;
+        virial[2] += dx.x * dx.z *pairForceover2;
+        virial[3] += dx.y * dx.y *pairForceover2;
+        virial[4] += dx.y * dx.z *pairForceover2;
+        virial[5] += dx.z * dx.z *pairForceover2;
 
-        fxi += dx * pairForce ;
-        fyi += dy * pairForce ;
-        fzi += dz * pairForce ;
+        fxi += dx.x * pairForce;
+        fyi += dx.y * pairForce;
+        fzi += dx.z * pairForce;
         m_pe += pair_eng * 0.5f;
         }
-        
+    
     force.x = fxi;
     force.y = fyi;
     force.z = fzi;
@@ -277,7 +273,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     const unsigned int virial_pitch,
     const unsigned int N,
     const Scalar4 *d_pos,
-    const gpu_boxsize &box,
+    const BoxDim& box,
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,
     const Index2D& nli,

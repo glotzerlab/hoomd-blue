@@ -66,7 +66,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int * d_result,
                                              const float4 *d_last_pos,
                                              const float4 *d_pos,
                                              const unsigned int N,
-                                             const gpu_boxsize& box,
+                                             const BoxDim& box,
                                              const float maxshiftsq,
                                              const unsigned int checkn);
 
@@ -88,7 +88,7 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const Index2D& nli,
                                   const float4 *d_pos,
                                   const unsigned int N,
-                                  const gpu_boxsize& box,
+                                  const BoxDim& box,
                                   const float r_maxsq);
 
 #endif

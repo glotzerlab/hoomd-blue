@@ -277,18 +277,19 @@ void ComputeThermo::computeProperties()
     // compute the pressure
     // volume/area & other 2D stuff needed
     BoxDim box = m_pdata->getBox();
+    Scalar3 L = box.getL();
     Scalar volume;
     unsigned int D = m_sysdef->getNDimensions();
     if (D == 2)
         {
         // "volume" is area in 2D
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo);
+        volume = L.x * L.y;
         // W needs to be corrected since the 1/3 factor is built in
         W *= Scalar(3.0/2.0);
         }
     else
         {
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+        volume = L.x * L.y * L.z;
         }
 
     // pressure: P = (N * K_B * T + W)/V
@@ -330,6 +331,7 @@ void ComputeThermo::computeProperties()
 Scalar2 ComputeThermo::PPPM_thermo_compute_cpu() 
     {
     BoxDim box = m_pdata->getBox();
+    Scalar3 L = box.getL();
 
     ArrayHandle<cufftComplex> d_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> d_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
@@ -344,10 +346,10 @@ Scalar2 ComputeThermo::PPPM_thermo_compute_cpu()
         pppm_virial_energy.x += pressure;
         pppm_virial_energy.y += energy;
         }
-    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * (box.xhi - box.xlo) * (box.yhi - box.ylo) * (box.zhi - box.zlo));
+    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * L.x * L.y * L.z);
     pppm_virial_energy.y *= PPPMData::energy_virial_factor;
     pppm_virial_energy.y -= PPPMData::q2 * PPPMData::kappa / 1.772453850905516027298168f;
-    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* (box.xhi - box.xlo) * (box.yhi - box.ylo) * (box.zhi - box.zlo));
+    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* L.x * L.y * L.z);
     return pppm_virial_energy;
 
 

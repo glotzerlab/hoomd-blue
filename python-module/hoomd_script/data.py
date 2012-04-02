@@ -357,7 +357,7 @@ class system_data:
         elif name == "box":
             if len(value) != 3:
                 raise TypeError("box must be a 3-tuple")
-            self.sysdef.getParticleData().setBox(hoomd.BoxDim(value[0], value[1], value[2]));
+            self.sysdef.getParticleData().setGlobalBoxL(hoomd.make_scalar3(value[0], value[1], value[2]));
  
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
@@ -369,7 +369,8 @@ class system_data:
             return self.sysdef.getNDimensions();
         elif name == "box":
             b = self.sysdef.getParticleData().getBox();
-            return (b.xhi - b.xlo, b.yhi - b.ylo, b.zhi - b.zlo);
+            L = b.getL();
+            return (L.x, L.y, L.z);
         
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;

@@ -267,19 +267,17 @@ void TwoStepNPTRigid::setup()
     // initialize barostat parameters
     
     const BoxDim& box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
     
     Scalar vol;   // volume
     if (dimension == 2) 
-        vol = Lx * Ly;
+        vol = L.x * L.y;
     else 
-        vol = Lx * Ly * Lz;
+        vol = L.x * L.y * L.z;
 
     w = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
     epsilon = log(vol) / dimension;
-    epsilon_dot = f_epsilon = 0.0;        
+    epsilon_dot = f_epsilon = 0.0;
 
     // computes the total number of degrees of freedom used for system temperature compute
     ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
@@ -313,14 +311,8 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
         m_prof->push("NPT rigid step 1");
     
     // get box
-    const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    BoxDim box = m_pdata->getBox();
+    Scalar3 L = box.getL();
     
     Scalar tmp, akin_t, akin_r, scale, scale_t, scale_r, scale_v;
     Scalar4 mbody, tbody, fquat;
@@ -335,9 +327,9 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     
         Scalar vol;   // volume
         if (dimension == 2) 
-            vol = Lx * Ly;
+            vol = L.x * L.y;
         else 
-            vol = Lx * Ly * Lz;
+            vol = L.x * L.y * L.z;
 
         // compute the current thermodynamic properties
         // m_thermo_group->compute(timestep);
@@ -445,39 +437,7 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
         com_handle.data[body].y += scale_v * vel_handle.data[body].y;
         com_handle.data[body].z += scale_v * vel_handle.data[body].z;
         
-        // map the center of mass to the periodic box, update the com image info
-        if (com_handle.data[body].x >= box.xhi)
-            {
-            com_handle.data[body].x -= Lx;
-            body_image_handle.data[body].x++;
-            }
-        else if (com_handle.data[body].x < box.xlo)
-            {
-            com_handle.data[body].x += Lx;
-            body_image_handle.data[body].x--;
-            }
-            
-        if (com_handle.data[body].y >= box.yhi)
-            {
-            com_handle.data[body].y -= Ly;
-            body_image_handle.data[body].y++;
-            }
-        else if (com_handle.data[body].y < box.ylo)
-            {
-            com_handle.data[body].y += Ly;
-            body_image_handle.data[body].y--;
-            }
-            
-        if (com_handle.data[body].z >= box.zhi)
-            {
-            com_handle.data[body].z -= Lz;
-            body_image_handle.data[body].z++;
-            }
-        else if (com_handle.data[body].z < box.zlo)
-            {
-            com_handle.data[body].z += Lz;
-            body_image_handle.data[body].z--;
-            }
+        box.wrap(com_handle.data[body], body_image_handle.data[body]);
         }
 
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
@@ -650,7 +610,7 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
 void TwoStepNPTRigid::remap()
 {
     Scalar oldlo, oldhi, ctr;
-    Scalar xlo, ylo, zlo, Lx, Ly, Lz, invLx, invLy, invLz;
+    Scalar invLx, invLy, invLz;
     
     BoxDim box = m_pdata->getBox();
     
@@ -658,24 +618,21 @@ void TwoStepNPTRigid::remap()
 
     ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
     
-    xlo = box.xlo;
-    ylo = box.ylo;
-    zlo = box.zlo;
-    Lx = box.xhi - box.xlo;
-    Ly = box.yhi - box.ylo;
-    Lz = box.zhi - box.zlo;
-    invLx = 1.0 / Lx;
-    invLy = 1.0 / Ly;
-    invLz = 1.0 / Lz;
+    Scalar3 lo = box.getLo();
+    Scalar3 hi = box.getHi();
+    Scalar3 L = box.getL();
+    invLx = 1.0 / L.x;
+    invLy = 1.0 / L.y;
+    invLz = 1.0 / L.z;
     
     Scalar4 delta;
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
             
-        delta.x = com_handle.data[body].x - xlo;
-        delta.y = com_handle.data[body].y - ylo;
-        delta.z = com_handle.data[body].z - zlo;
+        delta.x = com_handle.data[body].x - lo.x;
+        delta.y = com_handle.data[body].y - lo.y;
+        delta.z = com_handle.data[body].z - lo.z;
 
         com_handle.data[body].x = invLx * delta.x;
         com_handle.data[body].y = invLy * delta.y;
@@ -683,44 +640,44 @@ void TwoStepNPTRigid::remap()
         }
 
     // reset box to new size/shape
-    oldlo = box.xlo;
-    oldhi = box.xhi;
+    oldlo = lo.x;
+    oldhi = hi.x;
     ctr = 0.5 * (oldlo + oldhi);
-    box.xlo = (oldlo - ctr) * dilation + ctr;
-    box.xhi = (oldhi - ctr) * dilation + ctr;
-    Lx = box.xhi - box.xlo;
+    lo.x = (oldlo - ctr) * dilation + ctr;
+    hi.x = (oldhi - ctr) * dilation + ctr;
+    L.x = hi.x - lo.x;
     
-    oldlo = box.ylo;
-    oldhi = box.yhi;
+    oldlo = lo.y;
+    oldhi = hi.y;
     ctr = 0.5 * (oldlo + oldhi);
-    box.ylo = (oldlo - ctr) * dilation + ctr;
-    box.yhi = (oldhi - ctr) * dilation + ctr;
-    Ly = box.yhi - box.ylo;
+    lo.y = (oldlo - ctr) * dilation + ctr;
+    hi.y = (oldhi - ctr) * dilation + ctr;
+    L.y = hi.y - lo.y;
     
     if (dimension == 3)
         {
-        oldlo = box.zlo;
-        oldhi = box.zhi;
+        oldlo = lo.z;
+        oldhi = hi.z;
         ctr = 0.5 * (oldlo + oldhi);
-        box.zlo = (oldlo - ctr) * dilation + ctr;
-        box.zhi = (oldhi - ctr) * dilation + ctr;
-        Lz = box.zhi - box.zlo;
+        lo.z = (oldlo - ctr) * dilation + ctr;
+        hi.z = (oldhi - ctr) * dilation + ctr;
+        L.z = hi.z - lo.z;
         }
-        
-    m_pdata->setBox(BoxDim(Lx, Ly, Lz));
+    
+    m_pdata->setGlobalBoxL(L);
     
     // convert rigid body COMs back to box coords
     Scalar4 newboxlo;
-    newboxlo.x = -Lx/2.0;
-    newboxlo.y = -Ly/2.0;
-    newboxlo.z = -Lz/2.0;
+    newboxlo.x = -L.x/2.0;
+    newboxlo.y = -L.y/2.0;
+    newboxlo.z = -L.z/2.0;
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
             
-        com_handle.data[body].x = Lx * com_handle.data[body].x + newboxlo.x;
-        com_handle.data[body].y = Ly * com_handle.data[body].y + newboxlo.y;
-        com_handle.data[body].z = Lz * com_handle.data[body].z + newboxlo.z;
+        com_handle.data[body].x = L.x * com_handle.data[body].x + newboxlo.x;
+        com_handle.data[body].y = L.y * com_handle.data[body].y + newboxlo.y;
+        com_handle.data[body].z = L.z * com_handle.data[body].z + newboxlo.z;
         }
     
     }

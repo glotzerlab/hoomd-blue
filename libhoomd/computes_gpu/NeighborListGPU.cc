@@ -112,16 +112,18 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         {
         cerr << endl << "***Error! NeighborListGPU does not currently support body or diameter exclusions." << endl;
         cerr << "Please contact the developers and notify them that you need this functionality" << endl << endl;
-        
+
         throw runtime_error("Error computing neighbor list");
         }
-    
+
     // check that the simulation box is big enough
     const BoxDim& box = m_pdata->getBox();
-    
-    if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
-        (box.yhi - box.ylo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
-        (box.zhi - box.zlo) <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0)
+
+    Scalar3 L = box.getL();
+
+    if (L.x <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
+        L.y <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
+        L.z <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0)
         {
         cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves."
              << endl << endl;
@@ -133,8 +135,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    gpu_boxsize gpubox = m_pdata->getBoxGPU();
-    
+
     // access the nlist data arrays
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
@@ -155,7 +156,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
                           m_nlist_indexer,
                           d_pos.data,
                           m_pdata->getN(),
-                          gpubox,
+                          box,
                           rmaxsq);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
@@ -172,7 +173,7 @@ bool NeighborListGPU::distanceCheck()
     
     // access data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::read);
     
     // create a temporary copy of r_buff/2 sqaured

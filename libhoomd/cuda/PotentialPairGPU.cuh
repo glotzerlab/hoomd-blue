@@ -78,7 +78,7 @@ struct pair_args_t
               const Scalar4 *_d_pos,
               const Scalar *_d_diameter,
               const Scalar *_d_charge,
-              const gpu_boxsize &_box,
+              const BoxDim& _box,
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
               const Index2D& _nli,
@@ -115,7 +115,7 @@ struct pair_args_t
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar *d_diameter;       //!< particle diameters
     const Scalar *d_charge;         //!< particle charges
-    const gpu_boxsize &box;         //!< Simulation box in GPU format
+    const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const Index2D& nli;             //!< Indexer for accessing d_nlist
@@ -181,7 +181,7 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_diameter,
                                                const Scalar *d_charge,
-                                               const gpu_boxsize box,
+                                               const BoxDim box,
                                                const unsigned int *d_n_neigh,
                                                const unsigned int *d_nlist,
                                                const Index2D nli,
@@ -199,7 +199,7 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
         (typename evaluator::param_type *)(&s_data[0]);
     float *s_rcutsq = (float *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
     float *s_ronsq = (float *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(float))]);
-    
+
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
         {
@@ -212,20 +212,21 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
             }
         }
     __syncthreads();
-    
+
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (idx >= N)
         return;
-        
+
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
-    
+
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 posi = tex1Dfetch(pdata_pos_tex, idx);
-    
+    float4 postypei = tex1Dfetch(pdata_pos_tex, idx);
+    float3 posi = make_float3(postypei.x, postypei.y, postypei.z);
+
     float di;
     if (evaluator::needsDiameter())
         di = tex1Dfetch(pdata_diam_tex, idx);
@@ -236,8 +237,8 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
         qi = tex1Dfetch(pdata_charge_tex, idx);
     else
         qi += 1.0f; // shutup compiler warning
-    
-        
+
+
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float virialxx = 0.0f;
@@ -246,11 +247,11 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
     float virialyy = 0.0f;
     float virialyz = 0.0f;
     float virialzz = 0.0f;
-    
+
     // prefetch neighbor index
     unsigned int cur_j = 0;
     unsigned int next_j = d_nlist[nli(idx, 0)];
-    
+
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
@@ -269,43 +270,40 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
             // prefetch the next value and set the current one
             cur_j = next_j;
             next_j = d_nlist[nli(idx, neigh_idx+1)];
-            
+
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 posj = tex1Dfetch(pdata_pos_tex, cur_j);
-            
+            float4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
+            float3 posj = make_float3(postypej.x, postypej.y, postypej.z);
+
             float dj = 0.0f;
             if (evaluator::needsDiameter())
                 dj = tex1Dfetch(pdata_diam_tex, cur_j);
             else
                 dj += 1.0f; // shutup compiler warning
-                
+
             float qj = 0.0f;
             if (evaluator::needsCharge())
                 qj = tex1Dfetch(pdata_charge_tex, cur_j);
             else
                 qj += 1.0f; // shutup compiler warning
-                
+
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-            float dx = posi.x - posj.x;
-            float dy = posi.y - posj.y;
-            float dz = posi.z - posj.z;
-            
+            float3 dx = posi - posj;
+
             // apply periodic boundary conditions: (FLOPS 12)
-            dx -= box.Lx * rintf(dx * box.Lxinv);
-            dy -= box.Ly * rintf(dy * box.Lyinv);
-            dz -= box.Lz * rintf(dz * box.Lzinv);
-            
+            dx = box.minImage(dx);
+
             // calculate r squard (FLOPS: 5)
-            float rsq = dx*dx + dy*dy + dz*dz;
-            
+            float rsq = dot(dx, dx);
+
             // access the per type pair parameters
-            unsigned int typpair = typpair_idx(__float_as_int(posi.w), __float_as_int(posj.w));
+            unsigned int typpair = typpair_idx(__float_as_int(postypei.w), __float_as_int(postypej.w));
             float rcutsq = s_rcutsq[typpair];
             typename evaluator::param_type param = s_params[typpair];
             float ronsq = 0.0f;
             if (shift_mode == 2)
                 ronsq = s_ronsq[typpair];
-            
+
             // design specifies that energies are shifted if
             // 1) shift mode is set to shift
             // or 2) shift mode is explor and ron > rcut
@@ -317,19 +315,19 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                 if (ronsq > rcutsq)
                     energy_shift = true;
                 }
-            
+
             // evaluate the potential
             float force_divr = 0.0f;
             float pair_eng = 0.0f;
-            
+
             evaluator eval(rsq, rcutsq, param);
             if (evaluator::needsDiameter())
                 eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
-            
+
             eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-            
+
             if (shift_mode == 2)
                 {
                 if (rsq >= ronsq && rsq < rcutsq)
@@ -337,50 +335,50 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                     // Implement XPLOR smoothing (FLOPS: 16)
                     Scalar old_pair_eng = pair_eng;
                     Scalar old_force_divr = force_divr;
-                    
+
                     // calculate 1.0 / (xplor denominator)
                     Scalar xplor_denom_inv =
                         Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-                    
+
                     Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
                     Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
                                (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
                     Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-                    
+
                     // make modifications to the old pair energy and force
                     pair_eng = old_pair_eng * s;
                     force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
                     }
                 }
-            
+
             // calculate the virial
             if (compute_virial)
                 {
                 float force_div2r = 0.5f * force_divr;
-                virialxx +=  dx * dx * force_div2r;
-                virialxy +=  dx * dy * force_div2r;
-                virialxz +=  dx * dz * force_div2r;
-                virialyy +=  dy * dy * force_div2r;
-                virialyz +=  dy * dz * force_div2r;
-                virialzz +=  dz * dz * force_div2r;
+                virialxx +=  dx.x * dx.x * force_div2r;
+                virialxy +=  dx.x * dx.y * force_div2r;
+                virialxz +=  dx.x * dx.z * force_div2r;
+                virialyy +=  dx.y * dx.y * force_div2r;
+                virialyz +=  dx.y * dx.z * force_div2r;
+                virialzz +=  dx.z * dx.z * force_div2r;
                 }
-            
+
             // add up the force vector components (FLOPS: 7)
             #if (__CUDA_ARCH__ >= 200)
-            force.x += dx * force_divr;
-            force.y += dy * force_divr;
-            force.z += dz * force_divr;
+            force.x += dx.x * force_divr;
+            force.y += dx.y * force_divr;
+            force.z += dx.z * force_divr;
             #else
             // fmad causes momentum drift here, prevent it from being used
-            force.x += __fmul_rn(dx, force_divr);
-            force.y += __fmul_rn(dy, force_divr);
-            force.z += __fmul_rn(dz, force_divr);
+            force.x += __fmul_rn(dx.x, force_divr);
+            force.y += __fmul_rn(dx.y, force_divr);
+            force.z += __fmul_rn(dx.z, force_divr);
             #endif
-            
+
             force.w += pair_eng;
             }
         }
-        
+
     // potential energy per particle must be halved
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)

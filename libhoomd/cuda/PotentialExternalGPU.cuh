@@ -75,7 +75,7 @@ struct external_potential_args_t
               const unsigned int _virial_pitch,
               const unsigned int _N,
               const Scalar4 *_d_pos,
-              const gpu_boxsize &_box,
+              const BoxDim& _box,
               const unsigned int _block_size)
                 : d_force(_d_force),
                   d_virial(_d_virial),
@@ -90,7 +90,7 @@ struct external_potential_args_t
     float4 *d_force;                //!< Force to write out
     float *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
-    const gpu_boxsize &box;         //!< Simulation box in GPU format
+    const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int N;           //!< Number of particles
     const Scalar4 *d_pos;           //!< Device array of particle positions
     const unsigned int block_size;  //!< Block size to execute
@@ -116,7 +116,7 @@ __global__ void gpu_compute_external_forces_kernel(float4 *d_force,
                                                const unsigned int virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
-                                               const gpu_boxsize box,
+                                               const BoxDim box,
                                                const typename evaluator::param_type *params)
     {
     // start by identifying which particle we are to handle
@@ -138,7 +138,8 @@ __global__ void gpu_compute_external_forces_kernel(float4 *d_force,
 
     unsigned int typei = __float_as_int(posi.w);
     float3 Xi = make_float3(posi.x, posi.y, posi.z);
-    evaluator eval(Xi, box.Lx, box.Ly, box.Lz, params[typei]);
+    Scalar3 L = box.getL();
+    evaluator eval(Xi, L.x, L.y, L.z, params[typei]);
 
     eval.evalForceEnergyAndVirial(force, energy, virial);
 

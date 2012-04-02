@@ -86,7 +86,7 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
                                                  const unsigned int virial_pitch,
                                                  unsigned int N,
                                                  const Scalar4 *d_pos,
-                                                 gpu_boxsize box,
+                                                 BoxDim box,
                                                  const uint4 *tlist,
                                                  const uint1 *dihedral_ABCD,
                                                  const unsigned int pitch,
@@ -95,51 +95,48 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        
+
     if (idx >= N)
         return;
-        
+
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_impropers = n_dihedrals_list[idx];
-    
+
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_pos = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
-    float4 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
-    
+    float4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
+    float3 idx_pos = make_float3(idx_postype.x, idx_postype.y, idx_postype.z);
+    float3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
+
     // initialize the force to 0
     float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    
+
     // initialize the virial to 0
     float virial_idx[6];
     for (int i = 0; i < 6; i++)
         virial_idx[i] = 0.0f;
-    
+
     // loop over all impropers
     for (int improper_idx = 0; improper_idx < n_impropers; improper_idx++)
         {
-        // the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
-#ifdef _DEVICEEMU
         uint4 cur_improper = tlist[pitch*improper_idx + idx];
         uint1 cur_ABCD = dihedral_ABCD[pitch*improper_idx + idx];
-#else
-        // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint4 cur_improper = tlist[pitch*improper_idx + idx];
-        volatile uint1 cur_ABCD = dihedral_ABCD[pitch*improper_idx + idx];
-#endif
-        
+
         int cur_improper_x_idx = cur_improper.x;
         int cur_improper_y_idx = cur_improper.y;
         int cur_improper_z_idx = cur_improper.z;
         int cur_improper_type = cur_improper.w;
         int cur_improper_abcd = cur_ABCD.x;
-        
+
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
-        float4 x_pos = d_pos[cur_improper_x_idx];
+        float4 x_postype = d_pos[cur_improper_x_idx];
+        float3 x_pos = make_float3(x_postype.x, x_postype.y, x_postype.z);
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 y_pos = d_pos[cur_improper_y_idx];
+        float4 y_postype = d_pos[cur_improper_y_idx];
+        float3 y_pos = make_float3(y_postype.x, y_postype.y, y_postype.z);
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 z_pos = d_pos[cur_improper_z_idx];
-        
+        float4 z_postype = d_pos[cur_improper_z_idx];
+        float3 z_pos = make_float3(z_postype.x, z_postype.y, z_postype.z);
+
         if (cur_improper_abcd == 0)
             {
             pos_a = idx_pos;
@@ -169,74 +166,57 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
             pos_c = z_pos;
             }
             
-        // calculate dr for a-b,c-b,and a-c(FLOPS: 9)
-        float dxab = pos_a.x - pos_b.x;
-        float dyab = pos_a.y - pos_b.y;
-        float dzab = pos_a.z - pos_b.z;
-        
-        float dxcb = pos_c.x - pos_b.x;
-        float dycb = pos_c.y - pos_b.y;
-        float dzcb = pos_c.z - pos_b.z;
-        
-        float dxdc = pos_d.x - pos_c.x;
-        float dydc = pos_d.y - pos_c.y;
-        float dzdc = pos_d.z - pos_c.z;
-        
-        dxab -= box.Lx * rintf(dxab * box.Lxinv);
-        dxcb -= box.Lx * rintf(dxcb * box.Lxinv);
-        dxdc -= box.Lx * rintf(dxdc * box.Lxinv);
-        
-        dyab -= box.Ly * rintf(dyab * box.Lyinv);
-        dycb -= box.Ly * rintf(dycb * box.Lyinv);
-        dydc -= box.Ly * rintf(dydc * box.Lyinv);
-        
-        dzab -= box.Lz * rintf(dzab * box.Lzinv);
-        dzcb -= box.Lz * rintf(dzcb * box.Lzinv);
-        dzdc -= box.Lz * rintf(dzdc * box.Lzinv);
-        
-        
+        // calculate dr for a-b,c-b,and a-c
+        float3 dab = pos_a - pos_b;
+        float3 dcb = pos_c - pos_b;
+        float3 ddc = pos_d - pos_c;
+
+        dab = box.minImage(dab);
+        dcb = box.minImage(dcb);
+        ddc = box.minImage(ddc);
+
         // get the improper parameters (MEM TRANSFER: 12 bytes)
         float2 params = tex1Dfetch(improper_params_tex, cur_improper_type);
         float K = params.x;
         float chi = params.y;
-        
-        float r1 = rsqrtf(dxab*dxab + dyab*dyab + dzab*dzab);
-        float r2 = rsqrtf(dxcb*dxcb + dycb*dycb + dzcb*dzcb);
-        float r3 = rsqrtf(dxdc*dxdc + dydc*dydc + dzdc*dzdc);
-        
+
+        float r1 = rsqrtf(dot(dab, dab));
+        float r2 = rsqrtf(dot(dcb, dcb));
+        float r3 = rsqrtf(dot(ddc, ddc));
+
         float ss1 = r1 * r1;
         float ss2 = r2 * r2;
         float ss3 = r3 * r3;
-        
+
         // Cosine and Sin of the angle between the planes
-        float c0 = (dxab*dxdc + dyab*dydc + dzab*dzdc)* r1 * r3;
-        float c1 = (dxab*dxcb + dyab*dycb + dzab*dzcb)* r1 * r2;
-        float c2 = -(dxdc*dxcb + dydc*dycb + dzdc*dzcb)* r3 * r2;
-        
+        float c0 = dot(dab, ddc) * r1 * r3;
+        float c1 = dot(dab, dcb) * r1 * r2;
+        float c2 = -dot(ddc, dcb) * r3 * r2;
+
         float s1 = 1.0f - c1*c1;
         if (s1 < SMALL) s1 = SMALL;
         s1 = 1.0f / s1;
-        
+
         float s2 = 1.0f - c2*c2;
         if (s2 < SMALL) s2 = SMALL;
         s2 = 1.0f / s2;
-        
-        float s12 = sqrt(s1*s2);
+
+        float s12 = sqrtf(s1*s2);
         float c = (c1*c2 + c0) * s12;
-        
+
         if (c > 1.0f) c = 1.0f;
         if (c < -1.0f) c = -1.0f;
-        
-        float s = sqrt(1.0f - c*c);
+
+        float s = sqrtf(1.0f - c*c);
         if (s < SMALL) s = SMALL;
-        
+
         float domega = acosf(c) - chi;
         float a = K * domega;
-        
+
         // calculate the energy, 1/4th for each atom
         //float improper_eng = 0.25*a*domega;
         float improper_eng = 0.125f*a*domega;  // the .125 term is 1/2 * 1/4
-        
+
         //a = -a * 2.0/s;
         a = -a /s; // the missing 2.0 factor is to ensure K/2 is factored in for the forces
         c = c * a;
@@ -244,45 +224,44 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
         float a11 = c*ss1*s1;
         float a22 = -ss2 * (2.0f*c0*s12 - c*(s1+s2));
         float a33 = c*ss3*s2;
-        
+
         float a12 = -r1*r2*(c1*c*s1 + c2*s12);
         float a13 = -r1*r3*s12;
         float a23 = r2*r3*(c2*c*s2 + c1*s12);
-        
-        float sx2  = a22*dxcb + a23*dxdc + a12*dxab;
-        float sy2  = a22*dycb + a23*dydc + a12*dyab;
-        float sz2  = a22*dzcb + a23*dzdc + a12*dzab;
-        
+
+        float sx2  = a22*dcb.x + a23*ddc.x + a12*dab.x;
+        float sy2  = a22*dcb.y + a23*ddc.y + a12*dab.y;
+        float sz2  = a22*dcb.z + a23*ddc.z + a12*dab.z;
+
         // calculate the forces for each particle
-        float ffax = a12*dxcb + a13*dxdc + a11*dxab;
-        float ffay = a12*dycb + a13*dydc + a11*dyab;
-        float ffaz = a12*dzcb + a13*dzdc + a11*dzab;
-        
+        float ffax = a12*dcb.x + a13*ddc.x + a11*dab.x;
+        float ffay = a12*dcb.y + a13*ddc.y + a11*dab.y;
+        float ffaz = a12*dcb.z + a13*ddc.z + a11*dab.z;
+
         float ffbx = -sx2 - ffax;
         float ffby = -sy2 - ffay;
         float ffbz = -sz2 - ffaz;
-        
-        float ffdx = a23*dxcb + a33*dxdc + a13*dxab;
-        float ffdy = a23*dycb + a33*dydc + a13*dyab;
-        float ffdz = a23*dzcb + a33*dzdc + a13*dzab;
-        
+
+        float ffdx = a23*dcb.x + a33*ddc.x + a13*dab.x;
+        float ffdy = a23*dcb.y + a33*ddc.y + a13*dab.y;
+        float ffdz = a23*dcb.z + a33*ddc.z + a13*dab.z;
+
         float ffcx = sx2 - ffdx;
         float ffcy = sy2 - ffdy;
         float ffcz = sz2 - ffdz;
-        
+
         // and calculate the virial (symmetrized version)
         float improper_virial[6];
-        improper_virial[0] = float(1./4.)*(dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx);
-        improper_virial[1] = float(1./8.)*((dxab*ffay + dxcb*ffcy + (dxdc+dxcb)*ffdy)
-                                     +(dyab*ffax + dycb*ffcx + (dydc+dycb)*ffdx));
-        improper_virial[2] = float(1./8.)*((dxab*ffaz + dxcb*ffcz + (dxdc+dxcb)*ffdz)
-                                     +(dzab*ffax + dzcb*ffcx + (dzdc+dzcb)*ffdx));
-        improper_virial[3] = float(1./4.)*(dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy);
-        improper_virial[4] = float(1./8.)*((dyab*ffaz + dycb*ffcz + (dydc+dycb)*ffdz)
-                                     +(dzab*ffay + dzcb*ffcy + (dzdc+dzcb)*ffdy));
-        improper_virial[5] = float(1./4.)*(dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz);
+        improper_virial[0] = float(1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
+        improper_virial[1] = float(1./8.)*((dab.x*ffay + dcb.x*ffcy + (ddc.x+dcb.x)*ffdy)
+                                     +(dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx));
+        improper_virial[2] = float(1./8.)*((dab.x*ffaz + dcb.x*ffcz + (ddc.x+dcb.x)*ffdz)
+                                     +(dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx));
+        improper_virial[3] = float(1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
+        improper_virial[4] = float(1./8.)*((dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz)
+                                     +(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy));
+        improper_virial[5] = float(1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
 
-        
         if (cur_improper_abcd == 0)
             {
             force_idx.x += ffax;
@@ -307,12 +286,12 @@ void gpu_compute_harmonic_improper_forces_kernel(float4* d_force,
             force_idx.y += ffdy;
             force_idx.z += ffdz;
             }
-            
+
         force_idx.w += improper_eng;
         for (int k = 0; k < 6; k++)
             virial_idx[k] += improper_virial[k];
         }
-        
+
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force_idx;
     for (int k = 0; k < 6; k++)
@@ -344,7 +323,7 @@ cudaError_t gpu_compute_harmonic_improper_forces(float4* d_force,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
-                                                 const gpu_boxsize &box,
+                                                 const BoxDim& box,
                                                  const uint4 *tlist,
                                                  const uint1 *dihedral_ABCD,
                                                  const unsigned int pitch,
@@ -354,19 +333,19 @@ cudaError_t gpu_compute_harmonic_improper_forces(float4* d_force,
                                                  int block_size)
     {
     assert(d_params);
-    
+
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // bind the texture
     cudaError_t error = cudaBindTexture(0, improper_params_tex, d_params, sizeof(float2) * n_improper_types);
     if (error != cudaSuccess)
         return error;
-        
+
     // run the kernel
     gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
-    
+
     return cudaSuccess;
     }
 
