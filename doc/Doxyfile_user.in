@@ -567,7 +567,7 @@ LAYOUT_FILE            = ${CMAKE_CURRENT_SOURCE_DIR}/user/DoxygenLayout.xml
 # http://en.wikipedia.org/wiki/BibTeX for more info. For LaTeX the style
 # of the bibliography can be controlled using LATEX_BIB_STYLE.
 
-CITE_BIB_FILES         = HOOMD.bib
+CITE_BIB_FILES         = ${CMAKE_CURRENT_SOURCE_DIR}/user/HOOMD.bib
 
 #---------------------------------------------------------------------------
 # configuration options related to warning and progress messages
