@@ -200,9 +200,9 @@ class pppm(force._force):
             q = globals.system_definition.getParticleData().getCharge(i)
             q2 += q*q
         box = globals.system_definition.getParticleData().getBox()
-        Lx = box.xhi - box.xlo
-        Ly = box.yhi - box.ylo
-        Lz = box.zhi - box.zlo
+        Lx = box.getL().x
+        Ly = box.getL().y
+        Lz = box.getL().z
 
         hx = Lx/Nx
         hy = Ly/Ny
