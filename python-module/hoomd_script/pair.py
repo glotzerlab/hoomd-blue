@@ -1430,6 +1430,11 @@ class cgcmm(force._force):
                 else:
                     raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
 
+def _table_eval(r, rmin, rmax, V, F, width):
+    dr = (rmax - rmin) / float(width-1);
+    i = int(round((r - rmin)/dr))
+    return (V[i], F[i])
+
 ## Tabulated %pair %force
 #
 # The command pair.table specifies that a tabulated  %pair %force should be added to every non-bonded particle %pair 
@@ -1580,7 +1585,57 @@ class table(force._force):
                 coeff = self.pair_coeff.get(type_list[i], type_list[j], "coeff");
 
                 self.update_pair_table(i, j, func, rmin, rmax, coeff);
-                
+
+    def set_from_file(self, a, b, filename):
+        util.print_status_line();
+
+        # open the file
+        f = open(filename);
+
+        r_table = [];
+        V_table = [];
+        F_table = [];
+
+        # read in lines from the file
+        for line in f.readlines():
+            # skip comment lines
+            if line[0] == '#':
+                continue;
+
+            # split out the columns
+            cols = line.split();
+            values = [float(f) for f in cols];
+
+            # validate the input
+            if len(values) != 3:
+                globals.msg.error("pair.table: file must have exactly 3 columns\n");
+                raise RuntimeError("Error reading table file");
+
+            # append to the tables
+            r_table.append(values[0]);
+            V_table.append(values[1]);
+            F_table.append(values[2]);
+
+        # validate input
+        if self.width != len(r_table):
+            globals.msg.error("pair.table: file must have exactly " + str(self.width) + " rows\n");
+            raise RuntimeError("Error reading table file");
+
+        # extract rmin and rmax
+        rmin_table = r_table[0];
+        rmax_table = r_table[-1];
+
+        # check for even spacing
+        dr = (rmax_table - rmin_table) / float(self.width-1);
+        for i in xrange(0,self.width):
+            r = rmin_table + dr * i;
+            if math.fabs(r - r_table[i]) > 1e-3:
+                globals.msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
+                raise RuntimeError("Error reading table file");
+
+        util._disable_status_lines = True;
+        self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
+        util._disable_status_lines = True;
 
 ## Morse %pair %force
 #
