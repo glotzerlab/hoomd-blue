@@ -14,10 +14,6 @@ endif(COMMAND cmake_policy)
 
 project (HOOMD)
 
-if(${PROJECT_SOURCE_DIR} STREQUAL ${PROJECT_BINARY_DIR})
-    message(FATAL_ERROR "The build directory must be outside of the source directory")
-endif(${PROJECT_SOURCE_DIR} STREQUAL ${PROJECT_BINARY_DIR})
-
 # setup the install directories
 include (CMake_install_options.cmake)
 # bring in custom modules
