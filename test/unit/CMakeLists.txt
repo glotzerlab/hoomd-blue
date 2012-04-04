@@ -49,7 +49,6 @@ set(TEST_LIST
     test_cell_list
     test_const_external_field_dipole
     test_index1d
-    test_molfile
     test_gpu_array
     test_pdata
     test_particle_group
