@@ -57,11 +57,10 @@ if (NOT ENABLE_STATIC)
     fix_cudart_rpath(libhoomd)
 
     # set the rpath so that the lib can find other libs stashed in lib/hoomd
-    # set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../../hoomd")
     if (ENABLE_EMBED_CUDA)
-        set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}")
+        set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../../hoomd;\\\$ORIGIN/../hoomd")
     endif (ENABLE_EMBED_CUDA)
-    
+
     # for non-app-bundle relocatable installs, set the install name of the lib for linking relative to bin/
     if (NOT ENABLE_APP_BUNDLE_INSTALL)
     set_target_properties(libhoomd PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib/hoomd/python-module")
