@@ -86,6 +86,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // EPS_HOC is used to calculate the Green's function
 #define EPS_HOC 1.0e-7
 
+//! Holds some data for computing the thermodynamic output
+class PPPMData
+    {
+    public:
+        GPUArray<cufftComplex> m_rho_real_space; //!< x component of the grid based electric field
+        GPUArray<Scalar> m_green_hat;            //!< Modified Hockney-Eastwood Green's function
+        GPUArray<Scalar3> m_vg;                  //!< Coefficients for Fourier space virial calculation
+        GPUArray<Scalar2> o_data;                //!< Used to quickly sum grid points for pressure and energy calcuation (output)
+        GPUArray<Scalar2> i_data;                //!< Used to quickly sum grid points for pressure and energy calcuation (input)
+    };
+
 //! Computes the long ranged part of the electrostatic forces on each particle
 /*! PPPM forces are computed on every particle in the simulation.
 
@@ -134,6 +145,8 @@ class PPPMForceCompute : public ForceCompute
         void calculate_forces();
         //! fix the force due to excluded particles
         void fix_exclusions_cpu();
+        //! fix the energy and virial thermodynamic quantities
+        virtual void fix_thermo_quantities();
     protected:
         bool m_params_set;                       //!< Set to true when the parameters are set
         int m_Nx;                                //!< Number of grid points in x direction
@@ -167,6 +180,8 @@ class PPPMForceCompute : public ForceCompute
 
         int first_run;                            //!< flag for allocating arrays
 
+        PPPMData m_pppm_data;                     //!< Additional data arrays
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -175,25 +190,6 @@ class PPPMForceCompute : public ForceCompute
 //! Exports the PPPMForceCompute class to python
 void export_PPPMForceCompute();
 
-//! Holds some data for computing the thermodynamic output
-class PPPMData
-    {
-    public:
-        static int compute_pppm_flag;                   //!< Flag to see if we should compute the PPPM thermodynamic properties
-        static int Nx;                                  //!< Number of grid points in x direction
-        static int Ny;                                  //!< Number of grid points in y direction
-        static int Nz;                                  //!< Number of grid points in z direction
-        static Scalar q2;                               //!< Sum(q_i*q_i), where q_i is the charge of each particle
-        static Scalar q;                                //!< Sum(q_i*q_i), where q_i is the charge of each particle
-        static Scalar kappa;                            //!< screening parameter for erfc(kappa*r)
-        static Scalar energy_virial_factor;             //!< Multiplication factor for energy and virial
-        static Scalar pppm_energy;                      //!< Used for logging the energy
-        static GPUArray<cufftComplex> m_rho_real_space; //!< x component of the grid based electric field
-        static GPUArray<Scalar> m_green_hat;            //!< Modified Hockney-Eastwood Green's function
-        static GPUArray<Scalar3> m_vg;                  //!< Coefficients for Fourier space virial calculation
-        static GPUArray<Scalar2> o_data;                //!< Used to quickly sum grid points for pressure and energy calcuation (output)
-        static GPUArray<Scalar2> i_data;                //!< Used to quickly sum grid points for pressure and energy calcuation (input)
-    };
 
 
 #endif
