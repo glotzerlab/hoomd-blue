@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: sbarr
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #include <cufft.h>
 #include "PPPMForceCompute.h"
 #include "PPPMForceGPU.cuh"
@@ -107,7 +102,8 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         //! Set the parameters
         virtual void setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut);
 
-
+        //! fix the energy and virial thermodynamic quantities
+        virtual void fix_thermo_quantities();
     protected:
         int m_block_size;                    //!< Block size to run calculation on
         cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
@@ -120,8 +116,3 @@ class PPPMForceComputeGPU : public PPPMForceCompute
 void export_PPPMForceComputeGPU();
 
 #endif
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-

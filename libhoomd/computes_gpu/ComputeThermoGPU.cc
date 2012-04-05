@@ -61,7 +61,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoGPU.cuh"
-#include "PPPMForceGPU.cuh"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -158,47 +157,7 @@ void ComputeThermoGPU::computeProperties()
     
     }
 
-    if(PPPMData::compute_pppm_flag) {
-        Scalar2 pppm_thermo = ComputeThermoGPU::PPPM_thermo_compute();
-        ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::readwrite);
-        h_properties.data[thermo_index::pressure] += pppm_thermo.x;
-        h_properties.data[thermo_index::potential_energy] += pppm_thermo.y;
-        PPPMData::pppm_energy = pppm_thermo.y;
-        }
-
     if (m_prof) m_prof->pop();
-    }
-
-
-Scalar2 ComputeThermoGPU::PPPM_thermo_compute()
-    {
-
-    BoxDim box = m_pdata->getBox();
-
-    ArrayHandle<cufftComplex> d_rho_real_space(PPPMData::m_rho_real_space, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_green_hat(PPPMData::m_green_hat, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_vg(PPPMData::m_vg, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar2> d_i_data(PPPMData::i_data, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar2> d_o_data(PPPMData::o_data, access_location::device, access_mode::readwrite);
-
-    Scalar2 pppm_virial_energy =  gpu_compute_pppm_thermo(PPPMData::Nx,
-                                                          PPPMData::Ny,
-                                                          PPPMData::Nz,
-                                                          d_rho_real_space.data,
-                                                          d_vg.data,
-                                                          d_green_hat.data,
-                                                          d_o_data.data,
-                                                          d_i_data.data,
-                                                          256);
-
-    Scalar3 L = box.getL();
-    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * L.x * L.y * L.z);
-    pppm_virial_energy.y *= PPPMData::energy_virial_factor;
-    pppm_virial_energy.y -= PPPMData::q2 * PPPMData::kappa / 1.772453850905516027298168f;
-    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* L.x * L.y * L.z);
-
-    return pppm_virial_energy;
-
     }
 
 void export_ComputeThermoGPU()
