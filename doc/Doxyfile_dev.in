@@ -640,7 +640,8 @@ INPUT                  = "${HOOMD_SOURCE_DIR}/libhoomd" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/dev/DeveloperInfo.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/dev/Groups.doc" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/dev/MainPage.doc"
+                         "${CMAKE_CURRENT_SOURCE_DIR}/dev/MainPage.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/dev/doxygen_dummy.h"
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
@@ -1632,7 +1633,7 @@ CLASS_GRAPH            = YES
 # indirect implementation dependencies (inheritance, containment, and
 # class references variables) of the class with other documented classes.
 
-COLLABORATION_GRAPH    = NO
+COLLABORATION_GRAPH    = YES
 
 # If the GROUP_GRAPHS and HAVE_DOT tags are set to YES then doxygen
 # will generate a graph for groups, showing the direct groups dependencies
@@ -1698,7 +1699,7 @@ DIRECTORY_GRAPH        = YES
 # HTML_FILE_EXTENSION to xhtml in order to make the SVG files
 # visible in IE 9+ (other browsers do not have this requirement).
 
-DOT_IMAGE_FORMAT       = png
+DOT_IMAGE_FORMAT       = svg
 
 # If DOT_IMAGE_FORMAT is set to svg, then this option can be set to YES to
 # enable generation of interactive SVG images that allow zooming and panning.
@@ -1744,7 +1745,7 @@ DOT_GRAPH_MAX_NODES    = 50
 # code bases. Also note that the size of a graph can be further restricted by
 # DOT_GRAPH_MAX_NODES. Using a depth of 0 means no depth restriction.
 
-MAX_DOT_GRAPH_DEPTH    = 3
+MAX_DOT_GRAPH_DEPTH    = 4
 
 # Set the DOT_TRANSPARENT tag to YES to generate images with a transparent
 # background. This is disabled by default, because dot on Windows does not
