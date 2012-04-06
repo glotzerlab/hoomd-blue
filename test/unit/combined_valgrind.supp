@@ -306,6 +306,15 @@
 {
    <insert_a_suppression_name_here>
    Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   ...
+   fun:Py*
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
    fun:*alloc
    ...
    fun:_PyImport_GetDynLoadFunc
