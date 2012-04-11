@@ -1437,7 +1437,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 
 ## Tabulated %pair %force
 #
-# The command pair.table specifies that a tabulated  %pair %force should be added to every non-bonded particle %pair 
+# The command pair.table specifies that a tabulated  %pair %force should be added to every non-excluded particle %pair 
 # in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is (in force units)
@@ -1454,27 +1454,62 @@ def _table_eval(r, rmin, rmax, V, F, width):
 # \f}
 # ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between 
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between 
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, the user must specify a force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
+# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
 #
-# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by \c func (see example)
-# - coefficients passed to \c func - \c coeff (see example)
-# - \f$ r_{\mathrm{min}} \f$ - \c rmin (in distance units)
-# - \f$ r_{\mathrm{max}} \f$ - \c rmax (in distance units)
+# The following coefficients must be set per unique %pair of particle types.
+# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by `func` (see example)
+# - coefficients passed to `func` - `coeff` (see example)
+# - \f$ r_{\mathrm{min}} \f$ - `rmin` (in distance units)
+# - \f$ r_{\mathrm{max}} \f$ - `rmax` (in distance units)
+#
+# The table *width* is set once when pair.table is specified (see table.__init__())
+# There are two ways to specify the other parameters. 
 # 
-# \b Example:
-# \code
-# table.pair_coeff.set('A', 'A', func=my_potential, rmin=0, rmax=10, coeff=dict(A=1.5, s=3.0))
-# \endcode
+# \par Example: Set table from a given function
+# When you have a functional form for V and F, you can enter that
+# directly into python. pair.table will evaluate the given function over \a width points between \a rmin and \a rmax
+# and use the resulting values in the table.
+# ~~~~~~~~~~~~~
+# def lj(r, rmin, rmax, epsilon, sigma):
+#     V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
+#     F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
+#     return (V, F)
 #
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# table = pair.table(width=1000)
+# table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
+# table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
+# table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
+# ~~~~~~~~~~~~~
+#
+# \par Example: Set a table from a file
+# When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, pair.table can use the given
+# values direcly. You must first specify the number of rows in your tables when initializing pair.table. Then use
+# table.set_from_file() to read the file.
+# ~~~~~~~~~~~~~
+# table = pair.table(width=1000)
+# table.set_from_file('A', 'A', filename='table_AA.dat')
+# table.set_from_file('A', 'B', filename='table_AB.dat')
+# table.set_from_file('B', 'B', filename='table_BB.dat')
+# ~~~~~~~~~~~~~
+#
+# \par Example: Mix functions and files
+# ~~~~~~~~~~~~~
+# table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
+# table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
+# table.set_from_file('B', 'B', filename='table_BB.dat')
+# ~~~~~~~~~~~~~
+#
+# \note For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
 # \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
-# The table \a width is set once when pair.table is specified (see __init__())
+# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+# not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
+# \note %Pair coefficients for all type pairs in the simulation must be
+# set before it can be started with run().
+
 class table(force._force):
     ## Specify the Tabulated %pair %force
     #
@@ -1482,24 +1517,6 @@ class table(force._force):
     # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
     # \param name Name of the force instance
     #
-    # \b Example:
-    # \code
-    # def lj(r, rmin, rmax, epsilon, sigma):
-    #     V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
-    #     F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
-    #     return (V, F)
-    #
-    # table = pair.table(width=1000)
-    # table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
-    # table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
-    # table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
-    # \endcode
-    #
-    # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
-    # not diverge near r=0, then a setting of \c rmin=0 is valid.
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
     def __init__(self, width, r_cut=0, name=None):
         util.print_status_line();
         
@@ -1586,6 +1603,27 @@ class table(force._force):
 
                 self.update_pair_table(i, j, func, rmin, rmax, coeff);
 
+    ## Set a pair interaction from a file
+    # \param a Name of type A in pair
+    # \param b Name of type B in pair
+    # \param filename Name of the file to read
+    #
+    # The provided file specifies V and F at equally spaced r values.
+    # Example:
+    # \code
+    # #r  V    F
+    # 1.0 2.0 -3.0
+    # 1.1 3.0 -4.0
+    # 1.2 2.0 -3.0
+    # 1.3 1.0 -2.0
+    # 1.4 0.0 -1.0
+    # 1.5 -1.0 0.0
+    #\endcode
+    #
+    # The first r value sets \a rmin, the last sets \a rmax. Any line with \# as the first non-whitespace character is
+    # is treated as a comment. The \a r values must monotonically increase and be equally spaced. The table is read
+    # directly into the grid points used to evaluate \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$.
+    #
     def set_from_file(self, a, b, filename):
         util.print_status_line();
 
@@ -1598,6 +1636,8 @@ class table(force._force):
 
         # read in lines from the file
         for line in f.readlines():
+            line = line.strip();
+
             # skip comment lines
             if line[0] == '#':
                 continue;
