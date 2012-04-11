@@ -135,6 +135,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "PPPM");
     
+    // Scope the array handle accesses
+    {
     assert(m_pdata);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -242,6 +244,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+    }
 
     // access flags and correct energy and virial if needed
     PDataFlags flags = this->m_pdata->getFlags();
