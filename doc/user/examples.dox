@@ -53,29 +53,34 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 1. \ref dump_dcd "Writing DCD trajectory files" - demonstrates \link hoomd_script.dump.dcd dump.dcd\endlink<br>
     <i>write a file which can be viewed in visualization
-    software such as VMD</i>
-
+    software such as VMD</i>\n
+    \n
 2. \ref analyze_imd "Visualizing simulations in real time" - demonstrates \link hoomd_script.analyze.imd analyze.imd\endlink<br>
-    <i>use VMD to view a running simulation update in real time</i>
-
+    <i>use VMD to view a running simulation update in real time</i>\n
+    \n
 3. \ref create_random_polymers "Initialize a system with randomly generated polymers" - demonstrates \link hoomd_script.init.create_random_polymers init.create_random_polymers\endlink<br>
-    <i>initialize a random system of polymers given configurable parameters</i>
-
+    <i>initialize a random system of polymers given configurable parameters</i>\n
+    \n
 4. \ref init_xml "Initialize from an XML file" - demonstrates \link hoomd_script.init.read_xml init.read_xml\endlink<br>
-    <i>initialize a system with any configuration from a file</i>
-
+    <i>initialize a system with any configuration from a file</i>\n
+    \n
 5. \ref box_resize "Shrinking/expanding the simulation box" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
-    <i>slowly change the simulation box dimensions</i>
-
+    <i>slowly change the simulation box dimensions</i>\n
+    \n
 6. \ref box_resize_rigid "Shrinking/expanding the simulation box with rigid bodies" - demonstrates \link hoomd_script.update.box_resize update.box_resize\endlink<br>
-    <i>behavior of update.box_resize with rigid bodies in the system</i>
-
+    <i>behavior of update.box_resize with rigid bodies in the system</i>\n
+    \n
 7. \ref init_reset "Run multiple simulations in one job script" - demonstrates \link hoomd_script.init.reset init.reset\endlink<br>
-    <i>use a python loop to run many simulations at different parameters in a single script</i>
-
+    <i>use a python loop to run many simulations at different parameters in a single script</i>\n
+    \n
 8. \ref init_create_empty "Set initial conditions directly from python code" - demonstrates \link hoomd_script.init.create_empty init.create_empty\endlink<br>
-    <i>use python code to create custom initial configurations without needing to write an xml file</i>
-
+    <i>use python code to create custom initial configurations without needing to write an xml file</i>\n
+    \n
+9. \ref pair_table "Use any functional form for pair interactions" - demonstrates \link hoomd_script.pair.table pair.table\endlink<br>
+    <i>specify an abritrary pair interaction without needing to write C++ code</i>\n
+    \n
+10. \ref pair_table_file "Use any tabulated data for pair interactions" - demonstrates \link hoomd_script.pair.table pair.table\endlink<br>
+    <i>specify an abritrary pair interaction, read from a file</i>\n
 
 */
 
@@ -328,6 +333,90 @@ cd ~/hoomd-examples
 Then run:
 \code
 $ hoomd -x init_create_empty
+\endcode
+
+<hr>
+
+*/
+
+/*! \example pair_table
+
+This example demonstrates how to use \link hoomd_script.pair.table pair.table\endlink to specify an arbitrary
+particle pair interaction, given a functional form for \f$ V(r) \f$ and \f$ F(r) = -\frac{\partial V}{\partial r}\f$. 
+
+First, write a python function which evaluates \f$ V(r) \f$ and \f$ F(r) \f$ in the following form
+~~~~~~~~~~~~~{.py}
+def my_potential(r, rmin, rmax, coeff1, coeff2, coeff3):
+    V = # function of r, rmin, rmax, coeff1, ...
+    F = # function of r, rmin, rmax, coeff1, ... (-dV/dr)
+    return (V, F)
+~~~~~~~~~~~~~
+
+Then, initialize the table potential with a chosen number of points:
+~~~~~~~~~~~~~{.py}
+table = pair.table(width=1000)
+~~~~~~~~~~~~~
+
+The function, parameters *rmin* and *rmax*, and coefficients can be set individually for each type pair:
+~~~~~~~~~~~~~{.py}
+table.pair_coeff.set('A', 'A', func=my_potential, rmin=0.8, rmax=3.0, coeff=dict(coeff1=1.5, coeff2=1.0, coeff3=-4.5))
+~~~~~~~~~~~~~
+Any number of coefficients of any name may be present in your function. The function is evaluated at *width* points in
+in the range `[rmin,rmax]`. Outside of the range `[rmin,rmax]`, both the force and energy evaluate to zero.
+In the range, the given *r* in a pair interaction is used to interpolate linearly between the two nearest points in
+the table.
+
+To run this example, copy the examples directory from share/hoomd/examples your hoomd installation directory.
+\code
+cp -R HOOMD-INSTALL-DIR/share/hoomd/examples ~/hoomd-examples
+cd ~/hoomd-examples
+\endcode
+
+Then run:
+\code
+$ hoomd -x pair_table
+\endcode
+
+<hr>
+
+*/
+
+/*! \example pair_table_file
+
+This example demonstrates how to use \link hoomd_script.pair.table pair.table\endlink to specify an arbitrary
+particle pair interaction, where \f$ V(r) \f$ and \f$ F(r) = -\frac{\partial V}{\partial r}\f$ are provided in a file.
+
+First, write a file that lists \f$ V(r) \f$ and \f$ F(r) \f$ in the following form:
+\snippet pair_table_file.dat start
+...
+\snippet pair_table_file.dat end
+
+The first column lists all the *r* values. The first *r* value in the file is taken to be *rmin*. The last
+is *rmax*. All values in-between must be evenly spaced and monotonically increasing. The second column specifies
+\f$ V(r) \f$ and the third specifies \f$ F(r) \f$.
+
+Then, initialize the table potential with a chosen number of points. The number of points must match the number of
+rows in the data file.
+~~~~~~~~~~~~~{.py}
+table = pair.table(width=171)
+~~~~~~~~~~~~~
+
+Use one individual file for each type pair. When using more than one file, all must have the same number of rows.
+~~~~~~~~~~~~~{.py}
+table.set_from_file('A', 'A', filename='pair_table_file.dat')
+~~~~~~~~~~~~~
+Outside of the range `[rmin,rmax]`, both the force and energy evaluate to zero. In the range, the given *r* in a pair
+interaction is used to interpolate linearly between the two nearest points in the provided table.
+
+To run this example, copy the examples directory from share/hoomd/examples your hoomd installation directory.
+\code
+cp -R HOOMD-INSTALL-DIR/share/hoomd/examples ~/hoomd-examples
+cd ~/hoomd-examples
+\endcode
+
+Then run:
+\code
+$ hoomd -x pair_table_file
 \endcode
 
 <hr>
