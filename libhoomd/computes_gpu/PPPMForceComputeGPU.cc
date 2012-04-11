@@ -243,7 +243,12 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
             CHECK_CUDA_ERROR();
         }
 
-
+    // access flags and correct energy and virial if needed
+    PDataFlags flags = this->m_pdata->getFlags();
+    if (flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
+        {
+        fix_thermo_quantities();
+        }
 
     //   int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
     //    int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+3+7);
