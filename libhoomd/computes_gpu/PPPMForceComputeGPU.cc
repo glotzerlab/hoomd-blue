@@ -104,10 +104,32 @@ void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar ka
     {
     PPPMForceCompute::setParams(Nx, Ny, Nz, order, kappa, rcut);
     cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_C2C);
-    GPUArray<Scalar2> n_i_data(Nx*Ny*Nz, exec_conf);
-    m_pppm_data.i_data.swap(n_i_data);
-    GPUArray<Scalar2> n_o_data(Nx*Ny*Nz, exec_conf);
-    m_pppm_data.o_data.swap(n_o_data);
+
+    GPUArray<Scalar> n_energy_sum(Nx*Ny*Nz, exec_conf);
+    m_energy_sum.swap(n_energy_sum);
+
+    GPUArray<Scalar> n_v_xx_sum(Nx*Ny*Nz, exec_conf);
+    m_v_xx_sum.swap(n_v_xx_sum);
+
+    GPUArray<Scalar> n_v_xy_sum(Nx*Ny*Nz, exec_conf);
+    m_v_xy_sum.swap(n_v_xy_sum);
+    
+    GPUArray<Scalar> n_v_xz_sum(Nx*Ny*Nz, exec_conf);
+    m_v_xz_sum.swap(n_v_xz_sum);
+    
+    GPUArray<Scalar> n_v_yy_sum(Nx*Ny*Nz, exec_conf);
+    m_v_yy_sum.swap(n_v_yy_sum);
+    
+    GPUArray<Scalar> n_v_yz_sum(Nx*Ny*Nz, exec_conf);
+    m_v_yz_sum.swap(n_v_yz_sum);
+    
+    GPUArray<Scalar> n_v_zz_sum(Nx*Ny*Nz, exec_conf);
+    m_v_zz_sum.swap(n_v_zz_sum);
+  
+    GPUArray<Scalar> n_o_data(Nx*Ny*Nz, exec_conf);
+    o_data.swap(n_o_data);
+
+
     }
 
 
@@ -135,20 +157,18 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "PPPM");
     
-    // Scope the array handle accesses
-    {
     assert(m_pdata);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    ArrayHandle<cufftComplex> d_rho_real_space(m_pppm_data.m_rho_real_space, access_location::device, access_mode::readwrite);
+    ArrayHandle<cufftComplex> d_rho_real_space(m_rho_real_space, access_location::device, access_mode::readwrite);
     ArrayHandle<cufftComplex> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
     ArrayHandle<cufftComplex> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
     ArrayHandle<cufftComplex> d_Ez(m_Ez, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_kvec(m_kvec, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_green_hat(m_pppm_data.m_green_hat, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_green_hat(m_green_hat, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> d_field(m_field, access_location::device, access_mode::readwrite);
 
@@ -167,7 +187,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         temp =  floor(((m_kappa*L.z/(M_PI*m_Nz)) *  pow(-log(EPS_HOC),0.25)));
         int nbz = (int)temp;
 
-        ArrayHandle<Scalar3> d_vg(m_pppm_data.m_vg, access_location::device, access_mode::readwrite);;
+        ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);;
         ArrayHandle<Scalar> d_gf_b(m_gf_b, access_location::device, access_mode::readwrite);
 
         reset_kvec_green_hat(box,
@@ -194,8 +214,6 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     // run the kernel in parallel on all GPUs
 
     gpu_compute_pppm_forces(d_force.data,
-                            d_virial.data,
-                            m_virial.getPitch(),
                             m_pdata->getN(),
                             d_pos.data,
                             d_charge.data,
@@ -244,69 +262,66 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+
+    PDataFlags flags = m_pdata->getFlags();
+
+    if(flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]) {
+        ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_energy_sum(m_energy_sum, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_v_xx_sum(m_v_xx_sum, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_v_xy_sum(m_v_xy_sum, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_v_xz_sum(m_v_xz_sum, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_v_yy_sum(m_v_yy_sum, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_v_yz_sum(m_v_yz_sum, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_v_zz_sum(m_v_zz_sum, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_o_data(o_data, access_location::device, access_mode::readwrite);
+        Scalar pppm_virial_energy[7];
+        gpu_compute_pppm_thermo(m_Nx,
+                                m_Ny,
+                                m_Nz,
+                                d_rho_real_space.data,
+                                d_vg.data,
+                                d_green_hat.data,
+                                d_o_data.data,
+                                d_energy_sum.data,
+                                d_v_xx_sum.data,
+                                d_v_xy_sum.data,
+                                d_v_xz_sum.data,
+                                d_v_yy_sum.data,
+                                d_v_yz_sum.data,
+                                d_v_zz_sum.data,
+                                pppm_virial_energy,
+                                m_block_size);
+
+        Scalar3 L = box.getL();
+
+        pppm_virial_energy[0] *= m_energy_virial_factor;
+        pppm_virial_energy[0] -= m_q2 * m_kappa / 1.772453850905516027298168f;
+        pppm_virial_energy[0] -= 0.5*M_PI*m_q*m_q / (m_kappa*m_kappa* L.x * L.y * L.z);
+
+        for(int i = 1; i < 7; i++) {
+            pppm_virial_energy[i] *= m_energy_virial_factor;
+            }	       
+
+        // apply the correction to particle 0
+        ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
+        unsigned int virial_pitch = m_virial.getPitch();
+
+        h_force.data[0].w += pppm_virial_energy[0];
+        h_virial.data[0*virial_pitch+0] += pppm_virial_energy[1]; // xx
+        h_virial.data[1*virial_pitch+0] += pppm_virial_energy[2]; // xy
+        h_virial.data[2*virial_pitch+0] += pppm_virial_energy[3]; // xz
+        h_virial.data[3*virial_pitch+0] += pppm_virial_energy[4]; // yy
+        h_virial.data[4*virial_pitch+0] += pppm_virial_energy[5]; // yz
+        h_virial.data[5*virial_pitch+0] += pppm_virial_energy[6]; // zz
+
     }
 
-    // access flags and correct energy and virial if needed
-    PDataFlags flags = this->m_pdata->getFlags();
-    if (flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
-        {
-        fix_thermo_quantities();
-        }
 
-    //   int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
+    //    int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
     //    int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+3+7);
     if (m_prof) m_prof->pop(exec_conf, 1, 1);
-    }
-
-
-/*! Computes the additional energy and virial contributed by PPPM
-    \note The additional terms are simply added onto particle 0 so that they will be accounted for by
-    ComputeThermo
-*/
-void PPPMForceComputeGPU::fix_thermo_quantities()
-    {
-    BoxDim box = m_pdata->getBox();
-
-    // access data arrays
-    ArrayHandle<cufftComplex> d_rho_real_space(m_pppm_data.m_rho_real_space, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_green_hat(m_pppm_data.m_green_hat, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_vg(m_pppm_data.m_vg, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar2> d_i_data(m_pppm_data.i_data, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar2> d_o_data(m_pppm_data.o_data, access_location::device, access_mode::readwrite);
-
-    // compute correction
-    Scalar2 pppm_virial_energy =  gpu_compute_pppm_thermo(m_Nx,
-                                                          m_Ny,
-                                                          m_Nz,
-                                                          d_rho_real_space.data,
-                                                          d_vg.data,
-                                                          d_green_hat.data,
-                                                          d_o_data.data,
-                                                          d_i_data.data,
-                                                          256);
-
-    Scalar3 L = box.getL();
-    pppm_virial_energy.x *= m_energy_virial_factor/ (3.0f * L.x * L.y * L.z);
-    pppm_virial_energy.y *= m_energy_virial_factor;
-    pppm_virial_energy.y -= m_q2 * m_kappa / 1.772453850905516027298168f;
-    pppm_virial_energy.y -= 0.5*M_PI*m_q*m_q / (m_kappa*m_kappa* L.x * L.y * L.z);
-
-    // apply the correction to particle 0
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
-    h_force.data[0].w += pppm_virial_energy.y;
-
-    // TODO: This adds a pressure. It should add a correction to the virial instead
-    h_virial.data[0] += pppm_virial_energy.x;
-
-    // TODO: Compute full virial tensor
-    // unsigned int virial_pitch = net_virial.getPitch();
-    //h_virial.data[0*virial_pitch+0] += xx virial;
-    //h_virial.data[1*virial_pitch+0] += xy virial;
-    //h_virial.data[2*virial_pitch+0] += xz virial;
-    //h_virial.data[3*virial_pitch+0] += yy virial;
-    //h_virial.data[4*virial_pitch+0] += yz virial;
-    //h_virial.data[5*virial_pitch+0] += zz virial;
     }
 
 void export_PPPMForceComputeGPU()

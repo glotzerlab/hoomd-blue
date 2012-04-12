@@ -82,8 +82,8 @@ float3 *g_vg;
 float *g_green_hat;
 float2 *o_data, *idat;
 
-/*! \file HarmonicBondForceGPU.cu
-  \brief Defines GPU kernel code for calculating the harmonic bond forces. Used by HarmonicBondForceComputeGPU.
+/*! \file PPPMForceGPU.cu
+  \brief Defines GPU kernel code for calculating the Fourier space forces for the Coulomb interaction. Used by PPPMForceComputeGPU.
 */
 
 //! Texture for reading particle positions
@@ -404,8 +404,6 @@ void calculate_forces_kernel(float4 *d_force,
 
 
 cudaError_t gpu_compute_pppm_forces(float4 *d_force,
-                                    float *d_virial,
-                                    const unsigned int virial_pitch,
                                     const unsigned int N,
                                     const Scalar4 *d_pos,
                                     const Scalar *d_charge,
@@ -451,14 +449,9 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
     if (error != cudaSuccess)
         return error;
 
+
     // set the grid charge to zero
     cudaMemset(GPU_rho_real_space, 0, sizeof(cufftComplex)*Nx*Ny*Nz);
-
-    // zero the force arrays for all particles
-    // zero_forces <<< grid, threads >>> (force_data, N);
-    cudaMemset(d_force, 0, sizeof(float4)*N);
-    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
-
 
     // run the kernels
     // assign charges to the grid points, one thread per particles
@@ -476,6 +469,7 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
     cudaThreadSynchronize();    
 
     // FFT
+
     cufftExecC2C(plan, GPU_rho_real_space, GPU_rho_real_space, CUFFT_FORWARD);
     cudaThreadSynchronize();
 
@@ -519,8 +513,14 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
 
 __global__ void calculate_thermo_quantities_kernel(cufftComplex* rho, 
                                                    float* green_function, 
-                                                   float2* GPU_virial_energy, 
-                                                   float3* vg, 
+                                                   float* energy_sum,
+                                                   float* v_xx,
+                                                   float* v_xy,
+                                                   float* v_xz,
+                                                   float* v_yy,
+                                                   float* v_yz,
+                                                   float* v_zz,
+                                                   float* vg,
                                                    int Nx, 
                                                    int Ny, 
                                                    int Nz)
@@ -531,9 +531,13 @@ __global__ void calculate_thermo_quantities_kernel(cufftComplex* rho,
         {
 
         float energy = green_function[idx]*(rho[idx].x*rho[idx].x + rho[idx].y*rho[idx].y);
-        float pressure = energy*(vg[idx].x + vg[idx].y + vg[idx].z);
-        GPU_virial_energy[idx].x = pressure;
-        GPU_virial_energy[idx].y = energy;
+        v_xx[idx] = energy*vg[  6*idx];
+        v_xy[idx] = energy*vg[1+6*idx];
+        v_xz[idx] = energy*vg[2+6*idx];
+        v_yy[idx] = energy*vg[3+6*idx];
+        v_yz[idx] = energy*vg[4+6*idx];
+        v_zz[idx] = energy*vg[5+6*idx];
+        energy_sum[idx] = energy;
         }
     }
 
@@ -583,35 +587,31 @@ reduce6(T *g_idata, T *g_odata, unsigned int n)
     unsigned int gridSize = blockSize*2*gridDim.x;
     
     T mySum;
-    mySum.x = 0.0f;
-    mySum.y = 0.0f;
+    mySum = 0.0f;
 
     // we reduce multiple elements per thread.  The number is determined by the 
     // number of active thread blocks (via gridDim).  More blocks will result
     // in a larger gridSize and therefore fewer elements per thread
     while (i < n)
         {         
-        mySum.x += g_idata[i].x;
-        mySum.y += g_idata[i].y;
+        mySum += g_idata[i];
         // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
         if (nIsPow2 || i + blockSize < n) {
-            mySum.x += g_idata[i+blockSize].x;  
-            mySum.y += g_idata[i+blockSize].y; 
+            mySum += g_idata[i+blockSize];  
             }
         i += gridSize;
 
         } 
 
     // each thread puts its local sum into shared memory 
-    sdata[idx].x = mySum.x;
-    sdata[idx].y = mySum.y;
+    sdata[idx] = mySum;
     __syncthreads();
 
 
     // do reduction in shared mem
-    if (blockSize >= 512) { if (idx < 256) { sdata[idx].x = mySum.x = mySum.x + sdata[idx + 256].x; sdata[idx].y = mySum.y = mySum.y + sdata[idx + 256].y; } __syncthreads(); }
-    if (blockSize >= 256) { if (idx < 128) { sdata[idx].x = mySum.x = mySum.x + sdata[idx + 128].x; sdata[idx].y = mySum.y = mySum.y + sdata[idx + 128].y; } __syncthreads(); }
-    if (blockSize >= 128) { if (idx <  64) { sdata[idx].x = mySum.x = mySum.x + sdata[idx +  64].x; sdata[idx].y = mySum.y = mySum.y + sdata[idx +  64].y; } __syncthreads(); }
+    if (blockSize >= 512) { if (idx < 256) { sdata[idx] = mySum = mySum + sdata[idx + 256]; } __syncthreads(); }
+    if (blockSize >= 256) { if (idx < 128) { sdata[idx] = mySum = mySum + sdata[idx + 128]; } __syncthreads(); }
+    if (blockSize >= 128) { if (idx <  64) { sdata[idx] = mySum = mySum + sdata[idx + 64]; } __syncthreads(); }
     
 #ifndef __DEVICE_EMULATION__
     if (idx < 32)
@@ -621,18 +621,17 @@ reduce6(T *g_idata, T *g_odata, unsigned int n)
         // we need to declare our shared memory volatile so that the compiler
         // doesn't reorder stores to it and induce incorrect behavior.
         volatile T* smem = sdata;
-        if (blockSize >=  64) { smem[idx].x = mySum.x = mySum.x + smem[idx + 32].x; smem[idx].y = mySum.y = mySum.y + smem[idx + 32].y; EMUSYNC; }
-        if (blockSize >=  32) { smem[idx].x = mySum.x = mySum.x + smem[idx + 16].x; smem[idx].y = mySum.y = mySum.y + smem[idx + 16].y; EMUSYNC; }
-        if (blockSize >=  16) { smem[idx].x = mySum.x = mySum.x + smem[idx +  8].x; smem[idx].y = mySum.y = mySum.y + smem[idx +  8].y; EMUSYNC; }
-        if (blockSize >=   8) { smem[idx].x = mySum.x = mySum.x + smem[idx +  4].x; smem[idx].y = mySum.y = mySum.y + smem[idx +  4].y; EMUSYNC; }
-        if (blockSize >=   4) { smem[idx].x = mySum.x = mySum.x + smem[idx +  2].x; smem[idx].y = mySum.y = mySum.y + smem[idx +  2].y; EMUSYNC; }
-        if (blockSize >=   2) { smem[idx].x = mySum.x = mySum.x + smem[idx +  1].x; smem[idx].y = mySum.y = mySum.y + smem[idx +  1].y; EMUSYNC; }
+        if (blockSize >=  64) { smem[idx] = mySum = mySum + smem[idx + 32]; EMUSYNC; }
+        if (blockSize >=  32) { smem[idx] = mySum = mySum + smem[idx + 16]; EMUSYNC; }
+        if (blockSize >=  16) { smem[idx] = mySum = mySum + smem[idx + 8]; EMUSYNC; }
+        if (blockSize >=   8) { smem[idx] = mySum = mySum + smem[idx + 4]; EMUSYNC; }
+        if (blockSize >=   4) { smem[idx] = mySum = mySum + smem[idx + 2]; EMUSYNC; }
+        if (blockSize >=   2) { smem[idx] = mySum = mySum + smem[idx + 1]; EMUSYNC; }
         }
     
     // write result for this block to global mem 
     if (idx == 0) {
-        g_odata[blockIdx.x].x = sdata[0].x;
-        g_odata[blockIdx.x].y = sdata[0].y;
+        g_odata[blockIdx.x] = sdata[0];
         }
     }
 
@@ -702,24 +701,75 @@ reduce(int size, int threads, int blocks, T *d_idata, T *d_odata)
         }
     }
 
-float2 gpu_compute_pppm_thermo(int Nx,
-                               int Ny,
-                               int Nz,
-                               cufftComplex *GPU_rho_real_space,
-                               float3 *GPU_vg,
-                               float *GPU_green_hat,
-                               float2 *o_data,
-                               float2 *i_data,
-                               int block_size)
+
+
+void gpu_compute_pppm_thermo(int Nx,
+                             int Ny,
+                             int Nz,
+                             cufftComplex *GPU_rho_real_space,
+                             float *GPU_vg,
+                             float *GPU_green_hat,
+                             float *o_data,
+                             float *energy_sum, 
+                             float *v_xx,
+                             float *v_xy,
+                             float *v_xz,
+                             float *v_yy,
+                             float *v_yz,
+                             float *v_zz,
+                             float *pppm_virial_energy,
+                             int block_size)
 
     {
 
+    // setup the grid to run the kernel with one thread per grid point
     dim3 N_grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 N_threads(block_size, 1, 1);
 
+    calculate_thermo_quantities_kernel <<< N_grid, N_threads >>> (GPU_rho_real_space,
+                                                                  GPU_green_hat,
+                                                                  energy_sum,
+                                                                  v_xx,
+                                                                  v_xy,
+                                                                  v_xz,
+                                                                  v_yy,
+                                                                  v_yz,
+                                                                  v_zz,
+                                                                  GPU_vg, 
+                                                                  Nx, 
+                                                                  Ny, 
+                                                                  Nz);
+
+
+    cudaThreadSynchronize();
+
     int n = Nx*Ny*Nz;
-    float2 gpu_result = make_float2(0.0f, 0.0f);
-    calculate_thermo_quantities_kernel <<< N_grid, N_threads >>> (GPU_rho_real_space, GPU_green_hat, i_data, GPU_vg, Nx, Ny, Nz);
+    pppm_virial_energy[0] = float_reduce(energy_sum, o_data, n);
+
+    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
+    pppm_virial_energy[1] = float_reduce(v_xx, o_data, n);
+
+    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
+    pppm_virial_energy[2] = float_reduce(v_xy, o_data, n);
+
+    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
+    pppm_virial_energy[3] = float_reduce(v_xz, o_data, n);
+
+    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
+    pppm_virial_energy[4] = float_reduce(v_yy, o_data, n);
+
+    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
+    pppm_virial_energy[5] = float_reduce(v_yz, o_data, n);
+
+    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
+    pppm_virial_energy[6] = float_reduce(v_zz, o_data, n);
+
+}
+
+
+float float_reduce(float* i_data, float* o_data, int n) {
+
+    float gpu_result = 0.0;
     int threads, blocks, maxBlocks = 64, maxThreads = 256, cpuFinalThreshold = 1;
     bool needReadBack = true;
     threads = (n < maxThreads*2) ? nextPow2((n + 1)/ 2) : maxThreads;
@@ -729,47 +779,40 @@ float2 gpu_compute_pppm_thermo(int Nx,
 
     int maxNumBlocks = MIN( n / maxThreads, MAX_BLOCK_DIM_SIZE);
 
-    reduce<float2>(n, threads, blocks, i_data, o_data);
 
-    // sum partial block sums on GPU
+    reduce<float>(n, threads, blocks, i_data, o_data);
+
     int s=blocks;
-    while(s > cpuFinalThreshold) 
+    while(s > cpuFinalThreshold)
         {
         threads = 0;
         blocks = 0;
         threads = (s < maxThreads*2) ? nextPow2((s + 1)/ 2) : maxThreads;
         blocks = (s + (threads * 2 - 1)) / (threads * 2);
         blocks = MIN(maxBlocks, blocks);
-        reduce<float2>(s, threads, blocks, o_data, o_data);
+        reduce<float>(s, threads, blocks, o_data, o_data);
         cudaThreadSynchronize();
         s = (s + (threads*2-1)) / (threads*2);
         }
-            
+
     if (s > 1)
         {
-        // copy result from device to host
-        float2* h_odata = (float2 *) malloc(maxNumBlocks*sizeof(float2));
-        cudaMemcpy( h_odata, o_data, s * sizeof(float2), cudaMemcpyDeviceToHost);
+        float* h_odata = (float *) malloc(maxNumBlocks*sizeof(float));
+        cudaMemcpy( h_odata, o_data, s * sizeof(float), cudaMemcpyDeviceToHost);
 
 
-        for(int i=0; i < s; i++) 
+        for(int i=0; i < s; i++)
             {
-            gpu_result.x += h_odata[i].x;
-            gpu_result.y += h_odata[i].y;
+            gpu_result += h_odata[i];
             }
         needReadBack = false;
         free(h_odata);
         }
 
-    //copy to CPU:
-    if (needReadBack) cudaMemcpy( &gpu_result,  o_data, sizeof(float2), cudaMemcpyDeviceToHost);
+    if (needReadBack) cudaMemcpy( &gpu_result,  o_data, sizeof(float), cudaMemcpyDeviceToHost);
 
     return gpu_result;
-    }
-
-
-
-
+}
 __global__ void reset_kvec_green_hat_kernel(BoxDim box, 
                                             int Nx, 
                                             int Ny, 
@@ -778,7 +821,7 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                                             float kappa, 
                                             float3* kvec_array, 
                                             float* green_hat, 
-                                            float3* vg, 
+                                            float* vg, 
                                             int nbx, 
                                             int nby, 
                                             int nbz, 
@@ -812,15 +855,21 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
 
         float sqk =  kvec_array[idx].x*kvec_array[idx].x + kvec_array[idx].y*kvec_array[idx].y + kvec_array[idx].z*kvec_array[idx].z;
         if(sqk == 0.0f) {
-            vg[idx].x = 0.0f;
-            vg[idx].y = 0.0f;
-            vg[idx].z = 0.0f;
+            vg[0+6*idx] = 0.0f;
+            vg[1+6*idx] = 0.0f;
+            vg[2+6*idx] = 0.0f;
+            vg[3+6*idx] = 0.0f;
+            vg[4+6*idx] = 0.0f;
+            vg[5+6*idx] = 0.0f;
             }
         else {
             float vterm = (-2.0f/sqk - 0.5f/kappa2);
-            vg[idx].x = 1.0f+vterm*kvec_array[idx].x*kvec_array[idx].x;
-            vg[idx].y = 1.0f+vterm*kvec_array[idx].y*kvec_array[idx].y;
-            vg[idx].z = 1.0f+vterm*kvec_array[idx].z*kvec_array[idx].z;
+            vg[0+6*idx] = 1.0f+vterm*kvec_array[idx].x*kvec_array[idx].x;
+            vg[1+6*idx] =      vterm*kvec_array[idx].x*kvec_array[idx].y;
+            vg[2+6*idx] =      vterm*kvec_array[idx].x*kvec_array[idx].z;
+            vg[3+6*idx] = 1.0f+vterm*kvec_array[idx].y*kvec_array[idx].y;
+            vg[4+6*idx] =      vterm*kvec_array[idx].y*kvec_array[idx].z;
+            vg[5+6*idx] = 1.0f+vterm*kvec_array[idx].z*kvec_array[idx].z;
             }
 
         float unitkx = (6.28318531f/L.x);
@@ -902,7 +951,7 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
                                  float kappa,
                                  float3 *kvec,
                                  float *green_hat,
-                                 float3 *vg,
+                                 float *vg,
                                  float *gf_b,
                                  int block_size)
     {
@@ -1042,6 +1091,12 @@ cudaError_t fix_exclusions(float4 *d_force,
     if (error != cudaSuccess)
         return error;
 
+
+
+    // zero the force arrays for all particles
+    // zero_forces <<< grid, threads >>> (force_data, N);
+    cudaMemset(d_force, 0, sizeof(float4)*N);
+    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
 
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,

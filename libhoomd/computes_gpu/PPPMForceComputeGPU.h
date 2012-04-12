@@ -87,7 +87,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         //! Constructs the compute
         PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
                             boost::shared_ptr<NeighborList> nlist,
-                            boost::shared_ptr<ParticleGroup> group);
+			    boost::shared_ptr<ParticleGroup> group);
         //! Destructor
         ~PPPMForceComputeGPU();
         
@@ -103,7 +103,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         virtual void setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut);
 
         //! fix the energy and virial thermodynamic quantities
-        virtual void fix_thermo_quantities();
+
     protected:
         int m_block_size;                    //!< Block size to run calculation on
         cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
