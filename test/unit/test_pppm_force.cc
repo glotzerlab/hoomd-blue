@@ -130,6 +130,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     int order = 5;
     Scalar kappa = 1.0;
     Scalar rcut = 1.0;
+    Scalar volume = 6.0*10.0*14.0;
     fc_2->setParams(Nx, Ny, Nz, order, kappa, rcut);
     
     // compute the forces
@@ -142,11 +143,14 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[0].z, 0.179186f, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force.data[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+0]
-                        +h_virial.data[3*pitch+0]
-                        +h_virial.data[5*pitch+0], tol_small);
-    
+    MY_BOOST_CHECK_CLOSE(h_force.data[0].w, -0.576491f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial.data[0*pitch]/volume, -0.000180413f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial.data[1*pitch]/volume, -0.000180153f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial.data[2*pitch]/volume, -0.000180394f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial.data[3*pitch]/volume, -0.000211184f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial.data[4*pitch]/volume, -0.000204873f, tol_small);
+    MY_BOOST_CHECK_CLOSE(h_virial.data[5*pitch]/volume, -0.000219209f, tol_small);
+
     MY_BOOST_CHECK_CLOSE(h_force.data[1].x, -0.151335f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[1].y, -0.172246f, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force.data[1].z, -0.179186f, tol_small);

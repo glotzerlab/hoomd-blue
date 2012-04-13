@@ -1142,15 +1142,16 @@ void PPPMForceCompute::fix_thermo_quantities()
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
     h_force.data[0].w += pppm_virial_energy.y;
+    
 
     // Compute full virial tensor
     unsigned int virial_pitch = m_virial.getPitch();
-    h_virial.data[0*virial_pitch+0] += v_xx;
-    h_virial.data[1*virial_pitch+0] += v_xy;
-    h_virial.data[2*virial_pitch+0] += v_xz;
-    h_virial.data[3*virial_pitch+0] += v_yy;
-    h_virial.data[4*virial_pitch+0] += v_yz;
-    h_virial.data[5*virial_pitch+0] += v_zz;
+    h_virial.data[0*virial_pitch+0] += v_xx*m_energy_virial_factor;
+    h_virial.data[1*virial_pitch+0] += v_xy*m_energy_virial_factor;
+    h_virial.data[2*virial_pitch+0] += v_xz*m_energy_virial_factor;
+    h_virial.data[3*virial_pitch+0] += v_yy*m_energy_virial_factor;
+    h_virial.data[4*virial_pitch+0] += v_yz*m_energy_virial_factor;
+    h_virial.data[5*virial_pitch+0] += v_zz*m_energy_virial_factor;
     }
 
 void export_PPPMForceCompute()
