@@ -90,7 +90,7 @@ class PotentialBond : public ForceCompute
                       const std::string& log_suffix="");
 
         //! Destructor
-        ~PotentialBond() { };
+        ~PotentialBond();
 
         //! Set the parameters
         virtual void setParams(unsigned int type, const param_type &param);
@@ -119,6 +119,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
                       const std::string& log_suffix)
     : ForceCompute(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">" << endl;
     assert(m_pdata);
 
     // access the bond data for later use
@@ -129,6 +130,12 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNBondTypes(), exec_conf);
     m_params.swap(params);
+    }
+
+template< class evaluator >
+PotentialBond< evaluator >::~PotentialBond()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying PotentialBond<" << evaluator::getName() << ">" << endl;
     }
 
 /*! \param type Type of the bond to set parameters for
@@ -142,7 +149,7 @@ void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& 
     // make sure the type is valid
     if (type >= m_bond_data->getNBondTypes())
         {
-        cout << endl << "***Error! Invalid bond type specified" << endl << endl;
+        this->m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
         }
 
@@ -174,8 +181,7 @@ Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsi
         }
     else
         {
-        std::cerr << std::endl << "***Error! " << quantity << " is not a valid log quantity for PotentialPair"
-                  << std::endl << endl;
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }
@@ -214,19 +220,9 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
-    // get a local copy of the global simulation box too
-    const BoxDim& global_box = m_pdata->getGlobalBox();
-    // sanity check
-    assert(global_box.xhi > global_box.xlo && global_box.yhi > global_box.ylo && global_box.zhi > global_box.zlo);
-
-    // precalculate box lengths
-    Scalar Lx = global_box.xhi - global_box.xlo;
-    Scalar Ly = global_box.yhi - global_box.ylo;
-    Scalar Lz = global_box.zhi - global_box.zlo;
-    Scalar Lx2 = Lx / Scalar(2.0);
-    Scalar Ly2 = Ly / Scalar(2.0);
-    Scalar Lz2 = Lz / Scalar(2.0);
-
+    // get a local copy of the simulation box too
+    const BoxDim& box = m_pdata->getBox();
+ 
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
     for (unsigned int i = 0; i < size; i++)
@@ -257,9 +253,10 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 #endif
         // calculate d\vec{r}
         // (MEM TRANSFER: 6 Scalars / FLOPS: 3)
-        Scalar dx = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        Scalar dy = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        Scalar dz = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+        Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+        Scalar3 posb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+
+        Scalar3 dx = posb - posa;
 
         // access diameter (if needed)
         Scalar diameter_a = Scalar(0.0);
@@ -280,29 +277,10 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             }
 
         // if the vector crosses the box, pull it back
-        // (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done))
-        if (dx >= Lx2)
-            dx -= Lx;
-        else if (dx < -Lx2)
-            dx += Lx;
-
-        if (dy >= Ly2)
-            dy -= Ly;
-        else if (dy < -Ly2)
-            dy += Ly;
-
-        if (dz >= Lz2)
-            dz -= Lz;
-        else if (dz < -Lz2)
-            dz += Lz;
-
-        // sanity check
-        assert(dx >= -Lx2 && dx < Lx2);
-        assert(dy >= -Ly2 && dy < Ly2);
-        assert(dz >= -Lz2 && dz < Lz2);
+        dx = box.minImage(dx);
 
         // calculate r_ab squared
-        Scalar rsq = dx*dx+dy*dy+dz*dz;
+        Scalar rsq = dot(dx,dx);
 
         // get parameters for this bond type
         param_type param = h_params.data[bond.type];
@@ -326,19 +304,19 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             // calculate virial
             Scalar bond_virial[6];
             Scalar force_div2r = Scalar(1.0/2.0)*force_divr;
-            bond_virial[0] = dx * dx * force_div2r; // xx
-            bond_virial[1] = dx * dy * force_div2r; // xy
-            bond_virial[2] = dx * dz * force_div2r; // xz
-            bond_virial[3] = dy * dy * force_div2r; // yy
-            bond_virial[4] = dy * dz * force_div2r; // yz
-            bond_virial[5] = dz * dz * force_div2r; // zz
+            bond_virial[0] = dx.x * dx.x * force_div2r; // xx
+            bond_virial[1] = dx.x * dx.y * force_div2r; // xy
+            bond_virial[2] = dx.x * dx.z * force_div2r; // xz
+            bond_virial[3] = dx.y * dx.y * force_div2r; // yy
+            bond_virial[4] = dx.y * dx.z * force_div2r; // yz
+            bond_virial[5] = dx.z * dx.z * force_div2r; // zz
 
             // add the force to the particles (only for non-ghost particles)
             if (idx_b < m_pdata->getN())
                 {
-                h_force.data[idx_b].x += force_divr * dx;
-                h_force.data[idx_b].y += force_divr * dy;
-                h_force.data[idx_b].z += force_divr * dz;
+                h_force.data[idx_b].x += force_divr * dx.x;
+                h_force.data[idx_b].y += force_divr * dx.y;
+                h_force.data[idx_b].z += force_divr * dx.z;
                 h_force.data[idx_b].w += bond_eng;
                 for (unsigned int i = 0; i < 6; i++)
                     h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
@@ -346,17 +324,34 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
             if (idx_a < m_pdata->getN())
                 {
-                h_force.data[idx_a].x -= force_divr * dx;
-                h_force.data[idx_a].y -= force_divr * dy;
-                h_force.data[idx_a].z -= force_divr * dz;
+                h_force.data[idx_a].x -= force_divr * dx.x;
+                h_force.data[idx_a].y -= force_divr * dx.y;
+                h_force.data[idx_a].z -= force_divr * dx.z;
                 h_force.data[idx_a].w += bond_eng;
                 for (unsigned int i = 0; i < 6; i++)
                     h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
                 }
+            // add the force to the particles
+            // (MEM TRANSFER: 20 Scalars / FLOPS 16)
+            h_force.data[idx_b].x += force_divr * dx.x;
+            h_force.data[idx_b].y += force_divr * dx.y;
+            h_force.data[idx_b].z += force_divr * dx.z;
+            h_force.data[idx_b].w += bond_eng;
+            for (unsigned int i = 0; i < 6; i++)
+                h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+
+            h_force.data[idx_a].x -= force_divr * dx.x;
+            h_force.data[idx_a].y -= force_divr * dx.y;
+            h_force.data[idx_a].z -= force_divr * dx.z;
+            h_force.data[idx_a].w += bond_eng;
+            for (unsigned int i = 0; i < 6; i++)
+                h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
+
+>>>>>>> master
             }
         else
             {
-            cerr << endl << "***Error! << " << evaluator::getName() << " bond out of bounds" << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }

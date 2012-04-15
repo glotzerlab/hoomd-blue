@@ -130,7 +130,7 @@ class _analyzer:
     def __init__(self):
         # check if initialization has occurred
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create analyzer before initialization\n";
+            globals.msg.error("Cannot create analyzer before initialization\n");
             raise RuntimeError('Error creating analyzer');
         
         self.cpp_analyzer = None;
@@ -160,7 +160,7 @@ class _analyzer:
             globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000);
             globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
         else:
-            print >> sys.stderr, "\n***Error! I don't know what to do with a period of type", type(period), "expecting an int or a function\n";
+            globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
             raise RuntimeError('Error creating analyzer');
             
     ## \var enabled
@@ -184,7 +184,7 @@ class _analyzer:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_analyzer is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_analyzer not set, please report\n');
             raise RuntimeError();
 
     ## Disables the analyzer
@@ -212,7 +212,7 @@ class _analyzer:
         
         # check if we are already disabled
         if not self.enabled:
-            print "***Warning! Ignoring command to disable an analyzer that is already disabled";
+            globals.msg.warning("Ignoring command to disable an analyzer that is already disabled");
             return;
         
         self.prev_period = globals.system.getAnalyzerPeriod(self.analyzer_name);
@@ -233,7 +233,7 @@ class _analyzer:
         
         # check if we are already disabled
         if self.enabled:
-            print "***Warning! Ignoring command to enable an analyzer that is already enabled";
+            globals.msg.warning("Ignoring command to enable an analyzer that is already enabled");
             return;
             
         globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period);
@@ -268,9 +268,9 @@ class _analyzer:
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
-            print "***Warning! A period cannot be changed to a variable one";
+            globals.msg.warning("A period cannot be changed to a variable one");
         else:
-            print "***Warning! I don't know what to do with a period of type", type(period), "expecting an int or a function";
+            globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
         
 # set default counter
 _analyzer.cur_id = 0;
@@ -592,7 +592,7 @@ class msd(_analyzer):
     
         # it is an error to specify no groups
         if len(groups) == 0:
-            print >> sys.stderr, "\nAt least one group must be specified to analyze.msd\n";
+            globals.msg.error('At least one group must be specified to analyze.msd\n');
             raise RuntimeError('Error creating analyzer');
 
         # set the group columns

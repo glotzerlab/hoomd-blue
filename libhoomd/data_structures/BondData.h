@@ -263,7 +263,9 @@ class BondData : boost::noncopyable
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to maximum particle number change signal
         boost::signals::connection m_ghost_particle_num_change_connection; //!< Connection to ghost particle number change signal
 
-        
+    
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
+
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_bonds_dirty flag when partciles are sorted or a bond is added.
             The flag is used to test if the data structure needs updating on the GPU.

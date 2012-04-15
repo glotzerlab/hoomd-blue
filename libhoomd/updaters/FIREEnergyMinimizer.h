@@ -75,7 +75,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
     public:
         //! Constructs the minimizer and associates it with the system
         FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition>,  boost::shared_ptr<ParticleGroup>, Scalar, bool=true);
-        virtual ~FIREEnergyMinimizer() {}
+        virtual ~FIREEnergyMinimizer();
         
         //! Reset the minimization
         virtual void reset();

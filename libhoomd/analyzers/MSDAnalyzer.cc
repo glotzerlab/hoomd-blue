@@ -87,22 +87,24 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     : Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_appending(false),
       m_columns_changed(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing MSDAnalyzer: " << fname << " " << header_prefix << " " << overwrite << endl;
+
     // open the file
     if (exists(fname) && !overwrite)
         {
-        cout << "Notice: Appending msd to existing file \"" << fname << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.msd: Appending msd to existing file \"" << fname << "\"" << endl;
         m_file.open(fname.c_str(), ios_base::in | ios_base::out | ios_base::ate);
         m_appending = true;
         }
     else
         {
-        cout << "Notice: Creating new msd in file \"" << fname << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.msd: Creating new msd in file \"" << fname << "\"" << endl;
         m_file.open(fname.c_str(), ios_base::out);
         }
         
     if (!m_file.good())
         {
-        cerr << endl << "***Error! Error opening msd file " << fname << endl << endl;
+        m_exec_conf->msg->error() << "analyze.msd: Unable to open file " << fname << endl;
         throw runtime_error("Error initializing analyze.msd");
         }
     
@@ -116,9 +118,7 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
     
     // for each particle in the data
     for (unsigned int tag = 0; tag < m_pdata->getN(); tag++)
@@ -127,10 +127,15 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
         unsigned int idx = h_rtag.data[tag];
         
         // save its initial position
-        m_initial_x[tag] = h_pos.data[idx].x + Scalar(h_image.data[idx].x) * Lx;
-        m_initial_y[tag] = h_pos.data[idx].y + Scalar(h_image.data[idx].y) * Ly;
-        m_initial_z[tag] = h_pos.data[idx].z + Scalar(h_image.data[idx].z) * Lz;
+        m_initial_x[tag] = h_pos.data[idx].x + Scalar(h_image.data[idx].x) * L.x;
+        m_initial_y[tag] = h_pos.data[idx].y + Scalar(h_image.data[idx].y) * L.y;
+        m_initial_z[tag] = h_pos.data[idx].z + Scalar(h_image.data[idx].z) * L.z;
         }
+    }
+
+MSDAnalyzer::~MSDAnalyzer()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying MSDAnalyzer" << endl;
     }
 
 /*!\param timestep Current time step of the simulation
@@ -147,7 +152,7 @@ void MSDAnalyzer::analyze(unsigned int timestep)
     // error check
     if (m_columns.size() == 0)
         {
-        cout << "***Warning! No columns specified in the MSD analysis" << endl;
+        m_exec_conf->msg->warning() << "analyze.msd: No columns specified in the MSD analysis" << endl;
         return;
         }
     
@@ -206,8 +211,8 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
     unsigned int nparticles = m_pdata->getN();
     if (nparticles != xml.getPos().size())
         {
-        cerr << endl << "***Error! Found " << xml.getPos().size() << " particles in "
-             << xml_fname << ", but there are " << nparticles << " in the current simulation." << endl << endl;
+        m_exec_conf->msg->error() << "analyze.msd: Found " << xml.getPos().size() << " particles in "
+             << xml_fname << ", but there are " << nparticles << " in the current simulation." << endl;
         throw runtime_error("Error setting r0 in analyze.msd");
         }
     
@@ -215,15 +220,13 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
     bool have_image = (xml.getImage().size() == nparticles);
     if (!have_image)
         {
-        cout << "***Warning! Image data missing or corrupt in " << xml_fname
+        m_exec_conf->msg->warning() << "analyze.msd: Image data missing or corrupt in " << xml_fname
              << ". Computed msd values will not be correct." << endl;
         }
     
     // reset the initial positions
     BoxDim box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
     
     // for each particle in the data
     for (unsigned int tag = 0; tag < nparticles; tag++)
@@ -238,9 +241,9 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
         if (have_image)
             {
             HOOMDInitializer::vec_int image = xml.getImage()[tag];
-            m_initial_x[tag] += Scalar(image.x) * Lx;
-            m_initial_y[tag] += Scalar(image.y) * Ly;
-            m_initial_z[tag] += Scalar(image.z) * Lz;
+            m_initial_x[tag] += Scalar(image.x) * L.x;
+            m_initial_y[tag] += Scalar(image.y) * L.y;
+            m_initial_z[tag] += Scalar(image.z) * L.z;
             }
         }
     }
@@ -258,7 +261,7 @@ void MSDAnalyzer::writeHeader()
     
     if (m_columns.size() == 0)
         {
-        cout << "***Warning! No columns specified in the MSD analysis" << endl;
+        m_exec_conf->msg->warning() << "analyze.msd: No columns specified in the MSD analysis" << endl;
         return;
         }
         
@@ -284,9 +287,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
     
     // initial sum for the average
     Scalar msd = Scalar(0.0);
@@ -294,7 +295,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
     // handle the case where there are 0 members gracefully
     if (group->getNumMembers() == 0)
         {
-        cout << "***Warning! Group has 0 members, reporting a calculated msd of 0.0" << endl;
+        m_exec_conf->msg->warning() << "analyze.msd: Group has 0 members, reporting a calculated msd of 0.0" << endl;
         return Scalar(0.0);
         }
         
@@ -308,9 +309,9 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
         unsigned int idx = h_rtag.data[tag];
         
         // save its initial position
-        Scalar dx = h_pos.data[idx].x + Scalar(h_image.data[idx].x) * Lx - m_initial_x[tag];
-        Scalar dy = h_pos.data[idx].y + Scalar(h_image.data[idx].y) * Ly - m_initial_y[tag];
-        Scalar dz = h_pos.data[idx].z + Scalar(h_image.data[idx].z) * Lz - m_initial_z[tag];
+        Scalar dx = h_pos.data[idx].x + Scalar(h_image.data[idx].x) * L.x - m_initial_x[tag];
+        Scalar dy = h_pos.data[idx].y + Scalar(h_image.data[idx].y) * L.y - m_initial_y[tag];
+        Scalar dz = h_pos.data[idx].z + Scalar(h_image.data[idx].z) * L.z - m_initial_z[tag];
         
         msd += dx*dx + dy*dy + dz*dz;
         }
@@ -350,7 +351,7 @@ void MSDAnalyzer::writeRow(unsigned int timestep)
     
     if (!m_file.good())
         {
-        cerr << endl << "***Error! Unexpected error writing msd file" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.msd: I/O error while writing file" << endl;
         throw runtime_error("Error writting msd file");
         }
         

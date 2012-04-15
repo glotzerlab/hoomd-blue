@@ -109,6 +109,9 @@ class ComputeThermo : public Compute
         ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<ParticleGroup> group,
                       const std::string& suffix = std::string(""));
+
+        //! Destructor
+        virtual ~ComputeThermo();
         
         //! Compute the temperature
         virtual void compute(unsigned int timestep);

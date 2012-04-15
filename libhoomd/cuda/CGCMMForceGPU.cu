@@ -97,7 +97,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
                                                 const unsigned int virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
-                                               const gpu_boxsize box,
+                                               const BoxDim box,
                                                const unsigned int *d_n_neigh,
                                                const unsigned int *d_nlist,
                                                const Index2D nli,
@@ -113,30 +113,31 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
             s_coeffs[cur_offset + threadIdx.x] = d_coeffs[cur_offset + threadIdx.x];
         }
     __syncthreads();
-    
+
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (idx >= N)
         return;
-    
+
     // load in the length of the list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
-    
+
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
-    
+    float4 postype = tex1Dfetch(pdata_pos_tex, idx);
+    float3 pos = make_float3(postype.x, postype.y, postype.z);
+
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float virial[6];
     for (int i = 0; i < 6; i++)
         virial[i] = 0.0f;
-    
+
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
     unsigned int next_neigh = d_nlist[nli(idx, 0)];
-    
+
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
@@ -155,37 +156,34 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
             // prefetch the next value and set the current one
             cur_neigh = next_neigh;
             next_neigh = d_nlist[nli(idx, neigh_idx+1)];
-                
+
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
-            
-            // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-            float dx = pos.x - neigh_pos.x;
-            float dy = pos.y - neigh_pos.y;
-            float dz = pos.z - neigh_pos.z;
-            
+            float4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
+            float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+
+            // calculate dr (with periodic boundary conditions)
+            float3 dx = pos - neigh_pos;
+
             // apply periodic boundary conditions: (FLOPS 12)
-            dx -= box.Lx * rintf(dx * box.Lxinv);
-            dy -= box.Ly * rintf(dy * box.Lyinv);
-            dz -= box.Lz * rintf(dz * box.Lzinv);
-            
+            dx = box.minImage(dx);
+
             // calculate r squard (FLOPS: 5)
-            float rsq = dx*dx + dy*dy + dz*dz;
-            
+            float rsq = dot(dx, dx);
+
             // calculate 1/r^2 (FLOPS: 2)
             float r2inv;
             if (rsq >= r_cutsq)
                 r2inv = 0.0f;
             else
                 r2inv = 1.0f / rsq;
-                
+
             // lookup the coefficients between this combination of particle types
-            int typ_pair = __float_as_int(neigh_pos.w) * coeff_width + __float_as_int(pos.w);
+            int typ_pair = __float_as_int(neigh_postype.w) * coeff_width + __float_as_int(postype.w);
             float lj12 = s_coeffs[typ_pair].x;
             float lj9 = s_coeffs[typ_pair].y;
             float lj6 = s_coeffs[typ_pair].z;
             float lj4 = s_coeffs[typ_pair].w;
-            
+
             // calculate 1/r^3 and 1/r^6 (FLOPS: 3)
             float r3inv = r2inv * rsqrtf(rsq);
             float r6inv = r3inv * r3inv;
@@ -193,24 +191,24 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
             float forcemag_divr = r6inv * (r2inv * (12.0f * lj12  * r6inv + 9.0f * r3inv * lj9 + 6.0f * lj6 ) + 4.0f * lj4);
             // calculate the virial (FLOPS: 3)
             float forcemag_div2r = 0.5f*forcemag_divr;
-            virial[0] += dx*dx*forcemag_div2r;
-            virial[1] += dx*dy*forcemag_div2r;
-            virial[2] += dx*dz*forcemag_div2r;
-            virial[3] += dy*dy*forcemag_div2r;
-            virial[4] += dy*dz*forcemag_div2r;
-            virial[5] += dz*dz*forcemag_div2r;
+            virial[0] += dx.x*dx.x*forcemag_div2r;
+            virial[1] += dx.x*dx.y*forcemag_div2r;
+            virial[2] += dx.x*dx.z*forcemag_div2r;
+            virial[3] += dx.y*dx.y*forcemag_div2r;
+            virial[4] += dx.y*dx.z*forcemag_div2r;
+            virial[5] += dx.z*dx.z*forcemag_div2r;
 
             // calculate the pair energy (FLOPS: 8)
             float pair_eng = r6inv * (lj12 * r6inv + lj9 * r3inv + lj6) + lj4 * r2inv * r2inv;
-            
+
             // add up the force vector components (FLOPS: 7)
-            force.x += dx * forcemag_divr;
-            force.y += dy * forcemag_divr;
-            force.z += dz * forcemag_divr;
+            force.x += dx.x * forcemag_divr;
+            force.y += dx.y * forcemag_divr;
+            force.z += dx.z * forcemag_divr;
             force.w += pair_eng;
             }
         }
-        
+
     // potential energy per particle must be halved
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
@@ -246,7 +244,7 @@ cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
-                                     const gpu_boxsize &box,
+                                     const BoxDim& box,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
                                      const Index2D& nli,
@@ -257,7 +255,7 @@ cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
     {
     assert(d_coeffs);
     assert(coeff_width > 0);
-    
+
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
@@ -272,7 +270,7 @@ cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
     // run the kernel
     gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>
          (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
-        
+
     return cudaSuccess;
     }
 

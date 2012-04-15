@@ -80,7 +80,8 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            const std::string& suffix)
     : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false)
     {
-    
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepBDNVT" << endl;
+
     // Hash the User's Seed to make it less likely to be a low positive integer
     m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
     
@@ -108,6 +109,11 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
     m_log_name = string("bdnvt_reservoir_energy") + suffix;
     }
 
+TwoStepBDNVT::~TwoStepBDNVT()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepBDNVT" << endl;
+    }
+
 /*! \param typ Particle type to set gamma for
     \param gamma The gamma value to set
 */
@@ -116,12 +122,12 @@ void TwoStepBDNVT::setGamma(unsigned int typ, Scalar gamma)
     // check for user errors
     if (m_gamma_diam)
         {
-        cerr << endl << "***Error! Trying to set gamma when it is set to be the diameter! " << typ << endl << endl;
+        m_exec_conf->msg->error() << "intergae.bdnvt: Trying to set gamma when it is set to be the diameter! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepBDNVT");
         }
     if (typ >= m_pdata->getNTypes())
         {
-        cerr << endl << "***Error! Trying to set gamma for a non existant type! " << typ << endl << endl;
+        m_exec_conf->msg->error() << "intergae.bdnvt: Trying to set gamma for a non existant type! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepBDNVT");
         }
         

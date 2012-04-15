@@ -78,6 +78,8 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVERigid" << endl;
+
     if (!skip_restart)
         {
         setRestartIntegratorVariables();
@@ -95,8 +97,13 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     m_body_group = boost::shared_ptr<RigidBodyGroup>(new RigidBodyGroup(sysdef, m_group));
     if (m_body_group->getNumMembers() == 0)
         {
-        cout << "***Warning! Empty group for rigid body integration." << endl;
+        m_exec_conf->msg->warning() << "integrate.*_rigid: Empty group." << endl;
         }
+    }
+
+TwoStepNVERigid::~TwoStepNVERigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVERigid" << endl;
     }
 
 void TwoStepNVERigid::setRestartIntegratorVariables()
@@ -298,13 +305,6 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     
     // get box
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
     
     // now we can get on with the velocity verlet: initial integration
     {
@@ -342,39 +342,7 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
         com_handle.data[body].y += vel_handle.data[body].y * m_deltaT;
         com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
         
-        // map the center of mass to the periodic box, update the com image info
-        if (com_handle.data[body].x >= box.xhi)
-            {
-            com_handle.data[body].x -= Lx;
-            body_image_handle.data[body].x++;
-            }
-        else if (com_handle.data[body].x < box.xlo)
-            {
-            com_handle.data[body].x += Lx;
-            body_image_handle.data[body].x--;
-            }
-            
-        if (com_handle.data[body].y >= box.yhi)
-            {
-            com_handle.data[body].y -= Ly;
-            body_image_handle.data[body].y++;
-            }
-        else if (com_handle.data[body].y < box.ylo)
-            {
-            com_handle.data[body].y += Ly;
-            body_image_handle.data[body].y--;
-            }
-            
-        if (com_handle.data[body].z >= box.zhi)
-            {
-            com_handle.data[body].z -= Lz;
-            body_image_handle.data[body].z++;
-            }
-        else if (com_handle.data[body].z < box.zlo)
-            {
-            com_handle.data[body].z += Lz;
-            body_image_handle.data[body].z--;
-            }
+        box.wrap(com_handle.data[body], body_image_handle.data[body]);
         
         // update the angular momentum
         angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
@@ -615,10 +583,9 @@ void TwoStepNVERigid::validateGroup()
         unsigned int tag = m_group->getMemberTag(gidx);
         if (m_pdata->getBody(tag) == NO_BODY)
             {
-            cerr << endl;
-            cerr << "***Error! Particle " << tag << " does not belong to a rigid body. "
-                 << "This integration method does not operate on free particles." << endl << endl;
-                
+            m_exec_conf->msg->error() << "integreate.*_rigid: Particle " << tag << " does not belong to a rigid body. "
+                 << "This integration method does not operate on free particles." << endl;
+
             throw std::runtime_error("Error initializing integration method");
             }
         }

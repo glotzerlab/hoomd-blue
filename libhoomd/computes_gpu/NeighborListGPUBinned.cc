@@ -154,7 +154,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
         {
-        cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
+        m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
         throw runtime_error("Error computing neighbor list");
         }
     
@@ -164,26 +164,20 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     uint3 dim = m_cl->getDim();
     if (dim.x < 3 || dim.y < 3 || dim.z < 3)
         {
-        cerr << endl << "***Error! NeighborListGPUBinned doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl << endl;
+        m_exec_conf->msg->error() << "NeighborListGPUBinned doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl;
         throw runtime_error("Error computing neighbor list");
         }
 
     if (m_prof)
         m_prof->push(exec_conf, "compute");
 
-    // precompute scale factor
-    Scalar3 width = m_cl->getWidth();
-    Scalar3 scale = make_scalar3(Scalar(1.0) / width.x,
-                                 Scalar(1.0) / width.y,
-                                 Scalar(1.0) / width.z);
-    
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    const gpu_boxsize& box = m_pdata->getBoxGPU();
-    const gpu_boxsize& global_box = m_pdata->getGlobalBoxGPU();
+    BoxDim box = m_pdata->getBoxGPU();
+    BoxDim global_box = m_pdata->getGlobalBoxGPU();
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -234,8 +228,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellIndexer(),
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
-                                 scale,
-                                 m_cl->getDim(),
                                  box,
                                  global_box,
                                  rmaxsq,
@@ -280,8 +272,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     dca_cell_tdb,
                                     dca_cell_adj,
                                     m_cl->getCellIndexer(),
-                                    scale,
-                                    m_cl->getDim(),
                                     box,
                                     global_box,
                                     rmaxsq,

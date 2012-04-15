@@ -84,13 +84,19 @@ using namespace boost;
 
 /*! \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
+    \param _msg Messenger to use for status message printing
 
     If there are capable GPUs present in the system, the default chosen by CUDA will be used. Specifically,
     cudaSetDevice is not called, so systems with compute-exclusive GPUs will see automatic choice of free GPUs.
     If there are no capable GPUs present in the system, then the execution mode will revert run on the CPU.
 */
-ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display) : m_cuda_error_checking(false)
+ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display, boost::shared_ptr<Messenger> _msg)
+    : m_cuda_error_checking(false), msg(_msg)
     {
+    if (!msg)
+        msg = boost::shared_ptr<Messenger>(new Messenger());
+
+    msg->notice(5) << "Constructing ExecutionConfiguration: " << min_cpu << " " << ignore_display << endl;
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -118,13 +124,22 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     \param gpu_id ID of the GPU on which to run, or -1 for automatic selection
     \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
+    \param _msg Messenger to use for status message printing
 
     Explicitly force the use of either CPU or GPU execution. If GPU exeuction is selected, then a default GPU choice
     is made by not calling cudaSetDevice.
 */
-ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, bool min_cpu, bool ignore_display)
-    : m_cuda_error_checking(false)
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
+                                               int gpu_id,
+                                               bool min_cpu,
+                                               bool ignore_display,
+                                               boost::shared_ptr<Messenger> _msg)
+    : m_cuda_error_checking(false), msg(_msg)
     {
+    if (!msg)
+        msg = boost::shared_ptr<Messenger>(new Messenger());
+
+    msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
     
 #ifdef ENABLE_CUDA
@@ -137,7 +152,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, b
 #else
     if (exec_mode == GPU)
         {
-        cout << endl << "***Error! GPU execution requested, but this hoomd was built without CUDA support" << endl << endl;
+        msg->error() << "GPU execution requested, but this hoomd was built without CUDA support" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
 #endif
@@ -147,6 +162,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, b
 
 ExecutionConfiguration::~ExecutionConfiguration()
     {
+    msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
+
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         cudaThreadExit();
@@ -197,7 +214,7 @@ unsigned int ExecutionConfiguration::getComputeCapability() const
     return result;
     }
     
-void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line)
+void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line) const
     {
     // if there was an error
     if (err != cudaSuccess)
@@ -207,15 +224,15 @@ void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, 
             file += strlen(HOOMD_SOURCE_DIR);
         
         // print an error message
-        cerr << endl << "***Error! " << string(cudaGetErrorString(err)) << " before " 
-             << file << ":" << line << endl << endl;
+        msg->error() << "***Error! " << string(cudaGetErrorString(err)) << " before " 
+                     << file << ":" << line << endl;
 
         // throw an error exception
         throw(runtime_error("CUDA Error"));
         }
     }
     
-void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line)
+void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line) const
     {
     cudaThreadSynchronize();
     cudaError_t err = cudaGetLastError();
@@ -236,7 +253,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     int capable_count = getNumCapableGPUs();
     if (capable_count == 0)
         {
-        cout << endl << "***Error! No capable GPUs were found!" << endl << endl;
+        msg->error() << "No capable GPUs were found!" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
         
@@ -245,8 +262,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     if (min_cpu)
         {
         if (CUDART_VERSION < 2020)
-            cout << endl << "***Warning! --minimize-cpu-usage will have no effect because this hoomd was built "
-                 << "against a version of CUDA prior to 2.2" << endl << endl;
+            msg->warning() << "--minimize-cpu-usage will have no effect because this hoomd was built " << endl;
+            msg->warning() << "against a version of CUDA prior to 2.2" << endl;
                  
         flags |= cudaDeviceBlockingSync;
         }
@@ -257,21 +274,20 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         
     if (gpu_id < -1)
         {
-        cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is invalid." << endl << endl;
+        msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is invalid." << endl;
         throw runtime_error("Error initializing execution configuration");
         }
         
     if (gpu_id >= (int)getNumTotalGPUs())
         {
-        cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is not present in the system." << endl
-             << "CUDA reports only " << getNumTotalGPUs() << endl << endl;
+        msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is not present in the system." << endl;
+        msg->error() << "CUDA reports only " << getNumTotalGPUs() << endl;
         throw runtime_error("Error initializing execution configuration");
         }
         
     if (!isGPUAvailable(gpu_id))
         {
-        cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is not available for executing HOOMD."
-             << endl << "See the notice printed above to determine the reason." << endl << endl;
+        msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is not available for executing HOOMD." << endl;
         throw runtime_error("Error initializing execution configuration");
         }
     
@@ -287,14 +303,14 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         // initialize the default CUDA context
         cudaFree(0);
         }
-    CHECK_CUDA_ERROR();
+    checkCUDAError(__FILE__, __LINE__);
     }
 
 /*! Prints out a status line for the selected GPU
 */
 void ExecutionConfiguration::printGPUStats()
     {
-    cout << "HOOMD-blue is running on the following GPU:" << endl;
+    msg->notice(1) << "HOOMD-blue is running on the following GPU:" << endl;
             
     // build a status line
     ostringstream s;
@@ -323,13 +339,12 @@ void ExecutionConfiguration::printGPUStats()
     if (dev_prop.kernelExecTimeoutEnabled)
         s << ", DIS";
             
-    cout << s.str() << endl;
+    msg->notice(1) << s.str() << endl;
     
     // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
     if (dev_prop.major <= 1 && dev_prop.minor <= 1)
         {
-        cout << endl << "***Warning! HOOMD-blue is not supported on compute 1.1 and older GPUs"
-             << endl << endl;
+        msg->warning() << "HOOMD-blue is not supported on compute 1.1 and older GPUs" << endl;
         }
     }
 
@@ -369,8 +384,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     // first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
     if (driverVersion == 0)
         {
-        cout << endl << "***Warning! NVIDIA driver not installed or is too old, ignoring any GPUs in the system."
-             << endl << endl;
+        msg->warning() << "NVIDIA driver not installed or is too old, ignoring any GPUs in the system." << endl;
         return;
         }
         
@@ -382,9 +396,9 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         int cudart_major = CUDART_VERSION / 1000;
         int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
         
-        cout << endl << "***Warning! The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
+        msg->warning() << "The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
              << driver_minor << ", but HOOMD was built against CUDA " << cudart_major << "." << cudart_minor << endl;
-        cout << "            Ignoring any GPUs in the system." << endl;
+        msg->warning() << "Ignoring any GPUs in the system." << endl;
         return;
         }
 
@@ -393,7 +407,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     cudaError_t error = cudaGetDeviceCount(&dev_count);
     if (error != cudaSuccess)
         {
-        cerr << endl << "***Error! Error calling cudaGetDeviceCount()." << endl << endl;
+        msg->error() << "Error calling cudaGetDeviceCount()" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
         
@@ -409,52 +423,50 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         cudaError_t error = cudaGetDeviceProperties(&prop, dev);
         if (error != cudaSuccess)
             {
-            cerr << endl << "***Error! Error calling cudaGetDeviceProperties()." << endl << endl;
+            msg->error() << "Error calling cudaGetDeviceProperties()" << endl;
             throw runtime_error("Error initializing execution configuration");
             }
             
         // start by assuming that the device is available, it will be excluded later if it is not
         m_gpu_available[dev] = true;
         
-        // if this is not a device emulation build: exclude the device emulation device
-#ifndef _DEVICEEMU
+        // exclude the device emulation device
         if (prop.major == 9999 && prop.minor == 9999)
             {
             m_gpu_available[dev] = false;
-            cout << "Notice: GPU id " << dev << " is not available for computation because "
-                 << "it is an emulated device" << endl;
+            msg->notice(2) << "GPU id " << dev << " is not available for computation because "
+                           << "it is an emulated device" << endl;
             }
-#endif
             
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
         if (m_gpu_available[dev] && compoundComputeVer < CUDA_ARCH)
             {
             m_gpu_available[dev] = false;
-            cout << "Notice: GPU id " << dev << " is not available for computation because "
-                 << "it's compute capability is not high enough" << endl;
+            msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
+                           << "it's compute capability is not high enough" << endl;
                  
             int min_major = CUDA_ARCH/10;
             int min_minor = CUDA_ARCH - min_major*10;
             
-            cout << "        This build of hoomd was compiled for a minimum capability of of " << min_major << "."
-                 << min_minor << " but the GPU is only " << prop.major << "." << prop.minor << endl;
+            msg->notice(2) << "This build of hoomd was compiled for a minimum capability of of " << min_major << "."
+                           << min_minor << " but the GPU is only " << prop.major << "." << prop.minor << endl;
             }
             
         // ignore the display gpu if that was requested
         if (m_gpu_available[dev] && ignore_display && prop.kernelExecTimeoutEnabled)
             {
             m_gpu_available[dev] = false;
-            cout << "Notice: GPU id " << dev << " is not available for computation because "
-                 << "it appears to be attached to a display" << endl;
+            msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
+                           << "it appears to be attached to a display" << endl;
             }
             
         // exclude a gpu if it is compute-prohibited
         if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeProhibited)
             {
             m_gpu_available[dev] = false;
-            cout << "Notice: GPU id " << dev << " is not available for computation because "
-                 << "it is set in the compute-prohibited mode" << endl;
+            msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
+                           << "it is set in the compute-prohibited mode" << endl;
             }
             
         // count the number of compute-exclusive gpus
@@ -471,7 +483,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             cudaError_t error = cudaGetDeviceProperties(&prop, dev);
             if (error != cudaSuccess)
                 {
-                cout << endl << "***Error! Error calling cudaGetDeviceProperties()." << endl << endl;
+                msg->error() << "***Error! Error calling cudaGetDeviceProperties()" << endl;
                 throw runtime_error("Error initializing execution configuration");
                 }
                 
@@ -570,16 +582,7 @@ void ExecutionConfiguration::setupStats()
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
-        cout << "OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU";
-        if (n_cpu > 1)
-            cout << " cores";
-        else
-            cout << " core";
-        
-        cout << endl;
-        
-        #else
-        cout << "OpenMP is not available. HOOMD-blue is running on a single CPU core" << endl;
+        msg->notice(1) << "OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
         #endif
         }
     }
@@ -587,12 +590,13 @@ void ExecutionConfiguration::setupStats()
 void export_ExecutionConfiguration()
     {
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-                         ("ExecutionConfiguration", init< bool, bool >())
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool>())
+                         ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger> >())
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
                          .def("getGPUName", &ExecutionConfiguration::getGPUName)
                          .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
+                         .def_readonly("msg", &ExecutionConfiguration::msg)
 #ifdef ENABLE_CUDA
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
@@ -603,8 +607,3 @@ void export_ExecutionConfiguration()
     .value("CPU", ExecutionConfiguration::CPU)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-

@@ -75,6 +75,8 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
                              const std::string& suffix)
     : Compute(sysdef), m_group(group), m_ndof(1)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
+
     assert(m_pdata);
     GPUArray< Scalar > properties(10, exec_conf);
     m_properties.swap(properties);
@@ -87,6 +89,10 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("num_particles") + suffix);
     }
 
+ComputeThermo::~ComputeThermo()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying ComputeThermo" << endl;
+    }
 
 /*! \param ndof Number of degrees of freedom to set
 */
@@ -94,7 +100,7 @@ void ComputeThermo::setNDOF(unsigned int ndof)
     {
     if (ndof == 0)
         {
-        cout << "***Warning! compute.thermo specified for a group with 0 degrees of freedom." << endl
+        m_exec_conf->msg->warning() << "compute.thermo: given a group with 0 degrees of freedom." << endl
              << "            overriding ndof=1 to avoid divide by 0 errors" << endl;
         ndof = 1;
         }
@@ -147,7 +153,7 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for ComputeThermo" << endl << endl;
+        m_exec_conf->msg->error() << "compute.thermo: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -314,18 +320,20 @@ void ComputeThermo::computeProperties()
     // compute the pressure
     // volume/area & other 2D stuff needed
     BoxDim global_box = m_pdata->getGlobalBox();
+
+    Scalar3 L = global_box.getL();
     Scalar volume;
     unsigned int D = m_sysdef->getNDimensions();
     if (D == 2)
         {
         // "volume" is area in 2D
-        volume = (global_box.xhi - global_box.xlo)*(global_box.yhi - global_box.ylo);
+        volume = L.x * L.y;
         // W needs to be corrected since the 1/3 factor is built in
         W *= Scalar(3.0/2.0);
         }
     else
         {
-        volume = (global_box.xhi - global_box.xlo)*(global_box.yhi - global_box.ylo)*(global_box.zhi-global_box.zlo);
+        volume = L.x * L.y * L.z;
         }
 
     // pressure: P = (N * K_B * T + W)/V
@@ -367,6 +375,7 @@ void ComputeThermo::computeProperties()
 Scalar2 ComputeThermo::PPPM_thermo_compute_cpu() 
     {
     BoxDim box = m_pdata->getBox();
+    Scalar3 L = box.getL();
 
     ArrayHandle<cufftComplex> d_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> d_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
@@ -381,10 +390,10 @@ Scalar2 ComputeThermo::PPPM_thermo_compute_cpu()
         pppm_virial_energy.x += pressure;
         pppm_virial_energy.y += energy;
         }
-    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * (box.xhi - box.xlo) * (box.yhi - box.ylo) * (box.zhi - box.zlo));
+    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * L.x * L.y * L.z);
     pppm_virial_energy.y *= PPPMData::energy_virial_factor;
     pppm_virial_energy.y -= PPPMData::q2 * PPPMData::kappa / 1.772453850905516027298168f;
-    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* (box.xhi - box.xlo) * (box.yhi - box.ylo) * (box.zhi - box.zlo));
+    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* L.x * L.y * L.z);
     return pppm_virial_energy;
 
 

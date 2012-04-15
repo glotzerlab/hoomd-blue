@@ -93,6 +93,7 @@ class TwoStepNVTRigid : public TwoStepNVERigid
                         boost::shared_ptr<Variant> T,
                         Scalar tau=10.0,
                         bool skip_restart=false);
+        ~TwoStepNVTRigid();
         
         //! Setup the initial net forces, torques and angular momenta
         void setup();
@@ -117,7 +118,7 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         virtual void setTau(Scalar tau)
             {
             if (tau <= 0.0)
-                cout << "***Warning! tau set less than or equal to 0.0 in TwoStepNVTRigid." << endl;
+                m_exec_conf->msg->warning() << "integrate.nvt_rigid: tau set less than or equal to 0.0" << endl;
             t_freq = 1.0 / tau;
             }
             

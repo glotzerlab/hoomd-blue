@@ -78,6 +78,8 @@ using namespace std;
 SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef), m_last_grid(0), m_last_dim(0)
     {
+    m_exec_conf->msg->notice(5) << "Constructing SFCPackUpdater" << endl;
+
     // perform lots of sanity checks
     assert(m_pdata);
     
@@ -109,6 +111,11 @@ void SFCPackUpdater::reallocate()
 SFCPackUpdater::~SFCPackUpdater()
     {
     m_max_particle_num_change_connection.disconnect();
+    }
+
+SFCPackUpdater::~SFCPackUpdater()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying SFCPackUpdater" << endl;
     }
 
 /*! Performs the sort.
@@ -473,13 +480,6 @@ void SFCPackUpdater::getSortedOrder2D()
     
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    Scalar binx = (box.xhi - box.xlo) / Scalar(m_grid);
-    Scalar biny = (box.yhi - box.ylo) / Scalar(m_grid);
-    
-    // precompute scale factors to eliminate division in inner loop
-    Scalar scalex = Scalar(1.0) / binx;
-    Scalar scaley = Scalar(1.0) / biny;
     
     // put the particles in the bins
     {
@@ -489,12 +489,14 @@ void SFCPackUpdater::getSortedOrder2D()
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((h_pos.data[n].x-box.xlo)*scalex) % m_grid;
-        unsigned int jb = (unsigned int)((h_pos.data[n].y-box.ylo)*scaley) % m_grid;
-        
+        Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
+        Scalar3 f = box.makeFraction(p);
+        unsigned int ib = (unsigned int)(f.x * m_grid) % m_grid;
+        unsigned int jb = (unsigned int)(f.y * m_grid) % m_grid;
+
         // record its bin
         unsigned int bin = ib*m_grid + jb;
-        
+
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(bin, n);
         }
     }
@@ -517,15 +519,6 @@ void SFCPackUpdater::getSortedOrder3D()
     
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    Scalar binx = (box.xhi - box.xlo) / Scalar(m_grid);
-    Scalar biny = (box.yhi - box.ylo) / Scalar(m_grid);
-    Scalar binz = (box.zhi - box.zlo) / Scalar(m_grid);
-    
-    // precompute scale factors to eliminate division in inner loop
-    Scalar scalex = Scalar(1.0) / binx;
-    Scalar scaley = Scalar(1.0) / biny;
-    Scalar scalez = Scalar(1.0) / binz;
     
     // reallocate memory arrays if m_grid changed
     // also regenerate the traversal order
@@ -534,12 +527,11 @@ void SFCPackUpdater::getSortedOrder3D()
         if (m_grid > 256)
             {
             unsigned int mb = m_grid*m_grid*m_grid*4 / 1024 / 1024;
-            cout << endl;
-            cout << "***Warning! sorter is about to allocate a very large amount of memory (" << mb << "MB)"
+            m_exec_conf->msg->warning() << "sorter is about to allocate a very large amount of memory (" << mb << "MB)"
                  << " and may crash." << endl;
-            cout << "            Reduce the amount of memory allocated to prevent this by decreasing the " << endl;
-            cout << "            grid dimension (i.e. sorter.set_params(grid=128) ) or by disabling it " << endl;
-            cout << "            ( sorter.disable() ) before beginning the run()." << endl << endl;
+            m_exec_conf->msg->warning() << "            Reduce the amount of memory allocated to prevent this by decreasing the " << endl;
+            m_exec_conf->msg->warning() << "            grid dimension (i.e. sorter.set_params(grid=128) ) or by disabling it " << endl;
+            m_exec_conf->msg->warning() << "            ( sorter.disable() ) before beginning the run()." << endl;
             }
 
         // generate the traversal order
@@ -574,21 +566,15 @@ void SFCPackUpdater::getSortedOrder3D()
     // for each particle
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
-        Scalar x, y, z;
+        Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
+        Scalar3 f = box.makeFraction(p);
+        unsigned int ib = (unsigned int)(f.x * m_grid) % m_grid;
+        unsigned int jb = (unsigned int)(f.y * m_grid) % m_grid;
+        unsigned int kb = (unsigned int)(f.z * m_grid) % m_grid;
 
-        // bin them by particle position if they are in no body
-        x = (h_pos.data[n].x-box.xlo)*scalex;
-        y = (h_pos.data[n].y-box.ylo)*scaley;
-        z = (h_pos.data[n].z-box.zlo)*scalez;
-        
-        // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)(x) % m_grid;
-        unsigned int jb = (unsigned int)(y) % m_grid;
-        unsigned int kb = (unsigned int)(z) % m_grid;
-        
         // record its bin
         unsigned int bin = ib*(m_grid*m_grid) + jb * m_grid + kb;
-        
+
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(m_traversal_order[bin], n);
         }
     
@@ -604,7 +590,7 @@ void SFCPackUpdater::getSortedOrder3D()
         
 void SFCPackUpdater::writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order)
     {
-    cout << "Notice: Writing space filling curve traversal order to " << fname << endl;
+    m_exec_conf->msg->notice(2) << "sorter: Writing space filling curve traversal order to " << fname << endl;
     ofstream f(fname.c_str());
     f << "@<TRIPOS>MOLECULE" <<endl;
     f << "Generated by HOOMD" << endl;
@@ -612,7 +598,7 @@ void SFCPackUpdater::writeTraversalOrder(const std::string& fname, const vector<
     f << "NO_CHARGES" << endl;
 
     f << "@<TRIPOS>ATOM" << endl;
-    cout << "Notice: Writing " << m_grid << "^3 grid cells" << endl;
+    m_exec_conf->msg->notice(2) << "sorter: Writing " << m_grid << "^3 grid cells" << endl;
 
     for (unsigned int i=0; i < reverse_order.size(); i++)
         {

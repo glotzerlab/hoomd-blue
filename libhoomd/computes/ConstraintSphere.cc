@@ -79,7 +79,14 @@ ConstraintSphere::ConstraintSphere(boost::shared_ptr<SystemDefinition> sysdef,
                                    Scalar r)
         : ForceConstraint(sysdef), m_group(group), m_P(P), m_r(r)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ConstraintSphere" << endl;
+
     validate();
+    }
+
+ConstraintSphere::~ConstraintSphere()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying ConstraintSphere" << endl;
     }
 
 /*!
@@ -170,12 +177,14 @@ void ConstraintSphere::computeForces(unsigned int timestep)
 void ConstraintSphere::validate()
     {
     BoxDim box = m_pdata->getBox();
+    Scalar3 lo = box.getLo();
+    Scalar3 hi = box.getHi();
     
-    if (m_P.x + m_r > box.xhi || m_P.x - m_r < box.xlo ||
-        m_P.y + m_r > box.yhi || m_P.y - m_r < box.ylo ||
-        m_P.z + m_r > box.zhi || m_P.z - m_r < box.zlo)
+    if (m_P.x + m_r > hi.x || m_P.x - m_r < lo.x ||
+        m_P.y + m_r > hi.y || m_P.y - m_r < lo.y ||
+        m_P.z + m_r > hi.z || m_P.z - m_r < lo.z)
         {
-        cout << "***Warning! Sphere constraint is outside of the box. Constrained particle positions may be incorrect"
+        m_exec_conf->msg->warning() << "constrain.sphere: Sphere constraint is outside of the box. Constrained particle positions may be incorrect"
              << endl;
         }
     
@@ -206,24 +215,21 @@ void ConstraintSphere::validate()
         
         if (dist > 1.0f)
             {
-            cerr << endl
-                 << "**Error! Particle " << h_tag.data[j] << " is more than 1 unit of distance away from the closest"
-                 << " point on the sphere constraint" << endl;
+            m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " is more than 1 unit of"
+                                      << " distance away from the closest point on the sphere constraint" << endl;
             errors = true;
             }
 
         if (h_body.data[j] != NO_BODY)
             {
-            cerr << endl
-                 << "**Error! Particle " << h_tag.data[j] << " belongs to a rigid body - cannot constrain"
-                 << endl;
+            m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " belongs to a rigid body"
+                                      << " - cannot constrain" << endl;
             errors = true;
             }
         }
         
     if (errors)
         {
-        cout << endl;
         throw std::runtime_error("Invalid constraint specified");
         }
     }

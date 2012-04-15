@@ -79,8 +79,15 @@ TempRescaleUpdater::TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysde
                                        boost::shared_ptr<Variant> tset)
         : Updater(sysdef), m_thermo(thermo), m_tset(tset)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TempRescaleUpdater" << endl;
+
     assert(m_pdata);
     assert(thermo);
+    }
+
+TempRescaleUpdater::~TempRescaleUpdater()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TempRescaleUpdater" << endl;
     }
 
 
@@ -99,7 +106,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
     
     if (cur_temp < 1e-3)
         {
-        cout << "Notice: TempRescaleUpdater cannot scale a 0 temperature to anything but 0, skipping this step" << endl;
+        m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 temperature to anything but 0, skipping this step" << endl;
         }
     else
         {

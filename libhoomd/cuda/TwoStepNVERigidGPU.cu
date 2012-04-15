@@ -101,14 +101,14 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
                                                         unsigned int *d_rigid_group,
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
-                                                        gpu_boxsize box, 
+                                                        BoxDim box, 
                                                         float deltaT)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx >= n_group_bodies)
         return;
-    
+
     // do velocity verlet update
     // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
     // r(t+deltaT) = r(t) + v(t+deltaT/2)*deltaT
@@ -116,7 +116,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     float4 moment_inertia, com, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
     int3 body_image;
     float dt_half = 0.5f * deltaT;
-        
+
     unsigned int idx_body = d_rigid_group[group_idx];
     body_mass = d_rigid_mass[idx_body];
     moment_inertia = d_rigid_mi[idx_body];
@@ -127,37 +127,26 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     body_image = rdata_body_image[idx_body];
     force = d_rigid_force[idx_body];
     torque = d_rigid_torque[idx_body];
-    
+
     exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
-        
+
     // update velocity
     float dtfm = dt_half / body_mass;
-    
+
     float4 vel2;
     vel2.x = vel.x + dtfm * force.x;
     vel2.y = vel.y + dtfm * force.y;
     vel2.z = vel.z + dtfm * force.z;
     vel2.w = vel.w;
-    
+
     // update position
-    float4 pos2;
+    float3 pos2;
     pos2.x = com.x + vel2.x * deltaT;
     pos2.y = com.y + vel2.y * deltaT;
     pos2.z = com.z + vel2.z * deltaT;
-    pos2.w = com.w;
-    
+
     // time to fix the periodic boundary conditions
-    float x_shift = rintf(pos2.x * box.Lxinv);
-    pos2.x -= box.Lx * x_shift;
-    body_image.x += (int)x_shift;
-    
-    float y_shift = rintf(pos2.y * box.Lyinv);
-    pos2.y -= box.Ly * y_shift;
-    body_image.y += (int)y_shift;
-    
-    float z_shift = rintf(pos2.z * box.Lzinv);
-    pos2.z -= box.Lz * z_shift;
-    body_image.z += (int)z_shift;
+    box.wrap(pos2, body_image);
 
     // update the angular momentum and angular velocity
     float4 angmom2;
@@ -165,12 +154,12 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     angmom2.y = angmom.y + dt_half * torque.y;
     angmom2.z = angmom.z + dt_half * torque.z;
     angmom2.w = 0.0f;
-    
+
     float4 angvel2;
     advanceQuaternion(angmom2, moment_inertia, angvel2, ex_space, ey_space, ez_space, deltaT, orientation);
 
     // write out the results
-    rdata_com[idx_body] = pos2;
+    rdata_com[idx_body] = make_float4(pos2.x, pos2.y, pos2.z, com.w);
     rdata_vel[idx_body] = vel2;
     rdata_angmom[idx_body] = angmom2;
     rdata_angvel[idx_body] = angvel2;
@@ -190,7 +179,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
-                                   const gpu_boxsize &box, 
+                                   const BoxDim& box, 
                                    float deltaT)
     {
     assert(d_net_force);
@@ -303,7 +292,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
                                                  unsigned int window_size,
                                                  unsigned int thread_mask,
                                                  unsigned int n_bodies_per_block,
-                                                 gpu_boxsize box)
+                                                 BoxDim box)
     {
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
@@ -445,7 +434,7 @@ cudaError_t gpu_rigid_force(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int group_size, 
                                    float4 *d_net_force,
                                    float4 *d_net_torque,
-                                   const gpu_boxsize &box,
+                                   const BoxDim& box,
                                    float deltaT)
     {
     unsigned int n_bodies = rigid_data.n_bodies;
@@ -525,7 +514,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
                                                          unsigned int *d_rigid_group,
                                                          unsigned int n_group_bodies,
                                                          unsigned int n_bodies, 
-                                                         gpu_boxsize box, 
+                                                         BoxDim box, 
                                                          float deltaT)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -589,7 +578,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int group_size,
                                    float4 *d_net_force,
                                    float *d_net_virial,
-                                   const gpu_boxsize &box,
+                                   const BoxDim& box,
                                    float deltaT)
     {
     unsigned int n_bodies = rigid_data.n_bodies;

@@ -84,17 +84,19 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group), m_thermo_all(thermo_all), 
       m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_state_initialized(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPT" << endl;
+
     if (m_tau <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in TwoStepNPT" << endl;
+        m_exec_conf->msg->warning() << "integreate.npt: tau set less than 0.0" << endl;
     if (m_tauP <= 0.0)
-        cout << "***Warning! tauP set less than 0.0 in TwoStepNPT" << endl;
+        m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
     
     // precalculate box lengths
     const BoxDim& box = m_pdata->getBox();
-    
-    m_Lx = box.xhi - box.xlo;
-    m_Ly = box.yhi - box.ylo;
-    m_Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
+    m_Lx = L.x;
+    m_Ly = L.y;
+    m_Lz = L.z;
     
     m_V = m_Lx*m_Ly*m_Lz;   // volume
     
@@ -119,6 +121,11 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     setIntegratorVariables(v);
     }
 
+TwoStepNPT::~TwoStepNPT()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNPT" << endl;
+    }
+
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the Nose-Hoover
      thermostat and Anderson barostat
@@ -129,6 +136,8 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     if (group_size == 0)
         return;
 
+    BoxDim box = m_pdata->getBox();
+    
     // profile this step
     if (m_prof)
         m_prof->push("NPT step 1");
@@ -208,8 +217,10 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     // 1. particles may have been moved slightly outside the box by the above steps, wrap them back into place
     // 2. all particles in the box are rescaled to fit in the new box 
 
+    box.setL(make_scalar3(m_Lx, m_Ly, m_Lz));
+    
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
+    
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         if (!m_partial_scale)
@@ -218,40 +229,7 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
             h_pos.data[j].y *= box_len_scale;
             h_pos.data[j].z *= box_len_scale;
             }
-        
-        // wrap the particle around the box
-        if (h_pos.data[j].x >= Scalar(m_Lx/2.0))
-            {
-            h_pos.data[j].x -= m_Lx;
-            h_image.data[j].x++;
-            }
-        else if (h_pos.data[j].x < Scalar(-m_Lx/2.0))
-            {
-            h_pos.data[j].x += m_Lx;
-            h_image.data[j].x--;
-            }
-            
-        if (h_pos.data[j].y >= Scalar(m_Ly/2.0))
-            {
-            h_pos.data[j].y -= m_Ly;
-            h_image.data[j].y++;
-            }
-        else if (h_pos.data[j].y < Scalar(-m_Ly/2.0))
-            {
-            h_pos.data[j].y += m_Ly;
-            h_image.data[j].y--;
-            }
-            
-        if (h_pos.data[j].z >= Scalar(m_Lz/2.0))
-            {
-            h_pos.data[j].z -= m_Lz;
-            h_image.data[j].z++;
-            }
-        else if (h_pos.data[j].z < Scalar(-m_Lz/2.0))
-            {
-            h_pos.data[j].z += m_Lz;
-            h_image.data[j].z--;
-            }
+        box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
     } // end of GPUArray scope
@@ -261,7 +239,7 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
         
-    m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
+    m_pdata->setGlobalBoxL(box.getL());
     }
         
 /*! \param timestep Current time step

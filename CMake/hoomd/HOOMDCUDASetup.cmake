@@ -7,13 +7,10 @@ if (SINGLE_PRECISION)
     if (ENABLE_CUDA)
         # the package is needed
         find_package(CUDA REQUIRED REQUIRED)
-
-        if (${CUDA_VERSION} VERSION_LESS 2.3)
-            message(SEND_ERROR "CUDA 2.2 and older are not supported")
-        endif (${CUDA_VERSION} VERSION_LESS 2.3)
-
-        # Find Thrust
-        find_package(Thrust)
+        
+        if (${CUDA_VERSION} VERSION_LESS 4.0)
+            message(SEND_ERROR "CUDA 3.2 and older are not supported")
+        endif (${CUDA_VERSION} VERSION_LESS 4.0)
 
         include_directories(${CUDA_INCLUDE_DIRS})
 
@@ -42,7 +39,6 @@ if (ENABLE_CUDA)
     
     foreach(_cuda_arch ${CUDA_ARCH_LIST})
         list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_arch},code=sm_${_cuda_arch}")
-        list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_arch},code=compute_${_cuda_arch}")
     endforeach (_cuda_arch)
 
     if (CUDA_VERSION VERSION_EQUAL 3.1 OR CUDA_VERSION VERSION_EQUAL 3.2) 
@@ -55,6 +51,11 @@ if (ENABLE_CUDA)
     list(SORT _cuda_arch_list_sorted)
     list(GET _cuda_arch_list_sorted 0 _cuda_min_arch)
     add_definitions(-DCUDA_ARCH=${_cuda_min_arch})
+
+    # only generage ptx code for the maximum supported CUDA_ARCH (saves on file size)
+    list(REVERSE _cuda_arch_list_sorted)
+    list(GET _cuda_arch_list_sorted 0 _cuda_max_arch)
+    list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_max_arch},code=compute_${_cuda_max_arch}")
 endif (ENABLE_CUDA)
 
 # embed the CUDA libraries into the lib dir

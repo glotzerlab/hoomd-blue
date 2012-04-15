@@ -73,9 +73,7 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl 
-             << "***Error! Creating a ImproperForceComputeGPU with no GPU in the execution configuration" 
-             << endl << endl;
+        m_exec_conf->msg->error() << "Creating a ImproperForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ImproperForceComputeGPU");
         }
         
@@ -123,7 +121,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 
     // the improper table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
       
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);

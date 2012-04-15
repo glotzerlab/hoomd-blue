@@ -92,7 +92,7 @@ class _constraint_force:
     def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create force before initialization\n";
+            globals.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating constraint force');
         
         self.cpp_force = None;
@@ -125,7 +125,7 @@ class _constraint_force:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
         
 
@@ -154,7 +154,7 @@ class _constraint_force:
             
         # check if we are already disabled
         if not self.enabled:
-            print "***Warning! Ignoring command to disable a force that is already disabled";
+            globals.msg.warning("Ignoring command to disable a force that is already disabled");
             return;
         
         self.enabled = False;
@@ -210,7 +210,7 @@ class _constraint_force:
             
         # check if we are already disabled
         if self.enabled:
-            print "***Warning! Ignoring command to enable a force that is already enabled";
+            globals.msg.warning("Ignoring command to enable a force that is already enabled");
             return;
         
         # add the compute back to the system

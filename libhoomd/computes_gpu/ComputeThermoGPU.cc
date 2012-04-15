@@ -83,7 +83,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     {
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a ComputeThermoGPU with no GPU in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a ComputeThermoGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ComputeThermoGPU");
         }
 
@@ -115,7 +115,7 @@ void ComputeThermoGPU::computeProperties()
     
     // access the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-    gpu_boxsize box = m_pdata->getGlobalBoxGPU();
+    BoxDim box = m_pdata->getGlobalBox();
     
     PDataFlags flags = m_pdata->getFlags();
 
@@ -217,7 +217,7 @@ void ComputeThermoGPU::computeProperties()
 Scalar2 ComputeThermoGPU::PPPM_thermo_compute()
     {
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
 
     ArrayHandle<cufftComplex> d_rho_real_space(PPPMData::m_rho_real_space, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_green_hat(PPPMData::m_green_hat, access_location::device, access_mode::readwrite);
@@ -235,10 +235,11 @@ Scalar2 ComputeThermoGPU::PPPM_thermo_compute()
                                                           d_i_data.data,
                                                           256);
 
-    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * box.Lx * box.Ly * box.Lz);
+    Scalar3 L = box.getL();
+    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * L.x * L.y * L.z);
     pppm_virial_energy.y *= PPPMData::energy_virial_factor;
     pppm_virial_energy.y -= PPPMData::q2 * PPPMData::kappa / 1.772453850905516027298168f;
-    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* box.Lx * box.Ly * box.Lz);
+    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* L.x * L.y * L.z);
 
     return pppm_virial_energy;
 

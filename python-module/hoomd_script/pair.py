@@ -222,12 +222,12 @@ class coeff:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+            globals.msg.error("Bug detected in pair.coeff. Please report\n");
             raise RuntimeError("Error setting pair coeff");
         
         # update each of the values provided
         if len(coeffs) == 0:
-            print >> sys.stderr, "\n***Error! No coefficents specified\n";
+            globals.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[cur_pair][name] = val;
         
@@ -247,7 +247,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot verify pair coefficients before initialization\n";
+            globals.msg.error("Cannot verify pair coefficients before initialization\n");
             raise RuntimeError('Error verifying pair coefficients');
         
         # get a list of types from the particle data
@@ -269,7 +269,7 @@ class coeff:
                 elif (b,a) in self.values:
                     cur_pair = (b,a);
                 else:
-                    print >> sys.stderr, "\n***Error! Type pair", (a,b), "not found in pair coeff\n"
+                    globals.msg.error("Type pair " + str((a,b)) + " not found in pair coeff\n");
                     valid = False;
                     continue;
                 
@@ -277,13 +277,13 @@ class coeff:
                 count = 0;
                 for coeff_name in self.values[cur_pair].keys():
                     if not coeff_name in required_coeffs:
-                        print "Notice: Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), \
-                              ", but is not used by the pair force";
+                        globals.msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
+                              ", but is not used by the pair force");
                     else:
                         count += 1;
                 
                 if count != len(required_coeffs):
-                    print >> sys.stderr, "\n***Error! Type pair", (a,b), "is missing required coefficients\n";
+                    globals.msg.error("Type pair " + str((a,b)) + " is missing required coefficients\n");
                     valid = False;
                 
             
@@ -302,7 +302,7 @@ class coeff:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+            globals.msg.error("Bug detected in pair.coeff. Please report\n");
             raise RuntimeError("Error setting pair coeff");
         
         return self.values[cur_pair][coeff_name];
@@ -329,7 +329,7 @@ class nlist:
     def __init__(self, r_cut):
         # check if initialization has occured
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
+            globals.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
         
         # decide wether to create an all-to-all neighbor list or a binned one based on box size:
@@ -341,15 +341,15 @@ class nlist:
         min_width_for_bin = (default_r_buff + r_cut)*3.0;
         
         # only check the z dimesion of the box in 3D systems
-        is_small_box = (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin;
+        is_small_box = box.getL().x < min_width_for_bin or box.getL().y < min_width_for_bin;
         if globals.system_definition.getNDimensions() == 3:
-            is_small_box = is_small_box or (box.zhi - box.zlo) < min_width_for_bin;
+            is_small_box = is_small_box or box.getL().z < min_width_for_bin;
         if  is_small_box:
             if globals.system_definition.getParticleData().getN() >= 2000:
-                print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";
-                print "             EXTREMELY SLOW O(N^2) calculation for the neighbor list."
+                globals.msg.warning("At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an\n");
+                globals.msg.warning("EXTREMELY SLOW O(N^2) calculation for the neighbor list.\n");
             else:
-                print "Notice: The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation."
+                globals.msg.notice(2, "The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation.\n");
                 
             mode = "nsq";
         
@@ -362,7 +362,7 @@ class nlist:
             elif mode == "nsq":
                 self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
             else:
-                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
         else:
             if mode == "binned":
@@ -375,7 +375,7 @@ class nlist:
                 self.cpp_nlist = hoomd.NeighborListGPU(globals.system_definition, r_cut, default_r_buff)
                 self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
-                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
             
         self.cpp_nlist.setEvery(1, True);
@@ -471,7 +471,7 @@ class nlist:
         util.print_status_line();
         
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
         
         # update the parameters
@@ -532,7 +532,7 @@ class nlist:
         self.is_exclusion_overridden = True;
         
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
         
         # clear all of the existing exclusions
@@ -581,7 +581,7 @@ class nlist:
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:
-            print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
+            globals.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
             raise RuntimeError('Error resetting exclusions');
 
         # collect and print statistics about the number of exclusions.
@@ -611,7 +611,7 @@ class nlist:
     def benchmark(self, n):
         # check that we have been initialized properly
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error benchmarking neighbor list');
         
         # run the benchmark
@@ -629,7 +629,7 @@ class nlist:
     #
     def query_update_period(self):
         if self.cpp_nlist is None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
         
         return self.cpp_nlist.getSmallestRebuild()-1;
@@ -759,18 +759,18 @@ class pair(force._force):
             elif mode == "xplor":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
             else:
-                print >> sys.stderr, "\n***Error! Invalid mode\n";
+                globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
     
     def process_coeff(self, coeff):
-        print >> sys.stderr, "\n***Error! Bug in hoomd_script, please report\n";
+        globals.msg.error("Bug in hoomd_script, please report\n");
         raise RuntimeError("Error processing coefficients");
     
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(coeff_list):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set\n";
+            globals.msg.error("Not all pair coefficients are set\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
@@ -1085,7 +1085,7 @@ class slj(pair):
         if d_max is None :
             sysdef = globals.system_definition;
             d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
-            print "Notice: slj set d_max=", d_max
+            globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
                         
         neighbor_list = _update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut());
@@ -1136,7 +1136,7 @@ class slj(pair):
         util.print_status_line();
         
         if mode == "xplor":
-            print >> sys.stderr, "\n***Error! XPLOR is smoothing is not supported with slj\n";
+            globals.msg.error("XPLOR is smoothing is not supported with slj\n");
             raise RuntimeError("Error changing parameters in pair force");
         
         pair.set_params(self, mode=mode);
@@ -1397,7 +1397,7 @@ class cgcmm(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["epsilon", "sigma", "alpha", "exponents"]):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.cgcmm\n";
+            globals.msg.error("Not all pair coefficients are set in pair.cgcmm\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
@@ -1431,9 +1431,14 @@ class cgcmm(force._force):
                 else:
                     raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
 
+def _table_eval(r, rmin, rmax, V, F, width):
+    dr = (rmax - rmin) / float(width-1);
+    i = int(round((r - rmin)/dr))
+    return (V[i], F[i])
+
 ## Tabulated %pair %force
 #
-# The command pair.table specifies that a tabulated  %pair %force should be added to every non-bonded particle %pair 
+# The command pair.table specifies that a tabulated  %pair %force should be added to every non-excluded particle %pair 
 # in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is (in force units)
@@ -1450,27 +1455,62 @@ class cgcmm(force._force):
 # \f}
 # ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between 
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between 
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, the user must specify a force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
+# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
 #
-# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by \c func (see example)
-# - coefficients passed to \c func - \c coeff (see example)
-# - \f$ r_{\mathrm{min}} \f$ - \c rmin (in distance units)
-# - \f$ r_{\mathrm{max}} \f$ - \c rmax (in distance units)
+# The following coefficients must be set per unique %pair of particle types.
+# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by `func` (see example)
+# - coefficients passed to `func` - `coeff` (see example)
+# - \f$ r_{\mathrm{min}} \f$ - `rmin` (in distance units)
+# - \f$ r_{\mathrm{max}} \f$ - `rmax` (in distance units)
+#
+# The table *width* is set once when pair.table is specified (see table.__init__())
+# There are two ways to specify the other parameters. 
 # 
-# \b Example:
-# \code
-# table.pair_coeff.set('A', 'A', func=my_potential, rmin=0, rmax=10, coeff=dict(A=1.5, s=3.0))
-# \endcode
+# \par Example: Set table from a given function
+# When you have a functional form for V and F, you can enter that
+# directly into python. pair.table will evaluate the given function over \a width points between \a rmin and \a rmax
+# and use the resulting values in the table.
+# ~~~~~~~~~~~~~
+# def lj(r, rmin, rmax, epsilon, sigma):
+#     V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
+#     F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
+#     return (V, F)
 #
-# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# table = pair.table(width=1000)
+# table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
+# table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
+# table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
+# ~~~~~~~~~~~~~
+#
+# \par Example: Set a table from a file
+# When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, pair.table can use the given
+# values direcly. You must first specify the number of rows in your tables when initializing pair.table. Then use
+# table.set_from_file() to read the file.
+# ~~~~~~~~~~~~~
+# table = pair.table(width=1000)
+# table.set_from_file('A', 'A', filename='table_AA.dat')
+# table.set_from_file('A', 'B', filename='table_AB.dat')
+# table.set_from_file('B', 'B', filename='table_BB.dat')
+# ~~~~~~~~~~~~~
+#
+# \par Example: Mix functions and files
+# ~~~~~~~~~~~~~
+# table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
+# table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
+# table.set_from_file('B', 'B', filename='table_BB.dat')
+# ~~~~~~~~~~~~~
+#
+# \note For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
 # \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
 #
-# The table \a width is set once when pair.table is specified (see __init__())
+# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+# not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
+# \note %Pair coefficients for all type pairs in the simulation must be
+# set before it can be started with run().
+
 class table(force._force):
     ## Specify the Tabulated %pair %force
     #
@@ -1478,24 +1518,6 @@ class table(force._force):
     # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
     # \param name Name of the force instance
     #
-    # \b Example:
-    # \code
-    # def lj(r, rmin, rmax, epsilon, sigma):
-    #     V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
-    #     F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
-    #     return (V, F)
-    #
-    # table = pair.table(width=1000)
-    # table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
-    # table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
-    # table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
-    # \endcode
-    #
-    # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
-    # not diverge near r=0, then a setting of \c rmin=0 is valid.
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
     def __init__(self, width, r_cut=0, name=None):
         util.print_status_line();
         
@@ -1563,7 +1585,7 @@ class table(force._force):
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set for pair.table\n";
+            globals.msg.error("Not all pair coefficients are set for pair.table\n");
             raise RuntimeError("Error updating pair coefficients");
         
         # set all the params
@@ -1581,7 +1603,80 @@ class table(force._force):
                 coeff = self.pair_coeff.get(type_list[i], type_list[j], "coeff");
 
                 self.update_pair_table(i, j, func, rmin, rmax, coeff);
-                
+
+    ## Set a pair interaction from a file
+    # \param a Name of type A in pair
+    # \param b Name of type B in pair
+    # \param filename Name of the file to read
+    #
+    # The provided file specifies V and F at equally spaced r values.
+    # Example:
+    # \code
+    # #r  V    F
+    # 1.0 2.0 -3.0
+    # 1.1 3.0 -4.0
+    # 1.2 2.0 -3.0
+    # 1.3 1.0 -2.0
+    # 1.4 0.0 -1.0
+    # 1.5 -1.0 0.0
+    #\endcode
+    #
+    # The first r value sets \a rmin, the last sets \a rmax. Any line with \# as the first non-whitespace character is
+    # is treated as a comment. The \a r values must monotonically increase and be equally spaced. The table is read
+    # directly into the grid points used to evaluate \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$.
+    #
+    def set_from_file(self, a, b, filename):
+        util.print_status_line();
+
+        # open the file
+        f = open(filename);
+
+        r_table = [];
+        V_table = [];
+        F_table = [];
+
+        # read in lines from the file
+        for line in f.readlines():
+            line = line.strip();
+
+            # skip comment lines
+            if line[0] == '#':
+                continue;
+
+            # split out the columns
+            cols = line.split();
+            values = [float(f) for f in cols];
+
+            # validate the input
+            if len(values) != 3:
+                globals.msg.error("pair.table: file must have exactly 3 columns\n");
+                raise RuntimeError("Error reading table file");
+
+            # append to the tables
+            r_table.append(values[0]);
+            V_table.append(values[1]);
+            F_table.append(values[2]);
+
+        # validate input
+        if self.width != len(r_table):
+            globals.msg.error("pair.table: file must have exactly " + str(self.width) + " rows\n");
+            raise RuntimeError("Error reading table file");
+
+        # extract rmin and rmax
+        rmin_table = r_table[0];
+        rmax_table = r_table[-1];
+
+        # check for even spacing
+        dr = (rmax_table - rmin_table) / float(self.width-1);
+        for i in xrange(0,self.width):
+            r = rmin_table + dr * i;
+            if math.fabs(r - r_table[i]) > 1e-3:
+                globals.msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
+                raise RuntimeError("Error reading table file");
+
+        util._disable_status_lines = True;
+        self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
+        util._disable_status_lines = True;
 
 ## Morse %pair %force
 #
@@ -1964,7 +2059,7 @@ class eam(force._force):
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 
-        print "Set r_cut = ",r_cut_new, " from potential`s file '", file , "'.\n";
+        globals.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         self.pair_coeff = coeff();
@@ -2132,7 +2227,7 @@ class dpdlj(pair):
         
         if mode is not None:
             if mode == "xplor":
-                print >> sys.stderr, "\n***Error! XPLOR is smoothing is not supported with pair.dpdlj\n";
+                globals.msg.error("XPLOR is smoothing is not supported with pair.dpdlj\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
             #use the inherited set_params

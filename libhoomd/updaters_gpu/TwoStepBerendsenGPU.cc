@@ -73,7 +73,7 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(boost::shared_ptr<SystemDefinition> sys
     {
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a BerendsenGPU when CUDA is disabled" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a BerendsenGPU when CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing BerendsenGPU");
         }
 
@@ -106,7 +106,7 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the integration on the GPU

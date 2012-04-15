@@ -62,6 +62,8 @@
 # "globals." to the variable name. For example, to access the 
 # global SystemDefinition, a user script can access \c globals.system_definition .
 
+import hoomd;
+
 ## Global variable that holds the execution configuration for reference by the python API
 exec_conf = None;
 
@@ -100,6 +102,11 @@ mpi_partition = None;
 
 ## Global options
 options = None;
+
+## Global Messenger
+# \note This is initialized to a default messenger on load so that python code may have a unified path for sending
+# messages
+msg = hoomd.Messenger();
 
 ## \internal
 # \brief Clears all global variables to default values

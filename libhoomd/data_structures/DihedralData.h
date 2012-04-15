@@ -257,8 +257,9 @@ class DihedralData : boost::noncopyable
         std::vector<std::string> m_dihedral_type_mapping;   //!< Mapping between dihedral type indices and names
         
         boost::signals::connection m_sort_connection;       //!< Connection to the resort signal from ParticleData
-        
-        
+
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
+
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_dihedrals_dirty flag when partciles are sorted or a dihedral is added.
             The flag is used to test if the data structure needs updating on the GPU.

@@ -120,7 +120,7 @@ template<class T> class GPUVector : public GPUArray<T>
         */
         virtual void resize(unsigned int width, unsigned int height)
             {
-                std::cerr << std::endl << "Cannot change a GPUVector into a matrix." << std::endl << std::endl;
+                this->m_exec_conf->msg->error() << "Cannot change a GPUVector into a matrix." << std::endl;
                 throw std::runtime_error("Error resizing GPUVector.");
             }
 

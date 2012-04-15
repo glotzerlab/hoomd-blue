@@ -90,7 +90,7 @@ TwoStepNPTGPU::TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepNPTGPU with CUDA disabled" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a TwoStepNPTGPU with CUDA disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
     }
@@ -137,7 +137,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // advance thermostat(m_Xi) half a time step
@@ -191,7 +191,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
 
     } //end of GPUArray scope
 
-    m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
+    m_pdata->setGlobalBoxL(make_scalar3(m_Lx, m_Ly, m_Lz));
     setIntegratorVariables(v);
     }
 

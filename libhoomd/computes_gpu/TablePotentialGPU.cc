@@ -83,7 +83,7 @@ TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a LJForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a LJForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing LJForceComputeGPU");
         }
     }
@@ -114,7 +114,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        cerr << endl << "***Error! TablePotentialGPU cannot handle a half neighborlist" << endl << endl;
+        m_exec_conf->msg->error() << "TablePotentialGPU cannot handle a half neighborlist" << endl;
         throw runtime_error("Error computing forces in TablePotentialGPU");
         }
         
@@ -125,7 +125,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     
     // access the table data
     ArrayHandle<float2> d_tables(m_tables, access_location::device, access_mode::read);

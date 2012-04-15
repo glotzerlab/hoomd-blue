@@ -159,6 +159,8 @@ class Analyzer : boost::noncopyable
 #ifdef ENABLE_MPI
         boost::shared_ptr<Communicator> m_comm;             //!< The communicator to use
 #endif
+        
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 //! Export the Analyzer class to python

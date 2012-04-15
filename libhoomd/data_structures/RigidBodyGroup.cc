@@ -68,6 +68,8 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
       m_pdata(sysdef->getParticleData()),
       m_is_member(m_rdata->getNumBodies())
     {
+    m_exec_conf = m_pdata->getExecConf();
+
     // don't generate the body group unless there are bodies in the simulation
     if (m_rdata->getNumBodies() == 0)
         return;
@@ -85,7 +87,7 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
         unsigned int b_index = h_body.data[p_index];
         if (b_index == NO_INDEX)
             {
-            cout << "***Warning! Attempting to include a free particle in a rigid body group, ignoring particle" << endl
+            m_exec_conf->msg->warning() << "group: Attempting to include a free particle in a rigid body group, ignoring particle" << endl
                  << "with tag: " << group->getMemberTag(group_idx) << endl;
             }
         else
@@ -112,7 +114,7 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
                 m_is_member[body_idx] = true;
                 
                 if (particle_count[body_idx] != h_body_size.data[body_idx])
-                    cout << "***Warning! Only a portion of body " << body_idx << " is included in the group" << endl;
+                    m_exec_conf->msg->warning() << "group: Only a portion of body " << body_idx << " is included in the group" << endl;
                 }
             }
         }

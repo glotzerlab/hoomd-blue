@@ -74,6 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ExecutionConfiguration.h"
+#include "BoxDim.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
@@ -187,29 +188,6 @@ struct InertiaTensor
         }
     
     Scalar components[6];   //!< Stores the components of the inertia tensor
-    };
-
-//! Stores box dimensions
-/*! All particles in the ParticleData structure are inside of a box. This struct defines
-    that box. Inside is defined as x >= xlo && x < xhi, and similarly for y and z.
-    \note Requirements state that xhi = -xlo, and the same goes for y and z
-    \ingroup data_structs
-*/
-struct BoxDim
-    {
-    Scalar xlo; //!< Minimum x coord of the box
-    Scalar xhi; //!< Maximum x coord of the box
-    Scalar ylo; //!< Minimum y coord of the box
-    Scalar yhi; //!< Maximum y coord of the box
-    Scalar zlo; //!< Minimum z coord of the box
-    Scalar zhi; //!< Maximum z coord of the box
-    
-    //! Constructs a useless box
-    BoxDim();
-    //! Constructs a box from -Len/2 to Len/2
-    BoxDim(Scalar Len);
-    //! Constructs a box from -Len_x/2 to Len_x/2 for each dimension x
-    BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z);
     };
 
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
@@ -540,12 +518,12 @@ class ParticleData : boost::noncopyable
                      boost::shared_ptr<ExecutionConfiguration> exec_conf);
         
         //! Destructor
-        virtual ~ParticleData() {}
+        virtual ~ParticleData();
         
         //! Get the simulation box
         const BoxDim& getBox() const;
-        //! Set the simulation box
-        void setBox(const BoxDim &box);
+        //! Set the simulation box Lengths
+        void setGlobalBoxL(const Scalar3 &L);
 
         //! Get the global simulation box
         const BoxDim& getGlobalBox() const;
@@ -649,23 +627,6 @@ class ParticleData : boost::noncopyable
         //! Return array of global reverse lookup tags
         const GPUArray< unsigned int >& getGlobalRTags() { return m_global_rtag; }
 
-#ifdef ENABLE_CUDA
-        //! Get the box for the GPU
-        /*! \returns Box dimensions suitable for passing to the GPU code
-        */
-        const gpu_boxsize& getBoxGPU() const
-            {
-            return m_gpu_box;
-            }
-            
-        //! Get the global box for the GPU
-        /*! \returns Box dimensions suitable for passing to the GPU code
-        */
-        const gpu_boxsize& getGlobalBoxGPU() const
-            {
-            return m_gpu_global_box;
-            }
-#endif
         
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
@@ -922,11 +883,6 @@ class ParticleData : boost::noncopyable
         const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         
-#ifdef ENABLE_CUDA
-        gpu_boxsize m_gpu_box;              //!< Mirror structure of m_box for the GPU
-
-        gpu_boxsize m_gpu_global_box;       //!< Mirror structure of m_global_box for the GPU
-#endif
         
         //! Helper function to allocate particle data
         void allocate(unsigned int N);

@@ -96,16 +96,18 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
       , m_cached_update(false)
 #endif
     {
+    m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
+
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)
         {
-        cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
         throw runtime_error("Error initializing NeighborList");
         }
         
     if (m_r_buff < 0.0)
         {
-        cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error initializing NeighborList");
         }
         
@@ -166,6 +168,8 @@ void NeighborList::reallocate()
 
 NeighborList::~NeighborList()
     {
+    m_exec_conf->msg->notice(5) << "Destroying Neighborlist" << endl;
+
     m_sort_connection.disconnect();
     m_max_particle_num_change_connection.disconnect();
 #ifdef ENABLE_MPI
@@ -206,7 +210,6 @@ void NeighborList::compute(unsigned int timestep)
             if (overflowed)
                 {
                 reallocateNlist();
-                // cout << "Notice: neighbor list overflow, allocating " << m_Nmax << " slots per particle" << endl;
                 resetConditions();
                 }
             } while (overflowed);
@@ -269,13 +272,13 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)
         {
-        cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
         
     if (m_r_buff < 0.0)
         {
-        cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
 
@@ -303,7 +306,8 @@ Scalar NeighborList::estimateNNeigh()
     {
     // calculate a number density of particles
     BoxDim box = m_pdata->getBox();
-    Scalar vol = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi - box.zlo);
+    Scalar3 L = box.getL();
+    Scalar vol = L.x * L.y * L.z;
     Scalar n_dens = Scalar(m_pdata->getN()) / vol;
     
     // calculate the average number of neighbors by multiplying by the volume
@@ -410,34 +414,32 @@ void NeighborList::countExclusions()
         excluded_count[num_excluded] += 1;
         }
 
-    cout << "-- Neighborlist exclusion statistics -- :" << endl;
+    m_exec_conf->msg->notice(2) << "-- Neighborlist exclusion statistics -- :" << endl;
     for (unsigned int i=0; i <= MAX_COUNT_EXCLUDED; ++i)
         {
         if (excluded_count[i] > 0)
-            cout << "Particles with " << i << " exclusions             : " << excluded_count[i] << endl;
+            m_exec_conf->msg->notice(2) << "Particles with " << i << " exclusions             : " << excluded_count[i] << endl;
         }
 
     if (excluded_count[MAX_COUNT_EXCLUDED+1])
         {
-        cout << "Particles with more than " << MAX_COUNT_EXCLUDED << " exclusions: "
+        m_exec_conf->msg->notice(2) << "Particles with more than " << MAX_COUNT_EXCLUDED << " exclusions: "
              << excluded_count[MAX_COUNT_EXCLUDED+1] << endl;
         }
-    
-    cout << "Neighbors excluded by diameter (slj)    : ";
-    if (m_filter_diameter)
-        cout << "yes" << endl;
-    else
-        cout << "no" << endl;
 
-    cout << "Neighbors excluded when in the same body: ";
-    if (m_filter_body)
-        cout << "yes" << endl;
+    if (m_filter_diameter)
+        m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : yes" << endl;
     else
-        cout << "no" << endl;
+        m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : no" << endl;
+
+    if (m_filter_body)
+        m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: yes" << endl;
+    else
+        m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: no" << endl;
         
     if (!m_filter_body && m_sysdef->getRigidData()->getNumBodies() > 0)
         {
-        cout << "***Warning! Disabling the body exclusion will cause rigid bodies to behave erratically" << endl
+        m_exec_conf->msg->warning() << "Disabling the body exclusion will cause rigid bodies to behave erratically" << endl
              << "            unless inter-body pair forces are very small." << endl;
         }
     }
@@ -526,7 +528,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
     
     if (nBonds == 0)
         {
-        cout << "***Warning! No bonds defined while trying to add topology derived 1-3 exclusions" << endl;
+        m_exec_conf->msg->warning() << "nlist: No bonds defined while trying to add topology derived 1-3 exclusions" << endl;
         return;
         }
         
@@ -547,15 +549,15 @@ void NeighborList::addOneThreeExclusionsFromTopology()
         
         if (nBondsA >= MAXNBONDS)
             {
-            cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagA << endl
-                 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+            m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA << endl;
+            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
             
         if (nBondsB >= MAXNBONDS)
             {
-            cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagB << endl
-                 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+            m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB << endl;
+            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
             
@@ -602,7 +604,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     
     if (nBonds == 0)
         {
-        cout << "***Warning! No bonds defined while trying to add topology derived 1-4 exclusions" << endl;
+        m_exec_conf->msg->warning() << "nlist: No bonds defined while trying to add topology derived 1-4 exclusions" << endl;
         return;
         }
         
@@ -623,15 +625,15 @@ void NeighborList::addOneFourExclusionsFromTopology()
         
         if (nBondsA >= MAXNBONDS)
             {
-            cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagA << endl
-                 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+            m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA << endl;
+            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
             
         if (nBondsB >= MAXNBONDS)
             {
-            cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagB << endl
-                 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+            m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB << endl;
+            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
             
@@ -693,45 +695,21 @@ bool NeighborList::distanceCheck()
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    Scalar3 L = box.getL();
     
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-
-    Scalar Lx2 = Lx/Scalar(2.0);
-    Scalar Ly2 = Ly/Scalar(2.0);
-    Scalar Lz2 = Lz/Scalar(2.0);
-
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     
     // actually scan the array looking for values over 1/2 the buffer distance
     Scalar maxsq = (m_r_buff/Scalar(2.0))*(m_r_buff/Scalar(2.0));
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        Scalar dx = h_pos.data[i].x - h_last_pos.data[i].x;
-        Scalar dy = h_pos.data[i].y - h_last_pos.data[i].y;
-        Scalar dz = h_pos.data[i].z - h_last_pos.data[i].z;
+        Scalar3 dx = make_scalar3(h_pos.data[i].x - h_last_pos.data[i].x,
+                                  h_pos.data[i].y - h_last_pos.data[i].y,
+                                  h_pos.data[i].z - h_last_pos.data[i].z);
         
-        // if the vector crosses the box, pull it back
-        if (dx >= Lx2)
-            dx -= Lx;
-        else if (dx < -Lx2)
-            dx += Lx;
-            
-        if (dy >= Ly2)
-            dy -= Ly;
-        else if (dy < -Ly2)
-            dy += Ly;
-            
-        if (dz >= Lz2)
-            dz -= Lz;
-        else if (dz < -Lz2)
-            dz += Lz;
-            
-        if (dx*dx + dy*dy + dz*dz >= maxsq)
+        dx = box.minImage(dx);
+        
+        if (dot(dx, dx) >= maxsq)
             {
             result = true;
             break;
@@ -855,7 +833,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     // warn the user if this is a dangerous build
     if (result && dangerous)
         {
-        cout << "***Warning! Dangerous neighborlist build occured. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
+        m_exec_conf->msg->notice(2) << "nlist: Dangerous neighborlist build occured. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
         m_dangerous_updates += 1;
         }
         
@@ -868,17 +846,21 @@ bool NeighborList::needsUpdating(unsigned int timestep)
  */
 void NeighborList::printStats()
     {
-    cout << "-- Neighborlist stats:" << endl;
-    cout << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
-    
+    // return earsly if the notice level is less than 1
+    if (m_exec_conf->msg->getNoticeLevel() < 1)
+        return;
+
+    m_exec_conf->msg->notice(1) << "-- Neighborlist stats:" << endl;
+    m_exec_conf->msg->notice(1) << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
+
     // access the number of neighbors to generate stats
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::read);
-    
+
     // build some simple statistics of the number of neighbors
     unsigned int n_neigh_min = m_pdata->getN();
     unsigned int n_neigh_max = 0;
     Scalar n_neigh_avg = 0.0;
-    
+
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         unsigned int n_neigh = (unsigned int)h_n_neigh.data[i];
@@ -886,20 +868,15 @@ void NeighborList::printStats()
             n_neigh_min = n_neigh;
         if (n_neigh > n_neigh_max)
             n_neigh_max = n_neigh;
-            
+
         n_neigh_avg += Scalar(n_neigh);
         }
-        
+
     // divide to get the average
     n_neigh_avg /= Scalar(m_pdata->getN());
-    
-    cout << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
-    /*cout << "update period counts: ";
-    for (unsigned int i = 0; i < m_update_periods.size(); i++)
-        cout << m_update_periods[i] << " ";
-    cout << endl;*/
-   
-    cout << "shortest rebuild period: " << getSmallestRebuild() << endl;
+    m_exec_conf->msg->notice(1) << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
+
+    m_exec_conf->msg->notice(1) << "shortest rebuild period: " << getSmallestRebuild() << endl;
     }
 
 void NeighborList::resetStats()
@@ -943,11 +920,8 @@ void NeighborList::buildNlist(unsigned int timestep)
     assert(h_body.data);
 
     // get a local copy of the simulation box too
-    const BoxDim& global_box = m_pdata->getGlobalBox();
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(global_box.xhi > global_box.xlo && global_box.yhi > global_box.ylo && global_box.zhi > global_box.zlo);
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    Scalar3 L = box.getL();
     
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -956,9 +930,9 @@ void NeighborList::buildNlist(unsigned int timestep)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
     
-    if ((box.xhi - box.xlo) <= (rmax) * 2.0 || (box.yhi - box.ylo) <= (rmax) * 2.0 || (box.zhi - box.zlo) <= (rmax) * 2.0)
+    if (L.x <= rmax * 2.0 || L.y <= rmax * 2.0 || L.z <= rmax * 2.0)
         {
-        cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");
         }
         
@@ -967,17 +941,6 @@ void NeighborList::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
     
-    // simple algorithm follows:
-    
-    // precalculate box lenghts
-    Scalar Lx = global_box.xhi - global_box.xlo;
-    Scalar Ly = global_box.yhi - global_box.ylo;
-    Scalar Lz = global_box.zhi - global_box.zlo;
-    Scalar Lx2 = Lx / Scalar(2.0);
-    Scalar Ly2 = Ly / Scalar(2.0);
-    Scalar Lz2 = Lz / Scalar(2.0);
-    
-    
     // start by clearing the entire list
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
     
@@ -985,9 +948,7 @@ void NeighborList::buildNlist(unsigned int timestep)
 #pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
-        Scalar xi = h_pos.data[i].x;
-        Scalar yi = h_pos.data[i].y;
-        Scalar zi = h_pos.data[i].z;
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         Scalar di = h_diameter.data[i];
         unsigned int bodyi = h_body.data[i];
         
@@ -995,32 +956,11 @@ void NeighborList::buildNlist(unsigned int timestep)
         for (unsigned int j = i + 1; j < m_pdata->getN() + m_pdata->getNGhosts(); j++)
             {
             // calculate dr
-            Scalar dx = h_pos.data[j].x - xi;
-            Scalar dy = h_pos.data[j].y - yi;
-            Scalar dz = h_pos.data[j].z - zi;
+            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 dx = pj - pi;
 
-
-            // if the vector crosses the box, pull it back
-            if (dx >= Lx2)
-                dx -= Lx;
-            else if (dx < -Lx2)
-                dx += Lx;
-
-            if (dy >= Ly2)
-                dy -= Ly;
-            else if (dy < -Ly2)
-                dy += Ly;
-
-            if (dz >= Lz2)
-                dz -= Lz;
-            else if (dz < -Lz2)
-                dz += Lz;
-
-            // sanity check
-            assert(dx >= -Lx2 && dz <= Lx2);
-            assert(dy >= -Ly2 && dy <= Ly2);
-            assert(dz >= -Lz2 && dz <= Lz2);
-
+            dx = box.minImage(dx);
+            
             bool excluded = false;
             if (m_filter_body && bodyi != NO_BODY)
                 excluded = (bodyi == h_body.data[j]);
@@ -1036,7 +976,7 @@ void NeighborList::buildNlist(unsigned int timestep)
                 }
 
             // now compare rsq to rmaxsq and add to the list if it meets the criteria
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar rsq = dot(dx, dx);
             if (rsq <= (rmaxsq + sqshift) && !excluded)
                 {
                 if (m_storage_mode == full)
@@ -1182,7 +1122,9 @@ void NeighborList::allocateNlist()
     {
     // round up to the nearest multiple of 8
     m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
-    
+
+    m_exec_conf->msg->notice(6) << "nlist: Allocating " << m_pdata->getN() << " x " << m_Nmax+1 << endl;
+
     // allocate the memory
     GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
     m_nlist.swap(nlist);

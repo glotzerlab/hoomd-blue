@@ -123,7 +123,7 @@ class pppm(force._force):
         util.print_status_line();
        
         if pppm_used:
-            print >> sys.stderr, "\n***Error: cannot have more than one pppm in a single job\n";
+            globals.msg.error("cannot have more than one pppm in a single job\n");
             raise RuntimeError("Error initializing PPPM");
         pppm_used = True;
        
@@ -190,7 +190,7 @@ class pppm(force._force):
         util.print_status_line();
 
         if globals.system_definition.getNDimensions() != 3:
-            print >> sys.stderr, "\n***Error: System must be 3 dimensional\n";
+            globals.msg.error("System must be 3 dimensional\n");
             raise RuntimeError("Cannot compute PPPM");
 
         self.params_set = True;
@@ -200,9 +200,9 @@ class pppm(force._force):
             q = globals.system_definition.getParticleData().getCharge(i)
             q2 += q*q
         box = globals.system_definition.getParticleData().getBox()
-        Lx = box.xhi - box.xlo
-        Ly = box.yhi - box.ylo
-        Lz = box.zhi - box.zlo
+        Lx = box.getL().x
+        Ly = box.getL().y
+        Lz = box.getL().z
 
         hx = Lx/Nx
         hy = Ly/Ny
@@ -217,7 +217,7 @@ class pppm(force._force):
         fmid = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
    
         if f*fmid >= 0.0:
-            print >> sys.stderr, "\n***Error: f*fmid >= 0.0\n";
+            globals.msg.error("f*fmid >= 0.0\n");
             raise RuntimeError("Cannot compute PPPM");
 
         if f < 0.0:
@@ -237,7 +237,7 @@ class pppm(force._force):
                 rtb = kappa
             ncount += 1
             if ncount > 10000.0:
-                print >> sys.stderr, "\n***Error: kappa not converging\n";
+                globals.msg.error("kappa not converging\n");
                 raise RuntimeError("Cannot compute PPPM");
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
@@ -256,7 +256,7 @@ class pppm(force._force):
 
     def update_coeffs(self):
         if not self.params_set:
-            print >> sys.stderr, "\n***Error: Coefficients for PPPM are not set. Call set_coeff prior to run()\n";
+            globals.msg.error("Coefficients for PPPM are not set. Call set_coeff prior to run()\n");
             raise RuntimeError("Error initializing run");
 
 def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):

@@ -78,23 +78,22 @@ using namespace std;
 EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
     : ForceCompute(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
+
     assert(m_pdata);
-
-
 
     loadFile(filename, type_of_file);
     // initialize the number of types value
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
-
-
     }
 
 
 EAMForceCompute::~EAMForceCompute()
     {
-
+    m_exec_conf->msg->notice(5) << "Destroying EAMForceCompute" << endl;
     }
+
 /*
 type_of_file = 0 => EAM/Alloy
 type_of_file = 1 => EAM/FS
@@ -113,7 +112,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     fp = fopen(filename,"r");
     if (fp == NULL)
         {
-        cerr << endl << "***Error! Can not load EAM file" << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: Can not load EAM file" << endl;
         throw runtime_error("Error loading file");
         }
     for(i = 0; i < 3; i++) while(fgetc(fp) != '\n');
@@ -121,7 +120,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     fscanf(fp, "%d", &m_ntypes);
     if(m_ntypes < 1 || m_ntypes > MAX_TYPE_NUMBER ) 
         {
-        cerr << endl << "***Error! Invalid EAM file format: Type number is greater than " << MAX_TYPE_NUMBER << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Type number is greater than " << MAX_TYPE_NUMBER << endl;
         throw runtime_error("Error loading file");
         }
     // temporary array to count used types
@@ -139,13 +138,10 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     //Check that all types of atopms in xml file have description in potential file
     if(m_pdata->getNTypes() != types_set.count())
         {
-        cerr << endl << "***Error! not all atom types are defined in EAM potential file!!!" << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: not all atom types are defined in EAM potential file!!!" << endl;
         throw runtime_error("Error loading file");
         }
-/*    for(i = 0; i < m_ntypes; i++){
-        cout << i << " : " << types[i] << " " << names[i] << endl;
-    }
-    */
+
     //Load parameters.
     fscanf(fp,"%d", &nrho);
     fscanf(fp,"%lg", &tmp);
@@ -159,7 +155,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     m_r_cut = tmp;
     if (nrho < 1 || nr < 1 || nrho > MAX_POINT_NUMBER || nr > MAX_POINT_NUMBER)
         {
-        cerr << endl << "***Error! Invalid EAM file format: Point number is greater than " << MAX_POINT_NUMBER << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Point number is greater than " << MAX_POINT_NUMBER << endl;
         throw runtime_error("Error loading file");
         }
     //Resize arrays for tables
@@ -210,7 +206,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     
     if(res == EOF || res == 0)
         {
-        cerr << endl << "***Error! EAM file is truncated " << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: EAM file is truncated " << endl;
         throw runtime_error("Error loading file");        
         }
     //Read V(r)'s arrays
@@ -289,7 +285,7 @@ Scalar EAMForceCompute::getLogValue(const std::string& quantity, unsigned int ti
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for EAMForceCompute" << endl << endl;
+        m_exec_conf->msg->error() << "pair.eam: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -335,16 +331,10 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    Scalar3 L = box.getL();
 
     // create a temporary copy of r_cut sqaured
     Scalar r_cut_sq = m_r_cut * m_r_cut;
-
-    // precalculate box lenghts for use in the periodic imaging
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
 
     // tally up the number of forces calculated
     int64_t n_calc = 0;
@@ -361,9 +351,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = h_pos.data[i].x;
-        Scalar yi = h_pos.data[i].y;
-        Scalar zi = h_pos.data[i].z;
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
 
         // sanity check
@@ -383,37 +371,20 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             assert(k < m_pdata->getN());
 
             // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - h_pos.data[k].x;
-            Scalar dy = yi - h_pos.data[k].y;
-            Scalar dz = zi - h_pos.data[k].z;
+            Scalar3 pk = make_scalar3(h_pos.data[k].x, h_pos.data[k].y, h_pos.data[k].z);
+            Scalar3 dx = pi - pk;
 
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar
             unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
 
-            // apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
-            if (dx >= box.xhi)
-                dx -= Lx;
-            else
-            if (dx < box.xlo)
-                dx += Lx;
-
-            if (dy >= box.yhi)
-                dy -= Ly;
-            else
-            if (dy < box.ylo)
-                dy += Ly;
-
-            if (dz >= box.zhi)
-                dz -= Lz;
-            else
-            if (dz < box.zlo)
-                dz += Lz;
+            // apply periodic boundary conditions
+            dx = box.minImage(dx);
 
             // start computing the force
             // calculate r squared (FLOPS: 5)
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar rsq = dot(dx, dx);;
             // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
             if (rsq < r_cut_sq)
                 {
@@ -448,14 +419,10 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = h_pos.data[i].x;
-        Scalar yi = h_pos.data[i].y;
-        Scalar zi = h_pos.data[i].z;
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
-
-
 
         // initialize current particle force, potential energy, and virial to 0
         Scalar fxi = 0.0;
@@ -479,38 +446,20 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             assert(k < m_pdata->getN());
 
             // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - h_pos.data[k].x;
-            Scalar dy = yi - h_pos.data[k].y;
-            Scalar dz = zi - h_pos.data[k].z;
+            Scalar3 pk = make_scalar3(h_pos.data[k].x, h_pos.data[k].y, h_pos.data[k].z);
+            Scalar3 dx = pi - pk;
 
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar
             unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
 
-            // apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
-            if (dx >= box.xhi)
-                dx -= Lx;
-            else
-            if (dx < box.xlo)
-                dx += Lx;
-
-            if (dy >= box.yhi)
-                dy -= Ly;
-            else
-            if (dy < box.ylo)
-                dy += Ly;
-
-            if (dz >= box.zhi)
-                dz -= Lz;
-            else
-            if (dz < box.zlo)
-                dz += Lz;
+            // apply periodic boundary conditions
+            dx = box.minImage(dx);
 
             // start computing the force
             // calculate r squared (FLOPS: 5)
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
-
+            Scalar rsq = dot(dx, dx);
 
             if (rsq >= r_cut_sq) continue;
             Scalar r = sqrt(rsq);
@@ -530,22 +479,22 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             Scalar pairForce = - fullDerivativePhi * inverseR;
             // are the virial and potential energy correctly calculated
             // with respect to double counting?
-            viriali[0] += dx*dx * pairForce;
-            viriali[1] += dx*dy * pairForce;
-            viriali[2] += dx*dz * pairForce;
-            viriali[3] += dy*dy * pairForce;
-            viriali[4] += dy*dz * pairForce;
-            viriali[5] += dz*dz * pairForce;
-            fxi += dx * pairForce;
-            fyi += dy * pairForce;
-            fzi += dz * pairForce;
+            viriali[0] += dx.x*dx.x * pairForce;
+            viriali[1] += dx.x*dx.y * pairForce;
+            viriali[2] += dx.x*dx.z * pairForce;
+            viriali[3] += dx.y*dx.y * pairForce;
+            viriali[4] += dx.y*dx.z * pairForce;
+            viriali[5] += dx.z*dx.z * pairForce;
+            fxi += dx.x * pairForce;
+            fyi += dx.y * pairForce;
+            fzi += dx.z * pairForce;
             pei += pair_eng;
 
             if (third_law)
                 {
-                h_force.data[k].x -= dx * pairForce;
-                h_force.data[k].y -= dy * pairForce;
-                h_force.data[k].z -= dz * pairForce;
+                h_force.data[k].x -= dx.x * pairForce;
+                h_force.data[k].y -= dx.y * pairForce;
+                h_force.data[k].z -= dx.z * pairForce;
                 }
             }
         h_force.data[i].x += fxi;

@@ -128,7 +128,7 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 10*10*10*27);
     
     // ********* change the box size and verify the results *********
-    pdata_3->setBox(BoxDim(5.5f));
+    pdata_3->setGlobalBoxL(make_scalar3(5.5f, 5.5f, 5.5f));
     cl->compute(0);
     
     // verify the dimensions
@@ -185,7 +185,7 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     
     // ********* change the box size to a non cube and verify the results *********
     cl->setNominalWidth(Scalar(1.0));
-    pdata_3->setBox(BoxDim(5.5f, 3.0f, 10.5f));
+    pdata_3->setGlobalBoxL(make_scalar3(5.5f, 3.0f, 10.5f));
     cl->compute(0);
     
     // verify the dimensions
@@ -266,7 +266,7 @@ void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     // ********** Test adj array with a radius ***********
     // use a 5x5x5 box with radius 2
     cl->setRadius(2);
-    pdata_3->setBox(BoxDim(5.0f));
+    pdata_3->setGlobalBoxL(make_scalar3(5.0f, 5.0f, 5.0f));
     
     cl->compute(0);
     

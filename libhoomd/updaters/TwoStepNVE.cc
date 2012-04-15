@@ -73,6 +73,8 @@ TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
                        bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVE" << endl;
+
     if (!skip_restart)
         {
         // set a named, but otherwise blank set of integrator variables
@@ -89,6 +91,11 @@ TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
 
         setIntegratorVariables(v);
         }
+    }
+
+TwoStepNVE::~TwoStepNVE()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVE" << endl;
     }
 
 /*! \param limit Distance to limit particle movement each time step
@@ -164,59 +171,12 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
     // particles may have been moved slightly outside the box by the above steps, wrap them back into place
     const BoxDim& box = m_pdata->getBox();
 
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-
-        // wrap the particles around the box
-        if (! m_no_wrap_particles[0])
-            {
-            if (h_pos.data[j].x >= box.xhi)
-                {
-                h_pos.data[j].x -= Lx;
-                h_image.data[j].x++;
-                }
-            else if (h_pos.data[j].x < box.xlo)
-                {
-                h_pos.data[j].x += Lx;
-                h_image.data[j].x--;
-                }
-            }
-
-        if (! m_no_wrap_particles[1])
-            {
-            if (h_pos.data[j].y >= box.yhi)
-                {
-                h_pos.data[j].y -= Ly;
-                h_image.data[j].y++;
-                }
-            else if (h_pos.data[j].y < box.ylo)
-                {
-                h_pos.data[j].y += Ly;
-                h_image.data[j].y--;
-                }
-            }
-
-        if (! m_no_wrap_particles[2])
-            {
-            if (h_pos.data[j].z >= box.zhi)
-                {
-                h_pos.data[j].z -= Lz;
-                h_image.data[j].z++;
-                }
-            else if (h_pos.data[j].z < box.zlo)
-                {
-                h_pos.data[j].z += Lz;
-                h_image.data[j].z--;
-                }
-            }
+        box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
     // done profiling

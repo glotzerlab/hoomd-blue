@@ -252,6 +252,8 @@ class AngleData : boost::noncopyable
         std::vector<std::string> m_angle_type_mapping;  //!< Mapping between angle type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_angles_dirty flag when partciles are sorted or an angle is added.

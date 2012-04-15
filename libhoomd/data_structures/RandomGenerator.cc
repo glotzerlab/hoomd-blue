@@ -87,8 +87,8 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
     {
     // sanity checks
     assert(n_particles > 0);
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
     assert(m_radii.size() > 0);
+    Scalar3 L = box.getL();
     
     // find the maximum particle radius
     Scalar max_radius = Scalar(0.0);
@@ -108,9 +108,9 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
         target_size = Scalar(2.0);
     
     // calculate the particle binning
-    m_Mx = (int)((m_box.xhi - m_box.xlo) / (target_size));
-    m_My = (int)((m_box.yhi - m_box.ylo) / (target_size));
-    m_Mz = (int)((m_box.zhi - m_box.zlo) / (target_size));
+    m_Mx = (int)(L.x / (target_size));
+    m_My = (int)(L.y / (target_size));
+    m_Mz = (int)(L.z / (target_size));
     if (m_Mx == 0)
         m_Mx = 1;
     if (m_My == 0)
@@ -124,9 +124,9 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
         }
         
     // make even bin dimensions
-    Scalar binx = (m_box.xhi - m_box.xlo) / Scalar(m_Mx);
-    Scalar biny = (m_box.yhi - m_box.ylo) / Scalar(m_My);
-    Scalar binz = (m_box.zhi - m_box.zlo) / Scalar(m_Mz);
+    Scalar binx = L.x / Scalar(m_Mx);
+    Scalar biny = L.y / Scalar(m_My);
+    Scalar binz = L.z / Scalar(m_Mz);
     
     // precompute scale factors to eliminate division in inner loop
     m_scalex = Scalar(1.0) / binx;
@@ -145,7 +145,7 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
 */
 bool GeneratedParticles::canPlace(const particle& p)
     {
-    // begin with an error check that p.type is actually in the radius map
+    // begin with an error check that p.type is actualL.y in the radius map
     if (m_radii.count(p.type) == 0)
         {
         cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
@@ -154,32 +154,32 @@ bool GeneratedParticles::canPlace(const particle& p)
         
     // first, map the particle back into the box
     Scalar x = p.x;
-    Scalar lx = m_box.xhi - m_box.xlo;
-    if (x > m_box.xhi)
-        x -= lx*(((int)((x-m_box.xhi)/lx))+1);
-    else if (x < m_box.xlo)
-        x += lx*(((int)((m_box.xlo-x)/lx))+1);
+    Scalar3 L = m_box.getL();
+    Scalar3 hi = m_box.getHi();
+    Scalar3 lo = m_box.getLo();
+    if (x > hi.x)
+        x -= L.x*(((int)((x-hi.x)/L.x))+1);
+    else if (x < lo.x)
+        x += L.x*(((int)((lo.x-x)/L.x))+1);
         
     Scalar y = p.y;
-    Scalar ly = m_box.yhi - m_box.ylo;
-    if (y > m_box.yhi)
-        y -= ly*(((int)((y-m_box.yhi)/ly))+1);
-    else if (y < m_box.ylo)
-        y += ly*(((int)((m_box.ylo-y)/ly))+1);
+    if (y > hi.y)
+        y -= L.y*(((int)((y-hi.y)/L.y))+1);
+    else if (y < lo.y)
+        y += L.y*(((int)((lo.y-y)/L.y))+1);
 
     Scalar z = p.z;
-    Scalar lz = m_box.zhi - m_box.zlo;
-    if (z > m_box.zhi)
-        z -= lz*(((int)((z-m_box.zhi)/lz))+1);
-    else if (z < m_box.zlo)
-        z += lz*(((int)((m_box.zlo-z)/lz))+1);
+    if (z > hi.y)
+        z -= L.z*(((int)((z-hi.y)/L.z))+1);
+    else if (z < lo.z)
+        z += L.z*(((int)((lo.z-z)/L.z))+1);
         
     // determine the bin the particle is in
-    int ib = (int)((x-m_box.xlo)*m_scalex);
-    int jb = (int)((y-m_box.ylo)*m_scaley);
-    int kb = (int)((z-m_box.zlo)*m_scalez);
+    int ib = (int)((x-lo.x)*m_scalex);
+    int jb = (int)((y-lo.y)*m_scaley);
+    int kb = (int)((z-lo.z)*m_scalez);
     
-    // need to handle the case where the particle is exactly at the box hi
+    // need to handle the case where the particle is exactL.y at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -230,41 +230,41 @@ bool GeneratedParticles::canPlace(const particle& p)
 
                     // map p_cmp into box
                     Scalar cmp_x = p_cmp.x;
-                    if (cmp_x > m_box.xhi)
-                        cmp_x -= lx*(((int)((cmp_x-m_box.xhi)/lx))+1);
-                    else if (x < m_box.xlo)
-                        cmp_x += lx*(((int)((m_box.xlo-cmp_x)/lx))+1);
+                    if (cmp_x > hi.x)
+                        cmp_x -= L.x*(((int)((cmp_x-hi.x)/L.x))+1);
+                    else if (x < lo.x)
+                        cmp_x += L.x*(((int)((lo.x-cmp_x)/L.x))+1);
         
                     Scalar cmp_y = p_cmp.y;
-                    if (y > m_box.yhi)
-                        cmp_y -= ly*(((int)((cmp_y-m_box.yhi)/ly))+1);
-                    else if (y < m_box.ylo)
-                        cmp_y += ly*(((int)((m_box.ylo-cmp_y)/ly))+1);
+                    if (y > hi.y)
+                        cmp_y -= L.y*(((int)((cmp_y-hi.y)/L.y))+1);
+                    else if (y < lo.y)
+                        cmp_y += L.y*(((int)((lo.y-cmp_y)/L.y))+1);
 
                     Scalar cmp_z = p_cmp.z;
-                    if (cmp_z > m_box.zhi)
-                        cmp_z -= lz*(((int)((cmp_z-m_box.zhi)/lz))+1);
-                    else if (cmp_z < m_box.zlo)
-                        cmp_z += lz*(((int)((m_box.zlo-cmp_z)/lz))+1);
+                    if (cmp_z > hi.y)
+                        cmp_z -= L.z*(((int)((cmp_z-hi.y)/L.z))+1);
+                    else if (cmp_z < lo.z)
+                        cmp_z += L.z*(((int)((lo.z-cmp_z)/L.z))+1);
 
                     // minimum image convention for dx
                     Scalar dx = x - cmp_x;
-                    if (dx > lx/2.)
-                        dx -= lx;
-                    else if (dx <= -lx/2.)
-                        dx += lx;
+                    if (dx > L.x/2.)
+                        dx -= L.x;
+                    else if (dx <= -L.x/2.)
+                        dx += L.x;
                         
                     Scalar dy = y - cmp_y;
-                    if (dy > ly/2.)
-                        dy -= ly;
-                    else if (dy <= -ly/2.)
-                        dy += ly;
+                    if (dy > L.y/2.)
+                        dy -= L.y;
+                    else if (dy <= -L.y/2.)
+                        dy += L.y;
                         
                     Scalar dz = z - cmp_z;
-                    if (dz > lz/2.)
-                        dz -= lz;
-                    else if (dz <= -lz/2.)
-                        dz += lz;
+                    if (dz > L.z/2.)
+                        dz -= L.z;
+                    else if (dz <= -L.z/2.)
+                        dz += L.z;
                         
                     if (dx*dx + dy*dy + dz*dz < min_dist)
                         return false;
@@ -287,7 +287,7 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
     {
     assert(idx < m_particles.size());
     
-    // begin with an error check that p.type is actually in the radius map
+    // begin with an error check that p.type is actualL.y in the radius map
     if (m_radii.count(p.type) == 0)
         {
         cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
@@ -296,45 +296,45 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
         
     // first, map the particle back into the box
     Scalar x = p.x;
-    Scalar lx = m_box.xhi - m_box.xlo;
+    Scalar3 L = m_box.getL();
+    Scalar3 lo = m_box.getLo();
+    Scalar3 hi = m_box.getHi();
     int ix = 0;
-    if (x > m_box.xhi)
+    if (x > hi.x)
         {
-        ix=(((int)((x-m_box.xhi)/lx))+1);
-        x -= lx*ix;
+        ix=(((int)((x-hi.x)/L.x))+1);
+        x -= L.x*ix;
         }
-    else if (x < m_box.xlo)
+    else if (x < lo.x)
         {
-        ix=-(((int)((m_box.xlo-x)/lx))+1);
-        x -= lx*ix;
+        ix=-(((int)((lo.x-x)/L.x))+1);
+        x -= L.x*ix;
         }
 
     Scalar y = p.y;
-    Scalar ly = m_box.yhi - m_box.ylo;
     int iy = 0;
-    if (y > m_box.yhi)
+    if (y > hi.y)
         {
-        iy=(((int)((y-m_box.yhi)/ly))+1);
-        y -= ly*iy;
+        iy=(((int)((y-hi.y)/L.y))+1);
+        y -= L.y*iy;
         }
-    else if (y < m_box.ylo)
+    else if (y < lo.y)
         {
-        iy=-(((int)((m_box.ylo-y)/ly))+1);
-        y -= ly*iy;
+        iy=-(((int)((lo.y-y)/L.y))+1);
+        y -= L.y*iy;
         }
         
     Scalar z = p.z;
-    Scalar lz = m_box.zhi - m_box.zlo;
     int iz = 0;
-    if (z > m_box.zhi)
+    if (z > hi.y)
         {
-        iz=(((int)((z-m_box.zhi)/lz))+1);
-        z -= lz*iz;
+        iz=(((int)((z-hi.y)/L.z))+1);
+        z -= L.z*iz;
         }
-    else if (z < m_box.zlo)
+    else if (z < lo.z)
         {
-        iz=-(((int)((m_box.zlo-z)/lz))+1);
-        z -= lz*iz;
+        iz=-(((int)((lo.z-z)/L.z))+1);
+        z -= L.z*iz;
         }
 
     // set the particle data
@@ -347,11 +347,11 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
     m_particles[idx].type = p.type;
     
     // determine the bin the particle is in
-    int ib = (int)((x-m_box.xlo)*m_scalex);
-    int jb = (int)((y-m_box.ylo)*m_scaley);
-    int kb = (int)((z-m_box.zlo)*m_scalez);
+    int ib = (int)((x-lo.x)*m_scalex);
+    int jb = (int)((y-lo.y)*m_scaley);
+    int kb = (int)((z-lo.z)*m_scalez);
     
-    // need to handle the case where the particle is exactly at the box hi
+    // need to handle the case where the particle is exactL.y at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -379,45 +379,45 @@ void GeneratedParticles::undoPlace(unsigned int idx)
     particle p = m_particles[idx];
     // first, map the particle back into the box
     Scalar x = p.x;
-    Scalar lx = m_box.xhi - m_box.xlo;
+    Scalar3 L = m_box.getL();
+    Scalar3 hi = m_box.getHi();
+    Scalar3 lo = m_box.getLo();
     int ix = 0;
-    if (x > m_box.xhi)
+    if (x > hi.x)
         {
-        ix=(((int)((x-m_box.xhi)/lx))+1);
-        x -= lx*ix;
+        ix=(((int)((x-hi.x)/L.x))+1);
+        x -= L.x*ix;
         }
-    else if (x < m_box.xlo)
+    else if (x < lo.x)
         {
-        ix=-(((int)((m_box.xlo-x)/lx))+1);
-        x -= lx*ix;
+        ix=-(((int)((lo.x-x)/L.x))+1);
+        x -= L.x*ix;
         }
 
     Scalar y = p.y;
-    Scalar ly = m_box.yhi - m_box.ylo;
     int iy = 0;
-    if (y > m_box.yhi)
+    if (y > hi.y)
         {
-        iy=(((int)((y-m_box.yhi)/ly))+1);
-        y -= ly*iy;
+        iy=(((int)((y-hi.y)/L.y))+1);
+        y -= L.y*iy;
         }
-    else if (y < m_box.ylo)
+    else if (y < lo.y)
         {
-        iy=-(((int)((m_box.ylo-y)/ly))+1);
-        y -= ly*iy;
+        iy=-(((int)((lo.y-y)/L.y))+1);
+        y -= L.y*iy;
         }
         
     Scalar z = p.z;
-    Scalar lz = m_box.zhi - m_box.zlo;
     int iz = 0;
-    if (z > m_box.zhi)
+    if (z > hi.y)
         {
-        iz=(((int)((z-m_box.zhi)/lz))+1);
-        z -= lz*iz;
+        iz=(((int)((z-hi.y)/L.z))+1);
+        z -= L.z*iz;
         }
-    else if (z < m_box.zlo)
+    else if (z < lo.z)
         {
-        iz=-(((int)((m_box.zlo-z)/lz))+1);
-        z -= lz*iz;
+        iz=-(((int)((lo.z-z)/L.z))+1);
+        z -= L.z*iz;
         }
 
     // set the particle data
@@ -430,11 +430,11 @@ void GeneratedParticles::undoPlace(unsigned int idx)
     m_particles[idx].type = p.type;
     
     // determine the bin the particle is in
-    int ib = (int)((x-m_box.xlo)*m_scalex);
-    int jb = (int)((y-m_box.ylo)*m_scaley);
-    int kb = (int)((z-m_box.zlo)*m_scalez);
+    int ib = (int)((x-lo.x)*m_scalex);
+    int jb = (int)((y-lo.y)*m_scaley);
+    int kb = (int)((z-lo.z)*m_scalez);
     
-    // need to handle the case where the particle is exactly at the box hi
+    // need to handle the case where the particle is exactL.y at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -493,7 +493,7 @@ BoxDim RandomGenerator::getBox() const
     }
 
 
-/*! initializes a snapshot with the internally stored copy of the particle data */
+/*! initializes a snapshot with the internalL.y stored copy of the particle data */
 void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
     {
     unsigned int nparticles = m_data.m_particles.size();
@@ -668,14 +668,16 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
     GeneratedParticles::particle p;
     p.type = m_types[0];
     
+    Scalar3 L = box.getL();
+    Scalar3 lo = box.getLo();
     
     // make a maximum of m_max_attempts tries to generate the polymer
     for (unsigned int attempt = 0; attempt < m_max_attempts; attempt++)
         {
         // generate the position of the first particle
-        p.x = box.xlo + random01(rnd) * (box.xhi - box.xlo);
-        p.y = box.ylo + random01(rnd) * (box.yhi - box.ylo);
-        p.z = box.zlo + random01(rnd) * (box.zhi - box.zlo);
+        p.x = lo.x + random01(rnd) * L.x;
+        p.y = lo.y + random01(rnd) * L.y;
+        p.z = lo.z + random01(rnd) * L.z;
         
         // see if we can place the particle
         if (!particles.canPlace(p))
@@ -687,7 +689,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
         if (generateNextParticle(particles, rnd, 1, start_idx, p))
             {
             // success! we are done
-            // create the bonds for this polymer now (polymers are simply linear for now)
+            // create the bonds for this polymer now (polymers are simpL.y linear for now)
             for (unsigned int i = 0; i < m_bond_a.size(); i++)
                 {
                 particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i], m_bond_type[i]);

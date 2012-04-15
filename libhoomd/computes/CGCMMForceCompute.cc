@@ -77,12 +77,14 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
                                      Scalar r_cut)
     : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
     {
+    m_exec_conf->msg->notice(5) << "Constructing CGCMMForceCompute" << endl;
+
     assert(m_pdata);
     assert(m_nlist);
     
     if (r_cut < 0.0)
         {
-        cerr << endl << "***Error! Negative r_cut in CGCMMForceCompute makes no sense" << endl << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: Negative r_cut makes no sense" << endl;
         throw runtime_error("Error initializing CGCMMForceCompute");
         }
         
@@ -111,6 +113,8 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 
 CGCMMForceCompute::~CGCMMForceCompute()
     {
+    m_exec_conf->msg->notice(5) << "Destroying CGCMMForceCompute" << endl;
+
     // deallocate our memory
     delete[] m_lj12;
     delete[] m_lj9;
@@ -160,7 +164,7 @@ void CGCMMForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar l
     {
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        cerr << endl << "***Error! Trying to set CGCMM params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: Trying to set params for a non existant type! " << typ1 << "," << typ2 << endl;
         throw runtime_error("Error setting parameters in CGCMMForceCompute");
         }
         
@@ -200,7 +204,7 @@ Scalar CGCMMForceCompute::getLogValue(const std::string& quantity, unsigned int 
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for CGCMMForceCompute" << endl << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -246,17 +250,10 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
     
     // create a temporary copy of r_cut sqaured
     Scalar r_cut_sq = m_r_cut * m_r_cut;
-    
-    // precalculate box lenghts for use in the periodic imaging
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    
+
     // tally up the number of forces calculated
     int64_t n_calc = 0;
     
@@ -264,9 +261,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = h_pos.data[i].x;
-        Scalar yi = h_pos.data[i].y;
-        Scalar zi = h_pos.data[i].z;
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
@@ -278,9 +273,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
         Scalar * __restrict__ lj4_row = &(m_lj4[typei*m_ntypes]);
         
         // initialize current particle force, potential energy, and virial to 0
-        Scalar fxi = 0.0;
-        Scalar fyi = 0.0;
-        Scalar fzi = 0.0;
+        Scalar3 fi = make_scalar3(0, 0, 0);
         Scalar pei = 0.0;
         Scalar viriali[6];
         for (int k = 0; k < 6; k++)
@@ -299,9 +292,8 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             assert(k < m_pdata->getN());
             
             // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx = xi - h_pos.data[k].x;
-            Scalar dy = yi - h_pos.data[k].y;
-            Scalar dz = zi - h_pos.data[k].z;
+            Scalar3 pj = make_scalar3(h_pos.data[k].x, h_pos.data[k].y, h_pos.data[k].z);
+            Scalar3 dx = pi - pj;
             
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar
             unsigned int typej = __scalar_as_int(h_pos.data[k].w);
@@ -309,24 +301,11 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             assert(typej < m_pdata->getNTypes());
             
             // apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
-            if (dx >= box.xhi)
-                dx -= Lx;
-            else if (dx < box.xlo)
-                dx += Lx;
-                
-            if (dy >= box.yhi)
-                dy -= Ly;
-            else if (dy < box.ylo)
-                dy += Ly;
-                
-            if (dz >= box.zhi)
-                dz -= Lz;
-            else if (dz < box.zlo)
-                dz += Lz;
-                
+            dx = box.minImage(dx);
+            
             // start computing the force
             // calculate r squared (FLOPS: 5)
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar rsq = dot(dx, dx);
             
             // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
             if (rsq < r_cut_sq)
@@ -340,20 +319,18 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
                                                          
                 // compute the pair energy and virial (FLOPS: 6)
                 Scalar pair_virial[6];
-                pair_virial[0] = Scalar(0.5) * dx * dx * forcemag_divr;
-                pair_virial[1] = Scalar(0.5) * dx * dy * forcemag_divr;
-                pair_virial[2] = Scalar(0.5) * dx * dz * forcemag_divr;
-                pair_virial[3] = Scalar(0.5) * dy * dy * forcemag_divr;
-                pair_virial[4] = Scalar(0.5) * dy * dz * forcemag_divr;
-                pair_virial[5] = Scalar(0.5) * dz * dz * forcemag_divr;
+                pair_virial[0] = Scalar(0.5) * dx.x * dx.x * forcemag_divr;
+                pair_virial[1] = Scalar(0.5) * dx.x * dx.y * forcemag_divr;
+                pair_virial[2] = Scalar(0.5) * dx.x * dx.z * forcemag_divr;
+                pair_virial[3] = Scalar(0.5) * dx.y * dx.y * forcemag_divr;
+                pair_virial[4] = Scalar(0.5) * dx.y * dx.z * forcemag_divr;
+                pair_virial[5] = Scalar(0.5) * dx.z * dx.z * forcemag_divr;
 
                 Scalar pair_eng = Scalar(0.5) * (r6inv * (lj12_row[typej] * r6inv + lj9_row[typej] * r3inv + lj6_row[typej]) + lj4_row[typej] * r2inv * r2inv);
                 
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)
-                fxi += dx*forcemag_divr;
-                fyi += dy*forcemag_divr;
-                fzi += dz*forcemag_divr;
+                fi += dx*forcemag_divr;
                 pei += pair_eng;
                 for (unsigned int l = 0; l < 6; l++)
                     viriali[l] += pair_virial[l];
@@ -361,9 +338,9 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 if (third_law)
                     {
-                    h_force.data[k].x -= dx*forcemag_divr;
-                    h_force.data[k].y -= dy*forcemag_divr;
-                    h_force.data[k].z -= dz*forcemag_divr;
+                    h_force.data[k].x -= dx.x*forcemag_divr;
+                    h_force.data[k].y -= dx.y*forcemag_divr;
+                    h_force.data[k].z -= dx.z*forcemag_divr;
                     h_force.data[k].w += pair_eng;
                     for (unsigned int l = 0; l < 6; l++)
                         h_virial.data[l*virial_pitch+k] += pair_virial[l];
@@ -374,9 +351,9 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             
         // finally, increment the force, potential energy and virial for particle i
         // (MEM TRANSFER: 10 scalars / FLOPS: 5)
-        h_force.data[i].x     += fxi;
-        h_force.data[i].y  += fyi;
-        h_force.data[i].z  += fzi;
+        h_force.data[i].x  += fi.x;
+        h_force.data[i].y  += fi.y;
+        h_force.data[i].z  += fi.z;
         h_force.data[i].w  += pei;
         for (int l = 0; l < 6; l++)
             h_virial.data[l*virial_pitch+i] += viriali[l];

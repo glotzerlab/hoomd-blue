@@ -78,10 +78,16 @@ TwoStepBerendsen::TwoStepBerendsen(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<Variant> T)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepBerendsen" << endl;
+
     if (m_tau <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in Berendsen thermostat" << endl;
+        m_exec_conf->msg->warning() << "integrate.berendsen: tau set less than 0.0" << endl;
     }
 
+TwoStepBerendsen::~TwoStepBerendsen()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepBerendsen" << endl;
+    }
 
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
@@ -129,50 +135,12 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
         them back into place */
     const BoxDim& box = m_pdata->getBox();
 
-    // precalculate box lengths
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-
-        // wrap the particles around the box
-        if (h_pos.data[j].x >= box.xhi)
-            {
-            h_pos.data[j].x -= Lx;
-            h_image.data[j].x++;
-            }
-        else if (h_pos.data[j].x < box.xlo)
-            {
-            h_pos.data[j].x += Lx;
-            h_image.data[j].x--;
-            }
-
-        if (h_pos.data[j].y >= box.yhi)
-            {
-            h_pos.data[j].y -= Ly;
-            h_image.data[j].y++;
-            }
-        else if (h_pos.data[j].y < box.ylo)
-            {
-            h_pos.data[j].y += Ly;
-            h_image.data[j].y--;
-            }
-
-        if (h_pos.data[j].z >= box.zhi)
-            {
-            h_pos.data[j].z -= Lz;
-            h_image.data[j].z++;
-            }
-        else if (h_pos.data[j].z < box.zlo)
-            {
-            h_pos.data[j].z += Lz;
-            h_image.data[j].z--;
-            }
+        box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
     if (m_prof)

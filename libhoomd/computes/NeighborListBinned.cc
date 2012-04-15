@@ -65,6 +65,8 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
                                        boost::shared_ptr<CellList> cl)
     : NeighborList(sysdef, r_cut, r_buff), m_cl(cl)
     {
+    m_exec_conf->msg->notice(5) << "Constructing NeighborListBinned" << endl;
+
     // create a default cell list if one was not specified
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
@@ -77,6 +79,8 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
 
 NeighborListBinned::~NeighborListBinned()
     {
+    m_exec_conf->msg->notice(5) << "Destroying NeighborListBinned" << endl;
+
     }
 
 void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
@@ -107,7 +111,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     uint3 dim = m_cl->getDim();
     if (dim.x < 3 || dim.y < 3 || dim.z < 3)
         {
-        cerr << endl << "***Error! NeighborListGPUBinned doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl << endl;
+        m_exec_conf->msg->error() << "nlist: O(N) neighbor list doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl;
         throw runtime_error("Error computing neighbor list");
         }
 
@@ -116,9 +120,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     // precompute scale factor
     Scalar3 width = m_cl->getWidth();
-    Scalar3 scale = make_scalar3(Scalar(1.0) / width.x,
-                                 Scalar(1.0) / width.y,
-                                 Scalar(1.0) / width.z);
 
     Scalar3 ghost_width;
     if (m_sysdef->getNDimensions() == 2)
@@ -145,14 +146,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
-
-    // precalculate global box lengths for minimum image convention
-    Scalar Lx = global_box.xhi - global_box.xlo;
-    Scalar Ly = global_box.yhi - global_box.ylo;
-    Scalar Lz = global_box.zhi - global_box.zlo;
-    Scalar Lx2 = Lx / Scalar(2.0);
-    Scalar Ly2 = Ly / Scalar(2.0);
-    Scalar Lz2 = Lz / Scalar(2.0);
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
@@ -179,10 +172,11 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         Scalar di = h_diameter.data[i];
         
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((my_pos.x-box.xlo+ghost_width.x)*scale.x);
-        unsigned int jb = (unsigned int)((my_pos.y-box.ylo+ghost_width.y)*scale.y);
-        unsigned int kb = (unsigned int)((my_pos.z-box.zlo+ghost_width.z)*scale.z);
-        
+        Scalar3 f = box.makeFraction(my_pos);
+        unsigned int ib = (unsigned int)(f.x * dim.x);
+        unsigned int jb = (unsigned int)(f.y * dim.y);
+        unsigned int kb = (unsigned int)(f.z * dim.z);
+
         // need to handle the case where the particle is exactly at the box hi
         if (ib == dim.x)
             ib = 0;
@@ -208,25 +202,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
                 
-                Scalar dx = my_pos.x - neigh_pos.x;
-                Scalar dy = my_pos.y - neigh_pos.y;
-                Scalar dz = my_pos.z - neigh_pos.z;
-
-                // if the vector crosses the box, pull it back
-                if (dx >= Lx2)
-                    dx -= Lx;
-                else if (dx < -Lx2)
-                    dx += Lx;
-
-                if (dy >= Ly2)
-                    dy -= Ly;
-                else if (dy < -Ly2)
-                    dy += Ly;
-
-                if (dz >= Lz2)
-                    dz -= Lz;
-                else if (dz < -Lz2)
-                    dz += Lz;
+                Scalar3 dx = my_pos - neigh_pos;
+                
+                dx = box.minImage(dx);
 
                 bool excluded = (i == (int)cur_neigh);
 
@@ -243,8 +221,8 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     sqshift = (delta + Scalar(2.0) * rmax) * delta;
                     }
 
-                Scalar dr_sq = dx*dx + dy*dy + dz*dz;
-
+                Scalar dr_sq = dot(dx,dx);
+                
                 if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)

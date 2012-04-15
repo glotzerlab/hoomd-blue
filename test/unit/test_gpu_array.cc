@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         BOOST_REQUIRE(d_handle.data != NULL);
         
         gpu_fill_test_pattern(d_handle.data, gpu_array.getNumElements());
-        CHECK_CUDA_ERROR();
+        exec_conf->checkCUDAError(__FILE__, __LINE__);
         }
         
     // copy it to the host and verify
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         BOOST_REQUIRE(d_handle.data != NULL);
         
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        CHECK_CUDA_ERROR();
+        exec_conf->checkCUDAError(__FILE__, __LINE__);
         }
         
     // copy it back to the host and verify
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         BOOST_REQUIRE(d_handle.data != NULL);
         
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        CHECK_CUDA_ERROR();
+        exec_conf->checkCUDAError(__FILE__, __LINE__);
         }
         
         {
@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         BOOST_REQUIRE(d_handle.data != NULL);
         
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        CHECK_CUDA_ERROR();
+        exec_conf->checkCUDAError(__FILE__, __LINE__);
         }
         
     // via the read access mode
@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         BOOST_REQUIRE(d_handle.data != NULL);
         
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        CHECK_CUDA_ERROR();
+        exec_conf->checkCUDAError(__FILE__, __LINE__);
         }
         
     // and via the readwrite access mode
@@ -307,30 +307,30 @@ BOOST_AUTO_TEST_CASE( GPUArray_resize_tests )
     a.resize(10);
 
     // check that it has the right size
-    BOOST_CHECK_EQUAL(a.getNumElements(),10);
+    BOOST_CHECK_EQUAL(a.getNumElements(),(unsigned int)10);
         {
         // test that it still contains the data
         ArrayHandle<unsigned int> h_handle(a, access_location::host, access_mode::read);
 
-        BOOST_CHECK_EQUAL(h_handle.data[0], 1);
-        BOOST_CHECK_EQUAL(h_handle.data[1], 2);
-        BOOST_CHECK_EQUAL(h_handle.data[2], 3);
-        BOOST_CHECK_EQUAL(h_handle.data[3], 4);
-        BOOST_CHECK_EQUAL(h_handle.data[4], 5);
+        BOOST_CHECK_EQUAL(h_handle.data[0], (unsigned int)1);
+        BOOST_CHECK_EQUAL(h_handle.data[1], (unsigned int)2);
+        BOOST_CHECK_EQUAL(h_handle.data[2], (unsigned int)3);
+        BOOST_CHECK_EQUAL(h_handle.data[3], (unsigned int)4);
+        BOOST_CHECK_EQUAL(h_handle.data[4], (unsigned int)5);
 
         // test that the other elements are set to zero
-        BOOST_CHECK_EQUAL(h_handle.data[5], 0);
-        BOOST_CHECK_EQUAL(h_handle.data[6], 0);
-        BOOST_CHECK_EQUAL(h_handle.data[7], 0);
-        BOOST_CHECK_EQUAL(h_handle.data[8], 0);
-        BOOST_CHECK_EQUAL(h_handle.data[9], 0);
+        BOOST_CHECK_EQUAL(h_handle.data[5], (unsigned int)0);
+        BOOST_CHECK_EQUAL(h_handle.data[6], (unsigned int)0);
+        BOOST_CHECK_EQUAL(h_handle.data[7], (unsigned int)0);
+        BOOST_CHECK_EQUAL(h_handle.data[8], (unsigned int)0);
+        BOOST_CHECK_EQUAL(h_handle.data[9], (unsigned int)0);
         }
 
    // check that it also works for a GPUArray that is initially empty
    GPUArray<unsigned int> b;
    b.resize(7);
 
-   BOOST_CHECK_EQUAL(b.getNumElements(), 7);
+   BOOST_CHECK_EQUAL(b.getNumElements(), (unsigned int)7);
 
    // allocate a 2D GPUArray
    unsigned int width=3;
@@ -363,27 +363,27 @@ BOOST_AUTO_TEST_CASE( GPUArray_resize_tests )
        // test that we can still recover the data
        ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::read);
 
-       BOOST_CHECK_EQUAL(h_handle.data[0], 123);
-       BOOST_CHECK_EQUAL(h_handle.data[1], 456);
-       BOOST_CHECK_EQUAL(h_handle.data[2], 789);
+       BOOST_CHECK_EQUAL(h_handle.data[0], (unsigned int)123);
+       BOOST_CHECK_EQUAL(h_handle.data[1], (unsigned int)456);
+       BOOST_CHECK_EQUAL(h_handle.data[2], (unsigned int)789);
 
        // check that other elements of that row zero
        for (unsigned int i = 3; i< 17; i++)
-           BOOST_CHECK_EQUAL(h_handle.data[i], 0);
+           BOOST_CHECK_EQUAL(h_handle.data[i], (unsigned int)0);
 
-       BOOST_CHECK_EQUAL(h_handle.data[0+pitch], 1234);
-       BOOST_CHECK_EQUAL(h_handle.data[1+pitch], 3456);
-       BOOST_CHECK_EQUAL(h_handle.data[2+pitch], 5678);
+       BOOST_CHECK_EQUAL(h_handle.data[0+pitch], (unsigned int)1234);
+       BOOST_CHECK_EQUAL(h_handle.data[1+pitch], (unsigned int)3456);
+       BOOST_CHECK_EQUAL(h_handle.data[2+pitch], (unsigned int)5678);
 
        // check that other elements of that row are zero
        for (unsigned int i = 3; i< 17; i++)
-           BOOST_CHECK_EQUAL(h_handle.data[i+pitch], 0);
+           BOOST_CHECK_EQUAL(h_handle.data[i+pitch], (unsigned int)0);
 
        // check that the two new rows are zero
        for (unsigned int i = 0; i< 17; i++)
            {
-           BOOST_CHECK_EQUAL(h_handle.data[i+2*pitch], 0);
-           BOOST_CHECK_EQUAL(h_handle.data[i+3*pitch], 0);
+           BOOST_CHECK_EQUAL(h_handle.data[i+2*pitch], (unsigned int)0);
+           BOOST_CHECK_EQUAL(h_handle.data[i+3*pitch], (unsigned int)0);
            }
 
        }
@@ -398,40 +398,40 @@ BOOST_AUTO_TEST_CASE( GPUVector_basic_tests )
     GPUVector<unsigned int> vec(exec_conf);
 
     // The size should be zero
-    BOOST_CHECK_EQUAL(vec.size(),0);
+    BOOST_CHECK_EQUAL(vec.size(),(unsigned int)0);
 
     // Add some elements
     vec.push_back(1);
     vec.push_back(2);
     vec.push_back(3);
 
-    BOOST_CHECK_EQUAL(vec.size(), 3);
+    BOOST_CHECK_EQUAL(vec.size(), (unsigned int)3);
 
     // Test bracket operator
-    BOOST_CHECK_EQUAL(vec[0],1);
-    BOOST_CHECK_EQUAL(vec[1],2);
-    BOOST_CHECK_EQUAL(vec[2],3);
+    BOOST_CHECK_EQUAL(vec[0],(unsigned int)1);
+    BOOST_CHECK_EQUAL(vec[1],(unsigned int)2);
+    BOOST_CHECK_EQUAL(vec[2],(unsigned int)3);
 
     // Test assignment
     vec[1] = 4;
 
-    BOOST_CHECK_EQUAL(vec[0],1);
-    BOOST_CHECK_EQUAL(vec[1],4);
-    BOOST_CHECK_EQUAL(vec[2],3);
+    BOOST_CHECK_EQUAL(vec[0],(unsigned int)1);
+    BOOST_CHECK_EQUAL(vec[1],(unsigned int)4);
+    BOOST_CHECK_EQUAL(vec[2],(unsigned int)3);
 
     // remove an element
     vec.pop_back();
 
-    BOOST_CHECK_EQUAL(vec.size(), 2);
+    BOOST_CHECK_EQUAL(vec.size(), (unsigned int)2);
 
     // clear the array
     vec.clear();
 
-    BOOST_CHECK_EQUAL(vec.size(), 0);
+    BOOST_CHECK_EQUAL(vec.size(), (unsigned int)0);
 
     // resize it
     vec.resize(10);
-    BOOST_CHECK_EQUAL(vec.size(), 10 );
+    BOOST_CHECK_EQUAL(vec.size(), (unsigned int)10 );
 
     // verify we can still write to it
     vec[0] = 234;
@@ -446,16 +446,16 @@ BOOST_AUTO_TEST_CASE( GPUVector_basic_tests )
     vec[9] = 890;
 
     // read back
-    BOOST_CHECK_EQUAL(vec[0], 234);
-    BOOST_CHECK_EQUAL(vec[1], 123);
-    BOOST_CHECK_EQUAL(vec[2], 654);
-    BOOST_CHECK_EQUAL(vec[3], 789);
-    BOOST_CHECK_EQUAL(vec[4], 321);
-    BOOST_CHECK_EQUAL(vec[5], 432);
-    BOOST_CHECK_EQUAL(vec[6], 543);
-    BOOST_CHECK_EQUAL(vec[7], 678);
-    BOOST_CHECK_EQUAL(vec[8], 987);
-    BOOST_CHECK_EQUAL(vec[9], 890);
+    BOOST_CHECK_EQUAL(vec[0], (unsigned int)234);
+    BOOST_CHECK_EQUAL(vec[1], (unsigned int)123);
+    BOOST_CHECK_EQUAL(vec[2], (unsigned int)654);
+    BOOST_CHECK_EQUAL(vec[3], (unsigned int)789);
+    BOOST_CHECK_EQUAL(vec[4], (unsigned int)321);
+    BOOST_CHECK_EQUAL(vec[5], (unsigned int)432);
+    BOOST_CHECK_EQUAL(vec[6], (unsigned int)543);
+    BOOST_CHECK_EQUAL(vec[7], (unsigned int)678);
+    BOOST_CHECK_EQUAL(vec[8], (unsigned int)987);
+    BOOST_CHECK_EQUAL(vec[9], (unsigned int)890);
     }
 #endif
 

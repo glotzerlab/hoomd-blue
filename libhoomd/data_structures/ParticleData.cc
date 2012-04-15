@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file ParticleData.cc
-    \brief Contains all code for BoxDim, ParticleData, and SnapshotParticleData.
+    \brief Contains all code for ParticleData, and SnapshotParticleData.
  */
 
 #ifdef WIN32
@@ -97,49 +97,6 @@ BOOST_IS_MPI_DATATYPE(int3)
 using namespace boost::signals;
 using namespace boost;
 
-///////////////////////////////////////////////////////////////////////////
-// BoxDim constructors
-
-/*! \post All dimensions are 0.0
-*/
-BoxDim::BoxDim()
-    {
-    xlo = xhi = ylo = yhi = zlo = zhi = 0.0;
-    }
-
-/*! \param Len Length of one side of the box
-    \post Box ranges from \c -Len/2 to \c +Len/2 in all 3 dimensions
- */
-BoxDim::BoxDim(Scalar Len)
-    {
-    // sanity check
-    assert(Len > 0);
-    
-    // assign values
-    xlo = ylo = zlo = -Len/Scalar(2.0);
-    xhi = zhi = yhi = Len/Scalar(2.0);
-    }
-
-/*! \param Len_x Length of the x dimension of the box
-    \param Len_y Length of the x dimension of the box
-    \param Len_z Length of the x dimension of the box
- */
-BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
-    {
-    // sanity check
-    assert(Len_x > 0 && Len_y > 0 && Len_z > 0);
-    
-    // assign values
-    xlo = -Len_x/Scalar(2.0);
-    xhi = Len_x/Scalar(2.0);
-    
-    ylo = -Len_y/Scalar(2.0);
-    yhi = Len_y/Scalar(2.0);
-    
-    zlo = -Len_z/Scalar(2.0);
-    zhi = Len_z/Scalar(2.0);
-    }
-
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
 
@@ -164,10 +121,12 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
 ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf)
         : m_box(box), m_exec_conf(exec_conf), m_ntypes(n_types), m_nghosts(0), m_nglobal(0), m_resize_factor(9./8.)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
+
     // check the input for errors
     if (m_ntypes == 0)
         {
-        cerr << endl << "***Error! Number of particle types must be greater than 0." << endl << endl;
+        m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
         throw std::runtime_error("Error initializing ParticleData");
         }
         
@@ -216,26 +175,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         name[1] = '\0';
         m_type_mapping.push_back(string(name));
         }
-        
-    // if this is a GPU build, initialize the graphics card mirror data structures
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // setup the box
-        m_gpu_box.Lx = m_box.xhi - m_box.xlo;
-        m_gpu_box.Ly = m_box.yhi - m_box.ylo;
-        m_gpu_box.Lz = m_box.zhi - m_box.zlo;
-        m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
-        m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
-        m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
-        m_gpu_box.xlo = m_box.xlo;
-        m_gpu_box.ylo = m_box.ylo;
-        m_gpu_box.zlo = m_box.zlo;
-        m_gpu_box.xhi = m_box.xhi;
-        m_gpu_box.yhi = m_box.yhi;
-        m_gpu_box.zhi = m_box.zhi;
-        }
-#endif
     
     // initially, global box = local box
     setGlobalBox(m_box);
@@ -248,6 +187,16 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 */
 ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_ntypes(0), m_nghosts(0), m_nglobal(0), m_resize_factor(9./8.)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
+
+    m_ntypes = init.getNumParticleTypes();
+    // check the input for errors
+    if (m_ntypes == 0)
+        {
+        m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
+        throw std::runtime_error("Error initializing ParticleData");
+        }
+        
     // allocate memory
     allocate(init.getNumParticles());
 
@@ -293,7 +242,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     // initialize particle data with updated values
     initializeFromSnapshot(snapshot);
 
-    setBox(init.getBox());
+    m_box = init.getBox();
 
     // initially, global simulation box = local simulation box
     setGlobalBox(init.getBox());
@@ -307,12 +256,17 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
     // it is an error for particles to be initialized outside of their box
     if (!inBox())
         {
-        cerr << endl << "***Error! Not all particles were found inside the given box" << endl << endl;
+        m_exec_conf->msg->error() << "Not all particles were found inside the given box" << endl;
         throw runtime_error("Error initializing ParticleData");
         }
         
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
+    }
+
+ParticleData::~ParticleData()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying ParticleData" << endl;
     }
 
 /*! \return Simulation box dimensions
@@ -322,32 +276,16 @@ const BoxDim & ParticleData::getBox() const
     return m_box;
     }
 
-/*! \param box New box to set
+/*! \param L New box lengths to set
     \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
         it is the responsibility of the caller to ensure that all particles lie within
         the new box.
 */
-void ParticleData::setBox(const BoxDim &box)
+void ParticleData::setGlobalBoxL(const Scalar3 &L)
     {
-    m_box = box;
-    //assert(inBox());
-    
-#ifdef ENABLE_CUDA
-    // setup the box
-    m_gpu_box.Lx = m_box.xhi - m_box.xlo;
-    m_gpu_box.Ly = m_box.yhi - m_box.ylo;
-    m_gpu_box.Lz = m_box.zhi - m_box.zlo;
-    m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
-    m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
-    m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
-    m_gpu_box.xlo = m_box.xlo;
-    m_gpu_box.ylo = m_box.ylo;
-    m_gpu_box.zlo = m_box.zlo;
-    m_gpu_box.xhi = m_box.xhi;
-    m_gpu_box.yhi = m_box.yhi;
-    m_gpu_box.zhi = m_box.zhi;
-#endif
-    
+    m_global_box.setL(L);
+    assert(inBox());
+
     m_boxchange_signal();
     }
 
@@ -356,32 +294,6 @@ void ParticleData::setBox(const BoxDim &box)
 const BoxDim & ParticleData::getGlobalBox() const
     {
     return m_global_box;
-    }
-
-/*! \param box New global box to set
-    \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
-        it is the responsibility of the caller to ensure that all particles lie within
-        the new box.
-*/
-void ParticleData::setGlobalBox(const BoxDim &global_box)
-    {
-    m_global_box = global_box;
-
-#ifdef ENABLE_CUDA
-    // setup the box
-    m_gpu_global_box.Lx = m_global_box.xhi - m_global_box.xlo;
-    m_gpu_global_box.Ly = m_global_box.yhi - m_global_box.ylo;
-    m_gpu_global_box.Lz = m_global_box.zhi - m_global_box.zlo;
-    m_gpu_global_box.Lxinv = 1.0f / m_gpu_global_box.Lx;
-    m_gpu_global_box.Lyinv = 1.0f / m_gpu_global_box.Ly;
-    m_gpu_global_box.Lzinv = 1.0f / m_gpu_global_box.Lz;
-    m_gpu_global_box.xlo = m_global_box.xlo;
-    m_gpu_global_box.ylo = m_global_box.ylo;
-    m_gpu_global_box.zlo = m_global_box.zlo;
-    m_gpu_global_box.xhi = m_global_box.xhi;
-    m_gpu_global_box.yhi = m_global_box.yhi;
-    m_gpu_global_box.zhi = m_global_box.zhi;
-#endif
     }
 
 /*! \param func Function to call when the particles are resorted
@@ -408,7 +320,7 @@ void ParticleData::notifyParticleSort()
 /*! \param func Function to call when the box size changes
     \return Connection to manage the signal/slot connection
     Calls are performed by using boost::signals. The function passed in
-    \a func will be called every time the the box size is changed via setBox()
+    \a func will be called every time the the box size is changed via setGlobalBoxL()
     \note If the caller class is destroyed, it needs to disconnect the signal connection
     via \b con.disconnect where \b con is the return value of this function.
 */
@@ -466,7 +378,7 @@ unsigned int ParticleData::getTypeByName(const std::string &name) const
             return i;
         }
         
-    cerr << endl << "***Error! Type " << name << " not found!" << endl;
+    m_exec_conf->msg->error() << "Type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
     }
@@ -481,7 +393,7 @@ std::string ParticleData::getNameByType(unsigned int type) const
     // check for an invalid request
     if (type >= m_ntypes)
         {
-        cerr << endl << "***Error! Requesting type name for non-existant type " << type << endl << endl;
+        m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
         
@@ -499,7 +411,7 @@ void ParticleData::allocate(unsigned int N)
     // check the input
     if (N == 0)
         {
-        cerr << endl << "***Error! ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever" << endl << endl;
+        m_exec_conf->msg->error() << "ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever" << endl;
         throw runtime_error("Error allocating ParticleData");
         }
 
@@ -630,29 +542,31 @@ void ParticleData::reallocate(unsigned int max_n)
 */
 bool ParticleData::inBox()
     {
+    Scalar3 lo = m_box.getLo();
+    Scalar3 hi = m_box.getHi();
 
     ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
     for (unsigned int i = 0; i < getN(); i++)
         {
-        if (h_pos.data[i].x < m_box.xlo-Scalar(1e-5) || h_pos.data[i].x > m_box.xhi+Scalar(1e-5))
+        if (h_pos.data[i].x < lo.x-Scalar(1e-5) || h_pos.data[i].x > hi.x+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            m_exec_conf->msg->notice(1) << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
-        if (h_pos.data[i].y < m_box.ylo-Scalar(1e-5) || h_pos.data[i].y > m_box.yhi+Scalar(1e-5))
+        if (h_pos.data[i].y < lo.y-Scalar(1e-5) || h_pos.data[i].y > hi.y+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            m_exec_conf->msg->notice(1) << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
-        if (h_pos.data[i].z < m_box.zlo-Scalar(1e-5) || h_pos.data[i].z > m_box.zhi+Scalar(1e-5))
+        if (h_pos.data[i].z < lo.z-Scalar(1e-5) || h_pos.data[i].z > hi.z+Scalar(1e-5))
             {
-            cout << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            cout << "lo: " << m_box.xlo << " " << m_box.ylo << " " << m_box.zlo << endl;
-            cout << "hi: " << m_box.xhi << " " << m_box.yhi << " " << m_box.zhi << endl;
+            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            m_exec_conf->msg->notice(1) << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
         }
@@ -668,7 +582,15 @@ bool ParticleData::inBox()
  */
 void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
-
+/*
+    // make sure the snapshot has the right size
+    if (snapshot.size != m_nparticles)
+        {
+        m_exec_conf->msg->error() << "Snapshot size (" << snapshot.size << " particles) not equal"
+             << endl << "          not equal number of particles in system." << endl;
+        throw runtime_error("Error initializing ParticleData");
+        }
+*/
 #ifdef ENABLE_MPI
     if (m_mpi_comm)
         {
@@ -1559,33 +1481,22 @@ void ParticleData::setOrientation(unsigned int global_tag, const Scalar4& orient
         }
     }
 
-
-//! Helper for python __str__ for BoxDim
-/*! Formats the box dim into a nice string
-    \param box Box to format
-*/
-string print_boxdim(BoxDim *box)
-    {
-    assert(box);
-    // turn the box dim into a nicely formatted string
-    ostringstream s;
-    s << "x: (" << box->xlo << "," << box->xhi << ") / y: (" << box->ylo << "," << box->yhi << ") / z: ("
-    << box->zlo << "," << box->zhi << ")";
-    return s.str();
-    }
-
 void export_BoxDim()
     {
     class_<BoxDim>("BoxDim")
     .def(init<Scalar>())
     .def(init<Scalar, Scalar, Scalar>())
-    .def_readwrite("xlo", &BoxDim::xlo)
-    .def_readwrite("xhi", &BoxDim::xhi)
-    .def_readwrite("ylo", &BoxDim::ylo)
-    .def_readwrite("yhi", &BoxDim::yhi)
-    .def_readwrite("zlo", &BoxDim::zlo)
-    .def_readwrite("zhi", &BoxDim::zhi)
-    .def("__str__", &print_boxdim)
+    .def(init<Scalar3>())
+    .def(init<Scalar3, Scalar3, uchar3>())
+    .def("getPeriodic", &BoxDim::getPeriodic)
+    .def("setPeriodic", &BoxDim::setPeriodic)
+    .def("getL", &BoxDim::getL)
+    .def("setL", &BoxDim::setL)
+    .def("getLo", &BoxDim::getLo)
+    .def("getHi", &BoxDim::getHi)
+    .def("setLoHi", &BoxDim::setLoHi)
+    .def("makeFraction", &BoxDim::makeFraction)
+    .def("minImage", &BoxDim::minImage)
     ;
     }
 
@@ -1641,9 +1552,7 @@ void export_ParticleData()
     class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
     .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
-    .def("setBox", &ParticleData::setBox)
-    .def("setGlobalBox", &ParticleData::setGlobalBox)
-    .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
+    .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
     .def("getN", &ParticleData::getN)
     .def("getNGlobal", &ParticleData::getNGlobal)
     .def("getNTypes", &ParticleData::getNTypes)
@@ -1664,6 +1573,7 @@ void export_ParticleData()
     .def("getType", &ParticleData::getType)
     .def("getOrientation", &ParticleData::getOrientation)
     .def("getPNetForce", &ParticleData::getPNetForce)
+    .def("getNetTorque", &ParticleData::getNetTorque)
     .def("getInertiaTensor", &ParticleData::getInertiaTensor, return_value_policy<copy_const_reference>())
     .def("setPosition", &ParticleData::setPosition)
     .def("setVelocity", &ParticleData::setVelocity)

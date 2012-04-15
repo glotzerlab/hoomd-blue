@@ -84,6 +84,7 @@ ParticleSelector::ParticleSelector(boost::shared_ptr<SystemDefinition> sysdef)
     {
     assert(m_sysdef);
     assert(m_pdata);
+    m_exec_conf = m_pdata->getExecConf();
     }
 
 /*! \param tag Tag of the particle to check
@@ -110,12 +111,12 @@ ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sys
     {
     // make a quick check on the sanity of the input data
     if (m_tag_max < m_tag_min)
-        cout << "***Warning! max < min specified when selecting particle tags" << endl;
+        m_exec_conf->msg->warning() << "group: max < min specified when selecting particle tags" << endl;
     
     if (m_tag_max >= m_pdata->getNGlobal())
         {
-        cerr << endl << "***Error! Cannot select particles with tags larger than the number of particles " 
-             << endl << endl;
+        m_exec_conf->msg->error() << "Cannot select particles with tags larger than the number of particles " 
+             << endl;
         throw runtime_error("Error selecting particles");
         }
     }
@@ -143,10 +144,10 @@ ParticleSelectorType::ParticleSelectorType(boost::shared_ptr<SystemDefinition> s
     {
     // make a quick check on the sanity of the input data
     if (m_typ_max < m_typ_min)
-        cout << "***Warning! max < min specified when selecting particle types" << endl;
+        m_exec_conf->msg->warning() << "group: max < min specified when selecting particle types" << endl;
     
     if (m_typ_max >= m_pdata->getNTypes())
-        cout << "***Warning! Requesting for the selection of a non-existant particle type" << endl;
+        m_exec_conf->msg->warning() << "group: Requesting the selection of a non-existant particle type" << endl;
     }
 
 /*! \param tag Tag of the particle to check
@@ -203,7 +204,7 @@ ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinitio
     {
     // make a quick check on the sanity of the input data
     if (m_min.x >= m_max.x || m_min.y >= m_max.y || m_min.z >= m_max.z)
-        cout << "***Warning! max < min specified when selecting particle in a cuboid" << endl;
+        m_exec_conf->msg->warning() << "group: max < min specified when selecting particle in a cuboid" << endl;
     }
 
 /*! \param tag Tag of the particle to check
@@ -365,9 +366,7 @@ Scalar3 ParticleGroup::getCenterOfMass() const
     
     // grab the box dimensions
     BoxDim box = m_pdata->getBox();
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    Scalar3 L = box.getL();
     
     // loop  through all indices in the group and compute the weighted average of the positions
     Scalar total_mass = 0.0;
@@ -377,9 +376,9 @@ Scalar3 ParticleGroup::getCenterOfMass() const
         unsigned int idx = getMemberIndex(i);
         Scalar mass = h_vel.data[idx].w;
         total_mass += mass;
-        center_of_mass.x += mass * (h_pos.data[idx].x + Scalar(h_image.data[idx].x) * Lx);
-        center_of_mass.y += mass * (h_pos.data[idx].y + Scalar(h_image.data[idx].y) * Ly);
-        center_of_mass.z += mass * (h_pos.data[idx].z + Scalar(h_image.data[idx].z) * Lz);
+        center_of_mass.x += mass * (h_pos.data[idx].x + Scalar(h_image.data[idx].x) * L.x);
+        center_of_mass.y += mass * (h_pos.data[idx].y + Scalar(h_image.data[idx].y) * L.y);
+        center_of_mass.z += mass * (h_pos.data[idx].z + Scalar(h_image.data[idx].z) * L.z);
         }
     center_of_mass.x /= total_mass;
     center_of_mass.y /= total_mass;

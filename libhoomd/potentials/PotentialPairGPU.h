@@ -122,17 +122,10 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
         {
-        std::cerr << std::endl << "***Error! Creating a PotentialPairGPU with no GPU in the execution configuration" 
-                  << std::endl << std::endl;
+        this->m_exec_conf->msg->error() << "Creating a PotentialPairGPU with no GPU in the execution configuration" 
+                  << std::endl;
         throw std::runtime_error("Error initializing PotentialPairGPU");
         }
-        
-    if (this->m_pdata->getNTypes() > 44)
-        {
-        std::cerr << std::endl << "***Error! PotentialPairGPU cannot handle " << this->m_pdata->getNTypes() << " types" 
-                  << std::endl << std::endl;
-        throw std::runtime_error("Error initializing PotentialPairGPU");
-        }        
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
@@ -149,8 +142,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        std::cerr << std::endl << "***Error! PotentialPairGPU cannot handle a half neighborlist" 
-                  << std::endl << std::endl;
+        this->m_exec_conf->msg->error() << "PotentialPairGPU cannot handle a half neighborlist" 
+                  << std::endl;
         throw std::runtime_error("Error computing forces in PotentialPairGPU");
         }
         
@@ -164,7 +157,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
 
-    gpu_boxsize box = this->m_pdata->getGlobalBoxGPU();
+    BoxDim box = this->m_pdata->getBox();
     
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);

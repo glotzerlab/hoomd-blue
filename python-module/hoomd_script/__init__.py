@@ -181,11 +181,11 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
+        globals.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
         
     if globals.integrator is None:
-        print "***Warning! Starting a run without an integrator set";
+        globals.msg.warning("Starting a run without an integrator set");
     else:
         globals.integrator.update_forces();
         globals.integrator.update_methods();
@@ -212,16 +212,16 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     # detect 0 hours remaining properly
     if limit_hours == 0.0:
-        print "***Warning! Requesting a run() with a 0 time limit, doing nothing.\n";
+        globals.msg.warning("Requesting a run() with a 0 time limit, doing nothing.\n");
         return;
     if limit_hours is None:
         limit_hours = 0.0
 
     if not quiet:
-        print "** starting run **"
+        globals.msg.notice(1, "** starting run **\n");
     globals.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
-        print "** run complete **"
+        globals.msg.notice(1, "** run complete **\n");
 
 ## \brief Runs the simulation up to a given time step number
 #
@@ -245,7 +245,7 @@ def run_upto(step, **keywords):
         util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
-        print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
+        globals.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
     
     # determine the number of steps to run
@@ -253,7 +253,7 @@ def run_upto(step, **keywords):
     cur_step = globals.system.getCurrentTimeStep();
     
     if cur_step >= step:
-        print "***Warning! Requesting run up to a time step that has already passed, doing nothing\n";
+        globals.msg.warning("Requesting run up to a time step that has already passed, doing nothing\n");
         return;
     
     n_steps = step - cur_step;

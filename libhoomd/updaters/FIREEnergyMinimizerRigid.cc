@@ -77,6 +77,7 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
                                                     bool reset_and_create_integrator)
     :   FIREEnergyMinimizer(sysdef, group, dt, false), m_wtol(Scalar(1e-1)) // using false for the parent class
     {
+    m_exec_conf->msg->notice(5) << "Constructing FIREEnergyMinimizerRigid" << endl;
 
     m_nparticles = m_pdata->getN();
     
@@ -91,7 +92,7 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
     
     if (m_n_bodies == 0)
         {
-        cout << "***Warning! Empty group of rigid bodies." << endl;
+        m_exec_conf->msg->warning() << "integrate.mode_minimize_rigid_fire: Empty group of rigid bodies." << endl;
         }
     
     // Time steps to run NVE between minimizer moves    
@@ -107,6 +108,11 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
         addIntegrationMethod(integrator);
         setDeltaT(m_deltaT);
         }
+    }
+
+FIREEnergyMinimizerRigid::~FIREEnergyMinimizerRigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying FIREEnergyMinimizerRigid" << endl;
     }
 
 /*! Reset minimizer parameters and zero velocities
@@ -157,7 +163,7 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
         
     if (m_n_bodies <= 0)
         {
-        cerr << endl << "***Error! FIREENergyMinimizerRigid: There is no rigid body for this integrator" << endl << endl;
+        m_exec_conf->msg->error() << "integrate.mode_minimize_rigid_fire:  There is no rigid body for this integrator" << endl;
         throw runtime_error("Error update for FIREEnergyMinimizerRigid (no rigid body)");
         return;
         }

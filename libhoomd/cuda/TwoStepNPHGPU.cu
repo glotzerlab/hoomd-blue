@@ -183,7 +183,7 @@ extern "C" __global__
 void gpu_nph_wrap_particles_kernel(const unsigned int N,
                              Scalar4 *d_pos,
                              int3 *d_image,
-                             gpu_boxsize box)
+                             BoxDim box)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -192,37 +192,17 @@ void gpu_nph_wrap_particles_kernel(const unsigned int N,
     if (idx < N)
         {
         // fetch particle position
-        float4 pos = d_pos[idx];
-
-        float px = pos.x;
-        float py = pos.y;
-        float pz = pos.z;
-        float pw = pos.w;
+        float4 postype = d_pos[idx];
+        float3 pos = make_float3(postype.x, postype.y, postype.z);
 
         // read in the image flags
         int3 image = d_image[idx];
 
         // fix periodic boundary conditions
-        float x_shift = rintf(px * box.Lxinv);
-        px -= box.Lx * x_shift;
-        image.x += (int)x_shift;
-
-        float y_shift = rintf(py * box.Lyinv);
-        py -= box.Ly * y_shift;
-        image.y += (int)y_shift;
-
-        float z_shift = rintf(pz * box.Lzinv);
-        pz -= box.Lz * z_shift;
-        image.z += (int)z_shift;
-
-        Scalar4 pos2;
-        pos2.x = px;
-        pos2.y = py;
-        pos2.z = pz;
-        pos2.w = pw;
+        box.wrap(pos, image);
 
         // write out the results
-        d_pos[idx] = pos2;
+        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
         d_image[idx] = image;
         }
     }
@@ -237,7 +217,7 @@ void gpu_nph_wrap_particles_kernel(const unsigned int N,
 cudaError_t gpu_nph_wrap_particles(const unsigned int N,
                              Scalar4 *d_pos,
                              int3 *d_image,
-                             const gpu_boxsize& box)
+                             const BoxDim& box)
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;

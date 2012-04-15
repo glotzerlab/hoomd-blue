@@ -86,14 +86,15 @@ class EAMForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,  char *filename, int type_of_file);
-        
+
+        //! Destructor
+        virtual ~EAMForceCompute();
+
         //! Sets the neighbor list to be used for the EAM force
         virtual void set_neighbor_list(boost::shared_ptr<NeighborList> nlist);
         
         //! Get the r cut value read from the EAM potential file
         virtual Scalar get_r_cut();
-        //! Destructor
-        virtual ~EAMForceCompute();
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();

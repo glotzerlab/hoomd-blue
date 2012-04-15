@@ -106,7 +106,8 @@ BoxDim SimpleCubicInitializer::getBox() const
 void SimpleCubicInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     {
     assert(snapshot.size == getNumParticles());
-
+    Scalar3 lo = box.getLo();
+    
     // just do a simple triple for loop to fill the space
     unsigned int c = 0;
     for (unsigned int k = 0; k < m_M; k++)
@@ -115,9 +116,9 @@ void SimpleCubicInitializer::initSnapshot(SnapshotParticleData &snapshot) const
             {
             for (unsigned int i = 0; i < m_M; i++)
                 {
-                snapshot.pos[c].x = i * m_spacing + box.xlo;
-                snapshot.pos[c].y = j * m_spacing + box.ylo;
-                snapshot.pos[c].z = k * m_spacing + box.zlo;
+                snapshot.pos[c].x = i * m_spacing + lo.x;
+                snapshot.pos[c].y = j * m_spacing + lo.y;
+                snapshot.pos[c].z = k * m_spacing + lo.z;
                 c++;
                 }
             }
@@ -195,7 +196,7 @@ void RandomInitializer::initSnapshot(SnapshotParticleData& snapshot) const
     {
     assert(snapshot.size == m_N);
 
-    Scalar L = m_box.xhi*Scalar(2.0);
+    Scalar L = m_box.getL().x;
     for (unsigned int i = 0; i < m_N; i++)
         {
         // generate random particles until we find a suitable one meating the min_dist
@@ -289,7 +290,7 @@ RandomInitializerWithWalls::~RandomInitializerWithWalls()
 BoxDim RandomInitializerWithWalls::getBox() const
     {
     // the real box dimensions we need to return need to be increased by m_wall_buffer*2
-    Scalar L = (m_real_box.xhi - m_real_box.xlo) + m_wall_buffer*2;
+    Scalar L = m_real_box.getL().x + m_wall_buffer*2;
     return BoxDim(L);
     }
 
@@ -299,19 +300,21 @@ BoxDim RandomInitializerWithWalls::getBox() const
 */
 void RandomInitializerWithWalls::initWallData(boost::shared_ptr<WallData> wall_data) const
     {
+    Scalar3 lo = m_real_box.getLo();
+    Scalar3 hi = m_real_box.getHi();
     // add all walls
     // left
-    wall_data->addWall(Wall(m_real_box.xlo, 0.0, 0.0, 1.0, 0.0, 0.0));
+    wall_data->addWall(Wall(lo.x, 0.0, 0.0, 1.0, 0.0, 0.0));
     // right
-    wall_data->addWall(Wall(m_real_box.xhi, 0.0, 0.0, -1.0, 0.0, 0.0));
+    wall_data->addWall(Wall(hi.x, 0.0, 0.0, -1.0, 0.0, 0.0));
     // bottom
-    wall_data->addWall(Wall(0.0, m_real_box.ylo, 0.0, 0.0, 1.0, 0.0));
+    wall_data->addWall(Wall(0.0, lo.y, 0.0, 0.0, 1.0, 0.0));
     // top
-    wall_data->addWall(Wall(0.0, m_real_box.yhi, 0.0, 0.0, -1.0, 0.0));
+    wall_data->addWall(Wall(0.0, hi.y, 0.0, 0.0, -1.0, 0.0));
     // front
-    wall_data->addWall(Wall(0.0, 0.0, m_real_box.zlo, 0.0, 0.0, 1.0));
+    wall_data->addWall(Wall(0.0, 0.0, lo.z, 0.0, 0.0, 1.0));
     // back
-    wall_data->addWall(Wall(0.0, 0.0, m_real_box.zhi, 0.0, 0.0, -1.0));
+    wall_data->addWall(Wall(0.0, 0.0, hi.z, 0.0, 0.0, -1.0));
     }
 
 

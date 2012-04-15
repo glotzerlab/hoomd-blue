@@ -183,6 +183,10 @@ class Updater : boost::noncopyable
 #ifdef ENABLE_MPI
         boost::shared_ptr<Communicator> m_comm;             ///!< The communicator this updater is to use
 #endif
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
+        // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
+        // merge conflicts.
     };
 
 //! Export the Updater class to python

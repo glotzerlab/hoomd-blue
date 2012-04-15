@@ -78,7 +78,7 @@ using namespace std;
 Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
     {
     if (m_deltaT <= 0.0)
-        cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
+        m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
     }
 
 Integrator::~Integrator()
@@ -117,7 +117,7 @@ void Integrator::removeForceComputes()
 void Integrator::setDeltaT(Scalar deltaT)
     {
     if (m_deltaT <= 0.0)
-        cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
+        m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
         
     for (unsigned int i=0; i < m_forces.size(); i++)
         m_forces[i]->setDeltaT(deltaT);    
@@ -196,13 +196,14 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
     if (quantity == "volume")
         {
         BoxDim box = m_pdata->getBox();
-        return (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+        Scalar3 L = box.getL();
+        return L.x*L.y*L.z;
         }
     else if (quantity == "momentum")
         return computeTotalMomentum(timestep);
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for Integrator" << endl;
+        m_exec_conf->msg->error() << "integrate.*: " << quantity << " is not a valid log quantity for Integrator" << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -413,7 +414,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     {
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Cannot compute net force on the GPU if CUDA is disabled" << endl << endl;
+        m_exec_conf->msg->error() << "Cannot compute net force on the GPU if CUDA is disabled" << endl;
         throw runtime_error("Error computing accelerations");
         }
     

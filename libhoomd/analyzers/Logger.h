@@ -99,7 +99,10 @@ class Logger : public Analyzer
                const std::string& fname,
                const std::string& header_prefix="",
                bool overwrite=false);
-        
+
+        //! Destructor
+        ~Logger();
+
         //! Registers a compute
         void registerCompute(boost::shared_ptr<Compute> compute);
         

@@ -96,6 +96,7 @@ class ParticleSelector
     protected:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 //! Select particles based on their tag

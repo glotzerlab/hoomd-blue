@@ -129,6 +129,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPair.h"
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
+#include "Messenger.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -524,6 +525,8 @@ BOOST_PYTHON_MODULE(hoomd)
     // variant
     export_Variant();
     
+    // messenger
+    export_Messenger();
     }
 
 #ifdef WIN32

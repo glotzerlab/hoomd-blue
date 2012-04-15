@@ -190,7 +190,11 @@ class Compute : boost::noncopyable
 #ifdef ENABLE_MPI
         boost::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
 #endif
-        
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
+        // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
+        // merge conflicts.
+
         //! Simple method for testing if the computation should be run or not
         virtual bool shouldCompute(unsigned int timestep);
     private:

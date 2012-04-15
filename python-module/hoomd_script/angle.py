@@ -97,7 +97,7 @@ class harmonic(force._force):
         util.print_status_line();
         # check that some angles are defined
         if globals.system_definition.getAngleData().getNumAngles() == 0:
-            print >> sys.stderr, "\n***Error! No angles are defined.\n";
+            globals.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating angle forces");
         
         # initialize the base class
@@ -154,7 +154,7 @@ class harmonic(force._force):
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.angle_types_set:
-                print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in angle.harmonic\n";
+                globals.msg.error(str(cur_type) + " coefficients missing in angle.harmonic\n");
                 raise RuntimeError("Error updating coefficients");
 
 ## CGCMM %angle force
@@ -207,7 +207,7 @@ class cgcmm(force._force):
         util.print_status_line();
         # check that some angles are defined
         if globals.system_definition.getAngleData().getNumAngles() == 0:
-            print >> sys.stderr, "\n***Error! No angles are defined.\n";
+            globals.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating CGCMM angle forces");
         
         # initialize the base class
@@ -300,7 +300,7 @@ class cgcmm(force._force):
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.angle_types_set:
-                print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in angle.cgcmm\n";
+                globals.msg.error(str(cur_type) + " coefficients missing in angle.cgcmm\n");
                 raise RuntimeError("Error updating coefficients");
 
 

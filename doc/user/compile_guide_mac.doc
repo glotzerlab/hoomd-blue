@@ -123,6 +123,13 @@ Follow the on screen prompts to complete the installation.
 Download the doxygen dmg from http://www.stack.nl/~dimitri/doxygen/ . Mount the dmg by double-clicking on it. Install
 by dragging Doxygen to your /Applications directory.
 
+Class diagrams are generated automatically when you have graphviz installed. You can install it with macports.
+
+\code
+ $ sudo port install graphviz
+\endcode
+The process can take a long time, so be patient or leave it to run overnight.
+
 <b>5. (optional) Install git.</b>
 
 Download the git dmg from http://git-scm.com/ and install the software.

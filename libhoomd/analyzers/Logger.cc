@@ -89,6 +89,7 @@ Logger::Logger(boost::shared_ptr<SystemDefinition> sysdef,
                bool overwrite)
     : Analyzer(sysdef), m_delimiter("\t"), m_filename(fname), m_header_prefix(header_prefix), m_appending(!overwrite), m_is_initialized(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing Logger: " << fname << " " << header_prefix << " " << overwrite << endl;
     }
 
 void Logger::openOutputFiles()
@@ -102,20 +103,25 @@ void Logger::openOutputFiles()
     // open the file
     if (exists(m_filename) && m_appending)
         {
-        cout << "Notice: Appending log to existing file \"" << m_filename << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.log: Appending log to existing file \"" << fname << "\"" << endl;
         m_file.open(m_filename.c_str(), ios_base::in | ios_base::out | ios_base::ate);
         }
     else
         {
-        cout << "Notice: Creating new log in file \"" << m_filename << "\"" << endl;
-        m_file.open(m_filename.c_str(), ios_base::out);
+        m_exec_conf->msg->notice(3) << "analyze.log: Creating new log in file \"" << fname << "\"" << endl;
+        m_file.open(fname.c_str(), ios_base::out);
         }
         
     if (!m_file.good())
         {
-        cerr << endl << "***Error! Error opening log file " << m_filename << endl << endl;
+        m_exec_conf->msg->error() << "analyze.log: Error opening log file " << fname << endl;
         throw runtime_error("Error initializing Logger");
         }
+    }
+
+Logger::~Logger()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying Logger" << endl;
     }
 
 /*! \param compute The Compute to register
@@ -132,7 +138,7 @@ void Logger::registerCompute(boost::shared_ptr<Compute> compute)
         {
         // first check if this quantity is already set, printing a warning if so
         if (m_compute_quantities.count(provided_quantities[i]) || m_updater_quantities.count(provided_quantities[i]))
-            cout << "***Warning! The log quantity " << provided_quantities[i] <<
+            m_exec_conf->msg->warning() << "analyze.log: The log quantity " << provided_quantities[i] <<
                  " has been registered more than once. Only the most recent registration takes effect" << endl;
         m_compute_quantities[provided_quantities[i]] = compute;
         }
@@ -152,7 +158,7 @@ void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
         {
         // first check if this quantity is already set, printing a warning if so
         if (m_compute_quantities.count(provided_quantities[i]) || m_updater_quantities.count(provided_quantities[i]))
-            cout << "***Warning! The log quantity " << provided_quantities[i] <<
+            m_exec_conf->msg->warning() << "analyze.log: The log quantity " << provided_quantities[i] <<
                  " has been registered more than once. Only the most recent registration takes effect" << endl;
         m_updater_quantities[provided_quantities[i]] = updater;
         }
@@ -201,7 +207,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
         
     if (quantities.size() == 0)
         {
-        cout << "***Warning! No quantities specified for logging" << endl;
+        m_exec_conf->msg->warning() << "analyze.log: No quantities specified for logging" << endl;
         return;
         }
         
@@ -274,7 +280,7 @@ void Logger::analyze(unsigned int timestep)
     
     if (!m_file.good())
         {
-        cerr << endl << "***Error! Unexpected error writing log file" << endl << endl;
+        m_exec_conf->msg->error() << "analyze.log: I/O error while writing log file" << endl;
         throw runtime_error("Error writting log file");
         }
         
@@ -296,7 +302,7 @@ Scalar Logger::getCachedQuantity(const std::string &quantity)
         if (m_logged_quantities[i] == quantity)
             return cached_quantities[i];
             
-    cout << "***Warning! Log quantity " << quantity << " is not registered, returning a value of 0" << endl;
+    m_exec_conf->msg->warning() << "analyze.log: Log quantity " << quantity << " is not registered, returning a value of 0" << endl;
     return Scalar(0.0);
     }
 
@@ -326,7 +332,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
         }
     else
         {
-        cout << "***Warning! Log quantity " << quantity << " is not registered, logging a value of 0" << endl;
+        m_exec_conf->msg->warning() << "analyze.log: Log quantity " << quantity << " is not registered, logging a value of 0" << endl;
         return Scalar(0.0);
         }
     }

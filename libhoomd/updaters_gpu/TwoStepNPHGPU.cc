@@ -88,7 +88,7 @@ TwoStepNPHGPU::TwoStepNPHGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepNPHGPU with CUDA disabled" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a TwoStepNPHGPU with CUDA disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
     }
@@ -143,16 +143,11 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
     Scalar &etaz = v.variable[2];
 
     // obtain box lengths
-    Scalar Lx = Scalar(0.0);
-    Scalar Ly = Scalar(0.0);
-    Scalar Lz = Scalar(0.0);
     Scalar volume = Scalar(0.0);
 
     BoxDim box = m_pdata->getBox();
-    Lx = box.xhi - box.xlo;
-    Ly = box.yhi - box.ylo;
-    Lz = box.zhi - box.zlo;
-    volume = Lx*Ly*Lz;
+    Scalar3 L = box.getL();
+    volume = L.x*L.y*L.z;
 
     Scalar extP = m_P->getValue(timestep);
 
@@ -160,15 +155,15 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
     if (m_mode == orthorhombic)
         {
         Scalar VdeltaThalf = Scalar(1./2.)*volume*m_deltaT;
-        etax += VdeltaThalf/Lx * (m_curr_P_diag.x - extP);
-        etay += VdeltaThalf/Ly * (m_curr_P_diag.y - extP);
-        etaz += VdeltaThalf/Lz * (m_curr_P_diag.z - extP);
+        etax += VdeltaThalf/L.x * (m_curr_P_diag.x - extP);
+        etay += VdeltaThalf/L.y * (m_curr_P_diag.y - extP);
+        etaz += VdeltaThalf/L.z * (m_curr_P_diag.z - extP);
         }
     else if (m_mode == tetragonal)
        {
        Scalar VdeltaThalf = Scalar(1./2.)*volume*m_deltaT;
-       etax += VdeltaThalf/Lx * (m_curr_P_diag.x - extP);
-       etay += VdeltaThalf/Ly * (m_curr_P_diag.y + m_curr_P_diag.z - Scalar(2.0)*extP);
+       etax += VdeltaThalf/L.x * (m_curr_P_diag.x - extP);
+       etay += VdeltaThalf/L.y * (m_curr_P_diag.y + m_curr_P_diag.z - Scalar(2.0)*extP);
        }
     else if (m_mode == cubic)
         {
@@ -177,9 +172,9 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
 
     // update the box length L(t) -> L(t+deltaT/2)
     // also pre-calculate L(t+deltaT)
-    Scalar Lx_old = Lx;
-    Scalar Ly_old = Ly;
-    Scalar Lz_old = Lz;
+    Scalar Lx_old = L.x;
+    Scalar Ly_old = L.y;
+    Scalar Lz_old = L.z;
 
     Scalar Lx_final = Scalar(0.0);
     Scalar Ly_final = Scalar(0.0);
@@ -189,28 +184,28 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
 
     if (m_mode == orthorhombic)
         {
-        Lx += deltaThalfoverW*etax;
-        Ly += deltaThalfoverW*etay;
-        Lz += deltaThalfoverW*etaz;
-        Lx_final = Lx + deltaThalfoverW*etax;
-        Ly_final = Ly + deltaThalfoverW*etay;
-        Lz_final = Lz + deltaThalfoverW*etaz;
+        L.x += deltaThalfoverW*etax;
+        L.y += deltaThalfoverW*etay;
+        L.z += deltaThalfoverW*etaz;
+        Lx_final = L.x + deltaThalfoverW*etax;
+        Ly_final = L.y + deltaThalfoverW*etay;
+        Lz_final = L.z + deltaThalfoverW*etaz;
         }
     else if (m_mode == tetragonal)
         {
-        Lx += deltaThalfoverW*etax;
-        Ly += Scalar(1./2.)*deltaThalfoverW*etay;
-        Lz = Ly;
-        Lx_final = Lx + deltaThalfoverW*etax;
-        Ly_final = Ly + Scalar(1./2.)*deltaThalfoverW*etay;
+        L.x += deltaThalfoverW*etax;
+        L.y += Scalar(1./2.)*deltaThalfoverW*etay;
+        L.z = L.y;
+        Lx_final = L.x + deltaThalfoverW*etax;
+        Ly_final = L.y + Scalar(1./2.)*deltaThalfoverW*etay;
         Lz_final = Ly_final;
         }
     else if (m_mode == cubic)
         {
         volume += deltaThalfoverW*etax;
-        Lx = pow(volume,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
-        Ly = Lx;
-        Lz = Lx;
+        L.x = pow(volume,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
+        L.y = L.x;
+        L.z = L.x;
         Scalar volume_final = volume + deltaThalfoverW*etax;
         Lx_final = pow(volume_final,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
         Ly_final = Lx_final;
@@ -227,7 +222,7 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
                      d_index_array.data,
                      group_size,
                      make_scalar3(Lx_old,Ly_old,Lz_old),
-                     make_scalar3(Lx,Ly,Lz),
+                     make_scalar3(L.x,L.y,L.z),
                      make_scalar3(Lx_final,Ly_final,Lz_final),
                      m_deltaT);
 
@@ -236,29 +231,22 @@ void TwoStepNPHGPU::integrateStepOne(unsigned int timestep)
 
     }
 
+    BoxDim box_final(box);
+    box_final.setL(make_scalar3(Lx_final, Ly_final, Lz_final));
 
     {
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
     // wrap particles around new boundaries
-    gpu_boxsize gpubox;
-    gpubox.Lx = Lx_final;
-    gpubox.Lxinv = Scalar(1.0)/gpubox.Lx;
-    gpubox.Ly = Ly_final;
-    gpubox.Lyinv = Scalar(1.0)/gpubox.Ly;
-    gpubox.Lz = Lz_final;
-    gpubox.Lzinv = Scalar(1.0)/gpubox.Lz;
-
-    gpu_nph_wrap_particles(m_pdata->getN(), d_pos.data, d_image.data, gpubox);
+    gpu_nph_wrap_particles(m_pdata->getN(), d_pos.data, d_image.data, box_final);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }
 
     // update simulation box
-    box = BoxDim(Lx_final, Ly_final, Lz_final);
-    m_pdata->setBox(box);
+    m_pdata->setGlobalBoxL(box_final.getL());
 
 
     setIntegratorVariables(v);
@@ -331,24 +319,22 @@ void TwoStepNPHGPU::integrateStepTwo(unsigned int timestep)
     if (m_mode == orthorhombic || m_mode == tetragonal)
         {
         const BoxDim &box = m_pdata->getBox();
-        Scalar Lx = box.xhi - box.xlo;
-        Scalar Ly = box.yhi - box.ylo;
-        Scalar Lz = box.zhi - box.zlo;
-        Scalar volume = Lx*Ly*Lz;
+        Scalar3 L = box.getL();
+        Scalar volume = L.x*L.y*L.z;
         Scalar VdeltaThalf = Scalar(1./2.)*volume*m_deltaT;
 
         // eta_alpha(t+deltaT) = eta_alpha(t+deltaT/2) + deltaT/2 * V/L_alpha * ( P_{alpha,alpha}(t) - P )
-        etax += VdeltaThalf/Lx * (m_curr_P_diag.x - extP);
+        etax += VdeltaThalf/L.x * (m_curr_P_diag.x - extP);
 
         if (m_mode == orthorhombic)
             {
-            etay += VdeltaThalf/Ly * (m_curr_P_diag.y - extP);
-            etaz += VdeltaThalf/Lz * (m_curr_P_diag.z - extP);
+            etay += VdeltaThalf/L.y * (m_curr_P_diag.y - extP);
+            etaz += VdeltaThalf/L.z * (m_curr_P_diag.z - extP);
             }
         else
             {
             //tetragonal
-            etay += VdeltaThalf/Ly * (m_curr_P_diag.y + m_curr_P_diag.z - Scalar(2.0)*extP);
+            etay += VdeltaThalf/L.y * (m_curr_P_diag.y + m_curr_P_diag.z - Scalar(2.0)*extP);
             }
         }
     else if (m_mode == cubic)

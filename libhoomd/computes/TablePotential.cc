@@ -84,13 +84,15 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
                                const std::string& log_suffix)
         : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TablePotential" << endl;
+
     // sanity checks
     assert(m_pdata);
     assert(m_nlist);
     
     if (table_width == 0)
         {
-        cerr << endl << "***Error! Table width of 0 given to TablePotential makes no sense" << endl << endl;
+        m_exec_conf->msg->error() << "pair.table: Table width of 0 is invalid" << endl;
         throw runtime_error("Error initializing TablePotential");
         }
         
@@ -112,6 +114,11 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     allocateThreadPartial();
     
     m_log_name = std::string("pair_table_energy") + log_suffix;
+    }
+    
+TablePotential::~TablePotential()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TablePotential" << endl;
     }
 
 /*! \param typ1 First particle type index in the pair to set
@@ -142,14 +149,14 @@ void TablePotential::setTable(unsigned int typ1,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        cerr << endl << "***Error! rmin, rmax (" << rmin << "," << rmax
-             << ") given to TablePotential make no sense." << endl << endl;
+        m_exec_conf->msg->error() << "pair.table rmin, rmax (" << rmin << "," << rmax
+             << ") is invalid" << endl;
         throw runtime_error("Error initializing TablePotential");
         }
         
     if (V.size() != m_table_width || F.size() != m_table_width)
         {
-        cerr << endl << "***Error! table provided to setTable is not of the correct size" << endl << endl;
+        m_exec_conf->msg->error() << "pair.table: table provided to setTable is not of the correct size" << endl;
         throw runtime_error("Error initializing TablePotential");
         }
         
@@ -185,7 +192,7 @@ Scalar TablePotential::getLogValue(const std::string& quantity, unsigned int tim
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for TablePotential" << endl << endl;
+        m_exec_conf->msg->error() << "pair.table: " << quantity << " is not a valid log quantity for TablePotential" << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -229,14 +236,7 @@ void TablePotential::computeForces(unsigned int timestep)
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts for use in the periodic imaging
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    
+
     // access the table data
     ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
@@ -262,17 +262,13 @@ void TablePotential::computeForces(unsigned int timestep)
     for (int i = 0; i < (int) m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar xi = h_pos.data[i].x;
-        Scalar yi = h_pos.data[i].y;
-        Scalar zi = h_pos.data[i].z;
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
         
         // initialize current particle force, potential energy, and virial to 0
-        Scalar fxi = 0.0;
-        Scalar fyi = 0.0;
-        Scalar fzi = 0.0;
+        Scalar3 fi = make_scalar3(0,0,0);
         Scalar pei = 0.0;
         Scalar virialxxi = 0.0;
         Scalar virialxyi = 0.0;
@@ -291,9 +287,8 @@ void TablePotential::computeForces(unsigned int timestep)
             assert(k < m_pdata->getN());
             
             // calculate dr
-            Scalar dx = xi - h_pos.data[k].x;
-            Scalar dy = yi - h_pos.data[k].y;
-            Scalar dz = zi - h_pos.data[k].z;
+            Scalar3 pk = make_scalar3(h_pos.data[k].x, h_pos.data[k].y, h_pos.data[k].z);
+            Scalar3 dx = pi - pk;
             
             // access the type of the neighbor particle
             unsigned int typej = __scalar_as_int(h_pos.data[k].w);
@@ -301,20 +296,7 @@ void TablePotential::computeForces(unsigned int timestep)
             assert(typej < m_pdata->getNTypes());
             
             // apply periodic boundary conditions
-            if (dx >= box.xhi)
-                dx -= Lx;
-            else if (dx < box.xlo)
-                dx += Lx;
-                
-            if (dy >= box.yhi)
-                dy -= Ly;
-            else if (dy < box.ylo)
-                dy += Ly;
-                
-            if (dz >= box.zhi)
-                dz -= Lz;
-            else if (dz < box.zlo)
-                dz += Lz;
+            dx = box.minImage(dx);
                 
             // access needed parameters
             unsigned int cur_table_index = table_index(typei, typej);
@@ -324,7 +306,7 @@ void TablePotential::computeForces(unsigned int timestep)
             Scalar delta_r = params.z;
             
             // start computing the force
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            Scalar rsq = dot(dx, dx);
             Scalar r = sqrt(rsq);
             
             // only compute the force if the particles are within the region defined by V
@@ -358,42 +340,40 @@ void TablePotential::computeForces(unsigned int timestep)
                 
                 // compute the virial
                 Scalar forcemag_div2r = Scalar(0.5) * forcemag_divr;
-                virialxxi += forcemag_div2r*dx*dx;
-                virialxyi += forcemag_div2r*dx*dy;
-                virialxzi += forcemag_div2r*dx*dz;
-                virialyyi += forcemag_div2r*dy*dy;
-                virialyzi += forcemag_div2r*dy*dz;
-                virialzzi += forcemag_div2r*dz*dz;
+                virialxxi += forcemag_div2r*dx.x*dx.x;
+                virialxyi += forcemag_div2r*dx.x*dx.y;
+                virialxzi += forcemag_div2r*dx.x*dx.z;
+                virialyyi += forcemag_div2r*dx.y*dx.y;
+                virialyzi += forcemag_div2r*dx.y*dx.z;
+                virialzzi += forcemag_div2r*dx.z*dx.z;
 
                 // add the force, potential energy and virial to the particle i
-                fxi += dx*forcemag_divr;
-                fyi += dy*forcemag_divr;
-                fzi += dz*forcemag_divr;
+                fi += dx*forcemag_divr;
                 pei += pair_eng;
                 
                 // add the force to particle j if we are using the third law
                 if (third_law)
                     {
                     unsigned int mem_idx = m_index_thread_partial(k,tid);
-                    m_fdata_partial[mem_idx].x -= dx*forcemag_divr;
-                    m_fdata_partial[mem_idx].y -= dy*forcemag_divr;
-                    m_fdata_partial[mem_idx].z -= dz*forcemag_divr;
+                    m_fdata_partial[mem_idx].x -= dx.x*forcemag_divr;
+                    m_fdata_partial[mem_idx].y -= dx.y*forcemag_divr;
+                    m_fdata_partial[mem_idx].z -= dx.z*forcemag_divr;
                     m_fdata_partial[mem_idx].w += pair_eng;
-                    m_virial_partial[0+6*mem_idx] += forcemag_div2r * dx * dx;
-                    m_virial_partial[1+6*mem_idx] += forcemag_div2r * dx * dy;
-                    m_virial_partial[2+6*mem_idx] += forcemag_div2r * dx * dz;
-                    m_virial_partial[3+6*mem_idx] += forcemag_div2r * dy * dy;
-                    m_virial_partial[4+6*mem_idx] += forcemag_div2r * dy * dz;
-                    m_virial_partial[5+6*mem_idx] += forcemag_div2r * dz * dz;
+                    m_virial_partial[0+6*mem_idx] += forcemag_div2r * dx.x * dx.x;
+                    m_virial_partial[1+6*mem_idx] += forcemag_div2r * dx.x * dx.y;
+                    m_virial_partial[2+6*mem_idx] += forcemag_div2r * dx.x * dx.z;
+                    m_virial_partial[3+6*mem_idx] += forcemag_div2r * dx.y * dx.y;
+                    m_virial_partial[4+6*mem_idx] += forcemag_div2r * dx.y * dx.z;
+                    m_virial_partial[5+6*mem_idx] += forcemag_div2r * dx.z * dx.z;
                     }
                 }
             }
             
         // finally, increment the force, potential energy and virial for particle i
         unsigned int mem_idx = m_index_thread_partial(i,tid);
-        m_fdata_partial[mem_idx].x += fxi;
-        m_fdata_partial[mem_idx].y += fyi;
-        m_fdata_partial[mem_idx].z += fzi;
+        m_fdata_partial[mem_idx].x += fi.x;
+        m_fdata_partial[mem_idx].y += fi.y;
+        m_fdata_partial[mem_idx].z += fi.z;
         m_fdata_partial[mem_idx].w += pei;
         m_virial_partial[0+6*mem_idx] += virialxxi;
         m_virial_partial[1+6*mem_idx] += virialxyi;

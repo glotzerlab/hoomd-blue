@@ -75,6 +75,8 @@ using namespace std;
 ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz)
         : ForceCompute(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
+
     setForce(fx,fy,fz);
     }
 
@@ -88,9 +90,16 @@ ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz)
         : ForceCompute(sysdef)
     {
+    m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
+
     setGroupForce(group,fx,fy,fz);
     }
 
+ConstForceCompute::~ConstForceCompute()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying ConstForceCompute" << endl;
+    }
+    
 /*! \param fx x-component of the force
     \param fy y-component of the force
     \param fz z-component of the force

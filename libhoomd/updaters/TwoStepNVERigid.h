@@ -83,6 +83,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
                         boost::shared_ptr<ParticleGroup> group,
                         bool skip_restart=false);
+        virtual ~TwoStepNVERigid();
         
         //! Computes the initial net forces, torques and angular momenta
        virtual void setup();

@@ -83,8 +83,10 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  bool skip_restart) 
 : TwoStepNVERigid(sysdef, group, true), m_thermo(thermo), m_temperature(T)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTRigid" << endl;
+
     if (tau <= 0.0)
-        cout << "***Warning! tau set less than or equal to 0.0 in TwoStepNVTRigid." << endl;
+        m_exec_conf->msg->warning() << "integrate.nvt_rigid: tau set less than or equal to 0.0" << endl;
     
     t_freq = 1.0 / tau;
     
@@ -162,6 +164,11 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
         setRestartIntegratorVariables();
         }
     
+    }
+    
+TwoStepNVTRigid::~TwoStepNVTRigid()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVTRigid" << endl;
     }
 
 /* Set integrator variables for restart info
@@ -282,14 +289,6 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     
     // get box
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    
     Scalar tmp, akin_t, akin_r, scale_t, scale_r;
     Scalar4 mbody, tbody, fquat;
     Scalar dtfm, dt_half;
@@ -350,39 +349,8 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
         com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
         
         // map the center of mass to the periodic box, update the com image info
-        if (com_handle.data[body].x >= box.xhi)
-            {
-            com_handle.data[body].x -= Lx;
-            body_image_handle.data[body].x++;
-            }
-        else if (com_handle.data[body].x < box.xlo)
-            {
-            com_handle.data[body].x += Lx;
-            body_image_handle.data[body].x--;
-            }
-            
-        if (com_handle.data[body].y >= box.yhi)
-            {
-            com_handle.data[body].y -= Ly;
-            body_image_handle.data[body].y++;
-            }
-        else if (com_handle.data[body].y < box.ylo)
-            {
-            com_handle.data[body].y += Ly;
-            body_image_handle.data[body].y--;
-            }
-            
-        if (com_handle.data[body].z >= box.zhi)
-            {
-            com_handle.data[body].z -= Lz;
-            body_image_handle.data[body].z++;
-            }
-        else if (com_handle.data[body].z < box.zlo)
-            {
-            com_handle.data[body].z += Lz;
-            body_image_handle.data[body].z--;
-            }
-            
+        box.wrap(com_handle.data[body], body_image_handle.data[body]);
+        
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
         quatvec(orientation_handle.data[body], tbody, fquat);
         

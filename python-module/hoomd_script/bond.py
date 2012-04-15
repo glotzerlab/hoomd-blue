@@ -168,7 +168,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            print >> sys.stderr, "\n***Error! No coefficents specified\n";
+            globals.msg.error("No coefficents specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -188,7 +188,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot verify bond coefficients before initialization\n";
+            globals.msg.error("Cannot verify bond coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
@@ -203,7 +203,7 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys():
-                print >> sys.stderr, "\n***Error! Bond type", type, "not found in bond coeff\n"
+                globals.msg.error("Bond type " +str(type) + " not found in bond coeff\n");
                 valid = False;
                 continue;
 
@@ -211,13 +211,13 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    print "Notice: Possible typo? Force coeff", coeff_name, "is specified for type", type, \
-                          ", but is not used by the bond force";
+                    globals.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                          ", but is not used by the bond force\n");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                print >> sys.stderr, "\n***Error! Bonde type", type, "is missing required coefficients\n";
+                globals.msg.error("Bond type " + str(type) + " is missing required coefficients\n");
                 valid = False;
 
         return valid;
@@ -229,7 +229,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values.keys():
-            print >> sys.stderr, "\nBug detected in force.coeff. Please report\n"
+            globals.msg.error("Bug detected in force.coeff. Please report\n");
             raise RuntimeError("Error setting bond coeff");
 
         return self.values[type][coeff_name];
@@ -269,7 +269,7 @@ class _bond(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.bond_coeff.verify(coeff_list):
-           print >> sys.stderr, "\n***Error: Not all force coefficients are set\n";
+           globals.msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params
@@ -321,7 +321,7 @@ class harmonic(_bond):
 
         # check that some bonds are defined
         if globals.system_definition.getBondData().getNumBonds() == 0:
-            print >> sys.stderr, "\n***Error! No bonds are defined.\n";
+            globals.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
         
         # create the c++ mirror class
@@ -340,7 +340,7 @@ class harmonic(_bond):
     # \param type bond type
     # \param coeffs named bond coefficients
     def set_coeff(self, type, **coeffs):
-        print "*** Warning: Syntax bond.harmonic.set_coeff deprecated."
+        globals.msg.warning("Syntax bond.harmonic.set_coeff deprecated.\n");
         self.bond_coeff.set(type,**coeffs)
         
     def process_coeff(self, coeff):
@@ -389,7 +389,7 @@ class fene(_bond):
         
         # check that some bonds are defined
         if globals.system_definition.getBondData().getNumBonds() == 0:
-            print >> sys.stderr, "\n***Error! No bonds are defined.\n";
+            globals.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
         
         # initialize the base class
@@ -411,7 +411,7 @@ class fene(_bond):
     # \param type bond type
     # \param coeffs named bond coefficients
     def set_coeff(self, type, **coeffs):
-        print "*** Warning: Syntax bond.fene.set_coeff deprecated."
+        globals.msg.warning("Syntax bond.fene.set_coeff deprecated.\n");
         self.bond_coeff.set(type, **coeffs)
 
     def process_coeff(self, coeff):

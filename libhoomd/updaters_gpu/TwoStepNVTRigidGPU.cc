@@ -85,7 +85,7 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepNVTRigidGPU");
         }
     }
@@ -128,7 +128,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "NVT rigid step 1");
     
     // access all the needed data
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -260,7 +260,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NVT rigid step 2");
     
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
     const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
     const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();

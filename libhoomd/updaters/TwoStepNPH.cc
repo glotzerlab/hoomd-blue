@@ -81,6 +81,8 @@ TwoStepNPH::TwoStepNPH(boost::shared_ptr<SystemDefinition> sysdef,
                        const std::string& suffix)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_W(W), m_P(P), m_mode(mode), m_state_initialized(false)
     {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPH" << endl;
+
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
 
@@ -103,6 +105,11 @@ TwoStepNPH::TwoStepNPH(boost::shared_ptr<SystemDefinition> sysdef,
     m_log_name = string("nph_barostat_energy") + suffix;
 
     m_curr_P_diag = make_scalar3(0.0,0.0,0.0);
+    }
+
+TwoStepNPH::~TwoStepNPH()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNPH" << endl;
     }
 
 /*! \param timestep Current time step
@@ -190,16 +197,9 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
     Scalar &etaz = v.variable[2];
 
     // obtain box lengths
-    Scalar Lx = Scalar(0.0);
-    Scalar Ly = Scalar(0.0);
-    Scalar Lz = Scalar(0.0);
-    Scalar volume = Scalar(0.0);
-
     BoxDim box = m_pdata->getBox();
-    Lx = box.xhi - box.xlo;
-    Ly = box.yhi - box.ylo;
-    Lz = box.zhi - box.zlo;
-    volume = Lx*Ly*Lz;
+    Scalar3 L = box.getL();
+    Scalar volume = L.x * L.y * L.z;
 
     Scalar extP = m_P->getValue(timestep);
 
@@ -207,15 +207,15 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
     if (m_mode == orthorhombic)
         {
         Scalar VdeltaThalf = Scalar(1./2.)*volume*m_deltaT;
-        etax += VdeltaThalf/Lx * (m_curr_P_diag.x - extP);
-        etay += VdeltaThalf/Ly * (m_curr_P_diag.y - extP);
-        etaz += VdeltaThalf/Lz * (m_curr_P_diag.z - extP);
+        etax += VdeltaThalf/L.x * (m_curr_P_diag.x - extP);
+        etay += VdeltaThalf/L.y * (m_curr_P_diag.y - extP);
+        etaz += VdeltaThalf/L.z * (m_curr_P_diag.z - extP);
         }
     else if (m_mode == tetragonal)
        {
        Scalar VdeltaThalf = Scalar(1./2.)*volume*m_deltaT;
-       etax += VdeltaThalf/Lx * (m_curr_P_diag.x - extP);
-       etay += VdeltaThalf/Ly * (m_curr_P_diag.y + m_curr_P_diag.z - Scalar(2.0)*extP);
+       etax += VdeltaThalf/L.x * (m_curr_P_diag.x - extP);
+       etay += VdeltaThalf/L.y * (m_curr_P_diag.y + m_curr_P_diag.z - Scalar(2.0)*extP);
        }
     else if (m_mode == cubic)
         {
@@ -226,9 +226,9 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
     // (since we still keep the accelerations a(t) computed for box length L_alpha(t) in memory,
     // needed in step two, we can exchange the order of the two steps)
     // also pre-calculate L(t+deltaT) (step 5a, only depends on eta(t) of step one)
-    Scalar Lx_old = Lx;
-    Scalar Ly_old = Ly;
-    Scalar Lz_old = Lz;
+    Scalar Lx_old = L.x;
+    Scalar Ly_old = L.y;
+    Scalar Lz_old = L.z;
 
     Scalar Lx_final = Scalar(0.0);
     Scalar Ly_final = Scalar(0.0);
@@ -238,28 +238,28 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
 
     if (m_mode == orthorhombic)
         {
-        Lx += deltaThalfoverW*etax;
-        Ly += deltaThalfoverW*etay;
-        Lz += deltaThalfoverW*etaz;
-        Lx_final = Lx + deltaThalfoverW*etax;
-        Ly_final = Ly + deltaThalfoverW*etay;
-        Lz_final = Lz + deltaThalfoverW*etaz;
+        L.x += deltaThalfoverW*etax;
+        L.y += deltaThalfoverW*etay;
+        L.z += deltaThalfoverW*etaz;
+        Lx_final = L.x + deltaThalfoverW*etax;
+        Ly_final = L.y + deltaThalfoverW*etay;
+        Lz_final = L.z + deltaThalfoverW*etaz;
         }
     else if (m_mode == tetragonal)
         {
-        Lx += deltaThalfoverW*etax;
-        Ly += Scalar(1./2.)*deltaThalfoverW*etay;
-        Lz = Ly;
-        Lx_final = Lx + deltaThalfoverW*etax;
-        Ly_final = Ly + Scalar(1./2.)*deltaThalfoverW*etay;
+        L.x += deltaThalfoverW*etax;
+        L.y += Scalar(1./2.)*deltaThalfoverW*etay;
+        L.z = L.y;
+        Lx_final = L.x + deltaThalfoverW*etax;
+        Ly_final = L.y + Scalar(1./2.)*deltaThalfoverW*etay;
         Lz_final = Ly_final;
         }
     else if (m_mode == cubic)
         {
         volume += deltaThalfoverW*etax;
-        Lx = pow(volume,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
-        Ly = Lx;
-        Lz = Lx;
+        L.x = pow(volume,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
+        L.y = L.x;
+        L.z = L.x;
         Scalar volume_final = volume + deltaThalfoverW*etax;
         Lx_final = pow(volume_final,Scalar(1./3.)); // Lx = Ly = Lz = V^(1/3)
         Ly_final = Lx_final;
@@ -280,9 +280,9 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         Scalar vztmp = h_vel.data[j].z + Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
 
         // update positions using result of step two implicitly in the (combined) steps four and 5b
-        h_pos.data[j].x = Lx_final/Lx_old*(h_pos.data[j].x+ vxtmp*m_deltaT*Lx_old*Lx_old/Lx/Lx);
-        h_pos.data[j].y = Ly_final/Ly_old*(h_pos.data[j].y+ vytmp*m_deltaT*Ly_old*Ly_old/Ly/Ly);
-        h_pos.data[j].z = Lz_final/Lz_old*(h_pos.data[j].z+ vztmp*m_deltaT*Lz_old*Lz_old/Lz/Lz);
+        h_pos.data[j].x = Lx_final/Lx_old*(h_pos.data[j].x+ vxtmp*m_deltaT*Lx_old*Lx_old/L.x/L.x);
+        h_pos.data[j].y = Ly_final/Ly_old*(h_pos.data[j].y+ vytmp*m_deltaT*Ly_old*Ly_old/L.y/L.y);
+        h_pos.data[j].z = Lz_final/Lz_old*(h_pos.data[j].z+ vztmp*m_deltaT*Lz_old*Lz_old/L.z/L.z);
 
         // update velocities (step two and step 5c combined)
         h_vel.data[j].x = Lx_old/Lx_final*vxtmp;
@@ -291,51 +291,17 @@ void TwoStepNPH::integrateStepOne(unsigned int timestep)
         }
 
     // wrap the particle around the box
-    Lx = Lx_final;
-    Ly = Ly_final;
-    Lz = Lz_final;
-    box = BoxDim(Lx_final, Ly_final, Lz_final);
+    box.setL(make_scalar3(Lx_final, Ly_final, Lz_final));
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         // wrap the particles around the box
-        if (h_pos.data[j].x >= box.xhi)
-            {
-            h_pos.data[j].x -= Lx;
-            h_image.data[j].x++;
-            }
-        else if (h_pos.data[j].x < box.xlo)
-            {
-            h_pos.data[j].x += Lx;
-            h_image.data[j].x--;
-            }
-
-        if (h_pos.data[j].y >= box.yhi)
-            {
-            h_pos.data[j].y -= Ly;
-            h_image.data[j].y++;
-            }
-        else if (h_pos.data[j].y < box.ylo)
-            {
-            h_pos.data[j].y += Ly;
-            h_image.data[j].y--;
-            }
-
-        if (h_pos.data[j].z >= box.zhi)
-            {
-            h_pos.data[j].z -= Lz;
-            h_image.data[j].z++;
-            }
-        else if (h_pos.data[j].z < box.zlo)
-            {
-            h_pos.data[j].z += Lz;
-            h_image.data[j].z--;
-            }
+        box.wrap(h_pos.data[j], h_image.data[j]);
         }
     }
 
     // update the simulation box
-    m_pdata->setBox(box);
+    m_pdata->setGlobalBoxL(box.getL());
 
     setIntegratorVariables(v);
 
@@ -415,24 +381,22 @@ void TwoStepNPH::integrateStepTwo(unsigned int timestep)
     if (m_mode == orthorhombic || m_mode == tetragonal)
         {
         const BoxDim &box = m_pdata->getBox();
-        Scalar Lx = box.xhi - box.xlo;
-        Scalar Ly = box.yhi - box.ylo;
-        Scalar Lz = box.zhi - box.zlo;
-        Scalar volume = Lx*Ly*Lz;
+        Scalar3 L = box.getL();
+        Scalar volume = L.x*L.y*L.z;
         Scalar VdeltaThalf = Scalar(1./2.)*volume*m_deltaT;
 
         // eta_alpha(t+deltaT) = eta_alpha(t+deltaT/2) + deltaT/2 * V/L_alpha * ( P_{alpha,alpha}(t) - P )
-        etax += VdeltaThalf/Lx * (m_curr_P_diag.x - extP);
+        etax += VdeltaThalf/L.x * (m_curr_P_diag.x - extP);
 
         if (m_mode == orthorhombic)
             {
-            etay += VdeltaThalf/Ly * (m_curr_P_diag.y - extP);
-            etaz += VdeltaThalf/Lz * (m_curr_P_diag.z - extP);
+            etay += VdeltaThalf/L.y * (m_curr_P_diag.y - extP);
+            etaz += VdeltaThalf/L.z * (m_curr_P_diag.z - extP);
             }
         else
             {
             //tetragonal
-            etay += VdeltaThalf/Ly * (m_curr_P_diag.y + m_curr_P_diag.z - Scalar(2.0)*extP);
+            etay += VdeltaThalf/L.y * (m_curr_P_diag.y + m_curr_P_diag.z - Scalar(2.0)*extP);
             }
         }
     else if (m_mode == cubic)

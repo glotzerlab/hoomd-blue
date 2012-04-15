@@ -86,6 +86,14 @@ minimize the CPU usage of hoomd when it runs on a GPU
 \par
 enable error checks after every GPU kernel call
 
+<b>--notice-level=#</b>
+\par
+specifies the level of notice messages to print
+
+<b>--msg-file=filename</b>
+\par
+specifies a file to write messages (the file is overwritten)
+
 <b>--user</b>
 \par
 user options
@@ -98,7 +106,7 @@ Any simulation in HOOMD-blue can be run on a number of CPUs or a GPU.  To contro
 set the \c --mode option on the script command line. Valid settings are \c cpu
 and \c gpu.
 \code
-hoomd some_script.hoomd --mode=cpu
+hoomd some_script.py --mode=cpu
 \endcode
 When \c --mode is set to \c gpu and no other options are specified, hoomd will
 choose a GPU automatically. It will prioritize the GPU choice based on speed and
@@ -109,7 +117,7 @@ long as there is enough memory, but the performance penalty is severe.
 
 You can select the GPU on which to run using the \c --gpu command line option.
 \code
-hoomd some_script.hoomd --gpu=1
+hoomd some_script.py --gpu=1
 \endcode
 Note that specifying \c --gpu implies \c --mode=gpu. To find out which id
 is assigned to each GPU in your system, download the CUDA SDK for your system
@@ -117,7 +125,7 @@ from http://www.nvidia.com/object/cuda_get.html and run the \c deviceQuery sampl
 
 If you run a script without any options
 \code
-hoomd some_script.hoomd
+hoomd some_script.py
 \endcode
 hoomd first checks if there are any GPUs in the system. If it finds one or more,
 it makes the same automatic choice described previously. If none are found, it runs on the CPU.
@@ -131,7 +139,7 @@ With this mode enabled, running hoomd with no options or with the \c --mode=gpu 
 choice of the first free GPU from the prioritized list.
 
 Furthermore, the compute-exclusive mode <em>only allows a</em> \b single CUDA application to run on each GPU. If you have
-4 compute-exclusive GPUs available in the system, executing a fifth instance of hoomd with "hoomd some_script.hoomd"
+4 compute-exclusive GPUs available in the system, executing a fifth instance of hoomd with "hoomd some_script.py"
 will result in the error: ***Error! no CUDA-capable device is available.
 <hr>
 
@@ -139,7 +147,7 @@ will result in the error: ***Error! no CUDA-capable device is available.
 When hoomd is running on a GPU, it still uses 100% of one CPU core by default. This CPU usage can be
 decreased significantly by specifying the \c --minimize-cpu-usage command line option:
 \code
-hoomd some_script.hoomd --minimize-cpu-usage
+hoomd some_script.py --minimize-cpu-usage
 \endcode
 Tests performed indicate that enabling this option incurs a 10% overall performance reduction, 
 but the CPU usage of hoomd is reduced to only 10% of a single CPU core.
@@ -151,7 +159,7 @@ but the CPU usage of hoomd is reduced to only 10% of a single CPU core.
 While running hoomd on the display GPU works just fine, it does moderately slow the simulation and causes the display 
 to lag. If you wish to prevent hoomd from running on the display, add the \c --ignore-display-gpu command line:
 \code
-hoomd some_script.hoomd --ignore-display-gpu
+hoomd some_script.py --ignore-display-gpu
 \endcode
 
 <hr>
@@ -163,7 +171,7 @@ can run with GPU error checking enabled to check for any errors returned by the 
 
 To do this, run the script with the \c --gpu_error_checking command line option:
 \code
-hoomd some_script.hoomd --gpu_error_checking
+hoomd some_script.py --gpu_error_checking
 \endcode
 
 <hr>
@@ -173,6 +181,20 @@ HOOMD-blue runs in parallel on any number of local CPU cores using OpenMP. The n
 used is determined by the OpenMP runtime, which usually defaults to all CPU cores in the system. Limit the number of 
 CPU cores used by setting the environment variable OMP_NUM_THREADS before executing hoomd or by using the --ncpu
 command line option.
+
+<hr>
+
+<h3>Control message output</h3>
+Set the notice level to a high value to help debug where problems occur. Or set it to a low number to supress messages.
+Set it to 0 to remove all notices (warnings and errors are still output).
+\code
+hoomd some_script.py --notice-level=10
+\endcode
+
+All messages (notices, warnings, and errors) can be redirected to a file. The file is overwritten.
+\code
+hoomd some_script.py --msg-file=messages.out
+\endcode
 
 <hr>
 
@@ -190,7 +212,7 @@ tools such as optparse.
 
 You can always run
 \code
-hoomd some_script.hoomd --help
+hoomd some_script.py --help
 \endcode
 to get a full list of the available command line options some of which
 may not be listed here.

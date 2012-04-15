@@ -75,7 +75,7 @@ class LJWallForceCompute :  public ForceCompute
         //! Constructor
         LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut);
         //! Destructor
-        ~LJWallForceCompute();
+        virtual ~LJWallForceCompute();
         //! Sets force parameters
         virtual void setParams(unsigned int typ, Scalar lj1, Scalar lj2);
         

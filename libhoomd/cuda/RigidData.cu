@@ -102,21 +102,21 @@ __global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
                                        float4* d_rigid_particle_dis,
                                        float4* d_rigid_particle_orientation,
                                        unsigned int nmax,
-                                       gpu_boxsize box)
+                                       BoxDim box)
     {
     float4 com, vel, angvel, ex_space, ey_space, ez_space;
     int3 body_image = make_int3(0, 0, 0);
 
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx >= n_pgroup)
         return;
-    
+
     unsigned int pidx = d_pgroup_idx[group_idx];
     unsigned int idx_body = d_particle_body[pidx];
     unsigned int particle_offset = d_particle_offset[pidx];
     float4 body_orientation = d_rigid_orientation[idx_body];
-    
+
     com = d_rigid_com[idx_body];
     vel = d_rigid_vel[idx_body];
     angvel = d_rigid_angvel[idx_body];
@@ -124,20 +124,20 @@ __global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
         {
         body_image = d_rigid_image[idx_body];
         }
-    
+
     exyzFromQuaternion(body_orientation, ex_space, ey_space, ez_space);
-    
+
     int localidx = idx_body * nmax + particle_offset;
     float4 particle_pos = d_rigid_particle_dis[localidx];
     float4 constituent_orientation = d_rigid_particle_orientation[localidx];
-    
+
     // compute ri with new orientation
-    float4 ri;
+    float3 ri;
     ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
     ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
     ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
-    
-    Scalar4 ppos;
+
+    Scalar3 ppos;
     int3 image;
     float4 porientation;
     if (set_x)
@@ -146,40 +146,27 @@ __global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
         ppos.x = com.x + ri.x;
         ppos.y = com.y + ri.y;
         ppos.z = com.z + ri.z;
-        ppos.w = pdata_pos[pidx].w;
-        
+
         // time to fix the periodic boundary conditions
-        float x_shift = rintf(ppos.x * box.Lxinv);
-        ppos.x -= box.Lx * x_shift;
-        image.x = body_image.x;
-        image.x += (int)x_shift;
-        
-        float y_shift = rintf(ppos.y * box.Lyinv);
-        ppos.y -= box.Ly * y_shift;
-        image.y = body_image.y;
-        image.y += (int)y_shift;
-        
-        float z_shift = rintf(ppos.z * box.Lzinv);
-        ppos.z -= box.Lz * z_shift;
-        image.z = body_image.z;
-        image.z += (int)z_shift;
+        image = body_image;
+        box.wrap(ppos, image);
 
         // update particle orientation
         quatquat(body_orientation,
                  constituent_orientation,
                  porientation);
         }
-    
+
     // v_particle = vel + angvel x ri
     Scalar4 pvel = pdata_vel[pidx];
     pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
     pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
     pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-    
+
     // write out the results
     if (set_x)
         {
-        pdata_pos[pidx] = ppos;
+        pdata_pos[pidx] = make_float4(ppos.x, ppos.y, ppos.z, pdata_pos[pidx].w);
         pdata_image[pidx] = image;
         pdata_orientation[pidx] = porientation;
         }
@@ -207,7 +194,7 @@ cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
                                    float4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
-                                   const gpu_boxsize &box, 
+                                   const BoxDim& box, 
                                    bool set_x)
     {
     

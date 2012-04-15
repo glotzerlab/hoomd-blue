@@ -116,8 +116,7 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<Syst
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
         {
-        std::cerr << std::endl << "***Error! Creating a PotentialBondGPU with no GPU in the execution configuration"
-                  << std::endl << std::endl;
+        this->m_exec_conf->msg->error() << "Creating a PotentialBondGPU with no GPU in the execution configuration" << std::endl;
         throw std::runtime_error("Error initializing PotentialBondGPU");
         }
 
@@ -143,7 +142,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
-    gpu_boxsize box = this->m_pdata->getGlobalBoxGPU();
+    BoxDim box = this->m_pdata->getBox();
 
     // access parameters
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
@@ -186,7 +185,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
 
         if (h_flags.data[0]==1)
             {
-            cerr << endl << "***Error! " << evaluator::getName() << " bond out of bounds" << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
 #ifdef ENABLE_MPI
