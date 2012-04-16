@@ -255,12 +255,12 @@ void BondTablePotential::computeForces(unsigned int timestep)
                 dx -= Lx;
             else if (dx < box.xlo)
                 dx += Lx;
-                
+
             if (dy >= box.yhi)
                 dy -= Ly;
             else if (dy < box.ylo)
                 dy += Ly;
-                
+
             if (dz >= box.zhi)
                 dz -= Lz;
             else if (dz < box.zlo)
