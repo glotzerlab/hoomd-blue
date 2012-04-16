@@ -57,6 +57,7 @@ import util;
 import tune;
 import data;
 import init;
+import pair;
 
 import math;
 import sys;
@@ -421,6 +422,14 @@ class fene(_bond):
         lj2 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 6.0);
         return hoomd.make_scalar4(k, r0, lj1, lj2);
         
+
+
+
+def _table_eval(r, rmin, rmax, V, F, width):
+      dr = (rmax - rmin) / float(width-1);
+      i = int(round((r - rmin)/dr))
+      return (V[i], F[i])        
+        
         
 ## Tabulated %bond %force
 #
@@ -553,3 +562,76 @@ class bondtable(force._force):
             coeff = self.bond_coeff.get(type_list[i], "coeff");
 
             self.update_bond_table(i, func, rmin, rmax, coeff);
+
+      ## Set a bond pair interaction from a file
+      # \param bondname Name of bond 
+      # \param filename Name of the file to read
+      #
+     # The provided file specifies V and F at equally spaced r values.
+      # Example:
+      # \code
+      # #r  V    F
+      # 1.0 2.0 -3.0
+      # 1.1 3.0 -4.0
+      # 1.2 2.0 -3.0
+      # 1.3 1.0 -2.0
+      # 1.4 0.0 -1.0
+      # 1.5 -1.0 0.0
+      #\endcode
+      #
+      # The first r value sets \a rmin, the last sets \a rmax. Any line with \# as the first non-whitespace character is
+      # is treated as a comment. The \a r values must monotonically increase and be equally spaced. The table is read
+      # directly into the grid points used to evaluate \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$.
+            #
+    def set_from_file(self, bondname, filename):
+          util.print_status_line();
+            
+          # open the file
+          f = open(filename);
+  
+          r_table = [];
+          V_table = [];
+          F_table = [];
+  
+          # read in lines from the file
+          for line in f.readlines():
+              line = line.strip();
+  
+              # skip comment lines
+              if line[0] == '#':
+                  continue;
+  
+              # split out the columns
+              cols = line.split();
+              values = [float(f) for f in cols];
+  
+              # validate the input
+              if len(values) != 3:
+                  globals.msg.error("bond.bondtable: file must have exactly 3 columns\n");
+                  raise RuntimeError("Error reading table file");
+  
+              # append to the tables
+              r_table.append(values[0]);
+              V_table.append(values[1]);
+              F_table.append(values[2]);
+  
+          # validate input
+          if self.width != len(r_table):
+              globals.msg.error("bond.bondtable: file must have exactly " + str(self.width) + " rows\n");
+              raise RuntimeError("Error reading table file");
+  
+          # extract rmin and rmax
+          rmin_table = r_table[0];
+          rmax_table = r_table[-1];
+  
+          # check for even spacing
+          dr = (rmax_table - rmin_table) / float(self.width-1);
+          for i in xrange(0,self.width):
+              r = rmin_table + dr * i;
+              if math.fabs(r - r_table[i]) > 1e-3:
+                  globals.msg.error("bond.bondtable: r must be monotonically increasing and evenly spaced\n");
+                  raise RuntimeError("Error reading table file");
+  
+          util._disable_status_lines = True;
+          self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
+          util._disable_status_lines = True;            
