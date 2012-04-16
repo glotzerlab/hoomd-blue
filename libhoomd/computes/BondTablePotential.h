@@ -76,11 +76,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     \b Table memory layout
 
-    V(r) and F(r) are specified for each bond type. 
+    V(r) and F(r) are specified for each bond type.
 
     Three parameters need to be stored for each bond potential: rmin, rmax, and dr, the minimum r, maximum r, and spacing
     between r values in the table respectively. For simple access on the GPU, these will be stored in a float4 where
-    x is rmin, y is rmax, and z is dr. 
+    x is rmin, y is rmax, and z is dr.
 
     V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr * i where i is chosen such that r >= rmin
     and r <= rmax. V(r) for r < rmin and > rmax is 0. The same goes for F. Thus V and F are defined between the region
@@ -101,30 +101,30 @@ class BondTablePotential : public ForceCompute
         BondTablePotential(boost::shared_ptr<SystemDefinition> sysdef,
                        unsigned int table_width,
                        const std::string& log_suffix="");
-                       
+
         //! Destructor
         virtual ~BondTablePotential() { }
-        
+
         //! Set the table for a given type pair
         virtual void setTable(unsigned int type,
                               const std::vector<float> &V,
                               const std::vector<float> &F,
                               Scalar rmin,
                               Scalar rmax);
-                              
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
     protected:
-        boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds    
+        boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         unsigned int m_table_width;                 //!< Width of the tables in memory
         GPUArray<float2> m_tables;                  //!< Stored V and F tables
-        GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table        
+        GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
         std::string m_log_name;                     //!< Cached log name
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };

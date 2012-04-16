@@ -77,16 +77,16 @@ class BondTablePotentialGPU : public BondTablePotential
         BondTablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
                           unsigned int table_width,
                           const std::string& log_suffix="");
-                          
+
         //! Destructor
         virtual ~BondTablePotentialGPU() { }
-        
+
         //! Set the block size
         void setBlockSize(int block_size);
-        
+
     private:
         int m_block_size;   //!< the block size
-        GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution        
+        GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };

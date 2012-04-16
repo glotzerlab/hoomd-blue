@@ -428,9 +428,9 @@ class fene(_bond):
 def _table_eval(r, rmin, rmax, V, F, width):
       dr = (rmax - rmin) / float(width-1);
       i = int(round((r - rmin)/dr))
-      return (V[i], F[i])        
-        
-        
+      return (V[i], F[i])
+
+
 ## Tabulated %bond %force
 #
 # The command bond.table specifies that a tabulated  %bond %force should be added to every bonded particle 
@@ -452,15 +452,15 @@ def _table_eval(r, rmin, rmax, V, F, width):
 #
 # \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between 
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, the user must specify a force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
+# For correctness, the user must specify a force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
 #
-# The following coefficients must be set per unique %bond of particle types. See hoomd_script.bond or 
+# The following coefficients must be set per unique %bond of particle types. See hoomd_script.bond or
 # the \ref page_quick_start for information on how to set coefficients.
 # - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by \c func (see example)
 # - coefficients passed to \c func - \c coeff (see example)
 # - \f$ r_{\mathrm{min}} \f$ - \c rmin (in distance units)
 # - \f$ r_{\mathrm{max}} \f$ - \c rmax (in distance units)
-# 
+#
 # \b Example:
 # \code
 # table.bond_coeff.set('A', 'A', func=my_potential, rmin=0, rmax=10, coeff=dict(A=1.5, s=3.0))
@@ -500,60 +500,60 @@ class bondtable(force._force):
     # set before it can be started with run()
     def __init__(self, width, name=None):
         util.print_status_line();
-        
+
         # initialize the base class
         force._force.__init__(self, name);
 
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
             self.cpp_force.setBlockSize(64) #tune._get_optimal_block_size('bond.table'));  #TODO add to TUNING
-            
+
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # setup the coefficent matrix
         self.bond_coeff = coeff();
-        
+
         # stash the width for later use
         self.width = width;
-        
+
     def update_bond_table(self, btype, func, rmin, rmax, coeff):
         # allocate arrays to store V and F
         Vtable = hoomd.std_vector_float();
         Ftable = hoomd.std_vector_float();
-        
+
         # calculate dr
         dr = (rmax - rmin) / float(self.width-1);
-        
+
         # evaluate each point of the function
         for i in xrange(0, self.width):
             r = rmin + dr * i;
             (V,F) = func(r, rmin, rmax, **coeff);
-                
+
             # fill out the tables
             Vtable.append(V);
             Ftable.append(F);
-        
+
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(btype, Vtable, Ftable, rmin, rmax);
-    
-                            
+
+
     def update_coeffs(self):
         # check that the bond coefficents are valid
         if not self.bond_coeff.verify(["func", "rmin", "rmax", "coeff"]):
             print >> sys.stderr, "\n***Error: Not all bond coefficients are set for bond.table\n";
             raise RuntimeError("Error updating bond coefficients");
-        
+
         # set all the params
-        ntypes = globals.system_definition.getBondData().getNBondTypes();        
+        ntypes = globals.system_definition.getBondData().getNBondTypes();     
         type_list = [];
         for i in xrange(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
-  
-        
+
+
         # loop through all of the unique type bonds and evaluate the table
         for i in xrange(0,ntypes):
             func = self.bond_coeff.get(type_list[i], "func");
@@ -585,45 +585,45 @@ class bondtable(force._force):
             #
     def set_from_file(self, bondname, filename):
           util.print_status_line();
-            
+
           # open the file
           f = open(filename);
-  
+
           r_table = [];
           V_table = [];
           F_table = [];
-  
+
           # read in lines from the file
           for line in f.readlines():
               line = line.strip();
-  
+
               # skip comment lines
               if line[0] == '#':
                   continue;
-  
+
               # split out the columns
               cols = line.split();
               values = [float(f) for f in cols];
-  
+
               # validate the input
               if len(values) != 3:
                   globals.msg.error("bond.bondtable: file must have exactly 3 columns\n");
                   raise RuntimeError("Error reading table file");
-  
+
               # append to the tables
               r_table.append(values[0]);
               V_table.append(values[1]);
               F_table.append(values[2]);
-  
+
           # validate input
           if self.width != len(r_table):
               globals.msg.error("bond.bondtable: file must have exactly " + str(self.width) + " rows\n");
               raise RuntimeError("Error reading table file");
-  
+
           # extract rmin and rmax
           rmin_table = r_table[0];
           rmax_table = r_table[-1];
-  
+
           # check for even spacing
           dr = (rmax_table - rmin_table) / float(self.width-1);
           for i in xrange(0,self.width):
@@ -631,7 +631,7 @@ class bondtable(force._force):
               if math.fabs(r - r_table[i]) > 1e-3:
                   globals.msg.error("bond.bondtable: r must be monotonically increasing and evenly spaced\n");
                   raise RuntimeError("Error reading table file");
-  
+
           util._disable_status_lines = True;
           self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
-          util._disable_status_lines = True;            
+          util._disable_status_lines = True; 

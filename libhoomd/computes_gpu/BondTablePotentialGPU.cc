@@ -84,7 +84,7 @@ BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition>
         cerr << endl << "***Error! Creating a BondTableForceComputeGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing BondTableForceComputeGPU");
         }
-        
+
      // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->exec_conf);
     m_flags.swap(flags);
@@ -106,19 +106,19 @@ Calls gpu_compute_table_forces to do the leg work
 */
 void BondTablePotentialGPU::computeForces(unsigned int timestep)
     {
-    
+
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "BondTable pair");
-    
-    
+
+
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     gpu_boxsize box = m_pdata->getBoxGPU();
-    
+
     // access the table data
     ArrayHandle<float2> d_tables(m_tables, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
-     
+
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
  
@@ -129,29 +129,26 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
         ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(), access_location::device, access_mode::read);
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
-        
+
 
         // run the kernel on all GPUs in parallel
-        gpu_compute_bondtable_forces(d_force.data,//
-                             d_virial.data,//
+        gpu_compute_bondtable_forces(d_force.data,
+                             d_virial.data,
                              m_virial.getPitch(),
                              m_pdata->getN(),
                              d_pos.data,
                              box,
-                             
                              d_gpu_bondlist.data,
                              m_bond_data->getGPUBondList().getPitch(),
                              d_gpu_n_bonds.data,
                              m_bond_data->getNBondTypes(),
-                             
-                             d_tables.data, //
+                             d_tables.data, 
                              d_params.data,
                              m_table_width,
-                             d_flags.data, //
-                             m_block_size); //
-                             
+                             d_flags.data, 
+                             m_block_size); 
             }
-    
+
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         {
@@ -166,7 +163,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
             throw std::runtime_error("Error in bond calculation");
             }
         }
-    
+
     if (m_prof) m_prof->pop(exec_conf);
     }
 

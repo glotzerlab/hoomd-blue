@@ -388,7 +388,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicImproperForceCompute();
     export_CGCMMAngleForceCompute();
     export_TablePotential();
-    export_BondTablePotential();    
+    export_BondTablePotential();
     export_CGCMMForceCompute();
     export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
     export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");

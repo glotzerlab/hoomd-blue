@@ -85,22 +85,22 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
 
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
-    
+
     if (table_width == 0)
         {
         cerr << endl << "***Error! Table width of 0 given to BondTablePotential makes no sense" << endl << endl;
         throw runtime_error("Error initializing BondTablePotential");
         }
-        
-    
-    // allocate storage for the tables 
+
+
+    // allocate storage for the tables
     GPUArray<float2> tables(m_table_width, exec_conf);
     m_tables.swap(tables);
     GPUArray<Scalar4> params(m_bond_data->getNBondTypes(), exec_conf);
-    m_params.swap(params);    
+    m_params.swap(params);
 
     assert(!m_tables.isNull());
-    
+
     m_log_name = std::string("bond_table_energy") + log_suffix;
     }
 
@@ -119,20 +119,20 @@ void BondTablePotential::setTable(unsigned int type,
                               Scalar rmin,
                               Scalar rmax)
     {
-    
+
     // make sure the type is valid
     if (type >= m_bond_data->getNBondTypes())
         {
         cout << endl << "***Error! Invalid bond type specified" << endl << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
-        }    
-    
-    
-    
+        }
+
+
+
     // access the arrays
     ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
-    
+
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
@@ -140,18 +140,18 @@ void BondTablePotential::setTable(unsigned int type,
              << ") given to BondTablePotential make no sense." << endl << endl;
         throw runtime_error("Error initializing BondTablePotential");
         }
-        
+
     if (V.size() != m_table_width || F.size() != m_table_width)
         {
         cerr << endl << "***Error! table provided to setTable is not of the correct size" << endl << endl;
         throw runtime_error("Error initializing BondTablePotential");
         }
-        
+
     // fill out the parameters
     h_params.data[type].x = rmin;
     h_params.data[type].y = rmax;
     h_params.data[type].z = (rmax - rmin) / Scalar(m_table_width - 1);
-    
+
     // fill out the table
     for (unsigned int i = 0; i < m_table_width; i++)
         {
@@ -191,23 +191,23 @@ compute method is called to ensure that it is up to date.
 */
 void BondTablePotential::computeForces(unsigned int timestep)
     {
-    
+
     // start the profile for this compute
     if (m_prof) m_prof->push("Bond Table pair");
-    
-    
+
+
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-   
-    
+
+
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
-    
+
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
@@ -216,16 +216,16 @@ void BondTablePotential::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
     // sanity check
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
+
     // precalculate box lengths for use in the periodic imaging
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    
+
     // access the table data
     ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
-    
+
 
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
@@ -235,7 +235,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
         const Bond& bond = m_bond_data->getBond(i);
         assert(bond.a < m_pdata->getN());
         assert(bond.b < m_pdata->getN());
-            
+
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[bond.a];
@@ -248,8 +248,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
         Scalar dx = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
         Scalar dy = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
         Scalar dz = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
-                     
-            
+
+
             // apply periodic boundary conditions
             if (dx >= box.xhi)
                 dx -= Lx;
@@ -265,26 +265,26 @@ void BondTablePotential::computeForces(unsigned int timestep)
                 dz -= Lz;
             else if (dz < box.zlo)
                 dz += Lz;
-                
+
             // access needed parameters
             Scalar4 params = h_params.data[bond.type];
             Scalar rmin = params.x;
             Scalar rmax = params.y;
             Scalar delta_r = params.z;
-            
+
             // start computing the force
             Scalar rsq = dx*dx + dy*dy + dz*dz;
             Scalar r = sqrt(rsq);
-            
+
             // only compute the force if the particles are within the region defined by V
-            
+
             if (r < rmax && r >= rmin)
                 {
                 // precomputed term
                 Scalar value_f = (r - rmin) / delta_r;
-                
+    
                 // compute index into the table and read in values
-                
+    
                 /// Here we use the table!!
                 unsigned int value_i = (unsigned int)floor(value_f);
                 float2 VF0 = h_tables.data[value_i];
@@ -294,20 +294,20 @@ void BondTablePotential::computeForces(unsigned int timestep)
                 Scalar V1 = VF1.x;
                 Scalar F0 = VF0.y;
                 Scalar F1 = VF1.y;
-                
+
                 // compute the linear interpolation coefficient
                 Scalar f = value_f - float(value_i);
-                
+
                 // interpolate to get V and F;
                 Scalar V = V0 + f * (V1 - V0);
                 Scalar F = F0 + f * (F1 - F0);
-                
+
                 // convert to standard variables used by the other pair computes in HOOMD-blue
                 Scalar force_divr = Scalar(0.0);
                 if (r > Scalar(0.0))
                     force_divr = F / r;
                 Scalar bond_eng = Scalar(0.5) * V;
-                
+
                 // compute the virial
                 Scalar bond_virial[6];
                 Scalar force_div2r = Scalar(0.5) * force_divr;
@@ -333,7 +333,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
                 h_force.data[idx_a].w += bond_eng;
                 for (unsigned int i = 0; i < 6; i++)
                     h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
-    
+
                 }
             else
                 {
@@ -352,7 +352,6 @@ void export_BondTablePotential()
     ("BondTablePotential", init< boost::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &BondTablePotential::setTable)
     ;
-    
     }
 
 #ifdef WIN32
