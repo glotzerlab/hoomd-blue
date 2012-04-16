@@ -75,12 +75,10 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     \param N number of particles in system
     \param d_pos device array of particle positions
     \param box Box dimensions used to implement periodic boundary conditions
-
     \param blist List of bonds stored on the GPU
     \param pitch Pitch of 2D bond list
     \param n_bonds_list List of numbers of bonds stored on the GPU
     \param n_bond_type number of bond types
-    
     \param d_params Parameters for each table associated with a type pair
     \param table_width Number of points in each table
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be evaluated
@@ -93,7 +91,7 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
 */
 __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
                                      float* d_virial,
-                                     const unsigned int virial_pitch, 
+                                     const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const gpu_boxsize box,
@@ -132,7 +130,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
     float virial[6];
     for (unsigned int i = 0; i < 6; i++)
         virial[i] = 0;
-        
+
     // loop over neighbors
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
@@ -212,7 +210,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
         else
             {
             *d_flags = 1;
-            }            
+            }
         }
 
 
@@ -279,7 +277,7 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
     gpu_compute_bondtable_forces_kernel<<< grid, threads, sizeof(float4)*n_bond_type >>>
             (d_force, d_virial, virial_pitch, N, d_pos, box, blist,
         pitch, n_bonds_list, n_bond_type,  d_params, table_width, d_flags);
-    
+
     return cudaSuccess;
     }
 

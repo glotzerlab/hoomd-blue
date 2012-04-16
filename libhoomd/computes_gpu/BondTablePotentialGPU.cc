@@ -121,8 +121,8 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
- 
-    
+
+
             {
         // Access the bond table for reading
         ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getGPUBondList(), access_location::device, access_mode::read);
@@ -142,11 +142,11 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
                              m_bond_data->getGPUBondList().getPitch(),
                              d_gpu_n_bonds.data,
                              m_bond_data->getNBondTypes(),
-                             d_tables.data, 
+                             d_tables.data,
                              d_params.data,
                              m_table_width,
-                             d_flags.data, 
-                             m_block_size); 
+                             d_flags.data,
+                             m_block_size);
             }
 
 

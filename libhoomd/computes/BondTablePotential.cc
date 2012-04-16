@@ -282,9 +282,9 @@ void BondTablePotential::computeForces(unsigned int timestep)
                 {
                 // precomputed term
                 Scalar value_f = (r - rmin) / delta_r;
-    
+
                 // compute index into the table and read in values
-    
+
                 /// Here we use the table!!
                 unsigned int value_i = (unsigned int)floor(value_f);
                 float2 VF0 = h_tables.data[value_i];
@@ -339,9 +339,9 @@ void BondTablePotential::computeForces(unsigned int timestep)
                 {
                 cerr << endl << "***Error! Table bond out of bounds" << endl << endl;
                 throw std::runtime_error("Error in bond calculation");
-                }                
+                }
 
-           }    
+           }
     if (m_prof) m_prof->pop();
     }
 
