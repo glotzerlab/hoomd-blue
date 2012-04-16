@@ -350,7 +350,7 @@ class harmonic(_bond):
 
         # set the parameters for the appropriate type
         return hoomd.make_scalar2(k, r0);
-        
+
 
 ## FENE %bond force
 #
@@ -421,7 +421,7 @@ class fene(_bond):
         lj1 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 12.0);
         lj2 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 6.0);
         return hoomd.make_scalar4(k, r0, lj1, lj2);
-        
+
 
 
 
@@ -433,7 +433,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 
 ## Tabulated %bond %force
 #
-# The command bond.table specifies that a tabulated  %bond %force should be added to every bonded particle 
+# The command bond.table specifies that a tabulated  %bond %force should be added to every bonded particle
 # in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is (in force units)
@@ -450,7 +450,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 # \f}
 # ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between 
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
 # For correctness, the user must specify a force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
 #
@@ -490,10 +490,10 @@ class bondtable(force._force):
 
     # \endcode
     #
-    # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+    # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
     # not diverge near r=0, then a setting of \c rmin=0 is valid.
     #
-    # \note, be sure that \c rmin and \c rmax cover the range of bond values.  If gpu eror checking is on, a error will 
+    # \note, be sure that \c rmin and \c rmax cover the range of bond values.  If gpu eror checking is on, a error will
     # be thrown if a bond distance is outside than this range.
     #
     # \note %Pair coefficients for all type bonds in the simulation must be
@@ -548,7 +548,7 @@ class bondtable(force._force):
             raise RuntimeError("Error updating bond coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getBondData().getNBondTypes();     
+        ntypes = globals.system_definition.getBondData().getNBondTypes();
         type_list = [];
         for i in xrange(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
@@ -634,4 +634,4 @@ class bondtable(force._force):
 
           util._disable_status_lines = True;
           self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
-          util._disable_status_lines = True; 
+          util._disable_status_lines = True;
