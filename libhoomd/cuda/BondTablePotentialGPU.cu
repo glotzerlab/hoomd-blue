@@ -63,8 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the table bond forces. Used by BondTablePotentialGPU.
 */
 
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 //! Texture for reading table values
 texture<float2, 1, cudaReadModeElementType> tables_tex;
@@ -85,6 +83,7 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     
     \param d_params Parameters for each table associated with a type pair
     \param table_width Number of points in each table
+    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be evaluated
 
     See BondTablePotential for information on the memory layout.
 
@@ -105,7 +104,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force, //
                                      const unsigned int n_bond_type,
                                      
                                      const float4 *d_params,//
-                                     const unsigned int table_width) //
+                                     const unsigned int table_width,
+                                     unsigned int *d_flags) //
     {
     
     // read in params for easy and fast access in the kernel
@@ -125,9 +125,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force, //
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_bonds =n_bonds_list[idx];
     
-    // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
-    Scalar4 pos = tex1Dfetch(pdata_pos_tex, idx);
-    unsigned int typei = __float_as_int(pos.w);
+    // read in the position of our particle.
+    Scalar4 pos = d_pos[idx];
     
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -161,7 +160,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force, //
         
                                                                 
         // access needed parameters
-        float4 params = s_params[n_bond_type];
+        float4 params = s_params[cur_bond_type];
         float rmin = params.x;
         float rmax = params.y;
         float delta_r = params.z;
@@ -191,6 +190,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force, //
             // interpolate to get V and F;
             float V = V0 + f * (V1 - V0);
             float F = F0 + f * (F1 - F0);
+            //F = -330*(r-0.84)/r;
+            //V =  0.5 * 330 * (r-0.84)*0.5 * 330 * (r-0.84);
             
             // convert to standard variables used by the other pair computes in HOOMD-blue
             float forcemag_divr = 0.0f;
@@ -212,11 +213,14 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force, //
             force.z += dz * forcemag_divr;
             force.w += bond_eng * 0.5f;
             }
+        else
+            {
+            *d_flags = 1;
+            }            
         }
     
         
 
-    // now that the force calculation is complete, write out the result
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
     d_force[idx] = force;
     for (unsigned int i = 0; i < 6 ; i++)
@@ -239,6 +243,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force, //
     \param d_tables Tables of the potential and force
     \param d_params Parameters for each table associated with a type pair
     \param table_width Number of points in each table
+    \param d_flags flags on the device - a 1 will be written if evaluation
+                   of forces failed for any bond
     \param block_size Block size at which to run the kernel
 
     \note This is just a kernel driver. See gpu_compute_bondtable_forces_kernel for full documentation.
@@ -258,11 +264,12 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
                                      const float2 *d_tables,
                                      const float4 *d_params,
                                      const unsigned int table_width,
+                                     unsigned int *d_flags,
                                      const unsigned int block_size)
     {
     assert(d_params);
     assert(d_tables);
-    assert(ntypes > 0);
+    assert(n_bond_type > 0);
     assert(table_width > 1);
     
     
@@ -270,23 +277,17 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    // bind the pdata position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4) * N);
-    if (error != cudaSuccess)
-        return error;
 
     // bind the tables texture
     tables_tex.normalized = false;
     tables_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_width);
+    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_width*n_bond_type);
     if (error != cudaSuccess)
         return error;
         
     gpu_compute_bondtable_forces_kernel<<< grid, threads, sizeof(float4)*n_bond_type >>>
             (d_force, d_virial, virial_pitch, N, d_pos, box, blist,
-        pitch, n_bonds_list, n_bond_type,  d_params, table_width);
+        pitch, n_bonds_list, n_bond_type,  d_params, table_width, d_flags);
     
     return cudaSuccess;
     }

@@ -290,10 +290,10 @@ class _bond(force._force):
 
 ## Harmonic %bond force
 #
-# The command bond.harmonic specifies a %harmonic potential energy between every bonded %pair of particles
+# The command bond.harmonic specifies a %harmonic potential energy between every bonded %bond of particles
 # in the simulation. 
 # \f[ V(r) = \frac{1}{2} k \left( r - r_0 \right)^2 \f]
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.
 #
 # Coeffients:
 # - \f$ k \f$ - %force constant (in units of energy/distance^2)
@@ -353,10 +353,10 @@ class harmonic(_bond):
 
 ## FENE %bond force
 #
-# The command bond.fene specifies a %fene potential energy between every bonded %pair of particles
+# The command bond.fene specifies a %fene potential energy between every bonded %bond of particles
 # in the simulation. 
 # \f[ V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r - \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)\f]
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair,
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond,
 # \f$ \Delta = (d_i + d_j)/2 - 1 \f$, \f$ d_i \f$ is the diameter of particle \f$ i \f$, and
 # \f{eqnarray*}
 #   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]  + \varepsilon & r-\Delta < 2^{\frac{1}{6}}\sigma\\
@@ -420,4 +420,136 @@ class fene(_bond):
         lj1 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 12.0);
         lj2 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 6.0);
         return hoomd.make_scalar4(k, r0, lj1, lj2);
+        
+        
+## Tabulated %bond %force
+#
+# The command bond.table specifies that a tabulated  %bond %force should be added to every bonded particle 
+# in the simulation.
+#
+# The %force \f$ \vec{F}\f$ is (in force units)
+# \f{eqnarray*}
+#  \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
+#                       = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
+#                       = & 0                           & r \ge r_{\mathrm{max}} \\
+# \f}
+# and the potential \f$ V(r) \f$ is (in energy units)
+# \f{eqnarray*}
+# V(r)       = & 0                    & r < r_{\mathrm{min}} \\
+#            = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
+#            = & 0                    & r \ge r_{\mathrm{max}} \\
+# \f}
+# ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.
+#
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between 
+# \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
+# For correctness, the user must specify a force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
+#
+# The following coefficients must be set per unique %bond of particle types. See hoomd_script.bond or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by \c func (see example)
+# - coefficients passed to \c func - \c coeff (see example)
+# - \f$ r_{\mathrm{min}} \f$ - \c rmin (in distance units)
+# - \f$ r_{\mathrm{max}} \f$ - \c rmax (in distance units)
+# 
+# \b Example:
+# \code
+# table.bond_coeff.set('A', 'A', func=my_potential, rmin=0, rmax=10, coeff=dict(A=1.5, s=3.0))
+# \endcode
+#
+# For more information on setting bond coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.bond.coeff.set() bond_coeff.set()\endlink.
+#
+# The table \a width is set once when bond.table is specified (see __init__())
+#
+class bondtable(force._force):
+    ## Specify the Tabulated %bond %force
+    #
+    # \param width Number of points to use to interpolate V and F (see documentation above)
+    # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # def har(r, rmin, rmax, kappa, r0):
+    #   V = 0.5 * kappa * (r-r0)**2;
+    #   F = -kappa*(r-r0);
+    #   return (V, F)
+    #
+    # btable = bond.bondtable(width=1000)
+    # btable.bond_coeff.set('polymer', func=har, rmin=0.1, rmax=10.0, coeff=dict(kappa=330, r0=0.84))
 
+    # \endcode
+    #
+    # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+    # not diverge near r=0, then a setting of \c rmin=0 is valid.
+    #
+    # \note, be sure that \c rmin and \c rmax cover the range of bond values.  If gpu eror checking is on, a error will 
+    # be thrown if a bond distance is outside than this range.
+    #
+    # \note %Pair coefficients for all type bonds in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, width, name=None):
+        util.print_status_line();
+        
+        # initialize the base class
+        force._force.__init__(self, name);
+
+        
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
+        else:
+            self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
+            self.cpp_force.setBlockSize(64) #tune._get_optimal_block_size('bond.table'));  #TODO add to TUNING
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent matrix
+        self.bond_coeff = coeff();
+        
+        # stash the width for later use
+        self.width = width;
+        
+    def update_bond_table(self, btype, func, rmin, rmax, coeff):
+        # allocate arrays to store V and F
+        Vtable = hoomd.std_vector_float();
+        Ftable = hoomd.std_vector_float();
+        
+        # calculate dr
+        dr = (rmax - rmin) / float(self.width-1);
+        
+        # evaluate each point of the function
+        for i in xrange(0, self.width):
+            r = rmin + dr * i;
+            (V,F) = func(r, rmin, rmax, **coeff);
+                
+            # fill out the tables
+            Vtable.append(V);
+            Ftable.append(F);
+        
+        # pass the tables on to the underlying cpp compute
+        self.cpp_force.setTable(btype, Vtable, Ftable, rmin, rmax);
+    
+                            
+    def update_coeffs(self):
+        # check that the bond coefficents are valid
+        if not self.bond_coeff.verify(["func", "rmin", "rmax", "coeff"]):
+            print >> sys.stderr, "\n***Error: Not all bond coefficients are set for bond.table\n";
+            raise RuntimeError("Error updating bond coefficients");
+        
+        # set all the params
+        ntypes = globals.system_definition.getBondData().getNBondTypes();        
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getBondData().getNameByType(i));
+  
+        
+        # loop through all of the unique type bonds and evaluate the table
+        for i in xrange(0,ntypes):
+            func = self.bond_coeff.get(type_list[i], "func");
+            rmin = self.bond_coeff.get(type_list[i], "rmin");
+            rmax = self.bond_coeff.get(type_list[i], "rmax");
+            coeff = self.bond_coeff.get(type_list[i], "coeff");
+
+            self.update_bond_table(i, func, rmin, rmax, coeff);

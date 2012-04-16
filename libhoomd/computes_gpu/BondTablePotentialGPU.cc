@@ -81,9 +81,13 @@ BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition>
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a LJForceComputeGPU with no GPU in the execution configuration" << endl << endl;
-        throw std::runtime_error("Error initializing LJForceComputeGPU");
+        cerr << endl << "***Error! Creating a BondTableForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        throw std::runtime_error("Error initializing BondTableForceComputeGPU");
         }
+        
+     // allocate flags storage on the GPU
+    GPUArray<unsigned int> flags(1, this->exec_conf);
+    m_flags.swap(flags);
     }
 
 /*! \param block_size Block size to set
@@ -123,6 +127,9 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
         // Access the bond table for reading
         ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getGPUBondList(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(), access_location::device, access_mode::read);
+        // access the flags array for overwriting
+        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
+        
 
         // run the kernel on all GPUs in parallel
         gpu_compute_bondtable_forces(d_force.data,//
@@ -139,15 +146,26 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
                              
                              d_tables.data, //
                              d_params.data,
-                             m_table_width, //
+                             m_table_width,
+                             d_flags.data, //
                              m_block_size); //
                              
             }
     
-// NOTE: Omitting any code right now to determine if a bond is out of range... may want to put that back in.  See PotentialBondGPU.h
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
+        {
         CHECK_CUDA_ERROR();
+
+        // check the flags for any errors
+        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
+
+        if (h_flags.data[0])
+            {
+            cerr << endl << "***Error! << Table bond out of bounds" << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
+        }
     
     if (m_prof) m_prof->pop(exec_conf);
     }

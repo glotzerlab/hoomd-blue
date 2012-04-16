@@ -96,10 +96,12 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
     // allocate storage for the tables 
     GPUArray<float2> tables(m_table_width, exec_conf);
     m_tables.swap(tables);
+    GPUArray<Scalar4> params(m_bond_data->getNBondTypes(), exec_conf);
+    m_params.swap(params);    
 
     assert(!m_tables.isNull());
     
-    m_log_name = std::string("pair_table_energy") + log_suffix;
+    m_log_name = std::string("bond_table_energy") + log_suffix;
     }
 
 /*! \param type Type of the bond to set parameters for
@@ -333,6 +335,11 @@ void BondTablePotential::computeForces(unsigned int timestep)
                     h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
     
                 }
+            else
+                {
+                cerr << endl << "***Error! Table bond out of bounds" << endl << endl;
+                throw std::runtime_error("Error in bond calculation");
+                }                
 
            }    
     if (m_prof) m_prof->pop();

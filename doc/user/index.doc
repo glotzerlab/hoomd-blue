@@ -191,6 +191,7 @@ Table of contents:
 \section sec_index_bond Bond potentials
  - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>Harmonic %bond force </i>
  - \link hoomd_script.bond.fene bond.fene\endlink - <i>FENE %bond force </i>
+ - \link hoomd_script.bond.bondtable bond.bondtable\endlink - <i>TABLE %bond force </i>
 
 \section sec_index_angle Angle potentials
  - \link hoomd_script.angle.harmonic angle.harmonic\endlink - <i>Harmonic %angle force </i>
