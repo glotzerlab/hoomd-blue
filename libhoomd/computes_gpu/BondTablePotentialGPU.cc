@@ -104,14 +104,6 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Bond Table");
 
-    // The GPU implementation CANNOT handle a half neighborlist, error out now
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
-    if (third_law)
-        {
-        m_exec_conf->msg->error() << "BondTablePotentialGPU cannot handle a half neighborlist" << endl;
-        throw runtime_error("Error computing forces in BondTablePotentialGPU");
-        }
-
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
