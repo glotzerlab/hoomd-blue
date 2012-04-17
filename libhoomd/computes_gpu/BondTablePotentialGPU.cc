@@ -76,7 +76,7 @@ BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition>
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a BondTableForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        m_exec_conf->msg->error() << "Creating a BondTableForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing BondTableForceComputeGPU");
         }
 
@@ -102,8 +102,15 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     {
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "bond.table");
+    if (m_prof) m_prof->push(exec_conf, "Bond Table");
 
+    // The GPU implementation CANNOT handle a half neighborlist, error out now
+    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+    if (third_law)
+        {
+        m_exec_conf->msg->error() << "BondTablePotentialGPU cannot handle a half neighborlist" << endl;
+        throw runtime_error("Error computing forces in BondTablePotentialGPU");
+        }
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -152,7 +159,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
 
         if (h_flags.data[0])
             {
-            cerr << endl << "***Error! << Table bond out of bounds" << endl << endl;
+            m_exec_conf->msg->error() << endl << "***Error! << Table bond out of bounds" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }

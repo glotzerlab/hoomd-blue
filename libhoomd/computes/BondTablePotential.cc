@@ -72,6 +72,8 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
                                const std::string& log_suffix)
         : ForceCompute(sysdef), m_table_width(table_width)
     {
+    m_exec_conf->msg->notice(5) << "Constructing BondTablePotential" << endl;
+    
     assert(m_pdata);
 
     // access the bond data for later use
@@ -79,7 +81,7 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
 
     if (table_width == 0)
         {
-        cerr << endl << "***Error! Table width of 0 given to BondTablePotential makes no sense" << endl << endl;
+        m_exec_conf->msg->error() << "bond.bondtable: Table width of 0 is invalid" << endl;
         throw runtime_error("Error initializing BondTablePotential");
         }
 
@@ -94,6 +96,11 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
 
     m_log_name = std::string("bond_table_energy") + log_suffix;
     }
+    
+BondTablePotential::~BondTablePotential()
+        {
+        m_exec_conf->msg->notice(5) << "Destroying BondTablePotential" << endl;
+        }
 
 /*! \param type Type of the bond to set parameters for
     \param V Table for the potential V
@@ -126,14 +133,14 @@ void BondTablePotential::setTable(unsigned int type,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        cerr << endl << "***Error! rmin, rmax (" << rmin << "," << rmax
-             << ") given to BondTablePotential make no sense." << endl << endl;
+        m_exec_conf->msg->error()<< "bond.bondtable: rmin, rmax (" << rmin << "," << rmax
+             << ") is invalid."  << endl;
         throw runtime_error("Error initializing BondTablePotential");
         }
 
     if (V.size() != m_table_width || F.size() != m_table_width)
         {
-        cerr << endl << "***Error! table provided to setTable is not of the correct size" << endl << endl;
+        m_exec_conf->msg->error() << "bond.bondtable: table provided to setTable is not of the correct size" << endl;
         throw runtime_error("Error initializing BondTablePotential");
         }
 
@@ -169,7 +176,7 @@ Scalar BondTablePotential::getLogValue(const std::string& quantity, unsigned int
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for BondTablePotential" << endl << endl;
+        m_exec_conf->msg->error() << "bond.bondtable: " << quantity << " is not a valid log quantity for BondTablePotential" << endl;
         throw runtime_error("Error getting log value");
         }
     }
