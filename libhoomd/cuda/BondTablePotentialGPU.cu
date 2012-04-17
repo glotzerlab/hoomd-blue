@@ -94,7 +94,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
-                                     const gpu_boxsize box,
+                                     const BoxDim box,
                                      const uint2 *blist,
                                      const unsigned int pitch,
                                      const unsigned int *n_bonds_list,
@@ -122,7 +122,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
     int n_bonds =n_bonds_list[idx];
 
     // read in the position of our particle.
-    Scalar4 pos = d_pos[idx];
+    Scalar3 pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
 
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -141,18 +141,13 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
         int cur_bond_type = cur_bond.y;
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
-        float4 neigh_pos = d_pos[cur_bond_idx];
+        float3 neigh_pos = make_scalar3(d_pos[cur_bond_idx].x, d_pos[cur_bond_idx].y, d_pos[cur_bond_idx].z);
 
         // calculate dr (FLOPS: 3)
-        float dx = pos.x - neigh_pos.x;
-        float dy = pos.y - neigh_pos.y;
-        float dz = pos.z - neigh_pos.z;
+        float3 dx = pos - neigh_pos;
 
         // apply periodic boundary conditions (FLOPS: 12)
-        dx -= box.Lx * rintf(dx * box.Lxinv);
-        dy -= box.Ly * rintf(dy * box.Lyinv);
-        dz -= box.Lz * rintf(dz * box.Lzinv);
-
+        dx = box.minImage(dx);
 
         // access needed parameters
         float4 params = s_params[cur_bond_type];
@@ -161,7 +156,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
         float delta_r = params.z;
 
         // calculate r
-        float rsq = dx*dx + dy*dy + dz*dz;
+        float rsq = dot(dx, dx);
         float r = sqrtf(rsq);
 
         if (r < rmax && r >= rmin)
@@ -193,17 +188,17 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
             float bond_eng = V;
             // calculate the virial
             float force_div2r = float(0.5) * forcemag_divr;
-            virial[0] += dx * dx * force_div2r; // xx
-            virial[1] += dx * dy * force_div2r; // xy
-            virial[2] += dx * dz * force_div2r; // xz
-            virial[3] += dy * dy * force_div2r; // yy
-            virial[4] += dy * dz * force_div2r; // yz
-            virial[5] += dz * dz * force_div2r; // zz
+            virial[0] += dx.x * dx.x * force_div2r; // xx
+            virial[1] += dx.x * dx.y * force_div2r; // xy
+            virial[2] += dx.x * dx.z * force_div2r; // xz
+            virial[3] += dx.y * dx.y * force_div2r; // yy
+            virial[4] += dx.y * dx.z * force_div2r; // yz
+            virial[5] += dx.z * dx.z * force_div2r; // zz
 
             // add up the force vector components (FLOPS: 7)
-            force.x += dx * forcemag_divr;
-            force.y += dy * forcemag_divr;
-            force.z += dz * forcemag_divr;
+            force.x += dx.x * forcemag_divr;
+            force.y += dx.y * forcemag_divr;
+            force.z += dx.z * forcemag_divr;
             force.w += bond_eng * 0.5f;
             }
         else
@@ -244,7 +239,7 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
-                                     const gpu_boxsize &box,
+                                     const BoxDim &box,
                                      const uint2 *blist,
                                      const unsigned int pitch,
                                      const unsigned int *n_bonds_list,

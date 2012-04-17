@@ -107,7 +107,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    gpu_boxsize box = m_pdata->getBoxGPU();
+    BoxDim box = m_pdata->getBox();
 
     // access the table data
     ArrayHandle<float2> d_tables(m_tables, access_location::device, access_mode::read);

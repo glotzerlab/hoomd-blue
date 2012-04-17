@@ -202,13 +202,6 @@ void BondTablePotential::computeForces(unsigned int timestep)
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-
-    // precalculate box lengths for use in the periodic imaging
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
 
     // access the table data
     ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
@@ -231,28 +224,13 @@ void BondTablePotential::computeForces(unsigned int timestep)
         assert(idx_a < m_pdata->getN());
         assert(idx_b < m_pdata->getN());
 
-        // calculate d\vec{r}
-        // (MEM TRANSFER: 6 Scalars / FLOPS: 3)
-        Scalar dx = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-        Scalar dy = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-        Scalar dz = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
-
+        Scalar3 pa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+        Scalar3 pb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+        Scalar3 dx = pa-pb;
+        
 
         // apply periodic boundary conditions
-        if (dx >= box.xhi)
-            dx -= Lx;
-        else if (dx < box.xlo)
-            dx += Lx;
-
-        if (dy >= box.yhi)
-            dy -= Ly;
-        else if (dy < box.ylo)
-            dy += Ly;
-
-        if (dz >= box.zhi)
-            dz -= Lz;
-        else if (dz < box.zlo)
-            dz += Lz;
+        dx = box.minImage(dx);
 
         // access needed parameters
         Scalar4 params = h_params.data[bond.type];
@@ -261,7 +239,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
         Scalar delta_r = params.z;
 
         // start computing the force
-        Scalar rsq = dx*dx + dy*dy + dz*dz;
+        Scalar rsq = dot(dx,dx);
         Scalar r = sqrt(rsq);
 
         // only compute the force if the particles are within the region defined by V
@@ -299,25 +277,25 @@ void BondTablePotential::computeForces(unsigned int timestep)
             // compute the virial
             Scalar bond_virial[6];
             Scalar force_div2r = Scalar(0.5) * force_divr;
-            bond_virial[0] = dx * dx * force_div2r; // xx
-            bond_virial[1] = dx * dy * force_div2r; // xy
-            bond_virial[2] = dx * dz * force_div2r; // xz
-            bond_virial[3] = dy * dy * force_div2r; // yy
-            bond_virial[4] = dy * dz * force_div2r; // yz
-            bond_virial[5] = dz * dz * force_div2r; // zz
+            bond_virial[0] = dx.x * dx.x * force_div2r; // xx
+            bond_virial[1] = dx.x * dx.y * force_div2r; // xy
+            bond_virial[2] = dx.x * dx.z * force_div2r; // xz
+            bond_virial[3] = dx.y * dx.y * force_div2r; // yy
+            bond_virial[4] = dx.y * dx.z * force_div2r; // yz
+            bond_virial[5] = dx.z * dx.z * force_div2r; // zz
 
             // add the force to the particles
             // (MEM TRANSFER: 20 Scalars / FLOPS 16)
-            h_force.data[idx_b].x += force_divr * dx;
-            h_force.data[idx_b].y += force_divr * dy;
-            h_force.data[idx_b].z += force_divr * dz;
+            h_force.data[idx_b].x += force_divr * dx.x;
+            h_force.data[idx_b].y += force_divr * dx.y;
+            h_force.data[idx_b].z += force_divr * dx.z;
             h_force.data[idx_b].w += bond_eng;
             for (unsigned int i = 0; i < 6; i++)
                 h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
 
-            h_force.data[idx_a].x -= force_divr * dx;
-            h_force.data[idx_a].y -= force_divr * dy;
-            h_force.data[idx_a].z -= force_divr * dz;
+            h_force.data[idx_a].x -= force_divr * dx.x;
+            h_force.data[idx_a].y -= force_divr * dx.y;
+            h_force.data[idx_a].z -= force_divr * dx.z;
             h_force.data[idx_a].w += bond_eng;
             for (unsigned int i = 0; i < 6; i++)
                 h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
