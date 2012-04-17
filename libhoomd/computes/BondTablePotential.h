@@ -70,7 +70,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Computes the potential and force on bonds based on values given in a table
 /*! \b Overview
     Bond potentials and forces are evaluated for all bonded particle pairs in the system.
-    Both the potentials and forces** are provided the tables V(r) and F(r) at discreet \a r values between \a rmin and
+    Both the potentials and forces are provided the tables V(r) and F(r) at discreet \a r values between \a rmin and
     \a rmax. Evaluations are performed by simple linear interpolation, thus why F(r) must be explicitly specified to
     avoid large errors resulting from the numerical derivative. Note that F(r) should store - dV/dr.
 

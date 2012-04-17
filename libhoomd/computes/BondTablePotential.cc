@@ -50,19 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: phillicl
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 4267 )
-#endif
-
 #include <boost/python.hpp>
 using namespace boost::python;
 
 #include "BondTablePotential.h"
-
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
 
 #include <stdexcept>
 
@@ -110,7 +101,6 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
     \param rmin Minimum r in the potential
     \param rmax Maximum r in the potential
     \post Values from \a V and \a F are copied into the interal storage for type pair (type)
-    \note There is no need to call this again for type
     \note See BondTablePotential for a detailed definiton of rmin and rmax
 */
 void BondTablePotential::setTable(unsigned int type,
@@ -161,7 +151,7 @@ void BondTablePotential::setTable(unsigned int type,
     }
 
 /*! BondTablePotential provides
-    - \c pair_table_energy
+    - \c bond_table_energy
 */
 std::vector< std::string > BondTablePotential::getProvidedLogQuantities()
     {
@@ -184,9 +174,7 @@ Scalar BondTablePotential::getLogValue(const std::string& quantity, unsigned int
         }
     }
 
-/*! \post The table based forces are computed for the given timestep. The neighborlist's
-compute method is called to ensure that it is up to date.
-
+/*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
 void BondTablePotential::computeForces(unsigned int timestep)
@@ -250,98 +238,98 @@ void BondTablePotential::computeForces(unsigned int timestep)
         Scalar dz = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
 
 
-            // apply periodic boundary conditions
-            if (dx >= box.xhi)
-                dx -= Lx;
-            else if (dx < box.xlo)
-                dx += Lx;
+        // apply periodic boundary conditions
+        if (dx >= box.xhi)
+            dx -= Lx;
+        else if (dx < box.xlo)
+            dx += Lx;
 
-            if (dy >= box.yhi)
-                dy -= Ly;
-            else if (dy < box.ylo)
-                dy += Ly;
+        if (dy >= box.yhi)
+            dy -= Ly;
+        else if (dy < box.ylo)
+            dy += Ly;
 
-            if (dz >= box.zhi)
-                dz -= Lz;
-            else if (dz < box.zlo)
-                dz += Lz;
+        if (dz >= box.zhi)
+            dz -= Lz;
+        else if (dz < box.zlo)
+            dz += Lz;
 
-            // access needed parameters
-            Scalar4 params = h_params.data[bond.type];
-            Scalar rmin = params.x;
-            Scalar rmax = params.y;
-            Scalar delta_r = params.z;
+        // access needed parameters
+        Scalar4 params = h_params.data[bond.type];
+        Scalar rmin = params.x;
+        Scalar rmax = params.y;
+        Scalar delta_r = params.z;
 
-            // start computing the force
-            Scalar rsq = dx*dx + dy*dy + dz*dz;
-            Scalar r = sqrt(rsq);
+        // start computing the force
+        Scalar rsq = dx*dx + dy*dy + dz*dz;
+        Scalar r = sqrt(rsq);
 
-            // only compute the force if the particles are within the region defined by V
+        // only compute the force if the particles are within the region defined by V
 
-            if (r < rmax && r >= rmin)
-                {
-                // precomputed term
-                Scalar value_f = (r - rmin) / delta_r;
+        if (r < rmax && r >= rmin)
+            {
+            // precomputed term
+            Scalar value_f = (r - rmin) / delta_r;
 
-                // compute index into the table and read in values
+            // compute index into the table and read in values
 
-                /// Here we use the table!!
-                unsigned int value_i = (unsigned int)floor(value_f);
-                float2 VF0 = h_tables.data[value_i];
-                float2 VF1 = h_tables.data[value_i+1];
-                // unpack the data
-                Scalar V0 = VF0.x;
-                Scalar V1 = VF1.x;
-                Scalar F0 = VF0.y;
-                Scalar F1 = VF1.y;
+            /// Here we use the table!!
+            unsigned int value_i = (unsigned int)floor(value_f);
+            float2 VF0 = h_tables.data[value_i];
+            float2 VF1 = h_tables.data[value_i+1];
+            // unpack the data
+            Scalar V0 = VF0.x;
+            Scalar V1 = VF1.x;
+            Scalar F0 = VF0.y;
+            Scalar F1 = VF1.y;
 
-                // compute the linear interpolation coefficient
-                Scalar f = value_f - float(value_i);
+            // compute the linear interpolation coefficient
+            Scalar f = value_f - float(value_i);
 
-                // interpolate to get V and F;
-                Scalar V = V0 + f * (V1 - V0);
-                Scalar F = F0 + f * (F1 - F0);
+            // interpolate to get V and F;
+            Scalar V = V0 + f * (V1 - V0);
+            Scalar F = F0 + f * (F1 - F0);
 
-                // convert to standard variables used by the other pair computes in HOOMD-blue
-                Scalar force_divr = Scalar(0.0);
-                if (r > Scalar(0.0))
-                    force_divr = F / r;
-                Scalar bond_eng = Scalar(0.5) * V;
+            // convert to standard variables used by the other pair computes in HOOMD-blue
+            Scalar force_divr = Scalar(0.0);
+            if (r > Scalar(0.0))
+                force_divr = F / r;
+            Scalar bond_eng = Scalar(0.5) * V;
 
-                // compute the virial
-                Scalar bond_virial[6];
-                Scalar force_div2r = Scalar(0.5) * force_divr;
-                bond_virial[0] = dx * dx * force_div2r; // xx
-                bond_virial[1] = dx * dy * force_div2r; // xy
-                bond_virial[2] = dx * dz * force_div2r; // xz
-                bond_virial[3] = dy * dy * force_div2r; // yy
-                bond_virial[4] = dy * dz * force_div2r; // yz
-                bond_virial[5] = dz * dz * force_div2r; // zz
+            // compute the virial
+            Scalar bond_virial[6];
+            Scalar force_div2r = Scalar(0.5) * force_divr;
+            bond_virial[0] = dx * dx * force_div2r; // xx
+            bond_virial[1] = dx * dy * force_div2r; // xy
+            bond_virial[2] = dx * dz * force_div2r; // xz
+            bond_virial[3] = dy * dy * force_div2r; // yy
+            bond_virial[4] = dy * dz * force_div2r; // yz
+            bond_virial[5] = dz * dz * force_div2r; // zz
 
-                // add the force to the particles
-                // (MEM TRANSFER: 20 Scalars / FLOPS 16)
-                h_force.data[idx_b].x += force_divr * dx;
-                h_force.data[idx_b].y += force_divr * dy;
-                h_force.data[idx_b].z += force_divr * dz;
-                h_force.data[idx_b].w += bond_eng;
-                for (unsigned int i = 0; i < 6; i++)
-                    h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+            // add the force to the particles
+            // (MEM TRANSFER: 20 Scalars / FLOPS 16)
+            h_force.data[idx_b].x += force_divr * dx;
+            h_force.data[idx_b].y += force_divr * dy;
+            h_force.data[idx_b].z += force_divr * dz;
+            h_force.data[idx_b].w += bond_eng;
+            for (unsigned int i = 0; i < 6; i++)
+                h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
 
-                h_force.data[idx_a].x -= force_divr * dx;
-                h_force.data[idx_a].y -= force_divr * dy;
-                h_force.data[idx_a].z -= force_divr * dz;
-                h_force.data[idx_a].w += bond_eng;
-                for (unsigned int i = 0; i < 6; i++)
-                    h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
+            h_force.data[idx_a].x -= force_divr * dx;
+            h_force.data[idx_a].y -= force_divr * dy;
+            h_force.data[idx_a].z -= force_divr * dz;
+            h_force.data[idx_a].w += bond_eng;
+            for (unsigned int i = 0; i < 6; i++)
+                h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
 
-                }
-            else
-                {
-                cerr << endl << "***Error! Table bond out of bounds" << endl << endl;
-                throw std::runtime_error("Error in bond calculation");
-                }
+            }
+        else
+            {
+            cerr << endl << "***Error! Table bond out of bounds" << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
 
-           }
+        }
     if (m_prof) m_prof->pop();
     }
 
@@ -353,8 +341,3 @@ void export_BondTablePotential()
     .def("setTable", &BondTablePotential::setTable)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-

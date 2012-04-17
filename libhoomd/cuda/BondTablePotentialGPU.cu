@@ -135,8 +135,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
         // MEM TRANSFER: 8 bytes
-        // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint2 cur_bond = blist[pitch*bond_idx + idx];
+        uint2 cur_bond = blist[pitch*bond_idx + idx];
 
         int cur_bond_idx = cur_bond.x;
         int cur_bond_type = cur_bond.y;
@@ -275,11 +274,21 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
         return error;
 
     gpu_compute_bondtable_forces_kernel<<< grid, threads, sizeof(float4)*n_bond_type >>>
-            (d_force, d_virial, virial_pitch, N, d_pos, box, blist,
-        pitch, n_bonds_list, n_bond_type,  d_params, table_width, d_flags);
+            (d_force,
+             d_virial,
+             virial_pitch,
+             N,
+             d_pos,
+             box,
+             blist,
+             pitch,
+             n_bonds_list,
+             n_bond_type,
+             d_params,
+             table_width,
+             d_flags);
 
     return cudaSuccess;
     }
 
 // vim:syntax=cpp
-

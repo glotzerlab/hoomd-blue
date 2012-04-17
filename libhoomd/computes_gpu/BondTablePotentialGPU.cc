@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
@@ -97,18 +92,17 @@ void BondTablePotentialGPU::setBlockSize(int block_size)
     m_block_size = block_size;
     }
 
-/*! \post The table based forces are computed for the given timestep. The neighborlist's
-compute method is called to ensure that it is up to date.
+/*! \post The table based forces are computed for the given timestep.
 
 \param timestep specifies the current time step of the simulation
 
-Calls gpu_compute_table_forces to do the leg work
+Calls gpu_compute_bondtable_forces to do the leg work
 */
 void BondTablePotentialGPU::computeForces(unsigned int timestep)
     {
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "BondTable pair");
+    if (m_prof) m_prof->push(exec_conf, "bond.table");
 
 
     // access the particle data
@@ -122,8 +116,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
-
-            {
+        {
         // Access the bond table for reading
         ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getGPUBondList(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(), access_location::device, access_mode::read);
@@ -147,7 +140,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
                              m_table_width,
                              d_flags.data,
                              m_block_size);
-            }
+        }
 
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
@@ -177,8 +170,3 @@ void export_BondTablePotentialGPU()
     .def("setBlockSize", &BondTablePotentialGPU::setBlockSize)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-
