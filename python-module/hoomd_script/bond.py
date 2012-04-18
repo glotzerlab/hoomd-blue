@@ -510,7 +510,7 @@ class bondtable(force._force):
             self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(64) #tune._get_optimal_block_size('bond.table'));  #TODO add to TUNING
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.bondtable')); 
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
