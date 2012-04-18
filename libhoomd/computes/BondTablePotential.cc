@@ -236,7 +236,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
 
         Scalar3 pa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
         Scalar3 pb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
-        Scalar3 dx = pa-pb;
+        Scalar3 dx = pb-pa;
         
 
         // apply periodic boundary conditions
