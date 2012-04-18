@@ -104,11 +104,16 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
                                      unsigned int *d_flags)
     {
 
+    // index calculation helper
+    Index2D table_value(table_width);
+    
     // read in params for easy and fast access in the kernel
     extern __shared__ float4 s_params[];
-    // load in per bond type parameters
-    if (threadIdx.x < n_bond_type)
-       s_params[threadIdx.x] = d_params[threadIdx.x];
+    for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < n_bond_type)
+            s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
+        }
     __syncthreads();
 
 
@@ -166,8 +171,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
 
             // compute index into the table and read in values
             unsigned int value_i = floor(value_f);
-            float2 VF0 = tex1Dfetch(tables_tex, value_i);
-            float2 VF1 = tex1Dfetch(tables_tex, value_i+1);
+            float2 VF0 = tex1Dfetch(tables_tex, table_value(value_i, cur_bond_type));
+            float2 VF1 = tex1Dfetch(tables_tex, table_value(value_i+1, cur_bond_type));
             // unpack the data
             float V0 = VF0.x;
             float V1 = VF1.x;
