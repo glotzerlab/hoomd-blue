@@ -471,7 +471,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 #
 # The table \a width is set once when bond.table is specified (see __init__())
 #
-class bondtable(force._force):
+class table(force._force):
     ## Specify the Tabulated %bond %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
@@ -485,7 +485,7 @@ class bondtable(force._force):
     #   F = -kappa*(r-r0);
     #   return (V, F)
     #
-    # btable = bond.bondtable(width=1000)
+    # btable = bond.table(width=1000)
     # btable.bond_coeff.set('polymer', func=har, rmin=0.1, rmax=10.0, coeff=dict(kappa=330, r0=0.84))
 
     # \endcode
@@ -510,7 +510,7 @@ class bondtable(force._force):
             self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.bondtable')); 
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.table')); 
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -544,7 +544,7 @@ class bondtable(force._force):
     def update_coeffs(self):
         # check that the bond coefficents are valid
         if not self.bond_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            print >> sys.stderr, "\n***Error: Not all bond coefficients are set for bond.table\n";
+            globas.msg.error("Not all bond coefficients are set for bond.table\n");
             raise RuntimeError("Error updating bond coefficients");
 
         # set all the params
@@ -607,7 +607,7 @@ class bondtable(force._force):
 
               # validate the input
               if len(values) != 3:
-                  globals.msg.error("bond.bondtable: file must have exactly 3 columns\n");
+                  globals.msg.error("bond.table: file must have exactly 3 columns\n");
                   raise RuntimeError("Error reading table file");
 
               # append to the tables
@@ -617,7 +617,7 @@ class bondtable(force._force):
 
           # validate input
           if self.width != len(r_table):
-              globals.msg.error("bond.bondtable: file must have exactly " + str(self.width) + " rows\n");
+              globals.msg.error("bond.table: file must have exactly " + str(self.width) + " rows\n");
               raise RuntimeError("Error reading table file");
 
           # extract rmin and rmax
@@ -629,7 +629,7 @@ class bondtable(force._force):
           for i in xrange(0,self.width):
               r = rmin_table + dr * i;
               if math.fabs(r - r_table[i]) > 1e-3:
-                  globals.msg.error("bond.bondtable: r must be monotonically increasing and evenly spaced\n");
+                  globals.msg.error("bond.table: r must be monotonically increasing and evenly spaced\n");
                   raise RuntimeError("Error reading table file");
 
           util._disable_status_lines = True;
