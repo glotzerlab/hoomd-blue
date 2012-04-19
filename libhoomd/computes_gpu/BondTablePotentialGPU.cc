@@ -137,6 +137,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
                              d_tables.data,
                              d_params.data,
                              m_table_width,
+                             m_table_value,
                              d_flags.data,
                              m_block_size);
         }
