@@ -491,7 +491,6 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     if (flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
         {
         fix_thermo_quantities();
-        cout << "after\n";
         }
 
     if (m_prof) m_prof->pop();

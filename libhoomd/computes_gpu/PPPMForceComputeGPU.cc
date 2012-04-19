@@ -178,7 +178,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    if(m_box_changed) {
+    if(m_box_changed) 
+        {
         Scalar3 L = box.getL();
         Scalar temp = floor(((m_kappa*L.x/(M_PI*m_Nx)) *  pow(-log(EPS_HOC),0.25)));
         int nbx = (int)temp;
@@ -265,7 +266,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 
     PDataFlags flags = m_pdata->getFlags();
 
-    if(flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]) {
+    if(flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]) 
+        {
         ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> d_energy_sum(m_energy_sum, access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> d_v_xx_sum(m_v_xx_sum, access_location::device, access_mode::readwrite);
@@ -315,13 +317,9 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         h_virial.data[3*virial_pitch+0] += pppm_virial_energy[4]; // yy
         h_virial.data[4*virial_pitch+0] += pppm_virial_energy[5]; // yz
         h_virial.data[5*virial_pitch+0] += pppm_virial_energy[6]; // zz
+        }
 
-    }
-
-
-    //    int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
-    //    int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+3+7);
-    if (m_prof) m_prof->pop(exec_conf, 1, 1);
+    if (m_prof) m_prof->pop(exec_conf);
     }
 
 void export_PPPMForceComputeGPU()
