@@ -122,7 +122,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
     int n_bonds =n_bonds_list[idx];
 
     // read in the position of our particle.
-    Scalar3 pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
+    Scalar4 postype = d_pos[idx];
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -141,7 +142,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
         int cur_bond_type = cur_bond.y;
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
-        float3 neigh_pos = make_scalar3(d_pos[cur_bond_idx].x, d_pos[cur_bond_idx].y, d_pos[cur_bond_idx].z);
+        Scalar4 neigh_postype = d_pos[cur_bond_idx];
+        Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (FLOPS: 3)
         float3 dx = pos - neigh_pos;
