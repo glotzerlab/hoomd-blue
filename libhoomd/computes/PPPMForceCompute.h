@@ -97,7 +97,7 @@ class PPPMForceCompute : public ForceCompute
         //! Constructs the compute
         PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::shared_ptr<NeighborList> nlist,
-			 boost::shared_ptr<ParticleGroup> group);
+                         boost::shared_ptr<ParticleGroup> group);
        
         //! Destructor
         ~PPPMForceCompute();
@@ -139,8 +139,8 @@ class PPPMForceCompute : public ForceCompute
         virtual void fix_thermo_quantities();
 
     protected:
-	GPUArray<Scalar>m_vg;                    //!< Virial coefficient
-	Scalar m_thermo_data[7];                 //!< PPPM contribution to energy and virial
+        GPUArray<Scalar>m_vg;                    //!< Virial coefficient
+        Scalar m_thermo_data[7];                 //!< PPPM contribution to energy and virial
         bool m_params_set;                       //!< Set to true when the parameters are set
         int m_Nx;                                //!< Number of grid points in x direction
         int m_Ny;                                //!< Number of grid points in y direction
@@ -163,13 +163,13 @@ class PPPMForceCompute : public ForceCompute
         GPUArray<Scalar> m_green_hat;            //!< Modified Hockney-Eastwood Green's function
         GPUArray<Scalar> o_data;                 //!< Used to quickly sum grid points for pressure and energy calcuation (output)
         GPUArray<Scalar> m_energy_sum;           //!< Used to quickly sum grid points for pressure and energy calcuation (input)
-	GPUArray<Scalar> m_v_xx_sum;             //!< Used to quickoy sum grid points for virial_xx
+        GPUArray<Scalar> m_v_xx_sum;             //!< Used to quickoy sum grid points for virial_xx
         GPUArray<Scalar> m_v_xy_sum;             //!< Used to quickoy sum grid points for virial_xy
         GPUArray<Scalar> m_v_xz_sum;             //!< Used to quickoy sum grid points for virial_xz
         GPUArray<Scalar> m_v_yy_sum;             //!< Used to quickoy sum grid points for virial_yy
         GPUArray<Scalar> m_v_yz_sum;             //!< Used to quickoy sum grid points for virial_yz
         GPUArray<Scalar> m_v_zz_sum;             //!< Used to quickoy sum grid points for virial_zz
-	boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
+        boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
         boost::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
         boost::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
         kiss_fft_cpx *fft_in;                    //!< For FFTs on CPU rho_real_space

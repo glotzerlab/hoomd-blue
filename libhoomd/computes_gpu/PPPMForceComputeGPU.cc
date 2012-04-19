@@ -303,7 +303,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 
         for(int i = 1; i < 7; i++) {
             pppm_virial_energy[i] *= m_energy_virial_factor;
-            }	       
+            }
 
         // apply the correction to particle 0
         ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
