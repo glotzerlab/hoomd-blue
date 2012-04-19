@@ -72,15 +72,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Constant memory for gridpoint weighting
 #define CONSTANT_SIZE 2048
+//! The developer has chosen not to document this variable
 __device__ __constant__ float GPU_rho_coeff[CONSTANT_SIZE];
-
-
-// global variables for thermodynamic output
-int g_Nx, g_Ny, g_Nz, g_block_size;
-cufftComplex *g_rho_real_space;
-float3 *g_vg;
-float *g_green_hat;
-float2 *o_data, *idat;
 
 /*! \file PPPMForceGPU.cu
   \brief Defines GPU kernel code for calculating the Fourier space forces for the Coulomb interaction. Used by PPPMForceComputeGPU.
@@ -92,6 +85,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading charge parameters
 texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
 
+//! Implements workaround atomic float addition on sm_1x hardware
 __device__ inline void atomicFloatAdd(float* address, float value)
     {
 #if (__CUDA_ARCH__ < 200)
@@ -108,12 +102,14 @@ __device__ inline void atomicFloatAdd(float* address, float value)
 #endif
     }
 
+//! The developer has chosen not to document this function
 __device__ inline void AddToGridpoint(int X, int Y, int Z, cufftComplex* array, float value, int Ny, int Nz)
     {
     atomicFloatAdd(&array[Z + Nz * (Y + Ny * X)].x, value);
     }
 
 
+//! The developer has chosen not to document this function
 extern "C" __global__
 void assign_charges_to_grid_kernel(const unsigned int N,
                                    const Scalar4 *d_pos,
@@ -218,6 +214,7 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         }
     }
 
+//! The developer has chosen not to document this function
 extern "C" __global__
 void combined_green_e_kernel(cufftComplex* E_x, 
                              cufftComplex* E_y, 
@@ -258,6 +255,7 @@ void combined_green_e_kernel(cufftComplex* E_x,
     }
 
 
+//! The developer has chosen not to document this function
 __global__ void set_gpu_field_kernel(cufftComplex* E_x, 
                                      cufftComplex* E_y, 
                                      cufftComplex* E_z, 
@@ -278,6 +276,7 @@ __global__ void set_gpu_field_kernel(cufftComplex* E_x,
         }
     }
 
+//! The developer has chosen not to document this function
 __global__
 void zero_forces(float4 *d_force, float *d_virial, const unsigned int virial_pitch, const unsigned int N)
     {  
@@ -291,6 +290,7 @@ void zero_forces(float4 *d_force, float *d_virial, const unsigned int virial_pit
         }
     }
 
+//! The developer has chosen not to document this function
 extern "C" __global__ 
 void calculate_forces_kernel(float4 *d_force,
                              const unsigned int N,
@@ -511,6 +511,7 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
     return cudaSuccess;
         }
 
+//! The developer has chosen not to document this function
 __global__ void calculate_thermo_quantities_kernel(cufftComplex* rho, 
                                                    float* green_function, 
                                                    float* energy_sum,
@@ -541,11 +542,13 @@ __global__ void calculate_thermo_quantities_kernel(cufftComplex* rho,
         }
     }
 
+//! The developer has chosen not to document this function
 bool isPow2(unsigned int x)
     {
     return ((x&(x-1))==0);
     }
 
+//! The developer has chosen not to document this function
 unsigned int nextPow2( unsigned int x ) {
     --x;
     x |= x >> 1;
@@ -559,21 +562,22 @@ unsigned int nextPow2( unsigned int x ) {
 template<class T>
 struct SharedMemory  //!< Used to speed up the sum over grid points, in this case "T" is a placeholder for the data type
     {
-        //!< used to get shared memory for data type T*
+        //! used to get shared memory for data type T*
         __device__ inline operator       T*() 
             {
             extern __shared__ T __smem[];
             return (T*)__smem;
             }
 
-    
-        __device__ inline operator const T() const //!< used to get shared memory for data type T
+        //! used to get shared memory for data type T
+        __device__ inline operator const T() const 
             {
             extern __shared__ T __smem[];
             return (T*)__smem;
             }
     };
 
+//! The developer has chosen not to document this function
 template <class T, unsigned int blockSize, bool nIsPow2>
 __global__ void
 reduce6(T *g_idata, T *g_odata, unsigned int n)
@@ -636,9 +640,8 @@ reduce6(T *g_idata, T *g_odata, unsigned int n)
     }
 
 
-template <class T>
-void 
-reduce(int size, int threads, int blocks, T *d_idata, T *d_odata)
+//! The developer has chosen not to document this function
+template <class T> void reduce(int size, int threads, int blocks, T *d_idata, T *d_odata)
     {
     dim3 dimBlock(threads, 1, 1);
     dim3 dimGrid(blocks, 1, 1);
@@ -703,6 +706,7 @@ reduce(int size, int threads, int blocks, T *d_idata, T *d_odata)
 
 
 
+//! The developer has chosen not to document this function
 void gpu_compute_pppm_thermo(int Nx,
                              int Ny,
                              int Nz,
@@ -766,7 +770,7 @@ void gpu_compute_pppm_thermo(int Nx,
 
 }
 
-
+//! The developer has chosen not to document this function
 float float_reduce(float* i_data, float* o_data, int n) {
 
     float gpu_result = 0.0;
@@ -813,6 +817,8 @@ float float_reduce(float* i_data, float* o_data, int n) {
 
     return gpu_result;
 }
+
+//! The developer has chosen not to document this function
 __global__ void reset_kvec_green_hat_kernel(BoxDim box, 
                                             int Nx, 
                                             int Ny, 
@@ -940,6 +946,7 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         }
     }
 
+//! The developer has chosen not to document this function
 cudaError_t reset_kvec_green_hat(const BoxDim& box,
                                  int Nx,
                                  int Ny,
@@ -962,6 +969,7 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
     }
 
 
+//! The developer has chosen not to document this function
 __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                                           float *d_virial,
                                           const unsigned int virial_pitch,
@@ -1064,6 +1072,7 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
     }
 
 
+//! The developer has chosen not to document this function
 cudaError_t fix_exclusions(float4 *d_force,
                            float *d_virial,
                            const unsigned int virial_pitch,
