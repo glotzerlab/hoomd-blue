@@ -85,13 +85,12 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
         throw runtime_error("Error initializing BondTablePotential");
         }
 
-
-    // allocate storage for the tables
-    GPUArray<float2> tables(m_table_width, exec_conf);
+    // allocate storage for the tables and parameters
+    Index2DUpperTriangular table_index(m_bond_data->getNBondTypes());
+    GPUArray<float2> tables(m_table_width, table_index.getNumElements(), exec_conf);
     m_tables.swap(tables);
-    GPUArray<Scalar4> params(m_bond_data->getNBondTypes(), exec_conf);
+    GPUArray<Scalar4> params(table_index.getNumElements(), exec_conf);
     m_params.swap(params);
-
     assert(!m_tables.isNull());
 
     m_log_name = std::string("bond_table_energy") + log_suffix;
@@ -124,6 +123,8 @@ void BondTablePotential::setTable(unsigned int type,
         throw runtime_error("Error setting parameters in PotentialBond");
         }
 
+    // helper to compute indices
+    Index2D table_value(m_table_width);
 
 
     // access the arrays
@@ -152,8 +153,8 @@ void BondTablePotential::setTable(unsigned int type,
     // fill out the table
     for (unsigned int i = 0; i < m_table_width; i++)
         {
-        h_tables.data[i].x = V[i];
-        h_tables.data[i].y = F[i];
+        h_tables.data[table_value(i, type)].x = V[i];
+        h_tables.data[table_value(i, type)].y = F[i];
         }
     }
 
@@ -214,6 +215,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
     ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
 
+    // index calculation helper
+    Index2D table_value(m_table_width);
 
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
@@ -233,7 +236,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
 
         Scalar3 pa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
         Scalar3 pb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
-        Scalar3 dx = pa-pb;
+        Scalar3 dx = pb-pa;
         
 
         // apply periodic boundary conditions
@@ -260,8 +263,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
 
             /// Here we use the table!!
             unsigned int value_i = (unsigned int)floor(value_f);
-            float2 VF0 = h_tables.data[value_i];
-            float2 VF1 = h_tables.data[value_i+1];
+            float2 VF0 = h_tables.data[table_value(value_i, bond.type)];
+            float2 VF1 = h_tables.data[table_value(value_i+1, bond.type)];
             // unpack the data
             Scalar V0 = VF0.x;
             Scalar V1 = VF1.x;

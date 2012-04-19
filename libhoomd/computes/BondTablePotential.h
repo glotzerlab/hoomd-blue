@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ForceCompute.h"
 #include "BondData.h"
+#include "Index1D.h"
 #include "GPUArray.h"
 
 /*! \file BondTablePotential.h
