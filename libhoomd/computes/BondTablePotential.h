@@ -124,6 +124,7 @@ class BondTablePotential : public ForceCompute
         unsigned int m_table_width;                 //!< Width of the tables in memory
         GPUArray<float2> m_tables;                  //!< Stored V and F tables
         GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
+        Index2D m_table_value;                      //!< Index table helper
         std::string m_log_name;                     //!< Cached log name
 
         //! Actually compute the forces

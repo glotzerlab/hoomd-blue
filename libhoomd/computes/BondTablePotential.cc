@@ -85,13 +85,20 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
         throw runtime_error("Error initializing BondTablePotential");
         }
 
+
+    // helper to compute indices
+    Index2D table_value(m_table_width,m_bond_data->getNBondTypes());
+    m_table_value = table_value;  
+    
     // allocate storage for the tables and parameters
-    Index2DUpperTriangular table_index(m_bond_data->getNBondTypes());
-    GPUArray<float2> tables(m_table_width, table_index.getNumElements(), exec_conf);
+    GPUArray<float2> tables(m_table_width, m_bond_data->getNBondTypes(), exec_conf);
     m_tables.swap(tables);
-    GPUArray<Scalar4> params(table_index.getNumElements(), exec_conf);
+    GPUArray<Scalar4> params(m_bond_data->getNBondTypes(), exec_conf);
     m_params.swap(params);
     assert(!m_tables.isNull());
+
+  
+    
 
     m_log_name = std::string("bond_table_energy") + log_suffix;
     }
@@ -123,9 +130,6 @@ void BondTablePotential::setTable(unsigned int type,
         throw runtime_error("Error setting parameters in PotentialBond");
         }
 
-    // helper to compute indices
-    Index2D table_value(m_table_width);
-
 
     // access the arrays
     ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::readwrite);
@@ -153,8 +157,8 @@ void BondTablePotential::setTable(unsigned int type,
     // fill out the table
     for (unsigned int i = 0; i < m_table_width; i++)
         {
-        h_tables.data[table_value(i, type)].x = V[i];
-        h_tables.data[table_value(i, type)].y = F[i];
+        h_tables.data[m_table_value(i, type)].x = V[i];
+        h_tables.data[m_table_value(i, type)].y = F[i];
         }
     }
 
@@ -215,9 +219,6 @@ void BondTablePotential::computeForces(unsigned int timestep)
     ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
 
-    // index calculation helper
-    Index2D table_value(m_table_width);
-
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
     for (unsigned int i = 0; i < size; i++)
@@ -263,8 +264,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
 
             /// Here we use the table!!
             unsigned int value_i = (unsigned int)floor(value_f);
-            float2 VF0 = h_tables.data[table_value(value_i, bond.type)];
-            float2 VF1 = h_tables.data[table_value(value_i+1, bond.type)];
+            float2 VF0 = h_tables.data[m_table_value(value_i, bond.type)];
+            float2 VF1 = h_tables.data[m_table_value(value_i+1, bond.type)];
             // unpack the data
             Scalar V0 = VF0.x;
             Scalar V1 = VF1.x;
