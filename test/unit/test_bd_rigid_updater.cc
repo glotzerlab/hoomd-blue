@@ -88,19 +88,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-/*! \file nve_rigid_updater_test.cc
-    \brief Implements unit tests for NVERigidUpdater
-    \ingroup unit_tests
-*/
-
-
-//! Tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tolerance = Scalar(1e-2);
-#else
-const Scalar tolerance = Scalar(1e-3);
-#endif
-
 struct AtomInfo
 {
     int type, localidx, body;
@@ -122,12 +109,8 @@ struct BuildingBlock
     double spacing_x, spacing_y, spacing_z;
 };
 
-//! Typedef'd TwoStepBDNVTRigid class factory
-typedef boost::function<shared_ptr<TwoStepBDNVTRigid> (shared_ptr<SystemDefinition> sysdef, 
-                            shared_ptr<ParticleGroup> group, Scalar T, unsigned int seed)> bdnvtup_creator;
-
-
-void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+template < class BDRigid >
+void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     unsigned int nbodies = 800;
     unsigned int nparticlesperbuildingblock = 5;
@@ -255,7 +238,8 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     Scalar deltaT = Scalar(0.005);
-    shared_ptr<TwoStepBDNVTRigid> two_step_bdnvt = bdup_creator(sysdef, group_all, temperature, 453034);
+    boost::shared_ptr<Variant> T_variant(new VariantConst(temperature));
+    shared_ptr<TwoStepBDNVTRigid> two_step_bdnvt = shared_ptr<TwoStepBDNVTRigid>(new BDRigid(sysdef, group_all, T_variant, 453034, false));
         
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
@@ -323,30 +307,19 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<Executi
         }
 
     AvgT /= Scalar((steps-averaging_delay)/sampling);    
-    //Test to see if the temperature has equilibrated to where its been set.        
-    MY_BOOST_CHECK_CLOSE(AvgT, 1.4, 2.5);    
+    //Test to see if the temperature has equilibrated to where its been set. Use a wide window because the test simulation is short.
+    MY_BOOST_CHECK_CLOSE(AvgT, 1.4, 2);
     }
 
 #ifdef ENABLE_CUDA
-//! TwoStepBDNVTRigidGPU factory for the unit tests
-shared_ptr<TwoStepBDNVTRigid> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar T, unsigned int seed)
-    {
-    shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<TwoStepBDNVTRigid>(new TwoStepBDNVTRigidGPU(sysdef, group, T_variant, seed, false));
-    }
-#endif
 
-#ifdef ENABLE_CUDA
-
-//! Test of Rigid Rods
 BOOST_AUTO_TEST_CASE( BDRigidGPU_rod_tests )
     {
-    bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
-    bd_updater_lj_tests(bdnvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    bd_updater_lj_tests<TwoStepBDNVTRigidGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-
+BOOST_AUTO_TEST_CASE( BDRigid_rod_tests )
+    {
+    bd_updater_lj_tests<TwoStepBDNVTRigid>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }

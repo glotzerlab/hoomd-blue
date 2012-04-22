@@ -76,10 +76,11 @@ BOOST_AUTO_TEST_CASE( Messenger_basic )
     // check that the default streams are set as documented
     BOOST_CHECK_EQUAL(&(msg.error()), &cerr);
     BOOST_CHECK_EQUAL(&(msg.warning()), &cerr);
-    BOOST_CHECK_EQUAL(msg.getNoticeLevel(), (unsigned int)1);
+    BOOST_CHECK_EQUAL(msg.getNoticeLevel(), (unsigned int)2);
     BOOST_CHECK_EQUAL(&(msg.notice(0)), &cout);
     BOOST_CHECK_EQUAL(&(msg.notice(1)), &cout);
-    BOOST_CHECK_EQUAL(&(msg.notice(2)), &(msg.getNullStream()));
+    BOOST_CHECK_EQUAL(&(msg.notice(2)), &cout);
+    BOOST_CHECK_EQUAL(&(msg.notice(3)), &(msg.getNullStream()));
     cout << endl;
 
     msg.setNoticeLevel(10);

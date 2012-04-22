@@ -72,7 +72,7 @@ Messenger::Messenger()
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
     m_nullstream = boost::shared_ptr<nullstream>(new nullstream());
-    m_notice_level = 1;
+    m_notice_level = 2;
     m_err_prefix     = "**ERROR**";
     m_warning_prefix = "*Warning*";
     m_notice_prefix  = "notice";

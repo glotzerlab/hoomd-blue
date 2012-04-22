@@ -149,7 +149,7 @@ def _load_override_file():
         # read and verify the version this was tuned on
         hoomd_version = pickle.load(f);
         if hoomd_version != hoomd.get_hoomd_version():
-            globals.system.warning("~/.hoomd_block_tuning was created with" + str(hoomd_version) + \
+            globals.msg.warning("~/.hoomd_block_tuning was created with" + str(hoomd_version) + \
                                 ", but this is " + str(hoomd.get_hoomd_version()) + ". Reverting to default performance tuning.\n");
             return;
         

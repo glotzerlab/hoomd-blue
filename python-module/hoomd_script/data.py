@@ -1330,6 +1330,8 @@ class body_data:
 # The following attributes are read only:
 # - \c num_particles : The number of particles (or interaction sites) composing the body
 # - \c particle_tags : the tags of the particles (or interaction sites) composing the body
+# - \c net_force     : Net force acting on the body (x, y, z) (in force units)
+# - \c net_torque    : Net torque acting on the body (x, y, z) (in units of force * distance)
 #
 # The following attributes can be both read and set
 # - \c mass          : The mass of the body
@@ -1339,8 +1341,6 @@ class body_data:
 # - \c angular momentum : The angular momentum of the body in the space frame
 # - \c moment of inertia : the principle components of the moment of inertia
 # - \c particle displacements : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
-# - \c net_force     : Net force acting on the body (x, y, z) (in force units)
-# - \c net_torque    : Net torque acting on the body (x, y, z) (in units of force * distance)
 #
 class body_data_proxy:
     ## \internal
@@ -1424,6 +1424,13 @@ class body_data_proxy:
             p.y = float(value[1]);
             p.z = float(value[2]);
             self.bdata.setBodyCOM(self.tag, p);
+            return;
+        if name == "velocity":
+            v = hoomd.Scalar3();
+            v.x = float(value[0]);
+            v.y = float(value[1]);
+            v.z = float(value[2]);
+            self.bdata.setBodyVel(self.tag, v);
             return;
         if name == "mass":
             self.bdata.setMass(self.tag, value);
