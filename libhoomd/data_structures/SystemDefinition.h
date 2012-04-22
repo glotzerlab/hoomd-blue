@@ -182,18 +182,6 @@ class SystemDefinition
             return m_integrator_data;
             }
 
-#ifdef ENABLE_MPI
-        //! Sets the communicator
-        void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm);
-
-        //! Returns the communicator
-        boost::shared_ptr<boost::mpi::communicator> getMPICommunicator()
-            {
-            return m_mpi_comm;
-            }
-#endif
-
-            
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
         boost::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
@@ -204,9 +192,6 @@ class SystemDefinition
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system
         boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data for the system
         boost::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
-#ifdef ENABLE_MPI
-        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The MPI communicator used
-#endif
     };
 
 //! Exports SystemDefinition to python

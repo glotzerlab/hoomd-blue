@@ -85,7 +85,7 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
                                           const unsigned int *d_n_bonds,
                                           unsigned char *d_plan,
                                           const float4 *d_pos,
-                                          const gpu_boxsize& box,
+                                          const BoxDim& box,
                                           const unsigned int N);
 
 //! Reorder the particle data
@@ -109,7 +109,7 @@ void gpu_migrate_select_particles(unsigned int N,
                         float4 *d_orientation_tmp,
                         unsigned int *d_tag,
                         unsigned int *d_tag_tmp,
-                        gpu_boxsize box,
+                        const BoxDim& box,
                         unsigned int dir);
 
 //! Reset reverse lookup tags of particles we are removing
@@ -136,9 +136,7 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
 void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  char *d_recv_buf_end,
                                  unsigned int &n_recv_ptl,
-                                 const gpu_boxsize& global_box,
-                                 unsigned int dir,
-                                 const bool is_at_boundary[]);
+                                 const BoxDim& global_box);
 
 //! Add received particles to local box if their positions are inside the local boundaries
 void gpu_migrate_add_particles(  char *d_recv_buf,
@@ -151,23 +149,21 @@ void gpu_migrate_add_particles(  char *d_recv_buf,
                                  float *d_diameter,
                                  unsigned int *d_body,
                                  float4  *d_orientation,
-                                 unsigned int *d_tag,
-                                 const gpu_boxsize &box);
+                                 unsigned int *d_tag);
 
 
 //! Wrap received ghost particles across global box
 void gpu_wrap_ghost_particles(unsigned int dir,
                               unsigned int n,
                               float4 *d_pos,
-                              gpu_boxsize global_box,
-                              float rghost,
+                              const BoxDim& global_box,
                               const bool is_at_boundary[]);
 
 //! Construct plans for sending non-bonded ghost particles
 void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       unsigned int N,
                                       float4 *d_pos,
-                                      gpu_boxsize box,
+                                      const BoxDim& box,
                                       float r_ghost);
 
 //! Construct a list of particle tags to send as ghost particles

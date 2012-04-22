@@ -11,7 +11,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "Communicator.h"
-#include "MPIInitializer.h"
+#include "DomainDecomposition.h"
 
 #ifdef ENABLE_CUDA
 #include "CommunicatorGPU.h"
@@ -30,15 +30,15 @@ boost::shared_ptr<boost::mpi::communicator> world;
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef boost::function<shared_ptr<Communicator> (shared_ptr<SystemDefinition> sysdef,
                                                   shared_ptr<boost::mpi::communicator> mpi_comm,
-                                                  shared_ptr<MPIInitializer> mpi_init)> communicator_creator;
+                                                  shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
 
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                          shared_ptr<boost::mpi::communicator> mpi_comm,
-                                                         shared_ptr<MPIInitializer> mpi_init);
+                                                         shared_ptr<DomainDecomposition> decomposition);
 
 shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                   shared_ptr<boost::mpi::communicator> mpi_comm,
-                                                  shared_ptr<MPIInitializer> mpi_init);
+                                                  shared_ptr<DomainDecomposition> decomposition);
 
 
 #ifdef ENABLE_CUDA
@@ -54,7 +54,7 @@ boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
 //! Execution configuration on the CPU
 boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
 
-void test_mpi_initializer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 {
     // this test needs to be run on eight processors
     if (world->size() != 8)
@@ -117,12 +117,14 @@ void test_mpi_initializer(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
-                                                                  world,
-                                                                  0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata->getBox().getL(), 0));
 
-    pdata->setMPICommunicator(world);
-    pdata->setDomainDecomposition(mpi_init->getDomainDecomposition());
+    pdata->setDomainDecomposition(decomposition);
+
+    // check that periodic flags are correctly set on the box
+    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 
@@ -248,12 +250,11 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
-                                                                  world,
-                                                                  0));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata->getBox().getL(), 0));
 
-    pdata->setMPICommunicator(world);
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
+
+    pdata->setDomainDecomposition(decomposition);
 
     pdata->initializeFromSnapshot(snap);
 
@@ -506,12 +507,10 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
-                                                                  world,
-                                                                  0));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition( world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
 
-    pdata->setMPICommunicator(world);
+    pdata->setDomainDecomposition(decomposition);
 
     pdata->initializeFromSnapshot(snap);
     
@@ -1320,16 +1319,14 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef,
-                                                                  world,
-                                                                  0));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, mpi_init);
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
 
     // width of ghost layer
     Scalar ghost_layer_width = Scalar(0.1);
     comm->setGhostLayerWidth(ghost_layer_width);
 
-    pdata->setMPICommunicator(world);
+    pdata->setDomainDecomposition(decomposition);
 
     // distribute particle data on processors
     pdata->initializeFromSnapshot(snap);
@@ -1409,16 +1406,16 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
 //! Communicator creator for unit tests
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                          shared_ptr<boost::mpi::communicator> mpi_comm,
-                                                         shared_ptr<MPIInitializer> mpi_init)
+                                                         shared_ptr<DomainDecomposition> decomposition)
     {
-    return shared_ptr<Communicator>(new Communicator(sysdef,mpi_comm, mpi_init->getDomainDecomposition()));
+    return shared_ptr<Communicator>(new Communicator(sysdef,mpi_comm, decomposition) );
     }
 
 shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                   shared_ptr<boost::mpi::communicator> mpi_comm,
-                                                  shared_ptr<MPIInitializer> mpi_init)
+                                                  shared_ptr<DomainDecomposition> decomposition)
     {
-    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef,mpi_comm, mpi_init->getDomainDecomposition()) );
+    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef,mpi_comm, decomposition) );
     }
 
 
@@ -1449,10 +1446,10 @@ struct MPISetup
 
 BOOST_GLOBAL_FIXTURE( MPISetup )
 
-//! Tests MPIInitializer
-BOOST_AUTO_TEST_CASE( MPIInitializer_test )
+//! Tests particle distribution
+BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
     {
-    test_mpi_initializer(exec_conf_cpu);
+    test_domain_decomposition(exec_conf_cpu);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test )
@@ -1476,10 +1473,10 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
 
 
 #ifdef ENABLE_CUDA
-//! Tests MPIInitializer on GPU
-BOOST_AUTO_TEST_CASE( MPIInitializer_test_GPU )
+//! Tests particle distribution on GPU
+BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
     {
-    test_mpi_initializer(exec_conf_gpu);
+    test_domain_decomposition(exec_conf_gpu);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )

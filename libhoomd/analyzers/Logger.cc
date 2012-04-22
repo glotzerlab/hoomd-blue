@@ -103,18 +103,18 @@ void Logger::openOutputFiles()
     // open the file
     if (exists(m_filename) && m_appending)
         {
-        m_exec_conf->msg->notice(3) << "analyze.log: Appending log to existing file \"" << fname << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "analyze.log: Appending log to existing file \"" << m_filename << "\"" << endl;
         m_file.open(m_filename.c_str(), ios_base::in | ios_base::out | ios_base::ate);
         }
     else
         {
-        m_exec_conf->msg->notice(3) << "analyze.log: Creating new log in file \"" << fname << "\"" << endl;
-        m_file.open(fname.c_str(), ios_base::out);
+        m_exec_conf->msg->notice(3) << "analyze.log: Creating new log in file \"" << m_filename << "\"" << endl;
+        m_file.open(m_filename.c_str(), ios_base::out);
         }
         
     if (!m_file.good())
         {
-        m_exec_conf->msg->error() << "analyze.log: Error opening log file " << fname << endl;
+        m_exec_conf->msg->error() << "analyze.log: Error opening log file " << m_filename << endl;
         throw runtime_error("Error initializing Logger");
         }
     }

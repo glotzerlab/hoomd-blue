@@ -14,6 +14,9 @@ if (SINGLE_PRECISION)
 
         include_directories(${CUDA_INCLUDE_DIRS})
 
+        # Find Thrust
+        find_package(Thrust)
+
         if (${THRUST_VERSION} VERSION_LESS 1.5.0)
             message(SEND_ERROR "Thrust version ${THRUST_VERSION} found, >= 1.5.0 is required")
         endif (${THRUST_VERSION} VERSION_LESS 1.5.0)

@@ -131,8 +131,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                      box,
                      m_block_size,
                      xi,
-                     m_deltaT,
-                     m_no_wrap_particles);
+                     m_deltaT);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

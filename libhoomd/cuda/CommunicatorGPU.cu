@@ -82,61 +82,61 @@ using namespace thrust;
 //! Apply (global) periodic boundary conditions to a ghost particle
 struct wrap_ghost_particle
     {
-    const gpu_boxsize box;  //!< Dimensions of global simulation box
-    const float rghost;     //!< Width of ghost layer
-    const unsigned int dir; //!< Direction along which particle was received
-    bool is_at_boundary[6]; //!< Flags to indicate whether the local box shares a boundary with the global box
+    const Scalar3 L;              //!< Lengths of global simulation box
+    const unsigned int dir;       //!< Current direction of ghost exchange
+    bool is_at_boundary[6];       //!< Flags to indicate whether this box share a boundary with the global box
 
     //! Constructor
-    /*! \param _box Dimensions of global simulation box
-     * \param _rghost Width of ghost layer
-     * \param _dir Direction along which particle was received
-     * \param _is_at_boundary Flags to indicate whether the local box shares a boundary with the global box
+    /*! \param _global_box Dimensions of global simulation box
+     *! \param _dir
      */
-    wrap_ghost_particle(const gpu_boxsize _box, const float _rghost, const unsigned int _dir, const bool _is_at_boundary[])
-        : box(_box), rghost(_rghost), dir(_dir)
+    wrap_ghost_particle(const BoxDim _global_box, const unsigned int _dir, const bool _is_at_boundary[] )
+        : L(_global_box.getL()), dir(_dir)
         {
-        for (unsigned int dir = 0; dir < 6; dir++)
-            is_at_boundary[dir] = _is_at_boundary[dir];
+        for (unsigned int i = 0; i < 6; i++)
+            is_at_boundary[i] = _is_at_boundary[i];
         }
 
-    //! Apply peridoic boundary conditions
-    /*! \param pos position element to apply boundary conditions to
-     * \return the position element with boundary conditions applied
+    //! Apply periodic boundary conditions
+    /*! \param postype Position and type  to apply boundary conditions to
+     * \return the Position and type with boundary conditions applied
      */
-    __host__ __device__ float4 operator()(const float4 &pos)
+    __host__ __device__ float4 operator()(float4 postype)
         {
-            // wrap particles received across a global boundary back into global box
-            float4 pos2 = pos;
-            if (dir==0 && is_at_boundary[1])
-                pos2.x -= box.xhi - box.xlo;
-            else if (dir==1 && is_at_boundary[0])
-                pos2.x += box.xhi - box.xlo;
-            else if (dir==2 && is_at_boundary[3])
-                pos2.y -= box.yhi - box.ylo;
-            else if (dir==3 && is_at_boundary[2])
-                pos2.y += box.yhi - box.ylo;
-            else if (dir==4 && is_at_boundary[5])
-                pos2.z -= box.zhi - box.zlo;
-            else if (dir==5 && is_at_boundary[4])
-                pos2.z += box.zhi - box.zlo;
-            return pos2;
+        // wrap particles received across a global boundary back into global box
+        if (dir==0 && is_at_boundary[1])
+            postype.x -= L.x;
+        else if (dir==1 && is_at_boundary[0])
+            postype.x += L.x;
+        else if (dir==2 && is_at_boundary[3])
+            postype.y -= L.y;
+        else if (dir==3 && is_at_boundary[2])
+            postype.y += L.y;
+        else if (dir==4 && is_at_boundary[5])
+            postype.z -= L.z;
+        else if (dir==5 && is_at_boundary[4])
+            postype.z += L.z;
+
+        return postype;
         }
      };
 
 //! Select local particles that within a boundary layer of the neighboring domain in a given direction
 struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
     {
-    const gpu_boxsize box;    //!< Local box dimensions
-    const float r_ghost;      //!< Width of boundary layer
+    float3 lo;
+    float3 hi;
+    const float r_ghost; //!< Width of boundary layer
 
     //! Constructor
     /*! \param _box Local box dimensions
      * \param _r_ghost Width of boundary layer
      */
-    make_nonbonded_plan(const gpu_boxsize _box, float _r_ghost)
-        : box(_box), r_ghost(_r_ghost)
+    make_nonbonded_plan(const BoxDim _box, float _r_ghost)
+        : r_ghost(_r_ghost)
         {
+        lo = _box.getLo();
+        hi = _box.getHi();
         }
 
     //! Make exchange plan
@@ -146,23 +146,24 @@ struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsign
     __host__ __device__ unsigned char operator()(const thrust::tuple<float4, unsigned char>& t)
         {
         float4 pos = thrust::get<0>(t);
+
         unsigned char plan = thrust::get<1>(t);
-        if (pos.x >= box.xhi - r_ghost)
+        if (pos.x >= hi.x  - r_ghost)
             plan |= send_east;
 
-        if (pos.x < box.xlo + r_ghost)
+        if (pos.x < lo.x + r_ghost)
             plan |= send_west;
 
-        if (pos.y >= box.yhi - r_ghost)
+        if (pos.y >= hi.y  - r_ghost)
             plan |= send_north;
 
-        if (pos.y < box.ylo + r_ghost)
+        if (pos.y < lo.y + r_ghost)
             plan |= send_south;
 
-        if (pos.z >= box.zhi - r_ghost)
+        if (pos.z >= hi.z  - r_ghost)
             plan |= send_up;
 
-        if (pos.z < box.zlo + r_ghost)
+        if (pos.z < lo.z + r_ghost)
             plan |= send_down;
 
         return plan;
@@ -232,29 +233,21 @@ typedef thrust::tuple<float4,
 //! Select particles to be sent in a specified direction
 struct select_particle_migrate_gpu : public thrust::unary_function<const pdata_tuple_gpu&, bool>
     {
-    const float xlo;        //!< Lower x boundary
-    const float xhi;        //!< Upper x boundary
-    const float ylo;        //!< Lower y boundary
-    const float yhi;        //!< Upper y boundary
-    const float zlo;        //!< Lower z boundary
-    const float zhi;        //!< Upper z boundary
     const unsigned int dir; //!< Direction to send particles to
     const float4 *d_pos;    //!< Device array of particle positions
-
+    float3 lo;              //!< Lower box boundary
+    float3 hi;              //!< Upper box boundary
 
     //! Constructor
     /*!
      */
-    select_particle_migrate_gpu(const float _xlo,
-                            const float _xhi,
-                            const float _ylo,
-                            const float _yhi,
-                            const float _zlo,
-                            const float _zhi,
+    select_particle_migrate_gpu(const BoxDim _box,
                             const unsigned int _dir,
                             const float4 *_d_pos)
-        : xlo(_xlo), xhi(_xhi), ylo(_ylo), yhi(_yhi), zlo(_zlo), zhi(_zhi), dir(_dir), d_pos(_d_pos)
+        : dir(_dir), d_pos(_d_pos)
         {
+        lo = _box.getLo();
+        hi = _box.getHi();
         }
 
     //! Select a particle
@@ -266,12 +259,12 @@ struct select_particle_migrate_gpu : public thrust::unary_function<const pdata_t
         const float4& pos = d_pos[idx];
         // we return true if the particle stays in our box,
         // false otherwise
-        return !((dir == 0 && pos.x >= xhi) ||  // send east
-                (dir == 1 && pos.x < xlo)  ||  // send west
-                (dir == 2 && pos.y >= yhi) ||  // send north
-                (dir == 3 && pos.y < ylo)  ||  // send south
-                (dir == 4 && pos.z >= zhi) ||  // send up
-                (dir == 5 && pos.z < zlo ));   // send down
+        return !((dir == 0 && pos.x >= hi.x)||  // send east
+                (dir == 1 && pos.x < lo.x)  ||  // send west
+                (dir == 2 && pos.y >= hi.y) ||  // send north
+                (dir == 3 && pos.y < lo.y)  ||  // send south
+                (dir == 4 && pos.z >= hi.z) ||  // send up
+                (dir == 5 && pos.z < lo.z));    // send down
         }
 
      };
@@ -279,112 +272,32 @@ struct select_particle_migrate_gpu : public thrust::unary_function<const pdata_t
 //! Wrap a received particle across global box boundaries
 struct wrap_received_particle
     {
-    const gpu_boxsize box;   //!< Dimensions of global simulation box
-    const unsigned int dir;  //!< Direction along which the particle was received
-    bool is_at_boundary[6]; //!< Flags to indicate whether the local box shares a boundary with the global box
+    const BoxDim global_box;  //!< Dimensions of global simulation box
 
     //! Constructor
-    /*! \param _box Dimensions of global simulation box
+    /*! \param _global_box Dimensions of global simulation box
         \param _dir Direciton along whic the particle was received
         \param _is_at_boundary Flags to indicate whether the local box shares a boundary with the global box
      */
-    wrap_received_particle(const gpu_boxsize _box, const unsigned int _dir, const bool _is_at_boundary[])
-        : box(_box), dir(_dir)
+    wrap_received_particle(const BoxDim _global_box)
+        : global_box(_global_box)
         {
-        for (unsigned int dir = 0; dir < 6; dir++)
-            is_at_boundary[dir] = _is_at_boundary[dir];
         }
 
    //! Wrap particle across boundaries
    /*! \param el particle data element to transform
     * \return transformed particle data element
     */
-    __host__ __device__ pdata_element_gpu operator()(const pdata_element_gpu & el)
+    __host__ __device__ pdata_element_gpu operator()(pdata_element_gpu el)
         {
-        pdata_element_gpu el2 = el;
-        float4& pos = el2.pos;
-        int3& image = el2.image;
-
-        if (dir == 0 && is_at_boundary[1])
-            {
-            pos.x -= box.xhi - box.xlo;
-            image.x++;
-            }
-        else if (dir == 1 && is_at_boundary[0])
-            {
-            pos.x += box.xhi - box.xlo;
-            image.x--;
-            }
-
-        if (dir == 2 && is_at_boundary[3])
-            {
-            pos.y -= box.yhi - box.ylo;
-            image.y++;
-            }
-        else if (dir == 3 && is_at_boundary[2])
-            {
-            pos.y += box.yhi - box.ylo;
-            image.y--;
-            }
-
-        if (dir == 4 && is_at_boundary[5])
-            {
-            pos.z -= box.zhi - box.zlo;
-            image.z++;
-            }
-        else if (dir == 5 && is_at_boundary[4])
-            {
-            pos.z += box.zhi - box.zlo;
-            image.z--;
-            }
-        return el2;
+        float4& pos = el.pos;
+        int3& image = el.image;
+        global_box.wrap(pos, image);
+        return el;
         }
 
      };
 
-
-//! Determine whether a received particle is to be added to the local box
-struct isInBox
-    {
-    const gpu_boxsize box;  //!< Local box dimensions
-
-    //! Constructor
-    /* \param _box Local box dimensions
-     */
-    isInBox(const gpu_boxsize _box)
-        : box(_box)
-        {
-        }
-
-    //! Determine whether particle is in local box
-    /*! \param pos Position of the particle to check
-     * \return true if position is in local box
-     */
-    __host__ __device__ bool check_ptl(const float4& pos)
-        {
-        return (box.xlo <= pos.x  && pos.x < box.xhi) &&
-               (box.ylo <= pos.y  && pos.y < box.yhi) &&
-               (box.zlo <= pos.z  && pos.z < box.zhi);
-        }
-
-    //! Determine whether particle is in local box
-    /*! \param el the particle data element to apply the criterium to
-     * \return true if the particle is to be added to the local particle data
-     */
-    __host__ __device__ bool operator()(const pdata_element_gpu & el)
-        {
-        return check_ptl(el.pos);
-        }
-
-    //! Determine whether particle is in local box
-    /*! \param t the particle data tuple to apply the criterium to
-     * \return true if the particle is to be added to the local particle data
-     */
-    __host__ __device__ bool operator()(const pdata_tuple_gpu & t)
-        {
-        return check_ptl(thrust::get<0>(t));
-        }
-     };
 
 //! Pack a particle data tuple
 struct pack_pdata : public thrust::unary_function<pdata_tuple_gpu, pdata_element_gpu>
@@ -455,7 +368,7 @@ __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *gpu_b
                                                          const unsigned int *n_bonds,
                                                          unsigned char *plan,
                                                          const float4 *d_pos,
-                                                         const gpu_boxsize box,
+                                                         const BoxDim box,
                                                          const unsigned int N)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -474,17 +387,16 @@ __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *gpu_b
 
         }
 
-    float Lx2 = box.Lx/2.0f;
-    float Ly2 = box.Ly/2.0f;
-    float Lz2 = box.Lz/2.0f;
+    float3 L2 = box.getL() / 2.0f;
+    float3 lo = box.getLo();
 
     if (! is_complete)
         {
         float4 pos = d_pos[idx];
         unsigned char p = plan[idx];
-        p |= (pos.x > box.xlo + Lx2) ? send_east : send_west;
-        p |= (pos.y > box.ylo + Ly2) ? send_north : send_south;
-        p |= (pos.z > box.zlo + Lz2) ? send_up : send_down;
+        p |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+        p |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+        p |= (pos.z > lo.z + L2.z) ? send_up : send_down;
         plan[idx] = p;
         }
     }
@@ -504,7 +416,7 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
                                           const unsigned int *d_n_bonds,
                                           unsigned char *d_plan,
                                           const float4 *d_pos,
-                                          const gpu_boxsize& box,
+                                          const BoxDim& box,
                                           const unsigned int N)
     {
     assert(d_gpu_btable);
@@ -609,7 +521,7 @@ void gpu_migrate_select_particles(unsigned int N,
                         float4 *d_orientation_tmp,
                         unsigned int *d_tag,
                         unsigned int *d_tag_tmp,
-                        gpu_boxsize box,
+                        const BoxDim& box,
                         unsigned int dir)
     {
     if (keys->size() < N)
@@ -626,7 +538,7 @@ void gpu_migrate_select_particles(unsigned int N,
 
     keys_middle = thrust::stable_partition(keys->begin(),
                              keys->begin() + N,
-                             select_particle_migrate_gpu(box.xlo, box.xhi, box.ylo, box.yhi, box.zlo, box.zhi, dir, d_pos));
+                             select_particle_migrate_gpu(box, dir, d_pos));
 
     n_send_ptls = (keys->begin() + N) - keys_middle;
 
@@ -760,17 +672,15 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
 void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  char *d_recv_buf_end,
                                  unsigned int &n_recv_ptl,
-                                 const gpu_boxsize& global_box,
-                                 unsigned int dir,
-                                 const bool is_at_boundary[])
+                                 const BoxDim& global_box)
     {
     thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
     thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
-    thrust::transform(recv_buf_ptr, recv_buf_end_ptr, recv_buf_ptr, wrap_received_particle(global_box, dir, is_at_boundary));
+    thrust::transform(recv_buf_ptr, recv_buf_end_ptr, recv_buf_ptr, wrap_received_particle(global_box));
     n_recv_ptl = recv_buf_end_ptr - recv_buf_ptr;
     }
 
-//! Add received particles to local box if their positions are inside the local boundaries
+//! Add received particles to local box 
 /*! \param d_recv_buf Buffer of received particle data
  * \param d_recv_buf_end Pointer to end of receive buffer
  * \param d_pos Array to store particle positions
@@ -782,7 +692,6 @@ void gpu_migrate_wrap_received_particles(char *d_recv_buf,
  * \param d_body Array to store particle body ids
  * \param d_orientation Array to store particle body orientations
  * \param d_tag Array to store particle global tags
- * \param box Local box dimensions
  */
 void gpu_migrate_add_particles(  char *d_recv_buf,
                                  char *d_recv_buf_end,
@@ -794,8 +703,7 @@ void gpu_migrate_add_particles(  char *d_recv_buf,
                                  float *d_diameter,
                                  unsigned int *d_body,
                                  float4  *d_orientation,
-                                 unsigned int *d_tag,
-                                 const gpu_boxsize &box)
+                                 unsigned int *d_tag)
     {
     thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
     thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
@@ -836,17 +744,16 @@ void gpu_migrate_add_particles(  char *d_recv_buf,
  * \param n Number of particles to apply periodic boundary conditions to
  * \param d_pos Array of particle positions to apply periodic boundary conditions to
  * \param global_box Dimensions of global simulation box
- * \param rghost Boundary layer width
+ * \param is_at_boundary Array of flags to indicate whether this box is a boundary box
  */
 void gpu_wrap_ghost_particles(unsigned int dir,
                               unsigned int n,
                               float4 *d_pos,
-                              gpu_boxsize global_box,
-                              float rghost,
+                              const BoxDim& global_box,
                               const bool is_at_boundary[])
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::transform(pos_ptr, pos_ptr +n, pos_ptr, wrap_ghost_particle(global_box, rghost, dir, is_at_boundary));
+    thrust::transform(pos_ptr, pos_ptr +n, pos_ptr, wrap_ghost_particle(global_box, dir, is_at_boundary ));
     }
 
 //! Construct plans for sending non-bonded ghost particles
@@ -859,7 +766,7 @@ void gpu_wrap_ghost_particles(unsigned int dir,
 void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       unsigned int N,
                                       float4 *d_pos,
-                                      gpu_boxsize box,
+                                      const BoxDim &box,
                                       float r_ghost)
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);

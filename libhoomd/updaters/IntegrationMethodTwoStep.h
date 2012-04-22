@@ -223,7 +223,11 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        void setCommunicator(boost::shared_ptr<Communicator> comm);
+        void setCommunicator(boost::shared_ptr<Communicator> comm)
+            {
+            assert(comm);
+            m_comm = comm;
+            }
 #endif
 
     protected:

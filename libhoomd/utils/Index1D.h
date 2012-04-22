@@ -177,6 +177,18 @@ class Index3D
             {
             return m_d;
             }
+
+        //! Get the inverse mapping 1D-index -> coordinate tuple
+        HOSTDEVICE inline uint3 getTriple(const unsigned int idx) const
+            {
+            uint3 t;
+
+            t.z = idx / (m_h*m_w);
+            t.y = (idx % (m_h*m_w)) / m_w;
+            t.x = idx - t.z * m_h *m_w - t.y * m_w;
+            return t;
+            }
+
     private:
         unsigned int m_w;   //!< Width of the 3D array
         unsigned int m_h;   //!< Height of the 3D array

@@ -166,15 +166,6 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
     m_n_dimensions = n_dimensions;
     }
 
-/*! This method propagates the boost::mpi::communicator class to all other data
-    structures that need it
- */
-void SystemDefinition::setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
-    {
-    m_particle_data->setMPICommunicator(mpi_comm);
-    m_mpi_comm = mpi_comm;
-    }
-
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
@@ -190,7 +181,6 @@ void export_SystemDefinition()
     .def("getWallData", &SystemDefinition::getWallData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
-    .def("setMPICommunicator", &SystemDefinition::setMPICommunicator)
     ;
     }
 

@@ -18,7 +18,7 @@
 #include <math.h>
 
 #include "Communicator.h"
-#include "MPIInitializer.h"
+#include "DomainDecomposition.h"
 
 #ifdef ENABLE_CUDA
 #include "CellListGPU.h"
@@ -74,19 +74,18 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     SnapshotParticleData snap(N);
     pdata_1->takeSnapshot(snap);
     // initialize domain decomposition on system one
-    boost::shared_ptr<MPIInitializer> mpi_init(new MPIInitializer(sysdef_1, world, 0));
-    pdata_1->setMPICommunicator(world);
-    pdata_1->setDomainDecomposition(mpi_init->getDomainDecomposition());
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata_1->getBox().getL(), 0));
+    pdata_1->setDomainDecomposition(decomposition);
     pdata_1->initializeFromSnapshot(snap);
 
 
     boost::shared_ptr<Communicator> comm;
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
-        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef_1, world, mpi_init->getDomainDecomposition()));
+        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef_1, world, decomposition));
     else
 #endif
-        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef_1,world,mpi_init->getDomainDecomposition()));
+        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef_1,world,decomposition));
 
     shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
     shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
@@ -128,6 +127,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     shared_ptr<IntegratorTwoStep> nvt_1(new IntegratorTwoStep(sysdef_1, deltaT));
     shared_ptr<IntegratorTwoStep> nvt_2(new IntegratorTwoStep(sysdef_2, deltaT));
     shared_ptr<ComputeThermo> thermo_1 = shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+    thermo_1->setCommunicator(comm);
     shared_ptr<ComputeThermo> thermo_2 = shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_2,group_all_2));
 
     shared_ptr<TwoStepNVT> two_step_nvt_1;
@@ -142,8 +142,6 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 #endif
     two_step_nvt_1 = boost::shared_ptr<TwoStepNVT>(new TwoStepNVT(sysdef_1, group_all_1, thermo_1, tau, T_variant_1));
     two_step_nvt_2 = boost::shared_ptr<TwoStepNVT>(new TwoStepNVT(sysdef_2, group_all_2, thermo_2, tau, T_variant_2));
-
-    two_step_nvt_1->setCommunicator(comm);
 
     nvt_1->addIntegrationMethod(two_step_nvt_1);
     nvt_1->addForceCompute(fc_1);
@@ -162,43 +160,48 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     SnapshotParticleData snap_1(N);
     SnapshotParticleData snap_2(N);
-    // we cannot go further than ~5 steps since the (chaotic) trajectories will diverge
-    for (int i=0; i< 5; i++)
-       {
-       if (world->rank() == 0)
+    for (int i=0; i< 100; i++)
+        {
+        // compare temperatures
+        if (world->rank() == 0)
             BOOST_CHECK_CLOSE(thermo_1->getTemperature(), thermo_2->getTemperature(), tol_small);
       
 //       if (world->rank() ==0)
 //           std::cout << "step " << i << std::endl;
-       Scalar rough_tol = 2.0;
+        Scalar rough_tol = 2.0;
 
-       // compare the snapshot of the parallel simulation
-       pdata_1->takeSnapshot(snap_1);
-       // ... against the serial simulation
-       pdata_2->takeSnapshot(snap_2);
+        // in the first five steps, compare all accelerations and velocities
+        // beyond this number of steps, trajectories will generally diverge, since they are chaotic
+        // compare the snapshot of the parallel simulation
+        if (i < 5)
+            {
+            pdata_1->takeSnapshot(snap_1);
+            // ... against the serial simulation
+            pdata_2->takeSnapshot(snap_2);
 
-       if (world->rank() == 0)
-           {
-           // check position, velocity and acceleration
-           for (unsigned int j = 0; j < N; j++)
-               {
-               // we do not check positions (or we would need to pull back vectors over the boundaries)
-               //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].x, snap_2.pos[j].x, rough_tol);
-               //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].y, snap_2.pos[j].y, rough_tol);
-               //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].z, snap_2.pos[j].z, rough_tol);
+            if (world->rank() == 0)
+                {
+                // check position, velocity and acceleration
+                for (unsigned int j = 0; j < N; j++)
+                    {
+                    // we do not check positions (or we would need to pull back vectors over the boundaries)
+                    //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].x, snap_2.pos[j].x, rough_tol);
+                    //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].y, snap_2.pos[j].y, rough_tol);
+                    //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].z, snap_2.pos[j].z, rough_tol);
 
-               MY_BOOST_CHECK_CLOSE(snap_1.vel[j].x, snap_2.vel[j].x, rough_tol);
-               MY_BOOST_CHECK_CLOSE(snap_1.vel[j].y, snap_2.vel[j].y, rough_tol);
-               MY_BOOST_CHECK_CLOSE(snap_1.vel[j].z, snap_2.vel[j].z, rough_tol);
-
-               MY_BOOST_CHECK_CLOSE(snap_1.accel[j].x, snap_2.accel[j].x, rough_tol);
-               MY_BOOST_CHECK_CLOSE(snap_1.accel[j].y, snap_2.accel[j].y, rough_tol);
-               MY_BOOST_CHECK_CLOSE(snap_1.accel[j].z, snap_2.accel[j].z, rough_tol);
-               }
-           } 
-       nvt_1->update(i);
-       nvt_2->update(i);
-       }
+                    MY_BOOST_CHECK_CLOSE(snap_1.vel[j].x, snap_2.vel[j].x, rough_tol);
+                    MY_BOOST_CHECK_CLOSE(snap_1.vel[j].y, snap_2.vel[j].y, rough_tol);
+                    MY_BOOST_CHECK_CLOSE(snap_1.vel[j].z, snap_2.vel[j].z, rough_tol);
+     
+                    MY_BOOST_CHECK_CLOSE(snap_1.accel[j].x, snap_2.accel[j].x, rough_tol);
+                    MY_BOOST_CHECK_CLOSE(snap_1.accel[j].y, snap_2.accel[j].y, rough_tol);
+                    MY_BOOST_CHECK_CLOSE(snap_1.accel[j].z, snap_2.accel[j].z, rough_tol);
+                    }
+                } 
+            }
+        nvt_1->update(i);
+        nvt_2->update(i);
+        }
 
 }
 

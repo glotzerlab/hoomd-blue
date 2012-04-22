@@ -50,16 +50,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-/*! \file MPIInitializer.h
-    \brief Defines the MPInitializer class
+/*! \file DomainDecomposition.h
+    \brief Defines the DomainDecomposition class
 */
 
-#ifndef __MPI_INITIALIZER_H__
-#define __MPI_INITIALIZER_H__
+#ifndef __DOMAIN_DECOMPOSITION_H__
+#define __DOMAIN_DECOMPOSITION_H__
 
 #ifdef ENABLE_MPI
 #include "HOOMDMath.h"
-#include "ParticleData.h"
+#include "Index1D.h"
+#include "BoxDim.h"
 
 #include <boost/mpi.hpp>
 namespace boost
@@ -76,17 +77,15 @@ namespace boost
             ar & u.z;
             }
 
-        //! serialization of BoxDim
+        //! serialization of Scalar3
         template<class Archive>
-        void serialize(Archive & ar, BoxDim & box, const unsigned int version)
+        void serialize(Archive & ar, Scalar3 & s, const unsigned int version)
             {
-            ar & box.xlo;
-            ar & box.xhi;
-            ar & box.ylo;
-            ar & box.yhi;
-            ar & box.zlo;
-            ar & box.zhi;
+            ar & s.x;
+            ar & s.y;
+            ar & s.z;
             }
+ 
         }
     }
 
@@ -96,6 +95,8 @@ class ParticleData;
 
 /*! \ingroup communication
 */
+
+//! Class that initializes and holds information about the domain decomposition
 
 //! Class that initializes every processor using spatial domain-decomposition
 /*! This class is used to divide the global simulation box into sub-domains and to assign a box to every processor.
@@ -107,57 +108,69 @@ class ParticleData;
  *
  *  The initialization of the domain decomposition scheme is performed in the constructor.
  */
-class MPIInitializer
+class DomainDecomposition
     {
     public:
         //! Constructor
-        /*! \param sysdef System definition of the local system this initializer acts upon
-         * \param comm MPI communicator to use to initialize the sub-domains
+        /*! \param comm MPI communicator to use to initialize the sub-domains
+         * \param L Box lengths of global box to sub-divide
          * \param root Rank of processor to perform the domain decomposition on
          * \param nx Requested number of domains along the x direction (0 == choose default)
          * \param ny Requested number of domains along the y direction (0 == choose default)
          * \param nz Requested number of domains along the z direction (0 == choose default)
          */
-        MPIInitializer(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<boost::mpi::communicator> comm,
+        DomainDecomposition(boost::shared_ptr<boost::mpi::communicator> comm,
+                       Scalar3 L,
                        unsigned int root,
                        unsigned int nx = 0,
                        unsigned int ny = 0,
                        unsigned int nz = 0);
  
-        //! Get the domain decomposition information
-        const DomainDecomposition getDomainDecomposition()
+        //! Calculate MPI ranks of neighboring domain.
+        unsigned int getNeighborRank(unsigned int dir) const;
+
+        //! Return the rank of the root processor
+        unsigned int getRoot() const
             {
-            return m_decomposition;
+            return m_root;
+            }
+
+        //! Get domain indexer
+        const Index3D& getDomainIndexer() const
+            {
+            return m_index;
+            }
+
+        //! Determines whether the local box shares a boundary with the global box
+        bool isAtBoundary(unsigned int dir) const;
+
+        //! Get the dimensions of the local simulation box
+        const BoxDim calculateLocalBox(const BoxDim& global_box);
+
+        //! Get the MPI communicator
+        boost::shared_ptr<boost::mpi::communicator> getMPICommunicator()
+            {
+            return m_mpi_comm;
             }
 
     private:
-        DomainDecomposition m_decomposition;          //!< Stores information about the domain decomposition
-
-        boost::shared_ptr<SystemDefinition> m_sysdef; //!< Definition of the local simulation
-        boost::shared_ptr<ParticleData> m_pdata;      //!< Local particle data
         boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
  
-        BoxDim m_global_box;                             //!< Global simulation box
- 
+        unsigned int m_nx;           //!< Number of processors along the x-axis
+        unsigned int m_ny;           //!< Number of processors along the y-axis
+        unsigned int m_nz;           //!< Number of processors along the z-axis
+
+        uint3 m_grid_pos;            //!< Position of this domain in the grid
+        Index3D m_index;             //!< Index to the 3D processor grid
+        unsigned int m_root;         //!< Rank of the root processor
+     
         //! Find a domain decomposition with given parameters
-        bool findDecomposition(unsigned int& nx, unsigned int& ny, unsigned int& nz);
+        bool findDecomposition(Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz);
 
-        //! Get global box dimensions along a specified direction
-        unsigned int getDimension(unsigned int dir);
-
-        //! Calculate MPI ranks of neighboring domain.
-        unsigned int getNeighborRank(unsigned int dir);
-
-        //! Determines whether the local box shares a boundary with the global box
-        bool isAtBoundary(unsigned int dir);
-    };
+   };
 
 //! Export the domain decomposition information
 void export_DomainDecomposition();
 
-//! Declare function that exports MPIInitializer to python
-void export_MPIInitializer();
-
-#endif // __MPI_INITIALIZER_H
+#endif // __DOMAIN_DECOMPOSITION_H
 #endif // ENABLE_MPI

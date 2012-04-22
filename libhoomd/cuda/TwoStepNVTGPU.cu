@@ -72,7 +72,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Box dimensions for periodic boundary condition handling
     \param denominv Intermediate variable computed on the host and used in the NVT integration step
     \param deltaT Amount of real time to step forward in one time step
-    \param no_wrap_flag Flags to indicate whether periodic boundary conditions should be applied
 
     
     Take the first half step forward in the NVT integration.
@@ -88,13 +87,8 @@ void gpu_nvt_step_one_kernel(Scalar4 *d_pos,
                              unsigned int group_size,
                              BoxDim box,
                              float denominv,
-                             float deltaT,
-                             unsigned char no_wrap_flag)
+                             float deltaT)
     {
-    bool no_wrap_x = no_wrap_flag & 1;
-    bool no_wrap_y = no_wrap_flag & 2;
-    bool no_wrap_z = no_wrap_flag & 4;
-
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -137,7 +131,6 @@ void gpu_nvt_step_one_kernel(Scalar4 *d_pos,
     \param block_size Size of the block to run
     \param Xi Current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
-    \param no_wrap_particles Per-direction flag to indicate whether periodic boundary conditions should be applied
 */
 cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
                              Scalar4 *d_vel,
@@ -148,17 +141,12 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
                              const BoxDim& box,
                              unsigned int block_size,
                              float Xi,
-                             float deltaT,
-                             bool no_wrap_particles[])
+                             float deltaT)
     {
     // setup the grid to run the kernel
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
    
-    unsigned char no_wrap_flag = ((no_wrap_particles[0] ? 1 : 0 ) << 0)
-                                |((no_wrap_particles[1] ? 1 : 0 ) << 1)
-                                |((no_wrap_particles[2] ? 1 : 0 ) << 2);
-
     // run the kernel
     gpu_nvt_step_one_kernel<<< grid, threads, block_size * sizeof(float) >>>(d_pos,
                                                                              d_vel,
@@ -168,8 +156,7 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
                                                                              group_size,
                                                                              box,
                                                                              1.0f / (1.0f + deltaT/2.0f * Xi),
-                                                                             deltaT,
-                                                                             no_wrap_flag);
+                                                                             deltaT);
     return cudaSuccess;
     }
 

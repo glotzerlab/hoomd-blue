@@ -76,7 +76,7 @@ BOOST_CLASS_TRACKING(Scalar4,track_never)
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                                 const DomainDecomposition decomposition)
+                                 boost::shared_ptr<DomainDecomposition> decomposition)
     : Communicator(sysdef, mpi_comm, decomposition)
     {
     // initialize send buffer size with size of particle data element on the GPU
@@ -109,6 +109,8 @@ void CommunicatorGPU::migrateAtoms()
         gpu_reset_rtags(m_pdata->getNGhosts(),
                         d_global_tag.data + m_pdata->getN(),
                         d_global_rtag.data);
+
+        CHECK_CUDA_ERROR();
         }
 
     // reset ghost particle number
@@ -121,7 +123,7 @@ void CommunicatorGPU::migrateAtoms()
         char *d_send_buf_end;
         unsigned int n_send_ptls;
 
-        if (getDimension(dir/2) == 1) continue;
+        if (! isCommunicating(dir) ) continue;
 
         if (m_prof)
             m_prof->push("remove ptls");
@@ -173,8 +175,9 @@ void CommunicatorGPU::migrateAtoms()
                                    d_orientation_tmp.data,
                                    d_global_tag.data,
                                    d_tag_tmp.data,
-                                   m_pdata->getBoxGPU(),
+                                   m_pdata->getBox(),
                                    dir);
+            CHECK_CUDA_ERROR();
             }
 
         // Swap temporary arrays with particle data arrays
@@ -204,6 +207,7 @@ void CommunicatorGPU::migrateAtoms()
                             d_global_tag.data + m_pdata->getN(),
                             d_global_rtag.data);
 
+            CHECK_CUDA_ERROR();
             }
 
         // scan all atom positions and fill the send buffers with those that have left the domain boundaries,
@@ -243,18 +247,17 @@ void CommunicatorGPU::migrateAtoms()
                                          d_global_tag.data + send_begin,
                                          d_sendbuf.data,
                                          d_send_buf_end);
-
+            CHECK_CUDA_ERROR();
             send_buf_size = d_send_buf_end - d_sendbuf.data;
             }
-
-        unsigned int send_neighbor = m_decomposition.neighbors[dir];
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_decomposition.neighbors[dir+1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
         else
-            recv_neighbor = m_decomposition.neighbors[dir-1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
         if (m_prof)
             m_prof->push("MPI send/recv");
@@ -295,20 +298,12 @@ void CommunicatorGPU::migrateAtoms()
        unsigned int n_recv_ptl;
 
             {
-            m_global_box_gpu.xlo = m_global_box.xlo;
-            m_global_box_gpu.xhi = m_global_box.xhi;
-            m_global_box_gpu.ylo = m_global_box.ylo;
-            m_global_box_gpu.yhi = m_global_box.yhi;
-            m_global_box_gpu.zlo = m_global_box.zlo;
-            m_global_box_gpu.zhi = m_global_box.zhi;
-
             ArrayHandle<char> d_recvbuf(m_recvbuf, access_location::device, access_mode::readwrite);
             gpu_migrate_wrap_received_particles(d_recvbuf.data,
                                                 d_recvbuf.data+recv_buf_size,
                                                 n_recv_ptl,
-                                                m_global_box_gpu,
-                                                dir,
-                                                m_decomposition.is_at_boundary);
+                                                m_pdata->getGlobalBox());
+            CHECK_CUDA_ERROR();
             }
 
             {
@@ -340,9 +335,9 @@ void CommunicatorGPU::migrateAtoms()
                                         d_diameter.data + add_idx,
                                         d_body.data + add_idx,
                                         d_orientation.data + add_idx,
-                                        d_global_tag.data + add_idx,
-                                        m_pdata->getBoxGPU());
+                                        d_global_tag.data + add_idx);
 
+            CHECK_CUDA_ERROR();
             }
 
         } // end dir loop
@@ -353,6 +348,7 @@ void CommunicatorGPU::migrateAtoms()
         ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
         gpu_update_rtag(m_pdata->getN(),0, d_global_tag.data, d_global_rtag.data);
+        CHECK_CUDA_ERROR();
         }
 
 #ifndef NDEBUG
@@ -380,9 +376,12 @@ void CommunicatorGPU::exchangeGhosts()
     if (m_prof)
         m_prof->push("exchange_ghosts");
 
-    assert(m_r_ghost < (m_pdata->getBox().xhi - m_pdata->getBox().xlo));
-    assert(m_r_ghost < (m_pdata->getBox().yhi - m_pdata->getBox().ylo));
-    assert(m_r_ghost < (m_pdata->getBox().zhi - m_pdata->getBox().zlo));
+    if (!m_is_allocated)
+        allocate();
+
+    assert(m_r_ghost < (m_pdata->getBox().getL().x));
+    assert(m_r_ghost < (m_pdata->getBox().getL().y));
+    assert(m_r_ghost < (m_pdata->getBox().getL().z));
 
     // reset plans
     m_plan.clear();
@@ -409,8 +408,9 @@ void CommunicatorGPU::exchangeGhosts()
                                                d_n_bonds.data,
                                                d_plan.data,
                                                d_pos.data,
-                                               m_pdata->getBoxGPU(),
+                                               m_pdata->getBox(),
                                                m_pdata->getN());
+        CHECK_CUDA_ERROR();
         }
 
 
@@ -424,8 +424,9 @@ void CommunicatorGPU::exchangeGhosts()
         gpu_make_nonbonded_exchange_plan(d_plan.data,
                                          m_pdata->getN(),
                                          d_pos.data,
-                                         m_pdata->getBoxGPU(),
+                                         m_pdata->getBox(),
                                          m_r_ghost);
+        CHECK_CUDA_ERROR();
         }
 
     /*
@@ -440,8 +441,7 @@ void CommunicatorGPU::exchangeGhosts()
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
-        unsigned int dim = getDimension(dir/2);
-        if (dim == 1) continue;
+        if (! isCommunicating(dir) ) continue;
 
         m_num_copy_ghosts[dir] = 0;
 
@@ -477,6 +477,7 @@ void CommunicatorGPU::exchangeGhosts()
                                          d_global_tag.data,
                                          d_copy_ghosts.data,
                                          m_num_copy_ghosts[dir]);
+            CHECK_CUDA_ERROR();
 
             gpu_exchange_ghosts(m_num_copy_ghosts[dir],
                                 d_copy_ghosts.data,
@@ -489,17 +490,17 @@ void CommunicatorGPU::exchangeGhosts()
                                 d_diameter_copybuf.data,
                                 d_plan.data,
                                 d_plan_copybuf.data);
+            CHECK_CUDA_ERROR();
             }
 
-        unsigned int send_neighbor = m_decomposition.neighbors[dir];
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_decomposition.neighbors[dir+1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
         else
-            recv_neighbor = m_decomposition.neighbors[dir-1];
-
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
         if (m_prof)
             m_prof->push("MPI send/recv");
@@ -595,24 +596,18 @@ void CommunicatorGPU::exchangeGhosts()
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
-            m_global_box_gpu.xlo = m_global_box.xlo;
-            m_global_box_gpu.xhi = m_global_box.xhi;
-            m_global_box_gpu.ylo = m_global_box.ylo;
-            m_global_box_gpu.yhi = m_global_box.yhi;
-            m_global_box_gpu.zlo = m_global_box.zlo;
-            m_global_box_gpu.zhi = m_global_box.zhi;
-
             gpu_wrap_ghost_particles(dir,
                               m_num_recv_ghosts[dir],
                               d_pos.data + start_idx,
-                              m_global_box_gpu,
-                              m_r_ghost,
-                              m_decomposition.is_at_boundary);
+                              m_pdata->getGlobalBox(),
+                              m_is_at_boundary);
+            CHECK_CUDA_ERROR();
 
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
 
             gpu_update_rtag(m_num_recv_ghosts[dir], start_idx, d_global_tag.data + start_idx, d_global_rtag.data);
+            CHECK_CUDA_ERROR();
 
             }
         }
@@ -638,8 +633,7 @@ void CommunicatorGPU::copyGhosts()
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
 
-        unsigned int dim = getDimension(dir/2);
-        if (dim == 1) continue;
+        if (! isCommunicating(dir) ) continue;
 
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -648,16 +642,17 @@ void CommunicatorGPU::copyGhosts()
             ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
 
             gpu_copy_ghosts(m_num_copy_ghosts[dir], d_pos.data, d_copy_ghosts.data, d_pos_copybuf.data,d_rtag.data);
+            CHECK_CUDA_ERROR();
             }
 
-        unsigned int send_neighbor = m_decomposition.neighbors[dir];
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_decomposition.neighbors[dir+1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
         else
-            recv_neighbor = m_decomposition.neighbors[dir-1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
         unsigned int start_idx;
 
@@ -700,20 +695,13 @@ void CommunicatorGPU::copyGhosts()
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
-            m_global_box_gpu.xlo = m_global_box.xlo;
-            m_global_box_gpu.xhi = m_global_box.xhi;
-            m_global_box_gpu.ylo = m_global_box.ylo;
-            m_global_box_gpu.yhi = m_global_box.yhi;
-            m_global_box_gpu.zlo = m_global_box.zlo;
-            m_global_box_gpu.zhi = m_global_box.zhi;
-
             gpu_wrap_ghost_particles(dir,
                            m_num_recv_ghosts[dir],
                            d_pos.data + start_idx,
-                           m_global_box_gpu,
-                           m_r_ghost,
-                           m_decomposition.is_at_boundary);
-             }
+                           m_pdata->getGlobalBox(),
+                           m_is_at_boundary);
+            CHECK_CUDA_ERROR();
+            }
 
         } // end dir loop
 
@@ -727,7 +715,7 @@ void export_CommunicatorGPU()
     class_<CommunicatorGPU, bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<boost::mpi::communicator>,
-                const DomainDecomposition>())
+                boost::shared_ptr<DomainDecomposition> >())
     ;
     }
 

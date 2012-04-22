@@ -84,6 +84,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "Index1D.h"
+#include "DomainDecomposition.h"
 #include <boost/mpi.hpp>
 #endif
 
@@ -247,34 +248,6 @@ struct SnapshotParticleData {
     unsigned int num_particle_types;//!< Number of particle types defined
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
     };
-
-#ifdef ENABLE_MPI
-//! Structure that holds information about the domain decomposition
-/*! This structure contains data about the global grid and about the role of the local processor in the grid.
- *  Specifically, it contains information about the neighbors and boundaries
- *  of the local simulation box, for all six spatial directions.
- *  A direction is referred to by an integer value \b dir, where
- *  dir =<br>
- *        0 <-> east <br>
- *        1 <-> west <br>
- *        2 <-> north <br>
- *        3 <-> south <br>
- *        4 <-> up <br>
- *        5 <-> down <br>
- */
-struct DomainDecomposition
-    {
-    unsigned int nx;           //!< Number of processors along the x-axis
-    unsigned int ny;           //!< Number of processors along the y-axis
-    unsigned int nz;           //!< Number of processors along the z-axis
-
-    uint3 grid_pos;            //!< Grid position of this processor
-    Index3D index;             //!< Index to the 3D processor grid
-    unsigned int neighbors[6]; //!< Rank of neighbors in every spatial direction
-    bool is_at_boundary[6];    //!< whether this box shares a boundary with the global simulation box (per direction)
-    unsigned int root;         //!< Rank of the root processor
-    };
-#endif
 
 //! Abstract interface for initializing a ParticleData
 /*! A ParticleDataInitializer should only be used with the appropriate constructor
@@ -522,13 +495,12 @@ class ParticleData : boost::noncopyable
         
         //! Get the simulation box
         const BoxDim& getBox() const;
-        //! Set the simulation box Lengths
+
+        //! Set the global simulation box Lengths
         void setGlobalBoxL(const Scalar3 &L);
 
         //! Get the global simulation box
         const BoxDim& getGlobalBox() const;
-        //! Set the global simulation box
-        void setGlobalBox(const BoxDim &global_box);
          
         //! Access the execution configuration
         boost::shared_ptr<const ExecutionConfiguration> getExecConf() const
@@ -720,12 +692,7 @@ class ParticleData : boost::noncopyable
             ArrayHandle< unsigned int> h_global_rtag(m_global_rtag,access_location::host, access_mode::read);
             unsigned int idx = h_global_rtag.data[global_tag];
 #ifdef ENABLE_MPI
-            if ((! m_mpi_comm) && !(idx < getN()))
-                {
-                cerr << endl << "***Error! Possible internal error detected. Could not find particle "
-                     << global_tag << "." << endl << endl;
-                throw std::runtime_error("Error accessing particle data.");
-                }
+            assert(m_decomposition || idx < getN());
 #endif
             assert(idx < getN() + getNGhosts() || idx == NOT_LOCAL);
             return idx;
@@ -750,6 +717,9 @@ class ParticleData : boost::noncopyable
 
         //! Get the net force / energy on a given particle
         Scalar4 getPNetForce(unsigned int global_tag) const;
+
+        //! Get the net torque on a given particle
+        Scalar4 getNetTorque(unsigned int global_tag) const;
 
         //! Set the current position of a particle
         void setPosition(unsigned int global_tag, const Scalar3& pos);
@@ -818,22 +788,19 @@ class ParticleData : boost::noncopyable
             m_nghosts = 0;
             }
 #ifdef ENABLE_MPI
-        //! Set the communicator
-        void setMPICommunicator(boost::shared_ptr<const boost::mpi::communicator> mpi_comm)
-            {
-            m_mpi_comm = mpi_comm;
-            }
-
         //! Set domain decomposition information
-        void setDomainDecomposition(const DomainDecomposition decomposition)
+        void setDomainDecomposition(boost::shared_ptr<DomainDecomposition> decomposition)
             {
+            assert(decomposition);
             m_decomposition = decomposition;
+            m_box = m_decomposition->calculateLocalBox(m_global_box);
+            m_boxchange_signal();
             }
 
-        //! Get the communicator
-        boost::shared_ptr<const boost::mpi::communicator> getMPICommunicator()
+        //! Returns the domain decomin decomposition information
+        boost::shared_ptr<DomainDecomposition> getDomainDecomposition()
             {
-            return m_mpi_comm;
+            return m_decomposition;
             }
 #endif
 
@@ -842,8 +809,7 @@ class ParticleData : boost::noncopyable
         BoxDim m_global_box;                        //!< Global simulation box
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
 #ifdef ENABLE_MPI
-        boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
-        DomainDecomposition m_decomposition;        //!< Domain decomposition data
+        boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition data
 #endif
         unsigned int m_ntypes;                      //!< Number of particle types
         

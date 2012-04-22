@@ -76,12 +76,8 @@ BOOST_IS_MPI_DATATYPE(int3)
 //! Select a particle for migration
 struct select_particle_migrate : public std::unary_function<const unsigned int&, bool>
     {
-    const float xlo;        //!< Lower x boundary
-    const float xhi;        //!< Upper x boundary
-    const float ylo;        //!< Lower y boundary
-    const float yhi;        //!< Upper y boundary
-    const float zlo;        //!< Lower z boundary
-    const float zhi;        //!< Upper z boundary
+    Scalar3 lo;             //!< Lower local box boundary
+    Scalar3 hi;             //!< Upper local box boundary
     const unsigned int dir; //!< Direction to send particles to
     const Scalar4 *h_pos;   //!< Array of particle positions
 
@@ -89,16 +85,13 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
     //! Constructor
     /*!
      */
-    select_particle_migrate(const float _xlo,
-                            const float _xhi,
-                            const float _ylo,
-                            const float _yhi,
-                            const float _zlo,
-                            const float _zhi,
+    select_particle_migrate(const BoxDim & _box,
                             const unsigned int _dir,
                             const Scalar4 *_h_pos)
-        : xlo(_xlo), xhi(_xhi), ylo(_ylo), yhi(_yhi), zlo(_zlo), zhi(_zhi), dir(_dir), h_pos(_h_pos)
+        : dir(_dir), h_pos(_h_pos)
         {
+        lo = _box.getLo();
+        hi = _box.getHi();
         }
 
     //! Select a particle
@@ -110,12 +103,12 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
         const Scalar4& pos = h_pos[idx];
         // we return true if the particle stays in our box,
         // false otherwise
-        return !((dir == 0 && pos.x >= xhi) ||  // send east
-                (dir == 1 && pos.x < xlo)  ||  // send west
-                (dir == 2 && pos.y >= yhi) ||  // send north
-                (dir == 3 && pos.y < ylo)  ||  // send south
-                (dir == 4 && pos.z >= zhi) ||  // send up
-                (dir == 5 && pos.z < zlo ));   // send down
+        return !((dir == 0 && pos.x >= hi.x) ||  // send east
+                (dir == 1 && pos.x < lo.x)  ||  // send west
+                (dir == 2 && pos.y >= hi.y) ||  // send north
+                (dir == 3 && pos.y < lo.y)  ||  // send south
+                (dir == 4 && pos.z >= hi.z) ||  // send up
+                (dir == 5 && pos.z < lo.z ));   // send down
         }
 
      };
@@ -125,35 +118,36 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
 //! Constructor
 Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                           const DomainDecomposition decomposition)
+                           boost::shared_ptr<DomainDecomposition> decomposition)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
-            exec_conf(m_pdata->getExecConf()),
+            m_exec_conf(m_pdata->getExecConf()),
             m_mpi_comm(mpi_comm),
-            m_sendbuf(exec_conf),
-            m_recvbuf(exec_conf),
-            m_pos_copybuf(exec_conf),
-            m_charge_copybuf(exec_conf),
-            m_diameter_copybuf(exec_conf),
-            m_plan_copybuf(exec_conf),
-            m_global_box(m_pdata->getGlobalBox()),
+            m_decomposition(decomposition),
+            m_sendbuf(m_exec_conf),
+            m_recvbuf(m_exec_conf),
+            m_pos_copybuf(m_exec_conf),
+            m_charge_copybuf(m_exec_conf),
+            m_diameter_copybuf(m_exec_conf),
+            m_plan_copybuf(m_exec_conf),
             m_is_allocated(false),
             m_r_ghost(Scalar(0.0)),
-            m_plan(exec_conf),
-            m_decomposition(decomposition)
+            m_plan(m_exec_conf)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
-
-    // set the MPI communicator and the domain decomposition information in ParticleData
-    m_pdata->setMPICommunicator(m_mpi_comm);
-    m_pdata->setDomainDecomposition(m_decomposition);
-
-    m_packed_size = sizeof(pdata_element);
+    assert(m_decomposition);
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
-        GPUVector<unsigned int> copy_ghosts(exec_conf);
+        m_is_at_boundary[dir] = m_decomposition->isAtBoundary(dir);
+        }
+
+    m_packed_size = sizeof(pdata_element);
+ 
+    for (unsigned int dir = 0; dir < 6; dir ++)
+        {
+        GPUVector<unsigned int> copy_ghosts(m_exec_conf);
         m_copy_ghosts[dir].swap(copy_ghosts);
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
@@ -175,23 +169,23 @@ void Communicator::allocate()
     // the size of the data element may be different between CPU and GPU. It is just
     // used for allocation of the buffers
     // allocate temp storage for particle data
-    GPUArray<Scalar4> pos_tmp(m_pdata->getPositions().getNumElements(), exec_conf);
+    GPUArray<Scalar4> pos_tmp(m_pdata->getPositions().getNumElements(), m_exec_conf);
     m_pos_tmp.swap(pos_tmp);
-    GPUArray<Scalar4> vel_tmp(m_pdata->getVelocities().getNumElements(), exec_conf);
+    GPUArray<Scalar4> vel_tmp(m_pdata->getVelocities().getNumElements(), m_exec_conf);
     m_vel_tmp.swap(vel_tmp);
-    GPUArray<Scalar3> accel_tmp(m_pdata->getAccelerations().getNumElements(), exec_conf);
+    GPUArray<Scalar3> accel_tmp(m_pdata->getAccelerations().getNumElements(), m_exec_conf);
     m_accel_tmp.swap(accel_tmp);
-    GPUArray<int3> image_tmp(m_pdata->getImages().getNumElements(), exec_conf);
+    GPUArray<int3> image_tmp(m_pdata->getImages().getNumElements(), m_exec_conf);
     m_image_tmp.swap(image_tmp);
-    GPUArray<Scalar> charge_tmp(m_pdata->getCharges().getNumElements(), exec_conf);
+    GPUArray<Scalar> charge_tmp(m_pdata->getCharges().getNumElements(), m_exec_conf);
     m_charge_tmp.swap(charge_tmp);
-    GPUArray<Scalar> diameter_tmp(m_pdata->getDiameters().getNumElements(), exec_conf);
+    GPUArray<Scalar> diameter_tmp(m_pdata->getDiameters().getNumElements(), m_exec_conf);
     m_diameter_tmp.swap(diameter_tmp);
-    GPUArray<unsigned int> body_tmp(m_pdata->getBodies().getNumElements(), exec_conf);
+    GPUArray<unsigned int> body_tmp(m_pdata->getBodies().getNumElements(), m_exec_conf);
     m_body_tmp.swap(body_tmp);
-    GPUArray<Scalar4> orientation_tmp(m_pdata->getOrientationArray().getNumElements(), exec_conf);
+    GPUArray<Scalar4> orientation_tmp(m_pdata->getOrientationArray().getNumElements(), m_exec_conf);
     m_orientation_tmp.swap(orientation_tmp);
-    GPUArray<unsigned int> tag_tmp(m_pdata->getGlobalTags().getNumElements(), exec_conf);
+    GPUArray<unsigned int> tag_tmp(m_pdata->getGlobalTags().getNumElements(), m_exec_conf);
     m_tag_tmp.swap(tag_tmp);
 
     m_is_allocated = true;
@@ -266,13 +260,10 @@ void Communicator::migrateAtoms()
     // determine local particles that are to be sent to neighboring processors and fill send buffer
     for (unsigned int dir=0; dir < 6; dir++)
         {
+        if (! isCommunicating(dir) ) continue;
 
-        // If the grid is only one box wide in the current direction, avoid communicating with ourselves
-        // The periodic boundary conditions are then handled by the single-processor code
-        if (getDimension(dir/2) == 1) continue;
-
-            if (m_prof)
-                m_prof->push("remove ptls");
+        if (m_prof)
+            m_prof->push("remove ptls");
 
         unsigned int n_send_ptls;
             {
@@ -301,8 +292,7 @@ void Communicator::migrateAtoms()
             std::vector<unsigned int>::iterator sort_keys_middle;
             sort_keys_middle = std::stable_partition(sort_keys.begin(),
                                                  sort_keys.begin() + m_pdata->getN(),
-                                                 select_particle_migrate(box.xlo, box.xhi, box.ylo, box.yhi, box.zlo, box.zhi, dir,
-                                                                        h_pos.data));
+                                                 select_particle_migrate(box, dir, h_pos.data));
 
             n_send_ptls = (sort_keys.begin() + m_pdata->getN()) - sort_keys_middle;
 
@@ -420,14 +410,14 @@ void Communicator::migrateAtoms()
         if (m_prof)
             m_prof->pop();
 
-        unsigned int send_neighbor = m_decomposition.neighbors[dir];
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_decomposition.neighbors[dir+1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
         else
-            recv_neighbor = m_decomposition.neighbors[dir-1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
         if (m_prof)
             m_prof->push("MPI send/recv");
@@ -452,9 +442,10 @@ void Communicator::migrateAtoms()
             boost::mpi::wait_all(reqs,reqs+2);
             }
 
-       if (m_prof)
-          m_prof->pop();
+        if (m_prof)
+            m_prof->pop();
 
+        const BoxDim& global_box = m_pdata->getGlobalBox(); 
             {
             // wrap received particles across a global boundary back into global box
             ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
@@ -464,42 +455,7 @@ void Communicator::migrateAtoms()
                 Scalar4& pos = p.pos;
                 int3& image = p.image;
 
-                if (dir == 0 && m_decomposition.is_at_boundary[1])
-                    {
-                    pos.x -= m_global_box.xhi - m_global_box.xlo;
-                    image.x++;
-                    }
-                else if (dir == 1 && m_decomposition.is_at_boundary[0])
-                    {
-                    pos.x += m_global_box.xhi - m_global_box.xlo;
-                    image.x--;
-                    }
-
-                if (dir == 2 && m_decomposition.is_at_boundary[3])
-                    {
-                    pos.y -= m_global_box.yhi - m_global_box.ylo;
-                    image.y++;
-                    }
-                else if (dir == 3 && m_decomposition.is_at_boundary[2])
-                    {
-                    pos.y += m_global_box.yhi - m_global_box.ylo;
-                    image.y--;
-                    }
-
-                if (dir == 4 && m_decomposition.is_at_boundary[5])
-                    {
-                    pos.z -= m_global_box.zhi - m_global_box.zlo;
-                    image.z++;
-                    }
-                else if (dir == 5 && m_decomposition.is_at_boundary[4])
-                    {
-                    pos.z += m_global_box.zhi - m_global_box.zlo;
-                    image.z--;
-                    }
-
-                assert( ((dir==0 || dir ==1) && m_global_box.xlo-1e-3 <= pos.x && pos.x < m_global_box.xhi+1e-3) ||
-                        ((dir==2 || dir ==3) && m_global_box.ylo-1e-3 <= pos.y && pos.y < m_global_box.yhi+1e-3) ||
-                        ((dir==4 || dir ==5) && m_global_box.zlo-1e-3 <= pos.z && pos.z < m_global_box.zhi+1e-3 ));
+                global_box.wrap(pos, image);
                 }
             }
 
@@ -568,12 +524,10 @@ void Communicator::exchangeGhosts()
     if (m_prof)
         m_prof->push("exchange_ghosts");
 
+    if (! m_is_allocated)
+        allocate();
 
     const BoxDim& box = m_pdata->getBox();
-
-    assert(m_r_ghost < (box.xhi - box.xlo));
-    assert(m_r_ghost < (box.yhi - box.ylo));
-    assert(m_r_ghost < (box.zhi - box.zlo));
 
     // Sending ghosts proceeds in two stages:
     // Stage 1: mark ghost atoms for sending (for covalently bonded particles, and non-bonded interactions)
@@ -600,9 +554,7 @@ void Communicator::exchangeGhosts()
         ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
-        Scalar Lx2 = (box.xhi - box.xlo)/Scalar(2.0);
-        Scalar Ly2 = (box.yhi - box.ylo)/Scalar(2.0);
-        Scalar Lz2 = (box.zhi - box.zlo)/Scalar(2.0);
+        Scalar3 L2 = box.getL()/Scalar(2.0); 
 
         for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
             {
@@ -623,13 +575,14 @@ void Communicator::exchangeGhosts()
                     }
                 }
 
+            Scalar3 lo = box.getLo();
             if (! is_complete)
                 {
                 Scalar4 pos = h_pos.data[idx];
 
-                h_plan.data[idx] |= (pos.x > box.xlo + Lx2) ? send_east : send_west;
-                h_plan.data[idx] |= (pos.y > box.ylo + Ly2) ? send_north : send_south;
-                h_plan.data[idx] |= (pos.z > box.zlo + Lz2) ? send_up : send_down;
+                h_plan.data[idx] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+                h_plan.data[idx] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+                h_plan.data[idx] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
                 }
             }
         }
@@ -638,6 +591,9 @@ void Communicator::exchangeGhosts()
     /*
      * Mark non-bonded atoms for sending
      */
+    Scalar3 lo = box.getLo();
+    Scalar3 hi = box.getHi();
+
         {
         // scan all local atom positions if they are within r_ghost from a neighbor
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -647,22 +603,22 @@ void Communicator::exchangeGhosts()
             {
             Scalar4 pos = h_pos.data[idx];
 
-            if (pos.x >= box.xhi - m_r_ghost)
+            if (pos.x >= hi.x  - m_r_ghost)
                 h_plan.data[idx] |= send_east;
 
-            if (pos.x < box.xlo + m_r_ghost)
+            if (pos.x < lo.x + m_r_ghost)
                 h_plan.data[idx] |= send_west;
 
-            if (pos.y >= box.yhi - m_r_ghost)
+            if (pos.y >= hi.y - m_r_ghost)
                 h_plan.data[idx] |= send_north;
 
-            if (pos.y < box.ylo + m_r_ghost)
+            if (pos.y < lo.y + m_r_ghost)
                 h_plan.data[idx] |= send_south;
 
-            if (pos.z >= box.zhi - m_r_ghost)
+            if (pos.z >= hi.z - m_r_ghost)
                 h_plan.data[idx] |= send_up;
 
-            if (pos.z < box.zlo + m_r_ghost)
+            if (pos.z < lo.z + m_r_ghost)
                 h_plan.data[idx] |= send_down;
             }
         }
@@ -679,10 +635,7 @@ void Communicator::exchangeGhosts()
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
-        // If the grid is only one box wide in the current direction, avoid communicating with ourselves
-        // The periodic boundary conditions are then handled by the single-processor code
-        unsigned int dim = getDimension(dir/2);
-        if (dim == 1) continue;
+        if (! isCommunicating(dir) ) continue;
 
         m_num_copy_ghosts[dir] = 0;
 
@@ -727,15 +680,14 @@ void Communicator::exchangeGhosts()
                     }
                 }
             }
-        unsigned int send_neighbor = m_decomposition.neighbors[dir];
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_decomposition.neighbors[dir+1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
         else
-            recv_neighbor = m_decomposition.neighbors[dir-1];
-
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
         if (m_prof)
             m_prof->push("MPI send/recv");
@@ -796,6 +748,9 @@ void Communicator::exchangeGhosts()
         if (m_prof)
             m_prof->pop();
 
+        Scalar3 L = m_pdata->getGlobalBox().getL();
+
+
             {
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
@@ -804,19 +759,21 @@ void Communicator::exchangeGhosts()
                 {
                 Scalar4& pos = h_pos.data[idx];
 
-                // wrap particles received across a global boundary back into global box
-                if (dir==0 && m_decomposition.is_at_boundary[1])
-                    pos.x -= m_global_box.xhi - m_global_box.xlo;
-                else if (dir==1 && m_decomposition.is_at_boundary[0])
-                    pos.x += m_global_box.xhi - m_global_box.xlo;
-                else if (dir==2 && m_decomposition.is_at_boundary[3])
-                    pos.y -= m_global_box.yhi - m_global_box.ylo;
-                else if (dir==3 && m_decomposition.is_at_boundary[2])
-                    pos.y += m_global_box.yhi - m_global_box.ylo;
-                else if (dir==4 && m_decomposition.is_at_boundary[5])
-                    pos.z -= m_global_box.zhi - m_global_box.zlo;
-                else if (dir==5 && m_decomposition.is_at_boundary[4])
-                    pos.z += m_global_box.zhi - m_global_box.zlo;
+                // wrap particles received across a global boundary 
+                // we are not actually folding back particles into the global box, but into the ghost layer
+                if (dir==0 && m_is_at_boundary[1])
+                    pos.x -= L.x;
+                else if (dir==1 && m_is_at_boundary[0])
+                    pos.x += L.x;
+                else if (dir==2 && m_is_at_boundary[3])
+                    pos.y -= L.y;
+                else if (dir==3 && m_is_at_boundary[2])
+                    pos.y += L.y;
+                else if (dir==4 && m_is_at_boundary[5])
+                    pos.z -= L.z;
+                else if (dir==5 && m_is_at_boundary[4])
+                    pos.z += L.z;
+
 
                 // set reverse-lookup tag -> idx
                 assert(h_global_rtag.data[h_global_tag.data[idx]] == NOT_LOCAL);
@@ -846,11 +803,7 @@ void Communicator::copyGhosts()
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
-
-        // If the grid is only one box wide in the current direction, avoid communicating with ourselves
-        // The periodic boundary conditions are then handled by the single-processor code
-        unsigned int dim = getDimension(dir/2);
-        if (dim == 1) continue;
+        if (! isCommunicating(dir) ) continue;
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -869,15 +822,15 @@ void Communicator::copyGhosts()
                 h_pos_copybuf.data[ghost_idx] = h_pos.data[idx];
                 }
             }
-
-        unsigned int send_neighbor = m_decomposition.neighbors[dir];
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = m_decomposition.neighbors[dir+1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
         else
-            recv_neighbor = m_decomposition.neighbors[dir-1];
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+
 
         unsigned int start_idx;
         {
@@ -907,28 +860,30 @@ void Communicator::copyGhosts()
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
         }
 
-             {
-             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+        Scalar3 L= m_pdata->getGlobalBox().getL();
 
-             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
-                 {
-                 Scalar4& pos = h_pos.data[idx];
+            {
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
-                 // wrap particles received across a global boundary back into global box
-                 if (dir==0 && m_decomposition.is_at_boundary[1] )
-                     pos.x -= m_global_box.xhi - m_global_box.xlo;
-                 else if (dir==1 && m_decomposition.is_at_boundary[0])
-                     pos.x += m_global_box.xhi - m_global_box.xlo;
-                 else if (dir==2 && m_decomposition.is_at_boundary[3])
-                     pos.y -= m_global_box.yhi - m_global_box.ylo;
-                 else if (dir==3 && m_decomposition.is_at_boundary[2])
-                     pos.y += m_global_box.yhi - m_global_box.ylo;
-                 else if (dir==4 && m_decomposition.is_at_boundary[5])
-                     pos.z -= m_global_box.zhi - m_global_box.zlo;
-                 else if (dir==5 && m_decomposition.is_at_boundary[4])
-                     pos.z += m_global_box.zhi - m_global_box.zlo;
+            for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
+                {
+                Scalar4& pos = h_pos.data[idx];
 
-                 }
+                // wrap particles received across a global boundary 
+                // we are not actually folding back particles into the global box, but into the ghost layer
+                if (dir==0 && m_is_at_boundary[1])
+                    pos.x -= L.x;
+                else if (dir==1 && m_is_at_boundary[0])
+                    pos.x += L.x;
+                else if (dir==2 && m_is_at_boundary[3])
+                    pos.y -= L.y;
+                else if (dir==3 && m_is_at_boundary[2])
+                    pos.y += L.y;
+                else if (dir==4 && m_is_at_boundary[5])
+                    pos.z -= L.z;
+                else if (dir==5 && m_is_at_boundary[4])
+                    pos.z += L.z;
+                }
             }
 
         } // end dir loop
@@ -946,7 +901,7 @@ void export_Communicator()
     class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<boost::mpi::communicator>,
-                const DomainDecomposition>())
+                boost::shared_ptr<DomainDecomposition> >())
     ;
     }
 #endif // ENABLE_MPI

@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 #include "GPUVector.h"
 #include "ParticleData.h"
+#include "DomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
@@ -92,15 +93,6 @@ namespace boost
     //! Serialization functions for some of our data types
     namespace serialization
         {
-        //! Serialization of Scalar3
-        template<class Archive>
-        void serialize(Archive & ar, Scalar3 & s, const unsigned int version)
-            {
-            ar & s.x;
-            ar & s.y;
-            ar & s.z;
-            }
-
         //! Serialization of Scalar4
         template<class Archive>
         void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
@@ -226,7 +218,7 @@ class Communicator
          */
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                     const DomainDecomposition decomposition);
+                     boost::shared_ptr<DomainDecomposition> decomposition);
         virtual ~Communicator();
 
         //! \name accessor methods
@@ -248,29 +240,6 @@ class Communicator
             m_prof = prof;
             }
 
-        //! Get the dimensions of the global simulation box
-        /*! \param dir Direction to return dimensions for
-         *  \return Number of simulation boxes along the specified direction
-         */
-        unsigned int getDimension(unsigned int dir)
-            {
-            assert(dir < 3);
-            switch(dir)
-               {
-                case 0:
-                    return m_decomposition.nx;
-                    break;
-                case 1:
-                    return m_decomposition.ny;
-                   break;
-                case 2:
-                    return m_decomposition.nz;
-                    break;
-                }
-
-            return 0; // we should never arrive here
-            }
-
         //! Subscribe to list of functions that determine when the particles are migrated
         /*! This method keeps track of all functions that may request particle migration.
          * \return A connection to the present class
@@ -286,13 +255,16 @@ class Communicator
         void setGhostLayerWidth(Scalar ghost_width)
             {
             assert(ghost_width > 0);
+            assert(ghost_width < m_pdata->getBox().getL().x);
+            assert(ghost_width < m_pdata->getBox().getL().y);
+            assert(ghost_width < m_pdata->getBox().getL().z);
             m_r_ghost = ghost_width;
             }
 
         //! Returns true if this is the root processor
         bool isRoot()
             {
-            return (m_decomposition.root == (unsigned int) m_mpi_comm->rank());
+            return (m_decomposition->getRoot() == (unsigned int) m_mpi_comm->rank());
             }
 
         //@}
@@ -367,12 +339,35 @@ class Communicator
             send_down = 32
             };
 
-        boost::shared_ptr<SystemDefinition> m_sysdef;              //!< System definition
-        boost::shared_ptr<ParticleData> m_pdata;                   //!< Particle data
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Execution configuration
-        boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communciator
-        boost::shared_ptr<Profiler> m_prof;                        //!< Profiler
+        //! Returns true if we are communicating particles along a given direction
+        /*! \param dir Direction to return dimensions for
+         */
+        bool isCommunicating(unsigned int dir)
+            {
+            assert(dir < 6);
+            const Index3D& di = m_decomposition->getDomainIndexer();
 
+            bool res = true;
+
+            if ((dir==0 || dir == 1) && di.getW() == 1)
+                res = false;
+            if ((dir==2 || dir == 3) && di.getH() == 1)
+                res = false;
+            if ((dir==4 || dir == 5) && di.getD() == 1)
+                res = false;
+
+            return res; 
+            }
+
+        boost::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
+        boost::shared_ptr<ParticleData> m_pdata;                      //!< Particle data
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
+        boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communciator
+        boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
+        boost::shared_ptr<Profiler> m_prof;                           //!< Profiler
+
+
+        bool m_is_at_boundary[6];              //!< Array of flags indicating whether this box lies at a global boundary
 
         GPUVector<char> m_sendbuf;             //!< Buffer for particles that are sent
         GPUVector<char> m_recvbuf;             //!< Buffer for particles that are received
@@ -411,7 +406,6 @@ class Communicator
         GPUArray<Scalar4> m_orientation_tmp;     //!< Temporary storage of particle orientations
         GPUArray<unsigned int> m_tag_tmp;        //!< Temporary storage of particle tags
 
-        const DomainDecomposition m_decomposition;  //!< Holds information about the domain decomposition
     private:
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
 

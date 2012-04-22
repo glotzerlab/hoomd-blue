@@ -110,12 +110,8 @@ void SFCPackUpdater::reallocate()
  */
 SFCPackUpdater::~SFCPackUpdater()
     {
-    m_max_particle_num_change_connection.disconnect();
-    }
-
-SFCPackUpdater::~SFCPackUpdater()
-    {
     m_exec_conf->msg->notice(5) << "Destroying SFCPackUpdater" << endl;
+    m_max_particle_num_change_connection.disconnect();
     }
 
 /*! Performs the sort.

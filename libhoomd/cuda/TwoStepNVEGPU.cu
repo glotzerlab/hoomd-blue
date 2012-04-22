@@ -75,7 +75,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-    \param no_wrap_flag Flags to indicate whether periodic boundary conditions should be applied
     
     This kernel must be executed with a 1D grid of any block size such that the number of threads is greater than or
     equal to the number of members in the group. The kernel's implementation simply reads one particle in each thread
@@ -97,13 +96,8 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
                              float deltaT,
                              bool limit,
                              float limit_val,
-                             bool zero_force,
-                             unsigned char no_wrap_flag)
+                             bool zero_force)
     {
-    bool no_wrap_x = no_wrap_flag & 1;
-    bool no_wrap_y = no_wrap_flag & 2;
-    bool no_wrap_z = no_wrap_flag & 4;
-
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
@@ -169,7 +163,6 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-    \param no_wrap_particles Per-direction flag to indicate whether periodic boundary conditions should be applied
     
     See gpu_nve_step_one_kernel() for full documentation, this function is just a driver.
 */
@@ -183,20 +176,15 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              float deltaT,
                              bool limit,
                              float limit_val,
-                             bool zero_force,
-                             bool no_wrap_particles[])
+                             bool zero_force)
     {
     // setup the grid to run the kernel
     int block_size = 256;
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    unsigned char no_wrap_flag = ((no_wrap_particles[0] ? 1 : 0 ) << 0)
-                                |((no_wrap_particles[1] ? 1 : 0 ) << 1)
-                                |((no_wrap_particles[2] ? 1 : 0 ) << 2);
-
     // run the kernel
-    gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force, no_wrap_flag);
+    gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
     
     return cudaSuccess;
     }

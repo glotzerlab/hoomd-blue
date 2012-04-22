@@ -150,14 +150,6 @@ class CellList : public Compute
             m_params_changed = true;
             }
 
-        //! Set to true if ghost layer is present
-        void setGhostLayer(unsigned int dir, bool has_ghost_layer)
-            {
-            assert(dir < 3);
-            m_has_ghost_layer[dir] = has_ghost_layer;
-            m_params_changed = true;
-            }
-
         //! Set the radius of cells to include in the adjacency list
         void setRadius(unsigned int radius)
             {
@@ -245,13 +237,10 @@ class CellList : public Compute
             return m_Nmax;
             }
 
-        //! Returns true if simulation box has a ghost layer
-        /*! \param dir direction to check
-         */
-        const bool hasGhostLayer(unsigned int dir) const
+        //! Get number of ghost cells per direction
+        const uint3 getNGhostCells() const
             {
-            assert(dir < 3);
-            return m_has_ghost_layer[dir];
+            return m_num_ghost_cells;
             }
 
         // @}
@@ -300,7 +289,6 @@ class CellList : public Compute
         bool m_params_changed;       //!< Set to true when parameters are changed
         bool m_particles_sorted;     //!< Set to true when the particles have been sorted
         bool m_box_changed;          //!< Set to ttrue when the box size has changed
-        bool m_has_ghost_layer[3];   //!< true if ghost layer is present in a certain direction
         
         // parameters determined by initialize
         Scalar3 m_width;             //!< Actual width
@@ -309,6 +297,7 @@ class CellList : public Compute
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
         unsigned int m_Nmax;         //!< Numer of spaces reserved for particles in each cell
+        uint3 m_num_ghost_cells;     //!< Number of ghost cells in every direction 
         
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell

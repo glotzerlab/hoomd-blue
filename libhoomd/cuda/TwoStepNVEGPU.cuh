@@ -71,8 +71,7 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              float deltaT,
                              bool limit,
                              float limit_val,
-                             bool zero_force,
-                             bool no_wrap_particles[]);
+                             bool zero_force);
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVEGPU
 cudaError_t gpu_nve_step_two(Scalar4 *d_vel,

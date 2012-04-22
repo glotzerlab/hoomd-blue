@@ -318,7 +318,6 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
         // now each thread loops over every particle in shmem, but doesn't loop past the end of the particle list (since
         // the block might extend that far)
         int end_offset= NLIST_BLOCK_SIZE;
-<<<<<<< HEAD
         end_offset = min(end_offset, N + n_ghost - start);
         
         if (pidx < N)

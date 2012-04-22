@@ -347,7 +347,6 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             for (unsigned int i = 0; i < 6; i++)
                 h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
 
->>>>>>> master
             }
         else
             {

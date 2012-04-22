@@ -77,7 +77,7 @@ class CommunicatorGPU : public Communicator
          */
         CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                         boost::shared_ptr<boost::mpi::communicator> mpi_comm,
-                        const DomainDecomposition decomposition);
+                        boost::shared_ptr<DomainDecomposition> decomposition);
         virtual ~CommunicatorGPU();
 
         //! \name communication methods
@@ -95,9 +95,6 @@ class CommunicatorGPU : public Communicator
         virtual void copyGhosts();
 
         //@}
-
-    protected:
-        gpu_boxsize m_global_box_gpu;           //!< global simulation box for use on GPU
 
     };
 

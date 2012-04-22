@@ -68,6 +68,10 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <iostream>
 using namespace std;
 
@@ -168,7 +172,12 @@ void ComputeThermoGPU::computeProperties()
 #ifdef ENABLE_MPI
     // for MPI, we have to copy data back to the host to perform collective operations
 
-    boost::shared_ptr<const boost::mpi::communicator> mpi_comm = m_pdata->getMPICommunicator();
+    boost::shared_ptr<const boost::mpi::communicator> mpi_comm;
+    if (m_comm)
+        {
+        mpi_comm = m_comm->getMPICommunicator();
+        assert(mpi_comm);
+        }
 
     if (mpi_comm)
         {

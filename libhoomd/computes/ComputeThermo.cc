@@ -63,6 +63,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <iostream>
 using namespace std;
 
@@ -168,7 +172,12 @@ void ComputeThermo::computeProperties()
         return;
 
 #ifdef ENABLE_MPI
-    boost::shared_ptr<const boost::mpi::communicator> mpi_comm = m_pdata->getMPICommunicator();
+    boost::shared_ptr<const boost::mpi::communicator> mpi_comm;
+    if (m_comm)
+        {
+        mpi_comm = m_comm->getMPICommunicator();
+        assert(mpi_comm);
+        }
 #endif
 
     if (m_prof) m_prof->push("Thermo");

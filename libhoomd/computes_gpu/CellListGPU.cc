@@ -74,24 +74,6 @@ void CellListGPU::computeCellList()
     if (m_prof)
         m_prof->push(exec_conf, "compute");
 
-    // precompute scale factor
-    Scalar3 scale = make_scalar3(Scalar(1.0) / m_width.x,
-                                 Scalar(1.0) / m_width.y,
-                                 Scalar(1.0) / m_width.z);
-
-    // the ghost layer width in every direction is given by the 2* cell width (including one padding layer)
-    Scalar3 ghost_width;
-
-
-    if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
-                                   0.0);
-    else
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
-                                   m_has_ghost_layer[2] ? m_width.z : Scalar(0.0));
-
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
@@ -99,7 +81,7 @@ void CellListGPU::computeCellList()
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    
+   
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cell_size, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
@@ -124,7 +106,7 @@ void CellListGPU::computeCellList()
                               box,
                               m_cell_indexer,
                               m_cell_list_indexer,
-                              ghost_width);
+                              m_num_ghost_cells);
         }
     else
         {
@@ -143,7 +125,7 @@ void CellListGPU::computeCellList()
                                  box,
                                  m_cell_indexer,
                                  m_cell_list_indexer,
-                                 ghost_width);
+                                 m_num_ghost_cells);
         }
     
     if (exec_conf->isCUDAErrorCheckingEnabled())

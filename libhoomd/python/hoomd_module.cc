@@ -166,7 +166,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // include MPI classes
 #ifdef ENABLE_MPI
 #include "Communicator.h"
-#include "MPIInitializer.h"
+#include "DomainDecomposition.h"
 
 #ifdef ENABLE_CUDA
 #include "CommunicatorGPU.h"
@@ -512,7 +512,6 @@ BOOST_PYTHON_MODULE(hoomd)
 
 #ifdef ENABLE_MPI
     export_Communicator();
-    export_MPIInitializer();
     export_DomainDecomposition();
 #ifdef ENABLE_CUDA
     export_CommunicatorGPU();

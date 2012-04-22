@@ -371,7 +371,6 @@ class system_data:
             b = self.sysdef.getParticleData().getGlobalBox();
             L = b.getL();
             return (L.x, L.y, L.z);
->>>>>>> master
         
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;

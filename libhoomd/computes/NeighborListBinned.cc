@@ -98,11 +98,6 @@ void NeighborListBinned::setMaximumDiameter(Scalar d_max)
     m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
     }
 
-void NeighborListBinned::setGhostLayer(unsigned int dir, bool has_ghost_layer)
-    {
-    m_cl->setGhostLayer(dir, has_ghost_layer);
-    }
-
 void NeighborListBinned::buildNlist(unsigned int timestep)
     {
     m_cl->compute(timestep);
@@ -115,21 +110,15 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         throw runtime_error("Error computing neighbor list");
         }
 
+    uint3 num_ghost_cells = m_cl->getNGhostCells();
+    uint3 scale, shift;
+    scale = make_uint3(dim.x - num_ghost_cells.x,
+                       dim.y - num_ghost_cells.y,
+                       dim.z - num_ghost_cells.z);
+    shift = make_uint3(num_ghost_cells.x/2, num_ghost_cells.y/2, num_ghost_cells.z/2);
+
     if (m_prof)
         m_prof->push(exec_conf, "compute");
-
-    // precompute scale factor
-    Scalar3 width = m_cl->getWidth();
-
-    Scalar3 ghost_width;
-    if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
-                                   0.0);
-    else
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
-                                   m_cl->hasGhostLayer(2) ? width.z : Scalar(0.0));
 
 
     // acquire the particle data and box dimension
@@ -138,7 +127,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-    const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -173,9 +161,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos);
-        unsigned int ib = (unsigned int)(f.x * dim.x);
-        unsigned int jb = (unsigned int)(f.y * dim.y);
-        unsigned int kb = (unsigned int)(f.z * dim.z);
+        unsigned int ib = (unsigned int)(f.x * scale.x) + shift.x;
+        unsigned int jb = (unsigned int)(f.y * scale.y) + shift.y;
+        unsigned int kb = (unsigned int)(f.z * scale.z) + shift.z;
 
         // need to handle the case where the particle is exactly at the box hi
         if (ib == dim.x)
@@ -244,19 +232,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-
-#ifdef ENABLE_MPI
-void NeighborListBinned::setCommunicator(boost::shared_ptr<Communicator> comm)
-    {
-    // set ghost layer in every direction for which there is more then one cell
-    for (int dir = 0; dir < 3; dir ++)
-        {
-        m_cl->setGhostLayer(dir, comm->getDimension(dir) > 1);
-        }
-
-    NeighborList::setCommunicator(comm);
-    }
-#endif
 
 void export_NeighborListBinned()
     {

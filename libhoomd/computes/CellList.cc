@@ -77,13 +77,10 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_box_changed = false;
     GPUArray<unsigned int> conditions(3, exec_conf);
     m_conditions.swap(conditions);
+    m_num_ghost_cells = make_uint3(0,0,0);
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
-
-    for (unsigned int i = 0; i < 3; i++)
-        m_has_ghost_layer[i] = false;
-
     }
 
 CellList::~CellList()
@@ -106,9 +103,10 @@ uint3 CellList::computeDimensions()
     dim.x = (unsigned int)((L.x) / (m_nominal_width));
     dim.y = (unsigned int)((L.y) / (m_nominal_width));
 
-    if (m_has_ghost_layer[0])
+    // Add a ghost layer on every side where boundary conditions are non-periodic
+    if (! box.getPeriodic().x)
         dim.x += 2;
-    if (m_has_ghost_layer[1])
+    if (! box.getPeriodic().y)
         dim.y += 2;
 
     if (m_sysdef->getNDimensions() == 2)
@@ -127,7 +125,8 @@ uint3 CellList::computeDimensions()
         {
         dim.z = (unsigned int)((L.z) / (m_nominal_width));
 
-        if (m_has_ghost_layer[2])
+        // add ghost layer if necessary
+        if (! box.getPeriodic().z)
             dim.z += 2;
 
         // decrease the number of bins if it exceeds the max
@@ -259,20 +258,21 @@ void CellList::initializeWidth()
 
     const BoxDim& box = m_pdata->getBox();
 
-    uint3 inner_dim;
+    // the number of ghost cells along every non-periodic direction is two (one on each side)
     if (m_sysdef->getNDimensions() == 2)
-        inner_dim = make_uint3(m_has_ghost_layer[0] ? m_dim.x-2 : m_dim.x,
-                               m_has_ghost_layer[1] ? m_dim.y-2 : m_dim.y,
-                               m_dim.z);
+        m_num_ghost_cells = make_uint3(box.getPeriodic().x ? 0 : 2,
+                                       box.getPeriodic().y ? 0 : 2,
+                                       0);
     else
-        inner_dim = make_uint3(m_has_ghost_layer[0] ? m_dim.x-2 : m_dim.x,
-                               m_has_ghost_layer[1] ? m_dim.y-2 : m_dim.y,
-                               m_has_ghost_layer[2] ? m_dim.z-2 : m_dim.z);
+        m_num_ghost_cells = make_uint3(box.getPeriodic().x ? 0 : 2,
+                                       box.getPeriodic().y ? 0 : 2,
+                                       box.getPeriodic().z ? 0 : 2);
 
+ 
     Scalar3 L = box.getL();
-    m_width.x = (L.x) / Scalar(inner_dim.x);
-    m_width.y = (L.y) / Scalar(inner_dim.y);
-    m_width.z = (L.z) / Scalar(inner_dim.z);
+    m_width.x = L.x / Scalar(m_dim.x-m_num_ghost_cells.x);
+    m_width.y = L.y / Scalar(m_dim.y-m_num_ghost_cells.y);
+    m_width.z = L.z / Scalar(m_dim.z-m_num_ghost_cells.z);
 
     if (m_prof)
         m_prof->pop();
@@ -389,25 +389,13 @@ void CellList::computeCellList()
     if (m_prof)
         m_prof->push("compute");
     
-    // the ghost layer width in every direction is given by 2* the cell width
-    Scalar3 ghost_width;
-
-    if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
-                                   0.0);
-    else
-        ghost_width = make_scalar3(m_has_ghost_layer[0] ? m_width.x : Scalar(0.0),
-                                   m_has_ghost_layer[1] ? m_width.y : Scalar(0.0),
-                                   m_has_ghost_layer[2] ? m_width.z : Scalar(0.0));
-
     // acquire the particle data
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
-    
+  
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_xyzf(m_xyzf, access_location::host, access_mode::overwrite);
@@ -423,6 +411,13 @@ void CellList::computeCellList()
     
     // for each particle
     unsigned n_tot_particles = m_pdata->getN() + m_pdata->getNGhosts();
+
+    uint3 scale, shift;
+    scale = make_uint3(m_dim.x - m_num_ghost_cells.x,
+                       m_dim.y - m_num_ghost_cells.y,
+                       m_dim.z - m_num_ghost_cells.z);
+    shift = make_uint3(m_num_ghost_cells.x/2, m_num_ghost_cells.y/2, m_num_ghost_cells.z/2);
+
     for (unsigned int n = 0; n < n_tot_particles; n++)
         {
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
@@ -434,9 +429,9 @@ void CellList::computeCellList()
             
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(p);
-        unsigned int ib = (unsigned int)(f.x * m_dim.x);
-        unsigned int jb = (unsigned int)(f.y * m_dim.y);
-        unsigned int kb = (unsigned int)(f.z * m_dim.z);
+        unsigned int ib = (unsigned int)(f.x * scale.x) + shift.x;
+        unsigned int jb = (unsigned int)(f.y * scale.y) + shift.y;
+        unsigned int kb = (unsigned int)(f.z * scale.z) + shift.z;
         
         // need to handle the case where the particle is exactly at the box hi
         if (ib == m_dim.x)
@@ -527,7 +522,6 @@ bool CellList::checkConditions()
     if (h_conditions.data[2])
         {
         unsigned int n = h_conditions.data[2] - 1;
-        if (n < m_pdata->getN())
         m_exec_conf->msg->error() << "Particle " << n << " is no longer in the simulation box." << endl
              << endl;
         throw runtime_error("Error computing cell list");

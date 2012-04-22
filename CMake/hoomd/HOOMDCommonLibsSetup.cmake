@@ -81,6 +81,7 @@ if (ENABLE_MPI)
     CHECK_LIBRARY_EXISTS("${Boost_MPI_LIBRARY}" exit "" BOOST_CAN_COMPILE)
     if (NOT BOOST_CAN_COMPILE)
        message(WARNING "Cannot link against Boost.MPI. Disabling MPI.")
+       set(ENABLE_MPI FALSE CACHE BOOL "Enable the compilation of the MPI communication code" FORCE)
     endif(NOT BOOST_CAN_COMPILE)
 
     list(APPEND HOOMD_COMMON_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})

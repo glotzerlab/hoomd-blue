@@ -144,12 +144,6 @@ void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
         m_cl->setComputeTDB(false);
     }
 
-void NeighborListGPUBinned::setGhostLayer(unsigned int dir, bool has_ghost_layer)
-    {
-    assert(dir < 3);
-    m_cl->setGhostLayer(dir, has_ghost_layer);
-    }
-
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
     if (m_storage_mode != full)
@@ -176,8 +170,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    BoxDim box = m_pdata->getBoxGPU();
-    BoxDim global_box = m_pdata->getGlobalBoxGPU();
+    const BoxDim& box = m_pdata->getBox();
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -196,19 +189,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
-
-    // If the cell list has a ghost layer, we need to take it into accout when
-    // determining a particle's bin
-    Scalar3 ghost_width;
-
-    if (m_sysdef->getNDimensions() == 2)
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
-                                   0.0);
-    else
-        ghost_width = make_scalar3(m_cl->hasGhostLayer(0) ? width.x : Scalar(0.0),
-                                   m_cl->hasGhostLayer(1) ? width.y : Scalar(0.0),
-                                   m_cl->hasGhostLayer(2) ? width.z : Scalar(0.0));
 
     if (exec_conf->getComputeCapability() >= 200)
         {
@@ -229,12 +209,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
                                  box,
-                                 global_box,
                                  rmaxsq,
                                  m_block_size,
                                  m_filter_body,
                                  m_filter_diameter,
-                                 ghost_width);
+                                 m_cl->getNGhostCells());
         }
     else
         {
@@ -273,12 +252,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     dca_cell_adj,
                                     m_cl->getCellIndexer(),
                                     box,
-                                    global_box,
                                     rmaxsq,
                                     m_block_size,
                                     m_filter_body,
                                     m_filter_diameter,
-                                    ghost_width);
+                                    m_cl->getNGhostCells());
         }
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
@@ -340,19 +318,6 @@ void NeighborListGPUBinned::allocateCudaArrays()
     
     CHECK_CUDA_ERROR();
     }
-
-#ifdef ENABLE_MPI
-void NeighborListGPUBinned::setCommunicator(boost::shared_ptr<Communicator> comm)
-    {
-    // set ghost layer in every direction for which there is more then one cell
-    for (int dir = 0; dir < 3; dir ++)
-        {
-        m_cl->setGhostLayer(dir, comm->getDimension(dir) > 1);
-        }
-
-    NeighborList::setCommunicator(comm);
-    }
-#endif
 
 void export_NeighborListGPUBinned()
     {

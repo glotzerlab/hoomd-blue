@@ -176,18 +176,6 @@ void IntegrationMethodTwoStep::validateGroup()
         }
     }
 
-#ifdef ENABLE_MPI
-//! Set the communicator to use
-void IntegrationMethodTwoStep::setCommunicator(boost::shared_ptr<Communicator> comm)
-    {
-    m_comm = comm;
-
-    // If along a given direction we have more than one box, don't wrap particles around boundaries along that direction
-    for (unsigned int dir = 0; dir < 3; dir++)
-       m_no_wrap_particles[dir] = (m_comm->getDimension(dir) > 1);
-    }
-#endif
-
 
 void export_IntegrationMethodTwoStep()
     {

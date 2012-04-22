@@ -155,19 +155,19 @@ class mpi_partition:
         pdata.takeSnapshot(snap)
 
         # initialize domain decomposition
-        self.cpp_mpi_init = hoomd.MPIInitializer(globals.system_definition, self.local_comm, self.root, nx, ny, nz);
+        self.cpp_decomposition = hoomd.DomainDecomposition(self.local_comm, pdata.getBox().getL(), self.root, nx, ny, nz);
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
-            self.communicator = hoomd.Communicator(globals.system_definition, self.local_comm, self.cpp_mpi_init.getDomainDecomposition())
+            self.communicator = hoomd.Communicator(globals.system_definition, self.local_comm, self.cpp_decomposition)
         else:
-            self.communicator = hoomd.CommunicatorGPU(globals.system_definition, self.local_comm, self.cpp_mpi_init.getDomainDecomposition())
+            self.communicator = hoomd.CommunicatorGPU(globals.system_definition, self.local_comm, self.cpp_decomposition)
 
         # set Communicator in C++ System
         globals.system.setCommunicator(self.communicator)
 
         # set Communicator in SystemDefinition
-        globals.system_definition.setMPICommunicator(self.local_comm)
+        pdata.setDomainDecomposition(self.cpp_decomposition)
 
         # initialize domains from global snapshot
         pdata.initializeFromSnapshot(snap)

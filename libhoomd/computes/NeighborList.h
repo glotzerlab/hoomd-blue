@@ -70,8 +70,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __NEIGHBORLIST_H__
 
 #ifdef ENABLE_MPI
-//! Forward declaration
-class Communicator;
+#include "Communicator.h"
 #endif
 
 //! Computes a Neibhorlist from the particles
@@ -337,6 +336,15 @@ class NeighborList : public Compute
         virtual void setMaximumDiameter(Scalar d_max)
             {
             m_d_max = d_max;
+
+            if (m_comm)
+                {
+                Scalar rmax = m_r_cut + m_r_buff;
+                // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
+                rmax += m_d_max - Scalar(1.0);
+                m_comm->setGhostLayerWidth(rmax);
+                }
+         
             forceUpdate();
             }
         
