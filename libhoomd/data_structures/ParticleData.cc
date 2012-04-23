@@ -1568,6 +1568,7 @@ void export_ParticleData()
     {
     class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
     .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
     .def("getN", &ParticleData::getN)

@@ -155,7 +155,7 @@ class mpi_partition:
         pdata.takeSnapshot(snap)
 
         # initialize domain decomposition
-        self.cpp_decomposition = hoomd.DomainDecomposition(self.local_comm, pdata.getBox().getL(), self.root, nx, ny, nz);
+        self.cpp_decomposition = hoomd.DomainDecomposition(self.local_comm, pdata.getGlobalBox().getL(), self.root, nx, ny, nz);
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
