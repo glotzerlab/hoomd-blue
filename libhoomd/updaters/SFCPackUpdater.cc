@@ -149,8 +149,6 @@ void SFCPackUpdater::applySortOrder()
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
 
@@ -245,22 +243,12 @@ void SFCPackUpdater::applySortOrder()
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_body.data[i] = uint_tmp[i];
     
-    // sort tag
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        uint_tmp[i] = h_tag.data[m_sort_order[i]];
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        h_tag.data[i] = uint_tmp[i];
-        
     // sort global tag
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         uint_tmp[i] = h_global_tag.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_global_tag.data[i] = uint_tmp[i];
 
-    // rebuild rtag
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        h_rtag.data[h_tag.data[i]] = i;
-        
     // rebuild global rtag
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {

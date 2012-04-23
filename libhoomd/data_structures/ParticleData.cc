@@ -140,8 +140,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 
     ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
     ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_global_tag(getGlobalTags(), access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_global_rtag(getGlobalRTags(), access_location::host, access_mode::overwrite);
     ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
@@ -156,8 +154,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         h_diameter.data[i] = 1.0;
         
         h_body.data[i] = NO_BODY;
-        h_rtag.data[i] = i;
-        h_tag.data[i] = i;
         h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
 
         h_global_tag.data[i] = i;
@@ -200,8 +196,6 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
         
         ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_global_tag(getGlobalTags(), access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_global_rtag(getGlobalRTags(), access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
@@ -215,8 +209,6 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             h_diameter.data[i] = 1.0;
             
             h_body.data[i] = NO_BODY;
-            h_rtag.data[i] = i;
-            h_tag.data[i] = i;
             h_global_tag.data[i] = i;
             h_global_rtag.data[i] = i;
             h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
@@ -445,14 +437,6 @@ void ParticleData::allocate(unsigned int N)
     GPUArray< int3 > image(getN(), m_exec_conf);
     m_image.swap(image);
 
-    // tag
-    GPUArray< unsigned int > tag(getN(), m_exec_conf);
-    m_tag.swap(tag);
-
-    // reverse-lookup tag
-    GPUArray< unsigned int > rtag(getN(), m_exec_conf);
-    m_rtag.swap(rtag);
-
     // global tag
     GPUArray< unsigned int> global_tag(getN(), m_exec_conf);
     m_global_tag.swap(global_tag);
@@ -522,8 +506,6 @@ void ParticleData::reallocate(unsigned int max_n)
     m_charge.resize(max_n);
     m_diameter.resize(max_n);
     m_image.resize(max_n);
-    m_tag.resize(max_n);
-    m_rtag.resize(max_n);
     m_global_tag.resize(max_n);
     m_body.resize(max_n);
 
@@ -604,7 +586,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector< std::vector<Scalar > > charge_proc;           // Particle charges array of every processor
         std::vector< std::vector<Scalar > > diameter_proc;         // Particle diameters array of every processor
         std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
-        std::vector< std::vector<unsigned int > > rtag_proc;       // Particle reverse-lookup tags array of every processor
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
         std::vector< std::vector<unsigned int > > global_tag_proc; // Global tags of every processor
         std::vector< unsigned int > N_proc;                        // Number of particles on every processor
@@ -733,8 +714,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::readwrite);
 
@@ -774,8 +753,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_global_tag(m_global_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_global_rtag(m_global_rtag, access_location::host, access_mode::readwrite);
 
