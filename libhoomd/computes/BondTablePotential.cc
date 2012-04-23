@@ -96,7 +96,7 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables->getPitch(),m_bond_data->getNBondTypes());
+    Index2D table_value(m_tables.getPitch(),m_bond_data->getNBondTypes());
     m_table_value = table_value;
 
 
