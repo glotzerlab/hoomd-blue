@@ -1,0 +1,66 @@
+#! /usr/bin/env hoomd
+
+from hoomd_script import *
+import math
+
+# parameters
+phi_P = 0.0001
+n_poly = 1
+T = 1.2
+
+# This polymer is A-B-A with the two bonds having two different types.
+polymer = dict(bond_len=1.2, type=['A'] + ['B'] + ['A'], bond=[(0,1, 'bond1'), (1,2, 'bond2')], count=n_poly)
+
+
+# perform some simple math to find the length of the box
+N = len(polymer['type']) * polymer['count'];
+L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
+
+# generate the polymer system
+sys=init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35));
+
+# Assign the particles positions for simplicity
+p = sys.particles[0]
+p.position = (0,0,0);
+p = sys.particles[1]
+p.position = (0,1,0);
+p = sys.particles[2]
+p.position = (0,2,0)
+
+# force field setup
+def harmonic(r, rmin, rmax, kappa, r0):
+    V = 0.5 * kappa * (r-r0)**2;
+    F = -kappa*(r-r0);
+    return (V, F)
+
+
+# Initializing the bond Table forces.
+btable = bond.table(width=1000)
+# For the first bond it reads from the file bond1.dat.  This table specifies a harmonic bond of kappa =2, r0=0.084
+btable.set_from_file('bond1', 'bond1.dat')
+#  For the second bond we use the harmonic function defined above
+btable.bond_coeff.set('bond2', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
+
+
+# Apply LJ forces to the particles
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+
+# NVT integration
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(group=all, T=T, tau=0.5)
+
+xml = dump.xml();
+xml.set_params(all=True);
+xml.set_params(image=False);
+xml.write('Init.xml')
+
+dump.dcd(filename="trajectory.dcd", period=10, overwrite=True)
+
+# warm up the system
+run(2000)
+
+# The user should observe a polymer oscillating up and down on the screen due to the difference in bond types.
