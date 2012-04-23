@@ -2246,15 +2246,15 @@ class dpdlj(pair):
 ## Force-shifted Lennard-Jones %pair %force
 #
 # The command pair.force_shifted_lj specifies that a modified Lennard-Jones type %pair %force should be added to every
-# non-bonded particle %pair in the simulation. It differs from the force calculated by %pair.lj by the addition of a
-# constant, such that the force goes smoothly to zero at the cut-off. See \cite Toxvaerd2011 for a discussion of
-# this potential.
-#
-# \f[ V(r) =V_{LJ}(r) + \Delta V(r) \f], where
+# non-bonded particle %pair in the simulation. The force differs from the one calculated by  %pair.lj by the subtraction
+# of the value of the force at \f$ r_{\mathrm{cut}} \f$, such that the force smoothly goes to zero at the cut-off. The
+# potential is modified by a linear function. This potential can be used as a substitute for %pair.lj,
+# when the exact analytical form of the latter is not required but a smaller cut-off radius is desired for computational
+# efficency. See \cite Toxvaerd2011 for a discussion of this potential.
 #
 # \f{eqnarray*}
-# V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-#                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
+# V(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+#                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] + \Delta V(r) & r < r_{\mathrm{cut}}\\
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 # and
@@ -2297,7 +2297,7 @@ class force_shifted_lj(pair):
     #
     # \b Example:
     # \code
-    # fslj = pair.force_shifted_lj(r_cut=3.0)
+    # fslj = pair.force_shifted_lj(r_cut=1.5)
     # fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
     # \endcode
     #

@@ -92,7 +92,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                             \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
     is the standard Lennard-Jones pair potential and
     \f[ \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}}) \f].
-    The constant value \f[ -\frac{1}{r} \frac{\partial V}{\partial r}(r_{\mathrm{cut}}) \f] is
+    The constant value \$[ -\frac{1}{r} \frac{\partial V}{\partial r}(r_{\mathrm{cut}}) \f$ is
         subtracted from \a force_divr .
 
     The two parameters \a lj1 and \a lj2 are the same as for the (non-force-shifted) LJ potential.
