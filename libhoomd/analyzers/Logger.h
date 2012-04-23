@@ -135,16 +135,6 @@ class Logger : public Analyzer
             return flags;
             }
 
-        //! Initialize the logger
-        virtual void resetStats()
-            {
-            if (!m_is_initialized)
-                {
-                openOutputFiles();
-                m_is_initialized = true;
-                }
-            }
-
     private:
         //! The delimiter to put between columns in the file
         std::string m_delimiter;

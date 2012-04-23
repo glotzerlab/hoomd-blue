@@ -195,6 +195,11 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
             return;
 #endif
 
+    // open output files for writing
+    openOutputFiles();
+
+    m_is_initialized = true;
+
     // only write the header if this is a new file
     if (!m_appending)
         {
