@@ -750,6 +750,12 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_global_rtag.data[global_tag[idx]] = idx;
             h_body.data[idx] = snapshot.body[idx];
             }
+
+        // reset ghost particle number
+        m_nghosts = 0;
+
+        // notify about change in ghost particle number
+        notifyGhostParticleNumberChange();
         }
     else
 #endif

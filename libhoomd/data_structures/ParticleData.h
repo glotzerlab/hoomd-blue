@@ -787,6 +787,7 @@ class ParticleData : boost::noncopyable
             {
             m_nghosts = 0;
             }
+
 #ifdef ENABLE_MPI
         //! Set domain decomposition information
         void setDomainDecomposition(boost::shared_ptr<DomainDecomposition> decomposition)
