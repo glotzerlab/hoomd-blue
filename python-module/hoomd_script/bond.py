@@ -433,44 +433,71 @@ def _table_eval(r, rmin, rmax, V, F, width):
 
 ## Tabulated %bond %force
 #
-# The command bond.table specifies that a tabulated  %bond %force should be added to every bonded particle
+# The command bond.table specifies that a tabulated  %bond %force should be added to everybonded %bond of particles 
 # in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is (in force units)
 # \f{eqnarray*}
-#  \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
-#                       = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
-#                       = & 0                           & r \ge r_{\mathrm{max}} \\
+#  \vec{F}(\vec{r})     = & F_{\mathrm{user}}(r)\hat{r} & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
 # \f}
 # and the potential \f$ V(r) \f$ is (in energy units)
 # \f{eqnarray*}
-# V(r)       = & 0                    & r < r_{\mathrm{min}} \\
-#            = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
-#            = & 0                    & r \ge r_{\mathrm{max}} \\
+#            = & V_{\mathrm{user}}(r) & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
 # \f}
-# ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.
+# ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.  Care should be taken to 
+# define the range of the bond so that it is not possible for the distance between two bonded particles to be outside the
+# specified range.  On the CPU, this will throw an error.  On the GPU, this will throw an error if error checking is enabled.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between 
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, the user must specify a force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
+# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
 #
-# The following coefficients must be set per unique %bond of particle types. See hoomd_script.bond or
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by \c func (see example)
-# - coefficients passed to \c func - \c coeff (see example)
-# - \f$ r_{\mathrm{min}} \f$ - \c rmin (in distance units)
-# - \f$ r_{\mathrm{max}} \f$ - \c rmax (in distance units)
+# The following coefficients must be set per unique %pair of particle types.
+# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by `func` (see example)
+# - coefficients passed to `func` - `coeff` (see example)
+# - \f$ r_{\mathrm{min}} \f$ - `rmin` (in distance units)
+# - \f$ r_{\mathrm{max}} \f$ - `rmax` (in distance units)
 #
-# \b Example:
-# \code
-# table.bond_coeff.set('A', 'A', func=my_potential, rmin=0, rmax=10, coeff=dict(A=1.5, s=3.0))
-# \endcode
+# The table *width* is set once when bond.table is specified (see table.__init__())
+# There are two ways to specify the other parameters. 
+# 
+# \par Example: Set table from a given function
+# When you have a functional form for V and F, you can enter that
+# directly into python. bond.table will evaluate the given function over \a width points between \a rmin and \a rmax
+# and use the resulting values in the table.
+# ~~~~~~~~~~~~~
+#def harmonic(r, rmin, rmax, kappa, r0):
+#    V = 0.5 * kappa * (r-r0)**2;
+#    F = -kappa*(r-r0);
+#    return (V, F)
 #
-# For more information on setting bond coefficients, including examples with <i>wildcards</i>, see
-# \link hoomd_script.bond.coeff.set() bond_coeff.set()\endlink.
+# btable = bond.table(width=1000)
+# btable.bond_coeff.set('bond1', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
+# btable.bond_coeff.set('bond2', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=30, r0=1.0))
+# ~~~~~~~~~~~~~
 #
-# The table \a width is set once when bond.table is specified (see __init__())
+# \par Example: Set a table from a file
+# When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, bond.table can use the given
+# values direcly. You must first specify the number of rows in your tables when initializing bond.table. Then use
+# table.set_from_file() to read the file.
+# ~~~~~~~~~~~~~
+# btable = bond.table(width=1000)
+# btable.set_from_file('polymer', 'btable.file')
+# ~~~~~~~~~~~~~
 #
+# \par Example: Mix functions and files
+# ~~~~~~~~~~~~~
+# btable.bond_coeff.set('bond1', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
+# btable.set_from_file('bond2', 'btable.file')
+# ~~~~~~~~~~~~~
+#
+#
+# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+# not diverge near r=0, then a setting of \c rmin=0 is valid.
+#
+# \note %Bond coefficients for all type bonds in the simulation must be
+# set before it can be started with run().
+
 class table(force._force):
     ## Specify the Tabulated %bond %force
     #
@@ -544,7 +571,7 @@ class table(force._force):
     def update_coeffs(self):
         # check that the bond coefficents are valid
         if not self.bond_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            globas.msg.error("Not all bond coefficients are set for bond.table\n");
+            globals.msg.error("Not all bond coefficients are set for bond.table\n");
             raise RuntimeError("Error updating bond coefficients");
 
         # set all the params
