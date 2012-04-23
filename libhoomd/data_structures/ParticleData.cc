@@ -957,15 +957,17 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         {
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
-            snapshot.pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-            snapshot.vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
-            snapshot.accel[idx] = h_accel.data[idx];
-            snapshot.type[idx] = __scalar_as_int(h_pos.data[idx].w);
-            snapshot.mass[idx] = h_vel.data[idx].w;
-            snapshot.charge[idx] = h_charge.data[idx];
-            snapshot.diameter[idx] = h_diameter.data[idx];
-            snapshot.image[idx] = h_image.data[idx];
-            snapshot.body[idx] = h_body.data[idx];
+            unsigned int tag = h_global_tag.data[idx];
+            assert(tag < m_nglobal);
+            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            snapshot.vel[tag] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+            snapshot.accel[tag] = h_accel.data[idx];
+            snapshot.type[tag] = __scalar_as_int(h_pos.data[idx].w);
+            snapshot.mass[tag] = h_vel.data[idx].w;
+            snapshot.charge[tag] = h_charge.data[idx];
+            snapshot.diameter[tag] = h_diameter.data[idx];
+            snapshot.image[tag] = h_image.data[idx];
+            snapshot.body[tag] = h_body.data[idx];
             }
         }
 
