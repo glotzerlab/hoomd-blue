@@ -86,9 +86,7 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
         }
 
 
-    // helper to compute indices
-    Index2D table_value(m_table_width,m_bond_data->getNBondTypes());
-    m_table_value = table_value;  
+  
     
     // allocate storage for the tables and parameters
     GPUArray<float2> tables(m_table_width, m_bond_data->getNBondTypes(), exec_conf);
@@ -96,6 +94,11 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
     GPUArray<Scalar4> params(m_bond_data->getNBondTypes(), exec_conf);
     m_params.swap(params);
     assert(!m_tables.isNull());
+
+    // helper to compute indices
+    Index2D table_value(m_tables->getPitch(),m_bond_data->getNBondTypes());
+    m_table_value = table_value;
+
 
   
     

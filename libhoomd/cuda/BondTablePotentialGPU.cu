@@ -80,7 +80,7 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     \param n_bonds_list List of numbers of bonds stored on the GPU
     \param n_bond_type number of bond types
     \param d_params Parameters for each table associated with a type pair
-    \param table_width Number of points in each table
+    \param table_value index helper function
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be evaluated
 
     See BondTablePotential for information on the memory layout.
@@ -100,12 +100,10 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
                                      const unsigned int *n_bonds_list,
                                      const unsigned int n_bond_type,
                                      const float4 *d_params,
-                                     const unsigned int table_width,
+                                     const Index2D table_value,
                                      unsigned int *d_flags)
     {
 
-    // index calculation helper
-    Index2D table_value(table_width);
     
     // read in params for easy and fast access in the kernel
     extern __shared__ float4 s_params[];
@@ -234,7 +232,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
     \param n_bond_type number of bond types
     \param d_tables Tables of the potential and force
     \param d_params Parameters for each table associated with a type pair
-    \param table_width Number of points in each table
+    \param m_table_value indexer helper
     \param d_flags flags on the device - a 1 will be written if evaluation
                    of forces failed for any bond
     \param block_size Block size at which to run the kernel
@@ -254,6 +252,7 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
                                      const float2 *d_tables,
                                      const float4 *d_params,
                                      const unsigned int table_width,
+                                     const Index2D &table_value,
                                      unsigned int *d_flags,
                                      const unsigned int block_size)
     {
@@ -271,7 +270,7 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
     // bind the tables texture
     tables_tex.normalized = false;
     tables_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_width*n_bond_type);
+    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_value.getNumElements());
     if (error != cudaSuccess)
         return error;
 
@@ -287,7 +286,7 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
              n_bonds_list,
              n_bond_type,
              d_params,
-             table_width,
+             table_value,
              d_flags);
 
     return cudaSuccess;
