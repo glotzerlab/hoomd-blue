@@ -162,7 +162,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
-#include "MPIInitializer.h"
+#include "DomainDecomposition.h"
 #ifdef ENABLE_CUDA
 #include "CommunicatorGPU.h"
 #endif
