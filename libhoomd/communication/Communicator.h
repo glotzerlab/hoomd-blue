@@ -314,6 +314,14 @@ class Communicator
         //! Reallocate temporary storage
         void reallocate();
 
+        //! Force particle migration
+        void forceMigrate()
+            {
+            // prevent recursive force particle migration
+            if (! m_is_communicating)
+                m_force_migrate = true;
+            }
+
     protected:
 
         //! Set size of a packed data element
@@ -366,6 +374,8 @@ class Communicator
         boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
         boost::shared_ptr<Profiler> m_prof;                           //!< Profiler
 
+        bool m_is_communicating;               //!< Whether we are currently communicating
+        bool m_force_migrate;                  //!< True if particle migration is forced
 
         bool m_is_at_boundary[6];              //!< Array of flags indicating whether this box lies at a global boundary
 
@@ -408,6 +418,7 @@ class Communicator
 
     private:
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
+        boost::signals::connection m_sort_connection;                    //!< Connection to particle sort signal
 
     };
 

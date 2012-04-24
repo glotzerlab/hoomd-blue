@@ -124,6 +124,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_exec_conf(m_pdata->getExecConf()),
             m_mpi_comm(mpi_comm),
             m_decomposition(decomposition),
+            m_is_communicating(false),
+            m_force_migrate(false),
             m_sendbuf(m_exec_conf),
             m_recvbuf(m_exec_conf),
             m_pos_copybuf(m_exec_conf),
@@ -155,12 +157,14 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 
     // Connect to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(boost::bind(&Communicator::reallocate, this));
+    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&Communicator::forceMigrate, this));
     }
 
 //! Destructor
 Communicator::~Communicator()
     {
     m_max_particle_num_change_connection.disconnect();
+    m_sort_connection.disconnect();
     }
 
 //! Allocate internal buffers
@@ -211,9 +215,14 @@ void Communicator::communicate(unsigned int timestep)
     if (m_prof)
         m_prof->push("Communicate");
 
-    // Check if we require particle migration
-    if (m_migrate_requests(timestep))
+    // Guard to prevent recursive triggering of migration
+    m_is_communicating = true;
+
+    // Check if migration of particles is requested
+    if (m_force_migrate || m_migrate_requests(timestep))
         {
+        m_force_migrate = false;
+
         // If so, migrate atoms
         migrateAtoms();
 
@@ -225,6 +234,8 @@ void Communicator::communicate(unsigned int timestep)
         // only update ghost atom coordinates
         copyGhosts();
         }
+
+    m_is_communicating = false;
 
     if (m_prof)
         m_prof->pop();

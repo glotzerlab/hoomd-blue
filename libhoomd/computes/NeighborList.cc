@@ -93,7 +93,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
       m_dist_check(true)
 #ifdef ENABLE_MPI
-      , m_cached_update(false)
+      , m_num_cached_updates(0)
 #endif
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
@@ -764,18 +764,8 @@ void NeighborList::setLastUpdatedPos()
 */
 bool NeighborList::needsUpdating(unsigned int timestep)
     {
-    if (timestep < (m_last_updated_tstep + m_every) && !m_force_update && !m_cached_update)
+    if (timestep < (m_last_updated_tstep + m_every) && !m_force_update)
         return false;
-
-#ifdef ENABLE_MPI
-    // Test if update was requested ahead of time (as a result of a call to this method)
-    if (m_cached_update)
-        {
-        m_cached_update = false;
-        m_force_update = false;
-        return true;
-        }
-#endif
 
     // check if this is a dangerous time
     // we are dangerous if m_every is greater than 1 and this is the first check after the
@@ -882,6 +872,11 @@ void NeighborList::printStats()
 void NeighborList::resetStats()
     {
     m_updates = m_forced_updates = m_dangerous_updates = 0;
+
+#ifdef ENABLE_MPI
+    m_num_cached_updates = 0;
+#endif
+
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
         m_update_periods[i] = 0;
     }
@@ -1187,7 +1182,7 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     if (!m_comm)
         {
         // only add the migrate request on the first call
-        comm->addMigrateRequest(bind(&NeighborList::requestParticleMigrate, this, _1));
+        comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
         }
 
     if (comm)
@@ -1205,12 +1200,13 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
 /*! \note The criterium for when to request particle migration is the same as the one for neighbor list
     rebuilds, which is implemented in needsUpdating().
  */
-bool NeighborList::requestParticleMigrate(unsigned int timestep)
+bool NeighborList::peekUpdate(unsigned int timestep)
     {
-    bool needs_updating = needsUpdating(timestep);
-    if (needs_updating)
-        m_cached_update = true;
-    return needs_updating;
+    bool result = distanceCheck();
+    if (result)
+        m_num_cached_updates++;
+
+    return result; 
     }
 #endif
 

@@ -371,7 +371,7 @@ class NeighborList : public Compute
         //! Returns true if the particle migration criterium is fulfilled
         /*! \param timestep The current timestep
          */
-        bool requestParticleMigrate(unsigned int timestep);
+        bool peekUpdate(unsigned int timestep);
 #endif
 
     protected:
@@ -425,7 +425,9 @@ class NeighborList : public Compute
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
-        bool m_cached_update;           //!< True if neighborlist update is forced as a result of an earlier check
+#ifdef ENABLE_MPI
+        unsigned int m_num_cached_updates;   //!< Number of times peekUpdate() has return true
+#endif
         
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
