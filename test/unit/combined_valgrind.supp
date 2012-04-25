@@ -1,3 +1,11 @@
+##### These are real memory leaks, but cannot be easily resolved
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:kiss_fftnd_alloc
+}
+
 # CUDA false positives
 {
    <cudaThreadExit leak>

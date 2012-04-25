@@ -83,7 +83,8 @@ using namespace std;
 PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, 
                                    boost::shared_ptr<NeighborList> nlist,
                                    boost::shared_ptr<ParticleGroup> group)
-    : ForceCompute(sysdef), m_params_set(false), m_nlist(nlist), m_group(group)
+    : ForceCompute(sysdef), m_params_set(false), m_nlist(nlist), m_group(group),
+      fft_in(NULL), fft_ex(NULL), fft_ey(NULL), fft_ez(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing PPPMForceCompute" << endl;
 
@@ -97,6 +98,15 @@ PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 PPPMForceCompute::~PPPMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying PPPMForceCompute" << endl;
+
+    if (fft_in)
+        free(fft_in);
+    if (fft_ex)
+        free(fft_ex);
+    if (fft_ey)
+        free(fft_ey);
+    if (fft_ez)
+        free(fft_ez);
 
     m_boxchange_connection.disconnect();
     }

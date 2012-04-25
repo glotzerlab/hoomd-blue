@@ -87,6 +87,7 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
+    cufftDestroy(plan);
     }
 
 /*! 
