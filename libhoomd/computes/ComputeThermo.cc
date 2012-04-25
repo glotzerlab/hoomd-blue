@@ -54,11 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Contains code for the ComputeThermo class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
 #include "ComputeThermo.h"
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -369,43 +364,7 @@ void ComputeThermo::computeProperties()
     h_properties.data[thermo_index::pressure_yz] = pressure_yz;
     h_properties.data[thermo_index::pressure_zz] = pressure_zz;
 
-
-   if(PPPMData::compute_pppm_flag) {
-        Scalar2 pppm_thermo = ComputeThermo::PPPM_thermo_compute_cpu();
-//        ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::readwrite);
-        h_properties.data[thermo_index::pressure] += pppm_thermo.x;
-        h_properties.data[thermo_index::potential_energy] += pppm_thermo.y;
-        PPPMData::pppm_energy = pppm_thermo.y;
-        }
-
     if (m_prof) m_prof->pop();
-    }
-
-Scalar2 ComputeThermo::PPPM_thermo_compute_cpu() 
-    {
-    BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
-
-    ArrayHandle<cufftComplex> d_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> d_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_vg(PPPMData::m_vg, access_location::host, access_mode::readwrite);
-    Scalar2 pppm_virial_energy = make_scalar2(0.0, 0.0);
-
-    for (int i = 0; i < PPPMData::Nx*PPPMData::Ny*PPPMData::Nz; i++) 
-        {
-        Scalar energy = d_green_hat.data[i]*(d_rho_real_space.data[i].x*d_rho_real_space.data[i].x +
-                                             d_rho_real_space.data[i].y*d_rho_real_space.data[i].y);
-        Scalar pressure = energy*(d_vg.data[i].x + d_vg.data[i].y + d_vg.data[i].z);
-        pppm_virial_energy.x += pressure;
-        pppm_virial_energy.y += energy;
-        }
-    pppm_virial_energy.x *= PPPMData::energy_virial_factor/ (3.0f * L.x * L.y * L.z);
-    pppm_virial_energy.y *= PPPMData::energy_virial_factor;
-    pppm_virial_energy.y -= PPPMData::q2 * PPPMData::kappa / 1.772453850905516027298168f;
-    pppm_virial_energy.y -= 0.5*M_PI*PPPMData::q*PPPMData::q / (PPPMData::kappa*PPPMData::kappa* L.x * L.y * L.z);
-    return pppm_virial_energy;
-
-
     }
 
 void export_ComputeThermo()
@@ -421,8 +380,3 @@ void export_ComputeThermo()
     .def("getPotentialEnergy", &ComputeThermo::getPotentialEnergy)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-

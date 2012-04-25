@@ -417,6 +417,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairEwald>("PotentialPairEwald");
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
+    export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");   
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>("PotentialPairDPDLJThermoDPD");
@@ -442,6 +443,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>("PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
+    export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");    
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");

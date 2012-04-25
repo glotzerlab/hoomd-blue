@@ -69,6 +69,7 @@ set(TEST_LIST
     test_yukawa_force
     test_cgcmm_force
     test_morse_force
+    test_force_shifted_lj
     test_nve_integrator
     test_nvt_integrator
     test_berendsen_integrator

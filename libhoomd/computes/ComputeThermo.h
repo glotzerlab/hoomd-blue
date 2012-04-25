@@ -57,8 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/mpi.hpp>
 #endif
 
-#include "PPPMForceCompute.h"
-
 #include "Compute.h"
 #include "GPUArray.h"
 #include "ComputeThermoTypes.h"

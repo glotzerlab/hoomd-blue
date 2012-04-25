@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file NeighborListBinned.cc
+    \brief Defines NeighborListBinned
+*/
+
 #include "NeighborListBinned.h"
 
 #include <boost/python.hpp>

@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file SystemDefinition.cc
+    \brief Defines SystemDefinition
+*/
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 4267)

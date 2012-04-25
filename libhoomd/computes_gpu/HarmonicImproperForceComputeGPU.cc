@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
+/*! \file HarmonicImproperForceComputeGPU.cc
+    \brief Defines HarmonicImproperForceComputeGPU
+*/
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4244 )

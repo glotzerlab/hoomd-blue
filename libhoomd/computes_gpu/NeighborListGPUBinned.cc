@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file NeighborListGPUBinned.cc
+    \brief Defines NeighborListGPUBinned
+*/
+
 #include "NeighborListGPUBinned.h"
 #include "NeighborListGPUBinned.cuh"
 

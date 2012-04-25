@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file CellList.cc
+    \brief Defines CellList
+*/
+
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>
