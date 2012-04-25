@@ -186,6 +186,7 @@ Table of contents:
  - \link hoomd_script.pair.table pair.table\endlink - <i>Tabulated %pair %force </i>
  - \link hoomd_script.pair.slj pair.slj\endlink - <i>Shifted Lennard-Jones %pair %force </i>
  - \link hoomd_script.pair.yukawa pair.yukawa\endlink - <i>Yukawa %pair %force </i>
+ - \link hoomd_script.pair.force_shifted_lj pair.force_shifted_lj\endlink - <i>Force shifted Lennard-Jones %pair %force </i>
  - \link hoomd_script.pair.nlist nlist\endlink - <i>Interface for controlling neighbor list parameters </i>
 
 \section sec_index_bond Bond potentials

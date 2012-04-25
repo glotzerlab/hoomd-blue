@@ -2243,4 +2243,99 @@ class dpdlj(pair):
         return hoomd.make_scalar4(lj1, lj2, gamma, 0.0);                             
 
         
+## Force-shifted Lennard-Jones %pair %force
+#
+# The command pair.force_shifted_lj specifies that a modified Lennard-Jones type %pair %force should be added to every
+# non-bonded particle %pair in the simulation. The force differs from the one calculated by  %pair.lj by the subtraction
+# of the value of the force at \f$ r_{\mathrm{cut}} \f$, such that the force smoothly goes to zero at the cut-off. The
+# potential is modified by a linear function. This potential can be used as a substitute for %pair.lj,
+# when the exact analytical form of the latter is not required but a smaller cut-off radius is desired for computational
+# efficency. See \cite Toxvaerd2011 for a discussion of this potential.
+#
+# \f{eqnarray*}
+# V(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+#                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] + \Delta V(r) & r < r_{\mathrm{cut}}\\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+# and
+# \f[ \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}}) \f].
+#
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
+# - \f$ \sigma \f$ - \c sigma (in distance units)
+# - \f$ \alpha \f$ - \c alpha (unitless)
+#   - <i>optional</i>: defaults to 1.0
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# pair.force_shifted_lj is a standard %pair potential and supports a number of energy shift / smoothing modes.
+# See hoomd_script.pair.pair for a full description of the various options.
+#
+# \b Example:
+# \code
+# fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+# \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
+#
+# The cutoff radius \a r_cut passed into the initial pair.force_shifted_lj command sets the default \a r_cut for all %pair
+# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
+#
+class force_shifted_lj(pair):
+    ## Specify the force-shifted Lennard-Jones %pair %force
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # fslj = pair.force_shifted_lj(r_cut=1.5)
+    # fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
 
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairForceShiftedLJ(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairForceShiftedLJ;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairForceShiftedLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairForceShiftedLJGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.force_shifted_lj'));
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        alpha = coeff['alpha'];
+
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+        return hoomd.make_scalar2(lj1, lj2);
