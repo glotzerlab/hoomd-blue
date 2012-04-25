@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file TwoStepBerendsenGPU.cc
+    \brief Defines TwoStepBerendsenGPU
+*/
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include<boost/bind.hpp>

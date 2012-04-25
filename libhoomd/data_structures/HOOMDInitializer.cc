@@ -284,7 +284,7 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.1");
     valid_versions.push_back("1.2");
     valid_versions.push_back("1.3");
-	valid_versions.push_back("1.4");
+    valid_versions.push_back("1.4");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)

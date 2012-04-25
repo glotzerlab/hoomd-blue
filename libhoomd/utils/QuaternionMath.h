@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file QuaternionMath.h
+    \brief Quaternion math utility functions
+*/
+
 #ifndef __QUATERNION_MATH_H__
 #define __QUATERNION_MATH_H__
 

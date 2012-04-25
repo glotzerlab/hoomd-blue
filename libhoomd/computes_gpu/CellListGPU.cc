@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file CellListGPU.cc
+    \brief Defines CellListGPU
+*/
+
 #include <boost/python.hpp>
 
 #include "CellListGPU.h"

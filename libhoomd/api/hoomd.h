@@ -50,6 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+/*! \file hoomd.h
+    \brief Includes all hoomd header files
+*/
+
 #ifndef _HOOMD_H
 #define _HOOMD_H
 
