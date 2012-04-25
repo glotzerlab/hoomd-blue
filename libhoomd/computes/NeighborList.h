@@ -442,9 +442,6 @@ class NeighborList : public Compute
         //! Allocate the nlist array
         void allocateNlist();
         
-        //! Re-allocate the nlist array
-        void reallocateNlist();
-
         //! Check the status of the conditions
         bool checkConditions();
 
