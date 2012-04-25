@@ -55,47 +55,55 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
-/*! \file HarmonicBondForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the harmonic bond forces. Used by HarmonicBondForceComputeGPU.
+/*! \file PPPMForceGPU.cuh
+    \brief Declares GPU kernel code for calculating the Fourier space for the Coulomb interaction. Used by PPPMForceComputeGPU.
 */
 
 #ifndef __PPPMFORCEGPU_CUH__
 #define __PPPMFORCEGPU_CUH__
 
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-    cudaError_t gpu_compute_pppm_forces(float4 *d_force,
-                                        float *d_virial,
-                                        const unsigned int virial_pitch,
-                                        const unsigned int N,
-                                        const Scalar4 *d_pos,
-                                        const Scalar *d_charge,
-                                        const BoxDim& box,
-                                        int Nx,
-                                        int Ny,
-                                        int Nz,
-                                        int order,
-                                        float *GPU_rho_coeff,
-                                        cufftComplex *GPU_rho_real_space,
-                                        cufftHandle plan,
-                                        cufftComplex *GPU_E_x,
-                                        cufftComplex *GPU_E_y,
-                                        cufftComplex *GPU_E_z,
-                                        float3 *GPU_k_vec,
-                                        float *GPU_green_hat,
-                                        float3 *E_field,
-                                        unsigned int *d_group_members,
-                                        unsigned int group_size,    
-                                        int block_size);
+cudaError_t gpu_compute_pppm_forces(float4 *d_force,
+                                    const unsigned int N,
+                                    const Scalar4 *d_pos,
+                                    const Scalar *d_charge,
+                                    const BoxDim& box,
+                                    int Nx,
+                                    int Ny,
+                                    int Nz,
+                                    int order,
+                                    float *GPU_rho_coeff,
+                                    cufftComplex *GPU_rho_real_space,
+                                    cufftHandle plan,
+                                    cufftComplex *GPU_E_x,
+                                    cufftComplex *GPU_E_y,
+                                    cufftComplex *GPU_E_z,
+                                    float3 *GPU_k_vec,
+                                    float *GPU_green_hat,
+                                    float3 *E_field,
+                                    unsigned int *d_group_members,
+                                    unsigned int group_size,    
+                                    int block_size);
 
-float2 gpu_compute_pppm_thermo(int Nx,
-                               int Ny,
-                               int Nz,
-                               cufftComplex *GPU_rho_real_space,
-                               float3 *GPU_vg,
-                               float *GPU_green_hat,
-                               float2 *o_data,
-                               float2 *i_data,
-                               int block_size);
+
+void gpu_compute_pppm_thermo(int Nx,
+                             int Ny,
+                             int Nz,
+                             cufftComplex *GPU_rho_real_space,
+                             float *GPU_vg,
+                             float *GPU_green_hat,
+                             float *o_data,
+                             float *energy_sum,
+                             float *v_xx,
+                             float *v_xy,
+                             float *v_xz,
+                             float *v_yy,
+                             float *v_yz,
+                             float *v_zz,
+                             float *pppm_virial_energy,
+                             int block_size);
+
+float float_reduce(float* i_data, float* o_data, int n);
 
 cudaError_t reset_kvec_green_hat(const BoxDim& box,
                                  int Nx,
@@ -108,7 +116,7 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
                                  float m_kappa,
                                  float3 *kvec,
                                  float *green_hat,
-                                 float3 *vg,
+                                 float *vg,
                                  float *gf_b,
                                  int block_size);
 

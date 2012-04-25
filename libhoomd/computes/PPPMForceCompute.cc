@@ -80,26 +80,11 @@ using namespace std;
     \param group Particle group
     \post Memory is allocated, and forces are zeroed.
 */
-
-int PPPMData::compute_pppm_flag = 0;
-int PPPMData::Nx;                               
-int PPPMData::Ny;                               
-int PPPMData::Nz;                               
-Scalar PPPMData::q2;                               
-Scalar PPPMData::q;                               
-Scalar PPPMData::kappa;                            
-Scalar PPPMData::energy_virial_factor;
-Scalar PPPMData::pppm_energy;
-GPUArray<cufftComplex> PPPMData::m_rho_real_space; 
-GPUArray<Scalar> PPPMData::m_green_hat;           
-GPUArray<Scalar3> PPPMData::m_vg;                  
-GPUArray<Scalar2> PPPMData::o_data;                
-GPUArray<Scalar2> PPPMData::i_data;                
-
 PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, 
                                    boost::shared_ptr<NeighborList> nlist,
                                    boost::shared_ptr<ParticleGroup> group)
-    : ForceCompute(sysdef), m_params_set(false), m_nlist(nlist), m_group(group)
+    : ForceCompute(sysdef), m_params_set(false), m_nlist(nlist), m_group(group),
+      fft_in(NULL), fft_ex(NULL), fft_ey(NULL), fft_ez(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing PPPMForceCompute" << endl;
 
@@ -113,6 +98,15 @@ PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 PPPMForceCompute::~PPPMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying PPPMForceCompute" << endl;
+
+    if (fft_in)
+        free(fft_in);
+    if (fft_ex)
+        free(fft_ex);
+    if (fft_ey)
+        free(fft_ey);
+    if (fft_ez)
+        free(fft_ez);
 
     m_boxchange_connection.disconnect();
     }
@@ -137,7 +131,6 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
     m_rcut = rcut;
     first_run = 0;
 
-    PPPMData::compute_pppm_flag = 1;
     if(!(m_Nx == 2)&& !(m_Nx == 4)&& !(m_Nx == 8)&& !(m_Nx == 16)&& !(m_Nx == 32)&& !(m_Nx == 64)&& !(m_Nx == 128)&& !(m_Nx == 256)&& !(m_Nx == 512)&& !(m_Nx == 1024))
         {
         m_exec_conf->msg->warning() << "charge.pppm: PPPM X gridsize should be a power of 2 for the best performance" << endl;
@@ -162,11 +155,13 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         }
 
     GPUArray<cufftComplex> n_rho_real_space(Nx*Ny*Nz, exec_conf);
-    PPPMData::m_rho_real_space.swap(n_rho_real_space);
+    m_rho_real_space.swap(n_rho_real_space);
     GPUArray<Scalar> n_green_hat(Nx*Ny*Nz, exec_conf);
-    PPPMData::m_green_hat.swap(n_green_hat);
-    GPUArray<Scalar3> n_vg(Nx*Ny*Nz, exec_conf);
-    PPPMData::m_vg.swap(n_vg);
+    m_green_hat.swap(n_green_hat);
+
+    GPUArray<Scalar> n_vg(6*Nx*Ny*Nz, exec_conf);
+    m_vg.swap(n_vg);
+
 
     GPUArray<Scalar3> n_kvec(Nx*Ny*Nz, exec_conf);
     m_kvec.swap(n_kvec);
@@ -192,7 +187,6 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         m_q += h_charge.data[i];
         m_q2 += h_charge.data[i]*h_charge.data[i];
         }
-    PPPMData::q = m_q;
     if(fabs(m_q) > 0.0)
         m_exec_conf->msg->warning() << "charge.pppm: system in not neutral, the net charge is " << m_q << endl;
 
@@ -241,7 +235,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         }
  
     // Set up constants for virial calculation
-    ArrayHandle<Scalar3> h_vg(PPPMData::m_vg, access_location::host, access_mode::readwrite);;
+    ArrayHandle<Scalar> h_vg(m_vg, access_location::host, access_mode::readwrite);;
     for(int x = 0; x < Nx; x++)
         {
         for(int y = 0; y < Ny; y++)
@@ -252,19 +246,25 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
                 Scalar sqk =  kvec.x*kvec.x;
                 sqk += kvec.y*kvec.y;
                 sqk += kvec.z*kvec.z;
-    
+                int grid_point = z + Nz * (y + Ny * x);    
                 if (sqk == 0.0) 
                     {
-                    h_vg.data[z + Nz * (y + Ny * x)].x = 0.0f;
-                    h_vg.data[z + Nz * (y + Ny * x)].y = 0.0f;
-                    h_vg.data[z + Nz * (y + Ny * x)].z = 0.0f;
-                    }
+                    h_vg.data[0 + 6*grid_point] = 0.0f;
+                    h_vg.data[1 + 6*grid_point] = 0.0f;
+                    h_vg.data[2 + 6*grid_point] = 0.0f;
+                    h_vg.data[3 + 6*grid_point] = 0.0f;
+                    h_vg.data[4 + 6*grid_point] = 0.0f;
+                    h_vg.data[5 + 6*grid_point] = 0.0f;
+                   }
                 else
                     {
                     Scalar vterm = -2.0 * (1.0/sqk + 0.25/(kappa*kappa));
-                    h_vg.data[z + Nz * (y + Ny * x)].x =  1.0 + vterm*kvec.x*kvec.x;
-                    h_vg.data[z + Nz * (y + Ny * x)].y =  1.0 + vterm*kvec.y*kvec.y;
-                    h_vg.data[z + Nz * (y + Ny * x)].z =  1.0 + vterm*kvec.z*kvec.z;
+                    h_vg.data[0 + 6*grid_point] =  1.0 + vterm*kvec.x*kvec.x;
+                    h_vg.data[1 + 6*grid_point] =        vterm*kvec.x*kvec.y;
+                    h_vg.data[2 + 6*grid_point] =        vterm*kvec.x*kvec.z;
+                    h_vg.data[3 + 6*grid_point] =  1.0 + vterm*kvec.y*kvec.y;
+                    h_vg.data[4 + 6*grid_point] =        vterm*kvec.y*kvec.z;
+                    h_vg.data[5 + 6*grid_point] =  1.0 + vterm*kvec.z*kvec.z;
                     }
                 } 
             } 
@@ -272,7 +272,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 
 
     // Set up the grid based Green's function
-    ArrayHandle<Scalar> h_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_green_hat(m_green_hat, access_location::host, access_mode::readwrite);
     Scalar snx, sny, snz, snx2, sny2, snz2;
     Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
     Scalar sum1, dot1, dot2;
@@ -358,13 +358,6 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         }
     Scalar scale = 1.0f/((Scalar)(Nx * Ny * Nz));
     m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
-
-    PPPMData::Nx = m_Nx;
-    PPPMData::Ny = m_Ny;
-    PPPMData::Nz = m_Nz;
-    PPPMData::q2 = m_q2;
-    PPPMData::kappa = m_kappa;
-    PPPMData::energy_virial_factor = m_energy_virial_factor;
     }
 
 std::vector< std::string > PPPMForceCompute::getProvidedLogQuantities()
@@ -383,7 +376,6 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
         {
         compute(timestep);
         Scalar energy = calcEnergySum();
-        energy += PPPMData::pppm_energy;
         return energy;
         }
     else
@@ -434,7 +426,6 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         PPPMForceCompute::reset_kvec_green_hat_cpu();
         Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
         m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
-        PPPMData::energy_virial_factor = m_energy_virial_factor;
         m_box_changed = false;
         }
 
@@ -443,7 +434,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 //FFTs go next
     
         { // scoping array handles
-        ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
+        ArrayHandle<cufftComplex> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
         for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
             fft_in[i].r = (float) h_rho_real_space.data[i].x;
             fft_in[i].i = (float)0.0;
@@ -505,9 +496,13 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         PPPMForceCompute::fix_exclusions_cpu();
         }
 
+    // access flags and correct energy and virial if needed
+    PDataFlags flags = this->m_pdata->getFlags();
+    if (flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
+        {
+        fix_thermo_quantities();
+        }
 
-//    int64_t flops = size*(3 + 9 + 14 + 2 + 16)1;
-//    int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
     if (m_prof) m_prof->pop();
     }
 
@@ -662,7 +657,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
         }
  
     // Set up constants for virial calculation
-    ArrayHandle<Scalar3> h_vg(PPPMData::m_vg, access_location::host, access_mode::readwrite);;
+    ArrayHandle<Scalar> h_vg(m_vg, access_location::host, access_mode::readwrite);;
     for(int x = 0; x < m_Nx; x++)
         {
         for(int y = 0; y < m_Ny; y++)
@@ -674,18 +669,25 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 sqk += kvec.y*kvec.y;
                 sqk += kvec.z*kvec.z;
     
+                int grid_point = z + m_Nz * (y + m_Ny * x);    
                 if (sqk == 0.0) 
                     {
-                    h_vg.data[z + m_Nz * (y + m_Ny * x)].x = 0.0f;
-                    h_vg.data[z + m_Nz * (y + m_Ny * x)].y = 0.0f;
-                    h_vg.data[z + m_Nz * (y + m_Ny * x)].z = 0.0f;
+                    h_vg.data[0 + 6*grid_point] = 0.0f;
+                    h_vg.data[1 + 6*grid_point] = 0.0f;
+                    h_vg.data[2 + 6*grid_point] = 0.0f;
+                    h_vg.data[3 + 6*grid_point] = 0.0f;
+                    h_vg.data[4 + 6*grid_point] = 0.0f;
+                    h_vg.data[5 + 6*grid_point] = 0.0f;
                     }
                 else
                     {
                     Scalar vterm = -2.0 * (1.0/sqk + 0.25/(m_kappa*m_kappa));
-                    h_vg.data[z + m_Nz * (y + m_Ny * x)].x =  1.0 + vterm*kvec.x*kvec.x;
-                    h_vg.data[z + m_Nz * (y + m_Ny * x)].y =  1.0 + vterm*kvec.y*kvec.y;
-                    h_vg.data[z + m_Nz * (y + m_Ny * x)].z =  1.0 + vterm*kvec.z*kvec.z;
+                    h_vg.data[0 + 6*grid_point] =  1.0 + vterm*kvec.x*kvec.x;
+                    h_vg.data[1 + 6*grid_point] =        vterm*kvec.x*kvec.y;
+                    h_vg.data[2 + 6*grid_point] =        vterm*kvec.x*kvec.z;
+                    h_vg.data[3 + 6*grid_point] =  1.0 + vterm*kvec.y*kvec.y;
+                    h_vg.data[4 + 6*grid_point] =        vterm*kvec.y*kvec.z;
+                    h_vg.data[5 + 6*grid_point] =  1.0 + vterm*kvec.z*kvec.z;
                     }
                 } 
             } 
@@ -693,7 +695,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
 
 
     // Set up the grid based Green's function
-    ArrayHandle<Scalar> h_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_green_hat(m_green_hat, access_location::host, access_mode::readwrite);
     Scalar snx, sny, snz, snx2, sny2, snz2;
     Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
     Scalar sum1, dot1, dot2;
@@ -789,7 +791,7 @@ void PPPMForceCompute::assign_charges_to_grid()
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
-    ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
+    ArrayHandle<cufftComplex> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
 
     memset(h_rho_real_space.data, 0, sizeof(cufftComplex)*m_Nx*m_Ny*m_Nz);
 
@@ -883,11 +885,11 @@ void PPPMForceCompute::combined_green_e()
     {
 
     ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_green_hat(PPPMData::m_green_hat, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_green_hat(m_green_hat, access_location::host, access_mode::readwrite);
     ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
     ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
     ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_rho_real_space(PPPMData::m_rho_real_space, access_location::host, access_mode::readwrite);
+    ArrayHandle<cufftComplex> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
 
     unsigned int NNN = m_Nx*m_Ny*m_Nz;
     for(unsigned int i = 0; i < NNN; i++)
@@ -1105,6 +1107,62 @@ void PPPMForceCompute::fix_exclusions_cpu()
     
     }
 
+/*! Computes the additional energy and virial contributed by PPPM
+    \note The additional terms are simply added onto particle 0 so that they will be accounted for by
+    ComputeThermo
+*/
+void PPPMForceCompute::fix_thermo_quantities()
+    {
+    // access data arrays
+    BoxDim box = m_pdata->getBox();
+    Scalar3 L = box.getL();
+
+    ArrayHandle<cufftComplex> d_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> d_green_hat(m_green_hat, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> d_vg(m_vg, access_location::host, access_mode::readwrite);
+    Scalar2 pppm_virial_energy = make_scalar2(0.0, 0.0);
+
+    Scalar v_xx=0.0, v_xy=0.0, v_xz=0.0, v_yy=0.0, v_yz=0.0, v_zz=0.0;
+
+
+
+    // compute the correction
+    for (int i = 0; i < m_Nx*m_Ny*m_Nz; i++)
+        {
+        Scalar energy = d_green_hat.data[i]*(d_rho_real_space.data[i].x*d_rho_real_space.data[i].x +
+                                             d_rho_real_space.data[i].y*d_rho_real_space.data[i].y);
+        Scalar pressure = energy*(d_vg.data[0+6*i] + d_vg.data[3+6*i] + d_vg.data[5+6*i]);
+        v_xx += d_vg.data[0+6*i]*energy;
+        v_xy += d_vg.data[1+6*i]*energy;
+        v_xz += d_vg.data[2+6*i]*energy;
+        v_yy += d_vg.data[3+6*i]*energy;
+        v_yz += d_vg.data[4+6*i]*energy;
+        v_zz += d_vg.data[5+6*i]*energy;
+        pppm_virial_energy.x += pressure;
+        pppm_virial_energy.y += energy;
+        }
+
+    pppm_virial_energy.x *= m_energy_virial_factor/ (3.0f * L.x * L.y * L.z);
+    pppm_virial_energy.y *= m_energy_virial_factor;
+    pppm_virial_energy.y -= m_q2 * m_kappa / 1.772453850905516027298168f;
+    pppm_virial_energy.y -= 0.5*M_PI*m_q*m_q / (m_kappa*m_kappa* L.x * L.y * L.z);
+
+    // apply the correction to particle 0
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
+    h_force.data[0].w += pppm_virial_energy.y;
+    
+
+    // Compute full virial tensor
+    unsigned int virial_pitch = m_virial.getPitch();
+    h_virial.data[0*virial_pitch+0] += v_xx*m_energy_virial_factor;
+    h_virial.data[1*virial_pitch+0] += v_xy*m_energy_virial_factor;
+    h_virial.data[2*virial_pitch+0] += v_xz*m_energy_virial_factor;
+    h_virial.data[3*virial_pitch+0] += v_yy*m_energy_virial_factor;
+    h_virial.data[4*virial_pitch+0] += v_yz*m_energy_virial_factor;
+    h_virial.data[5*virial_pitch+0] += v_zz*m_energy_virial_factor;
+    }
+
 void export_PPPMForceCompute()
     {
     class_<PPPMForceCompute, boost::shared_ptr<PPPMForceCompute>, bases<ForceCompute>, boost::noncopyable >
@@ -1114,9 +1172,3 @@ void export_PPPMForceCompute()
         .def("setParams", &PPPMForceCompute::setParams)
         ;
     }
-
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-

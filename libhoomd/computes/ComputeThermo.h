@@ -53,8 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <limits>
 
-#include "PPPMForceCompute.h"
-
 #include "Compute.h"
 #include "GPUArray.h"
 #include "ComputeThermoTypes.h"

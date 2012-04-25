@@ -74,8 +74,6 @@ class ComputeThermoGPU : public ComputeThermo
         ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::shared_ptr<ParticleGroup> group,
                          const std::string& suffix = std::string(""));
-        //! Computes the PPPM contribution to the system energy and virial
-        Scalar2 PPPM_thermo_compute();
     protected:
         GPUArray<float4> m_scratch;  //!< Scratch space for partial sums
         GPUArray<float> m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
