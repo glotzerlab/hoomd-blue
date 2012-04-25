@@ -703,8 +703,16 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 h_global_rtag.data[tag] = NOT_LOCAL;
             }
 
-        // reallocate particle data such that we can accomodate the particles
-        reallocate(m_nparticles);
+        // reallocate particle data such that we can accomodate the particles (only if necessary)
+        /* Note: this reallocates also if m_max_nparticles > m_nparticles, which means
+                 unnecessary overhead in a MPI simulation. But currently, the system
+                 is first initialized with the global number of particles
+                 and this number is reduced to the local number of particles, here, to
+                 reduce memory footprint. So until the initialization changes,
+                 we will reallocate with the current number of particles.
+        */
+        if (m_max_nparticles != m_nparticles)
+            reallocate(m_nparticles);
 
         // Load particle data
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);

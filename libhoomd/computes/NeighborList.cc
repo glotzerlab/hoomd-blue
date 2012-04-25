@@ -163,7 +163,8 @@ void NeighborList::reallocate()
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
-    reallocateNlist();
+    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
+    m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
     }
 
 NeighborList::~NeighborList()
@@ -209,7 +210,7 @@ void NeighborList::compute(unsigned int timestep)
             // if we overflowed, need to reallocate memory and reset the conditions
             if (overflowed)
                 {
-                reallocateNlist();
+                allocateNlist();
                 resetConditions();
                 }
             } while (overflowed);
@@ -1118,23 +1119,21 @@ void NeighborList::allocateNlist()
     // round up to the nearest multiple of 8
     m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
 
-    m_exec_conf->msg->notice(6) << "nlist: Allocating " << m_pdata->getN() << " x " << m_Nmax+1 << endl;
+    m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating " << m_pdata->getN() << " x " << m_Nmax+1 << endl;
 
-    // allocate the memory
-    GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
-    m_nlist.swap(nlist);
-    
+    if (m_nlist.isNull())
+        {
+        // allocate the memory
+        GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
+        m_nlist.swap(nlist);
+        }
+    else
+        {
+        // reallocate
+        m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
+        }
+
     // update the indexer
-    m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
-    }
-
-void NeighborList::reallocateNlist()
-    {
-    // round up to the nearest multiple of 8
-    m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
-
-//    cout << "Allocating nlist: " << float(m_pdata->getMaxN()*(m_Nmax+1)*sizeof(unsigned int))/(1024.0f*1024.0f) << " MB" << endl;
-    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
     }
 
