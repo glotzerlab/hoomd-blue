@@ -161,6 +161,10 @@ void IMDInterface::initConnection()
 
 IMDInterface::~IMDInterface()
     {
+#ifdef ENABLE_MPI
+    if (m_comm)
+        if (! m_comm->isRoot()) return;
+#endif
     m_exec_conf->msg->notice(5) << "Destroying IMDInterface" << endl;
  
     if (m_is_initialized)
