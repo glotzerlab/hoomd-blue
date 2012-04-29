@@ -67,6 +67,10 @@ using namespace boost;
 #include "IMDInterface.h"
 #include "SignalHandler.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include "vmdsock.h"
 #include "imd.h"
 
@@ -93,16 +97,33 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing IMDInterface: " << port << " " << pause << " " << rate << " " << force_scale << endl;
 
-    int err = 0;
-    
     if (port <= 0)
         {
         m_exec_conf->msg->error() << "analyze.imd: Invalid port specified" << endl;
         throw runtime_error("Error initializing IMDInterface");
         }
-        
+
+    // initialize state
+    m_active = false;
+    m_paused = pause;
+    m_trate = rate;
+    m_count = 0;
+    m_force = force;
+    m_force_scale = force_scale;
+    m_port = port;
+    if (m_force)
+        m_force->setForce(0,0,0);
+
+    // TCP socket will be initialized later
+    m_is_initialized = false;
+    }
+
+void IMDInterface::initConnection()
+    {
+    int err = 0;
+    
     // start by initializing memory
-    m_tmp_coords = new float[m_pdata->getN() * 3];
+    m_tmp_coords = new float[m_pdata->getNGlobal() * 3];
     
     // intialize the listening socket
     vmdsock_init();
@@ -117,7 +138,7 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
         
     // bind the socket and start listening for connections on that port
     m_connected_sock = NULL;
-    err = vmdsock_bind(m_listen_sock, port);
+    err = vmdsock_bind(m_listen_sock, m_port);
     
     if (err == -1)
         {
@@ -133,21 +154,17 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
         throw runtime_error("Error initializing IMDInterface");
         }
         
-    m_exec_conf->msg->notice(2) << "analyze.imd: listening on port " << port << endl;
+    m_exec_conf->msg->notice(2) << "analyze.imd: listening on port " << m_port << endl;
     
-    // initialize state
-    m_active = false;
-    m_paused = pause;
-    m_trate = rate;
-    m_count = 0;
-    m_force = force;
-    m_force_scale = force_scale;
-    if (m_force)
-        m_force->setForce(0,0,0);
+    m_is_initialized = true;
     }
 
 IMDInterface::~IMDInterface()
     {
+#ifdef ENABLE_MPI
+    if (m_comm)
+        if (! m_comm->isRoot()) return;
+#endif
     m_exec_conf->msg->notice(5) << "Destroying IMDInterface" << endl;
     
     // free all used memory
@@ -170,38 +187,64 @@ void IMDInterface::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("IMD");
-    
-    m_count++;
-    
-    do
+  
+#ifdef ENABLE_MPI
+    bool is_root = true;
+    if (m_comm)
+        is_root = m_comm->isRoot(); 
+
+    if (is_root && ! m_is_initialized)
+        initConnection();
+
+    if (is_root)
+#endif
         {
-        // establish a connection if one has not been made
-        if (m_connected_sock == NULL)
-            establishConnectionAttempt();
+        m_count++;
         
-        // dispatch incoming commands
-        if (m_connected_sock)
+        do
             {
-            do
+            // establish a connection if one has not been made
+            if (m_connected_sock == NULL)
+                establishConnectionAttempt();
+            
+            // dispatch incoming commands
+            if (m_connected_sock)
                 {
-                dispatch();
+                do
+                    {
+                    dispatch();
+                    }
+                    while (m_connected_sock && messagesAvailable());
                 }
-                while (m_connected_sock && messagesAvailable());
+            
+            // quit if cntrl-C was pressed
+            if (g_sigint_recvd)
+                {
+                g_sigint_recvd = 0;
+                throw runtime_error("SIG INT received while paused in IMD");
+                }
             }
-        
-        // quit if cntrl-C was pressed
-        if (g_sigint_recvd)
-            {
-            g_sigint_recvd = 0;
-            throw runtime_error("SIG INT received while paused in IMD");
-            }
+            while (m_paused);
+        } 
+
+#ifdef ENABLE_MPI
+    unsigned char send_coords = 0;
+    if (is_root && m_connected_sock && m_active && (m_trate == 0 || m_count % m_trate == 0))
+        send_coords = 1;
+
+    if (m_comm)
+        {
+        broadcast(*m_comm->getMPICommunicator(), send_coords, m_pdata->getDomainDecomposition()->getRoot());
         }
-        while (m_paused);
-    
+
+    if (send_coords)
+        sendCoords(timestep);
+#else
     // send data when active, connected, and the rate matches
     if (m_connected_sock && m_active && (m_trate == 0 || m_count % m_trate == 0))
         sendCoords(timestep);
-    
+#endif    
+
     if (m_prof)
         m_prof->pop();
     }
@@ -321,7 +364,14 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
         processDeadConnection();
         return;
         }
-    
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        m_exec_conf->msg->warning() << "analyze.imd: mdcomm currently not supported in MPI simulations." << endl;
+        }
+#endif
+   
     if (m_force)
         {
         ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -420,6 +470,16 @@ void IMDInterface::establishConnectionAttempt()
 */
 void IMDInterface::sendCoords(unsigned int timestep)
     {
+    // take a snapshot of the particle data
+    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    m_pdata->takeSnapshot(snapshot);
+
+#ifdef ENABLE_MPI
+    // return now if not root rank
+    if (m_comm)
+        if (! m_comm->isRoot()) return;
+#endif
+
     assert(m_connected_sock != NULL);
     
     // setup and send the energies structure
@@ -444,16 +504,13 @@ void IMDInterface::sendCoords(unsigned int timestep)
         }
         
     // copy the particle data to the holding array and send it
-    ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle< unsigned int > h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    for (unsigned int tag = 0; tag < m_pdata->getNGlobal(); tag++)
         {
-        unsigned int tag = h_tag.data[i];
-        m_tmp_coords[tag*3] = float(h_pos.data[i].x);
-        m_tmp_coords[tag*3 + 1] = float(h_pos.data[i].y);
-        m_tmp_coords[tag*3 + 2] = float(h_pos.data[i].z);
+        m_tmp_coords[tag*3] = float(snapshot.pos[tag].x);
+        m_tmp_coords[tag*3 + 1] = float(snapshot.pos[tag].y);
+        m_tmp_coords[tag*3 + 2] = float(snapshot.pos[tag].z);
         }
-    err = imd_send_fcoords(m_connected_sock, m_pdata->getN(), m_tmp_coords);
+    err = imd_send_fcoords(m_connected_sock, m_pdata->getNGlobal(), m_tmp_coords);
     
     if (err)
         {
