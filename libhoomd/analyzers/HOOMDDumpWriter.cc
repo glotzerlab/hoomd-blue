@@ -500,6 +500,9 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f <<"</charge>" << "\n";
         }
 
+    // NOTE: orientations and inertia tensors will not currently work in MPI mode (SnapshotParticleData
+    //       does not yet have the corresponding fields)
+
     // if the orientation flag is set, write out the orientation quaternion to the XML file
     if (m_output_orientation)
         {
