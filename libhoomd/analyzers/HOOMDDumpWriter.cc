@@ -495,12 +495,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f <<"</charge>" << "\n";
         }
 
-    // NOTE: orientations and inertia tensors will not currently work in MPI mode (SnapshotParticleData
-    //       does not yet have the corresponding fields)
-
     // if the orientation flag is set, write out the orientation quaternion to the XML file
     if (m_output_orientation)
         {
+#ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            m_exec_conf->msg->error() << "dump.xml: Saving orientations in MPI simulations is currently not supported." << endl;
+            throw runtime_error("Error writing HOOMD dump file");
+            }
+#endif
         f << "<orientation num=\"" << m_pdata->getN() << "\">" << "\n";
         
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
@@ -526,6 +530,14 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the moment_inertia flag is set, write out the orientation quaternion to the XML file
     if (m_output_moment_inertia)
         {
+#ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            m_exec_conf->msg->error() << "dump.xml: Saving moments of intertia in MPI simulations is currently not supported." << endl;
+            throw runtime_error("Error writing HOOMD dump file");
+            }
+#endif
+ 
         f << "<moment_inertia num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
