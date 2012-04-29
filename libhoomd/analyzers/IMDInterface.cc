@@ -161,20 +161,19 @@ void IMDInterface::initConnection()
 
 IMDInterface::~IMDInterface()
     {
-#ifdef ENABLE_MPI
-    if (m_comm)
-        if (! m_comm->isRoot()) return;
-#endif
     m_exec_conf->msg->notice(5) << "Destroying IMDInterface" << endl;
-    
-    // free all used memory
-    delete[] m_tmp_coords;
-    vmdsock_destroy(m_connected_sock);
-    vmdsock_destroy(m_listen_sock);
-    
-    m_tmp_coords = NULL;
-    m_connected_sock = NULL;
-    m_listen_sock = NULL;
+ 
+    if (m_is_initialized)
+        {
+        // free all used memory
+        delete[] m_tmp_coords;
+        vmdsock_destroy(m_connected_sock);
+        vmdsock_destroy(m_listen_sock);
+        
+        m_tmp_coords = NULL;
+        m_connected_sock = NULL;
+        m_listen_sock = NULL;
+        }
     }
 
 /*! If there is no active connection, analyze() will check to see if a connection attempt
