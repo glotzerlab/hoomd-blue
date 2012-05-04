@@ -234,7 +234,7 @@ def _find_optimal_block_size_fc(fc, n):
         for block_size in xrange(64,1024+32,32):
             fc.cpp_force.setBlockSize(block_size);
             t = fc.benchmark(n);
-            globals.msg.notice(2, str(block_size) + str(t) + '\n');
+            globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
         globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
