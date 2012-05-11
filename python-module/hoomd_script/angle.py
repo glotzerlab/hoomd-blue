@@ -75,8 +75,8 @@ import sys;
 # The command angle.harmonic specifies a %harmonic potential energy between every triplet of particles
 # with an angle specified between them.
 #
-# \f[ V(r) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2 \f]
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
+# \f[ V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2 \f]
+# where \f$ \vec{\theta} \f$ is the vector pointing from one particle to the other in the %pair.
 #
 # Coefficients:
 # - \f$ \theta_0 \f$ - rest %angle (in radians)
