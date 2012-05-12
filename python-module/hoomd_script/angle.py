@@ -543,7 +543,6 @@ class table(force._force):
     ## Specify the Tabulated %angle %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
-    # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
     # \param name Name of the force instance
     #
     # \b Example:
@@ -555,11 +554,9 @@ class table(force._force):
     #
     # atable = angle.table(width=1000)
     # atable.angle_coeff.set('polymer', func=har, coeff=dict(kappa=330, theta_0=0.84))
-
     # \endcode
     #
-    # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
-    # not diverge near r=0, then a setting of \c rmin=0 is valid.
+    #
     #
     # \note, be sure that \c rmin and \c rmax cover the range of angle values.  If gpu eror checking is on, a error will
     # be thrown if a angle distance is outside than this range.
@@ -636,16 +633,14 @@ class table(force._force):
      # The provided file specifies V and F at equally spaced theta values.
       # Example:
       # \code
-      # #r  V    T
+      # #t  V    T
       # 0.0 2.0 -3.0
       # 1.5707 3.0 -4.0
       # 3.1414 2.0 -3.0
-      # 4.7121 1.0 -2.0
-      # 6.2828 0.0 -3.0
       #\endcode
       #
-      #  NOTE ON USE OF THETA The first theta value sets the value at 0 radians, the last sets \a 2*pi radians and should be the same. Any line with \# as the first non-whitespace character is
-      # is treated as a comment. The \a r values must monotonically increase and be equally spaced. The table is read
+      # Note: The theta values are not used by the code.  It is assumed that a table that has N rows will start at 0, end at \pi
+      # and that the \delta \theta = \pi/(N-1). The table is read
       # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
     #
     def set_from_file(self, anglename, filename):

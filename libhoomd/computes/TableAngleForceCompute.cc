@@ -122,7 +122,7 @@ TableAngleForceCompute::~TableAngleForceCompute()
 
 /*! \param type Type of the bond to set parameters for
     \param V Table for the potential V
-    \param F Table for the potential T (must be - dV / dtheta)
+    \param T Table for the torque T (must be - dV / dtheta)
     \post Values from \a V and \a T are copied into the interal storage for type pair (type)
 */
 void TableAngleForceCompute::setTable(unsigned int type,

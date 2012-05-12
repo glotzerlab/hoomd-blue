@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // SMALL a relatively small number
 #define SMALL 0.001f
 
-/*! \file TableAngleForceComputeGPU.cu
+/*! \file TableAngleForceGPU.cu
     \brief Defines GPU kernel code for calculating the table angle forces. Used by TableAngleForceComputeGPU.
 */
 
@@ -288,7 +288,8 @@ __global__ void gpu_compute_table_angle_forces_kernel(float4* d_force,
     \param n_angles_list List of numbers of angles stored on the GPU
     \param n_angle_type number of angle types
     \param d_tables Tables of the potential and force
-    \param m_table_value indexer helper
+    \param table_width Number of points in each table    
+    \param table_value indexer helper
     \param block_size Block size at which to run the kernel
 
     \note This is just a kernel driver. See gpu_compute_table_angle_forces_kernel for full documentation.
