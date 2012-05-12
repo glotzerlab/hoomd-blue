@@ -50,8 +50,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: phillicl
 
-/*! \file BondTablePotentialGPU.cuh
-    \brief Declares GPU kernel code for calculating the table bond forces. Used by BONDTablePotentialGPU.
+/*! \file TableAngleForceGPU.cuh
+    \brief Declares GPU kernel code for calculating the table bond forces. Used by TableAngleForceGPU.
 */
 
 #include "ParticleData.cuh"
@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __TABLEANGLEFORCECOMPUTEGPU_CUH__
 #define __TABLEANGLEFORCECOMPUTEGPU_CUH__
 
-//! Kernel driver that computes table forces on the GPU for TablePotentialGPU
+//! Kernel driver that computes table forces on the GPU for TableAngleForceGPU
 cudaError_t gpu_compute_table_angle_forces(float4* d_force,
                                      float* d_virial,
                                      const unsigned int virial_pitch,
