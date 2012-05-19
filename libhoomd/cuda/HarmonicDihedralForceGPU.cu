@@ -102,7 +102,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_dihedrals = n_dihedrals_list[idx];
 
-    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    // read in the position of our b-particle from the a-b-c-d set. (MEM TRANSFER: 16 bytes)
     Scalar4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
     Scalar3 idx_pos = make_float3(idx_postype.x, idx_postype.y, idx_postype.z);
     Scalar3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
@@ -133,7 +133,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(float4* d_force,
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
         float4 y_postype = d_pos[cur_dihedral_y_idx];
         float3 y_pos = make_float3(y_postype.x, y_postype.y, y_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the d-particle's position (MEM TRANSFER: 16 bytes)
         float4 z_postype = d_pos[cur_dihedral_z_idx];
         float3 z_pos = make_float3(z_postype.x, z_postype.y, z_postype.z);
 
@@ -377,7 +377,17 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
         return error;
 
     // run the kernel
-    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
+    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>
+            (d_force,
+            d_virial, 
+            virial_pitch, 
+            N, 
+            d_pos, 
+            box, 
+            tlist, 
+            dihedral_ABCD, 
+            pitch, 
+            n_dihedrals_list);
 
     return cudaSuccess;
     }

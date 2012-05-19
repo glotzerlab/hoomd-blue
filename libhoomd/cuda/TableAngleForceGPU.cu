@@ -100,7 +100,6 @@ __global__ void gpu_compute_table_angle_forces_kernel(float4* d_force,
                                      const uint4 *alist,
                                      const unsigned int pitch,
                                      const unsigned int *n_angles_list,
-                                     const unsigned int n_angle_type,
                                      const Index2D table_value,
                                      const float delta_th)
     {
@@ -303,14 +302,12 @@ cudaError_t gpu_compute_table_angle_forces(float4* d_force,
                                      const uint4 *alist,
                                      const unsigned int pitch,
                                      const unsigned int *n_angles_list,
-                                     const unsigned int n_angle_type,
                                      const float2 *d_tables,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
                                      const unsigned int block_size)
     {
     assert(d_tables);
-    assert(n_angle_type > 0);
     assert(table_width > 1);
 
     // setup the grid to run the kernel
@@ -327,7 +324,7 @@ cudaError_t gpu_compute_table_angle_forces(float4* d_force,
 
     float delta_th = M_PI/(table_width - 1.0f);
     
-    gpu_compute_table_angle_forces_kernel<<< grid, threads, sizeof(float4)*n_angle_type >>>
+    gpu_compute_table_angle_forces_kernel<<< grid, threads >>>
             (d_force,
              d_virial,
              virial_pitch,
@@ -337,7 +334,6 @@ cudaError_t gpu_compute_table_angle_forces(float4* d_force,
              alist,
              pitch,
              n_angles_list,
-             n_angle_type,
              table_value,
              delta_th);
 

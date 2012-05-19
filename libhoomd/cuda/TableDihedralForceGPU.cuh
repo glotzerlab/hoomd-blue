@@ -50,28 +50,29 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: phillicl
 
-/*! \file TableAngleForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the table bond forces. Used by TableAngleForceGPU.
+/*! \file TableDihedralForceGPU.cuh
+    \brief Declares GPU kernel code for calculating the table bond forces. Used by TableDihedralForceGPU.
 */
 
 #include "ParticleData.cuh"
-#include "AngleData.cuh" 
+#include "DihedralData.cuh" 
 #include "Index1D.h"
 #include "HOOMDMath.h"
 
-#ifndef __TABLEANGLEFORCECOMPUTEGPU_CUH__
-#define __TABLEANGLEFORCECOMPUTEGPU_CUH__
+#ifndef __TABLEDIHEDRALFORCECOMPUTEGPU_CUH__
+#define __TABLEDIHEDRALFORCECOMPUTEGPU_CUH__
 
-//! Kernel driver that computes table forces on the GPU for TableAngleForceGPU
-cudaError_t gpu_compute_table_angle_forces(float4* d_force,
+//! Kernel driver that computes table forces on the GPU for TableDihedralForceGPU
+cudaError_t gpu_compute_table_dihedral_forces(float4* d_force,
                                      float* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const BoxDim &box,
-                                     const uint4 *alist,
+                                     const uint4 *dlist,
+                                     const uint1 *dihedral_ABCD,          
                                      const unsigned int pitch,
-                                     const unsigned int *n_angles_list,
+                                     const unsigned int *n_dihedrals_list,
                                      const float2 *d_tables,
                                      const unsigned int table_width,
                                      const Index2D &table_value,

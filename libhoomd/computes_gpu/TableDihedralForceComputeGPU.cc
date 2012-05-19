@@ -55,11 +55,11 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-#include "TableAngleForceComputeGPU.h"
+#include "TableDihedralForceComputeGPU.h"
 #include <stdexcept>
 
-/*! \file TableAngleForceComputeGPU.cc
-    \brief Defines the TableAngleForceComputeGPU class
+/*! \file TableDihedralForceComputeGPU.cc
+    \brief Defines the TableDihedralForceComputeGPU class
 */
 
 using namespace std;
@@ -68,10 +68,10 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TableAngleForceComputeGPU::TableAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
-    : TableAngleForceCompute(sysdef, table_width, log_suffix), m_block_size(64)
+    : TableDihedralForceCompute(sysdef, table_width, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
@@ -87,7 +87,7 @@ TableAngleForceComputeGPU::TableAngleForceComputeGPU(boost::shared_ptr<SystemDef
 
 /*! \param block_size Block size to set
 */
-void TableAngleForceComputeGPU::setBlockSize(int block_size)
+void TableDihedralForceComputeGPU::setBlockSize(int block_size)
     {
     m_block_size = block_size;
     }
@@ -98,11 +98,11 @@ void TableAngleForceComputeGPU::setBlockSize(int block_size)
 
 Calls gpu_compute_bondtable_forces to do the leg work
 */
-void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
+void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
     {
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "Angle Table");
+    if (m_prof) m_prof->push(exec_conf, "Dihedral Table");
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -115,21 +115,23 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
         {
-        // Access the angle data for reading
-        ArrayHandle<uint4> d_gpu_anglelist(m_angle_data->getGPUAngleList(), access_location::device,access_mode::read);
-        ArrayHandle<unsigned int> d_gpu_n_angles(m_angle_data->getNAnglesArray(), access_location::device, access_mode::read);
+        // Access the dihedral data for reading
+        ArrayHandle<uint4> d_gpu_dihedrallist(m_dihedral_data->getGPUDihedralList(), access_location::device,access_mode::read);
+        ArrayHandle<unsigned int> d_gpu_n_dihedrals(m_dihedral_data->getNDihedralsArray(), access_location::device, access_mode::read);
+        ArrayHandle<uint1> d_dihedrals_ABCD(m_dihedral_data->getDihedralABCD(), access_location::device, access_mode::read);
 
 
         // run the kernel on all GPUs in parallel
-        gpu_compute_table_angle_forces(d_force.data,
+        gpu_compute_table_dihedral_forces(d_force.data,
                              d_virial.data,
                              m_virial.getPitch(),
                              m_pdata->getN(),
                              d_pos.data,
                              box,
-                             d_gpu_anglelist.data,
-                             m_angle_data->getGPUAngleList().getPitch(),
-                             d_gpu_n_angles.data,
+                             d_gpu_dihedrallist.data,
+                             d_dihedrals_ABCD.data, 
+                             m_dihedral_data->getGPUDihedralList().getPitch(),
+                             d_gpu_n_dihedrals.data,
                              d_tables.data,
                              m_table_width,
                              m_table_value,
@@ -145,13 +147,13 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(exec_conf);
     }
 
-void export_TableAngleForceComputeGPU()
+void export_TableDihedralForceComputeGPU()
     {
-    class_<TableAngleForceComputeGPU, boost::shared_ptr<TableAngleForceComputeGPU>, bases<TableAngleForceCompute>, boost::noncopyable >
-    ("TableAngleForceComputeGPU",
+    class_<TableDihedralForceComputeGPU, boost::shared_ptr<TableDihedralForceComputeGPU>, bases<TableDihedralForceCompute>, boost::noncopyable >
+    ("TableDihedralForceComputeGPU",
      init< boost::shared_ptr<SystemDefinition>,
      unsigned int,
      const std::string& >())
-    .def("setBlockSize", &TableAngleForceComputeGPU::setBlockSize)
+    .def("setBlockSize", &TableDihedralForceComputeGPU::setBlockSize)
     ;
     }

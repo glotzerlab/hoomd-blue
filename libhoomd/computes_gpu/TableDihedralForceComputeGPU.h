@@ -50,32 +50,49 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: phillicl
 
-/*! \file TableAngleForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the table bond forces. Used by TableAngleForceGPU.
+#include "TableDihedralForceCompute.h"
+#include "TableDihedralForceGPU.cuh"
+
+/*! \file TableDihedralForceComputeGPU.h
+    \brief Declares the TableDihedralForceComputeGPU class
 */
 
-#include "ParticleData.cuh"
-#include "AngleData.cuh" 
-#include "Index1D.h"
-#include "HOOMDMath.h"
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
 
-#ifndef __TABLEANGLEFORCECOMPUTEGPU_CUH__
-#define __TABLEANGLEFORCECOMPUTEGPU_CUH__
+#ifndef __TABLEDIHEDRALFORCECOMPUTEGPU_H__
+#define __TABLEDIHEDRALFORCECOMPUTEGPU_H__
 
-//! Kernel driver that computes table forces on the GPU for TableAngleForceGPU
-cudaError_t gpu_compute_table_angle_forces(float4* d_force,
-                                     float* d_virial,
-                                     const unsigned int virial_pitch,
-                                     const unsigned int N,
-                                     const Scalar4 *d_pos,
-                                     const BoxDim &box,
-                                     const uint4 *alist,
-                                     const unsigned int pitch,
-                                     const unsigned int *n_angles_list,
-                                     const float2 *d_tables,
-                                     const unsigned int table_width,
-                                     const Index2D &table_value,
-                                     const unsigned int block_size);
+//! Compute table based bond potentials on the GPU
+/*! Calculates exactly the same thing as TableDihedralForceCompute, but on the GPU
+
+    The GPU kernel for calculating this can be found in TableDihedralForceComputeGPU.cu/
+    \ingroup computes
+*/
+class TableDihedralForceComputeGPU : public TableDihedralForceCompute
+    {
+    public:
+        //! Constructs the compute
+        TableDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                          unsigned int table_width,
+                          const std::string& log_suffix="");
+
+        //! Destructor
+        virtual ~TableDihedralForceComputeGPU() { }
+
+        //! Set the block size
+        void setBlockSize(int block_size);
+
+    private:
+        int m_block_size;   //!< the block size
+        GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+    };
+
+//! Exports the TableDihedralForceComputeGPU class to python
+void export_TableDihedralForceComputeGPU();
 
 #endif
 

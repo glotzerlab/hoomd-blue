@@ -1,0 +1,418 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+// Maintainer: phillicl
+
+#include "TableDihedralForceGPU.cuh"
+
+
+#ifdef WIN32
+#include <cassert>
+#else
+#include <assert.h>
+#endif
+
+// SMALL a relatively small number
+#define SMALL 0.001f
+
+/*! \file TableDihedralForceGPU.cu
+    \brief Defines GPU kernel code for calculating the table dihedral forces. Used by TableDihedralForceComputeGPU.
+*/
+
+
+//! Texture for reading table values
+texture<float2, 1, cudaReadModeElementType> tables_tex;
+
+/*!  This kernel is called to calculate the table dihedral forces on all triples this is defined or
+
+    \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
+    \param virial_pitch Pitch of 2D virial array
+    \param N number of particles in system
+    \param device_pos device array of particle positions
+    \param box Box dimensions used to implement periodic boundary conditions
+    \param dlist List of dihedrals stored on the GPU
+    \param pitch Pitch of 2D dihedral list
+    \param n_dihedrals_list List of numbers of dihedrals stored on the GPU
+    \param n_dihedral_type number of dihedral types
+    \param table_value index helper function
+    \param delta_phi dihedral delta of the table
+
+    See TableDihedralForceCompute for information on the memory layout.
+
+    \b Details:
+    * Table entries are read from tables_tex. Note that currently this is bound to a 1D memory region. Performance tests
+      at a later date may result in this changing.
+*/
+__global__ void gpu_compute_table_dihedral_forces_kernel(float4* d_force,
+                                     float* d_virial,
+                                     const unsigned int virial_pitch,
+                                     const unsigned int N,
+                                     const Scalar4 *device_pos,
+                                     const BoxDim box,
+                                     const uint4 *dlist,
+                                     const uint1 *dihedral_ABCD,    
+                                     const unsigned int pitch,
+                                     const unsigned int *n_dihedrals_list,
+                                     const Index2D table_value,
+                                     const float delta_phi)
+    {
+
+
+    // start by identifying which particle we are to handle
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N)
+        return;
+
+    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
+    int n_dihedrals =n_dihedrals_list[idx];
+
+    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    float4 idx_postype = device_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
+    float3 idx_pos = make_float3(idx_postype.x, idx_postype.y, idx_postype.z);
+    float3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b,c, and d atom in the a-b-c-d set
+   
+
+    // initialize the force to 0
+    float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        
+    // initialize the virial tensor to 0
+    float virial_idx[6];
+    for (unsigned int i = 0; i < 6; i++)
+        virial_idx[i] = 0;
+
+    for (int dihedral_idx = 0; dihedral_idx < n_dihedrals; dihedral_idx++)
+        {
+        uint4 cur_dihedral = dlist[pitch*dihedral_idx + idx];
+        uint1 cur_ABCD = dihedral_ABCD[pitch*dihedral_idx + idx];
+
+        int cur_dihedral_x_idx = cur_dihedral.x;
+        int cur_dihedral_y_idx = cur_dihedral.y;
+        int cur_dihedral_z_idx = cur_dihedral.z;
+        int cur_dihedral_type = cur_dihedral.w;
+        int cur_dihedral_abcd = cur_ABCD.x;
+
+        // get the a-particle's position (MEM TRANSFER: 16 bytes)
+        float4 x_postype = device_pos[cur_dihedral_x_idx];
+        float3 x_pos = make_float3(x_postype.x, x_postype.y, x_postype.z);
+        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        float4 y_postype = device_pos[cur_dihedral_y_idx];
+        float3 y_pos = make_float3(y_postype.x, y_postype.y, y_postype.z);
+        // get the d-particle's position (MEM TRANSFER: 16 bytes)
+        float4 z_postype = device_pos[cur_dihedral_z_idx];
+        float3 z_pos = make_float3(z_postype.x, z_postype.y, z_postype.z);
+
+        if (cur_dihedral_abcd == 0)
+            {
+            pos_a = idx_pos;
+            pos_b = x_pos;
+            pos_c = y_pos;
+            pos_d = z_pos;
+            }
+        if (cur_dihedral_abcd == 1)
+            {
+            pos_b = idx_pos;
+            pos_a = x_pos;
+            pos_c = y_pos;
+            pos_d = z_pos;
+            }
+        if (cur_dihedral_abcd == 2)
+            {
+            pos_c = idx_pos;
+            pos_a = x_pos;
+            pos_b = y_pos;
+            pos_d = z_pos;
+            }
+        if (cur_dihedral_abcd == 3)
+            {
+            pos_d = idx_pos;
+            pos_a = x_pos;
+            pos_b = y_pos;
+            pos_c = z_pos;
+            }
+
+        // calculate dr for a-b,c-b,and a-c
+        float3 dab = pos_a - pos_b;
+        float3 dcb = pos_c - pos_b;
+        float3 ddc = pos_d - pos_c;
+
+        dab = box.minImage(dab);
+        dcb = box.minImage(dcb);
+        ddc = box.minImage(ddc);
+
+        float3 dcbm = -dcb;
+        dcbm = box.minImage(dcbm);
+
+        // c0 calculation
+        float sb1 = 1.0 / (dab.x*dab.x + dab.y*dab.y + dab.z*dab.z);
+        float sb2 = 1.0 / (dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z);
+        float sb3 = 1.0 / (ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z);
+            
+        float rb1 = sqrt(sb1);
+        float rb3 = sqrt(sb3);
+            
+        float c0 = (dab.x*ddc.x + dab.y*ddc.y + dab.z*ddc.z) * rb1*rb3;
+
+        // 1st and 2nd angle
+            
+        float b1mag2 = dab.x*dab.x + dab.y*dab.y + dab.z*dab.z;
+        float b1mag = sqrt(b1mag2);
+        float b2mag2 = dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z;
+        float b2mag = sqrt(b2mag2);
+        float b3mag2 = ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z;
+        float b3mag = sqrt(b3mag2);
+
+        float ctmp = dab.x*dcb.x + dab.y*dcb.y + dab.z*dcb.z;
+        float r12c1 = 1.0f / (b1mag*b2mag);
+        float c1mag = ctmp * r12c1;
+
+        ctmp = dcbm.x*ddc.x + dcbm.y*ddc.y + dcbm.z*ddc.z;
+        float r12c2 = 1.0f / (b2mag*b3mag);
+        float c2mag = ctmp * r12c2;
+
+        // cos and sin of 2 angles and final c
+
+        float sin2 = 1.0f - c1mag*c1mag;
+        if (sin2 < 0.0f) sin2 = 0.0f;
+        float sc1 = sqrtf(sin2);
+        if (sc1 < SMALL) sc1 = SMALL;
+        sc1 = 1.0f/sc1;
+
+        sin2 = 1.0f - c2mag*c2mag;
+        if (sin2 < 0.0f) sin2 = 0.0f;
+        float sc2 = sqrtf(sin2);
+        if (sc2 < SMALL) sc2 = SMALL;
+        sc2 = 1.0f/sc2;
+
+        float s1 = sc1 * sc1;
+        float s2 = sc2 * sc2;
+        float s12 = sc1 * sc2;
+        float c = (c0 + c1mag*c2mag) * s12;
+      
+        if (c > 1.0f) c = 1.0f;
+        if (c < -1.0f) c = -1.0f;
+        
+        //phi
+        float phi = acosf(c);
+        // precomputed term
+        float value_f = phi / delta_phi;
+
+        // compute index into the table and read in values
+        unsigned int value_i = floor(value_f);
+        float2 VT0 = tex1Dfetch(tables_tex, table_value(value_i, cur_dihedral_type));
+        float2 VT1 = tex1Dfetch(tables_tex, table_value(value_i+1, cur_dihedral_type));
+        // unpack the data
+        float V0 = VT0.x;
+        float V1 = VT1.x;
+        float T0 = VT0.y;
+        float T1 = VT1.y;
+
+        // compute the linear interpolation coefficient
+        float f = value_f - float(value_i);
+
+        // interpolate to get V and T;
+        float V = V0 + f * (V1 - V0);
+        float T = T0 + f * (T1 - T0);
+        
+        
+        float a = T; 
+        c = c * a;
+        s12 = s12 * a;
+        float a11 = c*sb1*s1;
+        float a22 = -sb2 * (2.0f*c0*s12 - c*(s1+s2));
+        float a33 = c*sb3*s2;
+        float a12 = -r12c1*(c1mag*c*s1 + c2mag*s12);
+        float a13 = -rb1*rb3*s12;
+        float a23 = r12c2*(c2mag*c*s2 + c1mag*s12);
+
+        float sx2  = a12*dab.x + a22*dcb.x + a23*ddc.x;
+        float sy2  = a12*dab.y + a22*dcb.y + a23*ddc.y;
+        float sz2  = a12*dab.z + a22*dcb.z + a23*ddc.z;
+        
+        float ffax = a11*dab.x + a12*dcb.x + a13*ddc.x;
+        float ffay = a11*dab.y + a12*dcb.y + a13*ddc.y;
+        float ffaz = a11*dab.z + a12*dcb.z + a13*ddc.z;
+        
+        float ffbx = -sx2 - ffax;
+        float ffby = -sy2 - ffay;
+        float ffbz = -sz2 - ffaz;
+        
+        float ffdx = a13*dab.x + a23*dcb.x + a33*ddc.x;
+        float ffdy = a13*dab.y + a23*dcb.y + a33*ddc.y;
+        float ffdz = a13*dab.z + a23*dcb.z + a33*ddc.z;
+        
+        float ffcx = sx2 - ffdx;
+        float ffcy = sy2 - ffdy;
+        float ffcz = sz2 - ffdz;
+
+        // Now, apply the force to each individual atom a,b,c,d
+        // and accumlate the energy/virial
+        
+        // compute 1/4 of the energy, 1/4 for each atom in the dihedral
+        float dihedral_eng = V*float(1.0f/4.0f); 
+        
+        // compute 1/4 of the virial, 1/4 for each atom in the dihedral
+        // symmetrized version of virial tensor
+        float dihedral_virial[6];
+        dihedral_virial[0] = float(1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
+        dihedral_virial[1] = float(1./8.)*(dab.x*ffay + dcb.x*ffcy + (ddc.x+dcb.x)*ffdy
+                                     +dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx);
+        dihedral_virial[2] = float(1./8.)*(dab.x*ffaz + dcb.x*ffcz + (ddc.x+dcb.x)*ffdz
+                                     +dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx);
+        dihedral_virial[3] = float(1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
+        dihedral_virial[4] = float(1./8.)*(dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz
+                                     +dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
+        dihedral_virial[5] = float(1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
+
+        if (cur_dihedral_abcd == 0)
+            {
+            force_idx.x += ffax;
+            force_idx.y += ffay;
+            force_idx.z += ffaz;
+            }
+        if (cur_dihedral_abcd == 1)
+            {
+            force_idx.x += ffbx;
+            force_idx.y += ffby;
+            force_idx.z += ffbz;
+            }
+        if (cur_dihedral_abcd == 2)
+            {
+            force_idx.x += ffcx;
+            force_idx.y += ffcy;
+            force_idx.z += ffcz;
+            }
+        if (cur_dihedral_abcd == 3)
+            {
+            force_idx.x += ffdx;
+            force_idx.y += ffdy;
+            force_idx.z += ffdz;
+            }
+
+        force_idx.w += dihedral_eng;
+        for (int k = 0; k < 6; k++)
+            virial_idx[k] += dihedral_virial[k];
+        }
+
+    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+    d_force[idx] = force_idx;
+    for (int k = 0; k < 6; k++)
+       d_virial[k*virial_pitch+idx] = virial_idx[k];
+    }
+
+
+/*! \param d_force Device memory to write computed forces
+    \param d_virial Device memory to write computed virials
+    \param virial_pitch pitch of 2D virial array
+    \param N number of particles
+    \param device_pos particle positions on the device
+    \param box Box dimensions used to implement periodic boundary conditions
+    \param dlist List of dihedrals stored on the GPU
+    \param pitch Pitch of 2D dihedral list
+    \param n_dihedrals_list List of numbers of dihedrals stored on the GPU
+    \param n_dihedral_type number of dihedral types
+    \param d_tables Tables of the potential and force
+    \param table_width Number of points in each table    
+    \param table_value indexer helper
+    \param block_size Block size at which to run the kernel
+
+    \note This is just a kernel driver. See gpu_compute_table_dihedral_forces_kernel for full documentation.
+*/
+cudaError_t gpu_compute_table_dihedral_forces(float4* d_force,
+                                     float* d_virial,
+                                     const unsigned int virial_pitch,
+                                     const unsigned int N,
+                                     const Scalar4 *device_pos,
+                                     const BoxDim &box,
+                                     const uint4 *dlist,
+                                     const uint1 *dihedral_ABCD,    
+                                     const unsigned int pitch,
+                                     const unsigned int *n_dihedrals_list,
+                                     const float2 *d_tables,
+                                     const unsigned int table_width,
+                                     const Index2D &table_value,
+                                     const unsigned int block_size)
+    {
+    assert(d_tables);
+    assert(table_width > 1);
+
+    // setup the grid to run the kernel
+    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+
+    // bind the tables texture
+    tables_tex.normalized = false;
+    tables_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_value.getNumElements());
+    if (error != cudaSuccess)
+        return error;
+
+    float delta_phi = M_PI/(table_width - 1.0f);
+    
+    gpu_compute_table_dihedral_forces_kernel<<< grid, threads>>>
+            (d_force,
+             d_virial,
+             virial_pitch,
+             N,
+             device_pos,
+             box,
+             dlist,
+             dihedral_ABCD,
+             pitch,
+             n_dihedrals_list,
+             table_value,
+             delta_phi);
+
+    return cudaSuccess;
+    }
+
+// vim:syntax=cpp
