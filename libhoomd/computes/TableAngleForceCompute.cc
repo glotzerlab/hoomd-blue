@@ -202,6 +202,8 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
     assert(h_virial.data);
     assert(h_pos.data);
     assert(h_rtag.data);
+    
+    unsigned int virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -336,21 +338,21 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         h_force.data[idx_a].z += fab[2];
         h_force.data[idx_a].w += angle_eng;
         for (int j = 0; j < 6; j++)
-            h_virial.data[j*m_virial_pitch+idx_a]  += angle_virial[j];
+            h_virial.data[j*virial_pitch+idx_a]  += angle_virial[j];
         
         h_force.data[idx_b].x -= fab[0] + fcb[0];
         h_force.data[idx_b].y -= fab[1] + fcb[1];
         h_force.data[idx_b].z -= fab[2] + fcb[2];
         h_force.data[idx_b].w += angle_eng;
         for (int j = 0; j < 6; j++)
-            h_virial.data[j*m_virial_pitch+idx_b]  += angle_virial[j];
+            h_virial.data[j*virial_pitch+idx_b]  += angle_virial[j];
         
         h_force.data[idx_c].x += fcb[0];
         h_force.data[idx_c].y += fcb[1];
         h_force.data[idx_c].z += fcb[2];
         h_force.data[idx_c].w += angle_eng;
         for (int j = 0; j < 6; j++)
-            h_virial.data[j*m_virial_pitch+idx_c]  += angle_virial[j];
+            h_virial.data[j*virial_pitch+idx_c]  += angle_virial[j];
 
         }
         
