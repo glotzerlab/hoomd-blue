@@ -470,7 +470,7 @@ class cgcmm(force._force):
 
 
 
-def _table_eval(r, rmin, rmax, V, T, width):
+def _table_eval(r, V, T, width):
       dth = (thmax - thmin) / float(width-1);
       i = int(round((thmax - thmin)/dth))
       return (V[i], T[i])
