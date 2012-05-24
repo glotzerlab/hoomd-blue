@@ -85,7 +85,7 @@ TableAngleForceCompute::TableAngleForceCompute(boost::shared_ptr<SystemDefinitio
     // check for some silly errors a user could make
     if (m_angle_data->getNAngleTypes() == 0)
         {
-        m_exec_conf->msg->error() << "angle.harmonic: No angle types specified" << endl;
+        m_exec_conf->msg->error() << "angle.table: No angle types specified" << endl;
         throw runtime_error("Error initializing TableAngleForceCompute");
         }
 
@@ -108,11 +108,7 @@ TableAngleForceCompute::TableAngleForceCompute(boost::shared_ptr<SystemDefinitio
     Index2D table_value(m_tables.getPitch(),m_angle_data->getNAngleTypes());
     m_table_value = table_value;
 
-
-  
-    
-
-    m_log_name = std::string("table_angle_energy") + log_suffix;
+    m_log_name = std::string("angle_table_energy") + log_suffix;
     }
     
 TableAngleForceCompute::~TableAngleForceCompute()
@@ -120,7 +116,7 @@ TableAngleForceCompute::~TableAngleForceCompute()
         m_exec_conf->msg->notice(5) << "Destroying TableAngleForceCompute" << endl;
         }
 
-/*! \param type Type of the bond to set parameters for
+/*! \param type Type of the angle to set parameters for
     \param V Table for the potential V
     \param T Table for the torque T (must be - dV / dtheta)
     \post Values from \a V and \a T are copied into the interal storage for type pair (type)
@@ -158,7 +154,7 @@ void TableAngleForceCompute::setTable(unsigned int type,
     }
 
 /*! TableAngleForceCompute provides
-    - \c bond_table_energy
+    - \c angle_table_energy
 */
 std::vector< std::string > TableAngleForceCompute::getProvidedLogQuantities()
     {
