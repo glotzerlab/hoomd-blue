@@ -676,7 +676,7 @@ class table(force._force):
               T_table.append(values[2]);
 
           # validate input
-          if self.width != len(r_table):
+          if self.width != len(theta_table):
               globals.msg.error("angle.table: file must have exactly " + str(self.width) + " rows\n");
               raise RuntimeError("Error reading table file");
 
