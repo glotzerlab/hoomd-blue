@@ -75,8 +75,8 @@ class ComputeThermoGPU : public ComputeThermo
                          boost::shared_ptr<ParticleGroup> group,
                          const std::string& suffix = std::string(""));
     protected:
-        GPUArray<float4> m_scratch;  //!< Scratch space for partial sums
-        GPUArray<float> m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
+        GPUArray<Scalar4> m_scratch;  //!< Scratch space for partial sums
+        GPUArray<Scalar> m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
         unsigned int m_num_blocks;   //!< Number of blocks participating in the reduction
         unsigned int m_block_size;   //!< Block size executed
         //! Does the actual computation

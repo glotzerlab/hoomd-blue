@@ -208,7 +208,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                              m_block_size);
 
 
-        Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
+        Scalar scale = Scalar(1.0)/((Scalar)(m_Nx * m_Ny * m_Nz));
         m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
         m_box_changed = false;
         }
@@ -299,7 +299,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         Scalar3 L = box.getL();
 
         pppm_virial_energy[0] *= m_energy_virial_factor;
-        pppm_virial_energy[0] -= m_q2 * m_kappa / 1.772453850905516027298168f;
+        pppm_virial_energy[0] -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
         pppm_virial_energy[0] -= 0.5*M_PI*m_q*m_q / (m_kappa*m_kappa* L.x * L.y * L.z);
 
         for(int i = 1; i < 7; i++) {

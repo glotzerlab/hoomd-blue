@@ -94,7 +94,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
         }
 
     // allocate the coeff data on the CPU
-    GPUArray<float4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
+    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
     m_coeffs.swap(coeffs);
     }
 
@@ -153,10 +153,10 @@ void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scala
         throw runtime_error("CGCMMForceComputeGpu::setParams argument error");
         }
     
-    ArrayHandle<float4> h_coeffs(m_coeffs, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_coeffs(m_coeffs, access_location::host, access_mode::readwrite);
     // set coeffs in both symmetric positions in the matrix
-    h_coeffs.data[typ1*m_pdata->getNTypes() + typ2] = make_float4(lj12, lj9, lj6, lj4);
-    h_coeffs.data[typ2*m_pdata->getNTypes() + typ1] = make_float4(lj12, lj9, lj6, lj4);
+    h_coeffs.data[typ1*m_pdata->getNTypes() + typ2] = make_scalar4(lj12, lj9, lj6, lj4);
+    h_coeffs.data[typ2*m_pdata->getNTypes() + typ1] = make_scalar4(lj12, lj9, lj6, lj4);
     }
 
 /*! \post The CGCMM forces are computed for the given timestep on the GPU.
@@ -186,7 +186,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     // it there if needed
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
-    ArrayHandle<float4> d_coeffs(m_coeffs, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_coeffs(m_coeffs, access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data

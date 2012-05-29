@@ -104,16 +104,16 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
         if (m_n_bodies <= 0)
             return;
         
-        GPUArray<float> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
+        GPUArray<Scalar> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
         m_partial_Ksum_t.swap(partial_Ksum_t);
         
-        GPUArray<float> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
+        GPUArray<Scalar> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
         m_partial_Ksum_r.swap(partial_Ksum_r);
         
-        GPUArray<float> Ksum_t(1, m_pdata->getExecConf());
+        GPUArray<Scalar> Ksum_t(1, m_pdata->getExecConf());
         m_Ksum_t.swap(Ksum_t);
         
-        GPUArray<float> Ksum_r(1, m_pdata->getExecConf());
+        GPUArray<Scalar> Ksum_r(1, m_pdata->getExecConf());
         m_Ksum_r.swap(Ksum_r);
         
         m_first_step = false;

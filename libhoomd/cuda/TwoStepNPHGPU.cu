@@ -78,10 +78,10 @@ void gpu_nph_step_one_kernel(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float3 L_old,
-                             float3 L_halfstep,
-                             float3 L_final,
-                             float deltaT)
+                             Scalar3 L_old,
+                             Scalar3 L_halfstep,
+                             Scalar3 L_final,
+                             Scalar deltaT)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -92,30 +92,30 @@ void gpu_nph_step_one_kernel(Scalar4 *d_pos,
         unsigned int idx = d_group_members[group_idx];
 
         // fetch particle position
-        float4 pos = d_pos[idx];
+        Scalar4 pos = d_pos[idx];
 
-        float px = pos.x;
-        float py = pos.y;
-        float pz = pos.z;
-        float pw = pos.w;
+        Scalar px = pos.x;
+        Scalar py = pos.y;
+        Scalar pz = pos.z;
+        Scalar pw = pos.w;
 
         // fetch particle velocity and acceleration
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
         Scalar3 accel = d_accel[idx];
 
-        float4 veltmp;
+        Scalar4 veltmp;
 
         // propagate velocity by half a time step and position by the full time step
         // according to the Nose-Hoover barostat
-        veltmp.x = vel.x + (1.0f/2.0f) * deltaT*accel.x;
+        veltmp.x = vel.x + (Scalar(1.0)/Scalar(2.0)) * deltaT*accel.x;
         px = (L_final.x/L_old.x) *(px + veltmp.x*deltaT*L_old.x*L_old.x/L_halfstep.x/L_halfstep.x);
         vel.x = L_old.x/L_final.x*veltmp.x;
 
-        veltmp.y = vel.y + (1.0f/2.0f) * deltaT*accel.y;
+        veltmp.y = vel.y + (Scalar(1.0)/Scalar(2.0)) * deltaT*accel.y;
         py = (L_final.y/L_old.y) *(py + veltmp.y*deltaT*L_old.y*L_old.y/L_halfstep.y/L_halfstep.y);
         vel.y = L_old.y/L_final.y*veltmp.y;
 
-        veltmp.z = vel.z + (1.0f/2.0f) * deltaT*accel.z;
+        veltmp.z = vel.z + (Scalar(1.0)/Scalar(2.0)) * deltaT*accel.z;
         pz = (L_final.z/L_old.z) *(pz + veltmp.z*deltaT*L_old.z*L_old.z/L_halfstep.z/L_halfstep.z);
         vel.z = L_old.z/L_final.z*veltmp.z;
 
@@ -148,10 +148,10 @@ cudaError_t gpu_nph_step_one(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float3 L_old,
-                             float3 L_halfstep,
-                             float3 L_final,
-                             float deltaT)
+                             Scalar3 L_old,
+                             Scalar3 L_halfstep,
+                             Scalar3 L_final,
+                             Scalar deltaT)
     {
     // setup the grid to run the kernel
     unsigned int block_size = 256;
@@ -192,8 +192,8 @@ void gpu_nph_wrap_particles_kernel(const unsigned int N,
     if (idx < N)
         {
         // fetch particle position
-        float4 postype = d_pos[idx];
-        float3 pos = make_float3(postype.x, postype.y, postype.z);
+        Scalar4 postype = d_pos[idx];
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         // read in the image flags
         int3 image = d_image[idx];
@@ -202,7 +202,7 @@ void gpu_nph_wrap_particles_kernel(const unsigned int N,
         box.wrap(pos, image);
 
         // write out the results
-        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
+        d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
         d_image[idx] = image;
         }
     }
@@ -240,10 +240,10 @@ cudaError_t gpu_nph_wrap_particles(const unsigned int N,
 extern "C" __global__
 void gpu_nph_step_two_kernel(Scalar4 *d_vel,
                              Scalar3 *d_accel,
-                             float4 *net_force,
+                             Scalar4 *net_force,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float deltaT)
+                             Scalar deltaT)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -253,19 +253,19 @@ void gpu_nph_step_two_kernel(Scalar4 *d_vel,
         unsigned int idx = d_group_members[group_idx];
 
         // fetch velocities
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
 
         // read in the net force and compute the acceleration
-        float4 accel = net_force[idx];
-        float mass = vel.w;
+        Scalar4 accel = net_force[idx];
+        Scalar mass = vel.w;
         accel.x /= mass;
         accel.y /= mass;
         accel.z /= mass;
 
         // propagate velocities from t+1/2*deltaT to t+deltaT
-        vel.x +=  (1.0f/2.0f)*deltaT*accel.x;
-        vel.y +=  (1.0f/2.0f)*deltaT*accel.y;
-        vel.z +=  (1.0f/2.0f)*deltaT*accel.z;
+        vel.x +=  (Scalar(1.0)/Scalar(2.0))*deltaT*accel.x;
+        vel.y +=  (Scalar(1.0)/Scalar(2.0))*deltaT*accel.y;
+        vel.z +=  (Scalar(1.0)/Scalar(2.0))*deltaT*accel.z;
 
         // write out data
         d_vel[idx] = vel;
@@ -287,8 +287,8 @@ cudaError_t gpu_nph_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float deltaT)
+                             Scalar4 *d_net_force,
+                             Scalar deltaT)
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;

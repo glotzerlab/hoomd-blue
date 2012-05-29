@@ -82,7 +82,7 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
         }
         
     // allocate and zero device memory
-    GPUArray<float2> params(m_improper_data->getNDihedralTypes(), exec_conf);
+    GPUArray<Scalar2> params(m_improper_data->getNDihedralTypes(), exec_conf);
     m_params.swap(params);
     }
 
@@ -101,9 +101,9 @@ void HarmonicImproperForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
     {
     HarmonicImproperForceCompute::setParams(type, K, chi);
     
-    ArrayHandle<float2> h_params(m_params, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_float2(float(K), float(chi));
+    h_params.data[type] = make_scalar2(Scalar(K), Scalar(chi));
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -129,7 +129,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
       
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
-    ArrayHandle<float2> d_params(m_params, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
     // run the kernel in parallel on all GPUs
     gpu_compute_harmonic_improper_forces(d_force.data,

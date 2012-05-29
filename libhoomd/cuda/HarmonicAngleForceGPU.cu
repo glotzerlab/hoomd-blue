@@ -60,14 +60,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // SMALL a relatively small number
-#define SMALL 0.001f
+#define SMALL Scalar(0.001)
 
 /*! \file HarmonicAngleForceGPU.cu
     \brief Defines GPU kernel code for calculating the harmonic angle forces. Used by HarmonicAngleForceComputeGPU.
 */
 
 //! Texture for reading angle parameters
-texture<float2, 1, cudaReadModeElementType> angle_params_tex;
+texture<Scalar2, 1, cudaReadModeElementType> angle_params_tex;
 
 //! Kernel for caculating harmonic angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -80,8 +80,8 @@ texture<float2, 1, cudaReadModeElementType> angle_params_tex;
     \param pitch Pitch of 2D angles list
     \param n_angles_list List of numbers of angles stored on the GPU
 */
-extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_force,
-                                                                    float* d_virial,
+extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_force,
+                                                                    Scalar* d_virial,
                                                                     const unsigned int virial_pitch,
                                                                     const unsigned int N,
                                                                     const Scalar4 *d_pos,
@@ -100,19 +100,19 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
     int n_angles = n_angles_list[idx];
 
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
-    float3 idx_pos = make_float3(idx_postype.x, idx_postype.y, idx_postype.z);
-    float3 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
+    Scalar4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
+    Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
+    Scalar3 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
 
     // initialize the force to 0
-    float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    Scalar4 force_idx = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
-    float fab[3], fcb[3];
+    Scalar fab[3], fcb[3];
 
     // initialize the virial to 0
-    float virial[6];
+    Scalar virial[6];
     for (int i = 0; i < 6; i++)
-        virial[i] = 0.0f;
+        virial[i] = Scalar(0.0);
 
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
@@ -125,11 +125,11 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
         int cur_angle_abc = cur_angle.w;
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
-        float4 x_postype = d_pos[cur_angle_x_idx];
-        float3 x_pos = make_float3(x_postype.x, x_postype.y, x_postype.z);
+        Scalar4 x_postype = d_pos[cur_angle_x_idx];
+        Scalar3 x_pos = make_scalar3(x_postype.x, x_postype.y, x_postype.z);
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 y_postype = d_pos[cur_angle_y_idx];
-        float3 y_pos = make_float3(y_postype.x, y_postype.y, y_postype.z);
+        Scalar4 y_postype = d_pos[cur_angle_y_idx];
+        Scalar3 y_pos = make_scalar3(y_postype.x, y_postype.y, y_postype.z);
 
         if (cur_angle_abc == 0)
             {
@@ -161,33 +161,33 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-        float2 params = tex1Dfetch(angle_params_tex, cur_angle_type);
-        float K = params.x;
-        float t_0 = params.y;
+        Scalar2 params = tex1Dfetch(angle_params_tex, cur_angle_type);
+        Scalar K = params.x;
+        Scalar t_0 = params.y;
 
-        float rsqab = dot(dab, dab);
-        float rab = sqrtf(rsqab);
-        float rsqcb = dot(dcb, dcb);
-        float rcb = sqrtf(rsqcb);
+        Scalar rsqab = dot(dab, dab);
+        Scalar rab = sqrtf(rsqab);
+        Scalar rsqcb = dot(dcb, dcb);
+        Scalar rcb = sqrtf(rsqcb);
 
-        float c_abbc = dot(dab, dcb);
+        Scalar c_abbc = dot(dab, dcb);
         c_abbc /= rab*rcb;
 
-        if (c_abbc > 1.0f) c_abbc = 1.0f;
-        if (c_abbc < -1.0f) c_abbc = -1.0f;
+        if (c_abbc > Scalar(1.0)) c_abbc = Scalar(1.0);
+        if (c_abbc < -Scalar(1.0)) c_abbc = -Scalar(1.0);
 
-        float s_abbc = sqrtf(1.0f - c_abbc*c_abbc);
+        Scalar s_abbc = sqrtf(Scalar(1.0) - c_abbc*c_abbc);
         if (s_abbc < SMALL) s_abbc = SMALL;
-        s_abbc = 1.0f/s_abbc;
+        s_abbc = Scalar(1.0)/s_abbc;
 
         // actually calculate the force
-        float dth = acosf(c_abbc) - t_0;
-        float tk = K*dth;
+        Scalar dth = acosf(c_abbc) - t_0;
+        Scalar tk = K*dth;
 
-        float a = -1.0f * tk * s_abbc;
-        float a11 = a*c_abbc/rsqab;
-        float a12 = -a / (rab*rcb);
-        float a22 = a*c_abbc / rsqcb;
+        Scalar a = -Scalar(1.0) * tk * s_abbc;
+        Scalar a11 = a*c_abbc/rsqab;
+        Scalar a12 = -a / (rab*rcb);
+        Scalar a22 = a*c_abbc / rsqcb;
 
         fab[0] = a11*dab.x + a12*dcb.x;
         fab[1] = a11*dab.y + a12*dcb.y;
@@ -198,21 +198,21 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
         fcb[2] = a22*dcb.z + a12*dab.z;
 
         // compute 1/3 of the energy, 1/3 for each atom in the angle
-        float angle_eng = tk*dth*float(1.0f/6.0f);
+        Scalar angle_eng = tk*dth*Scalar(Scalar(1.0)/Scalar(6.0));
 
         // do we really need a virial here for harmonic angles?
         // ... if not, this may be wrong...
         // symmetrized version of virial tensor
-        float angle_virial[6];
-        angle_virial[0] = float(1./3.)*(dab.x*fab[0] + dcb.x*fcb[0]);
-        angle_virial[1] = float(1./6.)*(dab.x*fab[1] + dcb.x*fcb[1]
+        Scalar angle_virial[6];
+        angle_virial[0] = Scalar(1./3.)*(dab.x*fab[0] + dcb.x*fcb[0]);
+        angle_virial[1] = Scalar(1./6.)*(dab.x*fab[1] + dcb.x*fcb[1]
                                       + dab.y*fab[0] + dcb.y*fcb[0]);
-        angle_virial[2] = float(1./6.)*(dab.x*fab[2] + dcb.x*fcb[2]
+        angle_virial[2] = Scalar(1./6.)*(dab.x*fab[2] + dcb.x*fcb[2]
                                       + dab.z*fab[0] + dcb.z*fcb[0]);
-        angle_virial[3] = float(1./3.)*(dab.y*fab[1] + dcb.y*fcb[1]);
-        angle_virial[4] = float(1./6.)*(dab.y*fab[2] + dcb.y*fcb[2]
+        angle_virial[3] = Scalar(1./3.)*(dab.y*fab[1] + dcb.y*fcb[1]);
+        angle_virial[4] = Scalar(1./6.)*(dab.y*fab[2] + dcb.y*fcb[2]
                                       + dab.z*fab[1] + dcb.z*fcb[1]);
-        angle_virial[5] = float(1./3.)*(dab.z*fab[2] + dcb.z*fcb[2]);
+        angle_virial[5] = Scalar(1./3.)*(dab.z*fab[2] + dcb.z*fcb[2]);
 
 
         if (cur_angle_abc == 0)
@@ -255,18 +255,18 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(float4* d_fo
     \param atable List of angles stored on the GPU
     \param pitch Pitch of 2D angles list
     \param n_angles_list List of numbers of angles stored on the GPU
-    \param d_params K and t_0 params packed as float2 variables
+    \param d_params K and t_0 params packed as Scalar2 variables
     \param n_angle_types Number of angle types in d_params
     \param block_size Block size to use when performing calculations
 
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 
-    \a d_params should include one float2 element per angle type. The x component contains K the spring constant
+    \a d_params should include one Scalar2 element per angle type. The x component contains K the spring constant
     and the y component contains t_0 the equilibrium angle.
 */
-cudaError_t gpu_compute_harmonic_angle_forces(float4* d_force,
-                                              float* d_virial,
+cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
+                                              Scalar* d_virial,
                                               const unsigned int virial_pitch,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
@@ -274,7 +274,7 @@ cudaError_t gpu_compute_harmonic_angle_forces(float4* d_force,
                                               const uint4 *atable,
                                               const unsigned int pitch,
                                               const unsigned int *n_angles_list,
-                                              float2 *d_params,
+                                              Scalar2 *d_params,
                                               unsigned int n_angle_types,
                                               int block_size)
     {
@@ -285,7 +285,7 @@ cudaError_t gpu_compute_harmonic_angle_forces(float4* d_force,
     dim3 threads(block_size, 1, 1);
     
     // bind the texture
-    cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(float2) * n_angle_types);
+    cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
         

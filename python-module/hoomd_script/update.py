@@ -504,3 +504,49 @@ class box_resize(_updater):
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;
 
+class remove_particles(_updater):
+    ## Initialize the particle remover
+    #
+    # \param period This updater will be applied every period timesteps.
+    # \param filename Removed particles will be output to this file with their trajectories.
+    # \param groupA Primary group that will be checked for departing particles.
+    # \param groupB Secondary group that will be checked for departing particles
+    # \param i_ion Ion impact for this simulation.
+    # \param ion_energy Impact energy of the ion.
+    # \param ion_phi Azimuthal angle of the ion.
+    # \param r_cut Cutoff radius for finding molecules.
+    # \param overwrite Determines whether the exisiting output file is overwritten.
+    #
+    def __init__(self, groupA, groupB, i_ion, ion_energy, ion_phi, r_cut=2.1, period=1, filename="output/sputtered.txt", overwrite=False):
+        util.print_status_line();
+
+        # initialize the base class
+        _updater.__init__(self);
+
+        # create the compute thermo
+        thermo = compute._get_unique_thermo(group = groupA);
+
+        # update the neighbor list
+        neighbor_list = pair._update_global_nlist(r_cut);
+	# neighbor_list.subscribe(lambda: self.log*self.get_max_rcut());
+
+	# shift ion_phi by 180 degrees
+	ion_phi = ion_phi - 180.0;
+
+	# output the ion information to the file
+	if overwrite:
+	    f = open(filename, "w")
+	else:
+	    f = open(filename, "a")
+	f.write( '%d\t%lf\t%lf\n' % (i_ion, ion_energy, ion_phi) )
+	f.close()
+
+        # initialize the reflected c++ class
+        self.cpp_updater = hoomd.RemoveParticlesUpdater(globals.system_definition,
+                                                        groupA.cpp_group,
+							groupB.cpp_group,
+                                                        thermo.cpp_compute,
+                                                        neighbor_list.cpp_nlist,
+							r_cut,
+                                                        filename);
+        self.setupUpdater(period);

@@ -68,42 +68,48 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EMUSYNC
 #endif
 
+#ifdef SINGLE_PRECISION
+#define __scalar2int_rd __float2int_rd
+#else
+#define __scalar2int_rd __double2int_rd
+#endif
+
 #define MAX_BLOCK_DIM_SIZE 65535
 
 // Constant memory for gridpoint weighting
 #define CONSTANT_SIZE 2048
 //! The developer has chosen not to document this variable
-__device__ __constant__ float GPU_rho_coeff[CONSTANT_SIZE];
+__device__ __constant__ Scalar GPU_rho_coeff[CONSTANT_SIZE];
 
 /*! \file PPPMForceGPU.cu
   \brief Defines GPU kernel code for calculating the Fourier space forces for the Coulomb interaction. Used by PPPMForceComputeGPU.
 */
 
 //! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 //! Texture for reading charge parameters
-texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
+texture<Scalar, 1, cudaReadModeElementType> pdata_charge_tex;
 
-//! Implements workaround atomic float addition on sm_1x hardware
-__device__ inline void atomicFloatAdd(float* address, float value)
+//! Implements workaround atomic Scalar addition on sm_1x hardware
+__device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
     {
 #if (__CUDA_ARCH__ < 200)
-    float old = value;
-    float new_old;
+    Scalar old = value;
+    Scalar new_old;
     do
         {
-        new_old = atomicExch(address, 0.0f);
+        new_old = atomicExch(address, Scalar(0.0));
         new_old += old;
         }
-    while ((old = atomicExch(address, new_old))!=0.0f);
+    while ((old = atomicExch(address, new_old))!=Scalar(0.0));
 #else
     atomicAdd(address, value);
 #endif
     }
 
 //! The developer has chosen not to document this function
-__device__ inline void AddToGridpoint(int X, int Y, int Z, cufftComplex* array, float value, int Ny, int Nz)
+__device__ inline void AddToGridpoint(int X, int Y, int Z, cufftComplex* array, Scalar value, int Ny, int Nz)
     {
     atomicFloatAdd(&array[Z + Nz * (Y + Ny * X)].x, value);
     }
@@ -129,28 +135,28 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
-        float qi = tex1Dfetch(pdata_charge_tex, idx);
+        Scalar qi = tex1Dfetch(pdata_charge_tex, idx);
 
-        if(fabs(qi) > 0.0f) {
-            float4 posi = tex1Dfetch(pdata_pos_tex, idx);
+        if(fabs(qi) > Scalar(0.0)) {
+            Scalar4 posi = tex1Dfetch(pdata_pos_tex, idx);
             //calculate dx, dy, dz for the charge density grid:
             Scalar3 L = box.getL();
-            float box_dx = L.x / ((float)Nx);
-            float box_dy = L.y / ((float)Ny);
-            float box_dz = L.z / ((float)Nz);
+            Scalar box_dx = L.x / ((Scalar)Nx);
+            Scalar box_dy = L.y / ((Scalar)Ny);
+            Scalar box_dz = L.z / ((Scalar)Nz);
     
         
             //normalize position to gridsize:
-            posi.x += L.x / 2.0f;
-            posi.y += L.y / 2.0f;
-            posi.z += L.z / 2.0f;
+            posi.x += L.x / Scalar(2.0);
+            posi.y += L.y / Scalar(2.0);
+            posi.z += L.z / Scalar(2.0);
    
             posi.x /= box_dx;
             posi.y /= box_dy;
             posi.z /= box_dz;
     
     
-            float shift, shiftone, x0, y0, z0, dx, dy, dz;
+            Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
             int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
     
             nlower = -(order-1)/2;
@@ -158,25 +164,25 @@ void assign_charges_to_grid_kernel(const unsigned int N,
     
             if (order % 2) 
                 {
-                shift =0.5f;
-                shiftone = 0.0f;
+                shift =Scalar(0.5);
+                shiftone = Scalar(0.0);
                 }
             else 
                 {
-                shift = 0.0f;
-                shiftone = 0.5f;
+                shift = Scalar(0.0);
+                shiftone = Scalar(0.5);
                 }
         
-            nxi = __float2int_rd(posi.x + shift);
-            nyi = __float2int_rd(posi.y + shift);
-            nzi = __float2int_rd(posi.z + shift);
+            nxi = __scalar2int_rd(posi.x + shift);
+            nyi = __scalar2int_rd(posi.y + shift);
+            nzi = __scalar2int_rd(posi.z + shift);
     
-            dx = shiftone+(float)nxi-posi.x;
-            dy = shiftone+(float)nyi-posi.y;
-            dz = shiftone+(float)nzi-posi.z;
+            dx = shiftone+(Scalar)nxi-posi.x;
+            dy = shiftone+(Scalar)nyi-posi.y;
+            dz = shiftone+(Scalar)nzi-posi.z;
     
             int n,m,l,k;
-            float result;
+            Scalar result;
             int mult_fact = 2*order+1;
 
             x0 = qi / (box_dx*box_dy*box_dz);
@@ -184,7 +190,7 @@ void assign_charges_to_grid_kernel(const unsigned int N,
                 mx = n+nxi;
                 if(mx >= Nx) mx -= Nx;
                 if(mx < 0)  mx += Nx;
-                result = 0.0f;
+                result = Scalar(0.0);
                 for (k = order-1; k >= 0; k--) {
                     result = GPU_rho_coeff[n-nlower + k*mult_fact] + result * dx;
                     }
@@ -193,7 +199,7 @@ void assign_charges_to_grid_kernel(const unsigned int N,
                     my = m+nyi;
                     if(my >= Ny) my -= Ny;
                     if(my < 0)  my += Ny;
-                    result = 0.0f;
+                    result = Scalar(0.0);
                     for (k = order-1; k >= 0; k--) {
                         result = GPU_rho_coeff[m-nlower + k*mult_fact] + result * dy;
                         }
@@ -202,7 +208,7 @@ void assign_charges_to_grid_kernel(const unsigned int N,
                         mz = l+nzi;
                         if(mz >= Nz) mz -= Nz;
                         if(mz < 0)  mz += Nz;
-                        result = 0.0f;
+                        result = Scalar(0.0);
                         for (k = order-1; k >= 0; k--) {
                             result = GPU_rho_coeff[l-nlower + k*mult_fact] + result * dz;
                             }
@@ -219,20 +225,20 @@ extern "C" __global__
 void combined_green_e_kernel(cufftComplex* E_x, 
                              cufftComplex* E_y, 
                              cufftComplex* E_z, 
-                             float3* k_vec, 
+                             Scalar3* k_vec, 
                              cufftComplex* rho, 
                              int Nx, 
                              int Ny, 
                              int Nz, 
-                             float* green_function)
+                             Scalar* green_function)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
   
     if(idx < Nx * Ny * Nz)
         {
-        float3 k_vec_local = k_vec[idx];
+        Scalar3 k_vec_local = k_vec[idx];
         cufftComplex E_x_local, E_y_local, E_z_local;
-        float scale_times_green = green_function[idx] / ((float)(Nx*Ny*Nz));
+        Scalar scale_times_green = green_function[idx] / ((Scalar)(Nx*Ny*Nz));
         cufftComplex rho_local = rho[idx];
     
         rho_local.x *= scale_times_green;
@@ -259,7 +265,7 @@ void combined_green_e_kernel(cufftComplex* E_x,
 __global__ void set_gpu_field_kernel(cufftComplex* E_x, 
                                      cufftComplex* E_y, 
                                      cufftComplex* E_z, 
-                                     float3* Electric_field, 
+                                     Scalar3* Electric_field, 
                                      int Nx, 
                                      int Ny, 
                                      int Nz)
@@ -267,7 +273,7 @@ __global__ void set_gpu_field_kernel(cufftComplex* E_x,
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if(tid < Nx * Ny * Nz)
         {
-        float3 local_field;
+        Scalar3 local_field;
         local_field.x = E_x[tid].x;
         local_field.y = E_y[tid].x;
         local_field.z = E_z[tid].x;
@@ -278,26 +284,26 @@ __global__ void set_gpu_field_kernel(cufftComplex* E_x,
 
 //! The developer has chosen not to document this function
 __global__
-void zero_forces(float4 *d_force, float *d_virial, const unsigned int virial_pitch, const unsigned int N)
+void zero_forces(Scalar4 *d_force, Scalar *d_virial, const unsigned int virial_pitch, const unsigned int N)
     {  
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
         {
-        d_force[idx] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        d_force[idx] = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         for (unsigned int i = 0; i < 6; i++)
-            d_virial[i*virial_pitch+idx] = 0.0f;
+            d_virial[i*virial_pitch+idx] = Scalar(0.0);
         }
     }
 
 //! The developer has chosen not to document this function
 extern "C" __global__ 
-void calculate_forces_kernel(float4 *d_force,
+void calculate_forces_kernel(Scalar4 *d_force,
                              const unsigned int N,
                              const Scalar4 *d_pos,
                              const Scalar *d_charge,
                              BoxDim box,
-                             float3 *E_field,
+                             Scalar3 *E_field,
                              int Nx,
                              int Ny,
                              int Nz,
@@ -311,61 +317,61 @@ void calculate_forces_kernel(float4 *d_force,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
-        float qi = tex1Dfetch(pdata_charge_tex, idx);
-        if(fabs(qi) > 0.0f) {
-            float4 posi = tex1Dfetch(pdata_pos_tex, idx);
+        Scalar qi = tex1Dfetch(pdata_charge_tex, idx);
+        if(fabs(qi) > Scalar(0.0)) {
+            Scalar4 posi = tex1Dfetch(pdata_pos_tex, idx);
     
             //calculate dx, dy, dz for the charge density grid:
             Scalar3 L = box.getL();
-            float box_dx = L.x / ((float)Nx);
-            float box_dy = L.y / ((float)Ny);
-            float box_dz = L.z / ((float)Nz);
+            Scalar box_dx = L.x / ((Scalar)Nx);
+            Scalar box_dy = L.y / ((Scalar)Ny);
+            Scalar box_dz = L.z / ((Scalar)Nz);
     
             //normalize position to gridsize:
-            posi.x += L.x * 0.5f;
-            posi.y += L.y * 0.5f;
-            posi.z += L.z * 0.5f;
+            posi.x += L.x * Scalar(0.5);
+            posi.y += L.y * Scalar(0.5);
+            posi.z += L.z * Scalar(0.5);
    
             posi.x /= box_dx;
             posi.y /= box_dy;
             posi.z /= box_dz;
     
-            float shift, shiftone, x0, y0, z0, dx, dy, dz;
+            Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
             int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
     
             nlower = -(order-1)/2;
             nupper = order/2;
     
-            float4 local_force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+            Scalar4 local_force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
             if(order % 2) 
                 {
-                shift =0.5f;
-                shiftone = 0.0f;
+                shift =Scalar(0.5);
+                shiftone = Scalar(0.0);
                 }
             else 
                 {
-                shift = 0.0f;
-                shiftone = 0.5f;
+                shift = Scalar(0.0);
+                shiftone = Scalar(0.5);
                 }
     
     
-            nxi = __float2int_rd(posi.x + shift);
-            nyi = __float2int_rd(posi.y + shift);
-            nzi = __float2int_rd(posi.z + shift);
+            nxi = __scalar2int_rd(posi.x + shift);
+            nyi = __scalar2int_rd(posi.y + shift);
+            nzi = __scalar2int_rd(posi.z + shift);
     
-            dx = shiftone+(float)nxi-posi.x;
-            dy = shiftone+(float)nyi-posi.y;
-            dz = shiftone+(float)nzi-posi.z;
+            dx = shiftone+(Scalar)nxi-posi.x;
+            dy = shiftone+(Scalar)nyi-posi.y;
+            dz = shiftone+(Scalar)nzi-posi.z;
 
             int n,m,l,k;
-            float result;
+            Scalar result;
             int mult_fact = 2*order+1;
     
             for (n = nlower; n <= nupper; n++) {
                 mx = n+nxi;
                 if(mx >= Nx) mx -= Nx;
                 if(mx < 0)  mx += Nx;
-                result = 0.0f;
+                result = Scalar(0.0);
                 for (k = order-1; k >= 0; k--) {
                     result = GPU_rho_coeff[n-nlower + k*mult_fact] + result * dx;
                     }
@@ -374,7 +380,7 @@ void calculate_forces_kernel(float4 *d_force,
                     my = m+nyi;
                     if(my >= Ny) my -= Ny;
                     if(my < 0)  my += Ny;
-                    result = 0.0f;
+                    result = Scalar(0.0);
                     for (k = order-1; k >= 0; k--) {
                         result = GPU_rho_coeff[m-nlower + k*mult_fact] + result * dy;
                         }
@@ -383,14 +389,14 @@ void calculate_forces_kernel(float4 *d_force,
                         mz = l+nzi;
                         if(mz >= Nz) mz -= Nz;
                         if(mz < 0)  mz += Nz;
-                        result = 0.0f;
+                        result = Scalar(0.0);
                         for (k = order-1; k >= 0; k--) {
                             result = GPU_rho_coeff[l-nlower + k*mult_fact] + result * dz;
                             }
                         z0 = y0*result;
-                        float local_field_x = E_field[mz + Nz * (my + Ny * mx)].x;
-                        float local_field_y = E_field[mz + Nz * (my + Ny * mx)].y;
-                        float local_field_z = E_field[mz + Nz * (my + Ny * mx)].z;
+                        Scalar local_field_x = E_field[mz + Nz * (my + Ny * mx)].x;
+                        Scalar local_field_y = E_field[mz + Nz * (my + Ny * mx)].y;
+                        Scalar local_field_z = E_field[mz + Nz * (my + Ny * mx)].z;
                         local_force.x += qi*z0*local_field_x;
                         local_force.y += qi*z0*local_field_y;
                         local_force.z += qi*z0*local_field_z;
@@ -403,7 +409,7 @@ void calculate_forces_kernel(float4 *d_force,
     } 
 
 
-cudaError_t gpu_compute_pppm_forces(float4 *d_force,
+cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                     const unsigned int N,
                                     const Scalar4 *d_pos,
                                     const Scalar *d_charge,
@@ -412,21 +418,21 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
                                     int Ny,
                                     int Nz,
                                     int order,
-                                    float *CPU_rho_coeff,
+                                    Scalar *CPU_rho_coeff,
                                     cufftComplex *GPU_rho_real_space,
                                     cufftHandle plan,
                                     cufftComplex *GPU_E_x,
                                     cufftComplex *GPU_E_y,
                                     cufftComplex *GPU_E_z,
-                                    float3 *GPU_k_vec,
-                                    float *GPU_green_hat,
-                                    float3 *E_field,
+                                    Scalar3 *GPU_k_vec,
+                                    Scalar *GPU_green_hat,
+                                    Scalar3 *E_field,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
                                     int block_size)
     {
     
-    cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(float));
+    cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
 
     // setup the grid to run the kernel with one thread per particle in the group
     dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
@@ -441,11 +447,11 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
     dim3 N_threads(block_size, 1, 1);
 
     // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4)*N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
 
-    error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(float) * N);
+    error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
     if (error != cudaSuccess)
         return error;
 
@@ -513,15 +519,15 @@ cudaError_t gpu_compute_pppm_forces(float4 *d_force,
 
 //! The developer has chosen not to document this function
 __global__ void calculate_thermo_quantities_kernel(cufftComplex* rho, 
-                                                   float* green_function, 
-                                                   float* energy_sum,
-                                                   float* v_xx,
-                                                   float* v_xy,
-                                                   float* v_xz,
-                                                   float* v_yy,
-                                                   float* v_yz,
-                                                   float* v_zz,
-                                                   float* vg,
+                                                   Scalar* green_function, 
+                                                   Scalar* energy_sum,
+                                                   Scalar* v_xx,
+                                                   Scalar* v_xy,
+                                                   Scalar* v_xz,
+                                                   Scalar* v_yy,
+                                                   Scalar* v_yz,
+                                                   Scalar* v_zz,
+                                                   Scalar* vg,
                                                    int Nx, 
                                                    int Ny, 
                                                    int Nz)
@@ -531,7 +537,7 @@ __global__ void calculate_thermo_quantities_kernel(cufftComplex* rho,
     if(idx < Nx * Ny * Nz)
         {
 
-        float energy = green_function[idx]*(rho[idx].x*rho[idx].x + rho[idx].y*rho[idx].y);
+        Scalar energy = green_function[idx]*(rho[idx].x*rho[idx].x + rho[idx].y*rho[idx].y);
         v_xx[idx] = energy*vg[  6*idx];
         v_xy[idx] = energy*vg[1+6*idx];
         v_xz[idx] = energy*vg[2+6*idx];
@@ -591,7 +597,7 @@ reduce6(T *g_idata, T *g_odata, unsigned int n)
     unsigned int gridSize = blockSize*2*gridDim.x;
     
     T mySum;
-    mySum = 0.0f;
+    mySum = Scalar(0.0);
 
     // we reduce multiple elements per thread.  The number is determined by the 
     // number of active thread blocks (via gridDim).  More blocks will result
@@ -711,17 +717,17 @@ void gpu_compute_pppm_thermo(int Nx,
                              int Ny,
                              int Nz,
                              cufftComplex *GPU_rho_real_space,
-                             float *GPU_vg,
-                             float *GPU_green_hat,
-                             float *o_data,
-                             float *energy_sum, 
-                             float *v_xx,
-                             float *v_xy,
-                             float *v_xz,
-                             float *v_yy,
-                             float *v_yz,
-                             float *v_zz,
-                             float *pppm_virial_energy,
+                             Scalar *GPU_vg,
+                             Scalar *GPU_green_hat,
+                             Scalar *o_data,
+                             Scalar *energy_sum, 
+                             Scalar *v_xx,
+                             Scalar *v_xy,
+                             Scalar *v_xz,
+                             Scalar *v_yy,
+                             Scalar *v_yz,
+                             Scalar *v_zz,
+                             Scalar *pppm_virial_energy,
                              int block_size)
 
     {
@@ -748,32 +754,32 @@ void gpu_compute_pppm_thermo(int Nx,
     cudaThreadSynchronize();
 
     int n = Nx*Ny*Nz;
-    pppm_virial_energy[0] = float_reduce(energy_sum, o_data, n);
+    pppm_virial_energy[0] = Scalar_reduce(energy_sum, o_data, n);
 
-    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
-    pppm_virial_energy[1] = float_reduce(v_xx, o_data, n);
+    cudaMemset(o_data, 0, sizeof(Scalar)*Nx*Ny*Nz);
+    pppm_virial_energy[1] = Scalar_reduce(v_xx, o_data, n);
 
-    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
-    pppm_virial_energy[2] = float_reduce(v_xy, o_data, n);
+    cudaMemset(o_data, 0, sizeof(Scalar)*Nx*Ny*Nz);
+    pppm_virial_energy[2] = Scalar_reduce(v_xy, o_data, n);
 
-    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
-    pppm_virial_energy[3] = float_reduce(v_xz, o_data, n);
+    cudaMemset(o_data, 0, sizeof(Scalar)*Nx*Ny*Nz);
+    pppm_virial_energy[3] = Scalar_reduce(v_xz, o_data, n);
 
-    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
-    pppm_virial_energy[4] = float_reduce(v_yy, o_data, n);
+    cudaMemset(o_data, 0, sizeof(Scalar)*Nx*Ny*Nz);
+    pppm_virial_energy[4] = Scalar_reduce(v_yy, o_data, n);
 
-    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
-    pppm_virial_energy[5] = float_reduce(v_yz, o_data, n);
+    cudaMemset(o_data, 0, sizeof(Scalar)*Nx*Ny*Nz);
+    pppm_virial_energy[5] = Scalar_reduce(v_yz, o_data, n);
 
-    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
-    pppm_virial_energy[6] = float_reduce(v_zz, o_data, n);
+    cudaMemset(o_data, 0, sizeof(Scalar)*Nx*Ny*Nz);
+    pppm_virial_energy[6] = Scalar_reduce(v_zz, o_data, n);
 
 }
 
 //! The developer has chosen not to document this function
-float float_reduce(float* i_data, float* o_data, int n) {
+Scalar Scalar_reduce(Scalar* i_data, Scalar* o_data, int n) {
 
-    float gpu_result = 0.0;
+    Scalar gpu_result = 0.0;
     int threads, blocks, maxBlocks = 64, maxThreads = 256, cpuFinalThreshold = 1;
     bool needReadBack = true;
     threads = (n < maxThreads*2) ? nextPow2((n + 1)/ 2) : maxThreads;
@@ -784,7 +790,7 @@ float float_reduce(float* i_data, float* o_data, int n) {
     int maxNumBlocks = MIN( n / maxThreads, MAX_BLOCK_DIM_SIZE);
 
 
-    reduce<float>(n, threads, blocks, i_data, o_data);
+    reduce<Scalar>(n, threads, blocks, i_data, o_data);
 
     int s=blocks;
     while(s > cpuFinalThreshold)
@@ -794,15 +800,15 @@ float float_reduce(float* i_data, float* o_data, int n) {
         threads = (s < maxThreads*2) ? nextPow2((s + 1)/ 2) : maxThreads;
         blocks = (s + (threads * 2 - 1)) / (threads * 2);
         blocks = MIN(maxBlocks, blocks);
-        reduce<float>(s, threads, blocks, o_data, o_data);
+        reduce<Scalar>(s, threads, blocks, o_data, o_data);
         cudaThreadSynchronize();
         s = (s + (threads*2-1)) / (threads*2);
         }
 
     if (s > 1)
         {
-        float* h_odata = (float *) malloc(maxNumBlocks*sizeof(float));
-        cudaMemcpy( h_odata, o_data, s * sizeof(float), cudaMemcpyDeviceToHost);
+        Scalar* h_odata = (Scalar *) malloc(maxNumBlocks*sizeof(Scalar));
+        cudaMemcpy( h_odata, o_data, s * sizeof(Scalar), cudaMemcpyDeviceToHost);
 
 
         for(int i=0; i < s; i++)
@@ -813,7 +819,7 @@ float float_reduce(float* i_data, float* o_data, int n) {
         free(h_odata);
         }
 
-    if (needReadBack) cudaMemcpy( &gpu_result,  o_data, sizeof(float), cudaMemcpyDeviceToHost);
+    if (needReadBack) cudaMemcpy( &gpu_result,  o_data, sizeof(Scalar), cudaMemcpyDeviceToHost);
 
     return gpu_result;
 }
@@ -824,14 +830,14 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                                             int Ny, 
                                             int Nz, 
                                             int order, 
-                                            float kappa, 
-                                            float3* kvec_array, 
-                                            float* green_hat, 
-                                            float* vg, 
+                                            Scalar kappa, 
+                                            Scalar3* kvec_array, 
+                                            Scalar* green_hat, 
+                                            Scalar* vg, 
                                             int nbx, 
                                             int nby, 
                                             int nbz, 
-                                            float* gf_b)
+                                            Scalar* gf_b)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -844,65 +850,65 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         int zn = (idx - xn*N2 - yn*Nz);
 
         Scalar3 L = box.getL();
-        float invdet = 6.28318531f/(L.x*L.y*L.z);
-        float3 inverse_lattice_vector, j;
-        float kappa2 = kappa*kappa;
+        Scalar invdet = Scalar(6.28318531)/(L.x*L.y*L.z);
+        Scalar3 inverse_lattice_vector, j;
+        Scalar kappa2 = kappa*kappa;
 
         inverse_lattice_vector.x = invdet*L.y*L.z;
         inverse_lattice_vector.y = invdet*L.x*L.z;
         inverse_lattice_vector.z = invdet*L.x*L.y;
 
-        j.x = xn > Nx/2 ? (float)(xn - Nx) : (float)xn;
-        j.y = yn > Ny/2 ? (float)(yn - Ny) : (float)yn;
-        j.z = zn > Nz/2 ? (float)(zn - Nz) : (float)zn;
+        j.x = xn > Nx/2 ? (Scalar)(xn - Nx) : (Scalar)xn;
+        j.y = yn > Ny/2 ? (Scalar)(yn - Ny) : (Scalar)yn;
+        j.z = zn > Nz/2 ? (Scalar)(zn - Nz) : (Scalar)zn;
         kvec_array[idx].x = j.x*inverse_lattice_vector.x;
         kvec_array[idx].y = j.y*inverse_lattice_vector.y;
         kvec_array[idx].z = j.z*inverse_lattice_vector.z;
 
-        float sqk =  kvec_array[idx].x*kvec_array[idx].x + kvec_array[idx].y*kvec_array[idx].y + kvec_array[idx].z*kvec_array[idx].z;
-        if(sqk == 0.0f) {
-            vg[0+6*idx] = 0.0f;
-            vg[1+6*idx] = 0.0f;
-            vg[2+6*idx] = 0.0f;
-            vg[3+6*idx] = 0.0f;
-            vg[4+6*idx] = 0.0f;
-            vg[5+6*idx] = 0.0f;
+        Scalar sqk =  kvec_array[idx].x*kvec_array[idx].x + kvec_array[idx].y*kvec_array[idx].y + kvec_array[idx].z*kvec_array[idx].z;
+        if(sqk == Scalar(0.0)) {
+            vg[0+6*idx] = Scalar(0.0);
+            vg[1+6*idx] = Scalar(0.0);
+            vg[2+6*idx] = Scalar(0.0);
+            vg[3+6*idx] = Scalar(0.0);
+            vg[4+6*idx] = Scalar(0.0);
+            vg[5+6*idx] = Scalar(0.0);
             }
         else {
-            float vterm = (-2.0f/sqk - 0.5f/kappa2);
-            vg[0+6*idx] = 1.0f+vterm*kvec_array[idx].x*kvec_array[idx].x;
+            Scalar vterm = (-Scalar(2.0)/sqk - Scalar(0.5)/kappa2);
+            vg[0+6*idx] = Scalar(1.0)+vterm*kvec_array[idx].x*kvec_array[idx].x;
             vg[1+6*idx] =      vterm*kvec_array[idx].x*kvec_array[idx].y;
             vg[2+6*idx] =      vterm*kvec_array[idx].x*kvec_array[idx].z;
-            vg[3+6*idx] = 1.0f+vterm*kvec_array[idx].y*kvec_array[idx].y;
+            vg[3+6*idx] = Scalar(1.0)+vterm*kvec_array[idx].y*kvec_array[idx].y;
             vg[4+6*idx] =      vterm*kvec_array[idx].y*kvec_array[idx].z;
-            vg[5+6*idx] = 1.0f+vterm*kvec_array[idx].z*kvec_array[idx].z;
+            vg[5+6*idx] = Scalar(1.0)+vterm*kvec_array[idx].z*kvec_array[idx].z;
             }
 
-        float unitkx = (6.28318531f/L.x);
-        float unitky = (6.28318531f/L.y);
-        float unitkz = (6.28318531f/L.z);
+        Scalar unitkx = (Scalar(6.28318531)/L.x);
+        Scalar unitky = (Scalar(6.28318531)/L.y);
+        Scalar unitkz = (Scalar(6.28318531)/L.z);
         int ix, iy, iz, kper, lper, mper;
-        float snx, sny, snz, snx2, sny2, snz2;
-        float argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
-        float sum1, dot1, dot2;
-        float numerator, denominator;
+        Scalar snx, sny, snz, snx2, sny2, snz2;
+        Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
+        Scalar sum1, dot1, dot2;
+        Scalar numerator, denominator;
 
         mper = zn - Nz*(2*zn/Nz);
-        snz = sinf(0.5f*unitkz*mper*L.z/Nz);
+        snz = sinf(Scalar(0.5)*unitkz*mper*L.z/Nz);
         snz2 = snz*snz;
 
         lper = yn - Ny*(2*yn/Ny);
-        sny = sinf(0.5f*unitky*lper*L.y/Ny);
+        sny = sinf(Scalar(0.5)*unitky*lper*L.y/Ny);
         sny2 = sny*sny;
 
         kper = xn - Nx*(2*xn/Nx);
-        snx = sinf(0.5f*unitkx*kper*L.x/Nx);
+        snx = sinf(Scalar(0.5)*unitkx*kper*L.x/Nx);
         snx2 = snx*snx;
         sqk = unitkx*kper*unitkx*kper + unitky*lper*unitky*lper + unitkz*mper*unitkz*mper;
 
 
         int l;
-        sz = sy = sx = 0.0f;
+        sz = sy = sx = Scalar(0.0);
         for (l = order-1; l >= 0; l--) {
             sx = gf_b[l] + sx*snx2;
             sy = gf_b[l] + sy*sny2;
@@ -911,28 +917,28 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         denominator = sx*sy*sz;
         denominator *= denominator;
 
-        float W;
-        if (sqk != 0.0f) {
-            numerator = 12.5663706f/sqk;
-            sum1 = 0.0f;
+        Scalar W;
+        if (sqk != Scalar(0.0)) {
+            numerator = Scalar(12.5663706)/sqk;
+            sum1 = Scalar(0.0);
             for (ix = -nbx; ix <= nbx; ix++) {
-                qx = unitkx*(kper+(float)(Nx*ix));
-                sx = expf(-.25f*qx*qx/kappa2);
-                wx = 1.0f;
-                argx = 0.5f*qx*L.x/(float)Nx;
-                if (argx != 0.0f) wx = powf(sinf(argx)/argx,order);
+                qx = unitkx*(kper+(Scalar)(Nx*ix));
+                sx = expf(Scalar(-.25)*qx*qx/kappa2);
+                wx = Scalar(1.0);
+                argx = Scalar(0.5)*qx*L.x/(Scalar)Nx;
+                if (argx != Scalar(0.0)) wx = powf(sinf(argx)/argx,order);
                 for (iy = -nby; iy <= nby; iy++) {
-                    qy = unitky*(lper+(float)(Ny*iy));
-                    sy = expf(-.25f*qy*qy/kappa2);
-                    wy = 1.0f;
-                    argy = 0.5f*qy*L.y/(float)Ny;
-                    if (argy != 0.0f) wy = powf(sinf(argy)/argy,order);
+                    qy = unitky*(lper+(Scalar)(Ny*iy));
+                    sy = expf(Scalar(-.25)*qy*qy/kappa2);
+                    wy = Scalar(1.0);
+                    argy = Scalar(0.5)*qy*L.y/(Scalar)Ny;
+                    if (argy != Scalar(0.0)) wy = powf(sinf(argy)/argy,order);
                     for (iz = -nbz; iz <= nbz; iz++) {
-                        qz = unitkz*(mper+(float)(Nz*iz));
-                        sz = expf(-.25f*qz*qz/kappa2);
-                        wz = 1.0f;
-                        argz = 0.5f*qz*L.z/(float)Nz;
-                        if (argz != 0.0f) wz = powf(sinf(argz)/argz,order);
+                        qz = unitkz*(mper+(Scalar)(Nz*iz));
+                        sz = expf(Scalar(-.25)*qz*qz/kappa2);
+                        wz = Scalar(1.0);
+                        argz = Scalar(0.5)*qz*L.z/(Scalar)Nz;
+                        if (argz != Scalar(0.0)) wz = powf(sinf(argz)/argz,order);
 
                         dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
                         dot2 = qx*qx+qy*qy+qz*qz;
@@ -942,7 +948,7 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                     }
                 }
             green_hat[idx] = numerator*sum1/denominator;
-            } else green_hat[idx] = 0.0f;
+            } else green_hat[idx] = Scalar(0.0);
         }
     }
 
@@ -955,11 +961,11 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
                                  int nby,
                                  int nbz,
                                  int order,
-                                 float kappa,
-                                 float3 *kvec,
-                                 float *green_hat,
-                                 float *vg,
-                                 float *gf_b,
+                                 Scalar kappa,
+                                 Scalar3 *kvec,
+                                 Scalar *green_hat,
+                                 Scalar *vg,
+                                 Scalar *gf_b,
                                  int block_size)
     {
     dim3 grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
@@ -970,8 +976,8 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
 
 
 //! The developer has chosen not to document this function
-__global__ void gpu_fix_exclusions_kernel(float4 *d_force,
-                                          float *d_virial,
+__global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
+                                          Scalar *d_virial,
                                           const unsigned int virial_pitch,
                                           const unsigned int N,
                                           const Scalar4 *d_pos,
@@ -980,7 +986,7 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                                           const unsigned int *d_n_neigh,
                                           const unsigned int *d_nlist,
                                           const Index2D nli,
-                                          float kappa,  
+                                          Scalar kappa,  
                                           unsigned int *d_group_members,
                                           unsigned int group_size)
     {
@@ -989,17 +995,17 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-        const float sqrtpi = sqrtf(M_PI);
+        const Scalar sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
-        float4 postypei =  tex1Dfetch(pdata_pos_tex, idx);
-        float3 posi = make_float3(postypei.x, postypei.y, postypei.z);
+        Scalar4 postypei =  tex1Dfetch(pdata_pos_tex, idx);
+        Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-        float  qi = tex1Dfetch(pdata_charge_tex, idx);
+        Scalar  qi = tex1Dfetch(pdata_charge_tex, idx);
         // initialize the force to 0
-        float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        float virial[6];
+        Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+        Scalar virial[6];
         for (unsigned int i = 0; i < 6; i++)
-            virial[i] = 0.0f;
+            virial[i] = Scalar(0.0);
         unsigned int cur_j = 0;
         // prefetch neighbor index
         unsigned int next_j = d_nlist[nli(idx, 0)];
@@ -1020,26 +1026,26 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                     next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                    float4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
-                    float3 posj = make_float3(postypej.x, postypej.y, postypej.z);
+                    Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
+                    Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
-                    float qj = tex1Dfetch(pdata_charge_tex, cur_j);
+                    Scalar qj = tex1Dfetch(pdata_charge_tex, cur_j);
 
                     // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-                    float3 dx = posi - posj;
+                    Scalar3 dx = posi - posj;
 
                     // apply periodic boundary conditions: (FLOPS 12)
                     dx = box.minImage(dx);
 
                     // calculate r squard (FLOPS: 5)
-                    float rsq = dot(dx,dx);
-                    float r = sqrtf(rsq);
-                    float qiqj = qi * qj;
-                    float erffac = erf(kappa * r) / r;
-                    float force_divr = qiqj * (-2.0f * exp(-rsq * kappa * kappa) * kappa / (sqrtpi * rsq) + erffac / rsq);
-                    float pair_eng = qiqj * erffac; 
+                    Scalar rsq = dot(dx,dx);
+                    Scalar r = sqrtf(rsq);
+                    Scalar qiqj = qi * qj;
+                    Scalar erffac = erf(kappa * r) / r;
+                    Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * kappa * kappa) * kappa / (sqrtpi * rsq) + erffac / rsq);
+                    Scalar pair_eng = qiqj * erffac; 
 
-                    float force_div2r = float(0.5) * force_divr;
+                    Scalar force_div2r = Scalar(0.5) * force_divr;
                     virial[0] += dx.x * dx.x * force_div2r;
                     virial[1] += dx.x * dx.y * force_div2r;
                     virial[2] += dx.x * dx.z * force_div2r;
@@ -1061,7 +1067,7 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
                     force.w += pair_eng;
                     }
                 }
-        force.w *= 0.5f;
+        force.w *= Scalar(0.5);
         d_force[idx].x -= force.x;
         d_force[idx].y -= force.y;
         d_force[idx].z -= force.z;
@@ -1073,8 +1079,8 @@ __global__ void gpu_fix_exclusions_kernel(float4 *d_force,
 
 
 //! The developer has chosen not to document this function
-cudaError_t fix_exclusions(float4 *d_force,
-                           float *d_virial,
+cudaError_t fix_exclusions(Scalar4 *d_force,
+                           Scalar *d_virial,
                            const unsigned int virial_pitch,
                            const unsigned int N,
                            const Scalar4 *d_pos,
@@ -1083,7 +1089,7 @@ cudaError_t fix_exclusions(float4 *d_force,
                            const unsigned int *d_n_ex,
                            const unsigned int *d_exlist,
                            const Index2D nex,
-                           float kappa,
+                           Scalar kappa,
                            unsigned int *d_group_members,
                            unsigned int group_size,
                            int block_size)
@@ -1092,11 +1098,11 @@ cudaError_t fix_exclusions(float4 *d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4)*N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
 
-    error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(float) * N);
+    error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
     if (error != cudaSuccess)
         return error;
 
@@ -1104,8 +1110,8 @@ cudaError_t fix_exclusions(float4 *d_force,
 
     // zero the force arrays for all particles
     // zero_forces <<< grid, threads >>> (force_data, N);
-    cudaMemset(d_force, 0, sizeof(float4)*N);
-    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
+    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
+    cudaMemset(d_virial, 0, 6*sizeof(Scalar)*virial_pitch);
 
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,

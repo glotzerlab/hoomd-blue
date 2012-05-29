@@ -195,7 +195,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 if (m_filter_diameter)
                     {
                     // compute the shift in radius to accept neighbors based on their diameters
-                    float delta = (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
+                    Scalar delta = (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
                     // r^2 < (r_max + delta)^2
                     // r^2 < r_maxsq + delta^2 + 2*r_max*delta
                     sqshift = (delta + Scalar(2.0) * rmax) * delta;

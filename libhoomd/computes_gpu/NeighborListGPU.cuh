@@ -63,11 +63,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Kernel driver for gpu_nlist_needs_update_check_new_kernel()
 cudaError_t gpu_nlist_needs_update_check_new(unsigned int * d_result,
-                                             const float4 *d_last_pos,
-                                             const float4 *d_pos,
+                                             const Scalar4 *d_last_pos,
+                                             const Scalar4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
-                                             const float maxshiftsq,
+                                             const Scalar maxshiftsq,
                                              const unsigned int checkn);
 
 //! Kernel driver for gpu_nlist_filter_kernel()
@@ -83,13 +83,13 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
 //! Kernel driver for gpu_compute_nlist_nsq_kernel()
 cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   unsigned int *d_n_neigh,
-                                  float4 *d_last_updated_pos,
+                                  Scalar4 *d_last_updated_pos,
                                   unsigned int *d_conditions,
                                   const Index2D& nli,
-                                  const float4 *d_pos,
+                                  const Scalar4 *d_pos,
                                   const unsigned int N,
                                   const BoxDim& box,
-                                  const float r_maxsq);
+                                  const Scalar r_maxsq);
 
 #endif
 

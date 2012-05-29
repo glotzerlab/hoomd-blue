@@ -65,10 +65,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Shared memory array for gpu_bdnvt_step_two_kernel()
-extern __shared__ float s_gammas[];
+extern __shared__ Scalar s_gammas[];
 
 //! Shared memory used in reducing sums for bd energy tally
-extern __shared__ float bdtally_sdata[];
+extern __shared__ Scalar bdtally_sdata[];
 
 //! Takes the second half-step forward in the BDNVT integration on a group of particles with
 /*! \param d_pos array of particle positions and types
@@ -110,19 +110,19 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
                               const unsigned int *d_tag,
                               unsigned int *d_group_members,
                               unsigned int group_size,
-                              float4 *d_net_force,
-                              float *d_gamma,
+                              Scalar4 *d_net_force,
+                              Scalar *d_gamma,
                               unsigned int n_types,
                               bool gamma_diam,
                               unsigned int timestep,
                               unsigned int seed,
-                              float T,
-                              float deltaT,
-                              float D,
+                              Scalar T,
+                              Scalar deltaT,
+                              Scalar D,
                               bool limit,
-                              float limit_val,
+                              Scalar limit_val,
                               bool tally,
-                              float *d_partial_sum_bdenergy)
+                              Scalar *d_partial_sum_bdenergy)
     {
     if (!gamma_diam)
         {
@@ -138,7 +138,7 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
  
-    float bd_energy_transfer = 0;
+    Scalar bd_energy_transfer = 0;
        
     if (group_idx < group_size)
         {
@@ -152,7 +152,7 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
         unsigned int ptag = d_tag[idx];
         
         // calculate the magnitude of the random force
-        float gamma;
+        Scalar gamma;
         if (gamma_diam)
             {
             // read in the tag of our particle.
@@ -161,49 +161,49 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
             }
         else
             {
-            // read in the type of our particle. A texture read of only the fourth part of the position float4
+            // read in the type of our particle. A texture read of only the fourth part of the position Scalar4
             // (where type is stored) is used.
-            unsigned int typ = __float_as_int(d_pos[idx].w);
+            unsigned int typ = __scalar_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
         
-        float coeff = sqrtf(6.0f * gamma * T / deltaT);
-        float3 bd_force = make_float3(0.0f, 0.0f, 0.0f);
+        Scalar coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
+        Scalar3 bd_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         
         //Initialize the Random Number Generator and generate the 3 random numbers
         SaruGPU s(ptag, timestep + seed); // 2 dimensional seeding
     
-        float randomx=s.f(-1.0, 1.0);
-        float randomy=s.f(-1.0, 1.0);
-        float randomz=s.f(-1.0, 1.0);
+        Scalar randomx=s.f(-1.0, 1.0);
+        Scalar randomy=s.f(-1.0, 1.0);
+        Scalar randomz=s.f(-1.0, 1.0);
         
         bd_force.x = randomx*coeff - gamma*vel.x;
         bd_force.y = randomy*coeff - gamma*vel.y;
-        if (D > 2.0f)
+        if (D > Scalar(2.0))
             bd_force.z = randomz*coeff - gamma*vel.z;
         
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
-        float4 net_force = d_net_force[idx];
+        Scalar4 net_force = d_net_force[idx];
         Scalar3 accel = make_scalar3(net_force.x,net_force.y,net_force.z);
         // MEM TRANSFER: 4 bytes   FLOPS: 3
-        float mass = vel.w;
-        float minv = 1.0f / mass;
+        Scalar mass = vel.w;
+        Scalar minv = Scalar(1.0) / mass;
         accel.x = (accel.x + bd_force.x) * minv;
         accel.y = (accel.y + bd_force.y) * minv;
         accel.z = (accel.z + bd_force.z) * minv;
         
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // update the velocity (FLOPS: 6)
-        vel.x += (1.0f/2.0f) * accel.x * deltaT;
-        vel.y += (1.0f/2.0f) * accel.y * deltaT;
-        vel.z += (1.0f/2.0f) * accel.z * deltaT;
+        vel.x += (Scalar(1.0)/Scalar(2.0)) * accel.x * deltaT;
+        vel.y += (Scalar(1.0)/Scalar(2.0)) * accel.y * deltaT;
+        vel.z += (Scalar(1.0)/Scalar(2.0)) * accel.z * deltaT;
         
         // tally the energy transfer from the bd thermal reservor to the particles (FLOPS: 6)
         bd_energy_transfer =  bd_force.x *vel.x +  bd_force.y * vel.y +  bd_force.z * vel.z;
                         
         if (limit)
             {
-            float vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
+            Scalar vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
             if ( (vel_len*deltaT) > limit_val)
                 {
                 vel.x = vel.x / vel_len * limit_val / deltaT;
@@ -251,11 +251,11 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
     \param num_blocks Number of blocks to execute
 */
 extern "C" __global__ 
-    void gpu_bdtally_reduce_partial_sum_kernel(float *d_sum, 
-                                            float* d_partial_sum, 
+    void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum, 
+                                            Scalar* d_partial_sum, 
                                             unsigned int num_blocks)
     {
-    float sum = 0.0f;
+    Scalar sum = Scalar(0.0);
     
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_blocks; start += blockDim.x)
@@ -264,7 +264,7 @@ extern "C" __global__
         if (start + threadIdx.x < num_blocks)
             bdtally_sdata[threadIdx.x] = d_partial_sum[start + threadIdx.x];
         else
-            bdtally_sdata[threadIdx.x] = 0.0f;
+            bdtally_sdata[threadIdx.x] = Scalar(0.0);
         __syncthreads();
         
         // reduce the sum in parallel
@@ -310,12 +310,12 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
                               const unsigned int *d_tag,
                                unsigned int *d_group_members,
                                unsigned int group_size,
-                               float4 *d_net_force,
+                               Scalar4 *d_net_force,
                                const bdnvt_step_two_args& bdnvt_args,
-                               float deltaT,
-                               float D,
+                               Scalar deltaT,
+                               Scalar D,
                                bool limit,
-                               float limit_val)
+                               Scalar limit_val)
     {
     
     // setup the grid to run the kernel
@@ -327,8 +327,8 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
     // run the kernel
     gpu_bdnvt_step_two_kernel<<< grid,
                                  threads,
-                                 max((unsigned int)(sizeof(float)*bdnvt_args.n_types),
-                                     (unsigned int)(bdnvt_args.block_size*sizeof(float))) 
+                                 max((unsigned int)(sizeof(Scalar)*bdnvt_args.n_types),
+                                     (unsigned int)(bdnvt_args.block_size*sizeof(Scalar))) 
                              >>>(d_pos,
                                  d_vel,
                                  d_accel,
@@ -354,7 +354,7 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
     if (bdnvt_args.tally) 
         gpu_bdtally_reduce_partial_sum_kernel<<<grid1,
                                                 threads1,
-                                                bdnvt_args.block_size*sizeof(float)
+                                                bdnvt_args.block_size*sizeof(Scalar)
                                              >>>(&bdnvt_args.d_sum_bdenergy[0], 
                                                  bdnvt_args.d_partial_sum_bdenergy, 
                                                  bdnvt_args.num_blocks);    

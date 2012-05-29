@@ -69,9 +69,9 @@ cudaError_t gpu_npt_step_one(Scalar4 *d_pos,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              bool partial_scale,
-                             float Xi,
-                             float Eta,
-                             float deltaT);
+                             Scalar Xi,
+                             Scalar Eta,
+                             Scalar deltaT);
 
 //! Kernel driver to scale the particles into a new box on the GPU
 cudaError_t gpu_npt_boxscale(const unsigned int N,
@@ -79,18 +79,18 @@ cudaError_t gpu_npt_boxscale(const unsigned int N,
                              int3 *d_image,
                              const BoxDim& box,
                              bool partial_scale,
-                             float Eta,
-                             float deltaT);
+                             Scalar Eta,
+                             Scalar deltaT);
 
 //! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
 cudaError_t gpu_npt_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float Xi,
-                             float Eta,
-                             float deltaT);
+                             Scalar4 *d_net_force,
+                             Scalar Xi,
+                             Scalar Eta,
+                             Scalar deltaT);
 
 #endif
 

@@ -102,7 +102,7 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     
     // allocate storage for the tables and parameters
     Index2DUpperTriangular table_index(m_ntypes);
-    GPUArray<float2> tables(m_table_width, table_index.getNumElements(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, table_index.getNumElements(), exec_conf);
     m_tables.swap(tables);
     GPUArray<Scalar4> params(table_index.getNumElements(), exec_conf);
     m_params.swap(params);
@@ -133,8 +133,8 @@ TablePotential::~TablePotential()
 */
 void TablePotential::setTable(unsigned int typ1,
                               unsigned int typ2,
-                              const std::vector<float> &V,
-                              const std::vector<float> &F,
+                              const std::vector<Scalar> &V,
+                              const std::vector<Scalar> &F,
                               Scalar rmin,
                               Scalar rmax)
     {
@@ -143,7 +143,7 @@ void TablePotential::setTable(unsigned int typ1,
     Index2D table_value(m_table_width);
     
     // access the arrays
-    ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
     
     // range check on the parameters
@@ -238,7 +238,7 @@ void TablePotential::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
 
     // access the table data
-    ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
     
     // index calculation helpers
@@ -317,8 +317,8 @@ void TablePotential::computeForces(unsigned int timestep)
                 
                 // compute index into the table and read in values
                 unsigned int value_i = (unsigned int)floor(value_f);
-                float2 VF0 = h_tables.data[table_value(value_i, cur_table_index)];
-                float2 VF1 = h_tables.data[table_value(value_i+1, cur_table_index)];
+                Scalar2 VF0 = h_tables.data[table_value(value_i, cur_table_index)];
+                Scalar2 VF1 = h_tables.data[table_value(value_i+1, cur_table_index)];
                 // unpack the data
                 Scalar V0 = VF0.x;
                 Scalar V1 = VF1.x;
@@ -326,7 +326,7 @@ void TablePotential::computeForces(unsigned int timestep)
                 Scalar F1 = VF1.y;
                 
                 // compute the linear interpolation coefficient
-                Scalar f = value_f - float(value_i);
+                Scalar f = value_f - Scalar(value_i);
                 
                 // interpolate to get V and F;
                 Scalar V = V0 + f * (V1 - V0);
@@ -426,8 +426,8 @@ void export_TablePotential()
     .def("setTable", &TablePotential::setTable)
     ;
     
-    class_<std::vector<float> >("std_vector_float")
-    .def(vector_indexing_suite<std::vector<float> >())
+    class_<std::vector<Scalar> >("std_vector_scalar")
+    .def(vector_indexing_suite<std::vector<Scalar> >())
     ;
     }
 

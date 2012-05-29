@@ -213,7 +213,7 @@ void ConstraintSphere::validate()
         V.z = C.z - X.z;
         Scalar dist = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
         
-        if (dist > 1.0f)
+        if (dist > Scalar(1.0))
             {
             m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " is more than 1 unit of"
                                       << " distance away from the closest point on the sphere constraint" << endl;

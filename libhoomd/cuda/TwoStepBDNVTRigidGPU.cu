@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Shared memory array for gpu_bdnvt_step_two_kernel()
-extern __shared__ float s_gammas[];
+extern __shared__ Scalar s_gammas[];
 
 //! Takes the first half-step forward in the BDNVT integration on a group of particles with
 /*! \param d_pos array of particle positions and types
@@ -99,15 +99,15 @@ void gpu_bdnvt_bdforce_kernel(const Scalar4 *d_pos,
                               const unsigned int *d_tag,
                               unsigned int *d_group_members,
                               unsigned int group_size,
-                              float4 *d_net_force,
-                              float *d_gamma,
+                              Scalar4 *d_net_force,
+                              Scalar *d_gamma,
                               unsigned int n_types,
                               bool gamma_diam,
                               unsigned int timestep,
                               unsigned int seed,
-                              float T,
-                              float deltaT,
-                              float D)
+                              Scalar T,
+                              Scalar deltaT,
+                              Scalar D)
     {
     if (!gamma_diam)
         {
@@ -129,13 +129,13 @@ void gpu_bdnvt_bdforce_kernel(const Scalar4 *d_pos,
         
         // calculate the additional BD force
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
         // read in the tag of our particle.
         // (MEM TRANSFER: 4 bytes)
         unsigned int ptag = d_tag[idx];
         
         // calculate the magintude of the random force
-        float gamma;
+        Scalar gamma;
         if (gamma_diam)
             {
             // read in the tag of our particle.
@@ -144,29 +144,29 @@ void gpu_bdnvt_bdforce_kernel(const Scalar4 *d_pos,
             }
         else
             {
-            // read in the type of our particle. A texture read of only the fourth part of the position float4
+            // read in the type of our particle. A texture read of only the fourth part of the position Scalar4
             // (where type is stored) is used.
-            unsigned int typ = __float_as_int(d_pos[idx].w);
+            unsigned int typ = __scalar_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
         
-        float coeff = sqrtf(6.0f * gamma * T / deltaT);
-        float3 bd_force = make_float3(0.0f, 0.0f, 0.0f);
+        Scalar coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
+        Scalar3 bd_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         
         //Initialize the Random Number Generator and generate the 3 random numbers
         SaruGPU s(ptag, timestep, seed); // 3 dimensional seeding
     
-        float randomx=s.f(-1.0, 1.0);
-        float randomy=s.f(-1.0, 1.0);
-        float randomz=s.f(-1.0, 1.0);
+        Scalar randomx=s.f(-1.0, 1.0);
+        Scalar randomy=s.f(-1.0, 1.0);
+        Scalar randomz=s.f(-1.0, 1.0);
         
         bd_force.x = randomx*coeff - gamma*vel.x;
         bd_force.y = randomy*coeff - gamma*vel.y;
-        if (D > 2.0f)
+        if (D > Scalar(2.0))
             bd_force.z = randomz*coeff - gamma*vel.z;
         
         // read in the net force
-        float4 fi = d_net_force[idx];
+        Scalar4 fi = d_net_force[idx];
         
         // write out data (MEM TRANSFER: 32 bytes)
         fi.x += bd_force.x;
@@ -193,10 +193,10 @@ cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
                                const unsigned int *d_tag,
                                unsigned int *d_group_members,
                                unsigned int group_size,
-                               float4 *d_net_force,
+                               Scalar4 *d_net_force,
                                const bdnvt_step_two_args& bdnvt_args,
-                               float deltaT,
-                               float D)
+                               Scalar deltaT,
+                               Scalar D)
     {
     
     // setup the grid to run the kernel
@@ -205,7 +205,7 @@ cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_bdnvt_bdforce_kernel<<< grid, threads, sizeof(float)*bdnvt_args.n_types >>>
+    gpu_bdnvt_bdforce_kernel<<< grid, threads, sizeof(Scalar)*bdnvt_args.n_types >>>
                                                   (d_pos,
                                                    d_vel,
                                                    d_diameter,

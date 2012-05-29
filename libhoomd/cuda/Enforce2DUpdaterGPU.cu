@@ -84,8 +84,8 @@ void gpu_enforce2d_kernel(const unsigned int N,
         Scalar3 accel = d_accel[idx];
                 
         // zero the z-velocity and z-acceleration(FLOPS: ?)
-        vel.z = 0.0f;
-        accel.z = 0.0f;
+        vel.z = Scalar(0.0);
+        accel.z = Scalar(0.0);
                 
         // write out the results (MEM_TRANSFER: 32 bytes)
         d_vel[idx] = vel;

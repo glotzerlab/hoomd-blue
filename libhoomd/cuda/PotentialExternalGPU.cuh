@@ -70,8 +70,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct external_potential_args_t
     {
     //! Construct a external_potential_args_t
-    external_potential_args_t(float4 *_d_force,
-              float *_d_virial,
+    external_potential_args_t(Scalar4 *_d_force,
+              Scalar *_d_virial,
               const unsigned int _virial_pitch,
               const unsigned int _N,
               const Scalar4 *_d_pos,
@@ -87,8 +87,8 @@ struct external_potential_args_t
         {
         };
 
-    float4 *d_force;                //!< Force to write out
-    float *d_virial;                //!< Virial to write out
+    Scalar4 *d_force;                //!< Force to write out
+    Scalar *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int N;           //!< Number of particles
@@ -111,8 +111,8 @@ struct external_potential_args_t
 
 */
 template< class evaluator >
-__global__ void gpu_compute_external_forces_kernel(float4 *d_force,
-                                               float *d_virial,
+__global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
+                                               Scalar *d_virial,
                                                const unsigned int virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
@@ -127,17 +127,17 @@ __global__ void gpu_compute_external_forces_kernel(float4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 posi = d_pos[idx];
+    Scalar4 posi = d_pos[idx];
 
     // initialize the force to 0
-    float3 force = make_float3(0.0f, 0.0f, 0.0f);
-    float virial[6];
+    Scalar3 force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    Scalar virial[6];
     for (unsigned int k = 0; k < 6; k++)
-        virial[k] = 0.0f;
-    float energy = 0.0f;
+        virial[k] = Scalar(0.0);
+    Scalar energy = Scalar(0.0);
 
-    unsigned int typei = __float_as_int(posi.w);
-    float3 Xi = make_float3(posi.x, posi.y, posi.z);
+    unsigned int typei = __scalar_as_int(posi.w);
+    Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
     Scalar3 L = box.getL();
     evaluator eval(Xi, L.x, L.y, L.z, params[typei]);
 

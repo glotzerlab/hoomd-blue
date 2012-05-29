@@ -70,14 +70,14 @@ cudaError_t gpu_fire_rigid_zero_v(gpu_rigid_data_arrays rdata);
 
 //! Kernel driver for summing over P, vsq, and asq called by FIREEnergyMinimizerRigidGPU
 cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata, 
-                            float* d_sum_all_Pt, 
-                            float* d_sum_all_Pr);
+                            Scalar* d_sum_all_Pt, 
+                            Scalar* d_sum_all_Pr);
                             
 //! Kernel driver for updating the velocities called by FIREEnergyMinimizerRigidGPU
 cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata, 
-                            float alpha, 
-                            float scalar_t,
-                            float scalar_r);
+                            Scalar alpha, 
+                            Scalar scalar_t,
+                            Scalar scalar_r);
 
 #endif //__FIRE_ENERGY_MINIMIZER_RIGID_GPU_CUH__
 

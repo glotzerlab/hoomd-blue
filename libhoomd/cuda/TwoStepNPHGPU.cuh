@@ -68,10 +68,10 @@ cudaError_t gpu_nph_step_one(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float3 L_old,
-                             float3 L_halfstep,
-                             float3 L_final,
-                             float deltaT);
+                             Scalar3 L_old,
+                             Scalar3 L_halfstep,
+                             Scalar3 L_final,
+                             Scalar deltaT);
 
 //! Kernel driver to wrap the particles into a new box on the GPU
 cudaError_t gpu_nph_wrap_particles(const unsigned int N,
@@ -84,8 +84,8 @@ cudaError_t gpu_nph_step_two(Scalar4 *d_pos,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float deltaT);
+                             Scalar4 *d_net_force,
+                             Scalar deltaT);
 
 #endif
 

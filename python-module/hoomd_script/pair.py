@@ -2339,3 +2339,498 @@ class force_shifted_lj(pair):
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_scalar2(lj1, lj2);
+
+## Moliere %pair %force
+#
+# The command pair.moliere specifies that a Moliere %pair %force should be added to every
+# non-bonded particle pair in the simulation
+#
+# \f{eqnarray*}
+# V_{\mathrm{Moliere}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp \left( -0.3 \frac{r_{ij}}{a_F} \right) + 0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp \left( -6.0 \frac{r_{ij}}{a_F} \right) \right] & r < r_{\mathrm{cut}} \\
+#                         = & 0 & r > r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exat definition of the %force and potential calculation and how cutoff radii are handled,
+# see pair.
+#
+# The following coefficients must be set per unique %pair of particle types.  See hoomd_script.pair
+# or the \ref page_quick_start for information on how to set coefficients.
+# - \f$ Z_i \f$ - \c Z_i - Atomic number of species i (unitless)
+# - \f$ Z_j \f$ - \c Z_j - Atomic number of species j (unitless)
+# - \f$ e \f$ - \c elementary_charge - The elementary charge (in charge units)
+# - \f$ a_0 \f$ - \c a_0 - The Bohr radius (in distance units)
+#
+# pair.moliere is a standard %pair potential and supports a number of energy shift / smoothing
+# modes.  See pair for a full description of the various options.
+#
+class moliere(pair):
+    ## Specify the Moliere %pair %force
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    # \param block_size Block size to run on the GPU
+    #
+    # \code
+    # moliere = pair.moliere(r_cut = 3.0)
+    # moliere.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
+    # started with run().
+    def __init__(self, r_cut, name=None, block_size=128):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+#        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list = secondary_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list.set_params(r_buff = 0.3);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairMoliere(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairMoliere;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairMoliereGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairMoliereGPU;
+            self.cpp_force.setBlockSize(block_size);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+        self.pair_coeff.set_default_coeff('a_0', 1.0);
+
+    def process_coeff(self, coeff):
+        Z_i = coeff['Z_i'];
+        Z_j = coeff['Z_j'];
+        elementary_charge = coeff['elementary_charge'];
+        a_0 = coeff['a_0'];
+
+        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
+        if (not (Z_i == 0)) or (not (Z_j == 0)):
+            aF = 0.8853 * a_0 / math.pow(math.sqrt(Z_i) + math.sqrt(Z_j), 2.0 / 3.0);
+        else:
+            aF = 1.0;
+        return hoomd.make_scalar2(Zsq, aF);
+
+## Tersoff Potential
+#
+# The command pair.tersoff specifies that the Tersoff three-body potential should be applied to every
+# non-bonded particle pair in the simulation.  Despite the fact that the Tersoff potential accounts
+# for the effects of third bodies, it is included in the %pair potentials because the species of the
+# third body is irrelevant.  It can thus use type-pair parameters similar to those of the %pair potentials.
+#
+# The Tersoff potential is a bond-order potential based on the Morse potential that accounts for the weakening of
+# individual bonds with increasing coordination number.  It does this by computing a modifier to the
+# attractive term of the potential.  The modifier contains the effects of third-bodies on the bond
+# energies.  The potential also includes a smoothing function around the cutoff.  The smoothing function
+# used in this work is exponential in nature as opposed to the sinusoid used by Tersoff.  The exponential
+# function provides continuity up (I believe) the second derivative.
+#
+class tersoff(pair):
+    ## Specify the Tersoff force
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    # \param block_size Block size to run on the GPU
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be started with run()
+    def __init__(self, r_cut, name=None, block_size=128):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+
+        #update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+
+        # this potential cannot handle a half neighbor list
+        neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+
+        # the tersoff neighbor list only requires a buffer of 0.3
+        neighbor_list.set_params(r_buff = 0.3);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialTripletTersoff(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialTripletTersoff;
+        else:
+            self.cpp_force = hoomd.PotentialTripletTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialTripletTersoffGPU;
+            self.cpp_force.setBlockSize(block_size);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficients
+        self.required_coeffs = ['cutoff_thickness', 'C1', 'C2', 'lambda1', 'lambda2', 'dimer_r', 'n', 'gamma', 'lambda3', 'c', 'd', 'm', 'alpha']
+        self.pair_coeff.set_default_coeff('cutoff_thickness', 0.2);
+        self.pair_coeff.set_default_coeff('dimer_r', 1.5);
+        self.pair_coeff.set_default_coeff('C1', 1.0);
+        self.pair_coeff.set_default_coeff('C2', 1.0);
+        self.pair_coeff.set_default_coeff('lambda1', 2.0);
+        self.pair_coeff.set_default_coeff('lambda2', 1.0);
+        self.pair_coeff.set_default_coeff('lambda3', 0.0);
+        self.pair_coeff.set_default_coeff('n', 0.0);
+        self.pair_coeff.set_default_coeff('m', 0.0);
+        self.pair_coeff.set_default_coeff('c', 0.0);
+        self.pair_coeff.set_default_coeff('d', 1.0);
+        self.pair_coeff.set_default_coeff('gamma', 0.0);
+        self.pair_coeff.set_default_coeff('alpha', 3.0);
+
+    def process_coeff(self, coeff):
+        cutoff_d = coeff['cutoff_thickness'];
+        C1 = coeff['C1'];
+        C2 = coeff['C2'];
+        lambda1 = coeff['lambda1'];
+        lambda2 = coeff['lambda2'];
+        dimer_r = coeff['dimer_r'];
+        n = coeff['n'];
+        gamma = coeff['gamma'];
+        lambda3 = coeff['lambda3'];
+        c = coeff['c'];
+        d = coeff['d'];
+        m = coeff['m'];
+        alpha = coeff['alpha'];
+
+        gamman = math.pow(gamma, n);
+        c2 = c * c;
+        d2 = d * d;
+        lambda3_cube = lambda3 * lambda3 * lambda3;
+
+        tersoff_coeffs = hoomd.make_scalar2(C1, C2);
+        exp_consts = hoomd.make_scalar2(lambda1, lambda2);
+        ang_consts = hoomd.make_scalar3(c2, d2, m);
+
+        return hoomd.make_tersoff_params(cutoff_d, tersoff_coeffs, exp_consts, dimer_r, n, gamman, lambda3_cube, ang_consts, alpha);
+
+## Interface for controlling neighbor list parameters
+#
+# A neighbor list should not be directly created by the user. One will be automatically
+# created when the first %pair %force is specified. The cutoff radius is set to the
+# maximum of that set for all defined %pair forces.
+#
+# Any bonds defined in the simulation are automatically used to exclude bonded particle
+# pairs from appearing in the neighbor list. Use the command reset_exclusions() to change this behavior.
+#
+# Neighborlists are properly and efficiently calculated in 2D simulations if the z dimension of the box is small,
+# but non-zero and the dimensionally of the system is set \b before the first pair force is specified.
+#
+class secondary_nlist:
+    ## \internal
+    # \brief Constructs a neighbor list
+    # \details
+    # \param self Python required instance variable
+    # \param r_cut Cutoff radius
+    def __init__(self, r_cut):
+        # check if initialization has occured
+        if not init.is_initialized():
+            print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
+            raise RuntimeError('Error creating neighbor list');
+
+        # decide wether to create an all-to-all neighbor list or a binned one based on box size:
+        default_r_buff = 0.4;
+
+        mode = "binned";
+
+        box = globals.system_definition.getParticleData().getBox();
+        min_width_for_bin = (default_r_buff + r_cut)*3.0;
+
+        # only check the z dimesion of the box in 3D systems
+        is_small_box = (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin;
+        if globals.system_definition.getNDimensions() == 3:
+            is_small_box = is_small_box or (box.zhi - box.zlo) < min_width_for_bin;
+        if  is_small_box:
+            if globals.system_definition.getParticleData().getN() >= 2000:
+                print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";
+                print "             EXTREMELY SLOW O(N^2) calculation for the neighbor list."
+            else:
+                print "Notice: The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation."
+
+            mode = "nsq";
+
+        # create the C++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            if mode == "binned":
+                cl_c = hoomd.CellList(globals.system_definition);
+                globals.system.addCompute(cl_c, "auto_cl2")
+                self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
+            elif mode == "nsq":
+                self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
+            else:
+                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                raise RuntimeError("Error creating neighbor list");
+        else:
+            if mode == "binned":
+                cl_g = hoomd.CellListGPU(globals.system_definition);
+                globals.system.addCompute(cl_g, "auto_cl2")
+                self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
+                self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
+                self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
+            elif mode == "nsq":
+                self.cpp_nlist = hoomd.NeighborListGPU(globals.system_definition, r_cut, default_r_buff)
+                self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
+            else:
+                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                raise RuntimeError("Error creating neighbor list");
+
+        self.cpp_nlist.setEvery(1);
+        self.is_exclusion_overridden = False;
+
+        globals.system.addCompute(self.cpp_nlist, "auto_nlist2");
+
+        # save the parameters we set
+        self.r_cut = r_cut;
+        self.r_buff = default_r_buff;
+
+        # save a list of subscribers that may have a say in determining the maximum r_cut
+        self.subscriber_callbacks = [];
+
+    ## \internal
+    # \brief Adds a subscriber to the neighbor list
+    # \param callable is a 0 argument callable object that returns the minimum r_cut needed by the subscriber
+    # All \a callables will be called at the beginning of each run() to determine the maximum r_cut needed for that run.
+    #
+    def subscribe(self, callable):
+        self.subscriber_callbacks.append(callable);
+
+    ## \internal
+    # \brief Updates r_cut based on the subscriber's requests
+    #
+    def update_rcut(self):
+        r_cut_max = 0.0;
+        for c in self.subscriber_callbacks:
+            r_cut_max = max(r_cut_max, c());
+
+        self.r_cut = r_cut_max;
+        self.cpp_nlist.setRCut(self.r_cut, self.r_buff);
+
+    ## \internal
+    # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
+    def update_exclusions_defaults(self):
+        if not self.is_exclusion_overridden:
+            util._disable_status_lines = True;
+            self.reset_exclusions(exclusions=['bond']);
+            util._disable_status_lines = False;
+
+    ## Change neighbor list parameters
+    #
+    # \param r_buff (if set) changes the buffer radius around the cutoff (in distance units)
+    # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list
+    #        needs updating
+    # \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
+    #        run() commands. (in distance units)
+    #
+    # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
+    # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
+    # to be updated less often, but more particles are included leading to slower %force computations.
+    # Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
+    # slowing overall performance again. The sweet spot for the best performance needs to be found by
+    # experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
+    # simulations.
+    #
+    # As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
+    # no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
+    # the neighbor list may not be updated when it needs to be.
+    #
+    # For safety, the default check_period is 1 to ensure that the neighbor list is always updated when it
+    # needs to be. Increasing this to an appropriate value for your simulation can lead to performance gains
+    # of approximately 2 percent.
+    #
+    # \a check_period should be set so that no particle
+    # moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
+    # \b build is counted and printed in the neighbor list statistics at the end of a run().
+    #
+    # When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
+    # during the following run() commands (see pair.slj for more information). When using in conjunction with pair.slj,
+    # pair.slj will
+    # automatically set \a d_max for the nlist.  This can be overridden (e.g. if multiple potentials using diameters are used)
+    # by using nlist.set_params() after the
+    # pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
+    # \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower
+    # than necessary if
+    # d_max is greater than 1.0.
+    #
+    # A single global neighbor list is created for the entire simulation. Change parameters by using
+    # the built-in variable \b %nlist.
+    #
+    # \b Examples:
+    # \code
+    # nlist.set_params(r_buff = 0.9)
+    # nlist.set_params(check_period = 11)
+    # nlist.set_params(r_buff = 0.7, check_period = 4)
+    # nlist.set_params(d_max = 3.0)
+    # \endcode
+    def set_params(self, r_buff=None, check_period=None, d_max=None):
+        util.print_status_line();
+
+        if self.cpp_nlist is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error setting neighbor list parameters');
+
+        # update the parameters
+        if r_buff is not None:
+            self.cpp_nlist.setRCut(self.r_cut, r_buff);
+            self.r_buff = r_buff;
+
+        if check_period is not None:
+            self.cpp_nlist.setEvery(check_period);
+
+        if d_max is not None:
+            self.cpp_nlist.setMaximumDiameter(d_max);
+
+    ## Resets all exclusions in the neighborlist
+    #
+    # \param exclusions Select which interactions should be excluded from the %pair interaction calculation.
+    #
+    # By default, only directly bonded particles are excluded from short range %pair interactions.
+    # reset_exclusions allows that setting to be overridden to add other exclusions or to remove
+    # the exclusion for bonded particles.
+    #
+    # Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
+    # All desired exclusions have to be explicitly listed, i.e. '1-3' does \b not imply '1-2'.
+    #
+    # Valid types are:
+    # - \b %bond - Exclude particles that are directly bonded together
+    # - \b %angle - Exclude the two outside particles in all defined angles.
+    # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
+    # - \b %body - Exclude particles that belong to the same body
+    # - \b %diameter - Exclude particles using their diameters to modify r_cut per pair, as pair.slj does. Enabling the
+    #                  \b diameter exclusion does not change which particles interact, but rather offers a potential
+    #                  performance boost by removing unneeded neighbors from the list.
+    #
+    # \note Enabling the \b diameter exclusion is intended for use only with the pair.slj potential. With sufficient
+    #       care in the choice of particle diameters, it may be possible to use it in other situations (such as with
+    #       pair.slj with another pair potential added on), but this is only recommended for advanced users.
+    #
+    # The following types are determined solely by the bond topology. Every chain of particles in the simulation
+    # connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit
+    # angles or dihedrals are defined.
+    # - \b 1-2  - Same as bond
+    # - \b 1-3  - Exclude particles connected with a sequence of two bonds.
+    # - \b 1-4  - Exclude particles connected with a sequence of three bonds.
+    #
+    # \b Examples:
+    # \code
+    # nlist.reset_exclusions(exclusions = ['1-2'])
+    # nlist.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
+    # nlist.reset_exclusions(exclusions = ['bond', 'angle'])
+    # nlist.reset_exclusions(exclusions = [])
+    # \endcode
+    #
+    def reset_exclusions(self, exclusions = None):
+        util.print_status_line();
+        self.is_exclusion_overridden = True;
+
+        if self.cpp_nlist is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error resetting exclusions');
+
+        # clear all of the existing exclusions
+        self.cpp_nlist.clearExclusions();
+        self.cpp_nlist.setFilterBody(False);
+        self.cpp_nlist.setFilterDiameter(False);
+
+        if exclusions is None:
+            # confirm that no exclusions are left.
+            self.cpp_nlist.countExclusions();
+            return
+
+        # exclusions given directly in bond/angle/dihedral notation
+        if 'bond' in exclusions:
+            self.cpp_nlist.addExclusionsFromBonds();
+            exclusions.remove('bond');
+
+        if 'angle' in exclusions:
+            self.cpp_nlist.addExclusionsFromAngles();
+            exclusions.remove('angle');
+
+        if 'dihedral' in exclusions:
+            self.cpp_nlist.addExclusionsFromDihedrals();
+            exclusions.remove('dihedral');
+
+        if 'body' in exclusions:
+            self.cpp_nlist.setFilterBody(True);
+            exclusions.remove('body');
+
+        if 'diameter' in exclusions:
+            self.cpp_nlist.setFilterDiameter(True);
+            exclusions.remove('diameter');
+
+        # exclusions given in 1-2/1-3/1-4 notation.
+        if '1-2' in exclusions:
+            self.cpp_nlist.addExclusionsFromBonds();
+            exclusions.remove('1-2');
+
+        if '1-3' in exclusions:
+            self.cpp_nlist.addOneThreeExclusionsFromTopology();
+            exclusions.remove('1-3');
+
+        if '1-4' in exclusions:
+            self.cpp_nlist.addOneFourExclusionsFromTopology();
+            exclusions.remove('1-4');
+
+        # if there are any items left in the exclusion list, we have an error.
+        if len(exclusions) > 0:
+            print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
+            raise RuntimeError('Error resetting exclusions');
+
+        # collect and print statistics about the number of exclusions.
+        self.cpp_nlist.countExclusions();
+
+    ## Benchmarks the neighbor list computation
+    # \param n Number of iterations to average the benchmark over
+    #
+    # \b Examples:
+    # \code
+    # t = nlist.benchmark(n = 100)
+    # \endcode
+    #
+    # The value returned by benchmark() is the average time to perform the neighbor list
+    # computation, in milliseconds. The benchmark is performed by taking the current
+    # positions of all particles in the simulation and repeatedly calculating the neighbor list.
+    # Thus, you can benchmark different situations as you need to by simply
+    # running a simulation to achieve the desired state before running benchmark().
+    #
+    # \note
+    # There is, however, one subtle side effect. If the benchmark() command is run
+    # directly after the particle data is initialized with an init command, then the
+    # results of the benchmark will not be typical of the time needed during the actual
+    # simulation. Particles are not reordered to improve cache performance until at least
+    # one time step is performed. Executing run(1) before the benchmark will solve this problem.
+    #
+    def benchmark(self, n):
+        # check that we have been initialized properly
+        if self.cpp_nlist is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error benchmarking neighbor list');
+
+        # run the benchmark
+        return self.cpp_nlist.benchmark(int(n))
+
+    ## Query the maximum possible check_period
+    # query_update_period examines the counts of nlist rebuilds during the previous run() command.
+    # It returns \c s-1, where s is the smallest update period experienced during that time.
+    # Use it after a medium-length warm up run with check_period=1 to determine what check_period to set
+    # for production runs.
+    #
+    # \note If the previous run() was short, insufficient sampling may cause the queried update period
+    # to be large enough to result in dangerous builds during longer runs. Unless you use a really long
+    # warm up run, subtract an additional 1 from this when you set check_period for additional safety.
+    #
+    def query_update_period(self):
+        if self.cpp_nlist is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error setting neighbor list parameters');
+
+        return self.cpp_nlist.getSmallestRebuild()-1;

@@ -95,7 +95,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // use different Saru PRNG returns on the host / device
-// CALL_SARU is currently define to return a random float for both the GPU and Host.  By changing saru.f to saru.d, a double could be returned instead.
+// CALL_SARU is currently define to return a random Scalar for both the GPU and Host.  By changing saru.f to saru.d, a double could be returned instead.
 #ifdef NVCC
 #define CALL_SARU(x,y) saru.f( (x), (y))
 #else

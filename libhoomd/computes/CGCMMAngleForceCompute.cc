@@ -68,7 +68,7 @@ using namespace boost::python;
 using namespace std;
 
 // \param SMALL a relatively small number
-#define SMALL 0.001f
+#define SMALL Scalar(0.001)
 
 /*! \file CGCMMAngleForceCompute.cc
     \brief Contains code for the CGCMMAngleForceCompute class
@@ -318,10 +318,10 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         //////////////////////////////////////////
         // THIS CODE DOES THE 1-3 LJ repulsions //
         //////////////////////////////////////////////////////////////////////////////
-        fac = 0.0f;
-        eac = 0.0f;
+        fac = Scalar(0.0);
+        eac = Scalar(0.0);
         for (int k = 0; k < 6; k++)
-            vac[k] = 0.0f;
+            vac[k] = Scalar(0.0);
 
         if (rac < m_rcut[angle.type])
             {

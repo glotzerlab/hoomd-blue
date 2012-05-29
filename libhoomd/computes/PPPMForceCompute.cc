@@ -212,7 +212,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
      PPPMForceCompute::compute_rho_coeff();
 
     Scalar3 inverse_lattice_vector;
-    Scalar invdet = 2.0f*M_PI/(L.x*L.y*L.z);
+    Scalar invdet = Scalar(2.0)*M_PI/(L.x*L.y*L.z);
     inverse_lattice_vector.x = invdet*L.y*L.z;
     inverse_lattice_vector.y = invdet*L.x*L.z;
     inverse_lattice_vector.z = invdet*L.x*L.y;
@@ -249,12 +249,12 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
                 int grid_point = z + Nz * (y + Ny * x);    
                 if (sqk == 0.0) 
                     {
-                    h_vg.data[0 + 6*grid_point] = 0.0f;
-                    h_vg.data[1 + 6*grid_point] = 0.0f;
-                    h_vg.data[2 + 6*grid_point] = 0.0f;
-                    h_vg.data[3 + 6*grid_point] = 0.0f;
-                    h_vg.data[4 + 6*grid_point] = 0.0f;
-                    h_vg.data[5 + 6*grid_point] = 0.0f;
+                    h_vg.data[0 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[1 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[2 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[3 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[4 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[5 + 6*grid_point] = Scalar(0.0);
                    }
                 else
                     {
@@ -356,7 +356,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
                 }
             }
         }
-    Scalar scale = 1.0f/((Scalar)(Nx * Ny * Nz));
+    Scalar scale = Scalar(1.0)/((Scalar)(Nx * Ny * Nz));
     m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
     }
 
@@ -424,7 +424,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         const BoxDim& box = m_pdata->getBox();
         Scalar3 L = box.getL();
         PPPMForceCompute::reset_kvec_green_hat_cpu();
-        Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
+        Scalar scale = Scalar(1.0)/((Scalar)(m_Nx * m_Ny * m_Nz));
         m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
         m_box_changed = false;
         }
@@ -436,8 +436,8 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         { // scoping array handles
         ArrayHandle<cufftComplex> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
         for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
-            fft_in[i].r = (float) h_rho_real_space.data[i].x;
-            fft_in[i].i = (float)0.0;
+            fft_in[i].r = (Scalar) h_rho_real_space.data[i].x;
+            fft_in[i].i = (Scalar)0.0;
             }
 
         kiss_fftnd(fft_forward, &fft_in[0], &fft_in[0]);
@@ -460,14 +460,14 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 
         for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++)
             {
-            fft_ex[i].r = (float) h_Ex.data[i].x;
-            fft_ex[i].i = (float) h_Ex.data[i].y;
+            fft_ex[i].r = (Scalar) h_Ex.data[i].x;
+            fft_ex[i].i = (Scalar) h_Ex.data[i].y;
 
-            fft_ey[i].r = (float) h_Ey.data[i].x;
-            fft_ey[i].i = (float) h_Ey.data[i].y;
+            fft_ey[i].r = (Scalar) h_Ey.data[i].x;
+            fft_ey[i].i = (Scalar) h_Ey.data[i].y;
 
-            fft_ez[i].r = (float) h_Ez.data[i].x;
-            fft_ez[i].i = (float) h_Ez.data[i].y;
+            fft_ez[i].r = (Scalar) h_Ez.data[i].x;
+            fft_ez[i].i = (Scalar) h_Ez.data[i].y;
             }
 
 
@@ -542,7 +542,7 @@ Scalar PPPMForceCompute::rms(Scalar h, Scalar prd, Scalar natoms)
     acons[7][6] = 4887769399.0 / 37838389248.0;
 
     for (m = 0; m < m_order; m++) 
-        sum += acons[m_order][m] * pow(h*m_kappa,2.0f*(Scalar)m);
+        sum += acons[m_order][m] * pow(h*m_kappa,Scalar(2.0)*(Scalar)m);
     Scalar value = m_q2 * pow(h*m_kappa,(Scalar)m_order) *
         sqrt(m_kappa*prd*sqrt(2.0*M_PI)*sum/natoms) / (prd*prd);
     return value;
@@ -562,16 +562,16 @@ void PPPMForceCompute::compute_rho_coeff()
         {
         for(m=0; m<(2*m_order+1); m++)
             {
-            a[m + l*(2*m_order +1)] = 0.0f;
+            a[m + l*(2*m_order +1)] = Scalar(0.0);
             }
         }
 
     for (k = -m_order; k <= m_order; k++) 
         for (l = 0; l < m_order; l++) {
-            a[(k+m_order) + l * (2*m_order+1)] = 0.0f;
+            a[(k+m_order) + l * (2*m_order+1)] = Scalar(0.0);
             }
 
-    a[m_order + 0 * (2*m_order+1)] = 1.0f;
+    a[m_order + 0 * (2*m_order+1)] = Scalar(1.0);
     for (j = 1; j < m_order; j++) {
         for (k = -j; k <= j; k += 2) {
             s = 0.0;
@@ -635,7 +635,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
     Scalar3 L = box.getL();
 
     Scalar3 inverse_lattice_vector;
-    Scalar invdet = 2.0f*M_PI/(L.x*L.y*L.z);
+    Scalar invdet = Scalar(2.0)*M_PI/(L.x*L.y*L.z);
     inverse_lattice_vector.x = invdet*L.y*L.z;
     inverse_lattice_vector.y = invdet*L.x*L.z;
     inverse_lattice_vector.z = invdet*L.x*L.y;
@@ -672,12 +672,12 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 int grid_point = z + m_Nz * (y + m_Ny * x);    
                 if (sqk == 0.0) 
                     {
-                    h_vg.data[0 + 6*grid_point] = 0.0f;
-                    h_vg.data[1 + 6*grid_point] = 0.0f;
-                    h_vg.data[2 + 6*grid_point] = 0.0f;
-                    h_vg.data[3 + 6*grid_point] = 0.0f;
-                    h_vg.data[4 + 6*grid_point] = 0.0f;
-                    h_vg.data[5 + 6*grid_point] = 0.0f;
+                    h_vg.data[0 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[1 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[2 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[3 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[4 + 6*grid_point] = Scalar(0.0);
+                    h_vg.data[5 + 6*grid_point] = Scalar(0.0);
                     }
                 else
                     {
@@ -808,9 +808,9 @@ void PPPMForceCompute::assign_charges_to_grid()
         Scalar box_dz = L.z / ((Scalar)m_Nz);
  
         //normalize position to gridsize:
-        posi.x += L.x / 2.0f;
-        posi.y += L.y / 2.0f;
-        posi.z += L.z / 2.0f;
+        posi.x += L.x / Scalar(2.0);
+        posi.y += L.y / Scalar(2.0);
+        posi.z += L.z / Scalar(2.0);
    
         posi.x /= box_dx;
         posi.y /= box_dy;
@@ -851,7 +851,7 @@ void PPPMForceCompute::assign_charges_to_grid()
             mx = n+nxi;
             if(mx >= m_Nx) mx -= m_Nx;
             if(mx < 0)  mx += m_Nx;
-            result = 0.0f;
+            result = Scalar(0.0);
             for (k = m_order-1; k >= 0; k--) {
                 result = h_rho_coeff.data[n-nlower + k*mult_fact] + result * dx;
                 }
@@ -860,7 +860,7 @@ void PPPMForceCompute::assign_charges_to_grid()
                 my = m+nyi;
                 if(my >= m_Ny) my -= m_Ny;
                 if(my < 0)  my += m_Ny;
-                result = 0.0f;
+                result = Scalar(0.0);
                 for (k = m_order-1; k >= 0; k--) {
                     result = h_rho_coeff.data[m-nlower + k*mult_fact] + result * dy;
                     }
@@ -869,7 +869,7 @@ void PPPMForceCompute::assign_charges_to_grid()
                     mz = l+nzi;
                     if(mz >= m_Nz) mz -= m_Nz;
                     if(mz < 0)  mz += m_Nz;
-                    result = 0.0f;
+                    result = Scalar(0.0);
                     for (k = m_order-1; k >= 0; k--) {
                         result = h_rho_coeff.data[l-nlower + k*mult_fact] + result * dz;
                         }
@@ -948,9 +948,9 @@ void PPPMForceCompute::calculate_forces()
         Scalar box_dz = L.z / ((Scalar)m_Nz);
  
         //normalize position to gridsize:
-        posi.x += L.x / 2.0f;
-        posi.y += L.y / 2.0f;
-        posi.z += L.z / 2.0f;
+        posi.x += L.x / Scalar(2.0);
+        posi.y += L.y / Scalar(2.0);
+        posi.z += L.z / Scalar(2.0);
    
         posi.x /= box_dx;
         posi.y /= box_dy;
@@ -989,7 +989,7 @@ void PPPMForceCompute::calculate_forces()
             mx = n+nxi;
             if(mx >= m_Nx) mx -= m_Nx;
             if(mx < 0)  mx += m_Nx;
-            result = 0.0f;
+            result = Scalar(0.0);
             for (k = m_order-1; k >= 0; k--) {
                 result = h_rho_coeff.data[n-nlower + k*mult_fact] + result * dx;
                 }
@@ -998,7 +998,7 @@ void PPPMForceCompute::calculate_forces()
                 my = m+nyi;
                 if(my >= m_Ny) my -= m_Ny;
                 if(my < 0)  my += m_Ny;
-                result = 0.0f;
+                result = Scalar(0.0);
                 for (k = m_order-1; k >= 0; k--) {
                     result = h_rho_coeff.data[m-nlower + k*mult_fact] + result * dy;
                     }
@@ -1007,7 +1007,7 @@ void PPPMForceCompute::calculate_forces()
                     mz = l+nzi;
                     if(mz >= m_Nz) mz -= m_Nz;
                     if(mz < 0)  mz += m_Nz;
-                    result = 0.0f;
+                    result = Scalar(0.0);
                     for (k = m_order-1; k >= 0; k--) {
                         result = h_rho_coeff.data[l-nlower + k*mult_fact] + result * dz;
                         }
@@ -1050,10 +1050,10 @@ void PPPMForceCompute::fix_exclusions_cpu()
 
     for(unsigned int i = 0; i < group_size; i++)
         {
-        Scalar4 force = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
+        Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         Scalar virial[6];
         for (unsigned int k = 0; k < 6; k++)
-            virial[k] = 0.0f;
+            virial[k] = Scalar(0.0);
         unsigned int idx = d_group_members.data[i];
         Scalar3 posi;
         posi.x = h_pos.data[idx].x;
@@ -1083,7 +1083,7 @@ void PPPMForceCompute::fix_exclusions_cpu()
             Scalar r = sqrtf(rsq);
             Scalar qiqj = qi * qj;
             Scalar erffac = erf(m_kappa * r) / r;
-            Scalar force_divr = qiqj * (-2.0f * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
+            Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
             Scalar pair_eng = qiqj * erffac; 
             virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
             virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
@@ -1096,7 +1096,7 @@ void PPPMForceCompute::fix_exclusions_cpu()
             force.z += dx.z * force_divr;
             force.w += pair_eng;
             }
-        force.w *= 0.5f;
+        force.w *= Scalar(0.5);
         h_force.data[idx].x -= force.x;
         h_force.data[idx].y -= force.y;
         h_force.data[idx].z -= force.z;
@@ -1142,9 +1142,9 @@ void PPPMForceCompute::fix_thermo_quantities()
         pppm_virial_energy.y += energy;
         }
 
-    pppm_virial_energy.x *= m_energy_virial_factor/ (3.0f * L.x * L.y * L.z);
+    pppm_virial_energy.x *= m_energy_virial_factor/ (Scalar(3.0) * L.x * L.y * L.z);
     pppm_virial_energy.y *= m_energy_virial_factor;
-    pppm_virial_energy.y -= m_q2 * m_kappa / 1.772453850905516027298168f;
+    pppm_virial_energy.y -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
     pppm_virial_energy.y -= 0.5*M_PI*m_q*m_q / (m_kappa*m_kappa* L.x * L.y * L.z);
 
     // apply the correction to particle 0

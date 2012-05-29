@@ -61,7 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Compute lamellar potential forces on the GPU with EvaluatorExternalLamellar
 cudaError_t gpu_compute_lamellar_forces(const external_potential_args_t& potential_args,
-                                      const float4 *d_params);
+                                      const Scalar4 *d_params);
 
 #endif
 

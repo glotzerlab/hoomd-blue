@@ -69,37 +69,37 @@ struct gpu_npt_rigid_data
     unsigned int nf_t;      //!< Translational degrees of freedom
     unsigned int nf_r;      //!< Rotational degrees of freedom
     unsigned int dimension; //!< System dimension
-    float4* new_box;        //!< New box size
-    float    dilation;      //!< Box size change 
+    Scalar4* new_box;        //!< New box size
+    Scalar    dilation;      //!< Box size change 
                                                           
-    float  eta_dot_t0;      //!< Thermostat translational velocity
-    float  eta_dot_r0;      //!< Thermostat rotational velocity
-    float  epsilon_dot;     //!< Barostat velocity
+    Scalar  eta_dot_t0;      //!< Thermostat translational velocity
+    Scalar  eta_dot_r0;      //!< Thermostat rotational velocity
+    Scalar  epsilon_dot;     //!< Barostat velocity
         
-    float *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2
-    float *partial_Ksum_r;  //!< NBlocks elements, each is a partial sum of L*w^2
-    float *Ksum_t;          //!< fully reduced Ksum_t on one GPU
-    float *Ksum_r;          //!< fully reduced Ksum_r on one GPU
+    Scalar *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2
+    Scalar *partial_Ksum_r;  //!< NBlocks elements, each is a partial sum of L*w^2
+    Scalar *Ksum_t;          //!< fully reduced Ksum_t on one GPU
+    Scalar *Ksum_r;          //!< fully reduced Ksum_r on one GPU
     };
 
 //! Kernel driver for the first part of the NPT update called by TwoStepNPTRigidGPU
 cudaError_t gpu_npt_rigid_step_one(     const gpu_rigid_data_arrays& rigid_data,
                                         unsigned int *d_group_members,
                                         unsigned int group_size,
-                                        float4 *d_net_force,
+                                        Scalar4 *d_net_force,
                                         const BoxDim& box, 
                                         const gpu_npt_rigid_data &npt_rdata,
-                                        float deltaT);
+                                        Scalar deltaT);
 
 //! Kernel driver for the second part of the NPT update called by TwoStepNPTRigidGPU
 cudaError_t gpu_npt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
-                                    float4 *d_net_force,
-                                    float *d_net_virial,
+                                    Scalar4 *d_net_force,
+                                    Scalar *d_net_virial,
                                     const BoxDim& box, 
                                     const gpu_npt_rigid_data &npt_rdata,
-                                    float deltaT);
+                                    Scalar deltaT);
 
 //! Kernel driver for the Ksum reduction final pass called by TwoStepNPTRigidGPU
 cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);

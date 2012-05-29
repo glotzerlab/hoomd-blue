@@ -81,8 +81,8 @@ void gpu_berendsen_step_one_kernel(Scalar4 *d_pos,
                                    unsigned int *d_group_members,
                                    const unsigned int group_size,
                                    const BoxDim box,
-                                   const float lambda,
-                                   const float deltaT)
+                                   const Scalar lambda,
+                                   const Scalar deltaT)
     {
     // determine the particle index for this thread
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -92,16 +92,16 @@ void gpu_berendsen_step_one_kernel(Scalar4 *d_pos,
         unsigned int idx = d_group_members[group_idx];
 
         // read the particle position
-        float4 postype = d_pos[idx];
-        float3 pos = make_float3(postype.x, postype.y, postype.z);
+        Scalar4 postype = d_pos[idx];
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         // read the particle velocity and acceleration
-        float4 velmass = d_vel[idx];
-        float3 vel = make_float3(velmass.x, velmass.y, velmass.z);
-        float3 accel = d_accel[idx];
+        Scalar4 velmass = d_vel[idx];
+        Scalar3 vel = make_scalar3(velmass.x, velmass.y, velmass.z);
+        Scalar3 accel = d_accel[idx];
 
         // integrate velocity and position forward in time
-        vel = lambda * (vel + accel * deltaT / 2.0f);
+        vel = lambda * (vel + accel * deltaT / Scalar(2.0));
         pos += vel * deltaT;
 
         // read in the image flags
@@ -111,8 +111,8 @@ void gpu_berendsen_step_one_kernel(Scalar4 *d_pos,
         box.wrap(pos, image);
 
         // write the results
-        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
-        d_vel[idx] = make_float4(vel.x, vel.y, vel.z, velmass.w);
+        d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
+        d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, velmass.w);
         d_image[idx] = image;
         }
     }
@@ -133,8 +133,8 @@ void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
                                    Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    const unsigned int group_size,
-                                   const float4 *d_net_force,
-                                   const float deltaT)
+                                   const Scalar4 *d_net_force,
+                                   const Scalar deltaT)
     {
     // determine the particle index for this thread
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -144,9 +144,9 @@ void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
         unsigned int idx = d_group_members[group_idx];
 
         // read in the velocity
-        float4 velmass = d_vel[idx];
-        float3 vel = make_float3(velmass.x, velmass.y, velmass.z);
-        float mass = velmass.w;
+        Scalar4 velmass = d_vel[idx];
+        Scalar3 vel = make_scalar3(velmass.x, velmass.y, velmass.z);
+        Scalar mass = velmass.w;
 
         // read in the net force and calculate the acceleration
         Scalar4 net_force_energy = d_net_force[idx];
@@ -154,7 +154,7 @@ void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
         Scalar3 accel = net_force / mass;
 
         // integrate the velocity
-        vel += accel * deltaT / 2.0f;
+        vel += accel * deltaT / Scalar(2.0);
 
         // write out the velocity and acceleration
         d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, velmass.w);
@@ -170,15 +170,15 @@ cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
                                    unsigned int group_size,
                                    const BoxDim& box,
                                    unsigned int block_size,
-                                   float lambda,
-                                   float deltaT)
+                                   Scalar lambda,
+                                   Scalar deltaT)
     {
     // setup the grid to run the kernel
     dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_berendsen_step_one_kernel<<< grid, threads, block_size * sizeof(float) >>>(d_pos,
+    gpu_berendsen_step_one_kernel<<< grid, threads, block_size * sizeof(Scalar) >>>(d_pos,
                                                                                    d_vel,
                                                                                    d_accel,
                                                                                    d_image,
@@ -195,16 +195,16 @@ cudaError_t gpu_berendsen_step_two(Scalar4 *d_vel,
                                    Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
-                                   float4 *d_net_force,
+                                   Scalar4 *d_net_force,
                                    unsigned int block_size,
-                                   float deltaT)
+                                   Scalar deltaT)
     {
     // setup the grid to run the kernel
     dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_berendsen_step_two_kernel<<< grid, threads, block_size * sizeof(float) >>>(d_vel,
+    gpu_berendsen_step_two_kernel<<< grid, threads, block_size * sizeof(Scalar) >>>(d_vel,
                                                                                    d_accel,
                                                                                    d_group_members,
                                                                                    group_size,

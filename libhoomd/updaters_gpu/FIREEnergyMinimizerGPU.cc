@@ -92,20 +92,20 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinitio
         }
     
     // allocate the sum arrays
-    GPUArray<float> sum(1, exec_conf);
+    GPUArray<Scalar> sum(1, exec_conf);
     m_sum.swap(sum);
-    GPUArray<float> sum3(3, exec_conf);
+    GPUArray<Scalar> sum3(3, exec_conf);
     m_sum3.swap(sum3);
     
     // initialize the partial sum arrays
     m_block_size = 256; //128;
     unsigned int group_size = m_group->getIndexArray().getNumElements();    
     m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<float> partial_sum1(m_num_blocks, exec_conf);
+    GPUArray<Scalar> partial_sum1(m_num_blocks, exec_conf);
     m_partial_sum1.swap(partial_sum1);
-    GPUArray<float> partial_sum2(m_num_blocks, exec_conf);
+    GPUArray<Scalar> partial_sum2(m_num_blocks, exec_conf);
     m_partial_sum2.swap(partial_sum2);
-    GPUArray<float> partial_sum3(m_num_blocks, exec_conf);
+    GPUArray<Scalar> partial_sum3(m_num_blocks, exec_conf);
     m_partial_sum3.swap(partial_sum3);
     
     reset();
@@ -175,8 +175,8 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     
         {
         ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
-        ArrayHandle<float> d_partial_sumE(m_partial_sum1, access_location::device, access_mode::overwrite);
-        ArrayHandle<float> d_sumE(m_sum, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_partial_sumE(m_partial_sum1, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_sumE(m_sum, access_location::device, access_mode::overwrite);
     
         gpu_fire_compute_sum_pe(d_index_array.data,
                                 group_size,
@@ -190,7 +190,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             CHECK_CUDA_ERROR();
         }
     
-    ArrayHandle<float> h_sumE(m_sum, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_sumE(m_sum, access_location::host, access_mode::read);
     energy = h_sumE.data[0]/Scalar(group_size);    
     
     if (m_prof)
@@ -210,10 +210,10 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->push(exec_conf, "FIRE P, vnorm, fnorm");
     
         {
-        ArrayHandle<float> d_partial_sum_P(m_partial_sum1, access_location::device, access_mode::overwrite);
-        ArrayHandle<float> d_partial_sum_vsq(m_partial_sum2, access_location::device, access_mode::overwrite);
-        ArrayHandle<float> d_partial_sum_fsq(m_partial_sum3, access_location::device, access_mode::overwrite);
-        ArrayHandle<float> d_sum(m_sum3, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_partial_sum_P(m_partial_sum1, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_partial_sum_vsq(m_partial_sum2, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_partial_sum_fsq(m_partial_sum3, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_sum(m_sum3, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
 
@@ -234,7 +234,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             CHECK_CUDA_ERROR();
         }
     
-    ArrayHandle<float> h_sum(m_sum3, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_sum(m_sum3, access_location::host, access_mode::read);
     P = h_sum.data[0];
     vnorm = sqrt(h_sum.data[1]);
     fnorm = sqrt(h_sum.data[2]);

@@ -77,24 +77,24 @@ struct gpu_rigid_data_arrays
     unsigned int local_num; //!< Number of particles local to this GPU
     
     unsigned int *body_indices; //!< Body indices
-    float  *body_mass;      //!< Body mass
-    float4 *moment_inertia; //!< Body principle moments in \c x, \c y, \c z, nothing in \c w
-    float4 *com;            //!< Body position in \c x,\c y,\c z, particle type as an int in \c w
-    float4 *vel;            //!< Body velocity in \c x, \c y, \c z, nothing in \c w
-    float4 *angvel;         //!< Angular velocity in \c x, \c y, \c z, nothing in \c w
-    float4 *angmom;         //!< Angular momentum in \c x, \c y, \c z, nothing in \c w
-    float4 *orientation;    //!< Quaternion in \c x, \c y, \c z, nothing in \c w
+    Scalar  *body_mass;      //!< Body mass
+    Scalar4 *moment_inertia; //!< Body principle moments in \c x, \c y, \c z, nothing in \c w
+    Scalar4 *com;            //!< Body position in \c x,\c y,\c z, particle type as an int in \c w
+    Scalar4 *vel;            //!< Body velocity in \c x, \c y, \c z, nothing in \c w
+    Scalar4 *angvel;         //!< Angular velocity in \c x, \c y, \c z, nothing in \c w
+    Scalar4 *angmom;         //!< Angular momentum in \c x, \c y, \c z, nothing in \c w
+    Scalar4 *orientation;    //!< Quaternion in \c x, \c y, \c z, nothing in \c w
     int3   *body_image;     //!< Body box image location
-    float4 *force;          //!< Body force in \c x, \c y, \c z, nothing in \c w
-    float4 *torque;         //!< Body torque in \c x, \c y, \c z, nothing in \c w
-    float *virial;          //!< Virial contribution from the first integration part
-    float4 *conjqm;         //!< Conjugate quaternion momentum 
+    Scalar4 *force;          //!< Body force in \c x, \c y, \c z, nothing in \c w
+    Scalar4 *torque;         //!< Body torque in \c x, \c y, \c z, nothing in \c w
+    Scalar *virial;          //!< Virial contribution from the first integration part
+    Scalar4 *conjqm;         //!< Conjugate quaternion momentum 
     unsigned int *particle_offset; //!< Per particle array listing the index offset in its body
     
-    float4 *particle_orientation;   //!< Particle orientation relative to the body frame
-    float4 *particle_pos;           //!< Particle relative position to the body frame
-    float4 *particle_oldpos;        //!< Particle position from the previous step
-    float4 *particle_oldvel;        //!< Particle velocity from the previous step
+    Scalar4 *particle_orientation;   //!< Particle orientation relative to the body frame
+    Scalar4 *particle_pos;           //!< Particle relative position to the body frame
+    Scalar4 *particle_oldpos;        //!< Particle position from the previous step
+    Scalar4 *particle_oldvel;        //!< Particle velocity from the previous step
     unsigned int *particle_indices; //!< Particle indices: actual particle index in the particle data arrays
     unsigned int *particle_tags;    //!< Particle tags   
     };
@@ -106,7 +106,7 @@ cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
                             int3 *d_image,
                             unsigned int *d_body,
                                    const gpu_rigid_data_arrays& rigid_data,
-                                   float4 *d_pdata_orientation,
+                                   Scalar4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    const BoxDim& box, 

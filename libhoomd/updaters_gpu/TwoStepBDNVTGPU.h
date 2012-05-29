@@ -97,8 +97,8 @@ class TwoStepBDNVTGPU : public TwoStepBDNVT
     protected:
         unsigned int m_block_size;              //!< block size for partial sum memory
         unsigned int m_num_blocks;              //!< number of memory blocks reserved for partial sum memory
-        GPUArray<float> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
-        GPUArray<float> m_sum;                  //!< memory space for sum over bd energy transfers          
+        GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
+        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers          
     };
 
 //! Exports the TwoStepBDNVTGPU class to python

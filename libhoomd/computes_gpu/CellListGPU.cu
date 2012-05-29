@@ -75,12 +75,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \note Optimized for Fermi
 */
 __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
-                                             float4 *d_xyzf,
-                                             float4 *d_tdb,
+                                             Scalar4 *d_xyzf,
+                                             Scalar4 *d_tdb,
                                              unsigned int *d_conditions,
-                                             const float4 *d_pos,
-                                             const float *d_charge,
-                                             const float *d_diameter,
+                                             const Scalar4 *d_pos,
+                                             const Scalar *d_charge,
+                                             const Scalar *d_diameter,
                                              const unsigned int *d_body,
                                              const unsigned int N,
                                              const unsigned int Nmax,
@@ -94,24 +94,24 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     if (idx >= N)
         return;
 
-    float4 postype = d_pos[idx];
-    float3 pos = make_float3(postype.x, postype.y, postype.z);
+    Scalar4 postype = d_pos[idx];
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
-    float flag = 0.0f;
-    float diameter = 0.0f;
-    float body = 0;
-    float type = 0;
+    Scalar flag = Scalar(0.0);
+    Scalar diameter = Scalar(0.0);
+    Scalar body = 0;
+    Scalar type = 0;
     if (d_tdb != NULL)
         {
         diameter = d_diameter[idx];
-        body = __int_as_float(d_body[idx]);
+        body = __int_as_scalar(d_body[idx]);
         type = postype.w;
         }
 
     if (flag_charge)
         flag = d_charge[idx];
     else
-        flag = __int_as_float(idx);
+        flag = __int_as_scalar(idx);
 
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
@@ -147,9 +147,9 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     if (size < Nmax)
         {
         unsigned int write_pos = cli(size, bin);
-        d_xyzf[write_pos] = make_float4(pos.x, pos.y, pos.z, flag);
+        d_xyzf[write_pos] = make_scalar4(pos.x, pos.y, pos.z, flag);
         if (d_tdb != NULL)
-            d_tdb[write_pos] = make_float4(type, diameter, body, 0.0f);
+            d_tdb[write_pos] = make_scalar4(type, diameter, body, Scalar(0.0));
         }
     else
         {
@@ -159,12 +159,12 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     }
 
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
-                                  float4 *d_xyzf,
-                                  float4 *d_tdb,
+                                  Scalar4 *d_xyzf,
+                                  Scalar4 *d_tdb,
                                   unsigned int *d_conditions,
-                                  const float4 *d_pos,
-                                  const float *d_charge,
-                                  const float *d_diameter,
+                                  const Scalar4 *d_pos,
+                                  const Scalar *d_charge,
+                                  const Scalar *d_diameter,
                                   const unsigned int *d_body,
                                   const unsigned int N,
                                   const unsigned int Nmax,
@@ -174,7 +174,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Index2D& cli)
     {
     unsigned int block_size = 256;
-    int n_blocks = (int)ceil(float(N)/(float)block_size);
+    int n_blocks = (int)ceil(Scalar(N)/(Scalar)block_size);
     
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());
@@ -351,12 +351,12 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
 */
 template<unsigned int block_size>
 __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
-                                                float4 *d_xyzf,
-                                                float4 *d_tdb,
+                                                Scalar4 *d_xyzf,
+                                                Scalar4 *d_tdb,
                                                 unsigned int *d_conditions,
-                                                const float4 *d_pos,
-                                                const float *d_charge,
-                                                const float *d_diameter,
+                                                const Scalar4 *d_pos,
+                                                const Scalar *d_charge,
+                                                const Scalar *d_diameter,
                                                 const unsigned int *d_body,
                                                 const unsigned int N,
                                                 const unsigned int Nmax,
@@ -371,11 +371,11 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     // read in the particle that belongs to this thread
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    float4 postype = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    Scalar4 postype = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
     if (idx < N)
         postype = d_pos[idx];
 
-    float3 pos = make_float3(postype.x, postype.y, postype.z);
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // find the bin each particle belongs in
     Scalar3 f = box.makeFraction(pos);
@@ -472,26 +472,26 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
             unsigned int write_id = bin_pairs[threadIdx.x].id;
             unsigned int write_location = cli(size, bin_pairs[threadIdx.x].bin);
             
-            float4 write_pos = d_pos[write_id];
-            float flag = 0.0f;
-            float diameter = 0.0f;
-            float body = 0;
-            float type = 0;
+            Scalar4 write_pos = d_pos[write_id];
+            Scalar flag = Scalar(0.0);
+            Scalar diameter = Scalar(0.0);
+            Scalar body = 0;
+            Scalar type = 0;
             if (d_tdb != NULL)
                 {
                 diameter = d_diameter[write_id];
-                body = __int_as_float(d_body[write_id]);
+                body = __int_as_scalar(d_body[write_id]);
                 type = write_pos.w;
                 }
                 
             if (flag_charge)
                 flag = d_charge[write_id];
             else
-                flag = __int_as_float(write_id);
+                flag = __int_as_scalar(write_id);
             
-            d_xyzf[write_location] = make_float4(write_pos.x, write_pos.y, write_pos.z, flag);
+            d_xyzf[write_location] = make_scalar4(write_pos.x, write_pos.y, write_pos.z, flag);
             if (d_tdb != NULL)
-                d_tdb[write_location] = make_float4(type, diameter, body, 0.0f);
+                d_tdb[write_location] = make_scalar4(type, diameter, body, Scalar(0.0));
             }
         }
     else
@@ -502,12 +502,12 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     }
 
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
-                                     float4 *d_xyzf,
-                                     float4 *d_tdb,
+                                     Scalar4 *d_xyzf,
+                                     Scalar4 *d_tdb,
                                      unsigned int *d_conditions,
-                                     const float4 *d_pos,
-                                     const float *d_charge,
-                                     const float *d_diameter,
+                                     const Scalar4 *d_pos,
+                                     const Scalar *d_charge,
+                                     const Scalar *d_diameter,
                                      const unsigned int *d_body,
                                      const unsigned int N,
                                      const unsigned int Nmax,
@@ -517,7 +517,7 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const Index2D& cli)
     {
     const unsigned int block_size = 64;
-    int n_blocks = (int)ceil(float(N)/(float)block_size);
+    int n_blocks = (int)ceil(Scalar(N)/(Scalar)block_size);
     
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());

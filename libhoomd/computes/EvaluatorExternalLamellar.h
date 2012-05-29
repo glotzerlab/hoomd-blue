@@ -59,9 +59,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// SCALARASINT resolves to __float_as_int on the device and to __scalar_as_int on the host
+// SCALARASINT resolves to __scalar_as_int on the device and to __scalar_as_int on the host
 #ifdef NVCC
-#define SCALARASINT(x) __float_as_int(x)
+#define SCALARASINT(x) __scalar_as_int(x)
 #else
 #define SCALARASINT(x) __scalar_as_int(x)
 #endif

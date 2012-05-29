@@ -91,11 +91,11 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
         unsigned int m_nparticles;              //!< number of particles in the system
         unsigned int m_block_size;              //!< block size for partial sum memory
         unsigned int m_num_blocks;              //!< number of memory blocks reserved for partial sum memory
-        GPUArray<float> m_partial_sum1;         //!< memory space for partial sum over P
-        GPUArray<float> m_partial_sum2;         //!< memory space for partial sum over vsq
-        GPUArray<float> m_partial_sum3;         //!< memory space for partial sum over asq
-        GPUArray<float> m_sum;                  //!< memory space for sum over vsq
-        GPUArray<float> m_sum3;                 //!< memory space for the sum over P, vsq, asq 
+        GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over P
+        GPUArray<Scalar> m_partial_sum2;         //!< memory space for partial sum over vsq
+        GPUArray<Scalar> m_partial_sum3;         //!< memory space for partial sum over asq
+        GPUArray<Scalar> m_sum;                  //!< memory space for sum over vsq
+        GPUArray<Scalar> m_sum3;                 //!< memory space for the sum over P, vsq, asq 
         
     private:
 

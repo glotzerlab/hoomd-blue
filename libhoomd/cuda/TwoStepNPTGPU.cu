@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Shared data used by NPT kernels for sum reductions
-extern __shared__ float npt_sdata[];
+extern __shared__ Scalar npt_sdata[];
 
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
@@ -84,15 +84,15 @@ void gpu_npt_step_one_kernel(Scalar4 *d_pos,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              bool partial_scale,
-                             float exp_v_fac,
-                             float exp_r_fac,
-                             float deltaT)
+                             Scalar exp_v_fac,
+                             Scalar exp_r_fac,
+                             Scalar deltaT)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     // loop invariant quantities
-    float exp_r_fac_inv = 1.0f / exp_r_fac;
+    Scalar exp_r_fac_inv = Scalar(1.0) / exp_r_fac;
     
     // propagate velocity from t to t+1/2*deltaT and position from t to t+deltaT
     // according to the Nose-Hoover barostat
@@ -101,26 +101,26 @@ void gpu_npt_step_one_kernel(Scalar4 *d_pos,
         unsigned int idx = d_group_members[group_idx];
         
         // fetch particle position
-        float4 pos = d_pos[idx];
+        Scalar4 pos = d_pos[idx];
         
-        float px = pos.x;
-        float py = pos.y;
-        float pz = pos.z;
-        float pw = pos.w;
+        Scalar px = pos.x;
+        Scalar py = pos.y;
+        Scalar pz = pos.z;
+        Scalar pw = pos.w;
         
         // fetch particle velocity and acceleration
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
         Scalar3 accel = d_accel[idx];
         
         // propagate velocity by half a time step and position by the full time step
         // according to the Nose-Hoover barostat
-        vel.x = vel.x*exp_v_fac*exp_v_fac + (1.0f/2.0f) * deltaT*exp_v_fac*accel.x;
+        vel.x = vel.x*exp_v_fac*exp_v_fac + (Scalar(1.0)/Scalar(2.0)) * deltaT*exp_v_fac*accel.x;
         px = px + vel.x*exp_r_fac_inv*deltaT;
         
-        vel.y = vel.y*exp_v_fac*exp_v_fac + (1.0f/2.0f) * deltaT*exp_v_fac*accel.y;
+        vel.y = vel.y*exp_v_fac*exp_v_fac + (Scalar(1.0)/Scalar(2.0)) * deltaT*exp_v_fac*accel.y;
         py = py + vel.y*exp_r_fac_inv*deltaT;
         
-        vel.z = vel.z*exp_v_fac*exp_v_fac + (1.0f/2.0f) * deltaT*exp_v_fac*accel.z;
+        vel.z = vel.z*exp_v_fac*exp_v_fac + (Scalar(1.0)/Scalar(2.0)) * deltaT*exp_v_fac*accel.z;
         pz = pz + vel.z*exp_r_fac_inv*deltaT;
         
         if (partial_scale)
@@ -160,9 +160,9 @@ cudaError_t gpu_npt_step_one(Scalar4 *d_pos,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              bool partial_scale,
-                             float Xi,
-                             float Eta,
-                             float deltaT)
+                             Scalar Xi,
+                             Scalar Eta,
+                             Scalar deltaT)
     {
     // setup the grid to run the kernel
     unsigned int block_size = 256;
@@ -170,8 +170,8 @@ cudaError_t gpu_npt_step_one(Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
     
     // precalculate scaling factors for baro/thermostat
-    float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);  // velocity scaling
-    float exp_r_fac = exp(1.0f/2.0f*Eta*deltaT);        // position scaling
+    Scalar exp_v_fac = exp(-Scalar(1.0)/Scalar(4.0)*(Eta+Xi)*deltaT);  // velocity scaling
+    Scalar exp_r_fac = exp(Scalar(1.0)/Scalar(2.0)*Eta*deltaT);        // position scaling
     
     // run the kernel
     gpu_npt_step_one_kernel<<< grid, threads >>>(d_pos,
@@ -204,7 +204,7 @@ void gpu_npt_boxscale_kernel(const unsigned int N,
                              int3 *d_image,
                              BoxDim box,
                              bool partial_scale,
-                             float box_len_scale)
+                             Scalar box_len_scale)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -213,8 +213,8 @@ void gpu_npt_boxscale_kernel(const unsigned int N,
     if (idx < N)
         {
         // fetch particle position
-        float4 postype = d_pos[idx];
-        float3 pos = make_float3(postype.x, postype.y, postype.z);
+        Scalar4 postype = d_pos[idx];
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         if (!partial_scale)
             {
@@ -228,7 +228,7 @@ void gpu_npt_boxscale_kernel(const unsigned int N,
         box.wrap(pos, image);
 
         // write out the results
-        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
+        d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
         d_image[idx] = image;
         }
     }
@@ -248,15 +248,15 @@ cudaError_t gpu_npt_boxscale(const unsigned int N,
                              int3 *d_image,
                              const BoxDim& box,
                              bool partial_scale,
-                             float Eta,
-                             float deltaT)
+                             Scalar Eta,
+                             Scalar deltaT)
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;
     dim3 grid( (N / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    float box_len_scale = exp(Eta*deltaT);  // box length dilatation factor
+    Scalar box_len_scale = exp(Eta*deltaT);  // box length dilatation factor
     
     // scale the box before running the kernel
     BoxDim scaled_box(box);
@@ -280,11 +280,11 @@ velocity update and is a result of coupling to the thermo/barostat
 extern "C" __global__ 
 void gpu_npt_step_two_kernel( Scalar4 *d_vel,
                               Scalar3 *d_accel,
-                             const float4 *d_net_force,
+                             const Scalar4 *d_net_force,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float exp_v_fac,
-                             float deltaT)
+                             Scalar exp_v_fac,
+                             Scalar deltaT)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -294,21 +294,21 @@ void gpu_npt_step_two_kernel( Scalar4 *d_vel,
         unsigned int idx = d_group_members[group_idx];
         
         // read in the net force and compute the acceleration
-        float4 accel = d_net_force[idx];
+        Scalar4 accel = d_net_force[idx];
 
         // fetch velocities
         Scalar4 vel = d_vel[idx];
 
-        float mass = vel.w;
+        Scalar mass = vel.w;
         accel.x /= mass;
         accel.y /= mass;
         accel.z /= mass;
         
         // propagate velocities from t+1/2*deltaT to t+deltaT according to the
         // Nose-Hoover barostat
-        vel.x = vel.x*exp_v_fac*exp_v_fac + (1.0f/2.0f)*deltaT*exp_v_fac*accel.x;
-        vel.y = vel.y*exp_v_fac*exp_v_fac + (1.0f/2.0f)*deltaT*exp_v_fac*accel.y;
-        vel.z = vel.z*exp_v_fac*exp_v_fac + (1.0f/2.0f)*deltaT*exp_v_fac*accel.z;
+        vel.x = vel.x*exp_v_fac*exp_v_fac + (Scalar(1.0)/Scalar(2.0))*deltaT*exp_v_fac*accel.x;
+        vel.y = vel.y*exp_v_fac*exp_v_fac + (Scalar(1.0)/Scalar(2.0))*deltaT*exp_v_fac*accel.y;
+        vel.z = vel.z*exp_v_fac*exp_v_fac + (Scalar(1.0)/Scalar(2.0))*deltaT*exp_v_fac*accel.z;
         
         // write out data
         d_vel[idx] = vel;
@@ -332,10 +332,10 @@ cudaError_t gpu_npt_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float Xi,
-                             float Eta,
-                             float deltaT)
+                             Scalar4 *d_net_force,
+                             Scalar Xi,
+                             Scalar Eta,
+                             Scalar deltaT)
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;
@@ -343,7 +343,7 @@ cudaError_t gpu_npt_step_two(Scalar4 *d_vel,
     dim3 threads(block_size, 1, 1);
     
     // precalulate velocity scaling factor due to Nose-Hoover barostat dynamics
-    float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);
+    Scalar exp_v_fac = exp(-Scalar(1.0)/Scalar(4.0)*(Eta+Xi)*deltaT);
     
     // run the kernel
     gpu_npt_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_net_force, d_group_members, group_size, exp_v_fac, deltaT);

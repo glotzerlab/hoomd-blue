@@ -285,7 +285,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         bool evaluated = eval.evalForceAndEnergy(force_divr, bond_eng);
 
         // Bond energy must be halved
-        bond_eng *= 0.5f;
+        bond_eng *= Scalar(0.5);
 
         if (evaluated)
             {

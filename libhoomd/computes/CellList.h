@@ -178,7 +178,7 @@ class CellList : public Compute
             m_params_changed = true;
             }
         
-        //! Specify that the flag is to be the particle index (encoded as an integer in the float variable)
+        //! Specify that the flag is to be the particle index (encoded as an integer in the Scalar variable)
         void setFlagIndex()
             {
             m_flag_charge = false;

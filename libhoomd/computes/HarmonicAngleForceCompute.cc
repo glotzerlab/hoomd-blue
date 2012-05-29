@@ -68,7 +68,7 @@ using namespace boost::python;
 using namespace std;
 
 // SMALL a relatively small number
-#define SMALL 0.001f
+#define SMALL Scalar(0.001)
 
 /*! \file HarmonicAngleForceCompute.cc
     \brief Contains code for the HarmonicAngleForceCompute class

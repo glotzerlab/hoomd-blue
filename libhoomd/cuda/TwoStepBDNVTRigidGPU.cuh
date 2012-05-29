@@ -67,10 +67,10 @@ cudaError_t gpu_bdnvt_force(const Scalar4 *d_pos,
                             const unsigned int *d_tag,
                             unsigned int *d_group_members,
                             unsigned int group_size,
-                            float4 *d_net_force,
+                            Scalar4 *d_net_force,
                             const bdnvt_step_two_args& bdnvt_args,
-                            float deltaT,
-                            float D);
+                            Scalar deltaT,
+                            Scalar D);
 
 
 #endif //__TWO_STEP_BDNVT_RIGID_GPU_CUH__
