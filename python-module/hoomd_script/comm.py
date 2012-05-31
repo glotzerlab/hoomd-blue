@@ -137,7 +137,9 @@ class mpi_partition:
                                  % (self.root, comm_world.size/self.num_replicas)
             self.root = 0
 
-        self.replica_comm = comm_world.split(0 if ((comm_world.rank - self.root) % self.num_replicas == 0) else 1)
+        # I'm commenting out this line of code because it results in a syntax error in python 2.4
+        # replica_comm seems to be unused at the moment
+        # self.replica_comm = comm_world.split(0 if ((comm_world.rank - self.root) % self.num_replicas == 0) else 1)
         if (comm_world.rank - self.root) % self.num_replicas == 1:
             # Only set global communicator on the root nodes
             self.replica_comm = None;
