@@ -140,15 +140,20 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     for (unsigned int i = 0; i < snapshot.size; i++)
         {
         unsigned int tag = m_tag_array[i];
-        snapshot.pos[tag] = make_scalar3(m_x_array[i], m_y_array[i], m_z_array[i]);
-        snapshot.image[tag] = make_int3(m_ix_array[i], m_iy_array[i], m_iz_array[i]);
-        snapshot.vel[tag] = make_scalar3(m_vx_array[i], m_vy_array[i], m_vz_array[i]);
-        snapshot.accel[tag] = make_scalar3(m_ax_array[i], m_ay_array[i], m_az_array[i]);
-        snapshot.mass[tag] = m_mass_array[i];
-        snapshot.type[tag] = m_type_array[i];
-        snapshot.diameter[tag] = m_diameter_array[i];
-        snapshot.charge[tag] = m_charge_array[i];
-        snapshot.body[tag] = m_body_array[i];
+        unsigned int rtag = m_rtag_array[i];
+
+        // data in the restart file is arranged in index order, need to put it in tag order for the snapshot
+        snapshot.rtag[tag] = i;
+
+        snapshot.pos[i] = make_scalar3(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);
+        snapshot.image[i] = make_int3(m_ix_array[rtag], m_iy_array[rtag], m_iz_array[rtag]);
+        snapshot.vel[i] = make_scalar3(m_vx_array[rtag], m_vy_array[rtag], m_vz_array[rtag]);
+        snapshot.accel[i] = make_scalar3(m_ax_array[rtag], m_ay_array[rtag], m_az_array[rtag]);
+        snapshot.mass[i] = m_mass_array[rtag];
+        snapshot.type[i] = m_type_array[rtag];
+        snapshot.diameter[i] = m_diameter_array[rtag];
+        snapshot.charge[i] = m_charge_array[rtag];
+        snapshot.body[i] = m_body_array[rtag];
         }        
 
     snapshot.type_mapping = m_type_mapping;

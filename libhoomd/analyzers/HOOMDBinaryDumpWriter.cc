@@ -222,7 +222,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     if (!f.good())
         {
-        m_exec_conf->msg->error() << "dump.bin: I/P error writing HOOMD dump file" << endl;
+        m_exec_conf->msg->error() << "dump.bin: I/O error writing HOOMD dump file" << endl;
         throw runtime_error("Error writing HOOMD dump file");
         }
     

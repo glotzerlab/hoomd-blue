@@ -91,6 +91,8 @@ _default_block_size_db['2.0'] = {'pair.ewald': 320, 'improper.harmonic': 96, 'pa
 
 _default_block_size_db['2.1'] = {'pair.ewald': 224, 'improper.harmonic': 96, 'pair.dpd_conservative': 224, 'dihedral.harmonic': 64, 'pair.dpd': 128, 'angle.cgcmm': 96, 'nlist.filter': 256, 'pair.lj': 160, 'pair.force_shifted_lj': 160, 'pair.table': 160, 'pair.cgcmm': 128, 'pair.dpdlj': 128, 'pair.slj': 128, 'pair.morse': 256, 'nlist': 576, 'bond.harmonic': 160, 'pair.yukawa': 192, 'bond.fene': 96, 'angle.harmonic': 96, 'pair.gauss': 160, 'external.periodic': 512}
 
+_default_block_size_db['3.0'] = {'pair.ewald': 128, 'improper.harmonic': 64, 'pair.dpd_conservative': 192, 'dihedral.harmonic': 64, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 128, 'nlist.filter': 128, 'pair.lj': 160, 'pair.table': 128, 'pair.cgcmm': 128, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 192, 'nlist': 448, 'bond.harmonic': 320, 'pair.yukawa': 160, 'bond.fene': 128, 'angle.harmonic': 96, 'pair.gauss': 160};
+
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
 _override_block_size_db = None;
@@ -234,7 +236,7 @@ def _find_optimal_block_size_fc(fc, n):
         for block_size in xrange(64,1024+32,32):
             fc.cpp_force.setBlockSize(block_size);
             t = fc.benchmark(n);
-            globals.msg.notice(2, str(block_size) + str(t) + '\n');
+            globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
         globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
