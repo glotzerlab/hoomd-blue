@@ -142,9 +142,6 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         unsigned int tag = m_tag_array[i];
         unsigned int rtag = m_rtag_array[i];
 
-        // data in the restart file is arranged in index order, need to put it in tag order for the snapshot
-        snapshot.rtag[tag] = i;
-
         snapshot.pos[i] = make_scalar3(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);
         snapshot.image[i] = make_int3(m_ix_array[rtag], m_iy_array[rtag], m_iz_array[rtag]);
         snapshot.vel[i] = make_scalar3(m_vx_array[rtag], m_vy_array[rtag], m_vz_array[rtag]);
