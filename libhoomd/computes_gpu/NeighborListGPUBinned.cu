@@ -329,6 +329,7 @@ texture<Scalar4, 2, cudaReadModeElementType> cell_xyzf_tex;
 //! Texture for reading d_cell_tdb
 texture<Scalar4, 2, cudaReadModeElementType> cell_tdb_tex;
 
+#ifdef SINGLE_PRECISION
 //! Kernel call for generating neighbor list on the GPU
 /*! \tparam filter_flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
@@ -574,6 +575,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
         }
     return cudaSuccess;
     }
+#endif
 
 /*! Call this method once at initialization. It specifies that gpu_compute_nlist_binned_new_kernel() utilize the 48k
     L1 cache on Fermi.

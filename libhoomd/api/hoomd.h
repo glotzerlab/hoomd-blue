@@ -87,6 +87,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TablePotential.h"
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
+#include "AllTripletPotentials.h"
 #include "AllBondPotentials.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoGPU.h"
@@ -122,12 +123,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
 #include "Enforce2DUpdater.h"
+#include "RemoveParticlesUpdater.h"
 #include "System.h"
 #include "Variant.h"
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPair.h"
+#include "PotentialTriplet.h"
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
 
@@ -161,6 +164,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
+#include "PotentialTripletGPU.h"
 #include "PPPMForceComputeGPU.h"
 #endif
 

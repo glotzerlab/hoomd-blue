@@ -1,44 +1,3 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
-
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-Redistribution and use of HOOMD-blue, in source and binary forms, with or
-without modification, are permitted, provided that the following conditions are
-met:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* Neither the name of the copyright holder nor the names of HOOMD-blue's
-contributors may be used to endorse or promote products derived from this
-software without specific prior written permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
-ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
 #ifndef __TRIPLET_EVALUATOR_TERSOFF__
 #define __TRIPLET_EVALUATOR_TERSOFF__
 
@@ -61,21 +20,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! SQRT is sqrtf when included in nvcc and sqrt when included in the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define SQRT sqrtf
 #else
 #define SQRT sqrt
 #endif
 
 //! EXP is expf when included in nvcc and exp when included in the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define EXP expf
 #else
 #define EXP exp
 #endif
 
 //! POW is powf when included in nvcc and pow when included in the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define POW powf
 #else
 #define POW pow
@@ -83,7 +42,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! COS is cosf when included in nvcc and cos when included in the host compiler
 //! SIN is sinf when included in nvcc and sin when included in the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define COS cosf
 #define SIN sinf
 #else
@@ -161,24 +120,6 @@ class EvaluatorTripletTersoff
         {
             rik_sq = rsq;
         }
-
-        //! The Tersoff potential does not use the particle diameters
-        DEVICE static bool needsDiameter() { return false; }
-        //! Accept the optional diameter values
-        /*! \param di Diameter of particle i
-            \param dj Diameter of particle j
-            \param dk Diameter of particle k
-        */
-        DEVICE void setDiameter(Scalar di, Scalar dj, Scalar dk) { }
-
-        //! The Tersoff potential does not use the particle charges
-        DEVICE static bool needsCharge() { return false; }
-        //! Accept the optional charge values
-        /*! \param qi Charge of particle i
-            \param qj Charge of particle j
-            \param qk Charge of particle k
-        */
-        DEVICE void setCharge(Scalar qi, Scalar qj, Scalar qk) { }
 
         //! The Tersoff potential needs the bond angle
         DEVICE static bool needsAngle() { return true; }

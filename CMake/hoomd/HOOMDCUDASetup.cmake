@@ -2,27 +2,25 @@
 
 ##################################
 ## Find CUDA
-if (SINGLE_PRECISION)
-    # If CUDA is enabled, set it up
-    if (ENABLE_CUDA)
-        # the package is needed
-        find_package(CUDA REQUIRED REQUIRED)
-        
-        if (${CUDA_VERSION} VERSION_LESS 4.0)
-            message(SEND_ERROR "CUDA 3.2 and older are not supported")
-        endif (${CUDA_VERSION} VERSION_LESS 4.0)
+# If CUDA is enabled, set it up
+if (ENABLE_CUDA)
+	# the package is needed
+	find_package(CUDA REQUIRED REQUIRED)
+	
+	if (${CUDA_VERSION} VERSION_LESS 4.0)
+		message(SEND_ERROR "CUDA 3.2 and older are not supported")
+	endif (${CUDA_VERSION} VERSION_LESS 4.0)
 
-        include_directories(${CUDA_INCLUDE_DIRS})
+	include_directories(${CUDA_INCLUDE_DIRS})
 
-        # hide some variables users don't need to see
-        mark_as_advanced(CUDA_SDK_ROOT_DIR)
-        if (CUDA_TOOLKIT_ROOT_DIR)
-            mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
-        endif (CUDA_TOOLKIT_ROOT_DIR)
-        mark_as_advanced(CUDA_VERBOSE_BUILD)
-        mark_as_advanced(CUDA_BUILD_EMULATION)
-    endif (ENABLE_CUDA)
-endif (SINGLE_PRECISION)
+	# hide some variables users don't need to see
+	mark_as_advanced(CUDA_SDK_ROOT_DIR)
+	if (CUDA_TOOLKIT_ROOT_DIR)
+		mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
+	endif (CUDA_TOOLKIT_ROOT_DIR)
+	mark_as_advanced(CUDA_VERBOSE_BUILD)
+	mark_as_advanced(CUDA_BUILD_EMULATION)
+endif (ENABLE_CUDA)
 
 # setup CUDA compile options
 if (ENABLE_CUDA)

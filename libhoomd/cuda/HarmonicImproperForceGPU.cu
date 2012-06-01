@@ -66,7 +66,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Texture for reading improper parameters
+#ifdef SINGLE_PRECISION
 texture<Scalar2, 1, cudaReadModeElementType> improper_params_tex;
+#endif
+
+//! ACOS is acosf when running in single precision and acos otherwise
+#ifdef SINGLE_PRECISION
+#define ACOS acosf
+#else
+#define ACOS acos
+#endif
 
 //! Kernel for caculating harmonic improper forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -86,6 +95,7 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
                                                  const unsigned int virial_pitch,
                                                  unsigned int N,
                                                  const Scalar4 *d_pos,
+												 const Scalar2 *d_params,
                                                  BoxDim box,
                                                  const uint4 *tlist,
                                                  const uint1 *dihedral_ABCD,
@@ -176,7 +186,11 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
         ddc = box.minImage(ddc);
 
         // get the improper parameters (MEM TRANSFER: 12 bytes)
+		#ifdef SINGLE_PRECISION
         Scalar2 params = tex1Dfetch(improper_params_tex, cur_improper_type);
+		#else
+		Scalar2 params = d_params[cur_improper_type];
+		#endif
         Scalar K = params.x;
         Scalar chi = params.y;
 
@@ -210,7 +224,7 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
         Scalar s = sqrtf(Scalar(1.0) - c*c);
         if (s < SMALL) s = SMALL;
 
-        Scalar domega = acosf(c) - chi;
+        Scalar domega = ACOS(c) - chi;
         Scalar a = K * domega;
 
         // calculate the energy, 1/4th for each atom
@@ -339,12 +353,14 @@ cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
+	#ifdef SINGLE_PRECISION
     cudaError_t error = cudaBindTexture(0, improper_params_tex, d_params, sizeof(Scalar2) * n_improper_types);
     if (error != cudaSuccess)
         return error;
+	#endif
 
     // run the kernel
-    gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
+    gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
 
     return cudaSuccess;
     }

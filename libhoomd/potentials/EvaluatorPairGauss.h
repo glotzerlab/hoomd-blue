@@ -72,8 +72,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // call different optimized exp functions on the host / device
-// EXP is expf when included in nvcc and exp when included into the host compiler
-#ifdef NVCC
+// EXP is expf when compiled for single precision on the GPU and exp otherwise
+#if defined NVCC && defined SINGLE_PRECISION
 #define EXP expf
 #else
 #define EXP exp

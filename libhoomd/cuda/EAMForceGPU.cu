@@ -68,6 +68,7 @@ Moscow group.
     \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
+#ifdef SINGLE_PRECISION
 //!< Texture for reading particle positions
 texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading electron density
@@ -82,6 +83,7 @@ texture<Scalar, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
 texture<Scalar, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
 //! Texture for reading the derivative of the atom embedding function
 texture<Scalar, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
+#endif
 
 //! Storage space for EAM parameters on the GPU
 __constant__ EAMTexInterData eam_data_ti;
@@ -110,8 +112,13 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
+	#ifdef SINGLE_PRECISION
     Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+	#else
+	Scalar4 postype = d_pos[idx];
+	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+	#endif
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -133,7 +140,11 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
+		#ifdef SINGLE_PRECISION
         Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
+		#else
+		Scalar4 neigh_postype = d_pos[cur_neigh];
+		#endif
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
@@ -184,7 +195,11 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
+	#ifdef SINGLE_PRECISION
     Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
+	#else
+	Scalar4 postype = d_pos[idx];
+	#endif
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     int typei = __scalar_as_int(postype.w);
     // prefetch neighbor index
@@ -213,7 +228,11 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
+		#ifdef SINGLE_PRECISION
         Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex,cur_neigh);
+		#else
+		Scalar4 neigh_postype = d_pos[cur_neigh];
+		#endif
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)

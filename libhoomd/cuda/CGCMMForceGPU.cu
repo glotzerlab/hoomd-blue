@@ -63,7 +63,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Texture for reading particle positions
+#ifdef SINGLE_PRECISION
 texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
+#endif
 
 //! Kernel for calculating CG-CMM Lennard-Jones forces
 /*! This kernel is called to calculate the Lennard-Jones forces on all N particles for the CG-CMM model potential.
@@ -125,8 +127,13 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
+	#ifdef SINGLE_PRECISION
     Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+	#else
+	Scalar4 postype = d_pos[idx];
+	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+	#endif
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -158,8 +165,13 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
             next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
+			#ifdef SINGLE_PRECISION
             Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
             Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+			#else
+			Scalar4 neigh_postype = d_pos[idx];
+			Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+			#endif
 
             // calculate dr (with periodic boundary conditions)
             Scalar3 dx = pos - neigh_pos;
@@ -261,11 +273,13 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
+	#ifdef SINGLE_PRECISION
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
+	#endif
 
     // run the kernel
     gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>

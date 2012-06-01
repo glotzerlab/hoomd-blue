@@ -73,7 +73,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Texture for reading dihedral parameters
+#ifdef SINGLE_PRECISION
 texture<Scalar4, 1, cudaReadModeElementType> dihedral_params_tex;
+#endif
 
 //! Kernel for caculating harmonic dihedral forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -93,6 +95,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
+												 const Scalar4 *d_params,
                                                  BoxDim box,
                                                  const uint4 *tlist,
                                                  const uint1 *dihedral_ABCD,
@@ -185,7 +188,11 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
         dcbm = box.minImage(dcbm);
 
         // get the dihedral parameters (MEM TRANSFER: 12 bytes)
+		#ifdef SINGLE_PRECISION
         Scalar4 params = tex1Dfetch(dihedral_params_tex, cur_dihedral_type);
+		#else
+		Scalar4 params = d_params[cur_dihedral_type];
+		#endif
         Scalar K = params.x;
         Scalar sign = params.y;
         Scalar multi = params.z;
@@ -378,12 +385,14 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
+	#ifdef SINGLE_PRECISION
     cudaError_t error = cudaBindTexture(0, dihedral_params_tex, d_params, sizeof(Scalar4) * n_dihedral_types);
     if (error != cudaSuccess)
         return error;
+	#endif
 
     // run the kernel
-    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
+    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
 
     return cudaSuccess;
     }

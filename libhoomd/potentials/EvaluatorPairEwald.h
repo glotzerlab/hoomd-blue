@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#if defined NVCC
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -73,7 +73,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // call different optimized exp functions on the host / device
 // EXP is expf when included in nvcc and exp when included into the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define EXP expf
 #else
 #define EXP exp
@@ -81,13 +81,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // call different optimized sqrt functions on the host / device
 // RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define RSQRT(x) rsqrtf( (x) )
 #else
 #define RSQRT(x) Scalar(1.0) / sqrt( (x) )
 #endif
 
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 // ERFC is the complimentary error function
 #define ERFC erfc
 #else

@@ -57,6 +57,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_TRIPLET_GPU_CUH__
 #define __POTENTIAL_TRIPLET_GPU_CUH__
 
+//! Texture for reading particle positions
+//#ifdef SINGLE_PRECISION
+//texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
+//#endif
+
 //! Wrapps arguments to gpu_cgpf
 struct triplet_args_t
     {
@@ -64,8 +69,6 @@ struct triplet_args_t
     triplet_args_t(Scalar4 *_d_force,
 				const unsigned int _N,
 				const Scalar4 *_d_pos,
-				const Scalar *_d_diameter,
-				const Scalar *_d_charge,
 				const BoxDim& _box,
 				const unsigned int *_d_n_neigh,
 				const unsigned int *_d_nlist,
@@ -78,8 +81,6 @@ struct triplet_args_t
                 : d_force(_d_force),
 				  N(_N),
 				  d_pos(_d_pos),
-				  d_diameter(_d_diameter),
-				  d_charge(_d_charge),
 				  box(_box),
                   d_n_neigh(_d_n_neigh),
                   d_nlist(_d_nlist),
@@ -95,8 +96,6 @@ struct triplet_args_t
 	Scalar4 *d_force;                //!< Force to write out
 	const unsigned int N;			//!< Number of particles
 	const Scalar4 *d_pos;			//!< particle positions
-	const Scalar *d_diameter;		//!< particle diameters
-	const Scalar *d_charge;			//!< particle charges
 	const BoxDim& box;				//!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
@@ -110,6 +109,29 @@ struct triplet_args_t
 
 
 #ifdef NVCC
+//! atomicAdd function for double-precision floating point numbers
+/*! This function is only used when hoomd is compiled for double precision on the GPU.
+	
+	\param address Address to write the double to
+	\param val Value to add to address
+*/
+#ifndef SINGLE_PRECISION
+__device__ inline double atomicAdd(double* address, double val)
+{
+	unsigned long long int* address_as_ull = (unsigned long long int*)address;
+	unsigned long long int old = *address_as_ull, assumed;
+
+	do {
+		assumed = old;
+		old = atomicCAS(address_as_ull,
+			assumed,
+			__double_as_longlong(val + __longlong_as_double(assumed)));
+	} while (assumed != old);
+
+	return __longlong_as_double(old);
+}
+#endif
+
 //! Kernel for calculating the Tersoff forces
 /*! This kernel is called to calculate the forces on all N particles. Actual evaluation of the potentials and
     forces for each pair is handled via the template class \a evaluator.
@@ -117,8 +139,6 @@ struct triplet_args_t
     \param d_force Device memory to write computed forces
 	\param N Number of particles in the system
 	\param d_pos Positions of all the particles
-	\param d_diameter Diameters of all the particles
-	\param d_charge Charges of all the particles
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -146,8 +166,6 @@ template< class evaluator, unsigned int shift_mode >
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 												  const unsigned int N,
 												  const Scalar4 *d_pos,
-												  const Scalar *d_diameter,
-												  const Scalar *d_charge,
 												  const BoxDim box,
                                                   const unsigned int *d_n_neigh,
                                                   const unsigned int *d_nlist,
@@ -186,21 +204,14 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
 
-    // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-    // (MEM TRANSFER: 16 bytes)
+	// read in the position of the particle
+	// in single precision we will do a texture read, in double a global memory read
+	#ifdef SINGLE_PRECISION
 	Scalar4 postypei = tex1Dfetch(pdata_pos_tex, idx);
+	#else
+	Scalar4 postypei = d_pos[idx];
+	#endif
 	Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
-
-    Scalar di;
-    if (evaluator::needsDiameter())
-        di = tex1Dfetch(pdata_diam_tex, idx);
-    else
-        di += Scalar(1.0); // shutup compiler warning
-    Scalar qi;
-    if (evaluator::needsCharge())
-        qi = tex1Dfetch(pdata_charge_tex, idx);
-    else
-        qi += Scalar(1.0); // shutup compiler warning
 
     // initialize the force to 0
     Scalar4 forcei = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -229,23 +240,15 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx + 1)];
 
             // read the position of j (MEM TRANSFER: 16 bytes)
+			#ifdef SINGLE_PRECISION
             Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
+			#else
+			Scalar4 postypej = d_pos[cur_j];
+			#endif
 			Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // initialize the force on j
             Scalar4 forcej = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-            // read the diameter and charge of neighbor j (if needed)
-            Scalar dj = Scalar(0.0);
-            Scalar qj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = tex1Dfetch(pdata_diam_tex, cur_j);
-            else
-                dj += Scalar(1.0); // shuts up compiler warning
-            if (evaluator::needsCharge())
-                qj = tex1Dfetch(pdata_diam_tex, cur_j);
-            else
-                qj += Scalar(1.0); // shuts up compiler warning
 
             // compute r_ij (FLOPS: 3)
 			Scalar3 dxij = posi - posj;
@@ -265,10 +268,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             Scalar fR = Scalar(0.0);
             Scalar fA = Scalar(0.0);
             evaluator eval(rij_sq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj, Scalar(0.0));
-            if (evaluator::needsCharge())
-                eval.setCharge(qi, qj, Scalar(0.0));
             bool evaluatedij = eval.evalRepulsiveAndAttractive(fR, fA);
 
             if (evaluatedij)
@@ -292,7 +291,11 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         next_k = d_nlist[nli(idx, neigh_idy+1)];
 
 						// get the position of neighbor k
+						#ifdef SINGLE_PRECISION
 						Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
+						#else
+						Scalar4 postypek = d_pos[cur_k];
+						#endif
 						Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
 						// get the type pair parameters for i and k
@@ -305,16 +308,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
                         if (cur_k != cur_j && temp_evaluated)
                         {
-                            // get the diameter and charge (if needed)
-                            Scalar dk = Scalar(0.0);
-                            Scalar qk = Scalar(0.0);
-                            if (evaluator::needsDiameter())
-                                dk = tex1Dfetch(pdata_diam_tex, cur_k);
-                            else dk += Scalar(1.0); // shuts up the compiler warning
-                            if (evaluator::needsCharge())
-                                qk = tex1Dfetch(pdata_charge_tex, cur_k);
-                            else qk += Scalar(1.0); // shuts up the compiler warning
-
                             // compute rik
 							Scalar3 dxik = posi - posk;
 
@@ -334,10 +327,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             eval.setRik(rik_sq);
                             if (evaluator::needsAngle())
                                 eval.setAngle(cos_th);
-                            if (evaluator::needsDiameter())
-                                eval.setDiameter(di, dj, dk);
-                            if (evaluator::needsCharge())
-                                eval.setCharge(qi, qj, qk);
 
                             // compute the partial chi term
                             eval.evalChi(chi);
@@ -388,7 +377,11 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         next_k = d_nlist[nli(idx, neigh_idy+1)];
 
 						// get the position of neighbor k
+						#ifdef SINGLE_PRECISION
 						Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
+						#else
+						Scalar4 postypek = d_pos[cur_k];
+						#endif
 						Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
 						// get the type pair parameters for i and k
@@ -402,16 +395,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         if (cur_k != cur_j && temp_evaluated)
                         {
                             Scalar4 forcek = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-                            // get the diameter and charge of k (if needed)
-                            Scalar dk = Scalar(0.0);
-                            Scalar qk = Scalar(0.0);
-                            if (evaluator::needsDiameter())
-                                dk = tex1Dfetch(pdata_diam_tex, cur_k);
-                            else dk += Scalar(1.0); // shuts up the compiler warning
-                            if (evaluator::needsCharge())
-                                qk = tex1Dfetch(pdata_charge_tex, cur_k);
-                            else qk += Scalar(1.0); // shuts up the compiler warning
 
                             // compute rik
 							Scalar3 dxik = posi - posk;
@@ -432,10 +415,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             eval.setRik(rik_sq);
                             if (evaluator::needsAngle())
                                 eval.setAngle(cos_th);
-                            if (evaluator::needsDiameter())
-                                eval.setDiameter(di, dj, dk);
-                            if (evaluator::needsCharge())
-                                eval.setCharge(qi, qj, qk);
 
                             // compute the force
                             Scalar4 force_divr_ij = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -509,18 +488,12 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         if (cur_k != idx)
                         {
                             // get the position of neighbor k
+							#ifdef SINGLE_PRECISION
 							Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
+							#else
+							Scalar4 postypek = d_pos[cur_k];
+							#endif
 							Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-
-                            // get the diameter and charge of k (if needed)
-                            Scalar dk = Scalar(0.0);
-                            Scalar qk = Scalar(0.0);
-                            if (evaluator::needsDiameter())
-                                dk = tex1Dfetch(pdata_diam_tex, cur_k);
-                            else dk += Scalar(1.0); // shuts up the compiler warning
-                            if (evaluator::needsCharge())
-                                qk = tex1Dfetch(pdata_charge_tex, cur_k);
-                            else qk += Scalar(1.0); // shuts up the compiler warning
 
                             // compute rjk
 							Scalar3 dxjk = posj - posk;
@@ -541,10 +514,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             eval.setRik(rjk_sq);
                             if (evaluator::needsAngle())
                                 eval.setAngle(cos_th);
-                            if (evaluator::needsDiameter())
-                                eval.setDiameter(dj, di, dk);
-                            if (evaluator::needsCharge())
-                                eval.setCharge(qj, qi, qk);
 
                             // evaluate chi
                             eval.evalChi(chi);
@@ -574,18 +543,12 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         if (cur_k != idx)
                         {
                             // get the position of k
-						Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
-						Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-
-                            // get the diameter and charge of k (if needed)
-                            Scalar dk = Scalar(0.0);
-                            Scalar qk = Scalar(0.0);
-                            if (evaluator::needsDiameter())
-                                dk = tex1Dfetch(pdata_diam_tex, cur_k);
-                            else dk += Scalar(1.0); // shuts up the compiler warning
-                            if (evaluator::needsCharge())
-                                qk = tex1Dfetch(pdata_charge_tex, cur_k);
-                            else qk += Scalar(1.0); // shuts up the compiler warning
+							#ifdef SINGLE_PRECISION
+							Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
+							#else
+							Scalar4 postypek = d_pos[cur_k];
+							#endif
+							Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                             // compute rjk
 							Scalar3 dxjk = posj - posk;
@@ -606,10 +569,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             eval.setRik(rjk_sq);
                             if (evaluator::needsAngle())
                                 eval.setAngle(cos_th);
-                            if (evaluator::needsDiameter())
-                                eval.setDiameter(dj, di, dk);
-                            if (evaluator::needsCharge())
-                                eval.setCharge(qj, qi, qk);
 
                             // evaluate the force
                             Scalar4 force_divr_ij = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -678,24 +637,13 @@ cudaError_t gpu_compute_triplet_forces(const triplet_args_t& pair_args,
     dim3 threads(pair_args.block_size, 1, 1);
 
     // bind the position texture
+	#ifdef SINGLE_PRECISION
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
     if (error != cudaSuccess)
         return error;
-
-    // bind the diamter texture
-    pdata_diam_tex.normalized = false;
-    pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) * pair_args.N);
-    if (error != cudaSuccess)
-        return error;
-
-    pdata_charge_tex.normalized = false;
-    pdata_charge_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.N);
-    if (error != cudaSuccess)
-        return error;
+	#endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
@@ -710,8 +658,6 @@ cudaError_t gpu_compute_triplet_forces(const triplet_args_t& pair_args,
       <<<grid, threads, shared_bytes>>>(pair_args.d_force,
 										pair_args.N,
 										pair_args.d_pos,
-										pair_args.d_diameter,
-										pair_args.d_charge,
                                         pair_args.box,
                                         pair_args.d_n_neigh,
                                         pair_args.d_nlist,

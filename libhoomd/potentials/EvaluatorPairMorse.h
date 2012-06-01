@@ -73,7 +73,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // call different optimized sqrt functions on the host / device
 // SQRT is sqrtf when included in nvcc and sqrt when included into the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define SQRT sqrtf
 #else
 #define SQRT sqrt
@@ -81,7 +81,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // call different optimized exp functions on the host / device
 // EXP is expf when included in nvcc and exp when included into the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define EXP expf
 #else
 #define EXP exp

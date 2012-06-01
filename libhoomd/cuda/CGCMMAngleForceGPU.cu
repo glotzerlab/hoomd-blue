@@ -65,6 +65,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the CGCMM angle forces. Used by CGCMMAngleForceComputeGPU.
 */
 
+//! POW is __powf when running in single precision and pow otherwise
+//! ACOS is acosf when running in single precision and acos otherwise
+#ifdef SINGLE_PRECISION
+#define POW __powf
+#define ACOS acosf
+#else
+#define POW pow
+#define ACOS acos
+#endif
+
+#ifdef SINGLE_PRECISION
 //! Texture for reading angle parameters
 texture<Scalar2, 1, cudaReadModeElementType> angle_params_tex;
 
@@ -73,6 +84,7 @@ texture<Scalar2, 1, cudaReadModeElementType> angle_CGCMMsr_tex; // MISSING EPSIL
 
 //! Texture for reading angle CGCMM Epsilon-pow/pref parameters
 texture<Scalar4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
+#endif
 
 //! Kernel for caculating CGCMM angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -80,6 +92,9 @@ texture<Scalar4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EP
     \param virial_pitch pitch of 2D virial array
     \param N number of particles
     \param d_pos particle positions on the device
+    \param d_params K and t_0 params packed as Scalar2 variables
+    \param d_CGCMMsr sigma, and rcut packed as a Scalar2
+    \param d_CGCMMepow epsilon, pow1, pow2, and prefactor packed as a Scalar4
     \param box Box dimensions for periodic boundary condition handling
     \param alist Angle data to use in calculating the forces
     \param pitch Pitch of 2D angles list
@@ -90,6 +105,9 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
                                                                  const unsigned int virial_pitch,
                                                                  const unsigned int N,
                                                                  const Scalar4 *d_pos,
+																 const Scalar2 *d_params,
+																 const Scalar2 *d_CGCMMsr,
+																 const Scalar4 *d_CGCMMepow,
                                                                  BoxDim box,
                                                                  const uint4 *alist,
                                                                  const unsigned int pitch,
@@ -169,7 +187,11 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
+		#ifdef SINGLE_PRECISION
         Scalar2 params = tex1Dfetch(angle_params_tex, cur_angle_type);
+		#else
+		Scalar2 params = d_params[cur_angle_type];
+		#endif
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -199,14 +221,22 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
             vac[i] = Scalar(0.0);
 
         // get the angle E-S-R parameters (MEM TRANSFER: 12 bytes)
+		#ifdef SINGLE_PRECISION
         const Scalar2 cgSR = tex1Dfetch(angle_CGCMMsr_tex, cur_angle_type);
+		#else
+		const Scalar2 cgSR = d_CGCMMsr[cur_angle_type];
+		#endif
 
         Scalar cgsigma = cgSR.x;
         Scalar cgrcut = cgSR.y;
 
         if (rac < cgrcut)
             {
+			#ifdef SINGLE_PRECISION
             const Scalar4 cgEPOW = tex1Dfetch(angle_CGCMMepow_tex, cur_angle_type);
+			#else
+			const Scalar4 cgEPOW = d_CGCMMepow[cur_angle_type];
+			#endif
 
             // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
             Scalar cgeps = cgEPOW.x;
@@ -215,11 +245,11 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
             Scalar cgpref = cgEPOW.w;
 
             Scalar cgratio = cgsigma/rac;
-            // INTERESTING NOTE: __powf has weird behavior depending
+            // INTERESTING NOTE: POW has weird behavior depending
             // on the inputted parameters.  Try sigma=2.05, versus sigma=0.05
             // in cgcmm_angle_force_test.cc 4 particle test
-            fac = cgpref*cgeps / rsqac * (cgpow1*__powf(cgratio,cgpow1) - cgpow2*__powf(cgratio,cgpow2));
-            eac = cgeps + cgpref*cgeps * (__powf(cgratio,cgpow1) - __powf(cgratio,cgpow2));
+            fac = cgpref*cgeps / rsqac * (cgpow1*POW(cgratio,cgpow1) - cgpow2*POW(cgratio,cgpow2));
+            eac = cgeps + cgpref*cgeps * (POW(cgratio,cgpow1) - POW(cgratio,cgpow2));
 
             vac[0] = fac * dac.x*dac.x;
             vac[1] = fac * dac.x*dac.y;
@@ -231,7 +261,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
         //////////////////////////////////////////////////////////////////////////////
 
         // actually calculate the force
-        Scalar dth = acosf(c_abbc) - t_0;
+        Scalar dth = ACOS(c_abbc) - t_0;
         Scalar tk = K*dth;
 
         Scalar a = -Scalar(1.0) * tk * s_abbc;
@@ -340,7 +370,8 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the textures
-    cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
+    #ifdef SINGLE_PRECISION
+	cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
 
@@ -351,9 +382,10 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
     error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(Scalar4) * n_angle_types);
     if (error != cudaSuccess)
         return error;
+	#endif
 
     // run the kernel
-    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, atable, pitch, n_angles_list);
+    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, d_CGCMMsr, d_CGCMMepow, box, atable, pitch, n_angles_list);
 
     return cudaSuccess;
     }

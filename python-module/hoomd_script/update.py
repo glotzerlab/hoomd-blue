@@ -57,6 +57,7 @@ import util;
 import variant;
 import sys;
 import init;
+import pair;
 
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way

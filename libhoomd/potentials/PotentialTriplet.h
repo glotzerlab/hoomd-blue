@@ -205,7 +205,7 @@ void PotentialTriplet< evaluator >::setParams(unsigned int typ1, unsigned int ty
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        std::cerr << std::endl << "***Error! Trying to set pair params for a non existant type! "
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existant type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialTriplet");
         }
@@ -282,7 +282,7 @@ Scalar PotentialTriplet< evaluator >::getLogValue(const std::string& quantity, u
         }
     else
         {
-        std::cerr << std::endl << "***Error! " << quantity << " is not a valid log quantity for PotentialTriplet"
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" 
                   << std::endl << endl;
         throw std::runtime_error("Error getting log value");
         }
@@ -296,9 +296,6 @@ Scalar PotentialTriplet< evaluator >::getLogValue(const std::string& quantity, u
 template< class evaluator >
 void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
 {
-//    std::ofstream outfile;
-//    outfile.open("errors.log", ios::app);
-
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
@@ -319,22 +316,19 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
     Index2D nli = m_nlist->getNListIndexer();
 
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
 
     //force arrays
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
 
     const BoxDim& box = m_pdata->getBox();
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-
-    // precalculate box lengths for use in the periodic imaging
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
 
 #pragma omp parallel
 {
@@ -344,36 +338,22 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
     int tid = 0;
     #endif
 
-    // need to start from a zero force, energy and virial
-    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
-    memset(&m_virial_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar)*arrays.nparticles);
+    // need to start from a zero force, energy
+    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*m_pdata->getN());
 
     // for each particle
 #pragma omp for schedule(guided)
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
     {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar posxi = arrays.x[i];
-        Scalar posyi = arrays.y[i];
-        Scalar poszi = arrays.z[i];
-        unsigned int typei = arrays.type[i];
+		Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+		unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
-        // access diameter and charge (if needed)
-        Scalar di = 0.0;
-        Scalar qi = 0.0;
-        if (evaluator::needsDiameter())
-            di = arrays.diameter[i];
-        if (evaluator::needsCharge())
-            qi = arrays.charge[i];
-
-        // initialize current force, potential energy, and virial of particle i to 0
-        Scalar fxi = 0.0;
-        Scalar fyi = 0.0;
-        Scalar fzi = 0.0;
+        // initialize current force and potential energy of particle i to 0
+		Scalar3 fi = make_scalar3(0.0, 0.0, 0.0);
         Scalar pei = 0.0;
-        Scalar viriali = 0.0;
 
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
@@ -383,48 +363,23 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
             unsigned int jj = h_nlist.data[nli(i, j)];
             assert(jj < m_pdata->getN());
 
-            // access the type of particle j (MEM TRANSFER: 1 scalar)
-            unsigned int typej = arrays.type[jj];
+            // access the position and type of particle j
+			Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
+			unsigned int typej = __scalar_as_int(h_pos.data[jj].w);
             assert(typej < m_pdata->getNTypes());
 
-            // initialize the current force, potential energy, and virial of particle j to 0
-            Scalar fxj = 0.0;
-            Scalar fyj = 0.0;
-            Scalar fzj = 0.0;
-            Scalar pej = 0.0;
-            Scalar virialj = 0.0;
+            // initialize the current force and potential energy of particle j to 0
+            Scalar3 fj = make_scalar3(0.0, 0.0, 0.0);
+			Scalar pej = 0.0;
 
             // calculate dr_ij (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar dx_ij = posxi - arrays.x[jj];
-            Scalar dy_ij = posyi - arrays.y[jj];
-            Scalar dz_ij = poszi - arrays.z[jj];
-
-            // access the diameter and charge of j (if needed)
-            Scalar dj = 0.0;
-            Scalar qj = 0.0;
-            if (evaluator::needsDiameter())
-                dj = arrays.diameter[jj];
-            if (evaluator::needsCharge())
-                qj = arrays.charge[jj];
-
+			Scalar3 dxij = posi - posj;
+			
             // apply periodic boundary conditions
-            if (dx_ij >= box.xhi)
-                dx_ij -= Lx;
-            else if (dx_ij < box.xlo)
-                dx_ij += Lx;
-
-            if (dy_ij >= box.yhi)
-                dy_ij -= Ly;
-            else if (dy_ij < box.ylo)
-                dy_ij += Ly;
-
-            if (dz_ij >= box.zhi)
-                dz_ij -= Lz;
-            else if (dz_ij < box.zlo)
-                dz_ij += Lz;
+			dxij = box.minImage(dxij);
 
             // compute rij_sq (FLOPS: 5)
-            Scalar rij_sq = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
+            Scalar rij_sq = dot(dxij, dxij);
 
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
@@ -435,10 +390,6 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
             Scalar fR = 0.0;
             Scalar fA = 0.0;
             evaluator eval(rij_sq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj, Scalar(0.0));
-            if (evaluator::needsCharge())
-                eval.setCharge(qi, qj, Scalar(0.0));
             bool evaluated = eval.evalRepulsiveAndAttractive(fR, fA);
 
             if (evaluated)
@@ -450,7 +401,10 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
                     // access the index of neighbor k
                     unsigned int kk = h_nlist.data[nli(i,k)];
                     assert(kk < m_pdata->getN());
-                    unsigned int typek = arrays.type[kk];
+
+					// access the position and type of neighbor k
+					Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
+                    unsigned int typek = __scalar_as_int(h_pos.data[kk].w);
 					assert(typek < m_pdata->getNTypes());
 
 					// access the type pair parameters for i and k
@@ -462,51 +416,24 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
 
                     if (kk != jj && temp_evaluated)
                     {
-                        // compute dr_ik
-                        Scalar dx_ik = posxi - arrays.x[kk];
-                        Scalar dy_ik = posyi - arrays.y[kk];
-                        Scalar dz_ik = poszi - arrays.z[kk];
-
-                        // access the diameter and charge (if needed)
-                        Scalar dk = 0.0;
-                        Scalar qk = 0.0;
-                        if (evaluator::needsDiameter())
-                            dk = arrays.diameter[kk];
-                        if (evaluator::needsCharge())
-                            qk = arrays.charge[kk];
+                        // compute drik
+						Scalar3 dxik = posi - posk;
 
                         // apply periodic boundary conditions
-                        if (dx_ik >= box.xhi)
-                            dx_ik -= Lx;
-                        else if (dx_ik < box.xlo)
-                            dx_ik += Lx;
-
-                        if (dy_ik >= box.yhi)
-                            dy_ik -= Ly;
-                        else if (dy_ik < box.ylo)
-                            dy_ik += Ly;
-
-                        if (dz_ik >= box.zhi)
-                            dz_ik -= Lz;
-                        else if (dz_ik < box.zlo)
-                            dz_ik += Lz;
+						dxik = box.minImage(dxik);
 
                         // compute rik_sq
-                        Scalar rik_sq = dx_ik * dx_ik + dy_ik * dy_ik + dz_ik * dz_ik;
+                        Scalar rik_sq = dot(dxik, dxik);
 
                         // compute the bond angle (if needed)
                         Scalar cos_th = Scalar(0.0);
                         if (evaluator::needsAngle())
-                            cos_th = (dx_ij * dx_ik + dy_ij * dy_ik + dz_ij * dz_ik) / sqrt(rij_sq * rik_sq);
+                            cos_th = dot(dxij, dxik) / sqrt(rij_sq * rik_sq);
 
                         // evaluate the partial chi term
                         eval.setRik(rik_sq);
                         if (evaluator::needsAngle())
                             eval.setAngle(cos_th);
-                        if (evaluator::needsDiameter())
-                            eval.setDiameter(di, dj, dk);
-                        if (evaluator::needsCharge())
-                            eval.setCharge(qi, qj, qk);
 
                         eval.evalChi(chi);
                     }
@@ -518,22 +445,13 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
                 Scalar bij = Scalar(0.0);
                 eval.evalForceij(fR, fA, chi, bij, force_divr, potential_eng);
 
-                // compute the virial
-                Scalar pair_virial = Scalar(1.0 / 6.0) * rij_sq * force_divr;
-
                 // add this force to particle i
-                fxi += force_divr * dx_ij;
-                fyi += force_divr * dy_ij;
-                fzi += force_divr * dz_ij;
+				fi += force_divr * dxij;
                 pei += potential_eng * Scalar(0.5);
-                viriali += pair_virial;
 
                 // add this force to particle j
-                fxj -= force_divr * dx_ij;
-                fyj -= force_divr * dy_ij;
-                fzj -= force_divr * dz_ij;
-                pej += potential_eng * Scalar(0.5);
-                virialj += pair_virial;
+                fj += Scalar(-1.0) * force_divr * dxij;
+				pej += potential_eng * Scalar(0.5);
 
                 // evaluate the force from the ik interactions
                 for (unsigned int k = 0; k < size; k++)
@@ -541,7 +459,10 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
                     // access the index of neighbor k
                     unsigned int kk = h_nlist.data[nli(i, k)];
                     assert(kk < m_pdata->getN());
-                    unsigned int typek = arrays.type[kk];
+
+					// access the position and type of neighbor k
+					Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
+                    unsigned int typek = __scalar_as_int(h_pos.data[kk].w);
 					assert(typek < m_pdata->getNTypes());
 
 					// access the type pair parameters for i and k
@@ -553,123 +474,82 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
 
                     if (kk != jj && temp_evaluated)
                     {
-                        // create variables for the force and virial on k
-                        Scalar fxk = Scalar(0.0);
-                        Scalar fyk = Scalar(0.0);
-                        Scalar fzk = Scalar(0.0);
-                        Scalar virialk = Scalar(0.0);
+                        // create variable for the force on k
+						Scalar3 fk = make_scalar3(0.0, 0.0, 0.0);
 
                         // compute dr_ik
-                        Scalar dx_ik = posxi - arrays.x[kk];
-                        Scalar dy_ik = posyi - arrays.y[kk];
-                        Scalar dz_ik = poszi - arrays.z[kk];
-
-                        // access the diameter and charge (if needed)
-                        Scalar dk = Scalar(0.0);
-                        Scalar qk = Scalar(0.0);
-                        if (evaluator::needsDiameter())
-                            dk = arrays.diameter[kk];
-                        if (evaluator::needsCharge())
-                            qk = arrays.charge[kk];
+						Scalar3 dxik = posi - posk;
 
                         // apply periodic boundary conditions
-                        if (dx_ik >= box.xhi)
-                            dx_ik -= Lx;
-                        else if (dx_ik < box.xlo)
-                            dx_ik += Lx;
-
-                        if (dy_ik >= box.yhi)
-                            dy_ik -= Ly;
-                        else if (dy_ik < box.ylo)
-                            dy_ik += Ly;
-
-                        if (dz_ik >= box.zhi)
-                            dz_ik -= Lz;
-                        else if (dz_ik < box.zlo)
-                            dz_ik += Lz;
+						dxik = box.minImage(dxik);
 
                         // compute rik_sq
-                        Scalar rik_sq = dx_ik * dx_ik + dy_ik * dy_ik + dz_ik * dz_ik;
+                        Scalar rik_sq = dot(dxik, dxik);
 
                         // compute the bond angle (if needed)
                         Scalar cos_th = Scalar(0.0);
                         if (evaluator::needsAngle())
-                            cos_th = (dx_ij * dx_ik + dy_ij * dy_ik + dz_ij * dz_ik) / sqrt(rij_sq * rik_sq);
+                            cos_th = dot(dxij, dxik) / sqrt(rij_sq * rik_sq);
 
                         // set up the evaluator
                         eval.setRik(rik_sq);
                         if (evaluator::needsAngle())
                             eval.setAngle(cos_th);
-                        if (evaluator::needsDiameter())
-                            eval.setDiameter(di, dj, dk);
-                        if (evaluator::needsCharge())
-                            eval.setCharge(qi, qj, qk);
 
                         // compute the total force and energy
                         Scalar4 force_divr_ij = make_scalar4(0.0, 0.0, 0.0, 0.0);
                         Scalar4 force_divr_ik = make_scalar4(0.0, 0.0, 0.0, 0.0);
                         eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
 
-                        // compute the virial coefficients
-                        Scalar virial_coeff_ij = Scalar(1.0/6.0) * rij_sq;
-                        Scalar virial_coeff_ik = Scalar(1.0/6.0) * rik_sq;
-
-                        // add the force and virial to particle i
+                        // add the force to particle i
                         // (FLOPS: 17)
-                        fxi += force_divr_ij.x * dx_ij + force_divr_ik.x * dx_ik;
-                        fyi += force_divr_ij.x * dy_ij + force_divr_ik.x * dy_ik;
-                        fzi += force_divr_ij.x * dz_ij + force_divr_ik.x * dz_ik;
-                        viriali += virial_coeff_ij * force_divr_ij.x + virial_coeff_ik * force_divr_ik.x;
+                        fi.x += force_divr_ij.x * dxij.x + force_divr_ik.x * dxik.x;
+                        fi.y += force_divr_ij.x * dxij.y + force_divr_ik.x * dxik.y;
+                        fi.z += force_divr_ij.x * dxij.z + force_divr_ik.x * dxik.z;
 
-                        // add the force and virial to particle j (FLOPS: 17)
-                        fxj += force_divr_ij.y * dx_ij + force_divr_ik.y * dx_ik;
-                        fyj += force_divr_ij.y * dy_ij + force_divr_ik.y * dy_ik;
-                        fzj += force_divr_ij.y * dz_ij + force_divr_ik.y * dz_ik;
-                        virialj += virial_coeff_ij * force_divr_ij.y + virial_coeff_ik * force_divr_ik.y;
+                        // add the force to particle j (FLOPS: 17)
+                        fj.x += force_divr_ij.y * dxij.x + force_divr_ik.y * dxik.x;
+                        fj.y += force_divr_ij.y * dxij.y + force_divr_ik.y * dxik.y;
+                        fj.z += force_divr_ij.y * dxij.z + force_divr_ik.y * dxik.z;
 
-                        // add the force and virial to particle k
-                        fxk += force_divr_ij.z * dx_ij + force_divr_ik.z * dx_ik;
-                        fyk += force_divr_ij.z * dy_ij + force_divr_ik.z * dy_ik;
-                        fzk += force_divr_ij.z * dz_ij + force_divr_ik.z * dz_ik;
-                        virialk += virial_coeff_ij * force_divr_ij.z + virial_coeff_ik * force_divr_ik.z;
+                        // add the force to particle k
+                        fk.x += force_divr_ij.z * dxij.x + force_divr_ik.z * dxik.x;
+                        fk.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
+                        fk.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
 
-                        // increment the force and virial for particle k
+                        // increment the force for particle k
                         unsigned int mem_idx = m_index_thread_partial(kk, tid);
-                        m_fdata_partial[mem_idx].x += fxk;
-                        m_fdata_partial[mem_idx].y += fyk;
-                        m_fdata_partial[mem_idx].z += fzk;
-                        m_virial_partial[mem_idx] += virialk;
+                        m_fdata_partial[mem_idx].x += fk.x;
+                        m_fdata_partial[mem_idx].y += fk.y;
+                        m_fdata_partial[mem_idx].z += fk.z;
                     }
                 }
             }
-            // increment the force, potential energy, and virial for particle j
+            // increment the force and potential energy for particle j
             unsigned int mem_idx = m_index_thread_partial(jj, tid);
-            m_fdata_partial[mem_idx].x += fxj;
-            m_fdata_partial[mem_idx].y += fyj;
-            m_fdata_partial[mem_idx].z += fzj;
+            m_fdata_partial[mem_idx].x += fj.x;
+            m_fdata_partial[mem_idx].y += fj.y;
+            m_fdata_partial[mem_idx].z += fj.z;
             m_fdata_partial[mem_idx].w += pej;
-            m_virial_partial[mem_idx] += virialj;
         }
-        // finally, increment the force, potential energy, and virial for particle i
+        // finally, increment the force and potential energy for particle i
         unsigned int mem_idx = m_index_thread_partial(i,tid);
-        m_fdata_partial[mem_idx].x += fxi;
-        m_fdata_partial[mem_idx].y += fyi;
-        m_fdata_partial[mem_idx].z += fzi;
+        m_fdata_partial[mem_idx].x += fi.x;
+        m_fdata_partial[mem_idx].y += fi.y;
+        m_fdata_partial[mem_idx].z += fi.z;
         m_fdata_partial[mem_idx].w += pei;
-        m_virial_partial[mem_idx] += viriali;
     }
 #pragma omp barrier
 
     // now that the partial sums are complete, sum up the results in parallel
 #pragma omp for
-    for (int i = 0; i < (int)arrays.nparticles; i++)
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
     {
         // assign result from thread 0
         h_force.data[i].x  = m_fdata_partial[i].x;
         h_force.data[i].y = m_fdata_partial[i].y;
         h_force.data[i].z = m_fdata_partial[i].z;
         h_force.data[i].w = m_fdata_partial[i].w;
-        h_virial.data[i] = m_virial_partial[i];
 
         #ifdef ENABLE_OPENMP
         // add results from other threads
@@ -681,14 +561,10 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
             h_force.data[i].y += m_fdata_partial[mem_idx].y;
             h_force.data[i].z += m_fdata_partial[mem_idx].z;
             h_force.data[i].w += m_fdata_partial[mem_idx].w;
-            h_virial.data[i] += m_virial_partial[mem_idx];
         }
         #endif
     }
 } // end omp parallel
-//    outfile.close();
-
-    m_pdata->release();
 
     if (m_prof) m_prof->pop();
 }

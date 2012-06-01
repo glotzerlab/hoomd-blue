@@ -69,7 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // call different optimized cos functions on the host / device
 // __COS is __cosf when included in nvcc and cos when included into the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define __COS __cosf
 #else
 #define __COS cos
@@ -77,7 +77,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // call different optimized sin functions on the host / device
 // __SIN is __sinf when included in nvcc and sin when included into the host compiler
-#ifdef NVCC
+#if defined NVCC && defined SINGLE_PRECISION
 #define __SIN __sinf
 #else
 #define __SIN sin

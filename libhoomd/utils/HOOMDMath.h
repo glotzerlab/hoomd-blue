@@ -75,7 +75,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cudacpu_vector_functions.h"
 
 //! Define complex type
+#ifdef SINGLE_PRECISION
 typedef float2 cufftComplex;
+#else
+typedef double2 cufftComplex;
+#endif
 #endif
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc

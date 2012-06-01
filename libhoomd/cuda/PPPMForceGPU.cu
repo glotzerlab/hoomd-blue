@@ -68,10 +68,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EMUSYNC
 #endif
 
+//! There are several functions here that are dependent on precision:
+//! __scalar2int_rd is __float2int_rd in single, __double2int_rd in double
+//! EXP is expf in single, exp in double
+//! POW is powf in single, pow in double
+//! SIN is sinf in single, sin in double
+//! CUFFTCOMPLEX is cufftComplex in single, cufftDoubleComplex in double
+//! CUFFTEXEC is cufftExecC2C in single, cufftExecZ2Z in double
 #ifdef SINGLE_PRECISION
 #define __scalar2int_rd __float2int_rd
+#define EXP expf
+#define POW powf
+#define SIN sinf
+#define CUFFTCOMPLEX cufftComplex
+#define CUFFTEXEC cufftExecC2C
 #else
 #define __scalar2int_rd __double2int_rd
+#define EXP exp
+#define POW pow
+#define SIN sin
+#define CUFFTCOMPLEX cufftDoubleComplex
+#define CUFFTEXEC cufftExecZ2Z
 #endif
 
 #define MAX_BLOCK_DIM_SIZE 65535
@@ -85,11 +102,37 @@ __device__ __constant__ Scalar GPU_rho_coeff[CONSTANT_SIZE];
   \brief Defines GPU kernel code for calculating the Fourier space forces for the Coulomb interaction. Used by PPPMForceComputeGPU.
 */
 
+#ifdef SINGLE_PRECISION
 //! Texture for reading particle positions
 texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 //! Texture for reading charge parameters
 texture<Scalar, 1, cudaReadModeElementType> pdata_charge_tex;
+#endif
+
+#ifndef SINGLE_PRECISION
+//! atomicAdd function for double-precision floating point numbers
+/*! This function is only used when hoomd is compiled for double precision on the GPU.
+	
+	\param address Address to write the double to
+	\param val Value to add to address
+*/
+__device__ inline double atomicAdd(double* address, double val)
+{
+	unsigned long long int* address_as_ull = (unsigned long long int*)address;
+	unsigned long long int old = *address_as_ull, assumed;
+
+	do {
+		assumed = old;
+		old = atomicCAS(address_as_ull,
+			assumed,
+			__double_as_longlong(val + __longlong_as_double(assumed)));
+	} while (assumed != old);
+
+	return __longlong_as_double(old);
+}
+
+#endif
 
 //! Implements workaround atomic Scalar addition on sm_1x hardware
 __device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
@@ -109,7 +152,7 @@ __device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
     }
 
 //! The developer has chosen not to document this function
-__device__ inline void AddToGridpoint(int X, int Y, int Z, cufftComplex* array, Scalar value, int Ny, int Nz)
+__device__ inline void AddToGridpoint(int X, int Y, int Z, CUFFTCOMPLEX* array, Scalar value, int Ny, int Nz)
     {
     atomicFloatAdd(&array[Z + Nz * (Y + Ny * X)].x, value);
     }
@@ -121,7 +164,7 @@ void assign_charges_to_grid_kernel(const unsigned int N,
                                    const Scalar4 *d_pos,
                                    const Scalar *d_charge,
                                    BoxDim box, 
-                                   cufftComplex *rho_real_space, 
+                                   CUFFTCOMPLEX *rho_real_space, 
                                    int Nx, 
                                    int Ny, 
                                    int Nz, 
@@ -135,10 +178,18 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
+		#ifdef SINGLE_PRECISION
         Scalar qi = tex1Dfetch(pdata_charge_tex, idx);
+		#else
+		Scalar qi = d_charge[idx];
+		#endif
 
         if(fabs(qi) > Scalar(0.0)) {
-            Scalar4 posi = tex1Dfetch(pdata_pos_tex, idx);
+            #ifdef SINGLE_PRECISION
+			Scalar4 posi = tex1Dfetch(pdata_pos_tex, idx);
+			#else
+			Scalar4 posi = d_pos[idx];
+			#endif
             //calculate dx, dy, dz for the charge density grid:
             Scalar3 L = box.getL();
             Scalar box_dx = L.x / ((Scalar)Nx);
@@ -222,11 +273,11 @@ void assign_charges_to_grid_kernel(const unsigned int N,
 
 //! The developer has chosen not to document this function
 extern "C" __global__
-void combined_green_e_kernel(cufftComplex* E_x, 
-                             cufftComplex* E_y, 
-                             cufftComplex* E_z, 
+void combined_green_e_kernel(CUFFTCOMPLEX* E_x, 
+                             CUFFTCOMPLEX* E_y, 
+                             CUFFTCOMPLEX* E_z, 
                              Scalar3* k_vec, 
-                             cufftComplex* rho, 
+                             CUFFTCOMPLEX* rho, 
                              int Nx, 
                              int Ny, 
                              int Nz, 
@@ -237,9 +288,9 @@ void combined_green_e_kernel(cufftComplex* E_x,
     if(idx < Nx * Ny * Nz)
         {
         Scalar3 k_vec_local = k_vec[idx];
-        cufftComplex E_x_local, E_y_local, E_z_local;
+        CUFFTCOMPLEX E_x_local, E_y_local, E_z_local;
         Scalar scale_times_green = green_function[idx] / ((Scalar)(Nx*Ny*Nz));
-        cufftComplex rho_local = rho[idx];
+        CUFFTCOMPLEX rho_local = rho[idx];
     
         rho_local.x *= scale_times_green;
         rho_local.y *= scale_times_green;
@@ -262,9 +313,9 @@ void combined_green_e_kernel(cufftComplex* E_x,
 
 
 //! The developer has chosen not to document this function
-__global__ void set_gpu_field_kernel(cufftComplex* E_x, 
-                                     cufftComplex* E_y, 
-                                     cufftComplex* E_z, 
+__global__ void set_gpu_field_kernel(CUFFTCOMPLEX* E_x, 
+                                     CUFFTCOMPLEX* E_y, 
+                                     CUFFTCOMPLEX* E_z, 
                                      Scalar3* Electric_field, 
                                      int Nx, 
                                      int Ny, 
@@ -317,9 +368,18 @@ void calculate_forces_kernel(Scalar4 *d_force,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
+		#ifdef SINGLE_PRECISION
         Scalar qi = tex1Dfetch(pdata_charge_tex, idx);
+		#else
+		Scalar qi = d_charge[idx];
+		#endif
+
         if(fabs(qi) > Scalar(0.0)) {
+            #ifdef SINGLE_PRECISION
             Scalar4 posi = tex1Dfetch(pdata_pos_tex, idx);
+			#else
+			Scalar4 posi = d_pos[idx];
+			#endif
     
             //calculate dx, dy, dz for the charge density grid:
             Scalar3 L = box.getL();
@@ -419,11 +479,11 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                     int Nz,
                                     int order,
                                     Scalar *CPU_rho_coeff,
-                                    cufftComplex *GPU_rho_real_space,
+                                    CUFFTCOMPLEX *GPU_rho_real_space,
                                     cufftHandle plan,
-                                    cufftComplex *GPU_E_x,
-                                    cufftComplex *GPU_E_y,
-                                    cufftComplex *GPU_E_z,
+                                    CUFFTCOMPLEX *GPU_E_x,
+                                    CUFFTCOMPLEX *GPU_E_y,
+                                    CUFFTCOMPLEX *GPU_E_z,
                                     Scalar3 *GPU_k_vec,
                                     Scalar *GPU_green_hat,
                                     Scalar3 *E_field,
@@ -446,7 +506,8 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     dim3 N_grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 N_threads(block_size, 1, 1);
 
-    // bind the textures
+    #ifdef SINGLE_PRECISION
+	// bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
@@ -454,10 +515,11 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
     if (error != cudaSuccess)
         return error;
+	#endif
 
 
     // set the grid charge to zero
-    cudaMemset(GPU_rho_real_space, 0, sizeof(cufftComplex)*Nx*Ny*Nz);
+    cudaMemset(GPU_rho_real_space, 0, sizeof(CUFFTCOMPLEX)*Nx*Ny*Nz);
 
     // run the kernels
     // assign charges to the grid points, one thread per particles
@@ -476,7 +538,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
 
     // FFT
 
-    cufftExecC2C(plan, GPU_rho_real_space, GPU_rho_real_space, CUFFT_FORWARD);
+    CUFFTEXEC(plan, GPU_rho_real_space, GPU_rho_real_space, CUFFT_FORWARD);
     cudaThreadSynchronize();
 
     // multiply Green's function to get E field, one thread per grid point
@@ -492,9 +554,9 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     cudaThreadSynchronize();
 
     // FFT
-    cufftExecC2C(plan, GPU_E_x, GPU_E_x, CUFFT_INVERSE);
-    cufftExecC2C(plan, GPU_E_y, GPU_E_y, CUFFT_INVERSE);
-    cufftExecC2C(plan, GPU_E_z, GPU_E_z, CUFFT_INVERSE);
+    CUFFTEXEC(plan, GPU_E_x, GPU_E_x, CUFFT_INVERSE);
+    CUFFTEXEC(plan, GPU_E_y, GPU_E_y, CUFFT_INVERSE);
+    CUFFTEXEC(plan, GPU_E_z, GPU_E_z, CUFFT_INVERSE);
     cudaThreadSynchronize();
 
     set_gpu_field_kernel <<< N_grid, N_threads >>> (GPU_E_x, GPU_E_y, GPU_E_z, E_field, Nx, Ny, Nz);
@@ -518,7 +580,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
         }
 
 //! The developer has chosen not to document this function
-__global__ void calculate_thermo_quantities_kernel(cufftComplex* rho, 
+__global__ void calculate_thermo_quantities_kernel(CUFFTCOMPLEX* rho, 
                                                    Scalar* green_function, 
                                                    Scalar* energy_sum,
                                                    Scalar* v_xx,
@@ -716,7 +778,7 @@ template <class T> void reduce(int size, int threads, int blocks, T *d_idata, T 
 void gpu_compute_pppm_thermo(int Nx,
                              int Ny,
                              int Nz,
-                             cufftComplex *GPU_rho_real_space,
+                             CUFFTCOMPLEX *GPU_rho_real_space,
                              Scalar *GPU_vg,
                              Scalar *GPU_green_hat,
                              Scalar *o_data,
@@ -894,15 +956,15 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         Scalar numerator, denominator;
 
         mper = zn - Nz*(2*zn/Nz);
-        snz = sinf(Scalar(0.5)*unitkz*mper*L.z/Nz);
+        snz = SIN(Scalar(0.5)*unitkz*mper*L.z/Nz);
         snz2 = snz*snz;
 
         lper = yn - Ny*(2*yn/Ny);
-        sny = sinf(Scalar(0.5)*unitky*lper*L.y/Ny);
+        sny = SIN(Scalar(0.5)*unitky*lper*L.y/Ny);
         sny2 = sny*sny;
 
         kper = xn - Nx*(2*xn/Nx);
-        snx = sinf(Scalar(0.5)*unitkx*kper*L.x/Nx);
+        snx = SIN(Scalar(0.5)*unitkx*kper*L.x/Nx);
         snx2 = snx*snx;
         sqk = unitkx*kper*unitkx*kper + unitky*lper*unitky*lper + unitkz*mper*unitkz*mper;
 
@@ -923,22 +985,22 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
             sum1 = Scalar(0.0);
             for (ix = -nbx; ix <= nbx; ix++) {
                 qx = unitkx*(kper+(Scalar)(Nx*ix));
-                sx = expf(Scalar(-.25)*qx*qx/kappa2);
+                sx = EXP(Scalar(-.25)*qx*qx/kappa2);
                 wx = Scalar(1.0);
                 argx = Scalar(0.5)*qx*L.x/(Scalar)Nx;
-                if (argx != Scalar(0.0)) wx = powf(sinf(argx)/argx,order);
+                if (argx != Scalar(0.0)) wx = POW(SIN(argx)/argx,order);
                 for (iy = -nby; iy <= nby; iy++) {
                     qy = unitky*(lper+(Scalar)(Ny*iy));
-                    sy = expf(Scalar(-.25)*qy*qy/kappa2);
+                    sy = EXP(Scalar(-.25)*qy*qy/kappa2);
                     wy = Scalar(1.0);
                     argy = Scalar(0.5)*qy*L.y/(Scalar)Ny;
-                    if (argy != Scalar(0.0)) wy = powf(sinf(argy)/argy,order);
+                    if (argy != Scalar(0.0)) wy = POW(SIN(argy)/argy,order);
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = unitkz*(mper+(Scalar)(Nz*iz));
-                        sz = expf(Scalar(-.25)*qz*qz/kappa2);
+                        sz = EXP(Scalar(-.25)*qz*qz/kappa2);
                         wz = Scalar(1.0);
                         argz = Scalar(0.5)*qz*L.z/(Scalar)Nz;
-                        if (argz != Scalar(0.0)) wz = powf(sinf(argz)/argz,order);
+                        if (argz != Scalar(0.0)) wz = POW(SIN(argz)/argz,order);
 
                         dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
                         dot2 = qx*qx+qy*qy+qz*qz;
@@ -997,10 +1059,19 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         unsigned int idx = d_group_members[group_idx];
         const Scalar sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
+		#ifdef SINGLE_PRECISION
         Scalar4 postypei =  tex1Dfetch(pdata_pos_tex, idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+		#else
+		Scalar4 postypei = d_pos[idx];
+		Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+		#endif
 
-        Scalar  qi = tex1Dfetch(pdata_charge_tex, idx);
+		#ifdef SINGLE_PRECISION
+        Scalar qi = tex1Dfetch(pdata_charge_tex, idx);
+		#else
+		Scalar qi = d_charge[idx];
+		#endif
         // initialize the force to 0
         Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         Scalar virial[6];
@@ -1026,10 +1097,19 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
+					#ifdef SINGLE_PRECISION
                     Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
                     Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+					#else
+					Scalar4 postypej = d_pos[cur_j];
+					Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+					#endif
 
-                    Scalar qj = tex1Dfetch(pdata_charge_tex, cur_j);
+					#ifdef SINGLE_PRECISION
+					Scalar qj = tex1Dfetch(pdata_charge_tex, cur_j);
+					#else
+					Scalar qj = d_charge[cur_j];
+					#endif
 
                     // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                     Scalar3 dx = posi - posj;
@@ -1097,7 +1177,8 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
     dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    // bind the textures
+    #ifdef SINGLE_PRECISION
+	// bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
@@ -1105,6 +1186,7 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
     error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
     if (error != cudaSuccess)
         return error;
+	#endif
 
 
 

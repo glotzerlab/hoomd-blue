@@ -128,6 +128,7 @@ struct pair_args_t
     };
 
 #ifdef NVCC
+#ifdef SINGLE_PRECISION
 //! Texture for reading particle positions
 texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
 
@@ -136,6 +137,7 @@ texture<Scalar, 1, cudaReadModeElementType> pdata_diam_tex;
 
 //! Texture for reading particle charges
 texture<Scalar, 1, cudaReadModeElementType> pdata_charge_tex;
+#endif
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
@@ -224,17 +226,29 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
+	#ifdef SINGLE_PRECISION
     Scalar4 postypei = tex1Dfetch(pdata_pos_tex, idx);
+	#else
+	Scalar4 postypei = d_pos[idx];
+	#endif
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     Scalar di;
     if (evaluator::needsDiameter())
+		#ifdef SINGLE_PRECISION
         di = tex1Dfetch(pdata_diam_tex, idx);
+		#else
+		di = d_diameter[idx];
+		#endif
     else
         di += Scalar(1.0); // shutup compiler warning
     Scalar qi;
     if (evaluator::needsCharge())
+		#ifdef SINGLE_PRECISION
         qi = tex1Dfetch(pdata_charge_tex, idx);
+		#else
+		qi = d_charge[idx];
+		#endif
     else
         qi += Scalar(1.0); // shutup compiler warning
 
@@ -272,18 +286,30 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
+			#ifdef SINGLE_PRECISION
             Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
+			#else
+			Scalar4 postypej = d_pos[cur_j];
+			#endif
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             Scalar dj = Scalar(0.0);
             if (evaluator::needsDiameter())
+				#ifdef SINGLE_PRECISION
                 dj = tex1Dfetch(pdata_diam_tex, cur_j);
+				#else
+				dj = d_diameter[cur_j];
+				#endif
             else
                 dj += Scalar(1.0); // shutup compiler warning
 
             Scalar qj = Scalar(0.0);
             if (evaluator::needsCharge())
+				#ifdef SINGLE_PRECISION
                 qj = tex1Dfetch(pdata_charge_tex, cur_j);
+				#else
+				qj = d_charge[cur_j];
+				#endif
             else
                 qj += Scalar(1.0); // shutup compiler warning
 
@@ -414,7 +440,8 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
     dim3 threads(pair_args.block_size, 1, 1);
 
-    // bind the position texture
+    #ifdef SINGLE_PRECISION
+	// bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.N);
@@ -433,6 +460,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.N);
     if (error != cudaSuccess)
         return error;
+	#endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) 

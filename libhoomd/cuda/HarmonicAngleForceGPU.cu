@@ -66,8 +66,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the harmonic angle forces. Used by HarmonicAngleForceComputeGPU.
 */
 
+//! ACOS is acosf when running in single precision and acos otherwise
+#ifdef SINGLE_PRECISION
+#define ACOS acosf
+#else
+#define ACOS acos
+#endif
+
 //! Texture for reading angle parameters
+#ifdef SINGLE_PRECISION
 texture<Scalar2, 1, cudaReadModeElementType> angle_params_tex;
+#endif
 
 //! Kernel for caculating harmonic angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -85,6 +94,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
                                                                     const unsigned int virial_pitch,
                                                                     const unsigned int N,
                                                                     const Scalar4 *d_pos,
+																	const Scalar2 *d_params,
                                                                     BoxDim box,
                                                                     const uint4 *alist,
                                                                     const unsigned int pitch,
@@ -161,7 +171,11 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
+		#ifdef SINGLE_PRECISION
         Scalar2 params = tex1Dfetch(angle_params_tex, cur_angle_type);
+		#else
+		Scalar2 params = d_params[cur_angle_type];
+		#endif
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -181,7 +195,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
         s_abbc = Scalar(1.0)/s_abbc;
 
         // actually calculate the force
-        Scalar dth = acosf(c_abbc) - t_0;
+        Scalar dth = ACOS(c_abbc) - t_0;
         Scalar tk = K*dth;
 
         Scalar a = -Scalar(1.0) * tk * s_abbc;
@@ -285,12 +299,14 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
     
     // bind the texture
+	#ifdef SINGLE_PRECISION
     cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
+	#endif
         
     // run the kernel
-    gpu_compute_harmonic_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, atable, pitch, n_angles_list);
+    gpu_compute_harmonic_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, atable, pitch, n_angles_list);
     
     return cudaSuccess;
     }

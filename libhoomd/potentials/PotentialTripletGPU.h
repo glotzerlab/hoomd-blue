@@ -145,9 +145,10 @@ void PotentialTripletGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     Index2D nli = this->m_nlist->getNListIndexer();
 
     // access the particle data
-    gpu_pdata_arrays& pdata = this->m_pdata->acquireReadOnlyGPU();
-    gpu_boxsize box = this->m_pdata->getBoxGPU();
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
 
+    BoxDim box = this->m_pdata->getBox();
+    
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
@@ -156,24 +157,26 @@ void PotentialTripletGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
+    // access flags
+    PDataFlags flags = this->m_pdata->getFlags();
+
+
     gpu_cgpf(triplet_args_t(d_force.data,
-                            d_virial.data,
-                            pdata,
-                            box,
-                            d_n_neigh.data,
-                            d_nlist.data,
-                            nli,
-                            d_rcutsq.data,
-                            d_ronsq.data,
-                            this->m_pdata->getNTypes(),
-                            m_block_size,
-                            this->m_shift_mode),
-             d_params.data);
+							this->m_pdata->getN(),
+							d_pos.data,
+							box,
+							d_n_neigh.data,
+							d_nlist.data,
+							nli,
+							d_rcutsq.data,
+							d_ronsq.data,
+							this->m_pdata->getNTypes(),
+							m_block_size,
+							this->m_shift_mode),
+							d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    this->m_pdata->release();
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
