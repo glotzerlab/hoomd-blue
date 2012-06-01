@@ -62,6 +62,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __PPPMFORCEGPU_CUH__
 #define __PPPMFORCEGPU_CUH__
 
+//! CUFFTCOMPLEX is cufftComplex in single precision and cufftDoubleComplex in double precision
+#ifdef SINGLE_PRECISION
+#define CUFFTCOMPLEX cufftComplex
+#else
+#define CUFFTCOMPLEX cufftDoubleComplex
+#endif
+
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
 cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                     const unsigned int N,
@@ -73,11 +80,11 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                     int Nz,
                                     int order,
                                     Scalar *GPU_rho_coeff,
-                                    cufftComplex *GPU_rho_real_space,
+                                    CUFFTCOMPLEX *GPU_rho_real_space,
                                     cufftHandle plan,
-                                    cufftComplex *GPU_E_x,
-                                    cufftComplex *GPU_E_y,
-                                    cufftComplex *GPU_E_z,
+                                    CUFFTCOMPLEX *GPU_E_x,
+                                    CUFFTCOMPLEX *GPU_E_y,
+                                    CUFFTCOMPLEX *GPU_E_z,
                                     Scalar3 *GPU_k_vec,
                                     Scalar *GPU_green_hat,
                                     Scalar3 *E_field,
@@ -89,7 +96,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
 void gpu_compute_pppm_thermo(int Nx,
                              int Ny,
                              int Nz,
-                             cufftComplex *GPU_rho_real_space,
+                             CUFFTCOMPLEX *GPU_rho_real_space,
                              Scalar *GPU_vg,
                              Scalar *GPU_green_hat,
                              Scalar *o_data,

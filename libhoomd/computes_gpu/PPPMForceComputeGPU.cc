@@ -65,6 +65,13 @@ using namespace boost;
 
 using namespace std;
 
+//! CUFFTCOMPLEX is cufftComplex in single precision and cufftDoubleComplex in double precision
+#ifdef SINGLE_PRECISION
+#define CUFFTCOMPLEX cufftComplex
+#else
+#define CUFFTCOMPLEX cufftDoubleComplex
+#endif
+
 /*! \param sysdef System to compute bond forces on
     \param nlist Neighbor list
     \param group Particle group
@@ -164,10 +171,10 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    ArrayHandle<cufftComplex> d_rho_real_space(m_rho_real_space, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ez(m_Ez, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_rho_real_space(m_rho_real_space, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ez(m_Ez, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_kvec(m_kvec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_green_hat(m_green_hat, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);

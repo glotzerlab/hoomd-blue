@@ -137,7 +137,7 @@ __device__ inline double atomicAdd(double* address, double val)
 //! Implements workaround atomic Scalar addition on sm_1x hardware
 __device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
     {
-#if (__CUDA_ARCH__ < 200)
+/*#if (__CUDA_ARCH__ < 200)
     Scalar old = value;
     Scalar new_old;
     do
@@ -146,9 +146,9 @@ __device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
         new_old += old;
         }
     while ((old = atomicExch(address, new_old))!=Scalar(0.0));
-#else
+#else*/
     atomicAdd(address, value);
-#endif
+//#endif
     }
 
 //! The developer has chosen not to document this function

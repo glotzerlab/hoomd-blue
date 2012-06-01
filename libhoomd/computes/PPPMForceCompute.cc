@@ -65,7 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include <math.h>
 
-
 using namespace boost;
 using namespace boost::python;
 using namespace std;
@@ -74,6 +73,13 @@ using namespace std;
 /*! \file PPPMForceCompute.cc
     \brief Contains code for the PPPMForceCompute class
 */
+
+//! CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
+#if defined ENABLE_CUDA && !defined SINGLE_PRECISION
+#define CUFFTCOMPLEX cufftDoubleComplex
+#else
+#define CUFFTCOMPLEX cufftComplex
+#endif
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighbor list
@@ -154,7 +160,7 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         throw std::runtime_error("Error initializing PPPMForceCompute");
         }
 
-    GPUArray<cufftComplex> n_rho_real_space(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_rho_real_space(Nx*Ny*Nz, exec_conf);
     m_rho_real_space.swap(n_rho_real_space);
     GPUArray<Scalar> n_green_hat(Nx*Ny*Nz, exec_conf);
     m_green_hat.swap(n_green_hat);
@@ -165,11 +171,11 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
 
     GPUArray<Scalar3> n_kvec(Nx*Ny*Nz, exec_conf);
     m_kvec.swap(n_kvec);
-    GPUArray<cufftComplex> n_Ex(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ex(Nx*Ny*Nz, exec_conf);
     m_Ex.swap(n_Ex);
-    GPUArray<cufftComplex> n_Ey(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ey(Nx*Ny*Nz, exec_conf);
     m_Ey.swap(n_Ey);
-    GPUArray<cufftComplex> n_Ez(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ez(Nx*Ny*Nz, exec_conf);
     m_Ez.swap(n_Ez);
     GPUArray<Scalar> n_gf_b(order, exec_conf);
     m_gf_b.swap(n_gf_b);
@@ -434,7 +440,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 //FFTs go next
     
         { // scoping array handles
-        ArrayHandle<cufftComplex> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
+        ArrayHandle<CUFFTCOMPLEX> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
         for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
             fft_in[i].r = (Scalar) h_rho_real_space.data[i].x;
             fft_in[i].i = (Scalar)0.0;
@@ -454,9 +460,9 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 //More FFTs
 
         { // scoping array handles
-        ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
-        ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
-        ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
+        ArrayHandle<CUFFTCOMPLEX> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
+        ArrayHandle<CUFFTCOMPLEX> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
+        ArrayHandle<CUFFTCOMPLEX> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
 
         for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++)
             {
@@ -791,9 +797,9 @@ void PPPMForceCompute::assign_charges_to_grid()
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
-    ArrayHandle<cufftComplex> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
 
-    memset(h_rho_real_space.data, 0, sizeof(cufftComplex)*m_Nx*m_Ny*m_Nz);
+    memset(h_rho_real_space.data, 0, sizeof(CUFFTCOMPLEX)*m_Nx*m_Ny*m_Nz);
 
     for(int i = 0; i < (int)m_pdata->getN(); i++)
         {
@@ -886,16 +892,16 @@ void PPPMForceCompute::combined_green_e()
 
     ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_green_hat(m_green_hat, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
 
     unsigned int NNN = m_Nx*m_Ny*m_Nz;
     for(unsigned int i = 0; i < NNN; i++)
         {
 
-        cufftComplex rho_local = h_rho_real_space.data[i];
+        CUFFTCOMPLEX rho_local = h_rho_real_space.data[i];
         Scalar scale_times_green = h_green_hat.data[i] / ((Scalar)(NNN));
         rho_local.x *= scale_times_green;
         rho_local.y *= scale_times_green;
@@ -931,9 +937,9 @@ void PPPMForceCompute::calculate_forces()
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
-    ArrayHandle<cufftComplex> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
-    ArrayHandle<cufftComplex> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> h_Ex(m_Ex, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> h_Ey(m_Ey, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> h_Ez(m_Ez, access_location::host, access_mode::readwrite);
 
     for(int i = 0; i < (int)m_pdata->getN(); i++)
         {
@@ -1117,7 +1123,7 @@ void PPPMForceCompute::fix_thermo_quantities()
     BoxDim box = m_pdata->getBox();
     Scalar3 L = box.getL();
 
-    ArrayHandle<cufftComplex> d_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> d_green_hat(m_green_hat, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> d_vg(m_vg, access_location::host, access_mode::readwrite);
     Scalar2 pppm_virial_energy = make_scalar2(0.0, 0.0);
