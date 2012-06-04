@@ -2377,7 +2377,7 @@ class moliere(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
     # started with run().
-    def __init__(self, r_cut, name=None, block_size=128):
+    def __init__(self, r_cut, name=None, block_size=256):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -2443,7 +2443,7 @@ class tersoff(pair):
     # \param block_size Block size to run on the GPU
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be started with run()
-    def __init__(self, r_cut, name=None, block_size=128):
+    def __init__(self, r_cut, name=None, block_size=256):
         util.print_status_line();
 
         # tell the base class how we operate
