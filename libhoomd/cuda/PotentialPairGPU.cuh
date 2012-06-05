@@ -137,7 +137,7 @@ texture<Scalar, 1, cudaReadModeElementType> pdata_diam_tex;
 
 //! Texture for reading particle charges
 texture<Scalar, 1, cudaReadModeElementType> pdata_charge_tex;
-#else
+#elif defined ENABLE_TEXTURES
 //! Texture for reading particle positions
 texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
 
@@ -146,9 +146,7 @@ texture<int2, 1, cudaReadModeElementType> pdata_diam_tex;
 
 //! Texture for reading particle charges
 texture<int2, 1, cudaReadModeElementType> pdata_charge_tex;
-#endif
 
-#ifndef SINGLE_PRECISION
 //! fetch_double4 Function for fetching double4 values from int4 textures
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
 	
@@ -270,9 +268,10 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
     // (MEM TRANSFER: 16 bytes)
 	#ifdef SINGLE_PRECISION
     Scalar4 postypei = tex1Dfetch(pdata_pos_tex, idx);
-	#else
-	//Scalar4 postypei = d_pos[idx];
+	#elif defined ENABLE_TEXTURES
 	Scalar4 postypei = fetch_double4(pdata_pos_tex, idx);
+	#else
+	Scalar4 postypei = d_pos[idx];
 	#endif
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
@@ -280,9 +279,10 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
     if (evaluator::needsDiameter())
 		#ifdef SINGLE_PRECISION
         di = tex1Dfetch(pdata_diam_tex, idx);
-		#else
-		//di = d_diameter[idx];
+		#elif defined ENABLE_TEXTURES
 		di = fetch_double(pdata_diam_tex, idx);
+		#else
+		di = d_diameter[idx];
 		#endif
     else
         di += Scalar(1.0); // shutup compiler warning
@@ -290,9 +290,10 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
     if (evaluator::needsCharge())
 		#ifdef SINGLE_PRECISION
         qi = tex1Dfetch(pdata_charge_tex, idx);
-		#else
-		//qi = d_charge[idx];
+		#elif defined ENABLE_TEXTURES
 		qi = fetch_double(pdata_charge_tex, idx);
+		#else
+		qi = d_charge[idx];
 		#endif
     else
         qi += Scalar(1.0); // shutup compiler warning
@@ -333,9 +334,10 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
 			#ifdef SINGLE_PRECISION
             Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
-			#else
-			//Scalar4 postypej = d_pos[cur_j];
+			#elif defined ENABLE_TEXTURES
 			Scalar4 postypej = fetch_double4(pdata_pos_tex, cur_j);
+			#else
+			Scalar4 postypej = d_pos[cur_j];
 			#endif
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
@@ -343,9 +345,10 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
             if (evaluator::needsDiameter())
 				#ifdef SINGLE_PRECISION
                 dj = tex1Dfetch(pdata_diam_tex, cur_j);
-				#else
-				//dj = d_diameter[cur_j];
+				#elif defined ENABLE_TEXTURES
 				dj = fetch_double(pdata_diam_tex, cur_j);
+				#else
+				dj = d_diameter[cur_j];
 				#endif
             else
                 dj += Scalar(1.0); // shutup compiler warning
@@ -354,9 +357,10 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
             if (evaluator::needsCharge())
 				#ifdef SINGLE_PRECISION
                 qj = tex1Dfetch(pdata_charge_tex, cur_j);
-				#else
-				//qj = d_charge[cur_j];
+				#elif defined ENABLE_TEXTURES
 				qj = fetch_double(pdata_charge_tex, cur_j);
+				#else
+				qj = d_charge[cur_j];
 				#endif
             else
                 qj += Scalar(1.0); // shutup compiler warning
@@ -488,7 +492,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
     dim3 threads(pair_args.block_size, 1, 1);
 
-    //#ifdef SINGLE_PRECISION
+    #ifdef ENABLE_TEXTURES
 	// bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
@@ -508,7 +512,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.N);
     if (error != cudaSuccess)
         return error;
-	//#endif
+	#endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) 

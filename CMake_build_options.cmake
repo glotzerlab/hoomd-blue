@@ -63,6 +63,21 @@ if (ENABLE_CUDA)
 
 endif (ENABLE_CUDA)
 
+# texture options
+# texture reads are only available when cuda is installed
+if (ENABLE_CUDA)
+	option(ENABLE_TEXTURES "Enable texture reads for CUDA GPU code" on)
+	if (SINGLE_PRECISION)
+		set(ENABLE_TEXTURES ON CACHE BOOL "Forced ON since CUDA is being used in single precision mode" FORCE)
+	endif (SINGLE_PRECISION)
+else (ENABLE_CUDA)
+	option(ENABLE_TEXTURES "Enable texture reads for CUDA GPU code" off)
+endif (ENABLE_CUDA)
+
+if (ENABLE_TEXTURES)
+	add_definitions(-DENABLE_TEXTURES)
+endif (ENABLE_TEXTURES)
+
 #################################
 ## Optionally enable documentation build
 find_package(Doxygen)
