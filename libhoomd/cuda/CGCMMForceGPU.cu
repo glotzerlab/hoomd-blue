@@ -62,9 +62,30 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
 */
 
-//! Texture for reading particle positions
 #ifdef SINGLE_PRECISION
+//! Texture for reading particle positions
 texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
+#else
+//! Texture for reading particle positions
+texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
+
+//! fetch_double4 Function for fetching double4 values from int4 textures
+/*! This function is only used when hoomd is compiled for double precision on the GPU.
+	
+	\param double_tex Texture in which the values are stored.
+	\param ii Index of the particle to read
+*/
+static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, int ii)
+{
+	int idx = 2*ii;
+	int4 part1 = tex1Dfetch(double_tex, idx);
+	int4 part2 = tex1Dfetch(double_tex, idx+1);
+
+	return make_scalar4(__hiloint2double(part1.y, part1.x),
+						__hiloint2double(part1.w, part1.z),
+						__hiloint2double(part2.y, part2.x),
+						__hiloint2double(part2.w, part2.z));
+}
 #endif
 
 //! Kernel for calculating CG-CMM Lennard-Jones forces
@@ -130,7 +151,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 	#ifdef SINGLE_PRECISION
     Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
 	#else
-	Scalar4 postype = d_pos[idx];
+	Scalar4 postype = fetch_double4(pdata_pos_tex, idx);
 	#endif
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
@@ -167,7 +188,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 			#ifdef SINGLE_PRECISION
             Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
 			#else
-			Scalar4 neigh_postype = d_pos[idx];
+			Scalar4 neigh_postype = fetch_double4(pdata_pos_tex, cur_neigh);
 			#endif
             Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
@@ -271,13 +292,11 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
-	#ifdef SINGLE_PRECISION
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
-	#endif
 
     // run the kernel
     gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>

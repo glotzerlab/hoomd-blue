@@ -84,6 +84,47 @@ texture<Scalar2, 1, cudaReadModeElementType> angle_CGCMMsr_tex; // MISSING EPSIL
 
 //! Texture for reading angle CGCMM Epsilon-pow/pref parameters
 texture<Scalar4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
+
+#else
+//! Texture for reading angle parameters
+texture<int4, 1, cudaReadModeElementType> angle_params_tex;
+
+//! Texture for reading angle CGCMM S-R parameters
+texture<int4, 1, cudaReadModeElementType> angle_CGCMMsr_tex; // MISSING EPSILON!!! sigma=.x, rcut=.y
+
+//! Texture for reading angle CGCMM Epsilon-pow/pref parameters
+texture<int4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
+
+//! fetch_double2 Function for fetching double2 values from int4 textures
+/*! This function is only used when hoomd is compiled for double precision on the GPU.
+	
+	\param double_tex Texture in which the values are stored.
+	\param ii Index of the particle to read
+*/
+static __device__ inline Scalar2 fetch_double2(texture<int4, 1> double_tex, int ii)
+{
+	int4 val = tex1Dfetch(double_tex, ii);
+	return make_scalar2(__hiloint2double(val.y, val.x),
+						__hiloint2double(val.w, val.z));
+}
+
+//! fetch_double4 Function for fetching double4 values from int4 textures
+/*! This function is only used when hoomd is compiled for double precision on the GPU.
+	
+	\param double_tex Texture in which the values are stored.
+	\param ii Index of the particle to read
+*/
+static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, int ii)
+{
+	int idx = 2*ii;
+	int4 part1 = tex1Dfetch(double_tex, idx);
+	int4 part2 = tex1Dfetch(double_tex, idx+1);
+
+	return make_scalar4(__hiloint2double(part1.y, part1.x),
+						__hiloint2double(part1.w, part1.z),
+						__hiloint2double(part2.y, part2.x),
+						__hiloint2double(part2.w, part2.z));
+}
 #endif
 
 //! Kernel for caculating CGCMM angle forces on the GPU
@@ -92,9 +133,6 @@ texture<Scalar4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EP
     \param virial_pitch pitch of 2D virial array
     \param N number of particles
     \param d_pos particle positions on the device
-    \param d_params K and t_0 params packed as Scalar2 variables
-    \param d_CGCMMsr sigma, and rcut packed as a Scalar2
-    \param d_CGCMMepow epsilon, pow1, pow2, and prefactor packed as a Scalar4
     \param box Box dimensions for periodic boundary condition handling
     \param alist Angle data to use in calculating the forces
     \param pitch Pitch of 2D angles list
@@ -105,9 +143,6 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
                                                                  const unsigned int virial_pitch,
                                                                  const unsigned int N,
                                                                  const Scalar4 *d_pos,
-																 const Scalar2 *d_params,
-																 const Scalar2 *d_CGCMMsr,
-																 const Scalar4 *d_CGCMMepow,
                                                                  BoxDim box,
                                                                  const uint4 *alist,
                                                                  const unsigned int pitch,
@@ -190,7 +225,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
 		#ifdef SINGLE_PRECISION
         Scalar2 params = tex1Dfetch(angle_params_tex, cur_angle_type);
 		#else
-		Scalar2 params = d_params[cur_angle_type];
+		Scalar2 params = fetch_double2(angle_params_tex, cur_angle_type);
 		#endif
         Scalar K = params.x;
         Scalar t_0 = params.y;
@@ -224,7 +259,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
 		#ifdef SINGLE_PRECISION
         const Scalar2 cgSR = tex1Dfetch(angle_CGCMMsr_tex, cur_angle_type);
 		#else
-		const Scalar2 cgSR = d_CGCMMsr[cur_angle_type];
+		const Scalar2 cgSR = fetch_double2(angle_CGCMMsr_tex, cur_angle_type);
 		#endif
 
         Scalar cgsigma = cgSR.x;
@@ -235,7 +270,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
 			#ifdef SINGLE_PRECISION
             const Scalar4 cgEPOW = tex1Dfetch(angle_CGCMMepow_tex, cur_angle_type);
 			#else
-			const Scalar4 cgEPOW = d_CGCMMepow[cur_angle_type];
+			const Scalar4 cgEPOW = fetch_double4(angle_CGCMMepow_tex, cur_angle_type);
 			#endif
 
             // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
@@ -370,7 +405,6 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the textures
-    #ifdef SINGLE_PRECISION
 	cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
@@ -382,10 +416,9 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
     error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(Scalar4) * n_angle_types);
     if (error != cudaSuccess)
         return error;
-	#endif
 
     // run the kernel
-    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, d_CGCMMsr, d_CGCMMepow, box, atable, pitch, n_angles_list);
+    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, atable, pitch, n_angles_list);
 
     return cudaSuccess;
     }
