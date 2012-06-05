@@ -137,6 +137,48 @@ texture<Scalar, 1, cudaReadModeElementType> pdata_diam_tex;
 
 //! Texture for reading particle charges
 texture<Scalar, 1, cudaReadModeElementType> pdata_charge_tex;
+#else
+//! Texture for reading particle positions
+texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
+
+//! Texture for reading particle diameters
+texture<int2, 1, cudaReadModeElementType> pdata_diam_tex;
+
+//! Texture for reading particle charges
+texture<int2, 1, cudaReadModeElementType> pdata_charge_tex;
+#endif
+
+#ifndef SINGLE_PRECISION
+//! fetch_double4 Function for fetching double4 values from int4 textures
+/*! This function is only used when hoomd is compiled for double precision on the GPU.
+	
+	\param double_tex Texture in which the values are stored.
+	\param ii Index of the particle to read
+*/
+static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, int ii)
+{
+	int idx = 2*ii;
+	int4 part1 = tex1Dfetch(double_tex, idx);
+	int4 part2 = tex1Dfetch(double_tex, idx+1);
+
+	return make_scalar4(__hiloint2double(part1.y, part1.x),
+		__hiloint2double(part1.w, part1.z),
+		__hiloint2double(part2.y, part2.x),
+		__hiloint2double(part2.w, part2.z));
+}
+
+//! fetch_double Function for fetching doubles from int2 textures
+/*! This function is only used when hoomd is compiled for double precision on the GPU.
+
+	\param double_tex Texture in which the double-precision values are stored
+	\param ii Index of the particle to read
+*/
+static __device__ inline Scalar fetch_double(texture<int2, 1> double_tex, int ii)
+{
+	int2 val = tex1Dfetch(double_tex, ii);
+
+	return __hiloint2double(val.y, val.x);
+}
 #endif
 
 //! Kernel for calculating pair forces
@@ -229,7 +271,8 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 	#ifdef SINGLE_PRECISION
     Scalar4 postypei = tex1Dfetch(pdata_pos_tex, idx);
 	#else
-	Scalar4 postypei = d_pos[idx];
+	//Scalar4 postypei = d_pos[idx];
+	Scalar4 postypei = fetch_double4(pdata_pos_tex, idx);
 	#endif
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
@@ -238,7 +281,8 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 		#ifdef SINGLE_PRECISION
         di = tex1Dfetch(pdata_diam_tex, idx);
 		#else
-		di = d_diameter[idx];
+		//di = d_diameter[idx];
+		di = fetch_double(pdata_diam_tex, idx);
 		#endif
     else
         di += Scalar(1.0); // shutup compiler warning
@@ -247,7 +291,8 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 		#ifdef SINGLE_PRECISION
         qi = tex1Dfetch(pdata_charge_tex, idx);
 		#else
-		qi = d_charge[idx];
+		//qi = d_charge[idx];
+		qi = fetch_double(pdata_charge_tex, idx);
 		#endif
     else
         qi += Scalar(1.0); // shutup compiler warning
@@ -289,7 +334,8 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 			#ifdef SINGLE_PRECISION
             Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
 			#else
-			Scalar4 postypej = d_pos[cur_j];
+			//Scalar4 postypej = d_pos[cur_j];
+			Scalar4 postypej = fetch_double4(pdata_pos_tex, cur_j);
 			#endif
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
@@ -298,7 +344,8 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 				#ifdef SINGLE_PRECISION
                 dj = tex1Dfetch(pdata_diam_tex, cur_j);
 				#else
-				dj = d_diameter[cur_j];
+				//dj = d_diameter[cur_j];
+				dj = fetch_double(pdata_diam_tex, cur_j);
 				#endif
             else
                 dj += Scalar(1.0); // shutup compiler warning
@@ -308,7 +355,8 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 				#ifdef SINGLE_PRECISION
                 qj = tex1Dfetch(pdata_charge_tex, cur_j);
 				#else
-				qj = d_charge[cur_j];
+				//qj = d_charge[cur_j];
+				qj = fetch_double(pdata_charge_tex, cur_j);
 				#endif
             else
                 qj += Scalar(1.0); // shutup compiler warning
@@ -440,7 +488,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
     dim3 threads(pair_args.block_size, 1, 1);
 
-    #ifdef SINGLE_PRECISION
+    //#ifdef SINGLE_PRECISION
 	// bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
@@ -460,7 +508,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.N);
     if (error != cudaSuccess)
         return error;
-	#endif
+	//#endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) 

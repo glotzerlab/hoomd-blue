@@ -46,7 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __ALL_DRIVER_POTENTIAL_TRIPLET_GPU_CUH__
 #define __ALL_DRIVER_POTENTIAL_TRIPLET_GPU_CUH__
 
-#include "PotentialPairGPU.cuh"
 #include "PotentialTripletGPU.cuh"
 #include "EvaluatorTripletTersoff.h"
 

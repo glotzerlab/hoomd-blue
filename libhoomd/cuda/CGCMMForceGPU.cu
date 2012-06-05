@@ -129,11 +129,10 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
     // (MEM TRANSFER: 16 bytes)
 	#ifdef SINGLE_PRECISION
     Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
-    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 	#else
 	Scalar4 postype = d_pos[idx];
-	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 	#endif
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -167,11 +166,10 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
 			#ifdef SINGLE_PRECISION
             Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
-            Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 			#else
 			Scalar4 neigh_postype = d_pos[idx];
-			Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 			#endif
+            Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)
             Scalar3 dx = pos - neigh_pos;

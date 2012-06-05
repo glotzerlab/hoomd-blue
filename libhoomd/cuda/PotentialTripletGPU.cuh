@@ -42,7 +42,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 #include "Index1D.h"
-#include "PotentialPairGPU.cuh"
 
 #ifdef WIN32
 #include <cassert>
@@ -56,11 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef __POTENTIAL_TRIPLET_GPU_CUH__
 #define __POTENTIAL_TRIPLET_GPU_CUH__
-
-//! Texture for reading particle positions
-//#ifdef SINGLE_PRECISION
-//texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
-//#endif
 
 //! Wrapps arguments to gpu_cgpf
 struct triplet_args_t
@@ -109,14 +103,21 @@ struct triplet_args_t
 
 
 #ifdef NVCC
+//! Texture for reading particle positions
+#ifdef SINGLE_PRECISION
+texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
+#else
+texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
+#endif
+
+#ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
 	
 	\param address Address to write the double to
 	\param val Value to add to address
 */
-#ifndef SINGLE_PRECISION
-__device__ inline double atomicAdd(double* address, double val)
+static __device__ inline double atomicAdd(double* address, double val)
 {
 	unsigned long long int* address_as_ull = (unsigned long long int*)address;
 	unsigned long long int old = *address_as_ull, assumed;
@@ -129,6 +130,24 @@ __device__ inline double atomicAdd(double* address, double val)
 	} while (assumed != old);
 
 	return __longlong_as_double(old);
+}
+
+//! fetch_double4 Function for fetching double4 values from int4 textures
+/*! This function is only used when hoomd is compiled for double precision on the GPU.
+	
+	\param double_tex Texture in which the values are stored.
+	\param ii Index of the particle to read
+*/
+static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, int ii)
+{
+	int idx = 2*ii;
+	int4 part1 = tex1Dfetch(double_tex, idx);
+	int4 part2 = tex1Dfetch(double_tex, idx+1);
+
+	return make_scalar4(__hiloint2double(part1.y, part1.x),
+		__hiloint2double(part1.w, part1.z),
+		__hiloint2double(part2.y, part2.x),
+		__hiloint2double(part2.w, part2.z));
 }
 #endif
 
@@ -209,7 +228,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 	#ifdef SINGLE_PRECISION
 	Scalar4 postypei = tex1Dfetch(pdata_pos_tex, idx);
 	#else
-	Scalar4 postypei = d_pos[idx];
+	//Scalar4 postypei = d_pos[idx];
+	Scalar4 postypei = fetch_double4(pdata_pos_tex, idx);
 	#endif
 	Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
@@ -243,7 +263,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 			#ifdef SINGLE_PRECISION
             Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
 			#else
-			Scalar4 postypej = d_pos[cur_j];
+			//Scalar4 postypej = d_pos[cur_j];
+			Scalar4 postypej = fetch_double4(pdata_pos_tex, cur_j);
 			#endif
 			Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
@@ -294,7 +315,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 						#ifdef SINGLE_PRECISION
 						Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
 						#else
-						Scalar4 postypek = d_pos[cur_k];
+						//Scalar4 postypek = d_pos[cur_k];
+						Scalar4 postypek = fetch_double4(pdata_pos_tex, cur_k);
 						#endif
 						Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
@@ -380,7 +402,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 						#ifdef SINGLE_PRECISION
 						Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
 						#else
-						Scalar4 postypek = d_pos[cur_k];
+						//Scalar4 postypek = d_pos[cur_k];
+						Scalar4 postypek = fetch_double4(pdata_pos_tex, cur_k);
 						#endif
 						Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
@@ -491,7 +514,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 							#ifdef SINGLE_PRECISION
 							Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
 							#else
-							Scalar4 postypek = d_pos[cur_k];
+							//Scalar4 postypek = d_pos[cur_k];
+							Scalar4 postypek = fetch_double4(pdata_pos_tex, cur_k);
 							#endif
 							Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
@@ -546,7 +570,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 							#ifdef SINGLE_PRECISION
 							Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
 							#else
-							Scalar4 postypek = d_pos[cur_k];
+							//Scalar4 postypek = d_pos[cur_k];
+							Scalar4 postypek = fetch_double4(pdata_pos_tex, cur_k);
 							#endif
 							Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
@@ -637,13 +662,19 @@ cudaError_t gpu_compute_triplet_forces(const triplet_args_t& pair_args,
     dim3 threads(pair_args.block_size, 1, 1);
 
     // bind the position texture
-	#ifdef SINGLE_PRECISION
+	//#ifdef SINGLE_PRECISION
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
     if (error != cudaSuccess)
         return error;
-	#endif
+	//#else
+	//pdata_pos_tex.normalized = false;
+	//pdata_pos_tex.filterMode = cudaFilterModePoint;
+	//cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
+	//if (error != cudaSuccess)
+		//return error;
+	//#endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))

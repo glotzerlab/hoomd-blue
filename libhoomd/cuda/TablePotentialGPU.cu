@@ -70,6 +70,44 @@ texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 //! Texture for reading table values
 texture<Scalar2, 1, cudaReadModeElementType> tables_tex;
+#else
+//! Texture for reading particle positions
+texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
+
+//! Texture for reading table values
+texture<int4, 1, cudaReadModeElementType> tables_tex;
+#endif
+
+#ifndef SINGLE_PRECISION
+//! fetch_double2 Function for fetching double2 values using texture reads
+/*! This function is only used when compiling for double precision on the GPU.
+
+	\param double_tex Texture in which the values are stored.
+	\param ii Index at which the values are stored.
+*/
+static __device__ inline Scalar2 fetch_double2(texture<int4, 1> double_tex, unsigned int ii)
+{
+	int4 val = tex1Dfetch(double_tex, ii);
+	return make_scalar2( __hiloint2double(val.y, val.x),
+						__hilotint2double(val.w, val.z) );
+}
+
+//! fetch_double2 Function for fetching double2 values using texture reads
+/*! This function is only used when compiling for double precision on the GPU.
+
+	\param double_tex Texture in which the values are stored.
+	\param ii Index at which the values are stored.
+*/
+static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, unsigned int ii)
+{
+	unsigned int idx = 2*ii;
+	int4 part1 = tex1Dfetch(double_tex, idx);
+	int4 part2 = tex1Dfetch(double_tex, idx+1);
+	return make_scalar4(__hiloint2double(part1.y, part1,x),
+						__hiloint2double(part1.w, part1.z),
+						__hiloint2double(part2.y, part2.x),
+						__hiloint2double(part2.w, part2.z);
+}
 #endif
 
 /*!  This kernel is called to calculate the table pair forces on all N particles
@@ -133,11 +171,11 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     #ifdef SINGLE_PRECISION
 	Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
-    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 	#else
-	Scalar4 postype = d_pos[idx];
-	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+	//Scalar4 postype = d_pos[idx];
+	Scalar4 postype = fetch_double4(pdata_pos_tex, idx);
 	#endif
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     unsigned int typei = __scalar_as_int(postype.w);
 
     // initialize the force to 0
@@ -175,11 +213,11 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
             // get the neighbor's position
 			#ifdef SINGLE_PRECISION
             Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
-            Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 			#else
-			Scalar4 neigh_postype = d_pos[cur_neigh];
-			Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+			//Scalar4 neigh_postype = d_pos[cur_neigh];
+			Scalar4 neigh_postype = fetch_double4(pdata_pos_tex, cur_neigh);
 			#endif
+            Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)
             Scalar3 dx = pos - neigh_pos;
@@ -210,8 +248,10 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
                 Scalar2 VF0 = tex1Dfetch(tables_tex, table_value(value_i, cur_table_index));
                 Scalar2 VF1 = tex1Dfetch(tables_tex, table_value(value_i+1, cur_table_index));
 				#else
-				Scalar2 VF0 = d_tables[table_value(value_i, cur_table_index)];
-				Scalar2 VF1 = d_tables[table_value(value_i, cur_table_index)];
+				//Scalar2 VF0 = d_tables[table_value(value_i, cur_table_index)];
+				//Scalar2 VF1 = d_tables[table_value(value_i, cur_table_index)];
+				Scalar2 VF0 = fetch_double2(tables_tex, table_value(value_i, cur_table_index));
+				Scalar2 VF1 = fetch_double2(tables_tex, table_value(value_i+1, cur_table_index));
 				#endif
                 // unpack the data
                 Scalar V0 = VF0.x;
@@ -305,7 +345,6 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    #ifdef SINGLE_PRECISION
 	// bind the pdata position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
@@ -319,7 +358,6 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
     error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_width * table_index.getNumElements());
     if (error != cudaSuccess)
         return error;
-	#endif
 
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>
             (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_params, d_tables, ntypes, table_width);
