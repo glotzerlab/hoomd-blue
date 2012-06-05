@@ -88,8 +88,8 @@ texture<int4, 1, cudaReadModeElementType> tables_tex;
 static __device__ inline Scalar2 fetch_double2(texture<int4, 1> double_tex, unsigned int ii)
 {
 	int4 val = tex1Dfetch(double_tex, ii);
-	return make_scalar2( __hiloint2double(val.y, val.x),
-						__hilotint2double(val.w, val.z) );
+	return make_scalar2(__hiloint2double(val.y, val.x),
+						__hiloint2double(val.w, val.z));
 }
 
 //! fetch_double2 Function for fetching double2 values using texture reads
@@ -103,10 +103,10 @@ static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, unsi
 	unsigned int idx = 2*ii;
 	int4 part1 = tex1Dfetch(double_tex, idx);
 	int4 part2 = tex1Dfetch(double_tex, idx+1);
-	return make_scalar4(__hiloint2double(part1.y, part1,x),
+	return make_scalar4(__hiloint2double(part1.y, part1.x),
 						__hiloint2double(part1.w, part1.z),
 						__hiloint2double(part2.y, part2.x),
-						__hiloint2double(part2.w, part2.z);
+						__hiloint2double(part2.w, part2.z));
 }
 #endif
 
