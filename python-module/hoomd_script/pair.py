@@ -2463,11 +2463,11 @@ class tersoff(pair):
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialTripletTersoff(globals.system_definition, neighbor_list.cpp_nlist, self.name);
-            self.cpp_class = hoomd.PotentialTripletTersoff;
+            self.cpp_force = hoomd.PotentialTersoff(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialTersoff;
         else:
-            self.cpp_force = hoomd.PotentialTripletTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
-            self.cpp_class = hoomd.PotentialTripletTersoffGPU;
+            self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialTersoffGPU;
             self.cpp_force.setBlockSize(block_size);
 
         globals.system.addCompute(self.cpp_force, self.force_name);

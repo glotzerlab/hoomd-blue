@@ -1,5 +1,5 @@
-#ifndef __TRIPLET_EVALUATOR_TERSOFF__
-#define __TRIPLET_EVALUATOR_TERSOFF__
+#ifndef __EVALUATOR_TERSOFF__
+#define __EVALUATOR_TERSOFF__
 
 #ifndef NVCC
 #include <string>
@@ -7,7 +7,7 @@
 
 #include "HOOMDMath.h"
 
-/*! \file EvaluatorTripletTersoff.h
+/*! \file EvaluatorTersoff.h
     \brief Defines the evaluator class for the three-body Tersoff potential
 */
 
@@ -89,7 +89,7 @@ HOSTDEVICE inline tersoff_params make_tersoff_params(Scalar cutoff_thickness,
 }
 
 //! Class for evaluating the Tersoff three-body potential
-class EvaluatorTripletTersoff
+class EvaluatorTersoff
 {
     public:
         //! Define the parameter type used by this evaluator
@@ -100,7 +100,7 @@ class EvaluatorTripletTersoff
             \param _rcutsq Squared distance at which the potential goes to zero
             \param _params Per type-pair parameters for this potential
         */
-        DEVICE EvaluatorTripletTersoff(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
+        DEVICE EvaluatorTersoff(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
             : rij_sq(_rij_sq), rcutsq(_rcutsq), cutoff_shell_thickness(_params.cutoff_thickness),
               tersoff_A(_params.coeffs.x), tersoff_B(_params.coeffs.y), lambda_R(_params.exp_consts.x), lambda_A(_params.exp_consts.y),
               dimer_separation(_params.dimer_r), tersoff_n(_params.tersoff_n), gamman(_params.gamman), lambda_h3(_params.lambda_cube),

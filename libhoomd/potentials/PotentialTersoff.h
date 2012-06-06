@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __POTENTIAL_TRIPLET_H__
-#define __POTENTIAL_TRIPLET_H__
+#ifndef __POTENTIAL_TERSOFF_H__
+#define __POTENTIAL_TERSOFF_H__
 
 #include <iostream>
 #include <stdexcept>
@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-/*! \file PotentialTriplet.h
+/*! \file PotentialTersoff.h
     \brief Defines the template class for standard three-body potentials
     \details The heart of the code that computes three-body potentials is in this file.
     \note This header cannot be compiled by nvcc
@@ -75,14 +75,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Template class for computing three-body potentials
 /*! <b>Overview:</b>
-    PotentialTriplet computes standard three-body potentials and forces between all particles in the
+    PotentialTersoff computes standard three-body potentials and forces between all particles in the
     simulation.  It employs the use of a neighbor list to limit the number of comutations done to
     only those particles within the cutoff radius of each other.  the computation of the actual
     potential is not performed directly by this class, but by an evaluator class (e.g.
-    EvaluatorTripletTersoff) which is passed in as a template parameter so the computations are performed
+    EvaluatorTersoff) which is passed in as a template parameter so the computations are performed
     as efficiently as possible.
 
-    PotentialTriplet handles most of the internal details common to all standard three-body potentials.
+    PotentialTersoff handles most of the internal details common to all standard three-body potentials.
      - A cutoff radius to be specified per particle type-pair
      - Per type-pair parameters are stored and a set method is provided
      - Logging methods are provided for the energy
@@ -107,25 +107,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
     element of the parameters.
 
-    For profiling and logging, PotentialTriplet needs to know the name of the potential. For now, that will be queried from
+    For profiling and logging, PotentialTersoff needs to know the name of the potential. For now, that will be queried from
     the evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
     independently.
 
-    \sa export_PotentialTriplet()
+    \sa export_PotentialTersoff()
 */
 template < class evaluator >
-class PotentialTriplet : public ForceCompute
+class PotentialTersoff : public ForceCompute
     {
     public:
         //! Param type from evaluator
         typedef typename evaluator::param_type param_type;
 
         //! Construct the potential
-        PotentialTriplet(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialTersoff(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialTriplet() { };
+        virtual ~PotentialTersoff() { };
 
         //! Set the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
@@ -171,7 +171,7 @@ class PotentialTriplet : public ForceCompute
     \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
-PotentialTriplet< evaluator >::PotentialTriplet(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefinition> sysdef,
                                                 boost::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
@@ -201,13 +201,13 @@ PotentialTriplet< evaluator >::PotentialTriplet(boost::shared_ptr<SystemDefiniti
           set.
 */
 template< class evaluator >
-void PotentialTriplet< evaluator >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
+void PotentialTersoff< evaluator >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
         this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existant type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialTriplet");
+        throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
@@ -222,13 +222,13 @@ void PotentialTriplet< evaluator >::setParams(unsigned int typ1, unsigned int ty
           set.
 */
 template< class evaluator >
-void PotentialTriplet< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
+void PotentialTersoff< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
         std::cerr << std::endl << "***Error! Trying to set rcut for a non existant type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialTriplet");
+        throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
 
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
@@ -243,13 +243,13 @@ void PotentialTriplet< evaluator >::setRcut(unsigned int typ1, unsigned int typ2
           set.
 */
 template< class evaluator >
-void PotentialTriplet< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
+void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
         std::cerr << std::endl << "***Error! Trying to set ron for a non existant type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialTriplet");
+        throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
 
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
@@ -257,12 +257,12 @@ void PotentialTriplet< evaluator >::setRon(unsigned int typ1, unsigned int typ2,
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
     }
 
-/*! PotentialTriplet provides:
+/*! PotentialTersoff provides:
      - \c pair_"name"_energy
     where "name" is replaced with evaluator::getName()
 */
 template< class evaluator >
-std::vector< std::string > PotentialTriplet< evaluator >::getProvidedLogQuantities()
+std::vector< std::string > PotentialTersoff< evaluator >::getProvidedLogQuantities()
     {
     vector<string> list;
     list.push_back(m_log_name);
@@ -273,7 +273,7 @@ std::vector< std::string > PotentialTriplet< evaluator >::getProvidedLogQuantiti
     \param timestep Current timestep of the simulation
 */
 template< class evaluator >
-Scalar PotentialTriplet< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
     {
     if (quantity == m_log_name)
         {
@@ -294,7 +294,7 @@ Scalar PotentialTriplet< evaluator >::getLogValue(const std::string& quantity, u
     \param timestep specifies the current time step of the simulation
 */
 template< class evaluator >
-void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
+void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -306,9 +306,9 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
     {
-        std::cerr << std::endl << "***Error! PotentialTriplet cannot handle a half neighborlist"
+        std::cerr << std::endl << "***Error! PotentialTersoff cannot handle a half neighborlist"
                   << std::endl << std::endl;
-        throw std::runtime_error("Error computing forces in PotentialTriplet");
+        throw std::runtime_error("Error computing forces in PotentialTersoff");
     }
 
     // access the neighbor list, particle data, and system box
@@ -571,9 +571,9 @@ void PotentialTriplet< evaluator >::computeForces(unsigned int timestep)
 
 //! Export this triplet potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialTriplet class template.
+    \tparam T Class type to export. \b Must be an instantiated PotentialTersoff class template.
 */
-template < class T > void export_PotentialTriplet(const std::string& name)
+template < class T > void export_PotentialTersoff(const std::string& name)
     {
     boost::python::scope in_pair =
         boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >

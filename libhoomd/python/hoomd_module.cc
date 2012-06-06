@@ -128,9 +128,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
-#include "EvaluatorTripletTersoff.h"
+#include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
-#include "PotentialTriplet.h"
+#include "PotentialTersoff.h"
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
 #include "Messenger.h"
@@ -165,7 +165,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
-#include "PotentialTripletGPU.h"
+#include "PotentialTersoffGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -418,7 +418,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
     export_PotentialPair<PotentialPairMoliere> ("PotentialPairMoliere");
-    export_PotentialTriplet<PotentialTripletTersoff> ("PotentialTripletTersoff");
+    export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
     export_tersoff_params();
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");   
@@ -447,7 +447,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
     export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere> ("PotentialPairMoliereGPU");
-    export_PotentialTripletGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTripletTersoffGPU");
+    export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");    

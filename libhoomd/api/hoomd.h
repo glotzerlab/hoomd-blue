@@ -130,7 +130,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPair.h"
-#include "PotentialTriplet.h"
+#include "PotentialTersoff.h"
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
 
@@ -164,7 +164,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
-#include "PotentialTripletGPU.h"
+#include "PotentialTersoffGPU.h"
 #include "PPPMForceComputeGPU.h"
 #endif
 

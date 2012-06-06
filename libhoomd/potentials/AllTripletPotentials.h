@@ -43,12 +43,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TRIPLET_POTENTIALS__H__
 
 #include "PotentialPair.h"
-#include "PotentialTriplet.h"
-#include "EvaluatorTripletTersoff.h"
+#include "PotentialTersoff.h"
+#include "EvaluatorTersoff.h"
 
 #ifdef ENABLE_CUDA
-#include "PotentialTripletGPU.h"
-#include "AllDriverPotentialTripletGPU.cuh"
+#include "PotentialTersoffGPU.h"
+#include "DriverTersoffGPU.cuh"
 #endif
 
 /*! \file AllTripletPotentials.h
@@ -60,11 +60,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! Three-body potential force compute for Tersoff forces
-typedef PotentialTriplet< EvaluatorTripletTersoff > PotentialTripletTersoff;
+typedef PotentialTersoff< EvaluatorTersoff > PotentialTripletTersoff;
 
 #ifdef ENABLE_CUDA
 //! Three-body potential force compute for Tersoff forces on the GPU
-typedef PotentialTripletGPU< EvaluatorTripletTersoff, gpu_compute_tersoff_forces > PotentialTripletTersoffGPU;
+typedef PotentialTersoffGPU< EvaluatorTersoff, gpu_compute_tersoff_forces > PotentialTripletTersoffGPU;
 
 #endif // ENABLE_CUDA
 

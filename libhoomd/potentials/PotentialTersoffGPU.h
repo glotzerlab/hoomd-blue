@@ -39,17 +39,17 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __POTENTIAL_TRIPLET_GPU_H__
-#define __POTENTIAL_TRIPLET_GPU_H__
+#ifndef __POTENTIAL_TERSOFF_GPU_H__
+#define __POTENTIAL_TERSOFF_GPU_H__
 
 #ifdef ENABLE_CUDA
 
 #include <boost/bind.hpp>
 
-#include "PotentialTriplet.h"
-#include "PotentialTripletGPU.cuh"
+#include "PotentialTersoff.h"
+#include "PotentialTersoffGPU.cuh"
 
-/*! \file PotentialTripletGPU.h
+/*! \file PotentialTersoffGPU.h
     \brief Defines the template class computing certain three-body forces on the GPU
     \note This header cannot be compiled by nvcc
 */
@@ -59,27 +59,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! Template class for computing three-body potentials and forces on the GPU
-/*! Derived from PotentialTriplet, this class provides exactly the same interface for computing
-    the three-body potentials and forces.  In the same way as PotentialTriplet, this class serves
+/*! Derived from PotentialTersoff, this class provides exactly the same interface for computing
+    the three-body potentials and forces.  In the same way as PotentialTersoff, this class serves
     as a shell dealing with all the details of looping while the evaluator actually computes the
     potential and forces.
 
     \tparam evaluator Evaluator class used to evaluate V(r) and F(r)/r
     \tparam gpu_cgpf Driver function that calls gpu_compute_tersoff_forces<evaluator>()
 
-    \sa export_PotentialTripletGPU()
+    \sa export_PotentialTersoffGPU()
 */
-template< class evaluator, cudaError_t gpu_cgpf(const triplet_args_t& pair_args,
+template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-class PotentialTripletGPU : public PotentialTriplet<evaluator>
+class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
     public:
         //! Construct the potential
-        PotentialTripletGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialTersoffGPU(boost::shared_ptr<SystemDefinition> sysdef,
                             boost::shared_ptr<NeighborList> nlist,
                             const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialTripletGPU() { };
+        virtual ~PotentialTersoffGPU() { };
 
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
@@ -97,32 +97,32 @@ class PotentialTripletGPU : public PotentialTriplet<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgpf(const triplet_args_t& pair_args,
+template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-PotentialTripletGPU< evaluator, gpu_cgpf >::PotentialTripletGPU(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                                               boost::shared_ptr<NeighborList> nlist,
                                                                               const std::string& log_suffix)
-    : PotentialTriplet<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
+    : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
         {
-        std::cerr << std::endl << "***Error! Creating a PotentialTripletGPU with no GPU in the execution configuration"
+        std::cerr << std::endl << "***Error! Creating a PotentialTersoffGPU with no GPU in the execution configuration"
                   << std::endl << std::endl;
-        throw std::runtime_error("Error initializing PotentialTripletGPU");
+        throw std::runtime_error("Error initializing PotentialTersoffGPU");
         }
 
     if (this->m_pdata->getNTypes() > 44)
         {
-        std::cerr << std::endl << "***Error! PotentialTripletGPU cannot handle " << this->m_pdata->getNTypes() << " types"
+        std::cerr << std::endl << "***Error! PotentialTersoffGPU cannot handle " << this->m_pdata->getNTypes() << " types"
                   << std::endl << std::endl;
-        throw std::runtime_error("Error initializing PotentialTripletGPU");
+        throw std::runtime_error("Error initializing PotentialTersoffGPU");
         }
     }
 
-template< class evaluator, cudaError_t gpu_cgpf(const triplet_args_t& pair_args,
+template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-void PotentialTripletGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
+void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -134,9 +134,9 @@ void PotentialTripletGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        std::cerr << std::endl << "***Error! PotentialTripletGPU cannot handle a half neighborlist"
+        std::cerr << std::endl << "***Error! PotentialTersoffGPU cannot handle a half neighborlist"
                   << std::endl << std::endl;
-        throw std::runtime_error("Error computing forces in PotentialTripletGPU");
+        throw std::runtime_error("Error computing forces in PotentialTersoffGPU");
         }
 
     // access the neighbor list
@@ -161,7 +161,7 @@ void PotentialTripletGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     PDataFlags flags = this->m_pdata->getFlags();
 
 
-    gpu_cgpf(triplet_args_t(d_force.data,
+    gpu_cgpf(tersoff_args_t(d_force.data,
 							this->m_pdata->getN(),
 							d_pos.data,
 							box,
@@ -183,10 +183,10 @@ void PotentialTripletGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
 
 //! Export this three-body potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialTripletGPU class template.
-    \tparam Base Base class of \a T. \b Must be PotentialTriplet<evaluator> with the same evaluator as used in \a T.
+    \tparam T Class type to export. \b Must be an instantiated PotentialTersoffGPU class template.
+    \tparam Base Base class of \a T. \b Must be PotentialTersoff<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_PotentialTripletGPU(const std::string& name)
+template < class T, class Base > void export_PotentialTersoffGPU(const std::string& name)
     {
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())

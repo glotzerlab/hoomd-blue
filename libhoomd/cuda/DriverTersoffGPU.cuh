@@ -39,16 +39,19 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*! \file AllDriverPotentialTripletGPU.cu
-    \brief Defines the driver functions for computing all types of three-body forces on the GPU
+/*! \file DriverTersoffGPU.cuh
+    \brief Declares driver functions for computing all types of pair forces on the GPU
 */
 
-#include "AllDriverPotentialTripletGPU.cuh"
-#include "EvaluatorTripletTersoff.h"
+#ifndef __DRIVER_TERSOFF_GPU_CUH__
+#define __DRIVER_TERSOFF_GPU_CUH__
 
-cudaError_t gpu_compute_tersoff_forces(const triplet_args_t& pair_args,
-                                       const tersoff_params *d_params)
-{
-    return gpu_compute_triplet_forces<EvaluatorTripletTersoff>(pair_args,
-                                                               d_params);
-}
+#include "PotentialTersoffGPU.cuh"
+#include "EvaluatorTersoff.h"
+
+//! Compute Tersoff forces on the GPU with EvaluatorTersoff
+cudaError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
+                                       const tersoff_params *d_params);
+
+#endif
+

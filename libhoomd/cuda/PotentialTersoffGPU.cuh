@@ -49,18 +49,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file PotentialTripletGPU.cuh
+/*! \file PotentialTersoffGPU.cuh
     \brief Defines templated GPU kernel code for calculating certain three-body forces
 */
 
-#ifndef __POTENTIAL_TRIPLET_GPU_CUH__
-#define __POTENTIAL_TRIPLET_GPU_CUH__
+#ifndef __POTENTIAL_TERSOFF_GPU_CUH__
+#define __POTENTIAL_TERSOFF_GPU_CUH__
 
 //! Wrapps arguments to gpu_cgpf
-struct triplet_args_t
+struct tersoff_args_t
     {
-    //! Construct a triplet_args_t
-    triplet_args_t(Scalar4 *_d_force,
+    //! Construct a tersoff_args_t
+    tersoff_args_t(Scalar4 *_d_force,
 				const unsigned int _N,
 				const Scalar4 *_d_pos,
 				const BoxDim& _box,
@@ -628,7 +628,7 @@ __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
     This is just a driver function for gpu_compute_triplet_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_triplet_forces(const triplet_args_t& pair_args,
+cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                        const typename evaluator::param_type *d_params)
     {
     assert(d_params);
@@ -674,5 +674,5 @@ cudaError_t gpu_compute_triplet_forces(const triplet_args_t& pair_args,
     }
 #endif
 
-#endif // __POTENTIAL_TRIPLET_GPU_CUH__
+#endif // __POTENTIAL_TERSOFF_GPU_CUH__
 
