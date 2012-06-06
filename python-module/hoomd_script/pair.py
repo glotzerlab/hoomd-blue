@@ -1545,8 +1545,8 @@ class table(force._force):
         
     def update_pair_table(self, typei, typej, func, rmin, rmax, coeff):
         # allocate arrays to store V and F
-        Vtable = hoomd.std_vector_float();
-        Ftable = hoomd.std_vector_float();
+        Vtable = hoomd.std_vector_scalar();
+        Ftable = hoomd.std_vector_scalar();
         
         # calculate dr
         dr = (rmax - rmin) / float(self.width-1);

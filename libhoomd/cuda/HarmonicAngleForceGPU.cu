@@ -73,9 +73,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ACOS acos
 #endif
 
-//! Texture for reading angle parameters
 #ifdef SINGLE_PRECISION
+//! Texture for reading angle parameters
 texture<Scalar2, 1, cudaReadModeElementType> angle_params_tex;
+#elif defined ENABLE_TEXTURES
+//! Texture for reading angle parameters
+texture<int4, 1, cudaReadModeElementType> angle_params_tex;
 #endif
 
 //! Kernel for caculating harmonic angle forces on the GPU
@@ -171,8 +174,8 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-		#ifdef SINGLE_PRECISION
-        Scalar2 params = tex1Dfetch(angle_params_tex, cur_angle_type);
+        #ifdef ENABLE_TEXTURES
+		Scalar2 params = fetchScalar2Tex(angle_params_tex, cur_angle_type);
 		#else
 		Scalar2 params = d_params[cur_angle_type];
 		#endif
@@ -299,7 +302,7 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
     
     // bind the texture
-	#ifdef SINGLE_PRECISION
+	#ifdef ENABLE_TEXTURES
     cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
     if (error != cudaSuccess)
         return error;

@@ -95,36 +95,6 @@ texture<int4, 1, cudaReadModeElementType> angle_CGCMMsr_tex; // MISSING EPSILON!
 //! Texture for reading angle CGCMM Epsilon-pow/pref parameters
 texture<int4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
 
-//! fetch_double2 Function for fetching double2 values from int4 textures
-/*! This function is only used when hoomd is compiled for double precision on the GPU.
-	
-	\param double_tex Texture in which the values are stored.
-	\param ii Index of the particle to read
-*/
-static __device__ inline Scalar2 fetch_double2(texture<int4, 1> double_tex, int ii)
-{
-	int4 val = tex1Dfetch(double_tex, ii);
-	return make_scalar2(__hiloint2double(val.y, val.x),
-						__hiloint2double(val.w, val.z));
-}
-
-//! fetch_double4 Function for fetching double4 values from int4 textures
-/*! This function is only used when hoomd is compiled for double precision on the GPU.
-	
-	\param double_tex Texture in which the values are stored.
-	\param ii Index of the particle to read
-*/
-static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, int ii)
-{
-	int idx = 2*ii;
-	int4 part1 = tex1Dfetch(double_tex, idx);
-	int4 part2 = tex1Dfetch(double_tex, idx+1);
-
-	return make_scalar4(__hiloint2double(part1.y, part1.x),
-						__hiloint2double(part1.w, part1.z),
-						__hiloint2double(part2.y, part2.x),
-						__hiloint2double(part2.w, part2.z));
-}
 #endif
 
 //! Kernel for caculating CGCMM angle forces on the GPU
@@ -222,11 +192,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-		#ifdef SINGLE_PRECISION
-        Scalar2 params = tex1Dfetch(angle_params_tex, cur_angle_type);
-		#else
-		Scalar2 params = fetch_double2(angle_params_tex, cur_angle_type);
-		#endif
+		Scalar2 params = fetchScalar2Tex(angle_params_tex, cur_angle_type);
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -256,22 +222,14 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
             vac[i] = Scalar(0.0);
 
         // get the angle E-S-R parameters (MEM TRANSFER: 12 bytes)
-		#ifdef SINGLE_PRECISION
-        const Scalar2 cgSR = tex1Dfetch(angle_CGCMMsr_tex, cur_angle_type);
-		#else
-		const Scalar2 cgSR = fetch_double2(angle_CGCMMsr_tex, cur_angle_type);
-		#endif
+		const Scalar2 cgSR = fetchScalar2Tex(angle_CGCMMsr_tex, cur_angle_type);
 
         Scalar cgsigma = cgSR.x;
         Scalar cgrcut = cgSR.y;
 
         if (rac < cgrcut)
             {
-			#ifdef SINGLE_PRECISION
-            const Scalar4 cgEPOW = tex1Dfetch(angle_CGCMMepow_tex, cur_angle_type);
-			#else
-			const Scalar4 cgEPOW = fetch_double4(angle_CGCMMepow_tex, cur_angle_type);
-			#endif
+			const Scalar4 cgEPOW = fetchScalar4Tex(angle_CGCMMepow_tex, cur_angle_type);
 
             // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
             Scalar cgeps = cgEPOW.x;

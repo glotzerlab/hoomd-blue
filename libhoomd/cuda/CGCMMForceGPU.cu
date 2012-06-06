@@ -68,24 +68,6 @@ texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
 #else
 //! Texture for reading particle positions
 texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
-
-//! fetch_double4 Function for fetching double4 values from int4 textures
-/*! This function is only used when hoomd is compiled for double precision on the GPU.
-	
-	\param double_tex Texture in which the values are stored.
-	\param ii Index of the particle to read
-*/
-static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, int ii)
-{
-	int idx = 2*ii;
-	int4 part1 = tex1Dfetch(double_tex, idx);
-	int4 part2 = tex1Dfetch(double_tex, idx+1);
-
-	return make_scalar4(__hiloint2double(part1.y, part1.x),
-						__hiloint2double(part1.w, part1.z),
-						__hiloint2double(part2.y, part2.x),
-						__hiloint2double(part2.w, part2.z));
-}
 #endif
 
 //! Kernel for calculating CG-CMM Lennard-Jones forces
@@ -148,11 +130,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-	#ifdef SINGLE_PRECISION
-    Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
-	#else
-	Scalar4 postype = fetch_double4(pdata_pos_tex, idx);
-	#endif
+	Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
@@ -185,11 +163,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
             next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-			#ifdef SINGLE_PRECISION
-            Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
-			#else
-			Scalar4 neigh_postype = fetch_double4(pdata_pos_tex, cur_neigh);
-			#endif
+			Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
             Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)

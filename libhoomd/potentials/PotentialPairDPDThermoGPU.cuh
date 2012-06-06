@@ -138,6 +138,13 @@ texture<Scalar4, 1, cudaReadModeElementType> pdata_dpd_pos_tex;
 
 //! Texture for reading particle velocities
 texture<Scalar4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
+
+#elif defined ENABLE_TEXTURES
+//! Texture for reading particle positions
+texture<int4, 1, cudaReadModeElementType> pdata_dpd_pos_tex;
+
+//! Texture for reading particle velocities
+texture<int4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
 #endif
 
 
@@ -233,24 +240,21 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-	#ifdef SINGLE_PRECISION
-    Scalar4 postypei = tex1Dfetch(pdata_dpd_pos_tex, idx);
-    Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+	#ifdef ENABLE_TEXTURES
+    Scalar4 postypei = fetchScalar4Tex(pdata_dpd_pos_tex, idx);
 	#else
 	Scalar4 postypei = d_pos[idx];
-	Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 	#endif
-	//
+    Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     // read in the velocity of our particle.
     // (MEM TRANSFER: 16 bytes)
-	#ifdef SINGLE_PRECISION
-    Scalar4 velmassi = tex1Dfetch(pdata_dpd_vel_tex, idx);
-    Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
+	#ifdef ENABLE_TEXTURES
+    Scalar4 velmassi = fetchScalar4Tex(pdata_dpd_vel_tex, idx);
 	#else
 	Scalar4 velmassi = d_vel[idx];
-	Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 	#endif
+    Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -282,22 +286,20 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-			#ifdef SINGLE_PRECISION
-            Scalar4 postypej = tex1Dfetch(pdata_dpd_pos_tex, cur_j);
-            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+			#ifdef ENABLE_TEXTURES
+            Scalar4 postypej = fetchScalar4Tex(pdata_dpd_pos_tex, cur_j);
 			#else
 			Scalar4 postypej = d_pos[cur_j];
-			Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 			#endif
+            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-			#ifdef SINGLE_PRECISION
-            Scalar4 velmassj = tex1Dfetch(pdata_dpd_vel_tex, cur_j);
-            Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);;
+			#ifdef ENABLE_TEXTURES
+            Scalar4 velmassj = fetchScalar4Tex(pdata_dpd_vel_tex, cur_j);
 			#else
 			Scalar4 velmassj = d_vel[cur_j];
-			Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
 			#endif
+            Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);;
 
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
             Scalar3 dx = posi - posj;
@@ -399,7 +401,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     dim3 grid( args.N / args.block_size + 1, 1, 1);
     dim3 threads(args.block_size, 1, 1);
 
-	#ifdef SINGLE_PRECISION
+	#ifdef ENABLE_TEXTURES
     // bind the position texture
     pdata_dpd_pos_tex.normalized = false;
     pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;

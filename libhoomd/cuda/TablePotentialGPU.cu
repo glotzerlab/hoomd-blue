@@ -78,38 +78,6 @@ texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
 texture<int4, 1, cudaReadModeElementType> tables_tex;
 #endif
 
-#ifndef SINGLE_PRECISION
-//! fetch_double2 Function for fetching double2 values using texture reads
-/*! This function is only used when compiling for double precision on the GPU.
-
-	\param double_tex Texture in which the values are stored.
-	\param ii Index at which the values are stored.
-*/
-static __device__ inline Scalar2 fetch_double2(texture<int4, 1> double_tex, unsigned int ii)
-{
-	int4 val = tex1Dfetch(double_tex, ii);
-	return make_scalar2(__hiloint2double(val.y, val.x),
-						__hiloint2double(val.w, val.z));
-}
-
-//! fetch_double2 Function for fetching double2 values using texture reads
-/*! This function is only used when compiling for double precision on the GPU.
-
-	\param double_tex Texture in which the values are stored.
-	\param ii Index at which the values are stored.
-*/
-static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, unsigned int ii)
-{
-	unsigned int idx = 2*ii;
-	int4 part1 = tex1Dfetch(double_tex, idx);
-	int4 part2 = tex1Dfetch(double_tex, idx+1);
-	return make_scalar4(__hiloint2double(part1.y, part1.x),
-						__hiloint2double(part1.w, part1.z),
-						__hiloint2double(part2.y, part2.x),
-						__hiloint2double(part2.w, part2.z));
-}
-#endif
-
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
     \param d_force Device memory to write computed forces
@@ -167,11 +135,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     unsigned int n_neigh = d_n_neigh[idx];
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-    #ifdef SINGLE_PRECISION
-	Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
-	#else
-	Scalar4 postype = fetch_double4(pdata_pos_tex, idx);
-	#endif
+	Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     unsigned int typei = __scalar_as_int(postype.w);
 
@@ -208,11 +172,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
             next_neigh = d_nlist[nli(idx, (neigh_idx+1))];
 
             // get the neighbor's position
-			#ifdef SINGLE_PRECISION
-            Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
-			#else
-			Scalar4 neigh_postype = fetch_double4(pdata_pos_tex, cur_neigh);
-			#endif
+			Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
             Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)
@@ -240,13 +200,9 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
 
                 // compute index into the table and read in values
                 unsigned int value_i = floor(value_f);
-				#ifdef SINGLE_PRECISION
-                Scalar2 VF0 = tex1Dfetch(tables_tex, table_value(value_i, cur_table_index));
-                Scalar2 VF1 = tex1Dfetch(tables_tex, table_value(value_i+1, cur_table_index));
-				#else
-				Scalar2 VF0 = fetch_double2(tables_tex, table_value(value_i, cur_table_index));
-				Scalar2 VF1 = fetch_double2(tables_tex, table_value(value_i+1, cur_table_index));
-				#endif
+				Scalar2 VF0 = fetchScalar2Tex(tables_tex, table_value(value_i, cur_table_index));
+				Scalar2 VF1 = fetchScalar2Tex(tables_tex, table_value(value_i+1, cur_table_index));
+
                 // unpack the data
                 Scalar V0 = VF0.x;
                 Scalar V1 = VF1.x;

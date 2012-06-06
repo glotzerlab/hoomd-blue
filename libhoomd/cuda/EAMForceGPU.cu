@@ -83,6 +83,23 @@ texture<Scalar, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
 texture<Scalar, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
 //! Texture for reading the derivative of the atom embedding function
 texture<Scalar, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
+
+#elif defined ENABLE_TEXTURES
+//!< Texture for reading particle positions
+texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
+//! Texture for reading electron density
+texture<int2, 1, cudaReadModeElementType> electronDensity_tex;
+//! Texture for reading EAM pair potential
+texture<int4, 1, cudaReadModeElementType> pairPotential_tex;
+//! Texture for reading the embedding function
+texture<int2, 1, cudaReadModeElementType> embeddingFunction_tex;
+//! Texture for reading the derivative of the electron density
+texture<int2, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
+//! Texture for reading the derivative of the embedding function
+texture<int2, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
+//! Texture for reading the derivative of the atom embedding function
+texture<int2, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
+
 #endif
 
 //! Storage space for EAM parameters on the GPU
@@ -112,13 +129,12 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-	#ifdef SINGLE_PRECISION
-    Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
-    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+	#ifdef ENABLE_TEXTURES
+	Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
 	#else
 	Scalar4 postype = d_pos[idx];
-	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 	#endif
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -140,8 +156,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-		#ifdef SINGLE_PRECISION
-        Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
+		#ifdef ENABLE_TEXTURES
+		Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
 		#else
 		Scalar4 neigh_postype = d_pos[cur_neigh];
 		#endif
@@ -199,8 +215,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-	#ifdef SINGLE_PRECISION
-    Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
+	#ifdef ENABLE_TEXTURES
+    Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
 	#else
 	Scalar4 postype = d_pos[idx];
 	#endif
@@ -232,8 +248,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-		#ifdef SINGLE_PRECISION
-        Scalar4 neigh_postype = tex1Dfetch(pdata_pos_tex,cur_neigh);
+		#ifdef ENABLE_TEXTURES
+        Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex,cur_neigh);
 		#else
 		Scalar4 neigh_postype = d_pos[cur_neigh];
 		#endif

@@ -68,6 +68,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Texture for reading improper parameters
 #ifdef SINGLE_PRECISION
 texture<Scalar2, 1, cudaReadModeElementType> improper_params_tex;
+#elif defined ENABLE_TEXTURES
+texture<int4, 1, cudaReadModeElementType> improper_params_tex;
 #endif
 
 //! ACOS is acosf when running in single precision and acos otherwise
@@ -186,8 +188,8 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
         ddc = box.minImage(ddc);
 
         // get the improper parameters (MEM TRANSFER: 12 bytes)
-		#ifdef SINGLE_PRECISION
-        Scalar2 params = tex1Dfetch(improper_params_tex, cur_improper_type);
+        #ifdef ENABLE_TEXTURES
+		Scalar2 params = fetchScalar2Tex(improper_params_tex, cur_improper_type);
 		#else
 		Scalar2 params = d_params[cur_improper_type];
 		#endif
@@ -353,7 +355,7 @@ cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
-	#ifdef SINGLE_PRECISION
+	#ifdef ENABLE_TEXTURES
     cudaError_t error = cudaBindTexture(0, improper_params_tex, d_params, sizeof(Scalar2) * n_improper_types);
     if (error != cudaSuccess)
         return error;

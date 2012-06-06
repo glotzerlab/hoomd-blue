@@ -93,24 +93,6 @@ texture<int4, 1, cudaReadModeElementType> rigid_data_force_tex;
 texture<int4, 1, cudaReadModeElementType> rigid_data_torque_tex;
 //! The texture for reading the net force array
 texture<int4, 1, cudaReadModeElementType> net_force_tex;
-
-//! fetch_double4 Function for fetching double4 values from int4 textures
-/*! This function is only used when hoomd is compiled for double precision on the GPU.
-	
-	\param double_tex Texture in which the values are stored.
-	\param ii Index of the particle to read
-*/
-static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, int ii)
-{
-	int idx = 2*ii;
-	int4 part1 = tex1Dfetch(double_tex, idx);
-	int4 part2 = tex1Dfetch(double_tex, idx+1);
-
-	return make_scalar4(__hiloint2double(part1.y, part1.x),
-		__hiloint2double(part1.w, part1.z),
-		__hiloint2double(part2.y, part2.x),
-		__hiloint2double(part2.w, part2.z));
-}
 #endif
 
 //! Shared memory used in reducing sums
@@ -208,12 +190,9 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
             
             if (idx_body < n_bodies)
                 {
-				#ifdef SINGLE_PRECISION
-                force = tex1Dfetch(rigid_data_force_tex, idx_body);
-                vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
-				#elif defined ENABLE_TEXTURES
-				force = fetch_double4(rigid_data_force_tex, idx_body);
-				vel = fetch_double4(rigid_data_vel_tex, idx_body);
+				#ifdef ENABLE_TEXTURES
+				force = fetchScalar4Tex(rigid_data_force_tex, idx_body);
+				vel = fetchScalar4Tex(rigid_data_vel_tex, idx_body);
 				#else
 				force = rdata_force[idx_body];
 				vel = rdata_vel[idx_body];
@@ -301,12 +280,9 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
             
             if (idx_body < n_bodies)
                 {
-				#ifdef SINGLE_PRECISION
-                torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
-                angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-				#elif defined ENABLE_TEXTURES
-				torque = fetch_double4(rigid_data_torque_tex, idx_body);
-				angvel = fetch_double4(rigid_data_angvel_tex, idx_body);
+				#ifdef ENABLE_TEXTURES
+				torque = fetchScalar4Tex(rigid_data_torque_tex, idx_body);
+				angvel = fetchScalar4Tex(rigid_data_angvel_tex, idx_body);
 				#else
 				torque = rdata_torque[idx_body];
 				angvel = rdata_angvel[idx_body];
@@ -441,16 +417,11 @@ extern "C" __global__ void gpu_fire_rigid_update_v_kernel(Scalar4* rdata_vel,
         if (idx_body < n_bodies)
             {        
             // read the body data (MEM TRANSFER: 32 bytes)
-			#ifdef SINGLE_PRECISION
-            Scalar4 vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
-            Scalar4 angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
-            Scalar4 force = tex1Dfetch(rigid_data_force_tex, idx_body);
-            Scalar4 torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
-			#elif defined ENABLE_TEXTURES
-			Scalar4 vel = fetch_double4(rigid_data_vel_tex, idx_body);
-			Scalar4 angmom = fetch_double4(rigid_data_angmom_tex, idx_body);
-			Scalar4 force = fetch_double4(rigid_data_force_tex, idx_body);
-			Scalar4 torque = fetch_double4(rigid_data_torque_tex, idx_body);
+			#ifdef ENABLE_TEXTURES
+			Scalar4 vel = fetchScalar4Tex(rigid_data_vel_tex, idx_body);
+			Scalar4 angmom = fetchScalar4Tex(rigid_data_angmom_tex, idx_body);
+			Scalar4 force = fetchScalar4Tex(rigid_data_force_tex, idx_body);
+			Scalar4 torque = fetchScalar4Tex(rigid_data_torque_tex, idx_body);
 			#else
 			Scalar4 vel = rdata_vel[idx_body];
 			Scalar4 angmom = rdata_angmom[idx_body];

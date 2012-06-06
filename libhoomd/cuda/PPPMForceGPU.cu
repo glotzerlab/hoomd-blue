@@ -108,6 +108,13 @@ texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 //! Texture for reading charge parameters
 texture<Scalar, 1, cudaReadModeElementType> pdata_charge_tex;
+
+#elif defined ENABLE_TEXTURES
+//! Texture for reading particle positions
+texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
+
+//! Texture for reading charge parameters
+texture<int2, 1, cudaReadModeElementType> pdata_charge_tex;
 #endif
 
 #ifndef SINGLE_PRECISION
@@ -117,7 +124,7 @@ texture<Scalar, 1, cudaReadModeElementType> pdata_charge_tex;
 	\param address Address to write the double to
 	\param val Value to add to address
 */
-__device__ inline double atomicAdd(double* address, double val)
+static __device__ inline double atomicAdd(double* address, double val)
 {
 	unsigned long long int* address_as_ull = (unsigned long long int*)address;
 	unsigned long long int old = *address_as_ull, assumed;
@@ -137,7 +144,7 @@ __device__ inline double atomicAdd(double* address, double val)
 //! Implements workaround atomic Scalar addition on sm_1x hardware
 __device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
     {
-/*#if (__CUDA_ARCH__ < 200)
+#if (__CUDA_ARCH__ < 200) && defined SINGLE_PRECISION
     Scalar old = value;
     Scalar new_old;
     do
@@ -146,9 +153,9 @@ __device__ inline void atomicFloatAdd(Scalar* address, Scalar value)
         new_old += old;
         }
     while ((old = atomicExch(address, new_old))!=Scalar(0.0));
-#else*/
+#else
     atomicAdd(address, value);
-//#endif
+#endif
     }
 
 //! The developer has chosen not to document this function
@@ -178,15 +185,15 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
-		#ifdef SINGLE_PRECISION
-        Scalar qi = tex1Dfetch(pdata_charge_tex, idx);
+		#ifdef ENABLE_TEXTURES
+        Scalar qi = fetchScalarTex(pdata_charge_tex, idx);
 		#else
 		Scalar qi = d_charge[idx];
 		#endif
 
         if(fabs(qi) > Scalar(0.0)) {
-            #ifdef SINGLE_PRECISION
-			Scalar4 posi = tex1Dfetch(pdata_pos_tex, idx);
+            #ifdef ENABLE_TEXTURES
+			Scalar4 posi = fetchScalar4Tex(pdata_pos_tex, idx);
 			#else
 			Scalar4 posi = d_pos[idx];
 			#endif
@@ -368,15 +375,15 @@ void calculate_forces_kernel(Scalar4 *d_force,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
-		#ifdef SINGLE_PRECISION
-        Scalar qi = tex1Dfetch(pdata_charge_tex, idx);
+		#ifdef ENABLE_TEXTURES
+        Scalar qi = fetchScalarTex(pdata_charge_tex, idx);
 		#else
 		Scalar qi = d_charge[idx];
 		#endif
 
         if(fabs(qi) > Scalar(0.0)) {
-            #ifdef SINGLE_PRECISION
-            Scalar4 posi = tex1Dfetch(pdata_pos_tex, idx);
+            #ifdef ENABLE_TEXTURES
+            Scalar4 posi = fetchScalar4Tex(pdata_pos_tex, idx);
 			#else
 			Scalar4 posi = d_pos[idx];
 			#endif
@@ -506,7 +513,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     dim3 N_grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 N_threads(block_size, 1, 1);
 
-    #ifdef SINGLE_PRECISION
+    #ifdef ENABLE_TEXTURES
 	// bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
@@ -1059,16 +1066,15 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         unsigned int idx = d_group_members[group_idx];
         const Scalar sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
-		#ifdef SINGLE_PRECISION
-        Scalar4 postypei =  tex1Dfetch(pdata_pos_tex, idx);
-        Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+		#ifdef ENABLE_TEXTURES
+        Scalar4 postypei =  fetchScalar4Tex(pdata_pos_tex, idx);
 		#else
 		Scalar4 postypei = d_pos[idx];
-		Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 		#endif
+        Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-		#ifdef SINGLE_PRECISION
-        Scalar qi = tex1Dfetch(pdata_charge_tex, idx);
+		#ifdef ENABLE_TEXTURES
+        Scalar qi = fetchScalarTex(pdata_charge_tex, idx);
 		#else
 		Scalar qi = d_charge[idx];
 		#endif
@@ -1097,16 +1103,15 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
-					#ifdef SINGLE_PRECISION
-                    Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
-                    Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+					#ifdef ENABLE_TEXTURES
+                    Scalar4 postypej = fetchScalar4Tex(pdata_pos_tex, cur_j);
 					#else
 					Scalar4 postypej = d_pos[cur_j];
-					Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 					#endif
+                    Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
-					#ifdef SINGLE_PRECISION
-					Scalar qj = tex1Dfetch(pdata_charge_tex, cur_j);
+					#ifdef ENABLE_TEXTURES
+					Scalar qj = fetchScalarTex(pdata_charge_tex, cur_j);
 					#else
 					Scalar qj = d_charge[cur_j];
 					#endif
@@ -1177,7 +1182,7 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
     dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    #ifdef SINGLE_PRECISION
+    #ifdef ENABLE_TEXTURES
 	// bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)

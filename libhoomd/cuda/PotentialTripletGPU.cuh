@@ -111,24 +111,6 @@ texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading particle positions
 texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
 
-
-//! fetch_double4 Function for fetching double4 values from int4 textures
-/*! This function is only used when hoomd is compiled for double precision on the GPU.
-	
-	\param double_tex Texture in which the values are stored.
-	\param ii Index of the particle to read
-*/
-static __device__ inline Scalar4 fetch_double4(texture<int4, 1> double_tex, int ii)
-{
-	int idx = 2*ii;
-	int4 part1 = tex1Dfetch(double_tex, idx);
-	int4 part2 = tex1Dfetch(double_tex, idx+1);
-
-	return make_scalar4(__hiloint2double(part1.y, part1.x),
-		__hiloint2double(part1.w, part1.z),
-		__hiloint2double(part2.y, part2.x),
-		__hiloint2double(part2.w, part2.z));
-}
 #endif
 
 #ifndef SINGLE_PRECISION
@@ -146,8 +128,8 @@ static __device__ inline double atomicAdd(double* address, double val)
 	do {
 		assumed = old;
 		old = atomicCAS(address_as_ull,
-			assumed,
-			__double_as_longlong(val + __longlong_as_double(assumed)));
+						assumed,
+						__double_as_longlong(val + __longlong_as_double(assumed)));
 	} while (assumed != old);
 
 	return __longlong_as_double(old);
@@ -228,10 +210,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
 	// read in the position of the particle
 	// in single precision we will do a texture read, in double a global memory read
-	#ifdef SINGLE_PRECISION
-	Scalar4 postypei = tex1Dfetch(pdata_pos_tex, idx);
-	#elif defined ENABLE_TEXTURES
-	Scalar4 postypei = fetch_double4(pdata_pos_tex, idx);
+	#ifdef ENABLE_TEXTURES
+	Scalar4 postypei = fetchScalar4Tex(pdata_pos_tex, idx);
 	#else
 	Scalar4 postypei = d_pos[idx];
 	#endif
@@ -264,10 +244,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx + 1)];
 
             // read the position of j (MEM TRANSFER: 16 bytes)
-			#ifdef SINGLE_PRECISION
-            Scalar4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
-			#elif defined ENABLE_TEXTURES
-			Scalar4 postypej = fetch_double4(pdata_pos_tex, cur_j);
+			#ifdef ENABLE_TEXTURES
+			Scalar4 postypej = fetchScalar4Tex(pdata_pos_tex, cur_j);
 			#else
 			Scalar4 postypej = d_pos[cur_j];
 			#endif
@@ -317,10 +295,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         next_k = d_nlist[nli(idx, neigh_idy+1)];
 
 						// get the position of neighbor k
-						#ifdef SINGLE_PRECISION
-						Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
-						#elif defined ENABLE_TEXTURES
-						Scalar4 postypek = fetch_double4(pdata_pos_tex, cur_k);
+						#ifdef ENABLE_TEXTURES
+						Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
 						#else
 						Scalar4 postypek = d_pos[cur_k];
 						#endif
@@ -405,10 +381,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         next_k = d_nlist[nli(idx, neigh_idy+1)];
 
 						// get the position of neighbor k
-						#ifdef SINGLE_PRECISION
-						Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
-						#elif defined ENABLE_TEXTURES
-						Scalar4 postypek = fetch_double4(pdata_pos_tex, cur_k);
+						#ifdef ENABLE_TEXTURES
+						Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
 						#else
 						Scalar4 postypek = d_pos[cur_k];
 						#endif
@@ -518,10 +492,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         if (cur_k != idx)
                         {
                             // get the position of neighbor k
-							#ifdef SINGLE_PRECISION
-							Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
-							#elif defined ENABLE_TEXTURES
-							Scalar4 postypek = fetch_double4(pdata_pos_tex, cur_k);
+							#ifdef ENABLE_TEXTURES
+							Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
 							#else
 							Scalar4 postypek = d_pos[cur_k];
 							#endif
@@ -575,10 +547,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         if (cur_k != idx)
                         {
                             // get the position of k
-							#ifdef SINGLE_PRECISION
-							Scalar4 postypek = tex1Dfetch(pdata_pos_tex, cur_k);
-							#elif defined ENABLE_TEXTURES
-							Scalar4 postypek = fetch_double4(pdata_pos_tex, cur_k);
+							#ifdef ENABLE_TEXTURES
+							Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
 							#else
 							Scalar4 postypek = d_pos[cur_k];
 							#endif
