@@ -117,7 +117,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTRigid.h" 
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
-#include "RemoveParticlesUpdater.h"
 #include "FIREEnergyMinimizer.h"
 #include "FIREEnergyMinimizerRigid.h"
 #include "SFCPackUpdater.h"
@@ -501,7 +500,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Enforce2DUpdater();
     export_FIREEnergyMinimizer();
     export_FIREEnergyMinimizerRigid();        
-    export_RemoveParticlesUpdater();
 #ifdef ENABLE_CUDA
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();

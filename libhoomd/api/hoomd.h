@@ -123,7 +123,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
 #include "Enforce2DUpdater.h"
-#include "RemoveParticlesUpdater.h"
 #include "System.h"
 #include "Variant.h"
 #include "EAMForceCompute.h"
