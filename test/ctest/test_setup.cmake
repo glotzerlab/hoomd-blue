@@ -4,31 +4,35 @@
 # lets create a build name to idenfity all these options in a string. It will look like
 # Linux-gcc412-trunk-single-cuda (for a single precision build with cuda)
 # Linux-gcc412-hoomd-0.8-double (for a double precision build without cuda and in the hoomd-0.8 branch)
-SET (BUILDNAME "${SYSTEM_NAME}-${COMPILER_NAME}-${HOOMD_BRANCH}")
+SET (BUILDNAME "${SYSTEM_NAME}")
+
+if (NOT HOOMD_BRANCH MATCHES "master")
+    SET (BUILDNAME "${BUILDNAME}-${HOOMD_BRANCH}")
+endif ()
 
 if (ENABLE_STATIC MATCHES "ON")
     SET (BUILDNAME "${BUILDNAME}-static")
-else(ENABLE_STATIC MATCHES "ON")
-    SET (BUILDNAME "${BUILDNAME}-shared")
-endif(ENABLE_STATIC MATCHES "ON")
+endif()
 
-if (SINGLE_PRECISION MATCHES "ON")
-    SET (BUILDNAME "${BUILDNAME}-single")
-else (SINGLE_PRECISION MATCHES "ON")
+if (NOT SINGLE_PRECISION MATCHES "ON")
     SET (BUILDNAME "${BUILDNAME}-double")
-endif (SINGLE_PRECISION MATCHES "ON")
+endif ()
 
-if (ENABLE_CUDA MATCHES "ON")
-    SET (BUILDNAME "${BUILDNAME}-cuda")
-endif (ENABLE_CUDA MATCHES "ON")
+if (NOT ENABLE_CUDA MATCHES "ON")
+    SET (BUILDNAME "${BUILDNAME}-cpu")
+endif ()
 
 if (ENABLE_OPENMP MATCHES "ON")
     SET (BUILDNAME "${BUILDNAME}-openmp")
-endif (ENABLE_OPENMP MATCHES "ON")
+endif ()
 
 if (NOT BUILD_TYPE MATCHES "Release")
     SET (BUILDNAME "${BUILDNAME}-${BUILD_TYPE}")
-endif (NOT BUILD_TYPE MATCHES "Release")
+endif ()
+
+if (GPU_GENERATION)
+    SET (BUILDNAME "${BUILDNAME}-${GPU_GENERATION}")
+endif()
 
 if (ENABLE_COVERAGE)
     SET (COVERAGE_FLAGS "-fprofile-arcs -ftest-coverage")
