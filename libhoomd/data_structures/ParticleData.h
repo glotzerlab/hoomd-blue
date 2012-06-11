@@ -435,6 +435,16 @@ class ParticleData : boost::noncopyable
         
         //! Get the simulation box
         const BoxDim& getBox() const;
+        //! Get the simulation box
+        /*! \returns the simulation box
+            \note This is for source compatibility with mpi branch commits cherry picked into master
+            Disregard it when merging into the mpi branch.
+        */
+        const BoxDim& getGlobalBox() const
+            {
+            return getBox();
+            }
+        
         //! Set the simulation box Lengths
         void setGlobalBoxL(const Scalar3 &L);
 
@@ -505,6 +515,13 @@ class ParticleData : boost::noncopyable
 
         //! return reverse-lookup tags
         const GPUArray< unsigned int >& getRTags() const { return m_rtag; }
+
+        //! return reverse-lookup tags
+        /*! \return Global reverse-lookup tags
+            \note This is for source compatibility with mpi branch commits cherry picked into master
+            Disregard it when merging into the mpi branch.
+        */
+        const GPUArray< unsigned int >& getGlobalRTags() const { return m_rtag; }
 
         //! return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
