@@ -451,7 +451,17 @@ class ParticleData : boost::noncopyable
             {
             return m_nparticles;
             }
-            
+
+        //! Get the number of particles
+        /*! \return Number of particles in the box
+            \note This is for source compatibility with mpi branch commits cherry picked into master
+            Disregard it when merging into the mpi branch.
+        */
+        inline unsigned int getNGlobal() const
+            {
+            return m_nparticles;
+            }
+
         //! Get the number of particle types
         /*! \return Number of particle types
             \note Particle types are indexed from 0 to NTypes-1
