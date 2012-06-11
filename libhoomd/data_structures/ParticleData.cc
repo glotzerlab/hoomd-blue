@@ -443,33 +443,31 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         throw runtime_error("Error initializing ParticleData");
         }
 
-    for (unsigned int tag = 0; tag < m_nparticles; tag++)
+    for (unsigned int i = 0; i < m_nparticles; i++)
         {
         // particle index in sorted order
-        unsigned int idx = snapshot.rtag[tag];
+        h_pos.data[i].x = snapshot.pos[i].x;
+        h_pos.data[i].y = snapshot.pos[i].y;
+        h_pos.data[i].z = snapshot.pos[i].z;
+        h_pos.data[i].w = __int_as_scalar(snapshot.type[i]);
 
-        h_pos.data[idx].x = snapshot.pos[tag].x;
-        h_pos.data[idx].y = snapshot.pos[tag].y;
-        h_pos.data[idx].z = snapshot.pos[tag].z;
-        h_pos.data[idx].w = __int_as_scalar(snapshot.type[tag]);
+        h_vel.data[i].x = snapshot.vel[i].x;
+        h_vel.data[i].y = snapshot.vel[i].y;
+        h_vel.data[i].z = snapshot.vel[i].z;
+        h_vel.data[i].w = snapshot.mass[i];
 
-        h_vel.data[idx].x = snapshot.vel[tag].x;
-        h_vel.data[idx].y = snapshot.vel[tag].y;
-        h_vel.data[idx].z = snapshot.vel[tag].z;
-        h_vel.data[idx].w = snapshot.mass[tag];
-
-        h_accel.data[idx] = snapshot.accel[tag];
+        h_accel.data[i] = snapshot.accel[i];
         
-        h_charge.data[idx] = snapshot.charge[tag];
+        h_charge.data[i] = snapshot.charge[i];
 
-        h_diameter.data[idx] = snapshot.diameter[tag];
+        h_diameter.data[i] = snapshot.diameter[i];
 
-        h_image.data[idx] = snapshot.image[tag];
+        h_image.data[i] = snapshot.image[i];
 
-        h_tag.data[idx] = tag;
-        h_rtag.data[idx] = idx;
+        h_tag.data[i] = i;
+        h_rtag.data[i] = i;
 
-        h_body.data[idx] = snapshot.body[tag];
+        h_body.data[i] = snapshot.body[i];
         }
     }
 
@@ -503,7 +501,6 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         snapshot.charge[tag] = h_charge.data[idx];
         snapshot.diameter[tag] = h_diameter.data[idx];
         snapshot.image[tag] = h_image.data[idx];
-        snapshot.rtag[tag] = idx;
         snapshot.body[tag] = h_body.data[idx];
         }
 
@@ -638,7 +635,6 @@ void export_SnapshotParticleData()
     .def_readwrite("charge", &SnapshotParticleData::charge)
     .def_readwrite("diameter", &SnapshotParticleData::diameter)
     .def_readwrite("image", &SnapshotParticleData::image)
-    .def_readwrite("rtag", &SnapshotParticleData::rtag)
     .def_readwrite("body", &SnapshotParticleData::body)
     ;
     }

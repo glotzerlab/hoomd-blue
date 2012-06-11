@@ -493,7 +493,7 @@ BoxDim RandomGenerator::getBox() const
     }
 
 
-/*! initializes a snapshot with the internalL.y stored copy of the particle data */
+/*! initializes a snapshot with the internally stored copy of the particle data */
 void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
     {
     unsigned int nparticles = m_data.m_particles.size();
@@ -504,8 +504,6 @@ void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
         snapshot.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
         snapshot.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
         snapshot.type[i] = m_data.m_particles[i].type_id;
-        
-        snapshot.rtag[i] = i;
         }
     }
 

@@ -203,7 +203,6 @@ struct SnapshotParticleData {
        charge.resize(N);
        diameter.resize(N);
        image.resize(N);
-       rtag.resize(N);
        body.resize(N);
        size = N;
        }
@@ -216,7 +215,6 @@ struct SnapshotParticleData {
     std::vector<Scalar> charge;     //!< charges
     std::vector<Scalar> diameter;   //!< diameters
     std::vector<int3> image;        //!< images
-    std::vector<unsigned int> rtag; //!< reverse-lookup tags
     std::vector<unsigned int> body; //!< body ids
     unsigned int size;              //!< number of particles in this snapshot
     };
