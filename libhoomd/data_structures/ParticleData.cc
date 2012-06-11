@@ -794,6 +794,34 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         // initialize type mapping
         m_type_mapping = snapshot.type_mapping;
         assert(m_type_mapping.size() == m_ntypes);
+=======
+
+    for (unsigned int i = 0; i < m_nparticles; i++)
+        {
+        // particle index in sorted order
+        h_pos.data[i].x = snapshot.pos[i].x;
+        h_pos.data[i].y = snapshot.pos[i].y;
+        h_pos.data[i].z = snapshot.pos[i].z;
+        h_pos.data[i].w = __int_as_scalar(snapshot.type[i]);
+
+        h_vel.data[i].x = snapshot.vel[i].x;
+        h_vel.data[i].y = snapshot.vel[i].y;
+        h_vel.data[i].z = snapshot.vel[i].z;
+        h_vel.data[i].w = snapshot.mass[i];
+
+        h_accel.data[i] = snapshot.accel[i];
+        
+        h_charge.data[i] = snapshot.charge[i];
+
+        h_diameter.data[i] = snapshot.diameter[i];
+
+        h_image.data[i] = snapshot.image[i];
+
+        h_tag.data[i] = i;
+        h_rtag.data[i] = i;
+
+        h_body.data[i] = snapshot.body[i];
+>>>>>>> d8dcf65... Remove use of snapshot rtag
         }
 
     notifyParticleSort();
