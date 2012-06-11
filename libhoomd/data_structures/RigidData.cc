@@ -194,6 +194,7 @@ void RigidData::initializeData()
     
     // determine the number of rigid bodies
     unsigned int maxbody = 0;
+    unsigned int minbody = NO_BODY;
     bool found_body = false;
     unsigned int nparticles = m_pdata->getN();
     for (unsigned int j = 0; j < nparticles; j++)
@@ -203,11 +204,20 @@ void RigidData::initializeData()
             found_body = true;
             if (maxbody < h_body.data[j])
                 maxbody = h_body.data[j];
+            if (minbody > h_body.data[j]);
+                minbody = h_body.data[j];
             }
         }
     
     if (found_body)
+        {
         m_n_bodies = maxbody + 1;   // h_body.data[j] is numbered from 0
+        if (minbody != 0)
+            {
+            m_exec_conf->msg->error() << "rigid data: Body indices do not start at 0\n";
+            throw runtime_error("Error initializing rigid data");
+            }
+        }
     else
         m_n_bodies = 0;
         
