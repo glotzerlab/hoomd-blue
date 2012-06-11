@@ -1359,7 +1359,7 @@ class mode_minimize_rigid_fire(_integrator):
             self.cpp_integrator.setFdec(fdec);
         if not(alpha_start is None):
             self.cpp_integrator.setAlphaStart(alpha_start);
-        if not(alpha_final is None):
+        if not(falpha is None):
             self.cpp_integrator.setFalpha(falpha);
         if not(ftol is None):
             self.cpp_integrator.setFtol(ftol);
