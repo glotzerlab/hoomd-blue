@@ -273,7 +273,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> new_box_handle(m_new_box, access_location::device, access_mode::readwrite);
     
     gpu_npt_rigid_data d_npt_rdata;
-    d_npt_rdata.n_bodies = d_rdata.n_bodies;
+    d_npt_rdata.n_bodies = m_n_bodies;
     d_npt_rdata.nf_t = nf_t;
     d_npt_rdata.nf_r = nf_r;
     d_npt_rdata.dimension = dimension;
@@ -319,7 +319,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
     
     gpu_npt_rigid_data d_npt_rdata;
-    d_npt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
+    d_npt_rdata.n_bodies = m_n_bodies;
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     d_npt_rdata.Ksum_t = Ksum_t_handle.data;
@@ -427,7 +427,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
     gpu_npt_rigid_data d_npt_rdata;
-    d_npt_rdata.n_bodies = d_rdata.n_bodies;
+    d_npt_rdata.n_bodies = m_n_bodies;
     d_npt_rdata.nf_t = nf_t;
     d_npt_rdata.nf_r = nf_r;
     d_npt_rdata.dimension = dimension;
@@ -474,7 +474,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
 
     gpu_npt_rigid_data d_npt_rdata;
-    d_npt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
+    d_npt_rdata.n_bodies = m_n_bodies;
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     d_npt_rdata.Ksum_t = Ksum_t_handle.data;
@@ -488,16 +488,16 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
         
-        {
-        ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
+    {
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
         
-        akin_t = Ksum_t_handle.data[0];
-        akin_r = Ksum_r_handle.data[0];
+    akin_t = Ksum_t_handle.data[0];
+    akin_r = Ksum_r_handle.data[0];
         
-        // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
-        m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
-        }
+    // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
+    m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
+    }
     
     // done profiling
     if (m_prof)

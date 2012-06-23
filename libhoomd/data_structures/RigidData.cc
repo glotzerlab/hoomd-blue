@@ -204,7 +204,7 @@ void RigidData::initializeData()
             found_body = true;
             if (maxbody < h_body.data[j])
                 maxbody = h_body.data[j];
-            if (minbody > h_body.data[j]);
+            if (minbody > h_body.data[j])
                 minbody = h_body.data[j];
             }
         }
