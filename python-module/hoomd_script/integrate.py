@@ -445,8 +445,17 @@ class nvt(_integration_method):
 
 ## NPT Integration via the Nos&eacute;-Hoover thermostat, Anderson barostat
 #
-# integrate.npt performs constant pressure, constant temperature simulations using the standard
-# Nos&eacute;-Hoover thermostat and Anderson barostat.
+# integrate.npt performs constant pressure, constant temperature simulations.
+#
+# It supports two different integration algorithms:
+# - a Nos&eacute;-Hoover thermostat and Anderson barostat
+# - rigorous integration in the NPT ensemble based on the Martyna-Tobias-Klein (MTK) equations
+#
+# When using the MTK equations, additional integration sub-modes are available, namely
+# - cubic symmetry, the ratios between the box lengths do not change
+# - orthorhombic symmetry, all box lengths can vary independently
+# - tetragonal symmetry, the x direction is independently integrated from the y and z directions,
+#   and the ratio between the box lengths in the latter directions stays fixed
 #
 # integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -463,9 +472,10 @@ class npt(_integration_method):
     # \param P Pressure set point for the Anderson barostat (in pressure units)
     # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
     # \param tauP Coupling constant for the barostat (in time units)
-    # \param partial_scale If False (the default), \b all particles in the box are scaled due to the box size changes
-    #                      during NPT integration. If True, only those particles that belong to \a group will be scaled.
-    #
+    # \param mtk True if the MTK equations should be used (default), False if the original Nos&eacute;-Hoover equations should be used
+    # \param partial_scale In Nos&eacute;-Hoover mode, if False (the default), \b all particles in the box are scaled due to the box size changes
+    #                      during NPT integration. If True, only those particles that belong to \a group will be scaled. In MTK mode, this parameter cannot be changed, and only the particles in the group are rescaled.
+    # \param mode Only available in MTK mode, can be "cubic" (default), "orthorhombic" or "tetragonal"
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
     # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
@@ -478,8 +488,10 @@ class npt(_integration_method):
     # \code
     # integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0)
     # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
+    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, mtk=False)
+    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, mode="tetragonal")
     # \endcode
-    def __init__(self, group, T, tau, P, tauP, partial_scale=False):
+    def __init__(self, group, T, tau, P, tauP, partial_scale=False, mtk=True, mode="cubic"):
         util.print_status_line();
         
         # initialize base class
@@ -492,14 +504,33 @@ class npt(_integration_method):
         # create the compute thermo
         thermo_group = compute._get_unique_thermo(group=group);
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
-        
+
+        self.mtk = mtk
+
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
+        if mtk:
+            if mode == "cubic":
+                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.cubic
+            else if mode == "orthorhombic":
+                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.orthorhombic
+            else if mode == "tetragonal"
+                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.tetragonal
+            else
+                globals.msg.error("Invalid integration mode\n");
+                raise RuntimeError("Error setting up NPT integration.");
+
+            self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_mode);
         else:
-            self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
-        
-        self.cpp_method.setPartialScale(partial_scale);
+            if mode != "cubic":
+                globals.msg.error("In Nose-Hoover mode, only cubic symmetry is supported.");
+                raise RuntimeError("Error setting up NPT integration.");
+
+            if not globals.exec_conf.isCUDAEnabled():
+                self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
+            else:
+                self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
+
+            self.cpp_method.setPartialScale(partial_scale);
 
         self.cpp_method.validateGroup()
 
