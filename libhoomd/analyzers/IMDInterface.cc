@@ -196,6 +196,9 @@ void IMDInterface::analyze(unsigned int timestep)
         initConnection();
 
     if (is_root)
+#else
+    if (! m_is_initialized)
+        initConnection();
 #endif
         {
         m_count++;
