@@ -111,7 +111,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     Scalar T0 = 2.0;
     Scalar deltaT = 0.001;
 
-    TwoStepNPTMTK::integrationMode mode = TwoStepNPTMTK::orthorhombic;
+    TwoStepNPTMTK::integrationMode mode = TwoStepNPTMTK::cubic;
     Scalar tau = .1;
     Scalar tauP = .1;
 
@@ -171,7 +171,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     std::cout << "Equilibrating 10,000 steps... " << std::endl;
     for (int i = 0; i < 10000; i++)
         {
-        if (i % 500 == 0)
+        if (i % 1000 == 0)
             std::cout << i << std::endl;
         npt_mtk->update(i);
         }
@@ -195,7 +195,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     std::cout << "Measuring 40,000 steps... " << std::endl;
     for (int i = 10000; i < 50000; i++)
         {
-        if (i % 500 == 0)
+        if (i % 1000 == 0)
             std::cout << i << std::endl;
         if (i % 100 == 0)
             {
@@ -207,6 +207,10 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
 
             avrT += thermo_group->getTemperature();
             count++;
+
+            box = pdata->getBox();
+            L = box.getL();
+            std::cout << "L == (" << L.x << ", " << L.y << ", " << L.z << ")" << std::endl;
             }
         npt_mtk->update(i);
         }
@@ -220,7 +224,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", count+1);
     Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
     // check conserved quantity
-    Scalar tol = 0.01;
+    Scalar tol = 0.02;
     MY_BOOST_CHECK_CLOSE(H_ref,H_final,tol);
 
     avrPxx /= Scalar(count);

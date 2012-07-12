@@ -189,15 +189,22 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
     // advance barostat (nux, nuy, nuz) half a time step
-    if (m_mode == cubic || m_mode == tetragonal)
+    Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
+    Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
+    if (m_mode == cubic)
         {
         // FIXME
+        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P - m_P->getValue(timestep)) + mtk_term;
+        nuy = nuz = nux;
+        }
+    else if (m_mode == tetragonal)
+        {
+        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
+        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((m_curr_P_diag.y+m_curr_P_diag.z)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
+        nuz = nuy;
         }
     else if (m_mode == orthorhombic)
         {
-        Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
-        Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
-
         nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
         nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.y - m_P->getValue(timestep)) + mtk_term;
         nuz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.z - m_P->getValue(timestep)) + mtk_term;
@@ -397,15 +404,22 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
         }
 
     // advance barostat (nux, nuy, nuz) half a time step
-    if (m_mode == cubic || m_mode == tetragonal)
+    Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
+    Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
+    if (m_mode == cubic)
         {
         // FIXME
+        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P - m_P->getValue(timestep)) + mtk_term;
+        nuy = nuz = nux;
+        }
+    else if (m_mode == tetragonal)
+        {
+        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
+        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((m_curr_P_diag.y+m_curr_P_diag.z)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
+        nuz = nuy;
         }
     else if (m_mode == orthorhombic)
         {
-        Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
-        Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
-
         nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
         nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.y - m_P->getValue(timestep)) + mtk_term;
         nuz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.z - m_P->getValue(timestep)) + mtk_term;
@@ -452,8 +466,7 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
 
         Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
         Scalar barostat_energy = Scalar(0.0);
-        if (m_mode == orthorhombic)
-            barostat_energy = W*(nux*nux+nuy*nuy+nuz*nuz) / Scalar(2.0);
+        barostat_energy = W*(nux*nux+nuy*nuy+nuz*nuz) / Scalar(2.0);
 
         return barostat_energy;
         }
