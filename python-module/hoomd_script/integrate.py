@@ -443,7 +443,7 @@ class nvt(_integration_method):
         if tau is not None:
             self.cpp_method.setTau(tau);
 
-## NPT Integration via the Nos&eacute;-Hoover thermostat, Anderson barostat
+## NPT Integration with various box-shape symmetries
 #
 # integrate.npt performs constant pressure, constant temperature simulations.
 #
@@ -454,8 +454,8 @@ class nvt(_integration_method):
 # When using the MTK equations, additional integration sub-modes are available, namely
 # - cubic symmetry, the ratios between the box lengths do not change
 # - orthorhombic symmetry, all box lengths can vary independently
-# - tetragonal symmetry, the x direction is independently integrated from the y and z directions,
-#   and the ratio between the box lengths in the latter directions stays fixed
+# - tetragonal symmetry, the \b x- direction is independently integrated from the \b y- and \b z- directions,
+#   and the ratio between the box lengths in the latter directions remains constant
 #
 # integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -465,6 +465,10 @@ class nvt(_integration_method):
 # both 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.npt command
 # is specified.
 #
+# For the MTK equations of motion, see:
+# \cite{Martyna1994}
+# \cite{Tuckerman2006}
+# \cite{Yu2010}
 class npt(_integration_method):
     ## Specifies the NPT integrator
     # \param group Group of particles on which to apply this method.
@@ -475,7 +479,8 @@ class npt(_integration_method):
     # \param mtk True if the MTK equations should be used (default), False if the original Nos&eacute;-Hoover equations should be used
     # \param partial_scale In Nos&eacute;-Hoover mode, if False (the default), \b all particles in the box are scaled due to the box size changes
     #                      during NPT integration. If True, only those particles that belong to \a group will be scaled. In MTK mode, this parameter cannot be changed, and only the particles in the group are rescaled.
-    # \param mode Only available in MTK mode, can be "cubic" (default), "orthorhombic" or "tetragonal"
+    # \param mode Only available in MTK mode, can be "cubic" (default), "orthorhombic" or "tetragonal".
+    #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
     # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 

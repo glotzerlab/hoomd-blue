@@ -67,7 +67,6 @@ using namespace boost::python;
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
-    \param thermo_all ComputeThermo to compute the pressure of the entire system
     \param tau NPT temperature period
     \param tauP NPT pressure period
     \param T Temperature set point
