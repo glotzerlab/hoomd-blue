@@ -511,15 +511,18 @@ class npt(_integration_method):
         if mtk:
             if mode == "cubic":
                 cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.cubic
-            else if mode == "orthorhombic":
+            elif mode == "orthorhombic":
                 cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.orthorhombic
-            else if mode == "tetragonal"
+            elif mode == "tetragonal":
                 cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.tetragonal
-            else
+            else:
                 globals.msg.error("Invalid integration mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
 
-            self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_mode);
+            if not globals.exec_conf.isCUDAEnabled():
+                self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_mode);
+            else:
+                self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_mode);
         else:
             if mode != "cubic":
                 globals.msg.error("In Nose-Hoover mode, only cubic symmetry is supported.");

@@ -188,7 +188,8 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
     };
 
-//! Exports the TwoStepNVT class to python
+//! Exports the TwoStepNPTMTK class to python
 void export_TwoStepNPTMTK();
 
-#endif // #ifndef __TWO_STEP_NPT_H__
+#endif // #ifndef __TWO_STEP_NPT_MTK_H__
+

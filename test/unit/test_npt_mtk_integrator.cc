@@ -62,11 +62,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ComputeThermo.h"
 #include "TwoStepNPTMTK.h"
-#if 0
 #ifdef ENABLE_CUDA
 #include "TwoStepNPTMTKGPU.h"
 #include "ComputeThermoGPU.h"
-#endif
 #endif
 #include "IntegratorTwoStep.h"
 
@@ -116,7 +114,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     Scalar tauP = .1;
 
 /* the anisotropic integration modes work, too, but since the test particle system is isotropic,
-   it does not constitute a very good test case for the anisotropic fluctuations */
+   it has a degenerate box shape and thus does not constitute a good test case for these
+   integration modes */
 
 //   mode = TwoStepNPTMTK::orthorhombic;
 //   mode = TwoStepNPTMTK::tetragonal;
@@ -208,9 +207,9 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
             avrT += thermo_group->getTemperature();
             count++;
 
-            box = pdata->getBox();
-            L = box.getL();
-            std::cout << "L == (" << L.x << ", " << L.y << ", " << L.z << ")" << std::endl;
+            //box = pdata->getBox();
+            //L = box.getL();
+            //std::cout << "L == (" << L.x << ", " << L.y << ", " << L.z << ")" << std::endl;
             }
         npt_mtk->update(i);
         }
@@ -265,11 +264,11 @@ shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(shared_ptr<SystemDefinition
     return shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP,T_variant, P_variant,mode));
     }
 
-#if 0
 #ifdef ENABLE_CUDA
 //! NPTMTKIntegratorGPU factory for the unit tests
 shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(shared_ptr<SystemDefinition> sysdef,
                                               shared_ptr<ParticleGroup> group,
+                                              boost::shared_ptr<ComputeThermo> thermo_group,
                                               Scalar tau,
                                               Scalar tauP,
                                               Scalar T,
@@ -278,11 +277,9 @@ shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(shared_ptr<SystemDefinition> sysde
     {
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
-    boost::shared_ptr<ComputeThermo> thermo(new ComputeThermoGPU(sysdef, group));
     // for the tests, we can assume that group is the all group
-    return shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(sysdef, group, thermo, tau, tauP, T_variant, P_variant,mode));
+    return shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(sysdef, group, thermo_group, tau, tauP, T_variant, P_variant,mode));
     }
-#endif
 #endif
 
 //! boost test case for base class integration tests
@@ -292,7 +289,6 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_tests )
     npt_mtk_updater_test(npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#if 0
 #ifdef ENABLE_CUDA
 
 //! boost test case for GPU integration tests
@@ -302,7 +298,6 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_tests )
     npt_mtk_updater_test(npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#endif
 #endif
 
 #ifdef WIN32
