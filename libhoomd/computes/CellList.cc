@@ -442,17 +442,17 @@ void CellList::computeCellList()
             {
             // if a ghost particle is out of bounds, silently ignore it
 
-            if (ib < 0 || ib >= m_dim.x || jb < 0 || jb >= m_dim.y || kb < 0 || kb >= m_dim.z)
+            if (ib < 0 || ib >= (int) m_dim.x || jb < 0 || jb >= (int)m_dim.y || kb < 0 || kb >= (int)m_dim.z)
                 continue;
             }
 #endif
 
         // need to handle the case where the particle is exactly at the box hi
-        if (ib == m_dim.x)
+        if (ib == (int)m_dim.x)
             ib = 0;
-        if (jb == m_dim.y)
+        if (jb == (int)m_dim.y)
             jb = 0;
-        if (kb == m_dim.z)
+        if (kb == (int)m_dim.z)
             kb = 0;
 
         // sanity check
