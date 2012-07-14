@@ -217,6 +217,22 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     Scalar3 box_len_scale = make_scalar3(exp(nux*m_deltaT), exp(nuy*m_deltaT), exp(nuz*m_deltaT));
     m_L = m_L*box_len_scale;
 
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        assert(m_comm->getMPICommunicator()->size());
+        // broadcast integrator variables from rank 0 to other processors
+        broadcast(*m_comm->getMPICommunicator(), eta, 0);
+        broadcast(*m_comm->getMPICommunicator(), xi, 0);
+        broadcast(*m_comm->getMPICommunicator(), nux, 0);
+        broadcast(*m_comm->getMPICommunicator(), nuy, 0);
+        broadcast(*m_comm->getMPICommunicator(), nuz, 0);
+
+        // broadcast box dimensions
+        broadcast(*m_comm->getMPICommunicator(), m_L, 0);
+        }
+#endif
+
     // calculate volume
     m_V = m_L.x*m_L.y*m_L.z;
 
@@ -235,19 +251,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
                          d_image.data,
                          box);
         }
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        assert(m_comm->getMPICommunicator()->size());
-        // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_comm->getMPICommunicator(), eta, 0);
-        broadcast(*m_comm->getMPICommunicator(), xi, 0);
-        broadcast(*m_comm->getMPICommunicator(), nux, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuy, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuz, 0);
-        }
-#endif
 
     setIntegratorVariables(v);
 
