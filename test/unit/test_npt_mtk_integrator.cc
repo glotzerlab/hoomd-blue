@@ -98,13 +98,10 @@ typedef boost::function<shared_ptr<TwoStepNPTMTK> (shared_ptr<SystemDefinition> 
                                                 Scalar P,
                                                 TwoStepNPTMTK::integrationMode mode) > twostep_npt_mtk_creator;
 
-//! Helper function to get gaussian random numbers
-Scalar inline gaussianRand(Saru& saru, Scalar sigma);
-
 //! Basic functionality test of a generic TwoStepNPTMTK
 void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    const unsigned int N = 1000;
+    const unsigned int N = 10000;
     Scalar P = 1.0;
     Scalar T0 = 2.0;
     Scalar deltaT = 0.001;
@@ -237,16 +234,6 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     MY_BOOST_CHECK_CLOSE(T0, avrT, rough_tol);
 
     }
-
-//! Helper function to get gaussian random numbers
-Scalar inline gaussianRand(Saru& saru, Scalar sigma)
-{
-    Scalar x1 = saru.d();
-    Scalar x2 = saru.d();
-    Scalar z = sqrt(-2.0 * log(x1)) * cos(2 * M_PI * x2);
-    z = z * sigma;
-    return z;
-}
 
 //! IntegratorTwoStepNPTMTK factory for the unit tests
 shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(shared_ptr<SystemDefinition> sysdef,
