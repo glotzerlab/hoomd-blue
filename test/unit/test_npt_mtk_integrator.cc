@@ -188,7 +188,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     Scalar thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", 0);
     Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
-    std::cout << "Measuring 40,000 steps... " << std::endl;
+    std::cout << "Measuring up to 50,000 steps... " << std::endl;
     for (int i = 10000; i < 50000; i++)
         {
         if (i % 1000 == 0)
