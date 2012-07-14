@@ -101,7 +101,7 @@ typedef boost::function<shared_ptr<TwoStepNPTMTK> (shared_ptr<SystemDefinition> 
 //! Basic functionality test of a generic TwoStepNPTMTK
 void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    const unsigned int N = 1000;
+    const unsigned int N = 10000;
     Scalar P = 1.0;
     Scalar T0 = 2.0;
     Scalar deltaT = 0.001;
