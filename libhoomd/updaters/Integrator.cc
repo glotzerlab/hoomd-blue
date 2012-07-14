@@ -199,7 +199,7 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
     {
     if (quantity == "volume")
         {
-        BoxDim box = m_pdata->getBox();
+        BoxDim box = m_pdata->getGlobalBox();
         Scalar3 L = box.getL();
         return L.x*L.y*L.z;
         }
