@@ -110,6 +110,7 @@ void Logger::openOutputFiles()
         {
         m_exec_conf->msg->notice(3) << "analyze.log: Creating new log in file \"" << m_filename << "\"" << endl;
         m_file.open(m_filename.c_str(), ios_base::out);
+        m_appending = false;
         }
         
     if (!m_file.good())
