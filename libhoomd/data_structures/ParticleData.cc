@@ -266,7 +266,6 @@ const BoxDim & ParticleData::getBox() const
 void ParticleData::setGlobalBoxL(const Scalar3 &L)
     {
     m_global_box.setL(L);
-    assert(inBox());
 
 #ifdef ENABLE_MPI
     if (m_decomposition)

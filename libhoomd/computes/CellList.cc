@@ -456,7 +456,7 @@ void CellList::computeCellList()
             kb = 0;
 
         // sanity check
-        assert(ib < (unsigned int)(m_dim.x) && jb < (unsigned int)(m_dim.y) && kb < (unsigned int)(m_dim.z));
+        assert(ib < (int)(m_dim.x) && jb < (int)(m_dim.y) && kb < (int)(m_dim.z));
         
         // record its bin
         unsigned int bin = ci(ib, jb, kb);
