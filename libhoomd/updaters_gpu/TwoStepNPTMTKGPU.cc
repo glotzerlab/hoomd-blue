@@ -279,6 +279,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     Scalar& nuy = v.variable[3];  // Barostat variable for y-direction
     Scalar& nuz = v.variable[4];  // Barostat variable for z-direction
 
+    {
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::overwrite);
 
@@ -341,6 +342,8 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
                            group_size,
                            xi_prime,
                            m_deltaT);
+
+    } // end GPUArray scope
 
     // compute the current thermodynamic properties
     m_thermo_group->compute(timestep+1);
