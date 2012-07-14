@@ -348,8 +348,14 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
     } // end GPUArray scope
 
+    if (m_prof)
+        m_prof->pop();
+
     // compute the current thermodynamic properties
     m_thermo_group->compute(timestep+1);
+
+    if (m_prof)
+        m_prof->push("NPT MTK step 2");
 
     // compute temperature for the next half time step
     m_curr_group_T = m_thermo_group->getTemperature();
