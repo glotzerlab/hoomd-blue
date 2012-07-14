@@ -104,6 +104,7 @@ if(ENABLE_MPI)
     # define every test together with the number of processors
     ADD_TO_MPI_TESTS(test_communication 8)
     ADD_TO_MPI_TESTS(test_nvt_integrator_mpi 3)
+    ADD_TO_MPI_TESTS(test_npt_mtk_integrator_mpi 3)
 endif(ENABLE_MPI)
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
