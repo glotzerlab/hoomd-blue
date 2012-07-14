@@ -272,16 +272,20 @@ struct select_particle_migrate_gpu : public thrust::unary_function<const pdata_t
 //! Wrap a received particle across global box boundaries
 struct wrap_received_particle
     {
-    const BoxDim global_box;  //!< Dimensions of global simulation box
+    const Scalar3 L;          //!< Lengths of global simulation box
+    const unsigned int dir;   //!< Current direction of particle migration
+    bool is_at_boundary[6];   //!< Flags to indicate whether this box share a boundary with the global box
 
     //! Constructor
     /*! \param _global_box Dimensions of global simulation box
-        \param _dir Direciton along whic the particle was received
+        \param _dir Direction along which the particle was received
         \param _is_at_boundary Flags to indicate whether the local box shares a boundary with the global box
      */
-    wrap_received_particle(const BoxDim _global_box)
-        : global_box(_global_box)
+    wrap_received_particle(const BoxDim _global_box, const unsigned int _dir,  const bool _is_at_boundary[])
+        : L(_global_box.getL()), dir(_dir)
         {
+        for (unsigned int i = 0; i < 6; i++)
+            is_at_boundary[i] = _is_at_boundary[i];
         }
 
    //! Wrap particle across boundaries
@@ -290,9 +294,40 @@ struct wrap_received_particle
     */
     __host__ __device__ pdata_element_gpu operator()(pdata_element_gpu el)
         {
-        float4& pos = el.pos;
+        float4& postype = el.pos;
         int3& image = el.image;
-        global_box.wrap(pos, image);
+
+        // wrap particles received across a global boundary back into global box
+        if (dir==0 && is_at_boundary[1])
+            {
+            postype.x -= L.x;
+            image.x++;
+            }
+        else if (dir==1 && is_at_boundary[0])
+            {
+            postype.x += L.x;
+            image.x--;
+            }
+        else if (dir==2 && is_at_boundary[3])
+            {
+            postype.y -= L.y;
+            image.y++;
+            }
+        else if (dir==3 && is_at_boundary[2])
+            {
+            postype.y += L.y;
+            image.y--;
+            }
+        else if (dir==4 && is_at_boundary[5])
+            {
+            postype.z -= L.z;
+            image.z++;
+            }
+        else if (dir==5 && is_at_boundary[4])
+            {
+            postype.z += L.z;
+            image.z--;
+            }
         return el;
         }
 
@@ -678,15 +713,21 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
  * \param n_recv_ptl Number of received particles (return value)
  * \param global_box Dimensions of global box
  * \param dir Direction along which particles where received
+ * \param is_at_boundary Array of per-direction flags to indicate whether this box lies at a global boundary
  */
 void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  char *d_recv_buf_end,
                                  unsigned int &n_recv_ptl,
-                                 const BoxDim& global_box)
+                                 const BoxDim& global_box,
+                                 const unsigned int dir,
+                                 const bool is_at_boundary[])
     {
     thrust::device_ptr<pdata_element_gpu> recv_buf_ptr((pdata_element_gpu *) d_recv_buf);
     thrust::device_ptr<pdata_element_gpu> recv_buf_end_ptr((pdata_element_gpu *) d_recv_buf_end);
-    thrust::transform(recv_buf_ptr, recv_buf_end_ptr, recv_buf_ptr, wrap_received_particle(global_box));
+    thrust::transform(recv_buf_ptr,
+                      recv_buf_end_ptr,
+                      recv_buf_ptr,
+                      wrap_received_particle(global_box, dir, is_at_boundary));
     n_recv_ptl = recv_buf_end_ptr - recv_buf_ptr;
     }
 

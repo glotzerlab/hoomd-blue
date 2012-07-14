@@ -459,14 +459,45 @@ void Communicator::migrateAtoms()
         const BoxDim& global_box = m_pdata->getGlobalBox(); 
             {
             // wrap received particles across a global boundary back into global box
+            Scalar3 L = global_box.getL();
             ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
             for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
                 {
                 pdata_element& p = ((pdata_element *) h_recvbuf.data)[idx];
-                Scalar4& pos = p.pos;
+                Scalar4& postype = p.pos;
                 int3& image = p.image;
 
-                global_box.wrap(pos, image);
+                if (dir==0 && m_is_at_boundary[1])
+                    {
+                    postype.x -= L.x;
+                    image.x++;
+                    }
+                else if (dir==1 && m_is_at_boundary[0])
+                    {
+                    postype.x += L.x;
+                    image.x--;
+                    }
+                else if (dir==2 && m_is_at_boundary[3])
+                    {
+                    postype.y -= L.y;
+                    image.y++;
+                    }
+                else if (dir==3 && m_is_at_boundary[2])
+                    {
+                    postype.y += L.y;
+                    image.y--;
+                    }
+                else if (dir==4 && m_is_at_boundary[5])
+                    {
+                    postype.z -= L.z;
+                    image.z++;
+                    }
+                else if (dir==5 && m_is_at_boundary[4])
+                    {
+                    postype.z += L.z;
+                    image.z--;
+                    }
+     
                 }
             }
 

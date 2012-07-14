@@ -136,7 +136,9 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
 void gpu_migrate_wrap_received_particles(char *d_recv_buf,
                                  char *d_recv_buf_end,
                                  unsigned int &n_recv_ptl,
-                                 const BoxDim& global_box);
+                                 const BoxDim& global_box,
+                                 const unsigned int dir,
+                                 const bool is_at_boundary[]);
 
 //! Add received particles to local box if their positions are inside the local boundaries
 void gpu_migrate_add_particles(  char *d_recv_buf,

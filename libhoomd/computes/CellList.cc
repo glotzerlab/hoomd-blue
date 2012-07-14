@@ -526,8 +526,16 @@ bool CellList::checkConditions()
     if (h_conditions.data[2])
         {
         unsigned int n = h_conditions.data[2] - 1;
-        m_exec_conf->msg->error() << "Particle " << n << " is no longer in the simulation box." << endl
+        m_exec_conf->msg->error() << "Particle " << m_pdata->getGlobalRTag(n) << " is no longer in the simulation box." << endl
              << endl;
+             {
+             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+             m_exec_conf->msg->notice(2) << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
+             Scalar3 lo = m_pdata->getBox().getLo();
+             Scalar3 hi = m_pdata->getBox().getHi();
+             m_exec_conf->msg->notice(2) << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+             m_exec_conf->msg->notice(2) << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+             }
         throw runtime_error("Error computing cell list");
         }
 

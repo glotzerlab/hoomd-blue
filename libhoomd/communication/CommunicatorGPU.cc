@@ -302,7 +302,9 @@ void CommunicatorGPU::migrateAtoms()
             gpu_migrate_wrap_received_particles(d_recvbuf.data,
                                                 d_recvbuf.data+recv_buf_size,
                                                 n_recv_ptl,
-                                                m_pdata->getGlobalBox());
+                                                m_pdata->getGlobalBox(),
+                                                dir,
+                                                m_is_at_boundary);
             CHECK_CUDA_ERROR();
             }
 
