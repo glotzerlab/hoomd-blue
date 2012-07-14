@@ -186,6 +186,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         integrationMode m_mode;         //!< Current integration mode
 
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
+
     };
 
 //! Exports the TwoStepNPTMTK class to python

@@ -61,6 +61,10 @@ using namespace boost::python;
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNPTMTKGPU.cuh"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 /*! \file TwoStepNPTMTKGPU.h
     \brief Contains code for the TwoStepNPTMTKGPU class
 */
@@ -93,7 +97,7 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
 
     m_reduction_block_size = 512;
-    m_num_blocks = m_group->getNumMembers() / m_reduction_block_size + 1;
+    m_num_blocks = m_group->getNumLocalMembers() / m_reduction_block_size + 1;
 
     GPUArray< Scalar > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
@@ -113,11 +117,9 @@ TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
 */
 void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
+    unsigned int group_size = m_group->getNumLocalMembers();
     if (group_size == 0)
         return;
-
-    BoxDim box = m_pdata->getBox();
 
     // compute the current thermodynamic properties
     m_thermo_group->compute(timestep);
@@ -168,7 +170,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -210,6 +211,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
                          xi_prime,
                          make_scalar3(nux, nuy, nuz),
                          m_deltaT);
+    } // end of GPUArray scope
 
     // advance box lengths
     Scalar3 box_len_scale = make_scalar3(exp(nux*m_deltaT), exp(nuy*m_deltaT), exp(nuz*m_deltaT));
@@ -218,15 +220,34 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     // calculate volume
     m_V = m_L.x*m_L.y*m_L.z;
 
-    // Set new box lengths
-    box.setL(m_L);
+    m_pdata->setGlobalBoxL(m_L);
 
-    // Wrap particles
-    gpu_npt_mtk_wrap(m_pdata->getN(),
-                     d_pos.data,
-                     d_image.data,
-                     box);
-    } // end of GPUArray scope
+    // Get new (local) box lengths
+    BoxDim box = m_pdata->getBox();
+
+        {
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
+        // Wrap particles
+        gpu_npt_mtk_wrap(m_pdata->getN(),
+                         d_pos.data,
+                         d_image.data,
+                         box);
+        }
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        assert(m_comm->getMPICommunicator()->size());
+        // broadcast integrator variables from rank 0 to other processors
+        broadcast(*m_comm->getMPICommunicator(), eta, 0);
+        broadcast(*m_comm->getMPICommunicator(), xi, 0);
+        broadcast(*m_comm->getMPICommunicator(), nux, 0);
+        broadcast(*m_comm->getMPICommunicator(), nuy, 0);
+        broadcast(*m_comm->getMPICommunicator(), nuz, 0);
+        }
+#endif
 
     setIntegratorVariables(v);
 
@@ -234,7 +255,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
 
-    m_pdata->setGlobalBoxL(box.getL());
     }
 
 /*! \param timestep Current time step
@@ -242,7 +262,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
+    unsigned int group_size = m_group->getNumLocalMembers();
     if (group_size == 0)
         return;
 
@@ -297,6 +317,15 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar> h_temperature(m_temperature, access_location::host, access_mode::read);
         T_prime = *h_temperature.data;
         }
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        assert(m_comm->getMPICommunicator()->size());
+        // broadcast integrator variables from rank 0 to other processors
+        T_prime = all_reduce(*m_comm->getMPICommunicator(), T_prime, std::plus<double>());
+        }
+#endif
 
     // Advance thermostat half a time step
     Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(T_prime/m_T->getValue(timestep) - Scalar(1.0));
@@ -367,6 +396,19 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.y - m_P->getValue(timestep)) + mtk_term;
         nuz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.z - m_P->getValue(timestep)) + mtk_term;
         }
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        assert(m_comm->getMPICommunicator()->size());
+        // broadcast integrator variables from rank 0 to other processors
+        broadcast(*m_comm->getMPICommunicator(), eta, 0);
+        broadcast(*m_comm->getMPICommunicator(), xi, 0);
+        broadcast(*m_comm->getMPICommunicator(), nux, 0);
+        broadcast(*m_comm->getMPICommunicator(), nuy, 0);
+        broadcast(*m_comm->getMPICommunicator(), nuz, 0);
+        }
+#endif
 
     setIntegratorVariables(v);
 
