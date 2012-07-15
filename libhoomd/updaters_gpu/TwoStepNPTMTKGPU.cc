@@ -97,8 +97,9 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
 
     m_reduction_block_size = 512;
-    m_num_blocks = m_group->getNumLocalMembers() / m_reduction_block_size + 1;
 
+    // this breaks memory scaling (calculate memory requirements from global group size), but shouldn't be a big problem
+    m_num_blocks = m_group->getNumMembers() / m_reduction_block_size + 1;
     GPUArray< Scalar > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
 
@@ -305,6 +306,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar> d_temperature(m_temperature, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
 
+        m_num_blocks = m_group->getNumLocalMembers() / m_reduction_block_size + 1;
         gpu_npt_mtk_temperature(d_temperature.data,
                                 d_vel.data,
                                 d_scratch.data,

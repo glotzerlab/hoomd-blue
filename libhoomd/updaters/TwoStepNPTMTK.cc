@@ -225,7 +225,9 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     m_exp_v_fac = make_scalar3(exp(-v_fac.x*m_deltaT),
                                exp(-v_fac.y*m_deltaT),
                                exp(-v_fac.z*m_deltaT));
-    Scalar exp_v_fac_thermo = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+    Scalar3 exp_v_fac_2 = make_scalar3(exp(-(Scalar(2.0)*v_fac.x+Scalar(1.0/2.0)*xi_prime)*m_deltaT),
+                               exp(-(Scalar(2.0)*v_fac.y+Scalar(1.0/2.0)*xi_prime)*m_deltaT),
+                               exp(-(Scalar(2.0)*v_fac.z+Scalar(1.0/2.0)*xi_prime)*m_deltaT));
 
     Scalar3 r_fac = make_scalar3(Scalar(1.0/2.0)*nux,
                                  Scalar(1.0/2.0)*nuy,
@@ -242,18 +244,15 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 
     m_sinhx_fac_v = make_scalar3(0.0,0.0,0.0);
     Scalar3 sinhx_fac_r = make_scalar3(0.0,0.0,0.0);
+    Scalar3 term_v = make_scalar3(1.0,1.0,1.0);
+    Scalar3 term_r = make_scalar3(1.0,1.0,1.0);
 
-    for (unsigned int i = 0; i < 5; i++)
+    for (unsigned int i = 0; i < 6; i++)
         {
-        Scalar3 term_v = make_scalar3(1.0,1.0,1.0);
-        Scalar3 term_r = make_scalar3(1.0,1.0,1.0);
-        for (unsigned int j = 0; j < i; j++)
-            {
-            term_v = term_v * arg_v * arg_v;
-            term_r = term_r * arg_r * arg_r;
-            }
         m_sinhx_fac_v += a[i] * term_v;
         sinhx_fac_r += a[i] * term_r;
+        term_v = term_v * arg_v * arg_v;
+        term_r = term_r * arg_r * arg_r;
         }
 
     // perform the first half step of NPT
@@ -262,7 +261,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
         unsigned int j = m_group->getMemberIndex(group_idx);
 
         Scalar3 vel = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        vel = vel*exp_v_fac_thermo*m_exp_v_fac*m_exp_v_fac + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j]*m_exp_v_fac*m_sinhx_fac_v;
+        vel = vel*exp_v_fac_2 + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j]*m_exp_v_fac*m_sinhx_fac_v;
         h_vel.data[j].x = vel.x; h_vel.data[j].y = vel.y; h_vel.data[j].z = vel.z;
 
         Scalar3 r = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
@@ -337,6 +336,15 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     Scalar& nuy = v.variable[3];  // Barostat variable for y-direction
     Scalar& nuz = v.variable[4];  // Barostat variable for z-direction
 
+    Scalar mtk_term_2 = (nux+nuy+nuz)/m_thermo_group->getNDOF();
+    Scalar3 v_fac_2 = make_scalar3(Scalar(1.0/2.0)*(nux+mtk_term_2),
+                                 Scalar(1.0/2.0)*(nuy+mtk_term_2),
+                                 Scalar(1.0/2.0)*(nuz+mtk_term_2));
+ 
+    Scalar3 exp_v_fac_2 = make_scalar3(exp(-v_fac_2.x*m_deltaT),
+                               exp(-v_fac_2.y*m_deltaT),
+                               exp(-v_fac_2.z*m_deltaT));
+
     {
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
@@ -360,7 +368,7 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
 
         // then, update the velocity
         Scalar3 vel = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        vel = vel*m_exp_v_fac*m_exp_v_fac + Scalar(1.0/2.0)*m_deltaT*m_exp_v_fac*h_accel.data[j]*m_sinhx_fac_v;
+        vel = vel*exp_v_fac_2 + Scalar(1.0/2.0)*m_deltaT*m_exp_v_fac*h_accel.data[j]*m_sinhx_fac_v;
         h_vel.data[j].x = vel.x; h_vel.data[j].y = vel.y; h_vel.data[j].z = vel.z;
 
         // reduce E_kin
