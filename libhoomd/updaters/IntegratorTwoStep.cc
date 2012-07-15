@@ -278,8 +278,11 @@ unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
         // dd them all together
         res += (*method)->getNDOF(group);
         }
-    
-    return res - m_sysdef->getNDimensions() - getNDOFRemoved();
+
+// subtracting d degrees of freedom is possibly only necessary for the Nos'e Hoover thermostat
+// it is not required for other integration methods
+//    return res - *m_sysdef->getNDimensions() - getNDOFRemoved();
+    return res - getNDOFRemoved();
     }
 
 /*! Compute accelerations if needed for the first step.
