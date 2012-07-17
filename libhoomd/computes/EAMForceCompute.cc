@@ -272,13 +272,13 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 std::vector< std::string > EAMForceCompute::getProvidedLogQuantities()
     {
     vector<string> list;
-    list.push_back("pair_lj_energy");
+    list.push_back("pair_eam_energy");
     return list;
     }
 
 Scalar EAMForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if (quantity == string("pair_lj_energy"))
+    if (quantity == string("pair_eam_energy"))
         {
         compute(timestep);
         return calcEnergySum();
