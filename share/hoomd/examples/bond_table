@@ -1,5 +1,7 @@
-#! /usr/bin/env hoomd
+hoomd_script::bond::table
+# run this script with "python -x filename" to skip the first line, or remove this header
 
+# ---- bond_table.py ----
 from hoomd_script import *
 import math
 
@@ -36,8 +38,8 @@ def harmonic(r, rmin, rmax, kappa, r0):
 
 # Initializing the bond Table forces.
 btable = bond.table(width=1000)
-# For the first bond it reads from the file bond1.dat.  This table specifies a harmonic bond of kappa =2, r0=0.084
-btable.set_from_file('bond1', 'bond1.dat')
+# For the first bond it reads from the file bond_table.dat.  This table specifies a harmonic bond of kappa =2, r0=0.084
+btable.set_from_file('bond1', 'bond_table.dat')
 #  For the second bond we use the harmonic function defined above
 btable.bond_coeff.set('bond2', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
 
