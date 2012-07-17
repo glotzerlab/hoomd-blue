@@ -1104,6 +1104,7 @@ void RigidData::computeVirialCorrectionEndCPU(Scalar deltaT)
     ArrayHandle<Scalar4> h_oldvel(m_particle_oldvel, access_location::host, access_mode::read); 
 
     ArrayHandle<Scalar> h_net_virial( m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
+    unsigned int virial_pitch = m_pdata->getNetVirial().getPitch();
     ArrayHandle<Scalar4> h_net_force( m_pdata->getNetForce(), access_location::host, access_mode::read);
 
     // loop through all the particles and compute the virial correction to each one
@@ -1120,8 +1121,13 @@ void RigidData::computeVirialCorrectionEndCPU(Scalar deltaT)
             fc.x = mass * (h_vel.data[i].x - old_vel.x) / deltaT - h_net_force.data[i].x;
             fc.y = mass * (h_vel.data[i].y - old_vel.y) / deltaT - h_net_force.data[i].y;
             fc.z = mass * (h_vel.data[i].z - old_vel.z) / deltaT - h_net_force.data[i].z;
-            
-            h_net_virial.data[i] += (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
+
+            h_net_virial.data[0*virial_pitch+i] += old_pos.x * fc.x;
+            h_net_virial.data[1*virial_pitch+i] += old_pos.x * fc.y;
+            h_net_virial.data[2*virial_pitch+i] += old_pos.x * fc.z;
+            h_net_virial.data[3*virial_pitch+i] += old_pos.y * fc.y;
+            h_net_virial.data[4*virial_pitch+i] += old_pos.y * fc.z;
+            h_net_virial.data[5*virial_pitch+i] += old_pos.z * fc.z;
             }
         }
     }
@@ -1157,9 +1163,11 @@ void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
     ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::read); 
 
     ArrayHandle<Scalar> d_net_virial( m_pdata->getNetVirial(), access_location::device, access_mode::readwrite);
+    unsigned int virial_pitch = m_pdata->getNetVirial().getPitch();
     ArrayHandle<Scalar4> d_net_force( m_pdata->getNetForce(), access_location::device, access_mode::read);
 
     gpu_compute_virial_correction_end(d_net_virial.data,
+                                      virial_pitch,
                                       d_net_force.data,
                                       d_oldpos.data,
                                       d_oldvel.data,
