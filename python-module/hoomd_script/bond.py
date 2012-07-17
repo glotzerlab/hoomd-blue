@@ -495,14 +495,12 @@ def _table_eval(r, rmin, rmax, V, F, width):
 # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
 # not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
-# \note %Bond coefficients for all type bonds in the simulation must be
+# \note Coefficients for all bond types in the simulation must be
 # set before it can be started with run().
-
 class table(force._force):
     ## Specify the Tabulated %bond %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
-    # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
     # \param name Name of the force instance
     #
     # \b Example:
@@ -514,17 +512,13 @@ class table(force._force):
     #
     # btable = bond.table(width=1000)
     # btable.bond_coeff.set('polymer', func=har, rmin=0.1, rmax=10.0, coeff=dict(kappa=330, r0=0.84))
-
     # \endcode
     #
     # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
     # not diverge near r=0, then a setting of \c rmin=0 is valid.
     #
-    # \note, be sure that \c rmin and \c rmax cover the range of bond values.  If gpu eror checking is on, a error will
+    # \note Be sure that \c rmin and \c rmax cover the range of bond values.  If gpu eror checking is on, a error will
     # be thrown if a bond distance is outside than this range.
-    #
-    # \note %Pair coefficients for all type bonds in the simulation must be
-    # set before it can be started with run()
     def __init__(self, width, name=None):
         util.print_status_line();
 
@@ -590,26 +584,26 @@ class table(force._force):
 
             self.update_bond_table(i, func, rmin, rmax, coeff);
 
-      ## Set a bond pair interaction from a file
-      # \param bondname Name of bond 
-      # \param filename Name of the file to read
-      #
-     # The provided file specifies V and F at equally spaced r values.
-      # Example:
-      # \code
-      # #r  V    F
-      # 1.0 2.0 -3.0
-      # 1.1 3.0 -4.0
-      # 1.2 2.0 -3.0
-      # 1.3 1.0 -2.0
-      # 1.4 0.0 -1.0
-      # 1.5 -1.0 0.0
-      #\endcode
-      #
-      # The first r value sets \a rmin, the last sets \a rmax. Any line with \# as the first non-whitespace character is
-      # is treated as a comment. The \a r values must monotonically increase and be equally spaced. The table is read
-      # directly into the grid points used to evaluate \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$.
-            #
+    ## Set a bond pair interaction from a file
+    # \param bondname Name of bond 
+    # \param filename Name of the file to read
+    #
+    # The provided file specifies V and F at equally spaced r values.
+    # Example:
+    # \code
+    # #r  V    F
+    # 1.0 2.0 -3.0
+    # 1.1 3.0 -4.0
+    # 1.2 2.0 -3.0
+    # 1.3 1.0 -2.0
+    # 1.4 0.0 -1.0
+    # 1.5 -1.0 0.0
+    #\endcode
+    #
+    # The first r value sets \a rmin, the last sets \a rmax. Any line with \# as the first non-whitespace character is
+    # is treated as a comment. The \a r values must monotonically increase and be equally spaced. The table is read
+    # directly into the grid points used to evaluate \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$.
+    #
     def set_from_file(self, bondname, filename):
           util.print_status_line();
 

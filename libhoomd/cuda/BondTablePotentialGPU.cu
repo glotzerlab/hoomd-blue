@@ -232,7 +232,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(float4* d_force,
     \param n_bond_type number of bond types
     \param d_tables Tables of the potential and force
     \param d_params Parameters for each table associated with a type pair
-    \param m_table_value indexer helper
+    \param table_width Number of entries in the table
+    \param table_value indexer helper
     \param d_flags flags on the device - a 1 will be written if evaluation
                    of forces failed for any bond
     \param block_size Block size at which to run the kernel
