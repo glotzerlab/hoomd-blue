@@ -77,21 +77,18 @@ import sys
 #
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
-_default_block_size_db['1.1'] = {'pair.ewald': 224, 'improper.harmonic': 64, 'pair.dpd_conservative': 320, 'dihedral.harmonic': 128, 'pair.dpd': 192, 'pair.dpdlj': 192, 'angle.cgcmm': 128, 'nlist.filter': 192, 'pair.lj': 320, 'pair.table': 320, 'bond.table': 320, 'pair.cgcmm': 320, 'pair.slj': 256, 'pair.morse': 320, 'nlist': 288, 'bond.harmonic': 64, 'pair.yukawa': 320, 'bond.fene': 128, 'angle.harmonic': 192, 'pair.gauss': 320, 'external.periodic':256}
-
-# no longer independently tuning 1.0 devices, they are very old
-_default_block_size_db['1.0'] = _default_block_size_db['1.1'];
 
 _default_block_size_db['1.3'] = {'pair.ewald': 160, 'improper.harmonic': 320, 'pair.dpd_conservative': 352, 'dihedral.harmonic': 256, 'pair.dpd': 320, 'angle.cgcmm': 64, 'nlist.filter': 160, 'pair.lj': 352, 'pair.table': 96, 'bond.table': 96,'pair.cgcmm': 352, 'pair.dpdlj': 320, 'pair.slj': 352, 'pair.morse': 352, 'nlist': 416, 'bond.harmonic': 416, 'pair.yukawa': 352, 'bond.fene': 160, 'angle.harmonic': 192, 'pair.gauss': 352}
 
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
 
-_default_block_size_db['2.0'] = {'pair.ewald': 320, 'improper.harmonic': 96, 'pair.dpd_conservative': 224, 'dihedral.harmonic': 64, 'pair.dpd': 160, 'angle.cgcmm': 96, 'nlist.filter': 320, 'pair.lj': 320, 'pair.table': 128, 'bond.table': 128, 'pair.cgcmm': 128, 'pair.dpdlj': 160, 'pair.slj': 160, 'pair.morse': 256, 'nlist': 768, 'bond.harmonic': 352, 'pair.yukawa': 320, 'bond.fene': 96, 'angle.harmonic': 128, 'pair.gauss': 320, 'external.periodic': 512}
+_default_block_size_db['2.0'] = {'pair.ewald': 480, 'improper.harmonic': 256, 'pair.dpd_conservative': 256, 'bond.harmonic': 448, 'dihedral.harmonic': 160, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 192, 'nlist.filter': 256, 'pair.lj': 288, 'pair.table': 128, 'pair.cgcmm': 96, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 416, 'nlist': 512, 'bond.table': 288, 'pair.yukawa': 352, 'bond.fene': 224, 'angle.harmonic': 224, 'pair.gauss': 288}
 
-_default_block_size_db['2.1'] = {'pair.ewald': 224, 'improper.harmonic': 96, 'pair.dpd_conservative': 224, 'dihedral.harmonic': 64, 'pair.dpd': 128, 'angle.cgcmm': 96, 'nlist.filter': 256, 'pair.lj': 160, 'pair.table': 160, 'bond.table': 160, 'pair.cgcmm': 128, 'pair.dpdlj': 128, 'pair.slj': 128, 'pair.morse': 256, 'nlist': 576, 'bond.harmonic': 160, 'pair.yukawa': 192, 'bond.fene': 96, 'angle.harmonic': 96, 'pair.gauss': 160, 'external.periodic': 512}
+# it is no longer convenient to tune on 2.1, just set values to 2.0
+_default_block_size_db['2.1'] = _default_block_size_db['2.0'];
 
-_default_block_size_db['3.0'] = {'pair.ewald': 128, 'improper.harmonic': 64, 'pair.dpd_conservative': 192, 'dihedral.harmonic': 64, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 128, 'nlist.filter': 128, 'pair.lj': 160, 'pair.table': 128, 'pair.cgcmm': 128, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 192, 'nlist': 448, 'bond.harmonic': 320, 'pair.yukawa': 160, 'bond.fene': 128, 'angle.harmonic': 96, 'pair.gauss': 160};
+_default_block_size_db['3.0'] = {'pair.ewald': 128, 'improper.harmonic': 64, 'pair.dpd_conservative': 160, 'bond.harmonic': 320, 'dihedral.harmonic': 64, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 128, 'nlist.filter': 128, 'pair.lj': 160, 'pair.table': 128, 'pair.cgcmm': 128, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 160, 'nlist': 448, 'bond.table': 96, 'pair.yukawa': 160, 'bond.fene': 128, 'angle.harmonic': 96, 'pair.gauss': 160}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
