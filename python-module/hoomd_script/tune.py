@@ -78,7 +78,7 @@ import sys
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
 
-_default_block_size_db['1.3'] = {'pair.ewald': 160, 'improper.harmonic': 320, 'pair.dpd_conservative': 352, 'dihedral.harmonic': 256, 'pair.dpd': 320, 'angle.cgcmm': 64, 'nlist.filter': 160, 'pair.lj': 352, 'pair.table': 96, 'bond.table': 96,'pair.cgcmm': 352, 'pair.dpdlj': 320, 'pair.slj': 352, 'pair.morse': 352, 'nlist': 416, 'bond.harmonic': 416, 'pair.yukawa': 352, 'bond.fene': 160, 'angle.harmonic': 192, 'pair.gauss': 352}
+_default_block_size_db['1.3'] = {'pair.ewald': 96, 'improper.harmonic': 128, 'pair.dpd_conservative': 352, 'bond.harmonic': 160, 'dihedral.harmonic': 64, 'pair.dpd': 160, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 352, 'nlist.filter': 160, 'pair.lj': 416, 'pair.table': 96, 'pair.cgcmm': 96, 'pair.dpdlj': 160, 'pair.slj': 416, 'pair.morse': 416, 'nlist': 416, 'bond.table': 160, 'pair.yukawa': 352, 'bond.fene': 96, 'angle.harmonic': 96, 'pair.gauss': 416}
 
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
