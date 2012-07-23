@@ -117,7 +117,9 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         }
     for(i = 0; i < 3; i++) while(fgetc(fp) != '\n');
     m_ntypes = 0;
-    fscanf(fp, "%d", &m_ntypes);
+    int n = fscanf(fp, "%d", &m_ntypes);
+    if (n != 1) throw runtime_error("Error parsing eam file");
+
     if(m_ntypes < 1 || m_ntypes > MAX_TYPE_NUMBER ) 
         {
         m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Type number is greater than " << MAX_TYPE_NUMBER << endl;
@@ -128,7 +130,9 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     //Load names of types.
     for(i = 0; i < m_ntypes; i++)
         {
-        fscanf(fp, "%2s", tmp_str);
+        n = fscanf(fp, "%2s", tmp_str);
+        if (n != 1) throw runtime_error("Error parsing eam file");
+
         names.push_back(tmp_str);
         unsigned int tid = m_pdata->getTypeByName(tmp_str);
         types.push_back(tid);
@@ -143,15 +147,25 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         }
 
     //Load parameters.
-    fscanf(fp,"%d", &nrho);
-    fscanf(fp,"%lg", &tmp);
+    n = fscanf(fp,"%d", &nrho);
+    if (n != 1) throw runtime_error("Error parsing eam file");
+    
+    n = fscanf(fp,"%lg", &tmp);
+    if (n != 1) throw runtime_error("Error parsing eam file");
+
     drho = tmp;
     rdrho = (Scalar)(1.0 / drho);
-    fscanf(fp,"%d", &nr);
-    fscanf(fp,"%lg", &tmp);
+    n = fscanf(fp,"%d", &nr);
+    if (n != 1) throw runtime_error("Error parsing eam file");
+
+    n = fscanf(fp,"%lg", &tmp);
+    if (n != 1) throw runtime_error("Error parsing eam file");
+
     dr = tmp;
     rdr = (Scalar)(1.0 / dr);
-    fscanf(fp,"%lg", &tmp);
+    n = fscanf(fp,"%lg", &tmp);
+    if (n != 1) throw runtime_error("Error parsing eam file");
+
     m_r_cut = tmp;
     if (nrho < 1 || nr < 1 || nrho > MAX_POINT_NUMBER || nr > MAX_POINT_NUMBER)
         {
@@ -168,7 +182,9 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     int res = 0;
     for(type = 0 ; type < m_ntypes; type++)
         {
-        fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, tmp_str);
+        n = fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, tmp_str);
+        if (n != 4) throw runtime_error("Error parsing eam file");
+
         mass.push_back(tmp_mass);
 
         //Read F's array
