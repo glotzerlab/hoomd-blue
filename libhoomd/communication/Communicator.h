@@ -143,7 +143,7 @@ struct migrate_logical_or
         bool return_value = *first++;
         while (first != last)
             {
-            if (*first)
+            if (*first++)
                 return_value = true;
             }
 
