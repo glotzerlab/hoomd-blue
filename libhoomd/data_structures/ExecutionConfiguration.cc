@@ -493,6 +493,8 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             // if the GPU is compute 2.x, multiply that by 4 as there are 4x more SPs in each MP
             if (prop.major == 2)
                 priority *= 4.0f;
+            if (prop.major == 3)
+                priority *= 24.0f;
 
             if (prop.kernelExecTimeoutEnabled)
                 priority -= 0.1f;

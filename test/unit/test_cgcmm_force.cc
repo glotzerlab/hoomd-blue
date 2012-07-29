@@ -246,7 +246,7 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, boost::shared
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
     h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
-    h_pos.data[1].x = Scalar(pow(1.5,1.0/3.0)); h_pos.data[1].y = h_pos.data[1].y = 0.0;
+    h_pos.data[1].x = Scalar(pow(1.5,1.0/3.0)); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0*pow(1.5,1.0/3.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
     shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));

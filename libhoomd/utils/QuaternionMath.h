@@ -463,9 +463,9 @@ DEVICE inline void quatrot(const Scalar3& a, const Scalar4& q, Scalar3& b)
 
 //! Rotate a vector with three Euler angles: http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
 /*! \param a Three-component vector to be rotated
-    \param phi (or \gamma) in radian
-    \param theta (or \beta) in radian
-    \param psi (or \alpha) in radian
+    \param phi (or gamma) in radian
+    \param theta (or beta) in radian
+    \param psi (or alpha) in radian
     \param b Resulted three-component vector 
 */
 DEVICE inline void eulerrot(const Scalar3& a, 

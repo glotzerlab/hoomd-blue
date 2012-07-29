@@ -139,7 +139,6 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < snapshot.size; i++)
         {
-        unsigned int tag = m_tag_array[i];
         unsigned int rtag = m_rtag_array[i];
 
         snapshot.pos[i] = make_scalar3(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);

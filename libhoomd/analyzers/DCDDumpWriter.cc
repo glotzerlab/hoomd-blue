@@ -338,6 +338,7 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     }
 
 /*! \param file File to write to
+    \param snapshot Snapshot to write
     Writes the actual particle positions for all particles at the current time step
 */
 void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleData& snapshot)

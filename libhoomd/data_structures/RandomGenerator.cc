@@ -493,7 +493,7 @@ BoxDim RandomGenerator::getBox() const
     }
 
 
-/*! initializes a snapshot with the internalL.y stored copy of the particle data */
+/*! initializes a snapshot with the internally stored copy of the particle data */
 void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
     {
     unsigned int nparticles = m_data.m_particles.size();

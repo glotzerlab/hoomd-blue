@@ -296,16 +296,16 @@ validated for the next feature release. Using the command <code>git checkout</co
 you can access bugfixes applied to the previous tagged release (\em maint) or experimental features
 still under development (\em next).
 
-To access a tagged release, check out the tag (for example 0.10.0):
+To access a tagged release, check out the tag (for example 0.11.0):
 \code
- $ git checkout v0.10.0
+ $ git checkout v0.11.0
 \endcode
 
 You can verify that the tagged release is exactly as it appeared to the developers when it was created if you
 have GPG installed.
 \code
  $ git cat-file blob 175bf6edfc8ac23c067df1d9bd7b5dd41982be3c | gpg --import
- $ git tag -v v0.10.0
+ $ git tag -v v0.11.0
 \endcode
 
 <b>Step 2: Compile and install hoomd with makefiles</b>

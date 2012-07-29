@@ -92,7 +92,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
 template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
                                                const typename evaluator::param_type *d_params)>
 PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef)
-    : PotentialExternal<evaluator>(sysdef), m_block_size(512)
+    : PotentialExternal<evaluator>(sysdef), m_block_size(128)
     {
     }
 

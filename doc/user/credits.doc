@@ -64,6 +64,7 @@ Rastko Sknepnek, Northwestern
  - pair.morse
 
 Carolyn Phillips, University of Michigan
+ - bond.table
  - pair.dpdlj
  - pair.dpd
  - pair.dpd_conservative
@@ -112,6 +113,7 @@ Peter Palm, Jens Glaser, Leipzig University
  - conversion of bond forces to template evaluator implementation
 
 Jens Glaser, University of Minnesota
+ - pair.force_shifted_lj
  - Dynamic addition/removal of bonds
  - Computation of virial and pressure tensor
  - integrate.nph
