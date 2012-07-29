@@ -112,7 +112,10 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_n_neigh.swap(n_neigh);
     GPUArray<Scalar4> last_pos(m_pdata->getN(), exec_conf);
     m_last_pos.swap(last_pos);
-    
+   
+    // initialize box length at last update
+    m_last_L = m_pdata->getGlobalBox().getL();
+
     // allocate conditions array
     GPUArray<unsigned int> conditions(1, exec_conf);
     m_conditions.swap(conditions);
@@ -655,16 +658,31 @@ bool NeighborList::distanceCheck()
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getL();
-    
+
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     
-    // actually scan the array looking for values over 1/2 the buffer distance
-    Scalar maxsq = (m_r_buff/Scalar(2.0))*(m_r_buff/Scalar(2.0));
+    // get current global box lengths
+    Scalar3 L_g = m_pdata->getGlobalBox().getL();
+
+    // Cutoff distance for inclusion in neighbor list
+    Scalar rmax = m_r_cut + m_r_buff;
+    if (!m_filter_diameter)
+        rmax += m_d_max - Scalar(1.0);
+
+    // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
+    Scalar3 lambda = L_g / m_last_L;
+    Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
+    lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
+
+    // maximum displacement for each particle (after subtraction of homogeneous dilations)
+    Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
+    Scalar maxsq = delta_max*delta_max;
+
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        Scalar3 dx = make_scalar3(h_pos.data[i].x - h_last_pos.data[i].x,
-                                  h_pos.data[i].y - h_last_pos.data[i].y,
-                                  h_pos.data[i].z - h_last_pos.data[i].z);
+        Scalar3 dx = make_scalar3(h_pos.data[i].x - lambda.x*h_last_pos.data[i].x,
+                                  h_pos.data[i].y - lambda.y*h_last_pos.data[i].y,
+                                  h_pos.data[i].z - lambda.z*h_last_pos.data[i].z);
         
         dx = box.minImage(dx);
         
