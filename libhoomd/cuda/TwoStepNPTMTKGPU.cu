@@ -95,8 +95,6 @@ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    // propagate velocity from t to t+1/2*deltaT and position from t to t+deltaT
-    // according to the Nose-Hoover barostat
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
@@ -116,17 +114,9 @@ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
         v = v*exp_v_fac_2 + Scalar(1.0/2.0)*deltaT*accel*exp_v_fac*sinhx_fac_v;
         r = r*exp_r_fac_2 + v*exp_r_fac*sinhx_fac_r*deltaT;
 
-        pos.x = r.x;
-        pos.y = r.y;
-        pos.z = r.z;
-
-        vel.x = v.x;
-        vel.y = v.y;
-        vel.z = v.z;
-
         // write out the results
-        d_pos[idx] = pos;
-        d_vel[idx] = vel;
+        d_pos[idx] = make_scalar4(r.x,r.y,r.z,pos.w);
+        d_vel[idx] = make_scalar4(v.x,v.y,v.z,vel.w);
         }
     }
 
@@ -314,12 +304,7 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
         // according to MTK equations of motion
         v = v*exp_v_fac_2 + Scalar(1.0/2.0)*deltaT*accel*exp_v_fac*sinhx_fac_v;
 
-        // write out the results
-        vel.x = v.x;
-        vel.y = v.y;
-        vel.z = v.z;
-
-        d_vel[idx] = vel;
+        d_vel[idx] = make_scalar4(v.x, v.y, v.z, vel.w);
 
         // since we calculate the acceleration, we need to write it for the next step
         d_accel[idx] = accel;
@@ -551,11 +536,7 @@ __global__ void gpu_npt_mtk_thermostat_kernel(Scalar4 *d_vel,
         v = v*exp_v_fac_thermo;
 
         // write out the results
-        vel.x = v.x;
-        vel.y = v.y;
-        vel.z = v.z;
-
-        d_vel[idx] = vel;
+        d_vel[idx] = make_scalar4(v.x,v.y,v.z,vel.w);
 
         }
     }
