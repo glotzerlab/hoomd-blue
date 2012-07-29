@@ -118,7 +118,11 @@ TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
 */
 void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     {
+#ifdef ENABLE_MPI
     unsigned int group_size = m_group->getNumLocalMembers();
+#else
+    unsigned int group_size = m_group->getNumMembers();
+#endif
     if (group_size == 0)
         return;
 
@@ -266,7 +270,11 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     {
+#ifdef ENABLE_MPI
     unsigned int group_size = m_group->getNumLocalMembers();
+#else
+    unsigned int group_size = m_group->getNumMembers();
+#endif
     if (group_size == 0)
         return;
 
@@ -306,7 +314,9 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar> d_temperature(m_temperature, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
 
+#ifdef ENABLE_MPI
         m_num_blocks = m_group->getNumLocalMembers() / m_reduction_block_size + 1;
+#endif
         gpu_npt_mtk_temperature(d_temperature.data,
                                 d_vel.data,
                                 d_scratch.data,
