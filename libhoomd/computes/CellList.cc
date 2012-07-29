@@ -433,10 +433,20 @@ void CellList::computeCellList()
             
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(p);
-        unsigned int ib = (unsigned int)(f.x * scale.x) + shift.x;
-        unsigned int jb = (unsigned int)(f.y * scale.y) + shift.y;
-        unsigned int kb = (unsigned int)(f.z * scale.z) + shift.z;
+        int ib = (int)(f.x * scale.x) + shift.x;
+        int jb = (int)(f.y * scale.y) + shift.y;
+        int kb = (int)(f.z * scale.z) + shift.z;
         
+#ifdef ENABLE_MPI
+        if (n >= m_pdata->getN())
+            {
+            // if a ghost particle is out of bounds, silently ignore it
+
+            if (ib < 0 || ib >= m_dim.x || jb < 0 || jb >= m_dim.y || kb < 0 || kb >= m_dim.z)
+                continue;
+            }
+#endif
+
         // need to handle the case where the particle is exactly at the box hi
         if (ib == m_dim.x)
             ib = 0;
@@ -444,16 +454,6 @@ void CellList::computeCellList()
             jb = 0;
         if (kb == m_dim.z)
             kb = 0;
-
-#ifdef ENABLE_MPI
-        if (n >= m_pdata->getN())
-            {
-            // if a ghost particle is out of bounds, silently ignore it
-
-            if (ib > m_dim.x || jb > m_dim.y || kb > m_dim.z)
-                continue;
-            }
-#endif
 
         // sanity check
         assert(ib < (unsigned int)(m_dim.x) && jb < (unsigned int)(m_dim.y) && kb < (unsigned int)(m_dim.z));

@@ -126,9 +126,19 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
 
     // find the bin each particle belongs in
     Scalar3 f = box.makeFraction(pos);
-    unsigned int ib = (unsigned int)(f.x * (ci.getW() - num_ghost_cells.x)) + num_ghost_cells.x/2;
-    unsigned int jb = (unsigned int)(f.y * (ci.getH() - num_ghost_cells.y)) + num_ghost_cells.y/2;
-    unsigned int kb = (unsigned int)(f.z * (ci.getD() - num_ghost_cells.z)) + num_ghost_cells.z/2;
+    int ib = (int)(f.x * (ci.getW() - num_ghost_cells.x)) + num_ghost_cells.x/2;
+    int jb = (int)(f.y * (ci.getH() - num_ghost_cells.y)) + num_ghost_cells.y/2;
+    int kb = (int)(f.z * (ci.getD() - num_ghost_cells.z)) + num_ghost_cells.z/2;
+
+#ifdef ENABLE_MPI
+    if (idx >= N)
+        {
+        // if a ghost particle is out of bounds, silently ignore it
+
+        if (ib < 0 || ib >= ci.getW() || jb < 0 || jb >= ci.getH() || kb < 0 || kb >= ci.getD()) 
+            return;
+        }
+#endif
 
     // need to handle the case where the particle is exactly at the box hi
     if (ib == ci.getW())
@@ -137,16 +147,6 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         jb = 0;
     if (kb == ci.getD())
         kb = 0;
-
-#ifdef ENABLE_MPI
-    if (idx >= N)
-        {
-        // if a ghost particle is out of bounds, silently ignore it
-
-        if (ib > ci.getW() || jb > ci.getH() || kb > ci.getD())
-            return;
-        }
-#endif
 
     unsigned int bin = ci(ib, jb, kb);
 
