@@ -337,6 +337,7 @@ class NeighborList : public Compute
             {
             m_d_max = d_max;
 
+#ifdef ENABLE_MPI
             if (m_comm)
                 {
                 Scalar rmax = m_r_cut + m_r_buff;
@@ -344,7 +345,7 @@ class NeighborList : public Compute
                 rmax += m_d_max - Scalar(1.0);
                 m_comm->setGhostLayerWidth(rmax);
                 }
-         
+#endif
             forceUpdate();
             }
         
