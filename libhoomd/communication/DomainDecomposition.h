@@ -135,6 +135,13 @@ class DomainDecomposition
             return m_root;
             }
 
+        //! Returns true if this is the root processor
+        bool isRoot() const
+            {
+            assert(m_mpi_comm);
+            return ((unsigned int) m_mpi_comm->rank()  == m_root);
+            }
+
         //! Get domain indexer
         const Index3D& getDomainIndexer() const
             {

@@ -190,8 +190,8 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 
 #ifdef ENABLE_MPI
     // only output to file on root processor
-    if (m_comm)
-        if (! m_comm->isRoot())
+    if (m_pdata->getDomainDecomposition())
+        if (! m_pdata->getDomainDecomposition()->isRoot())
             return;
 #endif
 
@@ -248,19 +248,6 @@ void Logger::analyze(unsigned int timestep)
     {
     if (m_prof) m_prof->push("Log");
     
-    // The timestep is always output
-    m_file << setprecision(10) << timestep;
-    cached_timestep = timestep;
-    
-    // quit now if there is nothing to log
-    if (m_logged_quantities.size() == 0)
-        {
-        return;
-        }
-        
-    // only print the delimiter after the timestep if there are more quantities logged
-    m_file << m_delimiter;
-    
     // update info in cache for later use and for immediate output.
     for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
         cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
@@ -275,6 +262,18 @@ void Logger::analyze(unsigned int timestep)
             }
 #endif
 
+    // The timestep is always output
+    m_file << setprecision(10) << timestep;
+    cached_timestep = timestep;
+    
+    // quit now if there is nothing to log
+    if (m_logged_quantities.size() == 0)
+        {
+        return;
+        }
+        
+    // only print the delimiter after the timestep if there are more quantities logged
+    m_file << m_delimiter;
        
     // write all but the last of the quantities separated by the delimiter
     for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)
