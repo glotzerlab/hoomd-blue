@@ -317,7 +317,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
 */
 void ExecutionConfiguration::printGPUStats()
     {
-    msg->notice(1) << "HOOMD-blue is running on the following GPU:" << endl;
+    msg->notice(1) << "HOOMD-blue is running on the following GPU(s):" << endl;
             
     // build a status line
     ostringstream s;
