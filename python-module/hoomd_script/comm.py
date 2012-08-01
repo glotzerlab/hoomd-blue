@@ -127,7 +127,7 @@ def init_domain_decomposition(mpi_arguments):
 
         if linear is True:
             # set up linear decomposition
-            nz = mpi.comm.size
+            nz = mpi.world.size
    
         # take a snapshot of the global system
         pdata = globals.system_definition.getParticleData()
