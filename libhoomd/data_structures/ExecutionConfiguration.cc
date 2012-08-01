@@ -348,9 +348,13 @@ void ExecutionConfiguration::printGPUStats()
     // follow up with some flags to signify device features
     if (dev_prop.kernelExecTimeoutEnabled)
         s << ", DIS";
-            
+           
+    // We print this information on every processor, so temporarily raise notice level
+    unsigned int nlevel_old = msg->getNoticeLevel();
+    msg->setNoticeLevel(1);
     msg->notice(1) << s.str() << endl;
-    
+    msg->setNoticeLevel(nlevel_old);
+
     // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
     if (dev_prop.major <= 1 && dev_prop.minor <= 1)
         {
@@ -618,7 +622,11 @@ void ExecutionConfiguration::setupStats()
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
+        // We print this information on every processor, so temporarily raise notice level
+        unsigned int nlevel_old = msg->getNoticeLevel();
+        msg->setNoticeLevel(1);
         msg->notice(1) << "Rank " << guessRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        msg->setNoticeLevel(nlevel_old);
         #endif
         }
     }

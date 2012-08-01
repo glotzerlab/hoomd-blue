@@ -55,6 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Messenger.h"
+#include "ExecutionConfiguration.h"
+
 #include <assert.h>
 using namespace std;
 
@@ -76,7 +78,9 @@ Messenger::Messenger()
     m_err_prefix     = "**ERROR**";
     m_warning_prefix = "*Warning*";
     m_notice_prefix  = "notice";
-    m_rank_initialized = false;
+
+    // preliminarily initialize rank
+    setRank(ExecutionConfiguration::guessRank());
     }
 
 Messenger::~Messenger()
@@ -95,7 +99,7 @@ std::ostream& Messenger::error() const
     {
     assert(m_err_stream);
     if (m_err_prefix != string(""))
-        *m_err_stream << m_err_prefix << ": ";
+        *m_err_stream << m_rank_prefix << m_err_prefix << ": ";
     return *m_err_stream;
     }
 
@@ -115,7 +119,7 @@ std::ostream& Messenger::warning() const
     {
     assert(m_warning_stream);
     if (m_warning_prefix != string(""))
-        *m_warning_stream << m_warning_prefix << ": ";
+        *m_warning_stream << m_rank_prefix << m_warning_prefix << ": ";
     return *m_warning_stream;
     }
 
@@ -139,7 +143,7 @@ std::ostream& Messenger::notice(unsigned int level) const
     if (level <= m_notice_level)
         {
         if (m_notice_prefix != string("") && level > 1)
-            *m_notice_stream << m_notice_prefix << "(" << level << "): ";
+            *m_notice_stream << m_rank_prefix << m_notice_prefix << "(" << level << "): ";
         return *m_notice_stream;
         }
     else

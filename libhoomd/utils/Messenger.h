@@ -172,21 +172,19 @@ class Messenger
         //! Set processor rank
         /*! All messages are prefixed with rank information.
 
+            Messages are only output on processor 0.
+
             \param rank This processor's rank
          */ 
         void setRank(unsigned int rank)
             {
-            if (! m_rank_initialized)
-                {
-                // prefix all messages with rank information
-                std::ostringstream oss;
-                oss << "Rank " << rank << " ";
-                m_err_prefix = oss.str() + m_err_prefix;
-                m_warning_prefix = oss.str() + m_warning_prefix;
-                m_notice_prefix = oss.str() + m_notice_prefix;
+            // prefix all messages with rank information
+            std::ostringstream oss;
+            oss << "Rank " << rank << " ";
+            m_rank_prefix = oss.str();
 
-                m_rank_initialized = true;
-                }
+            if (rank != 0)
+                m_notice_level = 0;
             }
 
         //! Get the notice level
@@ -309,7 +307,7 @@ class Messenger
 
         unsigned int m_notice_level;    //!< Notice level
 
-        bool m_rank_initialized;        //!< True if rank has been set
+        std::string m_rank_prefix;      //!< Prefix indicating processor rank
     };
 
 //! Exports Messenger to python

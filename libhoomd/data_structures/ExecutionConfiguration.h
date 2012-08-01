@@ -120,10 +120,6 @@ struct ExecutionConfiguration : boost::noncopyable
 
         // propagate information about this processor's rank to messenger
         msg->setRank(mpi_comm->rank());
-
-        // Disable messages on all but rank zero
-        if (mpi_comm->rank() != 0)
-            msg->setNoticeLevel(0);
         }
 #endif
 
