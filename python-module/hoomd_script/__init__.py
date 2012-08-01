@@ -191,12 +191,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         globals.integrator.update_methods();
         globals.integrator.update_thermos();
 
-    # If running in MPI mode
-    if globals.mpi_partition:
-        # set quiet flag on all processors other than rank zero
-        if (globals.mpi_partition.local_comm.rank != 0):
-            quiet = True;
-
     # if rigid bodies, setxv  
     if len(data.system_data(globals.system_definition).bodies) > 0:
         data.system_data(globals.system_definition).bodies.updateRV()

@@ -97,9 +97,6 @@ thermos = [];
 ## Cached all group
 group_all = None;
 
-## Global variable for storing the MPI domain decomposition class
-mpi_partition = None;
-
 ## Global options
 options = None;
 

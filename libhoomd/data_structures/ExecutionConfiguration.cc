@@ -97,6 +97,10 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
         msg = boost::shared_ptr<Messenger>(new Messenger());
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << min_cpu << " " << ignore_display << endl;
+
+    // preliminarily setup rank
+    msg->setRank(guessRank());
+
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -142,6 +146,9 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
     
+    // preliminarily setup rank
+    msg->setRank(guessRank());
+
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -318,6 +325,9 @@ void ExecutionConfiguration::printGPUStats()
     // start with the device ID and name
     int dev;
     cudaGetDevice(&dev);
+    unsigned int rank = guessRank();
+
+    s << " Rank " << rank;
     s << " [" << dev << "]";
     s << setw(22) << dev_prop.name;
     
@@ -553,6 +563,30 @@ int ExecutionConfiguration::getNumCapableGPUs()
 
 #endif
 
+unsigned int ExecutionConfiguration::guessRank()
+    {
+    std::vector<std::string> env_vars;
+
+    // setup common environment variables containing rank information
+    // the actual rank is inferred from the MPI environment later, this is just used
+    // for display purposes during initialization
+    env_vars.push_back("MV2_COMM_WORLD_RANK");
+    env_vars.push_back("OMPI_COMM_WORLD_RANK");
+    env_vars.push_back("PMI_ID");
+
+    std::vector<std::string>::iterator it;
+
+    for (it = env_vars.begin(); it != env_vars.end(); it++)
+        {
+        char *env;
+        if ((env = getenv(it->c_str())) != NULL)
+            return atoi(env);
+
+        }
+
+    return 0;
+    }
+
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
 */
 void ExecutionConfiguration::setupStats()
@@ -584,7 +618,7 @@ void ExecutionConfiguration::setupStats()
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
-        msg->notice(1) << "OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        msg->notice(1) << "Rank " << guessRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
         #endif
         }
     }
@@ -601,6 +635,9 @@ void export_ExecutionConfiguration()
                          .def_readonly("msg", &ExecutionConfiguration::msg)
 #ifdef ENABLE_CUDA
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
+#endif
+#ifdef ENABLE_MPI
+                         .def("setMPICommunicator", &ExecutionConfiguration::setMPICommunicator)
 #endif
                          ;
                          

@@ -67,10 +67,7 @@ import sys;
 # \returns true if the HOOMD library has been compiled with MPI support
 #
 def check_mpi():
-    if not hoomd.is_MPI_available():
-        # MPI is not available, throw an exception
-        print >> sys.stderr, "\n***Error! MPI support is not available in this HOOMD version\n";
-        raise RuntimeError('Error initializing MPI');
+    return hoomd.is_MPI_available()
 
 ## \internal
 # \brief Check if the python bindings for Boost.MPI is available, if so, import them
@@ -91,64 +88,46 @@ def check_boost_mpi():
             import boost.mpi as mpi
         except ImportError:
             # Boost.MPI is not available, throw an exception
-            print >> sys.stderr, "\n***Error! Could not load Boost.MPI python bindings.\n"
-            raise RuntimeError('Error initializing MPI');
+            globals.msg.warning("Could not load Boost.MPI python bindings. Disabling MPI support.")
+            return False
+
+    return True
 
 ## Setup up domain decomposition
 # \brief Initialize the domain decomposition of the global simulation domain
-#
-class mpi_partition:
-    ## Specify the domain decomposition of the simulation domain
-    def __init__(self, mpi_comm=None, root=0, nx=0, ny=0, nz=0, linear=False,n_replicas=1):
-        util.print_status_line()
+# \internal
+def init_domain_decomposition(mpi_arguments):
         if not init.is_initialized():
-            print >> sys.stderr, "\n***Error! Cannot create MPI partition before initialization.\n"
+            globals.msg.error("Possible internal error! Cannot create MPI partition before initialization.")
             raise RuntimeError('Error setting up MPI partition');
 
-        # Check if HOOMD has been compiled with MPI support
-        check_mpi()
+        if type(mpi_arguments) != type(dict()):
+            globals.msg.error("MPI partition parameters specified incorrectly.")
+            raise RuntimeError('Error setting up MPI partition');
+    
+        # default values for arguents
+        root = 0
+        nx = ny = nz = 0
+        linear = False
 
-        comm_world = mpi_comm
+        if 'root' in mpi_arguments:
+            root = mpi_arguments['root']
+        if 'nx' in mpi_arguments:
+            nx = mpi_arguments['nx']
+        if 'ny' in mpi_arguments:
+            ny = mpi_arguments['ny']
+        if 'nz' in mpi_arguments:
+            nz = mpi_arguments['nz']
+        if 'linear' in mpi_arguments:
+            linear = mpi_arguments['linear']
 
-        if comm_world is None:
-            # Create an MPI environment
-            # check if boost MPI is available
-            check_boost_mpi()
-            comm_world = mpi.world
-      
-        self.num_replicas = n_replicas;
-
-        # Check if we can split the communicator into replicas
-        if (comm_world.size % self.num_replicas) != 0:
-            print >> sys.stderr, "\n***Error! The total number of MPI ranks (%d) has to be a multiple of " \
-                                 "\n          the number of replicas (%d).\n" % (comm_world.size, self.num_replicas)
-            raise RuntimeError('Error splitting MPI communicator')
-
-        # construct intra-replica communicator
-        self.replica_rank = int(comm_world.rank*self.num_replicas/comm_world.size )
-        self.local_comm = comm_world.split(self.replica_rank)
-
-        self.root = root
-        # construct global communicator
-        if not (self.root >= 0 and self.root < comm_world.size/self.num_replicas):
-            print >> sys.stderr, "\n***Warning! The root processor rank supplied (%d) is not between 0 and the"\
-                                 "\n            number %d of processors available for this replica."\
-                                 "\n            Proceeding with root=0.\n" \
-                                 % (self.root, comm_world.size/self.num_replicas)
-            self.root = 0
-
-        # I'm commenting out this line of code because it results in a syntax error in python 2.4
-        # replica_comm seems to be unused at the moment
-        # self.replica_comm = comm_world.split(0 if ((comm_world.rank - self.root) % self.num_replicas == 0) else 1)
-        if (comm_world.rank - self.root) % self.num_replicas == 1:
-            # Only set global communicator on the root nodes
-            self.replica_comm = None;
-
-        # Initialize this replica
+        if not (root >= 0 and root < mpi.world.size):
+            globals.msg.warning("Invalid root processor rank (%d). Proceeding with rank 0 as root." % (root))
+            root = 0
 
         if linear is True:
             # set up linear decomposition
-            nz = self.local_comm.size
+            nz = mpi.comm.size
    
         # take a snapshot of the global system
         pdata = globals.system_definition.getParticleData()
@@ -157,26 +136,19 @@ class mpi_partition:
         pdata.takeSnapshot(snap)
 
         # initialize domain decomposition
-        self.cpp_decomposition = hoomd.DomainDecomposition(self.local_comm, pdata.getGlobalBox().getL(), self.root, nx, ny, nz);
+        cpp_decomposition = hoomd.DomainDecomposition(mpi.world, pdata.getGlobalBox().getL(), root, nx, ny, nz);
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
-            self.communicator = hoomd.Communicator(globals.system_definition, self.local_comm, self.cpp_decomposition)
+            cpp_communicator = hoomd.Communicator(globals.system_definition, mpi.world, cpp_decomposition)
         else:
-            self.communicator = hoomd.CommunicatorGPU(globals.system_definition, self.local_comm, self.cpp_decomposition)
+            cpp_communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi.world, cpp_decomposition)
 
         # set Communicator in C++ System
-        globals.system.setCommunicator(self.communicator)
+        globals.system.setCommunicator(cpp_communicator)
 
         # set Communicator in SystemDefinition
-        pdata.setDomainDecomposition(self.cpp_decomposition)
+        pdata.setDomainDecomposition(cpp_decomposition)
 
         # initialize domains from global snapshot
         pdata.initializeFromSnapshot(snap)
-
-        # store this object in the global variables
-        globals.mpi_partition = self
-
-    ## Returns true if this is the root processor
-    def isRoot(self):
-        return (self.root==self.local_comm.rank)

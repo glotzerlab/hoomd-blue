@@ -64,6 +64,10 @@ using namespace std;
 
 void output_version_info(bool verbose)
     {
+    // only print this on rank zero
+    if (ExecutionConfiguration::guessRank() != 0)
+        return;
+
     // output the version info that comes from CMake
     cout << "HOOMD-blue " << HOOMD_VERSION_LONG << endl;
         

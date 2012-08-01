@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <sstream>
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
@@ -167,6 +168,26 @@ class Messenger
 
         //! Alternate method to print notice strings
         void noticeStr(unsigned int level, const std::string& msg) const;
+
+        //! Set processor rank
+        /*! All messages are prefixed with rank information.
+
+            \param rank This processor's rank
+         */ 
+        void setRank(unsigned int rank)
+            {
+            if (! m_rank_initialized)
+                {
+                // prefix all messages with rank information
+                std::ostringstream oss;
+                oss << "Rank " << rank << " ";
+                m_err_prefix = oss.str() + m_err_prefix;
+                m_warning_prefix = oss.str() + m_warning_prefix;
+                m_notice_prefix = oss.str() + m_notice_prefix;
+
+                m_rank_initialized = true;
+                }
+            }
 
         //! Get the notice level
         /*! \returns Current notice level
@@ -287,6 +308,8 @@ class Messenger
         std::string m_notice_prefix;    //!< Prefix for notice messages
 
         unsigned int m_notice_level;    //!< Notice level
+
+        bool m_rank_initialized;        //!< True if rank has been set
     };
 
 //! Exports Messenger to python

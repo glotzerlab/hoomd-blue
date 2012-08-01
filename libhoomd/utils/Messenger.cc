@@ -76,6 +76,7 @@ Messenger::Messenger()
     m_err_prefix     = "**ERROR**";
     m_warning_prefix = "*Warning*";
     m_notice_prefix  = "notice";
+    m_rank_initialized = false;
     }
 
 Messenger::~Messenger()

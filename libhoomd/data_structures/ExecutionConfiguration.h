@@ -61,6 +61,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
+#ifdef ENABLE_MPI
+#include <boost/mpi.hpp>
+#endif
+
 #include "Messenger.h"
 
 /*! \file ExecutionConfiguration.h
@@ -103,7 +107,31 @@ struct ExecutionConfiguration : boost::noncopyable
     ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
     
     ~ExecutionConfiguration();
-    
+   
+#ifdef ENABLE_MPI
+    //! Set the boost MPI communicator
+    /*! \param mpi_comm The communicator
+     */
+    void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
+        {
+        m_mpi_comm = mpi_comm;
+
+        assert(msg);
+
+        // propagate information about this processor's rank to messenger
+        msg->setRank(mpi_comm->rank());
+
+        // Disable messages on all but rank zero
+        if (mpi_comm->rank() != 0)
+            msg->setNoticeLevel(0);
+        }
+#endif
+
+    //! Guess rank of this processor
+    /*! \returns Rank guessed from common environment variables, 0 is default
+     */
+    static unsigned int guessRank();
+
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
@@ -147,8 +175,10 @@ struct ExecutionConfiguration : boost::noncopyable
     
     //! Check for cuda errors
     void checkCUDAError(const char *file, unsigned int line) const;
-    
+#endif
+
 private:
+#ifdef ENABLE_CUDA
     //! Initialize the GPU with the given id
     void initializeGPU(int gpu_id, bool min_cpu);
     
@@ -174,7 +204,11 @@ private:
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
 #endif
-    
+  
+#ifdef ENABLE_MPI
+    boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The boost.MPI communicator
+#endif
+
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();
     };
