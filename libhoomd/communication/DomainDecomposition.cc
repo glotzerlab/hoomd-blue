@@ -77,14 +77,15 @@ BOOST_IS_MPI_DATATYPE(int3)
 /*! The constructor performs a spatial domain decomposition of the simulation box of processor with rank \b root.
  * The domain dimensions are distributed on the other processors.
  */
-DomainDecomposition::DomainDecomposition(boost::shared_ptr<boost::mpi::communicator> comm,
+DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                               boost::shared_ptr<boost::mpi::communicator> comm,
                                Scalar3 L,
                                unsigned int root,
                                unsigned int nx,
                                unsigned int ny,
                                unsigned int nz
                                )
-      : m_mpi_comm(comm)
+      : m_exec_conf(exec_conf), m_mpi_comm(comm)
     {
     unsigned int rank = m_mpi_comm->rank();
 
@@ -93,10 +94,9 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<boost::mpi::communica
         bool found_decomposition = findDecomposition(L, nx, ny, nz);
         if (! found_decomposition)
             {
-            cerr << endl << "***Warning! Unable to find a decomposition of total number of domains == "
+            m_exec_conf->msg->error() << "***Warning! Unable to find a decomposition of total number of domains == "
                  << m_mpi_comm->size()
-                 << endl << "            with requested dimensions. Choosing default decomposition."
-                 << endl << endl;
+                 << endl << "with requested dimensions. Choosing default decomposition.";
 
             nx = ny = nz = 0;
             findDecomposition(L, nx,ny,nz);
@@ -105,11 +105,11 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<boost::mpi::communica
         m_nx = nx;
         m_ny = ny;
         m_nz = nz;
-        
-        // Print out information about the domain decomposition
-        std::cout << "Domain decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << std::endl;
-        }
+       }
 
+    // Print out information about the domain decomposition
+    m_exec_conf->msg->notice(1) << "HOOMD-blue is runnning in MPI mode on " << m_mpi_comm->size() << " processors. Decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << "." << std::endl;
+ 
     // calculate physical box dimensions of every processor
 
     // broadcast global box dimensions
@@ -252,7 +252,7 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
 void export_DomainDecomposition()
     {
     class_<DomainDecomposition, boost::shared_ptr<DomainDecomposition>, boost::noncopyable >("DomainDecomposition",
-           init< boost::shared_ptr<boost::mpi::communicator>, Scalar3, unsigned int, unsigned int, unsigned int, unsigned int>())
+           init< boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<boost::mpi::communicator>, Scalar3, unsigned int, unsigned int, unsigned int, unsigned int>())
     ;
     }
 #endif // ENABLE_MPI

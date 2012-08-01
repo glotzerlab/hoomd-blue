@@ -136,7 +136,7 @@ def init_domain_decomposition(mpi_arguments):
         pdata.takeSnapshot(snap)
 
         # initialize domain decomposition
-        cpp_decomposition = hoomd.DomainDecomposition(mpi.world, pdata.getGlobalBox().getL(), root, nx, ny, nz);
+        cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, mpi.world, pdata.getGlobalBox().getL(), root, nx, ny, nz);
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():

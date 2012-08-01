@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "BoxDim.h"
+#include "ExecutionConfiguration.h"
 
 #include <boost/mpi.hpp>
 namespace boost
@@ -89,10 +90,6 @@ namespace boost
         }
     }
 
-//! Forward definitions
-class SystemDefinition;
-class ParticleData;
-
 /*! \ingroup communication
 */
 
@@ -119,7 +116,8 @@ class DomainDecomposition
          * \param ny Requested number of domains along the y direction (0 == choose default)
          * \param nz Requested number of domains along the z direction (0 == choose default)
          */
-        DomainDecomposition(boost::shared_ptr<boost::mpi::communicator> comm,
+        DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                       boost::shared_ptr<boost::mpi::communicator> comm,
                        Scalar3 L,
                        unsigned int root,
                        unsigned int nx = 0,
@@ -161,8 +159,6 @@ class DomainDecomposition
             }
 
     private:
-        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
- 
         unsigned int m_nx;           //!< Number of processors along the x-axis
         unsigned int m_ny;           //!< Number of processors along the y-axis
         unsigned int m_nz;           //!< Number of processors along the z-axis
@@ -174,6 +170,9 @@ class DomainDecomposition
         //! Find a domain decomposition with given parameters
         bool findDecomposition(Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz);
 
+        boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
+ 
    };
 
 //! Export the domain decomposition information
