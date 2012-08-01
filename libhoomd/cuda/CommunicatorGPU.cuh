@@ -80,13 +80,13 @@ void gpu_allocate_tmp_storage();
 void gpu_deallocate_tmp_storage();
 
 //! Mark particles in incomplete bonds for sending
-void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
-                                          const unsigned int pitch,
-                                          const unsigned int *d_n_bonds,
+void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           unsigned char *d_plan,
                                           const float4 *d_pos,
+                                          const unsigned int *d_rtag,
                                           const BoxDim& box,
-                                          const unsigned int N);
+                                          const unsigned int N,
+                                          const unsigned int n_bonds);
 
 //! Reorder the particle data
 void gpu_migrate_select_particles(unsigned int N,

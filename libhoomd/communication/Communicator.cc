@@ -559,42 +559,44 @@ void Communicator::exchangeGhosts()
     if (bdata->getNumBonds())
         {
         // Send incomplete bond member to the nearest plane in all directions
-        const GPUArray<uint2>& btable = bdata->getGPUBondList();
+        const GPUVector<uint2>& btable = bdata->getBondTable();
         ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_bonds(bdata->getNBondsArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
 
         Scalar3 L2 = box.getL()/Scalar(2.0); 
-
-        for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+        Scalar3 lo = box.getLo();
+    
+        unsigned nbonds = bdata->getNumBonds();
+        unsigned int N = m_pdata->getN();
+        for (unsigned int bond_idx = 0; bond_idx < nbonds; bond_idx++)
             {
-            unsigned int n_bonds = h_n_bonds.data[idx];
+            uint2 bond = h_btable.data[bond_idx];
 
-            // Is this bond complete (== all particles present on local processor)?
-            bool is_complete = true;
-
-            for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+            unsigned int tag1 = bond.x;
+            unsigned int tag2 = bond.y;
+            unsigned int idx1 = h_rtag.data[tag1];
+            unsigned int idx2 = h_rtag.data[tag2];
+        
+            if ((idx1 >= N) && (idx2 < N))
                 {
-                // get bond partner
-                unsigned int idxj = h_btable.data[idx + bond_idx * btable.getPitch()].x;
+                // send particle with index idx2 to neighboring domains
+                Scalar4 pos = h_pos.data[idx2];
 
-                if (! (idxj < m_pdata->getN()))
-                    {
-                    is_complete = false;
-                    break;
-                    }
+                h_plan.data[idx2] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+                h_plan.data[idx2] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+                h_plan.data[idx2] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
                 }
-
-            Scalar3 lo = box.getLo();
-            if (! is_complete)
+            else if ((idx1 < N) && (idx2 >= N))
                 {
-                Scalar4 pos = h_pos.data[idx];
+                // send particle with index idx1 to neighboring domains
+                Scalar4 pos = h_pos.data[idx1];
 
-                h_plan.data[idx] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
-                h_plan.data[idx] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
-                h_plan.data[idx] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
-                }
+                h_plan.data[idx1] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+                h_plan.data[idx1] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+                h_plan.data[idx1] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
+                } 
             }
         }
 

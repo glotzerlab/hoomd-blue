@@ -397,19 +397,19 @@ void CommunicatorGPU::exchangeGhosts()
     if (bdata->getNumBonds())
         {
         // Send incomplete bond member to the nearest plane in all directions
-        const GPUArray<uint2>& btable = bdata->getGPUBondList();
+        const GPUVector<uint2>& btable = bdata->getBondTable();
         ArrayHandle<uint2> d_btable(btable, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_n_bonds(bdata->getNBondsArray(), access_location::device, access_mode::read);
         ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
 
         gpu_mark_particles_in_incomplete_bonds(d_btable.data,
-                                               btable.getPitch(),
-                                               d_n_bonds.data,
                                                d_plan.data,
                                                d_pos.data,
+                                               d_rtag.data,
                                                m_pdata->getBox(),
-                                               m_pdata->getN());
+                                               m_pdata->getN(),
+                                               bdata->getNumBonds());
         CHECK_CUDA_ERROR();
         }
 

@@ -355,84 +355,94 @@ void gpu_deallocate_tmp_storage()
     }
 
 //! GPU Kernel to find incomplete bonds
-/*! \param gpu_btable GPU bond table
- * \param pitch Stride of GPU bond table
- * \param n_bonds GPU number of bonds array
+/*! \param btable Bond table
  * \param plan Plan array
  * \param d_pos Array of particle positions
+ * \param d_rtag Array of global reverse-lookup tags
  * \param box The local box dimensions
  * \param N number of (local) particles
+ * \param n_bonds Number of bonds in bond table
  */
-__global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *gpu_btable,
-                                                         const unsigned int pitch,
-                                                         const unsigned int *n_bonds,
+__global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btable,
                                                          unsigned char *plan,
                                                          const float4 *d_pos,
+                                                         const unsigned int *d_rtag,
                                                          const BoxDim box,
-                                                         const unsigned int N)
+                                                         const unsigned int N,
+                                                         const unsigned int n_bonds)
     {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int bond_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N)
+    if (bond_idx >= n_bonds)
         return;
 
-    unsigned int n = n_bonds[idx];
-    bool is_complete = true;
-    for (unsigned int bond_idx = 0; bond_idx < n; bond_idx++)
-        {
-        unsigned int idxj = gpu_btable[idx + bond_idx*pitch].x;
+    uint2 bond = btable[bond_idx];
 
-        if (! (idxj < N))
-            is_complete = false;
-
-        }
+    unsigned int tag1 = bond.x;
+    unsigned int tag2 = bond.y;
+    unsigned int idx1 = d_rtag[tag1];
+    unsigned int idx2 = d_rtag[tag2];
 
     float3 L2 = box.getL() / 2.0f;
     float3 lo = box.getLo();
 
-    if (! is_complete)
+    if ((idx1 >= N) && (idx2 < N))
         {
-        float4 pos = d_pos[idx];
-        unsigned char p = plan[idx];
+        // send particle with index idx2 to neighboring domains
+        float4 pos = d_pos[idx2];
+        unsigned char p = plan[idx2];
         p |= (pos.x > lo.x + L2.x) ? send_east : send_west;
         p |= (pos.y > lo.y + L2.y) ? send_north : send_south;
         p |= (pos.z > lo.z + L2.z) ? send_up : send_down;
-        plan[idx] = p;
+
+        // Multiple threads may update the plan simultaneously, but this should
+        // be safe, since they store the same result
+        plan[idx2] = p;
+        }
+    else if ((idx1 < N) && (idx2 >= N))
+        {
+        // send particle with index idx1 to neighboring domains
+        float4 pos = d_pos[idx1];
+        unsigned char p = plan[idx1];
+        p |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+        p |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+        p |= (pos.z > lo.z + L2.z) ? send_up : send_down;
+
+        // Multiple threads may update the plan simultaneously, but this should
+        // be safe, since they store the same result
+        plan[idx1] = p;
         }
     }
 
 //! Mark particles in incomplete bonds for sending
-/* \param d_gpu_btable GPU bond table
- * \param pitch Stride of GPU bond table
- * \param d_n_bonds GPU number of bonds array
+/* \param d_btable GPU bond table
  * \param d_plan Plan array
  * \param d_pos Array of particle positions
+ * \param d_rtag Array of global reverse-lookup tags
  * \param box The local box dimensions
  * \param N number of (local) particles
- * \param send_flag Send flag (plan) for ghost particles
+ * \param n_bonds Total number of bonds in bond table
  */
-void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_gpu_btable,
-                                          const unsigned int pitch,
-                                          const unsigned int *d_n_bonds,
+void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           unsigned char *d_plan,
                                           const float4 *d_pos,
+                                          const unsigned int *d_rtag,
                                           const BoxDim& box,
-                                          const unsigned int N)
+                                          const unsigned int N,
+                                          const unsigned int n_bonds)
     {
     assert(d_gpu_btable);
-    assert(pitch > 0);
-    assert(d_n_bonds);
     assert(d_plan);
     assert(N>0);
 
     unsigned int block_size = 512;
-    gpu_mark_particles_in_incomplete_bonds_kernel<<<N/block_size + 1, block_size>>>(d_gpu_btable,
-                                                                                    pitch,
-                                                                                    d_n_bonds,
+    gpu_mark_particles_in_incomplete_bonds_kernel<<<n_bonds/block_size + 1, block_size>>>(d_btable,
                                                                                     d_plan,
                                                                                     d_pos,
+                                                                                    d_rtag,
                                                                                     box,
-                                                                                    N);
+                                                                                    N,
+                                                                                    n_bonds);
     }
 
 //! Helper kernel to reorder particle data, step one
