@@ -117,7 +117,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, world, pdata->getBox().getL(), 0));
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -250,7 +250,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, world, pdata->getBox().getL(), 0));
 
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
 
@@ -507,7 +507,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition( world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  world, pdata->getBox().getL(), 0));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
@@ -1319,7 +1319,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, world, pdata->getBox().getL(), 0));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
 
     // width of ghost layer
