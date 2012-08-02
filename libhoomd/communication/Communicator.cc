@@ -220,9 +220,6 @@ void Communicator::reallocate()
 //! Interface to the communication methods.
 void Communicator::communicate(unsigned int timestep)
     {
-    if (m_prof)
-        m_prof->push("Communicate");
-
     // Guard to prevent recursive triggering of migration
     m_is_communicating = true;
 
@@ -244,9 +241,6 @@ void Communicator::communicate(unsigned int timestep)
         }
 
     m_is_communicating = false;
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 //! Transfer particles between neighboring domains

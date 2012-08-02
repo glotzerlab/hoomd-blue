@@ -1201,9 +1201,13 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
  */
 bool NeighborList::peekUpdate(unsigned int timestep)
     {
+    if (m_prof) m_prof->push("Neighbor");
+
     bool result = distanceCheck();
     if (result)
         m_num_cached_updates++;
+
+    if (m_prof) m_prof->pop();
 
     return result; 
     }
