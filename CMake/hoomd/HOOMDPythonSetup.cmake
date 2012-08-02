@@ -63,9 +63,11 @@ SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
 SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
 
 if (_python_version VERSION_GREATER 3)
-    SET(BOOST_PYTHON_COMPONENT "python3")
+    SET(BOOST_PYTHON_COMPONENT "python3" CACHE String "Name of Boost.Python component" FORCE )
+    SET(PY_3K TRUE CACHE BOOL "True if python version >= 3" FORCE)
 else()
-    SET(BOOST_PYTHON_COMPONENT "python")
+    SET(BOOST_PYTHON_COMPONENT "python" CACHE String "Name of Boost.Python component" FORCE )
+    SET(PY_3K FALSE CACHE BOOL "True if python version >= 3" FORCE)
 endif()
 
 INCLUDE(FindPackageHandleStandardArgs)
