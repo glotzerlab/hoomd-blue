@@ -135,7 +135,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         {
         // if a ghost particle is out of bounds, silently ignore it
 
-        if (ib < 0 || ib >= ci.getW() || jb < 0 || jb >= ci.getH() || kb < 0 || kb >= ci.getD()) 
+        if (ib < 0 || ib >= (int) ci.getW() || jb < 0 || jb >= (int) ci.getH() || kb < 0 || kb >= (int)ci.getD()) 
             return;
         }
 #endif
