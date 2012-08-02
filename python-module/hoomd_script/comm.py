@@ -128,7 +128,11 @@ def init_domain_decomposition(mpi_arguments):
         if linear is True:
             # set up linear decomposition
             nz = mpi.world.size
-   
+  
+        # exit early if we are only running on one processor
+        if mpi.world.size == 1:
+            return
+
         # take a snapshot of the global system
         pdata = globals.system_definition.getParticleData()
         nglobal = pdata.getNGlobal();
