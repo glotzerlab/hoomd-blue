@@ -385,6 +385,13 @@ class Communicator
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
         GPUVector<unsigned char> m_plan_copybuf;  //!< Buffer for particle plans
+        GPUVector<Scalar4> m_pos_recvbuf;         //!< Receive buffer for particle positions
+        GPUVector<Scalar> m_charge_recvbuf;       //!< Receive buffer for particle charges
+        GPUVector<Scalar> m_diameter_recvbuf;     //!< Receive buffer for particle diameters
+        GPUVector<unsigned char> m_plan_recvbuf;  //!< Receive buffer for particle plans
+        GPUVector<unsigned int> m_tag_recvbuf;   //!< Receive buffer for particle tags
+        GPUVector<unsigned char> m_add_ghost[6];   //!< Per-direction list of flags to indicate whether a ghost particle is added
+
 
         GPUVector<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of tags of particles to send as ghosts to neighboring processors
         unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
