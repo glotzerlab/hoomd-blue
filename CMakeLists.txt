@@ -25,6 +25,10 @@ message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
 # Handle user build options
 include (CMake_build_options.cmake)
+#################################
+## setup python library and executable
+# find the python libraries to link to
+include(HOOMDPythonSetup)
 # Find the boost libraries and set them up
 include (HOOMDBoostSetup)
 # Find CUDA and set it up

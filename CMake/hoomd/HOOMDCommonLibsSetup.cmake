@@ -4,11 +4,6 @@
 ## find the threads library
 find_package(Threads)
 
-#################################
-## setup python library and executable
-# find the python libraries to link to
-include(HOOMDPythonSetup)
-
 include_directories(${PYTHON_INCLUDE_DIR})
 
 # find ZLIB
