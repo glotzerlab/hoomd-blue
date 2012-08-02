@@ -155,6 +155,7 @@ void gpu_migrate_add_particles(  char *d_recv_buf,
 void gpu_filter_ghost_particles_step_one(unsigned int *d_tag_recvbuf,
                                          unsigned int *d_rtag,
                                          unsigned char *d_add_ghost,
+                                         unsigned int *d_ghost_idx,
                                          const unsigned int n_recv_ghosts,
                                          unsigned int& n_marked_particles);
 
@@ -170,6 +171,7 @@ void gpu_filter_ghost_particles_step_two(unsigned char *d_plan,
                                 Scalar *d_diameter_recvbuf,
                                 unsigned int *d_tag_recvbuf,
                                 unsigned char *d_add_ghost,
+                                unsigned int *d_ghost_idx,
                                 unsigned int n_recv_ghosts
                                 );
 
@@ -177,8 +179,8 @@ void gpu_filter_ghost_particles_step_two(unsigned char *d_plan,
 void gpu_filter_ghost_particles_copy(Scalar4 *d_pos,
                                 Scalar4 *d_pos_recvbuf,
                                 unsigned char *d_add_ghost,
-                                unsigned int n_recv_ghosts,
-                                unsigned int& n_added_ptls
+                                unsigned int *d_ghost_idx,
+                                unsigned int n_recv_ghosts
                                 );
  
 //! Wrap received ghost particles across global box

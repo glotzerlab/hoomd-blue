@@ -96,6 +96,10 @@ class CommunicatorGPU : public Communicator
 
         //@}
 
+    private:
+        GPUVector<unsigned int> m_ghost_idx[6];    //!< Per-direction map of local indices for received ghost particles
+        unsigned int m_num_add_ghosts[6];          //!< Per-direction count of added ghost particles
+
     };
 
 //! Export CommunicatorGPU class to python

@@ -84,6 +84,13 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     // allocate temporary GPU buffers
     gpu_allocate_tmp_storage();
+
+    for (unsigned int dir = 0; dir < 6; dir ++)
+        {
+        GPUVector<unsigned int> ghost_idx(m_exec_conf);
+        m_ghost_idx[dir].swap(ghost_idx);
+        }
+
     }
 
 //! Destructor
@@ -592,27 +599,29 @@ void CommunicatorGPU::exchangeGhosts()
         if (m_prof)
             m_prof->pop();
 
+        // append ghosts at the end of particle data array
+        unsigned int start_idx = m_pdata->getN() + m_pdata->getNGhosts();
+
         // filter particles (only accept particles that are not already local)
-        unsigned int n_add_ghosts;
+        m_ghost_idx[dir].resize(m_num_recv_ghosts[dir]);
             {
             // step 1: count received particles that are not already local
             ArrayHandle<unsigned int> d_tag_recvbuf(m_tag_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned char> d_add_ghost(m_add_ghost[dir], access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx[dir], access_location::device, access_mode::overwrite);
 
             gpu_filter_ghost_particles_step_one(d_tag_recvbuf.data,
                                                 d_rtag.data,
                                                 d_add_ghost.data,
+                                                d_ghost_idx.data,
                                                 m_num_recv_ghosts[dir],
-                                                n_add_ghosts);
+                                                m_num_add_ghosts[dir]);
             CHECK_CUDA_ERROR();
             }
 
-        // append ghosts at the end of particle data array
-        unsigned int start_idx = m_pdata->getN() + m_pdata->getNGhosts();
-
         // accommodate new ghost particles
-        m_pdata->addGhostParticles(n_add_ghosts);
+        m_pdata->addGhostParticles(m_num_add_ghosts[dir]);
 
         // resize plan array
         m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
@@ -624,14 +633,15 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
 
             ArrayHandle<unsigned char> d_plan_recvbuf(m_plan_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_pos_recvbuf(m_pos_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_charge_recvbuf(m_charge_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter_recvbuf(m_diameter_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_tag_recvbuf(m_tag_recvbuf, access_location::device, access_mode::read);
+
             ArrayHandle<unsigned char> d_add_ghost(m_add_ghost[dir], access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx[dir], access_location::device, access_mode::read);
 
             gpu_filter_ghost_particles_step_two(d_plan.data + start_idx,
                                                 d_pos.data + start_idx,
@@ -644,6 +654,7 @@ void CommunicatorGPU::exchangeGhosts()
                                                 d_diameter_recvbuf.data,
                                                 d_tag_recvbuf.data,
                                                 d_add_ghost.data,
+                                                d_ghost_idx.data,
                                                 m_num_recv_ghosts[dir]);
             CHECK_CUDA_ERROR();
             }
@@ -652,7 +663,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
             gpu_wrap_ghost_particles(dir,
-                              n_add_ghosts,
+                              m_num_add_ghosts[dir],
                               d_pos.data + start_idx,
                               m_pdata->getGlobalBox(),
                               m_is_at_boundary);
@@ -661,7 +672,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
 
-            gpu_update_rtag(n_add_ghosts, start_idx, d_global_tag.data + start_idx, d_global_rtag.data);
+            gpu_update_rtag(m_num_add_ghosts[dir], start_idx, d_global_tag.data + start_idx, d_global_rtag.data);
             CHECK_CUDA_ERROR();
 
             }
@@ -742,19 +753,18 @@ void CommunicatorGPU::copyGhosts()
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
 
-        unsigned int n_added_ptls;
-
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
             ArrayHandle<Scalar4> d_pos_recvbuf(m_pos_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<unsigned char> d_add_ghost(m_add_ghost[dir], access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx[dir], access_location::device, access_mode::read);
 
             gpu_filter_ghost_particles_copy(d_pos.data + start_idx,
                                             d_pos_recvbuf.data,
                                             d_add_ghost.data,
-                                            m_num_recv_ghosts[dir],
-                                            n_added_ptls);
+                                            d_ghost_idx.data,
+                                            m_num_recv_ghosts[dir]);
             CHECK_CUDA_ERROR();
             }
            
@@ -762,14 +772,14 @@ void CommunicatorGPU::copyGhosts()
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
             gpu_wrap_ghost_particles(dir,
-                           n_added_ptls,
+                           m_num_add_ghosts[dir],
                            d_pos.data + start_idx,
                            m_pdata->getGlobalBox(),
                            m_is_at_boundary);
             CHECK_CUDA_ERROR();
             }
         
-        start_idx += n_added_ptls;
+        start_idx += m_num_add_ghosts[dir];
 
         } // end dir loop
 

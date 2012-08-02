@@ -791,47 +791,6 @@ struct particle_not_local
         }
     };
 
-//! Filter received ghost particles (only accept particles that are not local or ghosts) (step one)
-/*! Count and mark particles that meet the criterium
- * \param d_tag_recvbuf Device array of received particle tags
- * \param d_rtag Array of reverse-lookup tags
- * \param d_add_ghost Array of per-received-particle flags whether this ghost particle is to be added
- * \param n_recv_ghosts Number of received ghost particles
- * \param n_marked_particles (Return parameter) Counts the number of particles to be added as ghosts
- */
-void gpu_filter_ghost_particles_step_one(unsigned int *d_tag_recvbuf,
-                                         unsigned int *d_rtag,
-                                         unsigned char *d_add_ghost,
-                                         const unsigned int n_recv_ghosts,
-                                         unsigned int& n_marked_particles)
-    {
-    thrust::device_ptr<unsigned char> add_ghost_ptr(d_add_ghost);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-    thrust::device_ptr<unsigned int> tag_recvbuf_ptr(d_tag_recvbuf);
-
-    // clear flags
-    thrust::fill(add_ghost_ptr,
-                 add_ghost_ptr + n_recv_ghosts,
-                 0);
-
-    // set flags
-    thrust::constant_iterator<unsigned char> const_one(1);
-    thrust::counting_iterator<unsigned int> cnt(0);
-    thrust::permutation_iterator<thrust::device_ptr<unsigned int>, thrust::device_ptr<unsigned int> > ghost_rtag(rtag_ptr, tag_recvbuf_ptr);
-
-    thrust::scatter_if(const_one,
-                       const_one + n_recv_ghosts,
-                       cnt,
-                       ghost_rtag,
-                       add_ghost_ptr,
-                       particle_not_local());
-
-    // count flags  
-    n_marked_particles = thrust::count_if(ghost_rtag,
-                                          ghost_rtag + n_recv_ghosts,
-                                          particle_not_local());
-    }
-
 //! Predicate to check if ghost particle needs to be added to system according to flag
 struct ghost_flag_set
     {
@@ -844,6 +803,56 @@ struct ghost_flag_set
         }
     };
 
+
+
+//! Filter received ghost particles (only accept particles that are not local or ghosts) (step one)
+/*! Count and mark particles that meet the criterium
+ * \param d_tag_recvbuf Device array of received particle tags
+ * \param d_rtag Array of reverse-lookup tags
+ * \param d_add_ghost Array of per-received-particle flags whether this ghost particle is to be added
+ * \param d_ghost_idx Map of ghost particle indices in local particle data
+ * \param start_idx Starting index for ghost particles
+ * \param n_recv_ghosts Number of received ghost particles
+ * \param n_marked_particles (Return parameter) Counts the number of particles to be added as ghosts
+ */
+void gpu_filter_ghost_particles_step_one(unsigned int *d_tag_recvbuf,
+                                         unsigned int *d_rtag,
+                                         unsigned char *d_add_ghost,
+                                         unsigned int *d_ghost_idx,
+                                         const unsigned int n_recv_ghosts,
+                                         unsigned int& n_marked_particles)
+    {
+    thrust::device_ptr<unsigned char> add_ghost_ptr(d_add_ghost);
+    thrust::device_ptr<unsigned int> ghost_idx_ptr(d_ghost_idx);
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+    thrust::device_ptr<unsigned int> tag_recvbuf_ptr(d_tag_recvbuf);
+
+    // clear flags
+    thrust::fill(add_ghost_ptr,
+                 add_ghost_ptr + n_recv_ghosts,
+                 0);
+
+    // set flags
+    thrust::constant_iterator<unsigned char> const_one(1);
+    thrust::counting_iterator<unsigned int> count(0);
+    thrust::permutation_iterator<thrust::device_ptr<unsigned int>, thrust::device_ptr<unsigned int> > ghost_rtag(rtag_ptr, tag_recvbuf_ptr);
+
+    thrust::scatter_if(const_one,
+                       const_one + n_recv_ghosts,
+                       count,
+                       ghost_rtag,
+                       add_ghost_ptr,
+                       particle_not_local());
+
+    // count flags and create index map
+    thrust::counting_iterator<unsigned int> idx(0);
+    n_marked_particles = thrust::copy_if(idx,
+                                         idx + n_recv_ghosts,
+                                         add_ghost_ptr,
+                                         ghost_idx_ptr,
+                                         ghost_flag_set()) - ghost_idx_ptr;
+ 
+    }
 
 //! Filter received ghost particles (only accept particles that are not local or ghosts) (step two)
 /*! Add particles that have been previously marked
@@ -858,6 +867,7 @@ struct ghost_flag_set
  * \param d_diameter_recvbuf Receive buffer for ghost particle diameters
  * \param d_tag_recvbuf Receive buffer for ghost particle tags
  * \param d_add_ghost Flags per received ghost particle to indicate whether particle should be added
+ * \param d_ghost_idx Map of ghost particle indices in local particle data
  * \param n_recv_ghosts Total number of received ghost particles
  */
 void gpu_filter_ghost_particles_step_two(unsigned char *d_plan,
@@ -871,6 +881,7 @@ void gpu_filter_ghost_particles_step_two(unsigned char *d_plan,
                                 Scalar *d_diameter_recvbuf,
                                 unsigned int *d_tag_recvbuf,
                                 unsigned char *d_add_ghost,
+                                unsigned int *d_ghost_idx,
                                 unsigned int n_recv_ghosts
                                 ) 
     {
@@ -886,8 +897,9 @@ void gpu_filter_ghost_particles_step_two(unsigned char *d_plan,
     thrust::device_ptr<unsigned int> tag_recvbuf_ptr(d_tag_recvbuf);
 
     thrust::device_ptr<unsigned char> add_ghost_ptr(d_add_ghost);
+    thrust::device_ptr<unsigned int> ghost_idx_ptr(d_ghost_idx);
 
-    thrust::copy_if(thrust::make_zip_iterator(thrust::make_tuple(
+    thrust::scatter_if(thrust::make_zip_iterator(thrust::make_tuple(
                         plan_recvbuf_ptr,
                         pos_recvbuf_ptr,
                         charge_recvbuf_ptr,
@@ -899,6 +911,7 @@ void gpu_filter_ghost_particles_step_two(unsigned char *d_plan,
                         charge_recvbuf_ptr,
                         diameter_recvbuf_ptr,
                         tag_recvbuf_ptr)) + n_recv_ghosts,
+                    ghost_idx_ptr,
                     add_ghost_ptr,
                     thrust::make_zip_iterator(thrust::make_tuple(
                         plan_ptr,
@@ -914,26 +927,29 @@ void gpu_filter_ghost_particles_step_two(unsigned char *d_plan,
  * \param d_pos Array of particle positions
  * \param d_pos_recvbuf Receive buffer for ghost particle positions
  * \param d_add_ghost Flags per received ghost particle to indicate whether particle should be added
+ * \param d_ghost_idx Map of ghost particle indices in local particle data
  * \param n_recv_ghosts Total number of received ghost particles
  * \param n_added_ptls (Return parameter) Number of particles added
  */
 void gpu_filter_ghost_particles_copy(Scalar4 *d_pos,
                                 Scalar4 *d_pos_recvbuf,
                                 unsigned char *d_add_ghost,
-                                unsigned int n_recv_ghosts,
-                                unsigned int& n_added_ptls
+                                unsigned int *d_ghost_idx,
+                                unsigned int n_recv_ghosts
                                 ) 
     {
     thrust::device_ptr<Scalar4> pos_ptr(d_pos);
     thrust::device_ptr<Scalar4> pos_recvbuf_ptr(d_pos_recvbuf);
 
     thrust::device_ptr<unsigned char> add_ghost_ptr(d_add_ghost);
+    thrust::device_ptr<unsigned int> ghost_idx_ptr(d_ghost_idx);
 
-    n_added_ptls = thrust::copy_if(pos_recvbuf_ptr,
-                    pos_recvbuf_ptr,
+    thrust::scatter_if(pos_recvbuf_ptr,
+                    pos_recvbuf_ptr + n_recv_ghosts,
+                    ghost_idx_ptr,
                     add_ghost_ptr,
                     pos_ptr,
-                    ghost_flag_set()) - pos_ptr;
+                    ghost_flag_set());
     }
      
 //! Wrap received ghost particles across global box
