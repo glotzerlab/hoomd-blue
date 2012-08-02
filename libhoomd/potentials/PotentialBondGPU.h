@@ -191,7 +191,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
 #ifdef ENABLE_MPI
         if (h_flags.data[0]==2)
             {
-            this->m_exec_conf->msg->error() << "Found incomplete bond. Try increasing the bond stiffness."  << endl << endl;
+            this->m_exec_conf->msg->error() << "Found incomplete bond. Try increasing the bond stiffness or reduce number of domains."  << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
 #endif

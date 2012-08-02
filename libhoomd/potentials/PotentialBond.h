@@ -244,7 +244,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
             {
-            this->m_exec_conf->msg->error() << "Found incomplete bond. Try increasing the bond stiffness."  << endl << endl;
+            this->m_exec_conf->msg->error() << "Found incomplete bond. Try increasing the bond stiffness or reduce number of domains."  << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
 #endif
