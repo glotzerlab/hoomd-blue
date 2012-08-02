@@ -61,6 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     consistency.
 */
 
+#include "HOOMDMath.h"
+
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc
 // HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
