@@ -151,7 +151,36 @@ void gpu_migrate_add_particles(  char *d_recv_buf,
                                  float4  *d_orientation,
                                  unsigned int *d_tag);
 
+//! Filter received ghost particles (only accept particles that are not local or ghosts) (step one)
+void gpu_filter_ghost_particles_step_one(unsigned int *d_tag_recvbuf,
+                                         unsigned int *d_rtag,
+                                         unsigned char *d_add_ghost,
+                                         const unsigned int n_recv_ghosts,
+                                         unsigned int& n_marked_particles);
 
+//! Filter received ghost particles (only accept particles that are not local or ghosts) (step two)
+void gpu_filter_ghost_particles_step_two(unsigned char *d_plan,
+                                Scalar4 *d_pos,
+                                Scalar *d_charge,
+                                Scalar *d_diameter,
+                                unsigned int *d_tag,
+                                unsigned char *d_plan_recvbuf,
+                                Scalar4 *d_pos_recvbuf,
+                                Scalar *d_charge_recvbuf,
+                                Scalar *d_diameter_recvbuf,
+                                unsigned int *d_tag_recvbuf,
+                                unsigned char *d_add_ghost,
+                                unsigned int n_recv_ghosts
+                                );
+
+//! Filter received ghost particles when copying
+void gpu_filter_ghost_particles_copy(Scalar4 *d_pos,
+                                Scalar4 *d_pos_recvbuf,
+                                unsigned char *d_add_ghost,
+                                unsigned int n_recv_ghosts,
+                                unsigned int& n_added_ptls
+                                );
+ 
 //! Wrap received ghost particles across global box
 void gpu_wrap_ghost_particles(unsigned int dir,
                               unsigned int n,
