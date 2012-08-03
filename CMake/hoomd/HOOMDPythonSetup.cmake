@@ -19,11 +19,13 @@ endmacro(run_python)
 find_package(PythonInterp REQUIRED)
 
 # get the python installation prefix and version
-run_python("import sys\; print('%d.%d' % (sys.version_info[0],sys.version_info[1]))" _python_version)
-string(REPLACE "." "" _python_version_no_dots ${_python_version})
+run_python("import sys\; print('%d' % (sys.version_info[0]))" PYTHON_VERSION_MAJOR)
+run_python("import sys\; print('%d' % (sys.version_info[1]))" PYTHON_VERSION_MINOR)
+set(PYTHON_VERSION "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+string(REPLACE "." "" _python_version_no_dots ${PYTHON_VERSION})
 
 # determine the include directory
-if (_python_version VERSION_GREATER 3)
+if (PYTHON_VERSION VERSION_GREATER 3)
     run_python("import sysconfig\; print(sysconfig.get_path('include'))" _python_include_hint)
     run_python("import sysconfig\; print(sysconfig.get_config_var('LIBDIR'))" _python_lib_hint)
     run_python("import sysconfig\; print(sysconfig.get_config_var('LDLIBRARY'))" _python_dynamic_lib_name)
@@ -46,7 +48,7 @@ find_path(PYTHON_INCLUDE_DIR Python.h
 set(_old_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
 set(CMAKE_FIND_LIBRARY_SUFFIXES ";${CMAKE_FIND_LIBRARY_SUFFIXES}")
 find_library(PYTHON_LIBRARY
-             NAMES ${_python_lib_first} python${_python_version_no_dots} python${_python_version}
+             NAMES ${_python_lib_first} python${_python_version_no_dots} python${PYTHON_VERSION}
              HINTS ${_python_prefix_hint} ${_python_static_hint} ${_python_lib_hint}
              PATH_SUFFIXES lib64 lib libs
              NO_DEFAULT_PATH
@@ -61,14 +63,6 @@ MARK_AS_ADVANCED(
 
 SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
 SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
-
-if (_python_version VERSION_GREATER 3)
-    SET(BOOST_PYTHON_COMPONENT "python3" CACHE String "Name of Boost.Python component" FORCE )
-    SET(PY_3K TRUE CACHE BOOL "True if python version >= 3" FORCE)
-else()
-    SET(BOOST_PYTHON_COMPONENT "python" CACHE String "Name of Boost.Python component" FORCE )
-    SET(PY_3K FALSE CACHE BOOL "True if python version >= 3" FORCE)
-endif()
 
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonLibs DEFAULT_MSG PYTHON_LIBRARIES PYTHON_INCLUDE_DIRS)
