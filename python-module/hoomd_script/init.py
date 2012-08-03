@@ -520,6 +520,11 @@ def create_random_polymers(box, polymers, separation, seed=1):
         
         # if the bond setting is 'linear' create a default set of bonds
         if poly['bond'] == 'linear':
+
+            # in python 3, xrange is called range
+            if 'xrange' not in dir(__builtins__):
+                xrange = range
+
             for i in xrange(0,len(poly['type'])-1):
                 bond_a.push_back(i);
                 bond_b.push_back(i+1);
