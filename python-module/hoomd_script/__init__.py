@@ -53,6 +53,8 @@
 import hoomd;
 import sys;
 import util;
+import data;
+import globals;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API

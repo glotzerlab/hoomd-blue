@@ -230,7 +230,7 @@ def _find_optimal_block_size_fc(fc, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             fc.cpp_force.setBlockSize(block_size);
             t = fc.benchmark(n);
             globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
@@ -258,7 +258,7 @@ def _find_optimal_block_size_nl(nl, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             nl.cpp_nlist.setBlockSize(block_size);
             t = nl.benchmark(n);
             globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
@@ -288,7 +288,7 @@ def _find_optimal_block_size_nl_filter(nl, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             nl.cpp_nlist.setBlockSizeFilter(block_size);
             t = nl.cpp_nlist.benchmarkFilter(n);
             globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
@@ -406,10 +406,10 @@ def find_optimal_block_sizes(save = True, only=None):
     improper_data = sysdef.sysdef.getImproperData();
     num_particles = len(polymer['type']) * polymer['count'];
     
-    for i in xrange(1,num_particles-3):
+    for i in range(1,num_particles-3):
         angle_data.addAngle(hoomd.Angle(0, i, i+1, i+2));
     
-    for i in xrange(1,num_particles-4):
+    for i in range(1,num_particles-4):
         dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
         improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
     
@@ -424,7 +424,7 @@ def find_optimal_block_sizes(save = True, only=None):
     # list of optimal databases
     optimal_dbs = [];
     num_repeats = 3;
-    for i in xrange(0,num_repeats):
+    for i in range(0,num_repeats):
         
         # initialize an empty database of optimal sizes
         optimal_db = {};
@@ -681,7 +681,7 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     tps_list = [];
 
     # loop over all desired r_buff points
-    for i in xrange(0,jumps):
+    for i in range(0,jumps):
         # set the current r_buff
         r_buff = r_min + i * dr;
         globals.neighbor_list.set_params(r_buff=r_buff);
