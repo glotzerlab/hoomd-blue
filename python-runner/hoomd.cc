@@ -151,6 +151,7 @@ int main(int argc, char **argv)
     if (hoomd_script_dir != "")
         {
         python_cmds += string("sys.path.insert(0, r\"") + hoomd_script_dir + string("\")\n");
+        python_cmds += string("sys.path.insert(0, r\"") + hoomd_script_dir + "/hoomd_script" +  string("\")\n");
         }
     
     if (getenv("HOOMD_PLUGINS_DIR"))
