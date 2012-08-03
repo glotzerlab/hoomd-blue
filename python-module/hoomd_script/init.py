@@ -521,8 +521,6 @@ def create_random_polymers(box, polymers, separation, seed=1, mpi_arguments=dict
         
         # if the bond setting is 'linear' create a default set of bonds
         if poly['bond'] == 'linear':
-
-        if poly['bond'] == 'linear':
             for i in range(0,len(poly['type'])-1):
                 bond_a.push_back(i);
                 bond_b.push_back(i+1);
