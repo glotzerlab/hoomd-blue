@@ -73,9 +73,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Supports anisotropic (orthorhombic or tetragonal) integration modes, by implementing a special
     version of the the fully flexible cell update equations proposed in Yu, Alejandre et al.
 
-    \cite{Martyna1994}
-    \cite{Tuckerman2006}
-    \cite{Yu2010}
+    \cite Martyna1994
+    \cite Tuckerman2006
+    \cite Yu2010
     \ingroup updaters
 */
 class TwoStepNPTMTK : public IntegrationMethodTwoStep

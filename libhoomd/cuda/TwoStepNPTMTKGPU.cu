@@ -269,7 +269,7 @@ cudaError_t gpu_npt_mtk_wrap(const unsigned int N,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param exp_v_fac scaling factor (per direction) for velocity update generate by barostat
-    \param exp_v_fac scaling factor (per direction) for velocity update generate by barostat (squared)
+    \param exp_v_fac_2 scaling factor (per direction) for velocity update generate by barostat (squared)
     \param sinhx_fac_v sinh(x)/x scaling factor (per direction) for velocity update generate by barostat
     \param deltaT Time to advance (for one full step)
 */
