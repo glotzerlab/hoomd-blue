@@ -522,11 +522,7 @@ def create_random_polymers(box, polymers, separation, seed=1, mpi_arguments=dict
         # if the bond setting is 'linear' create a default set of bonds
         if poly['bond'] == 'linear':
 
-            # in python 3, xrange is called range
-            if 'xrange' not in dir(__builtins__):
-                xrange = range
-
-            for i in xrange(0,len(poly['type'])-1):
+            for i in range(0,len(poly['type'])-1):
                 bond_a.push_back(i);
                 bond_b.push_back(i+1);
                 bond_name.append('polymer')
@@ -640,13 +636,5 @@ def _create_exec_conf():
     
     globals.exec_conf = exec_conf;
 
-    # Check if HOOMD has been compiled with MPI support
-    if comm.check_mpi():
-        # initialize MPI if available
-        if comm.check_boost_mpi():
-            # set communicator in execution configuration, to initialize
-            # rank-specific message display settings
-            exec_conf.setMPICommunicator(comm.mpi.world)
-    
     return exec_conf;
 

@@ -112,14 +112,9 @@ struct ExecutionConfiguration : boost::noncopyable
     //! Set the boost MPI communicator
     /*! \param mpi_comm The communicator
      */
-    void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
+    boost::shared_ptr<boost::mpi::communicator> getMPICommunicator()
         {
-        m_mpi_comm = mpi_comm;
-
-        assert(msg);
-
-        // propagate information about this processor's rank to messenger
-        msg->setRank(mpi_comm->rank());
+        return m_mpi_comm;
         }
 #endif
 
@@ -202,6 +197,9 @@ private:
 #endif
   
 #ifdef ENABLE_MPI
+    void initializeMPI();                                   //!< Initialize MPI environment
+
+    boost::mpi::environment *m_mpi_env;                     //!< The boost.MPI environment
     boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The boost.MPI communicator
 #endif
 

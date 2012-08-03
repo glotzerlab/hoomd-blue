@@ -121,6 +121,12 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     exec_mode=CPU;
 #endif
 
+#ifdef ENABLE_MPI
+    initializeMPI();
+
+    msg->setRank(m_mpi_comm->rank());
+#endif
+
     setupStats();
     }
 
@@ -164,6 +170,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
 #endif
 
+#ifdef ENABLE_MPI
+    initializeMPI();
+
+    msg->setRank(m_mpi_comm->rank());
+#endif
+
     setupStats();
     }
 
@@ -175,7 +187,19 @@ ExecutionConfiguration::~ExecutionConfiguration()
     if (exec_mode == GPU)
         cudaThreadExit();
     #endif
+
+    #ifdef ENABLE_MPI
+    delete m_mpi_env;
+    #endif
     }
+
+#ifdef ENABLE_MPI
+void ExecutionConfiguration::initializeMPI()
+    {
+    m_mpi_env = new boost::mpi::environment();
+    m_mpi_comm = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());
+    }
+#endif
 
 std::string ExecutionConfiguration::getGPUName() const
     {
@@ -645,7 +669,7 @@ void export_ExecutionConfiguration()
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
 #ifdef ENABLE_MPI
-                         .def("setMPICommunicator", &ExecutionConfiguration::setMPICommunicator)
+                         .def("getMPICommunicator", &ExecutionConfiguration::getMPICommunicator)
 #endif
                          ;
                          
@@ -653,4 +677,13 @@ void export_ExecutionConfiguration()
     .value("GPU", ExecutionConfiguration::GPU)
     .value("CPU", ExecutionConfiguration::CPU)
     ;
+
+#ifdef ENABLE_MPI
+    // Export MPI Communicator
+    class_<boost::mpi::communicator, boost::shared_ptr<boost::mpi::communicator> >
+                         ("mpi_comm", init< >())
+                         .def("size", &boost::mpi::communicator::size)
+                         .def("rank", &boost::mpi::communicator::rank)
+                         ;
+#endif
     }

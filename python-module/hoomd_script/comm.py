@@ -121,16 +121,17 @@ def init_domain_decomposition(mpi_arguments):
         if 'linear' in mpi_arguments:
             linear = mpi_arguments['linear']
 
-        if not (root >= 0 and root < mpi.world.size):
+        mpi_comm = globals.exec_conf.getMPICommunicator()
+        if not (root >= 0 and root < mpi_comm.size()):
             globals.msg.warning("Invalid root processor rank (%d). Proceeding with rank 0 as root." % (root))
             root = 0
 
         if linear is True:
             # set up linear decomposition
-            nz = mpi.world.size
+            nz = mpi_comm.size()
   
         # exit early if we are only running on one processor
-        if mpi.world.size == 1:
+        if mpi_comm.size() == 1:
             return
 
         # take a snapshot of the global system
@@ -140,13 +141,13 @@ def init_domain_decomposition(mpi_arguments):
         pdata.takeSnapshot(snap)
 
         # initialize domain decomposition
-        cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, mpi.world, pdata.getGlobalBox().getL(), root, nx, ny, nz);
+        cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, mpi_comm, pdata.getGlobalBox().getL(), root, nx, ny, nz);
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
-            cpp_communicator = hoomd.Communicator(globals.system_definition, mpi.world, cpp_decomposition)
+            cpp_communicator = hoomd.Communicator(globals.system_definition, mpi_comm, cpp_decomposition)
         else:
-            cpp_communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi.world, cpp_decomposition)
+            cpp_communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi_comm, cpp_decomposition)
 
         # set Communicator in C++ System
         globals.system.setCommunicator(cpp_communicator)
