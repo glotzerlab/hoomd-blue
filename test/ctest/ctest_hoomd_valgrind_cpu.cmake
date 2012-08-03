@@ -16,7 +16,7 @@ SET (ENABLE_STATIC "OFF")
 # (set tests to ignore, see the example for the format) 
 # (bdnvt and npt take minutes to run, and an enternity with valgrind enabled, so they are ignored by default)
 #SET (IGNORE_TESTS "")
-SET (IGNORE_TESTS "-E \"script-test_charge_pppm|test_nph_integrator|test_bdnvt_integrator|test_npt_integrator|test_dpd_integrator|test_bd_rigid_updater\"")
+SET (IGNORE_TESTS "-E \"script-test_charge_pppm|test_nph_integrator|test_bdnvt_integrator|test_npt_integrator|test_dpd_integrator|test_bd_rigid_updater|test_npt_mtk_integrator\"")
 
 # (location of valgrind: Leave blank unless you REALLY want the long valgrind tests to run
 #SET (MEMORYCHECK_COMMAND "")

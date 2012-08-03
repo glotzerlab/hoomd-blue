@@ -48,85 +48,57 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
-#include "NeighborList.h"
-#include "GPUFlags.h"
+#include "TwoStepNPTMTK.h"
+#include "Variant.h"
+#include "ComputeThermo.h"
 
-/*! \file NeighborListGPU.h
-    \brief Declares the NeighborListGPU class
+#ifndef __TWO_STEP_NPT_MTK_GPU_H__
+#define __TWO_STEP_NPT_MTK_GPU_H__
+
+/*! \file TwoStepNPTMTKGPU.h
+    \brief Declares the TwoStepNPTMTKGPU class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __NEIGHBORLISTGPU_H__
-#define __NEIGHBORLISTGPU_H__
-
-//! Neighbor list build on the GPU
-/*! Implements the O(N^2) neighbor list build on the GPU. Also implements common functions (like distance check)
-    on the GPU for use by other GPU nlist classes derived from NeighborListGPU.
-    
-    GPU kernel methods are defined in NeighborListGPU.cuh and defined in NeighborListGPU.cu.
-    
-    \ingroup computes
+//! Integrates part of the system forward in two steps in the NPT ensemble
+/*! This is a version of TwoStepNPTMTK that runs on the GPU.
+ *
+    \ingroup updaters
 */
-class NeighborListGPU : public NeighborList
+class TwoStepNPTMTKGPU : public TwoStepNPTMTK
     {
     public:
-        //! Constructs the compute
-        NeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
-            : NeighborList(sysdef, r_cut, r_buff)
-            {
-            GPUFlags<unsigned int> flags(exec_conf);
-            m_flags.swap(flags);
-            m_flags.resetFlags(0);
-            
-            // default to full mode
-            m_storage_mode = full;
-            m_block_size_filter = 192;
-            m_checkn = 1;
-            }
-        
-        //! Destructor
-        virtual ~NeighborListGPU()
-            {
-            }
+        //! Constructs the integration method and associates it with the system
+        TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                   boost::shared_ptr<ParticleGroup> group,
+                   boost::shared_ptr<ComputeThermo> thermo_group,
+                   Scalar tau,
+                   Scalar tauP,
+                   boost::shared_ptr<Variant> T,
+                   boost::shared_ptr<Variant> P,
+                   integrationMode mode);
+        virtual ~TwoStepNPTMTKGPU();
 
-        //! Set block size for filter kernel
-        void setBlockSizeFilter(unsigned int block_size)
-            {
-            m_block_size_filter = block_size;
-            }
-        
-        //! Benchmark the filter kernel
-        double benchmarkFilter(unsigned int num_iters);
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+
     protected:
-        GPUFlags<unsigned int> m_flags;     //!< Storage for device flags on the GPU
+        GPUArray<Scalar> m_scratch;     //!< Scratch space for reduction of squared velocities
+        GPUArray<Scalar> m_temperature; //!< Stores temperature after reduction step
 
-        //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
-
-        //! Perform the nlist distance check on the GPU
-        virtual bool distanceCheck();
-        
-        //! GPU nlists set their last updated pos in the compute kernel, this call only resets the last box length
-        virtual void setLastUpdatedPos()
-            {
-            m_last_L = m_pdata->getGlobalBox().getL(); 
-            }
-        
-        //! Filter the neighbor list of excluded particles
-        virtual void filterNlist();
-    
-    private:
-        unsigned int m_block_size_filter;   //!< Block size for the filter kernel
-        unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
+        unsigned int m_num_blocks;             //!< Number of blocks participating in the reduction
+        unsigned int m_reduction_block_size;   //!< Block size executed
     };
 
-//! Exports NeighborListGPU to python
-void export_NeighborListGPU();
+//! Exports the TwoStepNPTMTKGPU class to python
+void export_TwoStepNPTMTKGPU();
 
-#endif
-
+#endif // #ifndef __TWO_STEP_NPT_MTK_GPU_H__
