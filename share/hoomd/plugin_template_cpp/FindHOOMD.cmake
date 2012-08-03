@@ -125,6 +125,8 @@ set(CMAKE_MODULE_PATH ${HOOMD_ROOT}/share/hoomd/CMake/cuda
                       ${CMAKE_MODULE_PATH}
                       )
 
+# Find the python executable and libraries
+include (HOOMDPythonSetup)
 # Find the boost libraries and set them up
 include (HOOMDBoostSetup)
 # Find CUDA and set it up
