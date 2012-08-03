@@ -138,7 +138,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {
-        m_exec_conf->msg->warning() << "itegrate.mode_standard: No integration methods are set, continuing anyways." << endl;
+        m_exec_conf->msg->warning() << "integrate.mode_standard: No integration methods are set, continuing anyways." << endl;
         m_gave_warning = true;
         }
     

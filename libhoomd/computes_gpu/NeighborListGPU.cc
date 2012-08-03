@@ -180,9 +180,23 @@ bool NeighborListGPU::distanceCheck()
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::read);
-    
-    // create a temporary copy of r_buff/2 sqaured
-    Scalar maxshiftsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));
+
+    // get current global box lengths
+    Scalar3 L_g = m_pdata->getGlobalBox().getL();
+
+    // Cutoff distance for inclusion in neighbor list
+    Scalar rmax = m_r_cut + m_r_buff;
+    if (!m_filter_diameter)
+        rmax += m_d_max - Scalar(1.0);
+
+    // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
+    Scalar3 lambda = L_g / m_last_L;
+    Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
+    lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
+
+    // maximum displacement for each particle (after subtraction of homogeneous dilations)
+    Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
+    Scalar maxshiftsq = delta_max*delta_max;
     
     gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
                                      d_last_pos.data,
@@ -190,6 +204,7 @@ bool NeighborListGPU::distanceCheck()
                                      m_pdata->getN(),
                                      box,
                                      maxshiftsq,
+                                     lambda,
                                      m_checkn);
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
