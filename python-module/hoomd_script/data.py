@@ -408,7 +408,7 @@ class particle_data:
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         self.types = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             self.types.append(globals.system_definition.getParticleData().getNameByType(i));
     
     ## \var pdata

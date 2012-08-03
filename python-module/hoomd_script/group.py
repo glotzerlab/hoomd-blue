@@ -485,7 +485,7 @@ def type(type, name=None):
     # get a list of types from the particle data
     ntypes = globals.system_definition.getParticleData().getNTypes();
     type_list = [];
-    for i in xrange(0,ntypes):
+    for i in range(0,ntypes):
         type_list.append(globals.system_definition.getParticleData().getNameByType(i));
     
     if type not in type_list:
@@ -532,7 +532,7 @@ def charged(name='charged'):
     charged_tags = [];
     sysdef = globals.system_definition;
     pdata = data.particle_data(sysdef.getParticleData());
-    for i in xrange(0,len(pdata)):
+    for i in range(0,len(pdata)):
         if pdata[i].charge != 0.0:
             charged_tags.append(i);
     

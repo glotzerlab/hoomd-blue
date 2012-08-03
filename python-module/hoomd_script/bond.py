@@ -195,12 +195,12 @@ class coeff:
         # get a list of types from the particle data
         ntypes = globals.system_definition.getBondData().getNBondTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type = type_list[i];
 
             if type not in self.values.keys():
@@ -276,10 +276,10 @@ class _bond(force._force):
         # set all the params
         ntypes = globals.system_definition.getBondData().getNBondTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
 
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             # build a dict of the coeffs to pass to proces_coeff
             coeff_dict = {};
             for name in coeff_list:
@@ -550,7 +550,7 @@ class table(force._force):
         dr = (rmax - rmin) / float(self.width-1);
 
         # evaluate each point of the function
-        for i in xrange(0, self.width):
+        for i in range(0, self.width):
             r = rmin + dr * i;
             (V,F) = func(r, rmin, rmax, **coeff);
 
@@ -571,12 +571,12 @@ class table(force._force):
         # set all the params
         ntypes = globals.system_definition.getBondData().getNBondTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
 
 
         # loop through all of the unique type bonds and evaluate the table
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             func = self.bond_coeff.get(type_list[i], "func");
             rmin = self.bond_coeff.get(type_list[i], "rmin");
             rmax = self.bond_coeff.get(type_list[i], "rmax");
@@ -647,7 +647,7 @@ class table(force._force):
 
           # check for even spacing
           dr = (rmax_table - rmin_table) / float(self.width-1);
-          for i in xrange(0,self.width):
+          for i in range(0,self.width):
               r = rmin_table + dr * i;
               if math.fabs(r - r_table[i]) > 1e-3:
                   globals.msg.error("bond.table: r must be monotonically increasing and evenly spaced\n");

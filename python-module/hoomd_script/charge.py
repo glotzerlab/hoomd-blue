@@ -196,7 +196,7 @@ class pppm(force._force):
         self.params_set = True;
         q2 = 0
         N = globals.system_definition.getParticleData().getN()
-        for i in xrange(0,N):
+        for i in range(0,N):
             q = globals.system_definition.getParticleData().getCharge(i)
             q2 += q*q
         box = globals.system_definition.getParticleData().getBox()
@@ -242,12 +242,12 @@ class pppm(force._force):
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
         util._disable_status_lines = True;
-        for i in xrange(0,ntypes):
-            for j in xrange(0,ntypes):
+        for i in range(0,ntypes):
+            for j in range(0,ntypes):
                 self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, r_cut=rcut)
         util._disable_status_lines = False;
 
@@ -269,7 +269,7 @@ def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     return value
 
 def rms(h, prd, N, order, kappa, q2):
-    acons = [[0 for _ in xrange(8)] for _ in xrange(8)]
+    acons = [[0 for _ in range(8)] for _ in range(8)]
 
     acons[1][0] = 2.0 / 3.0
     acons[2][0] = 1.0 / 50.0
@@ -301,7 +301,7 @@ def rms(h, prd, N, order, kappa, q2):
     acons[7][6] = 4887769399.0 / 37838389248.0
 
     sum = 0.0
-    for m in xrange(0,order):
+    for m in range(0,order):
         sum += acons[order][m]*pow(h*kappa, 2.0*m)
     value = q2*pow(h*kappa,order)*sqrt(kappa*prd*sqrt(2.0*math.pi)*sum/N)/prd/prd
     return value

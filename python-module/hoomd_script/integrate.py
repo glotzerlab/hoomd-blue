@@ -895,11 +895,11 @@ class bdnvt(_integration_method):
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
         # change the parameters
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
         
@@ -1118,11 +1118,11 @@ class bdnvt_rigid(_integration_method):
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
         # change the parameters
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
 

@@ -149,7 +149,7 @@ class harmonic(force._force):
         # get a list of all dihedral types in the simulation
         ntypes = globals.system_definition.getDihedralData().getNDihedralTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getDihedralData().getNameByType(i));
             
         # check to see if all particle types have been set
