@@ -466,9 +466,9 @@ class nvt(_integration_method):
 # is specified.
 #
 # For the MTK equations of motion, see:
-# \cite{Martyna1994}
-# \cite{Tuckerman2006}
-# \cite{Yu2010}
+# \cite Martyna1994
+# \cite Tuckerman2006
+# \cite Yu2010
 class npt(_integration_method):
     ## Specifies the NPT integrator
     # \param group Group of particles on which to apply this method.
