@@ -956,11 +956,11 @@ void Communicator::copyGhosts()
                 if (h_add_ghost.data[recv_idx])
                     {
                     h_pos.data[add_idx] = h_pos_recvbuf.data[recv_idx];
-                    add_idx++;
 
                     // wrap particles received across a global boundary 
                     // we are not actually folding back particles into the global box, but into the ghost layer
                     Scalar4& pos = h_pos.data[add_idx];
+                    add_idx++;
 
                     if (dir==0 && m_is_at_boundary[1])
                         pos.x -= L.x;
