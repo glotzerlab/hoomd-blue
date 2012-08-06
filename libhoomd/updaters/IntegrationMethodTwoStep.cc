@@ -166,12 +166,20 @@ void IntegrationMethodTwoStep::validateGroup()
     for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
         {
         unsigned int tag = m_group->getMemberTag(gidx);
-        if (m_pdata->getBody(tag) != NO_BODY)
+        if (m_pdata->isParticleLocal(tag))
             {
-            m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body. "
-                 << "This integration method does not operate on rigid bodies" << endl;
-                
-            throw std::runtime_error("Error initializing integration method");
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+
+            unsigned int body = h_body.data[h_rtag.data[tag]];
+
+            if (body != NO_BODY)
+                {
+                m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body. "
+                     << "This integration method does not operate on rigid bodies" << endl;
+                    
+                throw std::runtime_error("Error initializing integration method");
+                }
             }
         }
     }
