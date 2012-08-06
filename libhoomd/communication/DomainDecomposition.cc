@@ -78,14 +78,13 @@ BOOST_IS_MPI_DATATYPE(int3)
  * The domain dimensions are distributed on the other processors.
  */
 DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                               boost::shared_ptr<boost::mpi::communicator> comm,
                                Scalar3 L,
                                unsigned int root,
                                unsigned int nx,
                                unsigned int ny,
                                unsigned int nz
                                )
-      : m_exec_conf(exec_conf), m_mpi_comm(comm)
+      : m_exec_conf(exec_conf), m_mpi_comm(m_exec_conf->getMPICommunicator())
     {
     unsigned int rank = m_mpi_comm->rank();
 
@@ -252,7 +251,7 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
 void export_DomainDecomposition()
     {
     class_<DomainDecomposition, boost::shared_ptr<DomainDecomposition>, boost::noncopyable >("DomainDecomposition",
-           init< boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<boost::mpi::communicator>, Scalar3, unsigned int, unsigned int, unsigned int, unsigned int>())
+           init< boost::shared_ptr<ExecutionConfiguration>, Scalar3, unsigned int, unsigned int, unsigned int, unsigned int>())
     ;
     }
 #endif // ENABLE_MPI

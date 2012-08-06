@@ -168,10 +168,10 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_comm->getMPICommunicator()->size());
+        assert(m_exec_conf->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_comm->getMPICommunicator(), eta, 0);
-        broadcast(*m_comm->getMPICommunicator(), xi, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), eta, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), xi, 0);
         }
 #endif
   

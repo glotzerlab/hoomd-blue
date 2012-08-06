@@ -222,7 +222,7 @@ bool NeighborListGPU::distanceCheck()
         // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
         unsigned int local_result = result ? 1 : 0;
         unsigned int global_result = 0;
-        all_reduce(*m_comm->getMPICommunicator(), local_result, global_result,  boost::mpi::maximum<unsigned int>());
+        all_reduce(*m_exec_conf->getMPICommunicator(), local_result, global_result,  boost::mpi::maximum<unsigned int>());
         result = (global_result > 0);
         }
 #endif

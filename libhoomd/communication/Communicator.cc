@@ -117,12 +117,11 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
 
 //! Constructor
 Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                            boost::shared_ptr<DomainDecomposition> decomposition)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             m_exec_conf(m_pdata->getExecConf()),
-            m_mpi_comm(mpi_comm),
+            m_mpi_comm(m_exec_conf->getMPICommunicator()),
             m_decomposition(decomposition),
             m_is_communicating(false),
             m_force_migrate(false),
@@ -993,7 +992,6 @@ void export_Communicator()
 
     class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
            init<boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<boost::mpi::communicator>,
                 boost::shared_ptr<DomainDecomposition> >())
     ;
     }

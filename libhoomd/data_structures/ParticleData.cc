@@ -590,7 +590,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector< unsigned int > N_proc;                        // Number of particles on every processor
  
         // resize to number of ranks in communicator
-        boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_decomposition->getMPICommunicator();
+        boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_exec_conf->getMPICommunicator();
         unsigned int size = mpi_comm->size();
         unsigned int my_rank = mpi_comm->rank();
 
@@ -867,7 +867,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
         std::vector< std::map<unsigned int, unsigned int> > rtag_map_proc; // List of reverse-lookup maps
 
-        boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_decomposition->getMPICommunicator();
+        boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_exec_conf->getMPICommunicator();
         unsigned int size = mpi_comm->size();
         unsigned int rank = mpi_comm->rank();
 
@@ -1036,7 +1036,7 @@ unsigned int ParticleData::getOwnerRank(unsigned int tag) const
     bool is_local = (getGlobalRTag(tag) < getN());
     int n_found;
 
-    boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_decomposition->getMPICommunicator();
+    boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_exec_conf->getMPICommunicator();
     // First check that the particle is on exactly one processor
     all_reduce(*mpi_comm, is_local ? 1 : 0, n_found, std::plus<int>());
 
@@ -1079,7 +1079,7 @@ Scalar3 ParticleData::getPosition(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1102,7 +1102,7 @@ Scalar3 ParticleData::getVelocity(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1125,7 +1125,7 @@ Scalar3 ParticleData::getAcceleration(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1148,7 +1148,7 @@ int3 ParticleData::getImage(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1171,7 +1171,7 @@ Scalar ParticleData::getCharge(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1194,7 +1194,7 @@ Scalar ParticleData::getMass(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1217,7 +1217,7 @@ Scalar ParticleData::getDiameter(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1240,7 +1240,7 @@ unsigned int ParticleData::getBody(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1263,7 +1263,7 @@ unsigned int ParticleData::getType(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1286,7 +1286,7 @@ Scalar4 ParticleData::getOrientation(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1309,7 +1309,7 @@ Scalar4 ParticleData::getPNetForce(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif
@@ -1333,7 +1333,7 @@ Scalar4 ParticleData::getNetTorque(unsigned int global_tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(global_tag);
-        broadcast(*m_decomposition->getMPICommunicator(), result, owner_rank);
+        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
         found = true;
         }
 #endif

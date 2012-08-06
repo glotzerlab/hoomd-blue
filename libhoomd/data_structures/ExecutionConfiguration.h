@@ -112,7 +112,7 @@ struct ExecutionConfiguration : boost::noncopyable
     //! Set the boost MPI communicator
     /*! \param mpi_comm The communicator
      */
-    boost::shared_ptr<boost::mpi::communicator> getMPICommunicator()
+    boost::shared_ptr<boost::mpi::communicator> getMPICommunicator() const
         {
         return m_mpi_comm;
         }

@@ -236,7 +236,7 @@ void IMDInterface::analyze(unsigned int timestep)
 
     if (m_comm)
         {
-        broadcast(*m_comm->getMPICommunicator(), send_coords, m_pdata->getDomainDecomposition()->getRoot());
+        broadcast(*m_exec_conf->getMPICommunicator(), send_coords, m_pdata->getDomainDecomposition()->getRoot());
         }
 
     if (send_coords)

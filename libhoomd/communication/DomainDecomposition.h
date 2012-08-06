@@ -117,7 +117,6 @@ class DomainDecomposition
          * \param nz Requested number of domains along the z direction (0 == choose default)
          */
         DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                       boost::shared_ptr<boost::mpi::communicator> comm,
                        Scalar3 L,
                        unsigned int root,
                        unsigned int nx = 0,
@@ -151,12 +150,6 @@ class DomainDecomposition
 
         //! Get the dimensions of the local simulation box
         const BoxDim calculateLocalBox(const BoxDim& global_box);
-
-        //! Get the MPI communicator
-        boost::shared_ptr<boost::mpi::communicator> getMPICommunicator()
-            {
-            return m_mpi_comm;
-            }
 
     private:
         unsigned int m_nx;           //!< Number of processors along the x-axis

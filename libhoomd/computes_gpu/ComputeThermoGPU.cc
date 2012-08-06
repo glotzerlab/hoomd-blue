@@ -167,7 +167,7 @@ void ComputeThermoGPU::computeProperties()
     boost::shared_ptr<const boost::mpi::communicator> mpi_comm;
     if (m_comm)
         {
-        mpi_comm = m_comm->getMPICommunicator();
+        mpi_comm = m_exec_conf->getMPICommunicator();
         assert(mpi_comm);
         }
 

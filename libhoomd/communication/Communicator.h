@@ -213,24 +213,14 @@ class Communicator
     public:
         //! Constructor
         /*! \param sysdef system definition the communicator is associated with
-         *  \param mpi_comm the underlying MPI communicator
          *  \param decomposition Information about the decomposition of the global simulation domain
          */
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
-                     boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                      boost::shared_ptr<DomainDecomposition> decomposition);
         virtual ~Communicator();
 
         //! \name accessor methods
         //@{
-
-        //! Get the underlying MPI communicator
-        /*! \return Boost MPI communicator
-         */
-        const boost::shared_ptr<const boost::mpi::communicator> getMPICommunicator()
-            {
-            return m_mpi_comm;
-            }
 
         //! Set the profiler.
         /*! \param prof Profiler to use with this class

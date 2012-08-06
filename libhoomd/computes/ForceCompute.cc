@@ -183,7 +183,7 @@ Scalar ForceCompute::calcEnergySum()
     if (m_comm)
         {
         // reduce potential energy on all processors
-        pe_total = all_reduce(*m_comm->getMPICommunicator(), pe_total, std::plus<double>());
+        pe_total = all_reduce(*m_exec_conf->getMPICommunicator(), pe_total, std::plus<double>());
         }
 #endif
     return Scalar(pe_total);

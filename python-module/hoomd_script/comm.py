@@ -141,13 +141,13 @@ def init_domain_decomposition(mpi_arguments):
         pdata.takeSnapshot(snap)
 
         # initialize domain decomposition
-        cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, mpi_comm, pdata.getGlobalBox().getL(), root, nx, ny, nz);
+        cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, pdata.getGlobalBox().getL(), root, nx, ny, nz);
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():
-            cpp_communicator = hoomd.Communicator(globals.system_definition, mpi_comm, cpp_decomposition)
+            cpp_communicator = hoomd.Communicator(globals.system_definition, cpp_decomposition)
         else:
-            cpp_communicator = hoomd.CommunicatorGPU(globals.system_definition, mpi_comm, cpp_decomposition)
+            cpp_communicator = hoomd.CommunicatorGPU(globals.system_definition, cpp_decomposition)
 
         # set Communicator in C++ System
         globals.system.setCommunicator(cpp_communicator)

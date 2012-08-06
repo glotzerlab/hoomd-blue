@@ -225,16 +225,16 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_comm->getMPICommunicator()->size());
+        assert(m_exec_conf->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_comm->getMPICommunicator(), eta, 0);
-        broadcast(*m_comm->getMPICommunicator(), xi, 0);
-        broadcast(*m_comm->getMPICommunicator(), nux, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuy, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuz, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), eta, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), xi, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), nux, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), nuy, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), nuz, 0);
 
         // broadcast box dimensions
-        broadcast(*m_comm->getMPICommunicator(), m_L, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), m_L, 0);
         }
 #endif
 
@@ -337,9 +337,9 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_comm->getMPICommunicator()->size());
+        assert(m_exec_conf->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
-        T_prime = all_reduce(*m_comm->getMPICommunicator(), T_prime, std::plus<double>());
+        T_prime = all_reduce(*m_exec_conf->getMPICommunicator(), T_prime, std::plus<double>());
         }
 #endif
 
@@ -424,13 +424,13 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_comm->getMPICommunicator()->size());
+        assert(m_exec_conf->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_comm->getMPICommunicator(), eta, 0);
-        broadcast(*m_comm->getMPICommunicator(), xi, 0);
-        broadcast(*m_comm->getMPICommunicator(), nux, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuy, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuz, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), eta, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), xi, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), nux, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), nuy, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), nuz, 0);
         }
 #endif
 

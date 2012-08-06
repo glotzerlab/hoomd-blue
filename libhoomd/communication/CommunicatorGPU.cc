@@ -75,9 +75,8 @@ BOOST_CLASS_TRACKING(Scalar4,track_never)
 
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<boost::mpi::communicator> mpi_comm,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
-    : Communicator(sysdef, mpi_comm, decomposition)
+    : Communicator(sysdef, decomposition)
     {
     // initialize send buffer size with size of particle data element on the GPU
     setPackedSize(gpu_pdata_element_size());
@@ -792,7 +791,6 @@ void export_CommunicatorGPU()
     {
     class_<CommunicatorGPU, bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
            init<boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<boost::mpi::communicator>,
                 boost::shared_ptr<DomainDecomposition> >())
     ;
     }
