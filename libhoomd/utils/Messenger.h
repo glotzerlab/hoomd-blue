@@ -60,6 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <sstream>
 
+#ifdef ENABLE_MPI
+#include <boost/mpi.hpp>
+#endif 
+
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
@@ -166,6 +170,12 @@ class Messenger
         //! Get a notice stream
         std::ostream& notice(unsigned int level) const;
 
+        //! Get a notice stream for serialized output
+        std::ostream& collectiveNotice();
+
+        //! Output the contents of a collective note in rank order
+        void flushCollectiveNotice(unsigned int level);
+
         //! Alternate method to print notice strings
         void noticeStr(unsigned int level, const std::string& msg) const;
 
@@ -186,6 +196,17 @@ class Messenger
             if (rank != 0)
                 m_notice_level = 0;
             }
+
+
+#ifdef ENABLE_MPI
+        //! Set MPI communicator
+        /*! \param mpi_comm The MPI communicator to use
+         */
+        void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
+            {
+            m_mpi_comm = mpi_comm;
+            }
+#endif
 
         //! Get the notice level
         /*! \returns Current notice level
@@ -298,6 +319,8 @@ class Messenger
         std::ostream *m_warning_stream; //!< warning stream
         std::ostream *m_notice_stream;  //!< notice stream
 
+        std::ostringstream m_collective_notice_stream;  //!< String for serialized notices
+
         boost::shared_ptr<nullstream>    m_nullstream;   //!< null stream
         boost::shared_ptr<std::ofstream> m_file;         //!< File stream
 
@@ -308,6 +331,9 @@ class Messenger
         unsigned int m_notice_level;    //!< Notice level
 
         std::string m_rank_prefix;      //!< Prefix indicating processor rank
+#ifdef ENABLE_MPI
+        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The MPI communicator
+#endif
     };
 
 //! Exports Messenger to python

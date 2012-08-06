@@ -125,6 +125,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     initializeMPI();
 
     msg->setRank(m_mpi_comm->rank());
+    msg->setMPICommunicator(m_mpi_comm);
 #endif
 
     setupStats();
@@ -174,6 +175,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     initializeMPI();
 
     msg->setRank(m_mpi_comm->rank());
+    msg->setMPICommunicator(m_mpi_comm);
 #endif
 
     setupStats();
@@ -373,11 +375,9 @@ void ExecutionConfiguration::printGPUStats()
     if (dev_prop.kernelExecTimeoutEnabled)
         s << ", DIS";
            
-    // We print this information on every processor, so temporarily raise notice level
-    unsigned int nlevel_old = msg->getNoticeLevel();
-    msg->setNoticeLevel(1);
-    msg->notice(1) << s.str() << endl;
-    msg->setNoticeLevel(nlevel_old);
+    // We print this information in rank order
+    msg->collectiveNotice() << s.str() << endl;
+    msg->flushCollectiveNotice(1);
 
     // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
     if (dev_prop.major <= 1 && dev_prop.minor <= 1)
@@ -646,11 +646,9 @@ void ExecutionConfiguration::setupStats()
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
-        // We print this information on every processor, so temporarily raise notice level
-        unsigned int nlevel_old = msg->getNoticeLevel();
-        msg->setNoticeLevel(1);
-        msg->notice(1) << "Rank " << guessRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
-        msg->setNoticeLevel(nlevel_old);
+        // We print this information in rank oder
+        msg->collectiveNotice() << "Rank " << guessRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        msg->flushCollectiveNotice(1);
         #endif
         }
     }

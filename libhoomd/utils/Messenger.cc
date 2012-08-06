@@ -152,6 +152,52 @@ std::ostream& Messenger::notice(unsigned int level) const
         }
     }
 
+/*! \returns The string stream that stores messages to be printed in rank order
+    It is necessary to call flushCollectiveNotice() after all ranks have written to the collective notice stream
+    to actually generate the notices on processor with rank 0.
+    
+*/
+std::ostream& Messenger::collectiveNotice()
+    {
+    return m_collective_notice_stream;
+    }
+
+/*! Outputs the contents of the collective notice on the processor with rank zero, in rank order.
+
+    \param level The notice level of the notice
+ */
+void Messenger::flushCollectiveNotice(unsigned int level) 
+    {
+    std::vector<std::string> rank_notices;
+
+#ifdef ENABLE_MPI
+    if (m_mpi_comm)
+        {
+        boost::mpi::gather(*m_mpi_comm, m_collective_notice_stream.str(), rank_notices, 0);
+        }
+    else
+#endif
+        {
+        rank_notices.push_back(m_collective_notice_stream.str());
+        }
+
+#ifdef ENABLE_MPI
+    if (m_mpi_comm && m_mpi_comm->rank() == 0)
+#endif
+        {
+        // Output notices in rank order
+        std::vector<std::string>::iterator notice_it;
+        for (notice_it = rank_notices.begin(); notice_it != rank_notices.end(); notice_it++)
+            {
+            notice(level) << *notice_it;
+            }
+        }
+
+    // clear collective notice stream
+    m_collective_notice_stream.str("");
+    m_collective_notice_stream.clear();
+    }
+
 /*! \param level Notice level
     \param msg Message to print
     \sa notice()
