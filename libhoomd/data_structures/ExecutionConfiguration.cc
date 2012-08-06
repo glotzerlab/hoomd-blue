@@ -90,8 +90,14 @@ using namespace boost;
     cudaSetDevice is not called, so systems with compute-exclusive GPUs will see automatic choice of free GPUs.
     If there are no capable GPUs present in the system, then the execution mode will revert run on the CPU.
 */
-ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display, boost::shared_ptr<Messenger> _msg)
-    : m_cuda_error_checking(false), msg(_msg)
+ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
+                                               bool ignore_display,
+                                               boost::shared_ptr<Messenger> _msg
+#ifdef ENABLE_MPI
+                                               , bool init_mpi
+#endif
+                                               )
+    : m_cuda_error_checking(false), msg(_msg), m_mpi_env(NULL)
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
@@ -122,10 +128,8 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
 #endif
 
 #ifdef ENABLE_MPI
-    initializeMPI();
-
-    msg->setRank(m_mpi_comm->rank());
-    msg->setMPICommunicator(m_mpi_comm);
+    if (init_mpi)
+        initializeMPI();
 #endif
 
     setupStats();
@@ -144,8 +148,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
-                                               boost::shared_ptr<Messenger> _msg)
-    : m_cuda_error_checking(false), msg(_msg)
+                                               boost::shared_ptr<Messenger> _msg
+#ifdef ENABLE_MPI
+                                               , bool init_mpi
+#endif
+                                               )
+    : m_cuda_error_checking(false), msg(_msg), m_mpi_env(NULL)
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
@@ -172,10 +180,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #endif
 
 #ifdef ENABLE_MPI
-    initializeMPI();
-
-    msg->setRank(m_mpi_comm->rank());
-    msg->setMPICommunicator(m_mpi_comm);
+    if (init_mpi)
+        initializeMPI();
 #endif
 
     setupStats();
@@ -191,7 +197,8 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #endif
 
     #ifdef ENABLE_MPI
-    delete m_mpi_env;
+    if (m_mpi_env)
+        delete m_mpi_env;
     #endif
     }
 
@@ -199,7 +206,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
 void ExecutionConfiguration::initializeMPI()
     {
     m_mpi_env = new boost::mpi::environment();
-    m_mpi_comm = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());
+    setMPICommunicator(boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator()));
     }
 #endif
 

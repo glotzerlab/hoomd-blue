@@ -29,19 +29,15 @@ boost::shared_ptr<boost::mpi::communicator> world;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef boost::function<shared_ptr<Communicator> (shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<boost::mpi::communicator> mpi_comm,
                                                   shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
 
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
-                                                         shared_ptr<boost::mpi::communicator> mpi_comm,
                                                          shared_ptr<DomainDecomposition> decomposition);
 
+#ifdef ENABLE_CUDA
 shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<boost::mpi::communicator> mpi_comm,
                                                   shared_ptr<DomainDecomposition> decomposition);
 
-
-#ifdef ENABLE_CUDA
 //! Excution Configuration for GPU
 /* For MPI libraries that directly support CUDA, it is required that
    CUDA be initialized before setting up the MPI environmnet. This
@@ -117,7 +113,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), 0));
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -250,9 +246,9 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), 0));
 
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -507,8 +503,8 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  world, pdata->getBox().getL(), 0));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL(), 0));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -1319,8 +1315,8 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, world, pdata->getBox().getL(), 0));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, world, decomposition);
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), 0));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // width of ghost layer
     Scalar ghost_layer_width = Scalar(0.1);
@@ -1405,19 +1401,18 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
 
 //! Communicator creator for unit tests
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
-                                                         shared_ptr<boost::mpi::communicator> mpi_comm,
                                                          shared_ptr<DomainDecomposition> decomposition)
     {
-    return shared_ptr<Communicator>(new Communicator(sysdef,mpi_comm, decomposition) );
+    return shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
     }
 
+#ifdef ENABLE_CUDA
 shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<boost::mpi::communicator> mpi_comm,
                                                   shared_ptr<DomainDecomposition> decomposition)
     {
-    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef,mpi_comm, decomposition) );
+    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition) );
     }
-
+#endif
 
 //! Fixture to setup and tear down MPI
 struct MPISetup
@@ -1429,11 +1424,15 @@ struct MPISetup
         char **argv = boost::unit_test::framework::master_test_suite().argv;
 
 #ifdef ENABLE_CUDA
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
 #endif
-        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
         env = new boost::mpi::environment(argc,argv);
         world = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());
+#ifdef ENABLE_CUDA
+        exec_conf_gpu->setMPICommunicator(world);
+#endif
+        exec_conf_cpu->setMPICommunicator(world);
         }
 
     //! Cleanup
@@ -1454,19 +1453,19 @@ BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test )
     {
-    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2,_3);
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_migrate(communicator_creator_base, exec_conf_cpu);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     {
-    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2,_3);
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghosts(communicator_creator_base, exec_conf_cpu);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     {
-    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2,_3);
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_bonded_ghosts(communicator_creator_base, exec_conf_cpu);
     }
 
@@ -1481,19 +1480,19 @@ BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
     {
-    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2,_3);
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     {
-    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2,_3);
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     {
-    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2,_3);
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
 #endif

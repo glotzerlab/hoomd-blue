@@ -101,20 +101,44 @@ struct ExecutionConfiguration : boost::noncopyable
         };
         
     //! Default constructor
-    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
+    ExecutionConfiguration(bool min_cpu=false,
+                           bool ignore_display=false,
+                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
+#ifdef ENABLE_MPI
+                           , bool init_mpi=true 
+#endif
+                           );
     
     //! Force a mode selection
-    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
+    ExecutionConfiguration(executionMode mode,
+                           int gpu_id=-1,
+                           bool min_cpu=false,
+                           bool ignore_display=false,
+                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
+#ifdef ENABLE_MPI
+                           , bool init_mpi=true 
+#endif
+                           );
     
     ~ExecutionConfiguration();
    
 #ifdef ENABLE_MPI
-    //! Set the boost MPI communicator
-    /*! \param mpi_comm The communicator
-     */
+    //! Returns the boost MPI communicator
     boost::shared_ptr<boost::mpi::communicator> getMPICommunicator() const
         {
         return m_mpi_comm;
+        }
+
+    //! Set the MPI Communciator
+    /*! \param mpi_comm The MPI Communicator
+     */
+    void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
+        {
+        assert(mpi_comm);
+
+        m_mpi_comm = mpi_comm;
+        msg->setRank(m_mpi_comm->rank());
+        msg->setMPICommunicator(m_mpi_comm);
         }
 #endif
 
