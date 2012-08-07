@@ -605,6 +605,7 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost() const
     if (m_num_elements == 0)
         return;
         
+    m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host" <<  std::endl;
 #ifdef ENABLE_CUDA
     cudaMemcpy(h_data, d_data, sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost);
 #endif
@@ -618,6 +619,7 @@ template<class T> void GPUArray<T>::memcpyHostToDevice() const
     if (m_num_elements == 0)
         return;
         
+    m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device" <<  std::endl;
 #ifdef ENABLE_CUDA
     cudaMemcpy(d_data, h_data, sizeof(T)*m_num_elements, cudaMemcpyHostToDevice);
 #endif
