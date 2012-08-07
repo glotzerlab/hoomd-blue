@@ -413,9 +413,7 @@ void CommunicatorGPU::exchangeGhosts()
 
         gpu_mark_particles_in_incomplete_bonds(d_btable.data,
                                                d_plan.data,
-                                               d_pos.data,
                                                d_rtag.data,
-                                               m_pdata->getBox(),
                                                m_pdata->getN(),
                                                bdata->getNumBonds());
         CHECK_CUDA_ERROR();
@@ -479,7 +477,8 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> d_diameter_copybuf(m_diameter_copybuf, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned char> d_plan_copybuf(m_plan_copybuf, access_location::device, access_mode::overwrite);
 
-            gpu_make_exchange_ghost_list(m_pdata->getN()+m_pdata->getNGhosts(),
+            gpu_make_exchange_ghost_list(m_pdata->getN()+m_pdata->getNGhosts() ,
+                                         m_pdata->getN(),
                                          dir,
                                          d_plan.data,
                                          d_global_tag.data,

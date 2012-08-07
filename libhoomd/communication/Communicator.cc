@@ -586,12 +586,8 @@ void Communicator::exchangeGhosts()
         const GPUVector<uint2>& btable = bdata->getBondTable();
         ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
         ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
 
-        Scalar3 L2 = box.getL()/Scalar(2.0); 
-        Scalar3 lo = box.getLo();
-    
         unsigned nbonds = bdata->getNumBonds();
         unsigned int N = m_pdata->getN();
         for (unsigned int bond_idx = 0; bond_idx < nbonds; bond_idx++)
@@ -605,21 +601,11 @@ void Communicator::exchangeGhosts()
         
             if ((idx1 >= N) && (idx2 < N))
                 {
-                // send particle with index idx2 to neighboring domains
-                Scalar4 pos = h_pos.data[idx2];
-
-                h_plan.data[idx2] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
-                h_plan.data[idx2] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
-                h_plan.data[idx2] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
+                h_plan.data[idx2] = send_east | send_west | send_north | send_south | send_up | send_down;
                 }
             else if ((idx1 < N) && (idx2 >= N))
                 {
-                // send particle with index idx1 to neighboring domains
-                Scalar4 pos = h_pos.data[idx1];
-
-                h_plan.data[idx1] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
-                h_plan.data[idx1] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
-                h_plan.data[idx1] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
+                h_plan.data[idx2] = send_east | send_west | send_north | send_south | send_up | send_down;
                 } 
             }
         }
@@ -706,6 +692,10 @@ void Communicator::exchangeGhosts()
 
                 if (h_plan.data[idx] & (1 << dir))
                     {
+                    // do not send ghost particles back in the opposite direction from which we received them
+                    if ((dir %2) && (h_plan.data[idx] & (1 << (dir-1))) && idx >= m_pdata->getN())
+                        continue;
+
                     // send with next message
                     h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
                     h_charge_copybuf.data[m_num_copy_ghosts[dir]] = h_charge.data[idx];
