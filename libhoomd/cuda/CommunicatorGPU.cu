@@ -170,40 +170,6 @@ struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsign
         }
      };
 
-//! Select ghost particles for sending in one direction
-struct select_particle_ghost
-    {
-    const unsigned int dir; //!< Current direction
-    const unsigned int N;   //!< Number of local particles
-
-    //! Constructor
-    /*! \param _dir Direction of the neighboring domain
-     */
-    select_particle_ghost(unsigned int _dir, unsigned int _N)
-        : dir(_dir), N(_N)
-        {
-        }
-
-    //! Select particles for sending
-    /*! \param plan Particle exchange plan
-        \returns true if particle is selected for sending
-     */
-    __host__ __device__ bool operator()(const thrust::tuple<unsigned int, unsigned char>& t)
-        {
-        unsigned int idx = thrust::get<0>(t);
-        unsigned char plan = thrust::get<1>(t);
-
-        bool result = (plan & (1 << dir));
-
-        // do not send back ghost particles just received from the opposite direction
-        if ((dir%2) && (plan & (1 << (dir-1))) && idx >= N)
-            result = false;
-
-        return result;
-        }
-     };
-
-
 //! Structure to pack a particle data element into
 struct __align__(128) pdata_element_gpu
     {
@@ -389,14 +355,20 @@ struct unpack_pdata : public thrust::unary_function<pdata_element_gpu, pdata_tup
 
 thrust::device_vector<unsigned int> *keys;       //!< Temporary vector of sort keys
 
+unsigned int *d_n_copy_ghosts;     //! Counter for ghost list construction
+
 void gpu_allocate_tmp_storage()
     {
     keys = new thrust::device_vector<unsigned int>;
+
+    cudaMalloc(&d_n_copy_ghosts, sizeof(unsigned int));
     }
 
 void gpu_deallocate_tmp_storage()
     {
     delete keys;
+
+    cudaFree(d_n_copy_ghosts);
     }
 
 //! GPU Kernel to find incomplete bonds
@@ -823,6 +795,34 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
         make_nonbonded_plan(box, r_ghost));
     }
 
+//! Kernel to construct list of ghosts to send
+__global__ void gpu_make_exchange_ghost_list_kernel(const unsigned int n_total,
+                                         const unsigned int N,
+                                         const unsigned int dir,
+                                         const unsigned char *plan,
+                                         const unsigned int *tag,
+                                         unsigned int *copy_ghosts,
+                                         unsigned int *n_copy_ghosts)
+    {
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    
+    if (idx >= n_total) return;
+
+    unsigned char p = plan[idx];
+    bool do_send = (p & (1 << dir));
+
+    // do not send back ghost particles just received from the opposite direction
+    if ((dir%2) && (p & (1 << (dir-1))) && idx >= N)
+        do_send = false;
+
+    if (do_send)
+        {
+        unsigned int n = atomicInc(n_copy_ghosts, 0xffffffff);
+        copy_ghosts[n] = tag[idx];
+        }
+    }
+
+    
 //! Construct a list of particle tags to send as ghost particles
 /*! \param n_total Total number of particles to check
  * \param N number of local particles
@@ -837,26 +837,21 @@ void gpu_make_exchange_ghost_list(unsigned int n_total,
                                   unsigned int dir,
                                   unsigned char *d_plan,
                                   unsigned int *d_global_tag,
-                                  unsigned int* d_copy_ghosts,
+                                  unsigned int *d_copy_ghosts,
                                   unsigned int &n_copy_ghosts)
     {
-    thrust::device_ptr<unsigned char> plan_ptr(d_plan);
-    thrust::device_ptr<unsigned int> global_tag_ptr(d_global_tag);
-    thrust::device_ptr<unsigned int> copy_ghosts_ptr(d_copy_ghosts);
+    n_copy_ghosts = 0;
+    cudaMemcpy(d_n_copy_ghosts, &n_copy_ghosts, sizeof(unsigned int), cudaMemcpyHostToDevice);
 
-    thrust::device_ptr<unsigned int> copy_ghosts_end_ptr;
-
-    thrust::counting_iterator<unsigned int> idx_it(0);
-
-    copy_ghosts_end_ptr = thrust::copy_if(global_tag_ptr,
-                                          global_tag_ptr+n_total,
-                                          thrust::make_zip_iterator(thrust::make_tuple(
-                                            idx_it,
-                                           plan_ptr)),
-                                          copy_ghosts_ptr,
-                                          select_particle_ghost(dir,N));
-
-    n_copy_ghosts =  copy_ghosts_end_ptr - copy_ghosts_ptr;
+    unsigned int block_size = 512;
+    gpu_make_exchange_ghost_list_kernel<<<n_total/block_size + 1, block_size>>>(n_total,
+                                                                                N,
+                                                                                dir,
+                                                                                d_plan,
+                                                                                d_global_tag,
+                                                                                d_copy_ghosts,
+                                                                                d_n_copy_ghosts);
+    cudaMemcpy(&n_copy_ghosts, d_n_copy_ghosts, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
 
 //! Fill send buffers of particles we are sending as ghost particles with partial particle data
