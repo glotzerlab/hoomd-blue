@@ -520,15 +520,16 @@ void CommunicatorGPU::exchangeGhosts()
         if (m_prof)
             m_prof->pop();
 
-        // resize receive buffers
-        m_plan_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_pos_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_charge_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_diameter_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_tag_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_add_ghost[dir].resize(m_num_recv_ghosts[dir]);
+        // append ghosts at the end of particle data array
+        unsigned int start_idx = m_pdata->getN() + m_pdata->getNGhosts();
 
-        // exchange particle data, write into receive buffers
+        // accommodate new ghost particles
+        m_pdata->addGhostParticles(m_num_recv_ghosts[dir]);
+
+        // resize plan array
+        m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
+
+        // exchange particle data, write directly to the particle data arrays
         if (m_prof)
             m_prof->push("MPI send/recv");
 
@@ -540,26 +541,26 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> d_diameter_copybuf(m_diameter_copybuf, access_location::device, access_mode::read);
             ArrayHandle<unsigned char> d_plan_copybuf(m_plan_copybuf, access_location::device, access_mode::read);
 
-            ArrayHandle<unsigned char> d_plan_recvbuf(m_plan_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> d_pos_recvbuf(m_pos_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar> d_charge_recvbuf(m_charge_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar> d_diameter_recvbuf(m_diameter_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_tag_recvbuf(m_tag_recvbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::readwrite);
 
             reqs[2] = m_mpi_comm->isend(send_neighbor,1,d_plan_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,d_plan_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,d_plan.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[4] = m_mpi_comm->isend(send_neighbor,2,d_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,d_pos_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,d_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[6] = m_mpi_comm->isend(send_neighbor,3,d_copy_ghosts.data, m_num_copy_ghosts[dir]);
-            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,d_tag_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,d_global_tag.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[8] = m_mpi_comm->isend(send_neighbor,4,d_charge_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,d_charge_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,d_charge.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[10] = m_mpi_comm->isend(send_neighbor,5,d_diameter_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,d_diameter_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,d_diameter.data + start_idx, m_num_recv_ghosts[dir]);
 
             boost::mpi::wait_all(reqs+2,reqs+12);
             }
@@ -571,26 +572,26 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::read);
             ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf, access_location::host, access_mode::read);
 
-            ArrayHandle<unsigned char> h_plan_recvbuf(m_plan_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar4> h_pos_recvbuf(m_pos_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_charge_recvbuf(m_charge_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_diameter_recvbuf(m_diameter_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_tag_recvbuf(m_tag_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
 
             reqs[2] = m_mpi_comm->isend(send_neighbor,1,h_plan_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_plan_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_plan.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[4] = m_mpi_comm->isend(send_neighbor,2,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_pos_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_copy_ghosts.data, m_num_copy_ghosts[dir]);
-            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_tag_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_global_tag.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[8] = m_mpi_comm->isend(send_neighbor,4,h_charge_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_charge_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_charge.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[10] = m_mpi_comm->isend(send_neighbor,5,h_diameter_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_diameter_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_diameter.data + start_idx, m_num_recv_ghosts[dir]);
 
             boost::mpi::wait_all(reqs+2,reqs+12);
             }
@@ -598,71 +599,11 @@ void CommunicatorGPU::exchangeGhosts()
         if (m_prof)
             m_prof->pop();
 
-        // append ghosts at the end of particle data array
-        unsigned int start_idx = m_pdata->getN() + m_pdata->getNGhosts();
-
-        // filter particles (only accept particles that are not already local)
-        m_ghost_idx[dir].resize(m_num_recv_ghosts[dir]);
-            {
-            // step 1: count received particles that are not already local
-            ArrayHandle<unsigned int> d_tag_recvbuf(m_tag_recvbuf, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned char> d_add_ghost(m_add_ghost[dir], access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx[dir], access_location::device, access_mode::overwrite);
-
-            gpu_filter_ghost_particles_step_one(d_tag_recvbuf.data,
-                                                d_rtag.data,
-                                                d_add_ghost.data,
-                                                d_ghost_idx.data,
-                                                m_num_recv_ghosts[dir],
-                                                m_num_add_ghosts[dir]);
-            CHECK_CUDA_ERROR();
-            }
-
-        // accommodate new ghost particles
-        m_pdata->addGhostParticles(m_num_add_ghosts[dir]);
-
-        // resize plan array
-        m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
-
-            {
-            // step 2: add those particles that are not local
-            ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> d_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
-
-            ArrayHandle<unsigned char> d_plan_recvbuf(m_plan_recvbuf, access_location::device, access_mode::read);
-            ArrayHandle<Scalar4> d_pos_recvbuf(m_pos_recvbuf, access_location::device, access_mode::read);
-            ArrayHandle<Scalar> d_charge_recvbuf(m_charge_recvbuf, access_location::device, access_mode::read);
-            ArrayHandle<Scalar> d_diameter_recvbuf(m_diameter_recvbuf, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_tag_recvbuf(m_tag_recvbuf, access_location::device, access_mode::read);
-
-            ArrayHandle<unsigned char> d_add_ghost(m_add_ghost[dir], access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx[dir], access_location::device, access_mode::read);
-
-            gpu_filter_ghost_particles_step_two(d_plan.data + start_idx,
-                                                d_pos.data + start_idx,
-                                                d_charge.data + start_idx,
-                                                d_diameter.data + start_idx,
-                                                d_tag.data + start_idx,
-                                                d_plan_recvbuf.data,
-                                                d_pos_recvbuf.data,
-                                                d_charge_recvbuf.data,
-                                                d_diameter_recvbuf.data,
-                                                d_tag_recvbuf.data,
-                                                d_add_ghost.data,
-                                                d_ghost_idx.data,
-                                                m_num_recv_ghosts[dir]);
-            CHECK_CUDA_ERROR();
-            }
-
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
             gpu_wrap_ghost_particles(dir,
-                              m_num_add_ghosts[dir],
+                              m_num_recv_ghosts[dir],
                               d_pos.data + start_idx,
                               m_pdata->getGlobalBox(),
                               m_is_at_boundary);
@@ -671,7 +612,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
 
-            gpu_update_rtag(m_num_add_ghosts[dir], start_idx, d_global_tag.data + start_idx, d_global_rtag.data);
+            gpu_update_rtag(m_num_recv_ghosts[dir], start_idx, d_global_tag.data + start_idx, d_global_rtag.data);
             CHECK_CUDA_ERROR();
 
             }
@@ -692,7 +633,8 @@ void CommunicatorGPU::copyGhosts()
     if (m_prof)
         m_prof->push("copy_ghosts");
 
-    unsigned int start_idx = m_pdata->getN();
+    unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
+
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
@@ -718,32 +660,36 @@ void CommunicatorGPU::copyGhosts()
         else
             recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
-        // resize receive buffer
-        m_pos_recvbuf.resize(m_num_recv_ghosts[dir]);
+        unsigned int start_idx;
 
         if (m_prof)
             m_prof->push("MPI send/recv");
 
+
+        start_idx = m_pdata->getN() + num_tot_recv_ghosts;
+
+        num_tot_recv_ghosts += m_num_recv_ghosts[dir];
+
         boost::mpi::request reqs[2];
 #ifdef ENABLE_MPI_CUDA
             {
-            ArrayHandle<Scalar4> d_pos_recvbuf(m_pos_recvbuf, access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::read);
 
-            // exchange particle data, write into receive buffer
+            // exchange particle data, write directly to the particle data arrays
             reqs[0] = m_mpi_comm->isend(send_neighbor,0,d_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,d_pos_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,d_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
             boost::mpi::wait_all(reqs,reqs+2);
             }
 #else
             {
-            ArrayHandle<Scalar4> h_pos_recvbuf(m_pos_recvbuf, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
             reqs[0] = m_mpi_comm->isend(send_neighbor,0,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,h_pos_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
             boost::mpi::wait_all(reqs,reqs+2);
             }
@@ -755,30 +701,13 @@ void CommunicatorGPU::copyGhosts()
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
-            ArrayHandle<Scalar4> d_pos_recvbuf(m_pos_recvbuf, access_location::device, access_mode::read);
-            ArrayHandle<unsigned char> d_add_ghost(m_add_ghost[dir], access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx[dir], access_location::device, access_mode::read);
-
-            gpu_filter_ghost_particles_copy(d_pos.data + start_idx,
-                                            d_pos_recvbuf.data,
-                                            d_add_ghost.data,
-                                            d_ghost_idx.data,
-                                            m_num_recv_ghosts[dir]);
-            CHECK_CUDA_ERROR();
-            }
-           
-            {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-
             gpu_wrap_ghost_particles(dir,
-                           m_num_add_ghosts[dir],
+                           m_num_recv_ghosts[dir],
                            d_pos.data + start_idx,
                            m_pdata->getGlobalBox(),
                            m_is_at_boundary);
             CHECK_CUDA_ERROR();
             }
-        
-        start_idx += m_num_add_ghosts[dir];
 
         } // end dir loop
 

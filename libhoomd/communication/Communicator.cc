@@ -742,7 +742,7 @@ void Communicator::exchangeGhosts()
         m_tag_recvbuf.resize(m_num_recv_ghosts[dir]);
         m_add_ghost[dir].resize(m_num_recv_ghosts[dir]);
 
-        // exchange particle data, write into receive buffers
+        // exchange particle data, write directly to the particle data arrays
         if (m_prof)
             m_prof->push("MPI send/recv");
 
@@ -934,7 +934,7 @@ void Communicator::copyGhosts()
             ArrayHandle<Scalar4> h_pos_recvbuf(m_pos_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
 
-            // exchange particle data, write into receive buffer
+            // exchange particle data, write directly to the particle data arrays
             reqs[0] = m_mpi_comm->isend(send_neighbor,1,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
             reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,h_pos_recvbuf.data, m_num_recv_ghosts[dir]);
             boost::mpi::wait_all(reqs,reqs+2);
