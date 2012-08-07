@@ -131,11 +131,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_charge_copybuf(m_exec_conf),
             m_diameter_copybuf(m_exec_conf),
             m_plan_copybuf(m_exec_conf),
-            m_pos_recvbuf(m_exec_conf),
-            m_charge_recvbuf(m_exec_conf),
-            m_diameter_recvbuf(m_exec_conf),
-            m_plan_recvbuf(m_exec_conf),
-            m_tag_recvbuf(m_exec_conf),
             m_is_allocated(false),
             m_r_ghost(Scalar(0.0)),
             m_plan(m_exec_conf)
@@ -157,9 +152,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_copy_ghosts[dir].swap(copy_ghosts);
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
-
-        GPUVector<unsigned char> add_ghost(m_exec_conf);
-        m_add_ghost[dir].swap(add_ghost);
         }
 
     // Connect to maximum particle number change signal
@@ -594,8 +586,12 @@ void Communicator::exchangeGhosts()
         const GPUVector<uint2>& btable = bdata->getBondTable();
         ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
         ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
 
+        Scalar3 L2 = box.getL()/Scalar(2.0); 
+        Scalar3 lo = box.getLo();
+    
         unsigned nbonds = bdata->getNumBonds();
         unsigned int N = m_pdata->getN();
         for (unsigned int bond_idx = 0; bond_idx < nbonds; bond_idx++)
@@ -610,12 +606,20 @@ void Communicator::exchangeGhosts()
             if ((idx1 >= N) && (idx2 < N))
                 {
                 // send particle with index idx2 to neighboring domains
-                h_plan.data[idx2] = send_east | send_west | send_north | send_south | send_up | send_down;
+                Scalar4 pos = h_pos.data[idx2];
+
+                h_plan.data[idx2] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+                h_plan.data[idx2] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+                h_plan.data[idx2] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
                 }
             else if ((idx1 < N) && (idx2 >= N))
                 {
                 // send particle with index idx1 to neighboring domains
-                h_plan.data[idx1] = send_east | send_west | send_north | send_south | send_up | send_down;
+                Scalar4 pos = h_pos.data[idx1];
+
+                h_plan.data[idx1] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+                h_plan.data[idx1] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+                h_plan.data[idx1] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
                 } 
             }
         }
@@ -700,7 +704,7 @@ void Communicator::exchangeGhosts()
             for (unsigned int idx = 0; idx < m_pdata->getN() + m_pdata->getNGhosts(); idx++)
                 {
 
-                if ((h_plan.data[idx] & (1 << dir)))
+                if (h_plan.data[idx] & (1 << dir))
                     {
                     // send with next message
                     h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
@@ -734,13 +738,14 @@ void Communicator::exchangeGhosts()
         if (m_prof)
             m_prof->pop();
 
-        // resize receive buffers
-        m_plan_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_pos_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_charge_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_diameter_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_tag_recvbuf.resize(m_num_recv_ghosts[dir]);
-        m_add_ghost[dir].resize(m_num_recv_ghosts[dir]);
+        // append ghosts at the end of particle data array
+        unsigned int start_idx = m_pdata->getN() + m_pdata->getNGhosts();
+
+        // accommodate new ghost particles
+        m_pdata->addGhostParticles(m_num_recv_ghosts[dir]);
+
+        // resize plan array
+        m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
         // exchange particle data, write directly to the particle data arrays
         if (m_prof)
@@ -753,26 +758,26 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::read);
 
-            ArrayHandle<unsigned char> h_plan_recvbuf(m_plan_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar4> h_pos_recvbuf(m_pos_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_charge_recvbuf(m_charge_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_diameter_recvbuf(m_diameter_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_tag_recvbuf(m_tag_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
 
             reqs[2] = m_mpi_comm->isend(send_neighbor,1,h_plan_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_plan_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_plan.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[4] = m_mpi_comm->isend(send_neighbor,2,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_pos_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_copy_ghosts.data, m_num_copy_ghosts[dir]);
-            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_tag_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_global_tag.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[8] = m_mpi_comm->isend(send_neighbor,4,h_charge_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_charge_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_charge.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[10] = m_mpi_comm->isend(send_neighbor,5,h_diameter_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_diameter_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_diameter.data + start_idx, m_num_recv_ghosts[dir]);
 
             boost::mpi::wait_all(reqs+2,reqs+12);
             }
@@ -780,77 +785,14 @@ void Communicator::exchangeGhosts()
         if (m_prof)
             m_prof->pop();
 
-        // filter particles (only accept particles that are not already local)
-        unsigned int cnt = 0;
-            {
-            // step 1: count received particles that are not already local
-            ArrayHandle<unsigned int> h_tag_recvbuf(m_tag_recvbuf, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned char> h_add_ghost(m_add_ghost[dir], access_location::host, access_mode::overwrite);
-
-            for (unsigned int recv_idx = 0; recv_idx < m_num_recv_ghosts[dir]; recv_idx++)
-                {
-                if (h_rtag.data[h_tag_recvbuf.data[recv_idx]] == NOT_LOCAL)
-                    {
-                    cnt++;
-                    h_add_ghost.data[recv_idx] = 1;
-                    }
-                else
-                    h_add_ghost.data[recv_idx] = 0;
-                }
-            }
-
-        // append ghosts at the end of particle data array
-        unsigned int start_idx = m_pdata->getN() + m_pdata->getNGhosts();
-
-        // accommodate new ghost particles
-        m_pdata->addGhostParticles(cnt);
-
-        // resize plan array
-        m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
+        Scalar3 L = m_pdata->getGlobalBox().getL();
 
 
             {
-            // step 2: add those particles that are not local
-            ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
-
-            ArrayHandle<unsigned char> h_plan_recvbuf(m_plan_recvbuf, access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_pos_recvbuf(m_pos_recvbuf, access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_charge_recvbuf(m_charge_recvbuf, access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_diameter_recvbuf(m_diameter_recvbuf, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_tag_recvbuf(m_tag_recvbuf, access_location::host, access_mode::read);
-            ArrayHandle<unsigned char> h_add_ghost(m_add_ghost[dir], access_location::host, access_mode::read);
-
-            unsigned int add_idx = start_idx;
-            for (unsigned int recv_idx = 0; recv_idx < m_num_recv_ghosts[dir]; recv_idx++)
-                {
-                if (h_add_ghost.data[recv_idx])
-                    {
-                    h_plan.data[add_idx] = h_plan_recvbuf.data[recv_idx];
-                    h_pos.data[add_idx] = h_pos_recvbuf.data[recv_idx];
-                    h_charge.data[add_idx] = h_charge_recvbuf.data[recv_idx];
-                    h_diameter.data[add_idx] = h_diameter_recvbuf.data[recv_idx];
-                    h_tag.data[add_idx] = h_tag_recvbuf.data[recv_idx];
-
-                    // set reverse-lookup tag -> add_idx
-                    h_rtag.data[h_tag_recvbuf.data[recv_idx]] = add_idx;
-     
-                    add_idx++;
-                    }
-                }
-            assert(add_idx == start_idx + cnt);
-            } 
- 
-       Scalar3 L = m_pdata->getGlobalBox().getL();
-
-            {
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            for (unsigned int idx = start_idx; idx < start_idx + cnt; idx++)
+            for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
                 Scalar4& pos = h_pos.data[idx];
 
@@ -868,7 +810,12 @@ void Communicator::exchangeGhosts()
                     pos.z -= L.z;
                 else if (dir==5 && m_is_at_boundary[4])
                     pos.z += L.z;
-               }
+
+
+                // set reverse-lookup tag -> idx
+                assert(h_global_rtag.data[h_global_tag.data[idx]] == NOT_LOCAL);
+                h_global_rtag.data[h_global_tag.data[idx]] = idx;
+                }
             }
         } // end dir loop
 
@@ -889,7 +836,7 @@ void Communicator::copyGhosts()
 
     // update data in these arrays
 
-    unsigned int add_idx = m_pdata->getN();
+    unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
@@ -922,59 +869,57 @@ void Communicator::copyGhosts()
             recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
 
-        // resize receive buffer
-        m_pos_recvbuf.resize(m_num_recv_ghosts[dir]);
-
+        unsigned int start_idx;
+        {
         if (m_prof)
             m_prof->push("MPI send/recv");
+
+
+        start_idx = m_pdata->getN() + num_tot_recv_ghosts;
+
+        num_tot_recv_ghosts += m_num_recv_ghosts[dir];
+
 
             {
             boost::mpi::request reqs[2];
 
-            ArrayHandle<Scalar4> h_pos_recvbuf(m_pos_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
             reqs[0] = m_mpi_comm->isend(send_neighbor,1,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,h_pos_recvbuf.data, m_num_recv_ghosts[dir]);
+            reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
             boost::mpi::wait_all(reqs,reqs+2);
             }
 
+
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
+        }
 
         Scalar3 L= m_pdata->getGlobalBox().getL();
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
-            ArrayHandle<Scalar4> h_pos_recvbuf(m_pos_recvbuf, access_location::host, access_mode::read);
-            ArrayHandle<unsigned char> h_add_ghost(m_add_ghost[dir], access_location::host, access_mode::read);
-
-            for (unsigned int recv_idx = 0; recv_idx < m_num_recv_ghosts[dir]; recv_idx++)
+            for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
-                if (h_add_ghost.data[recv_idx])
-                    {
-                    h_pos.data[add_idx] = h_pos_recvbuf.data[recv_idx];
+                Scalar4& pos = h_pos.data[idx];
 
-                    // wrap particles received across a global boundary 
-                    // we are not actually folding back particles into the global box, but into the ghost layer
-                    Scalar4& pos = h_pos.data[add_idx];
-                    add_idx++;
-
-                    if (dir==0 && m_is_at_boundary[1])
-                        pos.x -= L.x;
-                    else if (dir==1 && m_is_at_boundary[0])
-                        pos.x += L.x;
-                    else if (dir==2 && m_is_at_boundary[3])
-                        pos.y -= L.y;
-                    else if (dir==3 && m_is_at_boundary[2])
-                        pos.y += L.y;
-                    else if (dir==4 && m_is_at_boundary[5])
-                        pos.z -= L.z;
-                    else if (dir==5 && m_is_at_boundary[4])
-                        pos.z += L.z;
-                    }
+                // wrap particles received across a global boundary 
+                // we are not actually folding back particles into the global box, but into the ghost layer
+                if (dir==0 && m_is_at_boundary[1])
+                    pos.x -= L.x;
+                else if (dir==1 && m_is_at_boundary[0])
+                    pos.x += L.x;
+                else if (dir==2 && m_is_at_boundary[3])
+                    pos.y -= L.y;
+                else if (dir==3 && m_is_at_boundary[2])
+                    pos.y += L.y;
+                else if (dir==4 && m_is_at_boundary[5])
+                    pos.z -= L.z;
+                else if (dir==5 && m_is_at_boundary[4])
+                    pos.z += L.z;
                 }
             }
 
