@@ -301,9 +301,6 @@ class Communicator
 
         //@}
 
-        //! Reallocate temporary storage
-        void reallocate();
-
         //! Force particle migration
         void forceMigrate()
             {
@@ -322,9 +319,6 @@ class Communicator
             assert(size > 0);
             m_packed_size = size;
             }
-
-        //! Helper function to allocate internal buffers
-        void allocate();
 
         //! The flags used for indicating the itinerary of a ghost particle
         enum Enum
@@ -382,7 +376,6 @@ class Communicator
 
         BoxDim m_global_box;                     //!< Global simulation box
         unsigned int m_packed_size;              //!< Size of packed particle data element in bytes
-        bool m_is_allocated;                     //!< True if internal buffers have been allocated
         Scalar m_r_ghost;                        //!< Width of ghost layer
 
         GPUVector<unsigned char> m_plan;         //!< Array of per-direction flags that determine the sending route
@@ -396,18 +389,7 @@ class Communicator
         std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
 
-        GPUArray<Scalar4> m_pos_tmp;             //!< Temporary storage of particle positions
-        GPUArray<Scalar4> m_vel_tmp;             //!< Temporary storage of particle velocities
-        GPUArray<Scalar3> m_accel_tmp;           //!< Temporary storage of particle accelerations
-        GPUArray<int3> m_image_tmp;              //!< Temporary storage of particle images
-        GPUArray<Scalar> m_charge_tmp;           //!< Temporary storage of particle charges
-        GPUArray<Scalar> m_diameter_tmp;         //!< Temporary storage of particle diameters
-        GPUArray<unsigned int> m_body_tmp;       //!< Temporary storage of particle body ids
-        GPUArray<Scalar4> m_orientation_tmp;     //!< Temporary storage of particle orientations
-        GPUArray<unsigned int> m_tag_tmp;        //!< Temporary storage of particle tags
-
-    private:
-        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
+   private:
         boost::signals::connection m_sort_connection;                    //!< Connection to particle sort signal
 
     };

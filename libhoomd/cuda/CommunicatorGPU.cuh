@@ -68,11 +68,6 @@ enum gpu_send_flags
     send_down = 32
     };
 
-//! Get the size of packed data element
-/*! \return the size of the data element (in bytes)
- */
-unsigned int gpu_pdata_element_size();
-
 //! Allocate temporary device memory for reordering particles
 void gpu_allocate_tmp_storage();
 
@@ -89,6 +84,7 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
 //! Reorder the particle data
 void gpu_migrate_select_particles(unsigned int N,
                         unsigned int &n_send_ptls,
+                        unsigned char *d_remove_mask,
                         float4 *d_pos,
                         float4 *d_pos_tmp,
                         float4 *d_vel,
@@ -110,6 +106,28 @@ void gpu_migrate_select_particles(unsigned int N,
                         const BoxDim& box,
                         unsigned int dir);
 
+void gpu_migrate_compact_particles(unsigned int N,
+                        unsigned char *d_remove_mask,
+                        unsigned int &n_remove_ptls,
+                        float4 *d_pos,
+                        float4 *d_pos_tmp,
+                        float4 *d_vel,
+                        float4 *d_vel_tmp,
+                        float3 *d_accel,
+                        float3 *d_accel_tmp,
+                        int3 *d_image,
+                        int3 *d_image_tmp,
+                        float *d_charge,
+                        float *d_charge_tmp,
+                        float *d_diameter,
+                        float *d_diameter_tmp,
+                        unsigned int *d_body,
+                        unsigned int *d_body_tmp,
+                        float4 *d_orientation,
+                        float4 *d_orientation_tmp,
+                        unsigned int *d_tag,
+                        unsigned int *d_tag_tmp);
+ 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
@@ -131,25 +149,12 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
                            char *&d_send_buf_end);
 
 //! Wrap received particles across global box boundaries
-void gpu_migrate_wrap_received_particles(char *d_recv_buf,
-                                 char *d_recv_buf_end,
-                                 unsigned int &n_recv_ptl,
+void gpu_migrate_wrap_received_particles(float4 *d_pos,
+                                 int3 *d_image,
+                                 unsigned int n_recv_ptl,
                                  const BoxDim& global_box,
                                  const unsigned int dir,
                                  const bool is_at_boundary[]);
-
-//! Add received particles to local box if their positions are inside the local boundaries
-void gpu_migrate_add_particles(  char *d_recv_buf,
-                                 char *d_recv_buf_end,
-                                 float4 *d_pos,
-                                 float4 *d_vel,
-                                 float3 *d_accel,
-                                 int3 *d_image,
-                                 float *d_charge,
-                                 float *d_diameter,
-                                 unsigned int *d_body,
-                                 float4  *d_orientation,
-                                 unsigned int *d_tag);
 
 
 //! Wrap received ghost particles across global box

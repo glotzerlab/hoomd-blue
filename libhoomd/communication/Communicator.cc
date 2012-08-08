@@ -131,7 +131,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_charge_copybuf(m_exec_conf),
             m_diameter_copybuf(m_exec_conf),
             m_plan_copybuf(m_exec_conf),
-            m_is_allocated(false),
             m_r_ghost(Scalar(0.0)),
             m_plan(m_exec_conf)
     {
@@ -155,57 +154,13 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         }
 
     // Connect to maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(boost::bind(&Communicator::reallocate, this));
     m_sort_connection = m_pdata->connectParticleSort(boost::bind(&Communicator::forceMigrate, this));
     }
 
 //! Destructor
 Communicator::~Communicator()
     {
-    m_max_particle_num_change_connection.disconnect();
     m_sort_connection.disconnect();
-    }
-
-//! Allocate internal buffers
-void Communicator::allocate()
-    {
-    // the size of the data element may be different between CPU and GPU. It is just
-    // used for allocation of the buffers
-    // allocate temp storage for particle data
-    GPUArray<Scalar4> pos_tmp(m_pdata->getPositions().getNumElements(), m_exec_conf);
-    m_pos_tmp.swap(pos_tmp);
-    GPUArray<Scalar4> vel_tmp(m_pdata->getVelocities().getNumElements(), m_exec_conf);
-    m_vel_tmp.swap(vel_tmp);
-    GPUArray<Scalar3> accel_tmp(m_pdata->getAccelerations().getNumElements(), m_exec_conf);
-    m_accel_tmp.swap(accel_tmp);
-    GPUArray<int3> image_tmp(m_pdata->getImages().getNumElements(), m_exec_conf);
-    m_image_tmp.swap(image_tmp);
-    GPUArray<Scalar> charge_tmp(m_pdata->getCharges().getNumElements(), m_exec_conf);
-    m_charge_tmp.swap(charge_tmp);
-    GPUArray<Scalar> diameter_tmp(m_pdata->getDiameters().getNumElements(), m_exec_conf);
-    m_diameter_tmp.swap(diameter_tmp);
-    GPUArray<unsigned int> body_tmp(m_pdata->getBodies().getNumElements(), m_exec_conf);
-    m_body_tmp.swap(body_tmp);
-    GPUArray<Scalar4> orientation_tmp(m_pdata->getOrientationArray().getNumElements(), m_exec_conf);
-    m_orientation_tmp.swap(orientation_tmp);
-    GPUArray<unsigned int> tag_tmp(m_pdata->getGlobalTags().getNumElements(), m_exec_conf);
-    m_tag_tmp.swap(tag_tmp);
-
-    m_is_allocated = true;
-    }
-
-//! Rellocate temporary storage
-void Communicator::reallocate()
-    {
-    m_pos_tmp.resize(m_pdata->getMaxN());
-    m_vel_tmp.resize(m_pdata->getMaxN());
-    m_accel_tmp.resize(m_pdata->getMaxN());
-    m_image_tmp.resize(m_pdata->getMaxN());
-    m_charge_tmp.resize(m_pdata->getMaxN());
-    m_diameter_tmp.resize(m_pdata->getMaxN());
-    m_body_tmp.resize(m_pdata->getMaxN());
-    m_orientation_tmp.resize(m_pdata->getMaxN());
-    m_tag_tmp.resize(m_pdata->getMaxN());
     }
 
 //! Interface to the communication methods.
@@ -239,9 +194,6 @@ void Communicator::migrateAtoms()
     {
     if (m_prof)
         m_prof->push("migrate_atoms");
-
-    if (! m_is_allocated)
-        allocate();
 
     // wipe out reverse-lookup tag -> idx for old ghost atoms
         {
@@ -558,9 +510,6 @@ void Communicator::exchangeGhosts()
     {
     if (m_prof)
         m_prof->push("exchange_ghosts");
-
-    if (! m_is_allocated)
-        allocate();
 
     const BoxDim& box = m_pdata->getBox();
 

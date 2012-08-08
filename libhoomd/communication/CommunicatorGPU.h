@@ -95,9 +95,17 @@ class CommunicatorGPU : public Communicator
         //@}
 
     private:
-        GPUVector<unsigned int> m_ghost_idx[6];    //!< Per-direction map of local indices for received ghost particles
-        unsigned int m_num_add_ghosts[6];          //!< Per-direction count of added ghost particles
+        GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
 
+        GPUVector<Scalar4> m_pos_stage;             //!< Temporary storage of particle positions
+        GPUVector<Scalar4> m_vel_stage;             //!< Temporary storage of particle velocities
+        GPUVector<Scalar3> m_accel_stage;           //!< Temporary storage of particle accelerations
+        GPUVector<int3> m_image_stage;              //!< Temporary storage of particle images
+        GPUVector<Scalar> m_charge_stage;           //!< Temporary storage of particle charges
+        GPUVector<Scalar> m_diameter_stage;         //!< Temporary storage of particle diameters
+        GPUVector<unsigned int> m_body_stage;       //!< Temporary storage of particle body ids
+        GPUVector<Scalar4> m_orientation_stage;     //!< Temporary storage of particle orientations
+        GPUVector<unsigned int> m_tag_stage;        //!< Temporary storage of particle tags
     };
 
 //! Export CommunicatorGPU class to python

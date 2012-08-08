@@ -76,20 +76,19 @@ BOOST_CLASS_TRACKING(Scalar4,track_never)
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
-    : Communicator(sysdef, decomposition)
+    : Communicator(sysdef, decomposition), m_remove_mask(m_exec_conf),
+      m_pos_stage(m_exec_conf),
+      m_vel_stage(m_exec_conf),
+      m_accel_stage(m_exec_conf),
+      m_image_stage(m_exec_conf),
+      m_charge_stage(m_exec_conf),
+      m_diameter_stage(m_exec_conf),
+      m_body_stage(m_exec_conf),
+      m_orientation_stage(m_exec_conf),
+      m_tag_stage(m_exec_conf)
     {
-    // initialize send buffer size with size of particle data element on the GPU
-    setPackedSize(gpu_pdata_element_size());
-
     // allocate temporary GPU buffers
     gpu_allocate_tmp_storage();
-
-    for (unsigned int dir = 0; dir < 6; dir ++)
-        {
-        GPUVector<unsigned int> ghost_idx(m_exec_conf);
-        m_ghost_idx[dir].swap(ghost_idx);
-        }
-
     }
 
 //! Destructor
@@ -103,9 +102,6 @@ void CommunicatorGPU::migrateAtoms()
     {
     if (m_prof)
         m_prof->push("migrate_atoms");
-
-    if (!m_is_allocated)
-        allocate();
 
         {
         // Reset reverse lookup tags of old ghost atoms
@@ -122,17 +118,30 @@ void CommunicatorGPU::migrateAtoms()
     // reset ghost particle number
     m_pdata->removeAllGhostParticles();
 
-    unsigned int recv_buf_size; // size of receive buffer
+    m_remove_mask.clear();
 
     for (unsigned int dir=0; dir < 6; dir++)
         {
-        char *d_send_buf_end;
         unsigned int n_send_ptls;
 
         if (! isCommunicating(dir) ) continue;
 
         if (m_prof)
             m_prof->push("remove ptls");
+
+        // Reallocate send buffers
+        m_pos_stage.resize(m_pdata->getN());
+        m_vel_stage.resize(m_pdata->getN());
+        m_accel_stage.resize(m_pdata->getN());
+        m_charge_stage.resize(m_pdata->getN());
+        m_diameter_stage.resize(m_pdata->getN());
+        m_image_stage.resize(m_pdata->getN());
+        m_body_stage.resize(m_pdata->getN());
+        m_orientation_stage.resize(m_pdata->getN());
+        m_tag_stage.resize(m_pdata->getN());
+
+        // resize mask and set newly allocated flags to zero
+        m_remove_mask.resize(m_pdata->getN());
 
             {
             // remove all particles from our domain that are going to be sent in the current direction
@@ -147,115 +156,49 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
 
-            ArrayHandle<Scalar4> d_pos_tmp(m_pos_tmp, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> d_vel_tmp(m_vel_tmp, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar3> d_accel_tmp(m_accel_tmp, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar> d_charge_tmp(m_charge_tmp, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar> d_diameter_tmp(m_diameter_tmp, access_location::device, access_mode::overwrite);
-            ArrayHandle<int3> d_image_tmp(m_image_tmp, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_body_tmp(m_body_tmp, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> d_orientation_tmp(m_orientation_tmp, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_tag_tmp(m_tag_tmp, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_pos_stage(m_pos_stage, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_vel_stage(m_vel_stage, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar3> d_accel_stage(m_accel_stage, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar> d_charge_stage(m_charge_stage, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar> d_diameter_stage(m_diameter_stage, access_location::device, access_mode::overwrite);
+            ArrayHandle<int3> d_image_stage(m_image_stage, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_body_stage(m_body_stage, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_orientation_stage(m_orientation_stage, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_tag_stage(m_tag_stage, access_location::device, access_mode::overwrite);
 
-            /* Reorder particles.
-               Particles that stay in our domain come first, followed by the particles that are sent to a
-               neighboring processor.
-             */
+            ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::readwrite);
+
+            // Stage particle data for sending
             gpu_migrate_select_particles(m_pdata->getN(),
                                    n_send_ptls,
+                                   d_remove_mask.data,                                
                                    d_pos.data,
-                                   d_pos_tmp.data,
+                                   d_pos_stage.data,
                                    d_vel.data,
-                                   d_vel_tmp.data,
+                                   d_vel_stage.data,
                                    d_accel.data,
-                                   d_accel_tmp.data,
+                                   d_accel_stage.data,
                                    d_image.data,
-                                   d_image_tmp.data,
+                                   d_image_stage.data,
                                    d_charge.data,
-                                   d_charge_tmp.data,
+                                   d_charge_stage.data,
                                    d_diameter.data,
-                                   d_diameter_tmp.data,
+                                   d_diameter_stage.data,
                                    d_body.data,
-                                   d_body_tmp.data,
+                                   d_body_stage.data,
                                    d_orientation.data,
-                                   d_orientation_tmp.data,
+                                   d_orientation_stage.data,
                                    d_global_tag.data,
-                                   d_tag_tmp.data,
+                                   d_tag_stage.data,
                                    m_pdata->getBox(),
                                    dir);
             CHECK_CUDA_ERROR();
+            
             }
-
-        // Swap temporary arrays with particle data arrays
-        m_pdata->getPositions().swap(m_pos_tmp);
-        m_pdata->getVelocities().swap(m_vel_tmp);
-        m_pdata->getAccelerations().swap(m_accel_tmp);
-        m_pdata->getImages().swap(m_image_tmp);
-        m_pdata->getCharges().swap(m_charge_tmp);
-        m_pdata->getDiameters().swap(m_diameter_tmp);
-        m_pdata->getBodies().swap(m_body_tmp);
-        m_pdata->getOrientationArray().swap(m_orientation_tmp);
-        m_pdata->getGlobalTags().swap(m_tag_tmp);
 
         if (m_prof)
 	        m_prof->pop();
 
-        // Update number of particles in system
-        m_pdata->removeParticles(n_send_ptls);
-
-
-            {
-            // Reset reverse lookup tags of removed particles
-            ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
-
-            gpu_reset_rtags(n_send_ptls,
-                            d_global_tag.data + m_pdata->getN(),
-                            d_global_rtag.data);
-
-            CHECK_CUDA_ERROR();
-            }
-
-        // scan all atom positions and fill the send buffers with those that have left the domain boundaries,
-        // and remove those particles from the local domain
-
-        // Resize send buffer
-        m_sendbuf.resize(n_send_ptls*m_packed_size);
-
-        unsigned int send_buf_size;
-
-            {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
-            ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
-
-            ArrayHandle<char> d_sendbuf(m_sendbuf, access_location::device, access_mode::overwrite);
-
-            // the particles that are going to be sent have been moved to the end of the particle data
-            unsigned int send_begin = m_pdata->getN();
-
-            // pack send buf
-            gpu_migrate_pack_send_buffer(n_send_ptls,
-                                         d_pos.data + send_begin,
-                                         d_vel.data + send_begin,
-                                         d_accel.data + send_begin,
-                                         d_image.data + send_begin,
-                                         d_charge.data + send_begin,
-                                         d_diameter.data + send_begin,
-                                         d_body.data + send_begin,
-                                         d_orientation.data + send_begin,
-                                         d_global_tag.data + send_begin,
-                                         d_sendbuf.data,
-                                         d_send_buf_end);
-            CHECK_CUDA_ERROR();
-            send_buf_size = d_send_buf_end - d_sendbuf.data;
-            }
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
@@ -268,58 +211,30 @@ void CommunicatorGPU::migrateAtoms()
         if (m_prof)
             m_prof->push("MPI send/recv");
 
+        unsigned int n_recv_ptls;
         // communicate size of the message that will contain the particle data
-        boost::mpi::request reqs[2];
-        reqs[0] = m_mpi_comm->isend(send_neighbor,0,send_buf_size);
-        reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,recv_buf_size);
+        boost::mpi::request reqs[20];
+        reqs[0] = m_mpi_comm->isend(send_neighbor,0,n_send_ptls);
+        reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,n_recv_ptls);
         boost::mpi::wait_all(reqs,reqs+2);
 
-        // Resize receive buffer
-        m_recvbuf.resize(recv_buf_size);
+        // start index for atoms to be added
+        unsigned int add_idx = m_pdata->getN();
+
+        // allocate memory for particles that will be received
+        m_pdata->addParticles(n_recv_ptls);
 
 #ifdef ENABLE_MPI_CUDA
             {
-            ArrayHandle<char> d_sendbuf(m_sendbuf, access_location::device, access_mode::read);
-            ArrayHandle<char> d_recvbuf(m_recvbuf, access_location::device, access_mode::overwrite);
-
-            // exchange actual particle data
-            reqs[0] = m_mpi_comm->isend(send_neighbor,1,d_sendbuf.data,send_buf_size);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,d_recvbuf.data,recv_buf_size);
-            boost::mpi::wait_all(reqs,reqs+2);
-            }
-
-#else
-            {
-            ArrayHandle<char> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
-            ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
-            // exchange actual particle data
-            reqs[0] = m_mpi_comm->isend(send_neighbor,2,h_sendbuf.data,send_buf_size);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,2,h_recvbuf.data,recv_buf_size);
-            boost::mpi::wait_all(reqs,reqs+2);
-            }
-#endif
-       if (m_prof)
-          m_prof->pop();
-
-       unsigned int n_recv_ptl;
-
-            {
-            ArrayHandle<char> d_recvbuf(m_recvbuf, access_location::device, access_mode::readwrite);
-            gpu_migrate_wrap_received_particles(d_recvbuf.data,
-                                                d_recvbuf.data+recv_buf_size,
-                                                n_recv_ptl,
-                                                m_pdata->getGlobalBox(),
-                                                dir,
-                                                m_is_at_boundary);
-            CHECK_CUDA_ERROR();
-            }
-
-            {
-            // start index for atoms to be added
-            unsigned int add_idx = m_pdata->getN();
-
-            // allocate memory for particles that have been received
-            m_pdata->addParticles(n_recv_ptl);
+            ArrayHandle<Scalar4> d_pos_stage(m_pos_stage, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_vel_stage(m_vel_stage, access_location::device, access_mode::read);
+            ArrayHandle<Scalar3> d_accel_stage(m_accel_stage, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_charge_stage(m_charge_stage, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_diameter_stage(m_diameter_stage, access_location::device, access_mode::read);
+            ArrayHandle<int3> d_image_stage(m_image_stage, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_body_stage(m_body_stage, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_orientation_stage(m_orientation_stage, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_tag_stage(m_tag_stage, access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -331,25 +246,189 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
 
-            ArrayHandle<char> d_recvbuf(m_recvbuf, access_location::device, access_mode::read);
 
-            gpu_migrate_add_particles(  d_recvbuf.data,
-                                        d_recvbuf.data+recv_buf_size,
-                                        d_pos.data + add_idx,
-                                        d_vel.data + add_idx,
-                                        d_accel.data + add_idx,
-                                        d_image.data + add_idx,
-                                        d_charge.data + add_idx,
-                                        d_diameter.data + add_idx,
-                                        d_body.data + add_idx,
-                                        d_orientation.data + add_idx,
-                                        d_global_tag.data + add_idx);
+            // exchange actual particle data
+            reqs[2] = m_mpi_comm->isend(send_neighbor,1,d_pos_stage.data,n_send_ptls);
+            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,d_pos.data+add_idx,n_recv_ptls);
 
+            reqs[4] = m_mpi_comm->isend(send_neighbor,2,d_vel_stage.data,n_send_ptls);
+            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,d_vel.data+add_idx,n_recv_ptls);
+
+            reqs[6] = m_mpi_comm->isend(send_neighbor,3,d_accel_stage.data,n_send_ptls);
+            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,d_accel.data+add_idx,n_recv_ptls);
+
+            reqs[8] = m_mpi_comm->isend(send_neighbor,4,d_image_stage.data,n_send_ptls);
+            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,d_image.data+add_idx,n_recv_ptls);
+
+            reqs[10] = m_mpi_comm->isend(send_neighbor,5,d_charge_stage.data,n_send_ptls);
+            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,d_charge.data+add_idx,n_recv_ptls);
+
+            reqs[12] = m_mpi_comm->isend(send_neighbor,6,d_diameter_stage.data,n_send_ptls);
+            reqs[13] = m_mpi_comm->irecv(recv_neighbor,6,d_diameter.data+add_idx,n_recv_ptls);
+
+            reqs[14] = m_mpi_comm->isend(send_neighbor,7,d_diameter_stage.data,n_send_ptls);
+            reqs[15] = m_mpi_comm->irecv(recv_neighbor,7,d_diameter.data+add_idx,n_recv_ptls);
+
+            reqs[16] = m_mpi_comm->isend(send_neighbor,8,d_body_stage.data,n_send_ptls);
+            reqs[17] = m_mpi_comm->irecv(recv_neighbor,8,d_body.data+add_idx,n_recv_ptls);
+
+            reqs[18] = m_mpi_comm->isend(send_neighbor,9,d_tag_stage.data,n_send_ptls);
+            reqs[19] = m_mpi_comm->irecv(recv_neighbor,9,d_global_tag.data+add_idx,n_recv_ptls);
+            boost::mpi::wait_all(reqs+2,reqs+20);
+            }
+
+#else
+            {
+            ArrayHandle<Scalar4> h_pos_stage(m_pos_stage, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_vel_stage(m_vel_stage, access_location::host, access_mode::read);
+            ArrayHandle<Scalar3> h_accel_stage(m_accel_stage, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_charge_stage(m_charge_stage, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_diameter_stage(m_diameter_stage, access_location::host, access_mode::read);
+            ArrayHandle<int3> h_image_stage(m_image_stage, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_body_stage(m_body_stage, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation_stage(m_orientation_stage, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_tag_stage(m_tag_stage, access_location::host, access_mode::read);
+
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
+            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
+
+
+
+            // exchange actual particle data
+            reqs[2] = m_mpi_comm->isend(senh_neighbor,1,h_pos_stage.data,n_senh_ptls);
+            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_pos.data+adh_idx,n_recv_ptls);
+
+            reqs[4] = m_mpi_comm->isend(senh_neighbor,2,h_vel_stage.data,n_senh_ptls);
+            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_vel.data+adh_idx,n_recv_ptls);
+
+            reqs[6] = m_mpi_comm->isend(senh_neighbor,3,h_accel_stage.data,n_senh_ptls);
+            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_accel.data+adh_idx,n_recv_ptls);
+
+            reqs[8] = m_mpi_comm->isend(senh_neighbor,4,h_image_stage.data,n_senh_ptls);
+            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_image.data+adh_idx,n_recv_ptls);
+
+            reqs[10] = m_mpi_comm->isend(senh_neighbor,5,h_charge_stage.data,n_senh_ptls);
+            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_charge.data+adh_idx,n_recv_ptls);
+
+            reqs[12] = m_mpi_comm->isend(senh_neighbor,6,h_diameter_stage.data,n_senh_ptls);
+            reqs[13] = m_mpi_comm->irecv(recv_neighbor,6,h_diameter.data+adh_idx,n_recv_ptls);
+
+            reqs[14] = m_mpi_comm->isend(senh_neighbor,7,h_diameter_stage.data,n_senh_ptls);
+            reqs[15] = m_mpi_comm->irecv(recv_neighbor,7,h_diameter.data+adh_idx,n_recv_ptls);
+
+            reqs[16] = m_mpi_comm->isend(senh_neighbor,8,h_body_stage.data,n_senh_ptls);
+            reqs[17] = m_mpi_comm->irecv(recv_neighbor,8,h_body.data+adh_idx,n_recv_ptls);
+
+            reqs[18] = m_mpi_comm->isend(senh_neighbor,9,h_tag_stage.data,n_senh_ptls);
+            reqs[19] = m_mpi_comm->irecv(recv_neighbor,9,h_global_tag.data+adh_idx,n_recv_ptls);
+            boost::mpi::wait_all(reqs+2,reqs+20);
+            }
+#endif
+
+        if (m_prof)
+            m_prof->pop();
+
+            {
+            ArrayHandle<float4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+            ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+            gpu_migrate_wrap_received_particles(d_pos.data + add_idx,
+                                                d_image.data + add_idx,
+                                                n_recv_ptls,
+                                                m_pdata->getGlobalBox(),
+                                                dir,
+                                                m_is_at_boundary);
             CHECK_CUDA_ERROR();
             }
 
         } // end dir loop
 
+
+    unsigned int n_remove_ptls;
+
+    // Reallocate particle data buffers
+    // it is important to use the actual size of the arrays as arguments,
+    // which can be larger than the particle number
+    m_pos_stage.resize(m_pdata->getPositions().getNumElements());
+    m_vel_stage.resize(m_pdata->getVelocities().getNumElements());
+    m_accel_stage.resize(m_pdata->getAccelerations().getNumElements());
+    m_charge_stage.resize(m_pdata->getCharges().getNumElements());
+    m_diameter_stage.resize(m_pdata->getDiameters().getNumElements());
+    m_image_stage.resize(m_pdata->getImages().getNumElements());
+    m_body_stage.resize(m_pdata->getBodies().getNumElements());
+    m_orientation_stage.resize(m_pdata->getOrientationArray().getNumElements());
+    m_tag_stage.resize(m_pdata->getGlobalTags().getNumElements());
+
+    m_remove_mask.resize(m_pdata->getN());
+    CHECK_CUDA_ERROR();
+
+        {
+        // Final array compaction
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+        ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
+
+        ArrayHandle<Scalar4> d_pos_stage(m_pos_stage, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_vel_stage(m_vel_stage, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar3> d_accel_stage(m_accel_stage, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_charge_stage(m_charge_stage, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_diameter_stage(m_diameter_stage, access_location::device, access_mode::overwrite);
+        ArrayHandle<int3> d_image_stage(m_image_stage, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_body_stage(m_body_stage, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_orientation_stage(m_orientation_stage, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_tag_stage(m_tag_stage, access_location::device, access_mode::overwrite);
+
+        ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::read);
+
+        gpu_migrate_compact_particles(m_pdata->getN(),
+                               d_remove_mask.data,
+                               n_remove_ptls,
+                               d_pos.data,
+                               d_pos_stage.data,
+                               d_vel.data,
+                               d_vel_stage.data,
+                               d_accel.data,
+                               d_accel_stage.data,
+                               d_image.data,
+                               d_image_stage.data,
+                               d_charge.data,
+                               d_charge_stage.data,
+                               d_diameter.data,
+                               d_diameter_stage.data,
+                               d_body.data,
+                               d_body_stage.data,
+                               d_orientation.data,
+                               d_orientation_stage.data,
+                               d_global_tag.data,
+                               d_tag_stage.data);
+        CHECK_CUDA_ERROR();
+
+        }
+   
+    // Swap temporary arrays with particle data arrays
+    m_pdata->getPositions().swap(m_pos_stage);
+    m_pdata->getVelocities().swap(m_vel_stage);
+    m_pdata->getAccelerations().swap(m_accel_stage);
+    m_pdata->getImages().swap(m_image_stage);
+    m_pdata->getCharges().swap(m_charge_stage);
+    m_pdata->getDiameters().swap(m_diameter_stage);
+    m_pdata->getBodies().swap(m_body_stage);
+    m_pdata->getOrientationArray().swap(m_orientation_stage);
+    m_pdata->getGlobalTags().swap(m_tag_stage);
+
+    m_pdata->removeParticles(n_remove_ptls);
 
         {
         // update rtag information
@@ -359,6 +438,7 @@ void CommunicatorGPU::migrateAtoms()
         CHECK_CUDA_ERROR();
         }
 
+ 
 #ifndef NDEBUG
     // check that total particle number is conserved
     unsigned int N;
@@ -383,9 +463,6 @@ void CommunicatorGPU::exchangeGhosts()
     {
     if (m_prof)
         m_prof->push("exchange_ghosts");
-
-    if (!m_is_allocated)
-        allocate();
 
     assert(m_r_ghost < (m_pdata->getBox().getL().x));
     assert(m_r_ghost < (m_pdata->getBox().getL().y));

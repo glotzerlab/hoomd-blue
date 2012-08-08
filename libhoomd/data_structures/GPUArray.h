@@ -282,16 +282,16 @@ template<class T> class GPUArray
             }
 
     private:
-        unsigned int m_num_elements;            //!< Number of elements
-        unsigned int m_pitch;                   //!< Pitch of the rows in elements
-        unsigned int m_height;                  //!< Number of allocated rows
+        mutable unsigned int m_num_elements;            //!< Number of elements
+        mutable unsigned int m_pitch;                   //!< Pitch of the rows in elements
+        mutable unsigned int m_height;                  //!< Number of allocated rows
         
         mutable bool m_acquired;                //!< Tracks whether the data has been aquired
         mutable data_location::Enum m_data_location;    //!< Tracks the current location of the data
     
     // ok, this looks weird, but I want m_exec_conf to be protected and not have to go reorder all of the initializers
     protected:
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
+        mutable boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
     
     private:
 #ifdef ENABLE_CUDA
@@ -483,16 +483,15 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     std::swap(h_data, from.h_data);
     }
 
-//! Swap the pointers of two equally sized GPUArrays
+//! Swap the pointers of two GPUArrays (const version)
 template<class T> void GPUArray<T>::swap(GPUArray& from) const
     {
     assert(!m_acquired && !from.m_acquired);
 
-    assert(m_num_elements==from.m_num_elements);
-    assert(m_pitch==from.m_pitch);
-    assert(m_height==from.m_height);
-    assert(m_exec_conf==from.m_exec_conf);
-
+    std::swap(m_num_elements, from.m_num_elements);
+    std::swap(m_pitch, from.m_pitch);
+    std::swap(m_height, from.m_height);
+    std::swap(m_exec_conf, from.m_exec_conf);
     std::swap(m_acquired, from.m_acquired);
     std::swap(m_data_location, from.m_data_location);
 #ifdef ENABLE_CUDA
@@ -585,12 +584,14 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
     assert(first < m_num_elements);
     
     // clear memory
-    memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
+    if (m_data_location == data_location::host || m_data_location == data_location::hostdevice)
+        memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
-        cudaMemset(d_data+first, 0, (m_num_elements-first)*sizeof(T));
+        if (m_data_location == data_location::device || m_data_location == data_location::hostdevice )
+            cudaMemset(d_data+first, 0, (m_num_elements-first)*sizeof(T));
         }
 #endif
     }
