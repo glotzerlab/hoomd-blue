@@ -554,7 +554,7 @@ void Communicator::exchangeGhosts()
                 }
             else if ((idx1 < N) && (idx2 >= N))
                 {
-                h_plan.data[idx2] = send_east | send_west | send_north | send_south | send_up | send_down;
+                h_plan.data[idx1] = send_east | send_west | send_north | send_south | send_up | send_down;
                 } 
             }
         }
