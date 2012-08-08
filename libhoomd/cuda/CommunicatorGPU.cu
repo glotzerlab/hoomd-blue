@@ -267,9 +267,12 @@ void gpu_deallocate_tmp_storage()
  */
 __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btable,
                                                          unsigned char *plan,
+                                                         const float4 *pos,
                                                          const unsigned int *d_rtag,
                                                          const unsigned int N,
-                                                         const unsigned int n_bonds)
+                                                         const unsigned int n_bonds,
+                                                         const Scalar3 lo,
+                                                         const Scalar3 L2)
     {
     unsigned int bond_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -286,19 +289,27 @@ __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btabl
     if ((idx1 >= N) && (idx2 < N))
         {
         // send particle with index idx2 to neighboring domains
-
+        Scalar4 postype = pos[idx2];
         // Multiple threads may update the plan simultaneously, but this should
         // be safe, since they store the same result
-        plan[idx2] = send_east | send_west | send_north | send_south | send_up | send_down;
+        unsigned char p = plan[idx2];
+        p |= (postype.x > lo.x + L2.x) ? send_east : send_west;
+        p |= (postype.y > lo.y + L2.y) ? send_north : send_south;
+        p |= (postype.z > lo.z + L2.z) ? send_up : send_down;
+        plan[idx2] = p;
         }
     else if ((idx1 < N) && (idx2 >= N))
         {
         // send particle with index idx1 to neighboring domains
-
+        Scalar4 postype = pos[idx1];
         // Multiple threads may update the plan simultaneously, but this should
         // be safe, since they store the same result
-        plan[idx1] = send_east | send_west | send_north | send_south | send_up | send_down;
-        }
+        unsigned char p = plan[idx1];
+        p |= (postype.x > lo.x + L2.x) ? send_east : send_west;
+        p |= (postype.y > lo.y + L2.y) ? send_north : send_south;
+        p |= (postype.z > lo.z + L2.z) ? send_up : send_down;
+        plan[idx1] = p;
+       }
     }
 
 //! Mark particles in incomplete bonds for sending
@@ -310,20 +321,27 @@ __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btabl
  */
 void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           unsigned char *d_plan,
+                                          const float4 *d_pos,
                                           const unsigned int *d_rtag,
                                           const unsigned int N,
-                                          const unsigned int n_bonds)
+                                          const unsigned int n_bonds,
+                                          const BoxDim box)
     {
     assert(d_btable);
     assert(d_plan);
     assert(N>0);
 
     unsigned int block_size = 512;
+    Scalar3 lo = box.getLo();
+    Scalar3 L2 = box.getL()/2.0f;
     gpu_mark_particles_in_incomplete_bonds_kernel<<<n_bonds/block_size + 1, block_size>>>(d_btable,
                                                                                     d_plan,
+                                                                                    d_pos,
                                                                                     d_rtag,
                                                                                     N,
-                                                                                    n_bonds);
+                                                                                    n_bonds,
+                                                                                    lo,
+                                                                                    L2);
     }
 
 //! Helper kernel to reorder particle data, step one
@@ -561,6 +579,36 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
                     rtag_ptr);
     }
 
+__global__ void gpu_reset_rtags_by_mask_kernel(const unsigned int N,
+                                        const unsigned char *remove_mask,
+                                        unsigned int *tag,
+                                        unsigned int *rtag)
+    {
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    
+    if (idx >= N) return;
+
+    if (remove_mask[idx])
+        rtag[tag[idx]] = NOT_LOCAL;
+    }
+
+//! Reset reverse lookup tags of particles by the remove mask
+/* \param n_delete_ptls Number of particles to check
+ * \param d_remove_mask Mask indicating which particles are to be removed
+ * \param d_tag Array of particle tags
+ * \param d_rtag Array for tag->idx lookup
+ */
+void gpu_reset_rtags_by_mask(unsigned int N,
+                     unsigned char *d_remove_mask,
+                     unsigned int *d_tag,
+                     unsigned int *d_rtag)
+    {
+    unsigned int block_size = 512;
+
+    gpu_reset_rtags_by_mask_kernel<<<N/block_size+1,block_size>>>(N, d_remove_mask,d_tag,d_rtag);
+    }
+
+
 //! Wrap received particles across global box boundaries
 /*! \param d_pos Particle positions array
  * \param d_image Particle images array
@@ -650,10 +698,6 @@ __global__ void gpu_make_exchange_ghost_list_kernel(const unsigned int n_total,
 
     unsigned char p = plan[idx];
     bool do_send = (p & (1 << dir));
-
-    // do not send back ghost particles just received from the opposite direction
-    if ((dir%2) && (p & (1 << (dir-1))) && idx >= N)
-        do_send = false;
 
     if (do_send)
         {

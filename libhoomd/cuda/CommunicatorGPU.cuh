@@ -77,9 +77,11 @@ void gpu_deallocate_tmp_storage();
 //! Mark particles in incomplete bonds for sending
 void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           unsigned char *d_plan,
+                                          const float4 *d_pos,
                                           const unsigned int *d_rtag,
                                           const unsigned int N,
-                                          const unsigned int n_bonds);
+                                          const unsigned int n_bonds,
+                                          const BoxDim box);
 
 //! Reorder the particle data
 void gpu_migrate_select_particles(unsigned int N,
@@ -133,6 +135,11 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
                      unsigned int *d_rtag);
 
+void gpu_reset_rtags_by_mask(unsigned int N,
+                     unsigned char *d_remove_mask,
+                     unsigned int *d_tag,
+                     unsigned int *d_rtag);
+ 
 
 //! Pack particle data into send buffer
 void gpu_migrate_pack_send_buffer(unsigned int N,

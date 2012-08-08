@@ -536,9 +536,12 @@ void Communicator::exchangeGhosts()
         ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
         ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+        ArrayHandle<float4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
         unsigned nbonds = bdata->getNumBonds();
         unsigned int N = m_pdata->getN();
+        Scalar3 lo = box.getLo();
+        Scalar3 L2 = box.getL()/Scalar(2.0);
         for (unsigned int bond_idx = 0; bond_idx < nbonds; bond_idx++)
             {
             uint2 bond = h_btable.data[bond_idx];
@@ -547,14 +550,21 @@ void Communicator::exchangeGhosts()
             unsigned int tag2 = bond.y;
             unsigned int idx1 = h_rtag.data[tag1];
             unsigned int idx2 = h_rtag.data[tag2];
-        
+       
             if ((idx1 >= N) && (idx2 < N))
                 {
-                h_plan.data[idx2] = send_east | send_west | send_north | send_south | send_up | send_down;
+                Scalar4 pos = h_pos.data[idx2];
+                h_plan.data[idx2] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+                h_plan.data[idx2] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+                h_plan.data[idx2] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
+
                 }
             else if ((idx1 < N) && (idx2 >= N))
                 {
-                h_plan.data[idx1] = send_east | send_west | send_north | send_south | send_up | send_down;
+                Scalar4 pos = h_pos.data[idx1];
+                h_plan.data[idx1] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
+                h_plan.data[idx1] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
+                h_plan.data[idx1] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
                 } 
             }
         }
@@ -641,10 +651,6 @@ void Communicator::exchangeGhosts()
 
                 if (h_plan.data[idx] & (1 << dir))
                     {
-                    // do not send ghost particles back in the opposite direction from which we received them
-                    if ((dir %2) && (h_plan.data[idx] & (1 << (dir-1))) && idx >= m_pdata->getN())
-                        continue;
-
                     // send with next message
                     h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
                     h_charge_copybuf.data[m_num_copy_ghosts[dir]] = h_charge.data[idx];

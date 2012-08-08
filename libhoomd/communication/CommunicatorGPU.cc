@@ -302,31 +302,31 @@ void CommunicatorGPU::migrateAtoms()
 
 
             // exchange actual particle data
-            reqs[2] = m_mpi_comm->isend(senh_neighbor,1,h_pos_stage.data,n_senh_ptls);
+            reqs[2] = m_mpi_comm->isend(send_neighbor,1,h_pos_stage.data,n_send_ptls);
             reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_pos.data+adh_idx,n_recv_ptls);
 
-            reqs[4] = m_mpi_comm->isend(senh_neighbor,2,h_vel_stage.data,n_senh_ptls);
+            reqs[4] = m_mpi_comm->isend(send_neighbor,2,h_vel_stage.data,n_send_ptls);
             reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_vel.data+adh_idx,n_recv_ptls);
 
-            reqs[6] = m_mpi_comm->isend(senh_neighbor,3,h_accel_stage.data,n_senh_ptls);
+            reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_accel_stage.data,n_send_ptls);
             reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_accel.data+adh_idx,n_recv_ptls);
 
-            reqs[8] = m_mpi_comm->isend(senh_neighbor,4,h_image_stage.data,n_senh_ptls);
+            reqs[8] = m_mpi_comm->isend(send_neighbor,4,h_image_stage.data,n_send_ptls);
             reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_image.data+adh_idx,n_recv_ptls);
 
-            reqs[10] = m_mpi_comm->isend(senh_neighbor,5,h_charge_stage.data,n_senh_ptls);
+            reqs[10] = m_mpi_comm->isend(send_neighbor,5,h_charge_stage.data,n_send_ptls);
             reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_charge.data+adh_idx,n_recv_ptls);
 
-            reqs[12] = m_mpi_comm->isend(senh_neighbor,6,h_diameter_stage.data,n_senh_ptls);
+            reqs[12] = m_mpi_comm->isend(send_neighbor,6,h_diameter_stage.data,n_send_ptls);
             reqs[13] = m_mpi_comm->irecv(recv_neighbor,6,h_diameter.data+adh_idx,n_recv_ptls);
 
-            reqs[14] = m_mpi_comm->isend(senh_neighbor,7,h_diameter_stage.data,n_senh_ptls);
+            reqs[14] = m_mpi_comm->isend(send_neighbor,7,h_diameter_stage.data,n_send_ptls);
             reqs[15] = m_mpi_comm->irecv(recv_neighbor,7,h_diameter.data+adh_idx,n_recv_ptls);
 
-            reqs[16] = m_mpi_comm->isend(senh_neighbor,8,h_body_stage.data,n_senh_ptls);
+            reqs[16] = m_mpi_comm->isend(send_neighbor,8,h_body_stage.data,n_send_ptls);
             reqs[17] = m_mpi_comm->irecv(recv_neighbor,8,h_body.data+adh_idx,n_recv_ptls);
 
-            reqs[18] = m_mpi_comm->isend(senh_neighbor,9,h_tag_stage.data,n_senh_ptls);
+            reqs[18] = m_mpi_comm->isend(send_neighbor,9,h_tag_stage.data,n_send_ptls);
             reqs[19] = m_mpi_comm->irecv(recv_neighbor,9,h_global_tag.data+adh_idx,n_recv_ptls);
             boost::mpi::wait_all(reqs+2,reqs+20);
             }
@@ -367,6 +367,19 @@ void CommunicatorGPU::migrateAtoms()
 
     m_remove_mask.resize(m_pdata->getN());
     CHECK_CUDA_ERROR();
+
+        {
+        // reset rtag of deleted particles
+        ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::read);
+        gpu_reset_rtags_by_mask(m_pdata->getN(),
+                               d_remove_mask.data,
+                               d_global_tag.data,
+                               d_global_rtag.data);
+        CHECK_CUDA_ERROR();
+        }
+
 
         {
         // Final array compaction
@@ -490,9 +503,11 @@ void CommunicatorGPU::exchangeGhosts()
 
         gpu_mark_particles_in_incomplete_bonds(d_btable.data,
                                                d_plan.data,
+                                               d_pos.data,
                                                d_rtag.data,
                                                m_pdata->getN(),
-                                               bdata->getNumBonds());
+                                               bdata->getNumBonds(),
+                                               m_pdata->getBox());
         CHECK_CUDA_ERROR();
         }
 
