@@ -131,6 +131,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_charge_copybuf(m_exec_conf),
             m_diameter_copybuf(m_exec_conf),
             m_plan_copybuf(m_exec_conf),
+            m_tag_copybuf(m_exec_conf),
             m_r_ghost(Scalar(0.0)),
             m_plan(m_exec_conf)
     {

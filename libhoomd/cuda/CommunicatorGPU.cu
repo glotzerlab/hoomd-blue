@@ -686,6 +686,7 @@ __global__ void gpu_make_exchange_ghost_list_kernel(const unsigned int n_total,
                                          const unsigned char *plan,
                                          const unsigned int *tag,
                                          unsigned int *copy_ghosts,
+                                         unsigned int *ghost_tag,
                                          unsigned int *n_copy_ghosts)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -698,7 +699,8 @@ __global__ void gpu_make_exchange_ghost_list_kernel(const unsigned int n_total,
     if (do_send)
         {
         unsigned int n = atomicInc(n_copy_ghosts, 0xffffffff);
-        copy_ghosts[n] = tag[idx];
+        ghost_tag[n] = tag[idx];
+        copy_ghosts[n] = idx;
         }
     }
 
@@ -709,7 +711,8 @@ __global__ void gpu_make_exchange_ghost_list_kernel(const unsigned int n_total,
  * \param dir Direction in which ghost particles are sent
  * \param d_plan Array of particle exchange plans
  * \param d_global_tag Array of particle global tags
- * \param d_copy_ghosts Array to be fillled x with global tags of particles that are to be send as ghosts
+ * \param d_copy_ghosts Array to be fillled with indices of particles that are to be sent as ghosts
+ * \param d_ghost_tag Array of ghost particle tags to be sent
  * \param n_copy_ghosts Number of local particles that are sent in the given direction as ghosts (return value)
  */
 void gpu_make_exchange_ghost_list(unsigned int n_total,
@@ -718,6 +721,7 @@ void gpu_make_exchange_ghost_list(unsigned int n_total,
                                   unsigned char *d_plan,
                                   unsigned int *d_global_tag,
                                   unsigned int *d_copy_ghosts,
+                                  unsigned int *d_ghost_tag,
                                   unsigned int &n_copy_ghosts)
     {
     n_copy_ghosts = 0;
@@ -730,6 +734,7 @@ void gpu_make_exchange_ghost_list(unsigned int n_total,
                                                                                 d_plan,
                                                                                 d_global_tag,
                                                                                 d_copy_ghosts,
+                                                                                d_ghost_tag,
                                                                                 d_n_copy_ghosts);
     cudaMemcpy(&n_copy_ghosts, d_n_copy_ghosts, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
@@ -770,11 +775,10 @@ void gpu_exchange_ghosts(unsigned int nghost,
     thrust::device_ptr<unsigned char> plan_ptr(d_plan);
     thrust::device_ptr<unsigned char> plan_copybuf_ptr(d_plan_copybuf);
 
-    permutation_iterator<device_ptr<unsigned int>, device_ptr<unsigned int> > ghost_rtag(rtag_ptr, copy_ghosts_ptr);
-    gather(ghost_rtag, ghost_rtag + nghost, pos_ptr, pos_copybuf_ptr);
-    gather(ghost_rtag, ghost_rtag + nghost, charge_ptr, charge_copybuf_ptr);
-    gather(ghost_rtag, ghost_rtag + nghost, diameter_ptr, diameter_copybuf_ptr);
-    gather(ghost_rtag, ghost_rtag + nghost, plan_ptr, plan_copybuf_ptr);
+    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, pos_ptr, pos_copybuf_ptr);
+    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, charge_ptr, charge_copybuf_ptr);
+    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, diameter_ptr, diameter_copybuf_ptr);
+    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, plan_ptr, plan_copybuf_ptr);
     }
 
 //! Update global tag <-> local particle index reverse lookup array
@@ -798,21 +802,17 @@ void gpu_update_rtag(unsigned int nptl, unsigned int start_idx, unsigned int *d_
  * \param d_pos Array of particle positions
  * \param d_copy_ghosts Global particle tags of particles to copy
  * \param d_pos_copybuf Send buffer of ghost particle positions
- * \param d_rtag Global tag <-> local particle index reverse lookup array
  */
 void gpu_copy_ghosts(unsigned int nghost,
                      float4 *d_pos,
                      unsigned int *d_copy_ghosts,
-                     float4 *d_pos_copybuf,
-                     unsigned int *d_rtag)
+                     float4 *d_pos_copybuf)
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
     thrust::device_ptr<unsigned int> copy_ghosts_ptr(d_copy_ghosts);
     thrust::device_ptr<float4> copybuf_ptr(d_pos_copybuf);
 
-    permutation_iterator<device_ptr<unsigned int>, device_ptr<unsigned int> > ghost_rtag(rtag_ptr, copy_ghosts_ptr);
-    gather(ghost_rtag, ghost_rtag + nghost, pos_ptr, copybuf_ptr);
+    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, pos_ptr, copybuf_ptr);
 
     }
 

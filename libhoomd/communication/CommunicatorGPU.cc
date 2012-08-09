@@ -552,6 +552,7 @@ void CommunicatorGPU::exchangeGhosts()
         m_charge_copybuf.resize(max_copy_ghosts);
         m_diameter_copybuf.resize(max_copy_ghosts);
         m_plan_copybuf.resize(max_copy_ghosts);
+        m_tag_copybuf.resize(max_copy_ghosts);
 
 
             {
@@ -568,6 +569,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> d_charge_copybuf(m_charge_copybuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar> d_diameter_copybuf(m_diameter_copybuf, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned char> d_plan_copybuf(m_plan_copybuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_tag_copybuf(m_tag_copybuf, access_location::device, access_mode::overwrite);
 
             gpu_make_exchange_ghost_list(m_pdata->getN()+m_pdata->getNGhosts() ,
                                          m_pdata->getN(),
@@ -575,6 +577,7 @@ void CommunicatorGPU::exchangeGhosts()
                                          d_plan.data,
                                          d_global_tag.data,
                                          d_copy_ghosts.data,
+                                         d_tag_copybuf.data,
                                          m_num_copy_ghosts[dir]);
             CHECK_CUDA_ERROR();
 
@@ -628,11 +631,11 @@ void CommunicatorGPU::exchangeGhosts()
 
 #ifdef ENABLE_MPI_CUDA
             {
-            ArrayHandle<unsigned int> d_copy_ghosts(m_copy_ghosts[dir], access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_charge_copybuf(m_charge_copybuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter_copybuf(m_diameter_copybuf, access_location::device, access_mode::read);
             ArrayHandle<unsigned char> d_plan_copybuf(m_plan_copybuf, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_tag_copybuf(m_tag_copybuf, access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
@@ -646,7 +649,7 @@ void CommunicatorGPU::exchangeGhosts()
             reqs[4] = m_mpi_comm->isend(send_neighbor,2,d_pos_copybuf.data, m_num_copy_ghosts[dir]);
             reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,d_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
-            reqs[6] = m_mpi_comm->isend(send_neighbor,3,d_copy_ghosts.data, m_num_copy_ghosts[dir]);
+            reqs[6] = m_mpi_comm->isend(send_neighbor,3,d_tag_copybuf.data, m_num_copy_ghosts[dir]);
             reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,d_global_tag.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[8] = m_mpi_comm->isend(send_neighbor,4,d_charge_copybuf.data, m_num_copy_ghosts[dir]);
@@ -659,11 +662,11 @@ void CommunicatorGPU::exchangeGhosts()
             }
 #else
             {
-            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::read);
             ArrayHandle<unsigned char> h_plan_copybuf(m_plan_copybuf, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_tag_copybuf(m_tag_copybuf, access_location::host, access_mode::read);
 
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
@@ -677,7 +680,7 @@ void CommunicatorGPU::exchangeGhosts()
             reqs[4] = m_mpi_comm->isend(send_neighbor,2,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
             reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
-            reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_copy_ghosts.data, m_num_copy_ghosts[dir]);
+            reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_tag_copybuf.data, m_num_copy_ghosts[dir]);
             reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_global_tag.data + start_idx, m_num_recv_ghosts[dir]);
 
             reqs[8] = m_mpi_comm->isend(send_neighbor,4,h_charge_copybuf.data, m_num_copy_ghosts[dir]);
@@ -738,9 +741,8 @@ void CommunicatorGPU::copyGhosts()
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_copy_ghosts(m_copy_ghosts[dir], access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
 
-            gpu_copy_ghosts(m_num_copy_ghosts[dir], d_pos.data, d_copy_ghosts.data, d_pos_copybuf.data,d_rtag.data);
+            gpu_copy_ghosts(m_num_copy_ghosts[dir], d_pos.data, d_copy_ghosts.data, d_pos_copybuf.data);
             CHECK_CUDA_ERROR();
             }
 

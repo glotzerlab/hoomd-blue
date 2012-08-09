@@ -185,6 +185,7 @@ void gpu_make_exchange_ghost_list(unsigned int n_total,
                                   unsigned char *d_plan,
                                   unsigned int *d_global_tag,
                                   unsigned int* d_copy_ghosts,
+                                  unsigned int *d_ghost_tag,
                                   unsigned int &n_copy_ghosts);
 
 //! Fill send buffers of particles we are sending as ghost particles with partial particle data
@@ -211,7 +212,6 @@ void gpu_update_rtag(unsigned int nptl,
 void gpu_copy_ghosts(unsigned int nghost,
                      float4 *d_pos,
                      unsigned int *d_copy_ghosts,
-                     float4 *d_pos_copybuf,
-                     unsigned int *rtag);
+                     float4 *d_pos_copybuf);
 
 #endif // ENABLE_MPI
