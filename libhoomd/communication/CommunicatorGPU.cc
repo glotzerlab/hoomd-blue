@@ -734,6 +734,8 @@ void CommunicatorGPU::copyGhosts()
 
         if (! isCommunicating(dir) ) continue;
 
+        if (m_prof)
+            m_prof->push("gpu");
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::overwrite);
@@ -744,6 +746,8 @@ void CommunicatorGPU::copyGhosts()
             CHECK_CUDA_ERROR();
             }
 
+        if (m_prof)
+            m_prof->pop();
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
@@ -791,6 +795,8 @@ void CommunicatorGPU::copyGhosts()
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
 
+        if (m_prof)
+            m_prof->push("wrap");
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
@@ -801,6 +807,8 @@ void CommunicatorGPU::copyGhosts()
                            m_is_at_boundary);
             CHECK_CUDA_ERROR();
             }
+        if (m_prof)
+            m_prof->pop();
 
         } // end dir loop
 

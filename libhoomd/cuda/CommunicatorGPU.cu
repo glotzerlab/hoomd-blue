@@ -80,46 +80,30 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace thrust;
 
 //! Apply (global) periodic boundary conditions to a ghost particle
-struct wrap_ghost_particle
+template<unsigned int boundary>
+__global__ void gpu_wrap_ghost_particles_kernel(float4 *d_pos,
+                                      unsigned int N,
+                                      Scalar3 L)
     {
-    const Scalar3 L;              //!< Lengths of global simulation box
-    const unsigned int dir;       //!< Current direction of ghost exchange
-    bool is_at_boundary[6];       //!< Flags to indicate whether this box share a boundary with the global box
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    //! Constructor
-    /*! \param _global_box Dimensions of global simulation box
-     *! \param _dir
-     */
-    wrap_ghost_particle(const BoxDim _global_box, const unsigned int _dir, const bool _is_at_boundary[] )
-        : L(_global_box.getL()), dir(_dir)
-        {
-        for (unsigned int i = 0; i < 6; i++)
-            is_at_boundary[i] = _is_at_boundary[i];
-        }
+    if (idx >= N) return;
+    Scalar4& postype = d_pos[idx];
 
-    //! Apply periodic boundary conditions
-    /*! \param postype Position and type  to apply boundary conditions to
-     * \return the Position and type with boundary conditions applied
-     */
-    __host__ __device__ float4 operator()(float4 postype)
-        {
-        // wrap particles received across a global boundary back into global box
-        if (dir==0 && is_at_boundary[1])
-            postype.x -= L.x;
-        else if (dir==1 && is_at_boundary[0])
-            postype.x += L.x;
-        else if (dir==2 && is_at_boundary[3])
-            postype.y -= L.y;
-        else if (dir==3 && is_at_boundary[2])
-            postype.y += L.y;
-        else if (dir==4 && is_at_boundary[5])
-            postype.z -= L.z;
-        else if (dir==5 && is_at_boundary[4])
-            postype.z += L.z;
-
-        return postype;
-        }
-     };
+    // wrap particles received across a global boundary back into global box
+    if (boundary == 0 )
+        postype.x -= L.x;
+    else if (boundary == 1)
+        postype.x += L.x;
+    else if (boundary == 2)
+        postype.y -= L.y;
+    else if (boundary == 3)
+        postype.y += L.y;
+    else if (boundary == 4)
+        postype.z -= L.z;
+    else if (boundary == 5)
+        postype.z += L.z;
+    } 
 
 //! Select local particles that within a boundary layer of the neighboring domain in a given direction
 struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
@@ -653,7 +637,19 @@ void gpu_wrap_ghost_particles(unsigned int dir,
                               const bool is_at_boundary[])
     {
     thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::transform(pos_ptr, pos_ptr +n, pos_ptr, wrap_ghost_particle(global_box, dir, is_at_boundary ));
+    unsigned int block_size = 128;
+    if (dir == 0 && is_at_boundary[1])
+        gpu_wrap_ghost_particles_kernel<0><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
+    else if (dir == 1 && is_at_boundary[0])
+        gpu_wrap_ghost_particles_kernel<1><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
+    else if (dir == 2 && is_at_boundary[3])
+        gpu_wrap_ghost_particles_kernel<2><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
+    else if (dir == 3 && is_at_boundary[2])
+        gpu_wrap_ghost_particles_kernel<3><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
+    else if (dir == 4 && is_at_boundary[5])
+        gpu_wrap_ghost_particles_kernel<4><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
+    else if (dir == 5 && is_at_boundary[4])
+        gpu_wrap_ghost_particles_kernel<5><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
     }
 
 //! Construct plans for sending non-bonded ghost particles
