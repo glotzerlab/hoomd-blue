@@ -67,6 +67,10 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false)
     {
@@ -159,6 +163,16 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     if (m_prof)
         m_prof->pop();
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // perform all necessary communication steps. This ensures
+        // a) that particles have migrated to the correct domains
+        // b) that forces are calculated correctly
+        m_comm->communicate(timestep+1);
+        }
+#endif
 
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
@@ -294,6 +308,16 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         m_first_step = false;
         m_prepared = true;
         
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // perform all necessary communication steps. This ensures
+        // a) that particles have migrated to the correct domains
+        // b) that forces are calculated correctly
+        m_comm->communicate(timestep);
+        }
+#endif
+
         // net force is always needed (ticket #393)
         computeNetForce(timestep);
         

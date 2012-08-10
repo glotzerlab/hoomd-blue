@@ -217,6 +217,16 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 */
 void Integrator::computeAccelerations(unsigned int timestep)
     {
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // perform all necessary communication steps. This ensures
+        // a) that particles have migrated to the correct domains
+        // b) that forces are calculated correctly
+        m_comm->communicate(timestep);
+        }
+#endif
+
     // compute the net forces
     computeNetForce(timestep);
     
@@ -282,16 +292,6 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 */
 void Integrator::computeNetForce(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // perform all necessary communication steps. This ensures
-        // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly
-        m_comm->communicate(timestep);
-        }
-#endif
-
     // compute all the forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
@@ -431,16 +431,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_exec_conf->msg->error() << "Cannot compute net force on the GPU if CUDA is disabled" << endl;
         throw runtime_error("Error computing accelerations");
         }
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // perform all necessary communication steps. This ensures
-        // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly
-        m_comm->communicate(timestep);
-        }
-#endif
 
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
