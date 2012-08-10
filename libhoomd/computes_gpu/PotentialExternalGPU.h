@@ -122,6 +122,7 @@ void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int times
                          box,
                          m_block_size), d_params.data);
 
+    if (this->m_prof) this->m_prof->pop();
 
     }
 
