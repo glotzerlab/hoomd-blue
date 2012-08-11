@@ -793,7 +793,6 @@ void CommunicatorGPU::copyGhosts()
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
 
-        if (m_prof)
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
