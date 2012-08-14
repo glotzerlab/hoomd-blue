@@ -52,10 +52,10 @@
 
 import hoomd;
 import sys;
-import util;
-import globals;
-import data;
-import init;
+from hoomd_script import util;
+from hoomd_script import globals;
+from hoomd_script import data;
+from hoomd_script import init;
 
 ## \package hoomd_script.group
 # \brief Commands for grouping particles

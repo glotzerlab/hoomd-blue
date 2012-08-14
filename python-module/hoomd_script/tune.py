@@ -49,16 +49,10 @@
 # -- end license --
 # Maintainer: joaander
 
-import globals
-import pair
-import bond
-import angle
-import dihedral
-import improper
-import init
-import hoomd_script
+from hoomd_script import globals
+from hoomd_script import init
 import hoomd
-import util
+from hoomd_script import util
 
 import math
 import os
@@ -497,6 +491,7 @@ def bond_table(r, rmin, rmax, kappa, r0):
 ## \internal
 # \brief Setup pair.table for benchmarking
 def pair_table_setup():
+    from hoomd_script import pair
     table = pair.table(width=1000);
     table.pair_coeff.set('A', 'A', func=lj_table, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.0, sigma=1.0));
     
@@ -507,6 +502,7 @@ def pair_table_setup():
 ## \internal
 # \brief Setup pair.table for benchmarking
 def bond_table_setup():
+    from hoomd_script import bond
     btable = bond.table(width=1000)
     btable.bond_coeff.set('polymer', func=bond_table, rmin=0.1, rmax=10.0, coeff=dict(kappa=330, r0=0.84))
 
@@ -516,6 +512,7 @@ def bond_table_setup():
 ## \internal
 # \brief Setup pair.lj for benchmarking
 def pair_lj_setup():
+    from hoomd_script import pair
     fc = pair.lj(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -526,6 +523,7 @@ def pair_lj_setup():
 ## \internal
 # \brief Setup pair.force_shifted_lj for benchmarking
 def pair_force_shifted_lj_setup():
+    from hoomd_script import pair
     fc = pair.force_shifted_lj(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
 
@@ -536,6 +534,7 @@ def pair_force_shifted_lj_setup():
 ## \internal
 # \brief Setup pair.slj for benchmarking
 def pair_slj_setup():
+    from hoomd_script import pair
     fc = pair.slj(r_cut=3.0, d_max=1.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -546,6 +545,7 @@ def pair_slj_setup():
 ## \internal
 # \brief Setup pair.yukawa for benchmarking
 def pair_yukawa_setup():
+    from hoomd_script import pair
     fc = pair.yukawa(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0);
     
@@ -556,6 +556,7 @@ def pair_yukawa_setup():
 ## \internal
 # \brief Setup pair.ewald for benchmarking
 def pair_ewald_setup():
+    from hoomd_script import pair
     fc = pair.ewald(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', kappa=1.0, grid=16, order=4);
     
@@ -566,6 +567,7 @@ def pair_ewald_setup():
 ## \internal
 # \brief Setup pair.cgcmm for benchmarking
 def pair_cgcmm_setup():
+    from hoomd_script import pair
     fc = pair.cgcmm(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6');
     
@@ -576,6 +578,7 @@ def pair_cgcmm_setup():
 ## \internal
 # \brief Setup pair.cgcmm for benchmarking
 def pair_gauss_setup():
+    from hoomd_script import pair
     fc = pair.gauss(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -586,6 +589,7 @@ def pair_gauss_setup():
 ## \internal
 # \brief Setup pair.morse for benchmarking
 def pair_morse_setup():
+    from hoomd_script import pair
     fc = pair.morse(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0);
     
@@ -596,6 +600,7 @@ def pair_morse_setup():
 ## \internal
 # \brief Setup pair.dpd for benchmarking
 def pair_dpd_setup():
+    from hoomd_script import pair
     fc = pair.dpd(r_cut=3.0, T=1.0);
     fc.pair_coeff.set('A', 'A', A=40.0, gamma=4.5); 
     
@@ -606,6 +611,7 @@ def pair_dpd_setup():
 ## \internal
 # \brief Setup pair.dpdlj for benchmarking
 def pair_dpdlj_setup():
+    from hoomd_script import pair
     fc = pair.dpd(r_cut=3.0, T=1.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, gamma=4.5); 
     
@@ -616,6 +622,7 @@ def pair_dpdlj_setup():
 ## \internal
 # \brief Setup pair.dpd_conservative for benchmarking
 def pair_dpd_conservative_setup():
+    from hoomd_script import pair
     fc = pair.dpd_conservative(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', A=40);
     
@@ -626,6 +633,7 @@ def pair_dpd_conservative_setup():
 ## \internal
 # \brief Setup bond.fene for benchmarking
 def bond_fene_setup():
+    from hoomd_script import bond
     fc = bond.fene();
     fc.set_coeff('polymer', k=30.0, r0=3.0, sigma=1.0, epsilon=2.0);
     
@@ -634,9 +642,8 @@ def bond_fene_setup():
     return fc;
 
 import hoomd;
-import hoomd_script;
-import init;
-import globals;
+from hoomd_script import init;
+from hoomd_script import globals;
 
 ## Make a series of short runs to determine the fastest performing r_buff setting
 # \param warmup Number of time steps to run() to warm up the benchmark

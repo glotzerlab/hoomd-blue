@@ -50,12 +50,12 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-import force;
-import globals;
+from hoomd_script import force;
+from hoomd_script import globals;
 import hoomd;
 import sys;
 import math;
-import util;
+from hoomd_script import util;
 
 ## \package hoomd_script.wall
 # \brief Commands that specify %wall forces

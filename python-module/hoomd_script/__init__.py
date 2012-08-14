@@ -52,9 +52,9 @@
 
 import hoomd;
 import sys;
-import util;
-import data;
-import globals;
+from hoomd_script import util;
+from hoomd_script import data;
+from hoomd_script import globals;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
@@ -86,7 +86,7 @@ __all__ = [ "analyze",
             "variant", 
             "run",
             "run_upto",
-            "tune", 
+            "tune",
             "hoomd",
             "compute",
             "charge",

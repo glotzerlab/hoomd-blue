@@ -54,10 +54,10 @@
 # \brief Commands to support MPI communication
 #
 import hoomd;
-import init;
-import data;
-import util;
-import globals;
+from hoomd_script import init;
+from hoomd_script import data;
+from hoomd_script import util;
+from hoomd_script import globals;
 
 import sys;
 

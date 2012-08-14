@@ -57,13 +57,13 @@
 # As an example, a force derived from a %periodic potential can be used to induce a concentration modulation
 # in the system.
 
-import globals;
-import force;
+from hoomd_script import globals;
+from hoomd_script import force;
 import hoomd;
-import util;
-import init;
-import data;
-import tune;
+from hoomd_script import util;
+from hoomd_script import init;
+from hoomd_script import data;
+from hoomd_script import tune;
 
 import sys;
 

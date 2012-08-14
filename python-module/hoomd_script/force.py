@@ -50,12 +50,12 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-import globals;
+from hoomd_script import globals;
 import sys;
 import hoomd;
-import util;
-import data;
-import init;
+from hoomd_script import util;
+from hoomd_script import data;
+from hoomd_script import init;
 
 ## \package hoomd_script.force
 # \brief Other types of forces

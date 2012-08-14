@@ -51,7 +51,7 @@
 # Maintainer: joaander
 
 import hoomd
-import globals
+from hoomd_script import globals
 
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts

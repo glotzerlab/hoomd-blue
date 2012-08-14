@@ -50,8 +50,8 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-import globals
-import init
+from hoomd_script import globals
+from hoomd_script import init
 import hoomd_script
 import hoomd
 

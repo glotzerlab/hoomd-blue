@@ -94,13 +94,13 @@
 # This code snippet runs the first 100 time steps with T=1.2 and the next 100 with T=1.0
 
 import hoomd;
-import globals;
-import compute;
+from hoomd_script import globals;
+from hoomd_script import compute;
 import sys;
-import util;
-import variant;
-import init;
-import comm;
+from hoomd_script import util;
+from hoomd_script import variant;
+from hoomd_script import init;
+from hoomd_script import comm;
 
 ## \internal
 # \brief Base class for integrators

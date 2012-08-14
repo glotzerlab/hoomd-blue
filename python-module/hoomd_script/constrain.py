@@ -65,12 +65,12 @@
 # temperature for thermostatting and logging.
 #
 
-import globals;
-import force;
+from hoomd_script import globals;
+from hoomd_script import force;
 import hoomd;
-import util;
-import init;
-import data;
+from hoomd_script import util;
+from hoomd_script import init;
+from hoomd_script import data;
 
 ## \internal
 # \brief Base class for constraint forces

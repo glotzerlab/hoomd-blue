@@ -50,11 +50,11 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-import force;
-import globals;
+from hoomd_script import force;
+from hoomd_script import globals;
 import hoomd;
-import util;
-import tune;
+from hoomd_script import util;
+from hoomd_script import tune;
 
 import math;
 import sys;
