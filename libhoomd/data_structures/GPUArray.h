@@ -584,11 +584,14 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
     assert(first < m_num_elements);
     
     // clear memory
-    if (m_data_location == data_location::host || m_data_location == data_location::hostdevice)
+    if (m_data_location == data_location::host)
         memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
+        if (m_data_location == data_location::hostdevice)
+            memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
+
         assert(d_data);
         if (m_data_location == data_location::device || m_data_location == data_location::hostdevice )
             cudaMemset(d_data+first, 0, (m_num_elements-first)*sizeof(T));
