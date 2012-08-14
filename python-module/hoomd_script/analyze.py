@@ -51,10 +51,10 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 import hoomd;
-import globals;
+from hoomd_script import globals;
 import sys;
-import util;
-import init;
+from hoomd_script import util;
+from hoomd_script import init;
 
 ## \package hoomd_script.analyze
 # \brief Commands that %analyze the system and provide some output
