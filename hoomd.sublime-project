@@ -1,0 +1,52 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+            // ignore files that are not likely to be modified by hand
+            "folder_exclude_patterns": [".kdev4", ".settings",  "build*"],
+            "file_exclude_patterns": [".*project", "*.sublime-workspace", "*.kdev4"]
+		}
+	],
+    "settings":
+    {
+        // set auto indent for 4 spaces and switch to dumb auto modes
+        "tab_size": 4,
+        "auto_match_enabled": false,
+        "ensure_newline_at_eof_on_save": true,
+        "indent_to_bracket": true,
+        "smart_indent": false,
+        "spell_check": true,
+        "translate_tabs_to_spaces": true,
+        "trim_automatic_white_space": false,
+        "rulers": [120],
+        "detect_indentation": false
+    },
+    "build_systems":
+    [
+        {
+            "name": "Build Project",
+            "cmd": ["make", "-j4"],
+            "working_dir": "${project_path}/build",
+            // this regex first ignores all messages that start with citelist
+            // then it matches strings like: filename:line message OR filename(line): message
+            // the first is output by g++, the latter by nvcc
+            "file_regex": "^(?!citelist)(..[^:(]*)[:(]([0-9]+)[:)]?([0-9]+)?:? (.*)$",
+            
+            // include latex and macports on the path in osx
+            "osx":
+            {
+                "path": "/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/usr/X11/bin:/usr/texbin"
+            },
+            
+            // add a make clean option
+            "variants": 
+            [
+                { 
+                    "cmd": ["make", "clean"],
+                    "name": "Clean"
+                }
+            ]
+        }
+    ]
+}
