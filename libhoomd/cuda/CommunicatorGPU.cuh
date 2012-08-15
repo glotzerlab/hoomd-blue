@@ -164,13 +164,6 @@ void gpu_migrate_wrap_received_particles(float4 *d_pos,
                                  const bool is_at_boundary[]);
 
 
-//! Wrap received ghost particles across global box
-void gpu_wrap_ghost_particles(unsigned int dir,
-                              unsigned int n,
-                              float4 *d_pos,
-                              const BoxDim& global_box,
-                              const bool is_at_boundary[]);
-
 //! Construct plans for sending non-bonded ghost particles
 void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       unsigned int N,
@@ -189,9 +182,8 @@ void gpu_make_exchange_ghost_list(unsigned int n_total,
                                   unsigned int &n_copy_ghosts);
 
 //! Fill send buffers of particles we are sending as ghost particles with partial particle data
-void gpu_exchange_ghosts(unsigned int nghosts,
+void gpu_exchange_ghosts(unsigned int nghost,
                          unsigned int *d_copy_ghosts,
-                         unsigned int *d_rtag,
                          float4 *d_pos,
                          float4 *d_pos_copybuf,
                          float *d_charge,
@@ -199,7 +191,10 @@ void gpu_exchange_ghosts(unsigned int nghosts,
                          float *d_diameter,
                          float *d_diameter_copybuf,
                          unsigned char *d_plan,
-                         unsigned char *d_plan_copybuf);
+                         unsigned char *d_plan_copybuf,
+                         const unsigned int dir,
+                         const bool is_at_boundary[],
+                         const BoxDim& global_box);
 
 //! Update global tag <-> local particle index reverse lookup array
 void gpu_update_rtag(unsigned int nptl,

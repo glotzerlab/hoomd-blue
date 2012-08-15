@@ -561,7 +561,6 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::read);
 
             ArrayHandle<unsigned int> d_copy_ghosts(m_copy_ghosts[dir], access_location::device, access_mode::overwrite);
@@ -583,7 +582,6 @@ void CommunicatorGPU::exchangeGhosts()
 
             gpu_exchange_ghosts(m_num_copy_ghosts[dir],
                                 d_copy_ghosts.data,
-                                d_global_rtag.data,
                                 d_pos.data,
                                 d_pos_copybuf.data,
                                 d_charge.data,
@@ -591,7 +589,10 @@ void CommunicatorGPU::exchangeGhosts()
                                 d_diameter.data,
                                 d_diameter_copybuf.data,
                                 d_plan.data,
-                                d_plan_copybuf.data);
+                                d_plan_copybuf.data,
+                                dir,
+                                m_is_at_boundary,
+                                m_pdata->getGlobalBox());
             CHECK_CUDA_ERROR();
             }
 
@@ -696,15 +697,6 @@ void CommunicatorGPU::exchangeGhosts()
             m_prof->pop();
 
             {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-
-            gpu_wrap_ghost_particles(dir,
-                              m_num_recv_ghosts[dir],
-                              d_pos.data + start_idx,
-                              m_pdata->getGlobalBox(),
-                              m_is_at_boundary);
-            CHECK_CUDA_ERROR();
-
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::readwrite);
 

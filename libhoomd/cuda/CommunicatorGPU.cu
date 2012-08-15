@@ -79,32 +79,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace thrust;
 
-//! Apply (global) periodic boundary conditions to a ghost particle
-template<unsigned int boundary>
-__global__ void gpu_wrap_ghost_particles_kernel(float4 *d_pos,
-                                      unsigned int N,
-                                      Scalar3 L)
-    {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= N) return;
-    Scalar4& postype = d_pos[idx];
-
-    // wrap particles received across a global boundary back into global box
-    if (boundary == 0 )
-        postype.x -= L.x;
-    else if (boundary == 1)
-        postype.x += L.x;
-    else if (boundary == 2)
-        postype.y -= L.y;
-    else if (boundary == 3)
-        postype.y += L.y;
-    else if (boundary == 4)
-        postype.z -= L.z;
-    else if (boundary == 5)
-        postype.z += L.z;
-    } 
-
 //! Select local particles that within a boundary layer of the neighboring domain in a given direction
 struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
     {
@@ -623,35 +597,6 @@ void gpu_migrate_wrap_received_particles(float4 *d_pos,
                       wrap_received_particle(global_box, dir, is_at_boundary));
     }
 
-//! Wrap received ghost particles across global box
-/*! \param dir Direction along which particles were received
- * \param n Number of particles to apply periodic boundary conditions to
- * \param d_pos Array of particle positions to apply periodic boundary conditions to
- * \param global_box Dimensions of global simulation box
- * \param is_at_boundary Array of flags to indicate whether this box is a boundary box
- */
-void gpu_wrap_ghost_particles(unsigned int dir,
-                              unsigned int n,
-                              float4 *d_pos,
-                              const BoxDim& global_box,
-                              const bool is_at_boundary[])
-    {
-    thrust::device_ptr<float4> pos_ptr(d_pos);
-    unsigned int block_size = 128;
-    if (dir == 0 && is_at_boundary[1])
-        gpu_wrap_ghost_particles_kernel<0><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
-    else if (dir == 1 && is_at_boundary[0])
-        gpu_wrap_ghost_particles_kernel<1><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
-    else if (dir == 2 && is_at_boundary[3])
-        gpu_wrap_ghost_particles_kernel<2><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
-    else if (dir == 3 && is_at_boundary[2])
-        gpu_wrap_ghost_particles_kernel<3><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
-    else if (dir == 4 && is_at_boundary[5])
-        gpu_wrap_ghost_particles_kernel<4><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
-    else if (dir == 5 && is_at_boundary[4])
-        gpu_wrap_ghost_particles_kernel<5><<<n/block_size+1, block_size>>>(d_pos, n, global_box.getL());
-    }
-
 //! Construct plans for sending non-bonded ghost particles
 /*! \param d_plan Array of ghost particle plans
  * \param N number of particles to check
@@ -739,6 +684,57 @@ void gpu_make_exchange_ghost_list(unsigned int n_total,
     cudaMemcpy(&n_copy_ghosts, d_n_copy_ghosts, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
 
+//! Fill ghost copy buffer & apply periodic boundary conditions to a ghost particle before sending
+template<int boundary>
+__global__ void gpu_exchange_ghosts_kernel(float4 *pos,
+                                      unsigned int *copy_ghosts,
+                                      float4 *pos_copybuf,
+                                      float *charge,
+                                      float *charge_copybuf,
+                                      float *diameter,
+                                      float *diameter_copybuf,
+                                      unsigned char *plan,
+                                      unsigned char *plan_copybuf,
+                                      unsigned int nghost,
+                                      Scalar3 L)
+    {
+    unsigned int ghost_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (ghost_idx >= nghost) return;
+    unsigned int pidx = copy_ghosts[ghost_idx];
+    Scalar4 postype = pos[pidx];
+
+    // wrap particles global boundary back into global box before sending
+    switch(boundary)
+        {
+        case 0: // west boundary 
+            postype.x -= L.x;
+            break;
+        case 1: // east boundary
+            postype.x += L.x;
+            break;
+        case 2: // north boundary
+            postype.y -= L.y;
+            break;
+        case 3: // south boundary
+            postype.y += L.y;
+            break;
+        case 4: // upper boundary
+            postype.z -= L.z;
+            break;
+        case 5: // lower boundary
+            postype.z += L.z;
+            break;
+        case -1: // do not wrap
+            break;
+        }
+    pos_copybuf[ghost_idx] = postype;
+    charge_copybuf[ghost_idx] = charge[pidx];
+    diameter_copybuf[ghost_idx] = diameter[pidx];
+    plan_copybuf[ghost_idx] = plan[pidx];
+    } 
+
+
 //! Fill send buffers of particles we are sending as ghost particles with partial particle data
 /*! \param nghost Number of ghost particles to copy into send buffers
  * \param d_copy_ghosts Array of particle tags to copy as ghost particles
@@ -751,10 +747,12 @@ void gpu_make_exchange_ghost_list(unsigned int n_total,
  * \param d_diameter_copybuf Send buffer for particle diameters
  * \param d_plan Array of particle plans
  * \param d_plan_copybuf Send buffer for particle plans
+ * \param dir Current send direction
+ * \param is_at_boundary Per-direction flag if we share a boundary with the global box
+ * \param global_box The global box
  */
 void gpu_exchange_ghosts(unsigned int nghost,
                          unsigned int *d_copy_ghosts,
-                         unsigned int *d_rtag,
                          float4 *d_pos,
                          float4 *d_pos_copybuf,
                          float *d_charge,
@@ -762,23 +760,26 @@ void gpu_exchange_ghosts(unsigned int nghost,
                          float *d_diameter,
                          float *d_diameter_copybuf,
                          unsigned char *d_plan,
-                         unsigned char *d_plan_copybuf)
+                         unsigned char *d_plan_copybuf,
+                         const unsigned int dir,
+                         const bool is_at_boundary[],
+                         const BoxDim& global_box)
     {
-    thrust::device_ptr<unsigned int> copy_ghosts_ptr(d_copy_ghosts);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-    thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::device_ptr<float4> pos_copybuf_ptr(d_pos_copybuf);
-    thrust::device_ptr<float> charge_ptr(d_charge);
-    thrust::device_ptr<float> charge_copybuf_ptr(d_charge_copybuf);
-    thrust::device_ptr<float> diameter_ptr(d_diameter);
-    thrust::device_ptr<float> diameter_copybuf_ptr(d_diameter_copybuf);
-    thrust::device_ptr<unsigned char> plan_ptr(d_plan);
-    thrust::device_ptr<unsigned char> plan_copybuf_ptr(d_plan_copybuf);
-
-    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, pos_ptr, pos_copybuf_ptr);
-    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, charge_ptr, charge_copybuf_ptr);
-    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, diameter_ptr, diameter_copybuf_ptr);
-    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, plan_ptr, plan_copybuf_ptr);
+    unsigned int block_size = 512;
+    if (dir == 0 && is_at_boundary[0])
+        gpu_exchange_ghosts_kernel<0><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
+    else if (dir == 1 && is_at_boundary[1])
+        gpu_exchange_ghosts_kernel<1><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
+    else if (dir == 2 && is_at_boundary[2])
+        gpu_exchange_ghosts_kernel<2><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
+    else if (dir == 3 && is_at_boundary[3])
+        gpu_exchange_ghosts_kernel<3><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
+    else if (dir == 4 && is_at_boundary[4])
+        gpu_exchange_ghosts_kernel<4><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
+    else if (dir == 5 && is_at_boundary[5])
+        gpu_exchange_ghosts_kernel<5><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
+    else
+        gpu_exchange_ghosts_kernel<-1><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
     }
 
 //! Update global tag <-> local particle index reverse lookup array
@@ -813,22 +814,22 @@ __global__ void gpu_copy_ghost_particles_kernel(float4 *pos,
     // wrap particles global boundary back into global box before sending
     switch(boundary)
         {
-        case 0: // send west
+        case 0: // west boundary
             postype.x -= L.x;
             break;
-        case 1: // send east
+        case 1: // east boundary
             postype.x += L.x;
             break;
-        case 2: // send north
+        case 2: // north boundary
             postype.y -= L.y;
             break;
-        case 3: // send south
+        case 3: // south boundary
             postype.y += L.y;
             break;
-        case 4: // send up
+        case 4: // upper boundary
             postype.z -= L.z;
             break;
-        case 5: // send down
+        case 5: // lower boundary
             postype.z += L.z;
             break;
         case -1: // do not wrap
