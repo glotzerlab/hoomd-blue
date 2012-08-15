@@ -12,10 +12,10 @@ class charge_pppm_tests (unittest.TestCase):
         s = init.create_random(N=100, phi_p=0.05);
         import __main__;
         __main__.sorter.set_params(grid=8)
-        for i in xrange(0,50):
+        for i in range(0,50):
             s.particles[i].charge = -1;
 
-        for i in xrange(50,100):
+        for i in range(50,100):
             s.particles[i].charge = 1;
     
     # basic test of creation and param setting
