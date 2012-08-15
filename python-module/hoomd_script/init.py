@@ -167,7 +167,7 @@ def reset():
 # initialized by the neighbor list would be so large that the memory allocation would fail.
 #
 # \sa hoomd_script.data
-def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0,mpi_arguments=dict()):
+def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0,mpi_options=dict()):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -191,7 +191,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
     
-    _perform_common_init_tasks(mpi_arguments);
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 ## Reads initial system state from an XML file
@@ -222,7 +222,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.xml
-def read_xml(filename, time_step = None, mpi_arguments=dict()):
+def read_xml(filename, time_step = None, mpi_options=dict()):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -243,7 +243,7 @@ def read_xml(filename, time_step = None, mpi_arguments=dict()):
         initializer.setTimeStep(time_step)
         globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
     
-    _perform_common_init_tasks(mpi_arguments);
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 ## Reads initial system state from a binary file
@@ -270,7 +270,7 @@ def read_xml(filename, time_step = None, mpi_arguments=dict()):
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.bin
-def read_bin(filename,mpi_arguments=dict()):
+def read_bin(filename,mpi_options=dict()):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -287,7 +287,7 @@ def read_bin(filename,mpi_arguments=dict()):
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
     
-    _perform_common_init_tasks(mpi_arguments);
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 ## Generates N randomly positioned particles of the same type
@@ -314,7 +314,7 @@ def read_bin(filename,mpi_arguments=dict()):
 # The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
-def create_random(N, phi_p, name="A", min_dist=0.7,mpi_arguments=dict()):
+def create_random(N, phi_p, name="A", min_dist=0.7,mpi_options=dict()):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -355,7 +355,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7,mpi_arguments=dict()):
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
     
-    _perform_common_init_tasks(mpi_arguments);
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 
@@ -456,7 +456,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7,mpi_arguments=dict()):
 # The result of init.create_random_polymers can be saved in a variable and later used to read and/or change particle
 # properties later in the script. See hoomd_script.data for more information.
 #
-def create_random_polymers(box, polymers, separation, seed=1, mpi_arguments=dict()):
+def create_random_polymers(box, polymers, separation, seed=1, mpi_options=dict()):
     util.print_status_line();
         
     # check if initialization has already occured
@@ -569,7 +569,7 @@ def create_random_polymers(box, polymers, separation, seed=1, mpi_arguments=dict
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
     
-    _perform_common_init_tasks(mpi_arguments);
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 ## Performs common initialization tasks
@@ -580,7 +580,7 @@ def create_random_polymers(box, polymers, separation, seed=1, mpi_arguments=dict
 # the log writer, etc...
 #
 # Creates the sorter and initializes MPI
-def _perform_common_init_tasks(mpi_arguments=dict()):
+def _perform_common_init_tasks(mpi_options=dict()):
     from hoomd_script import update;
     from hoomd_script import group;
     from hoomd_script import compute;
@@ -599,7 +599,7 @@ def _perform_common_init_tasks(mpi_arguments=dict()):
     # Check if HOOMD has been compiled with MPI support
     if comm.check_mpi():
         # if so, use domain decomposition
-        comm.init_domain_decomposition(mpi_arguments)
+        comm.init_domain_decomposition(mpi_options)
 
 ## Initializes the execution configuration
 #
