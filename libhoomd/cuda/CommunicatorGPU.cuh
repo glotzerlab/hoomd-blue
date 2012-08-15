@@ -212,6 +212,9 @@ void gpu_update_rtag(unsigned int nptl,
 void gpu_copy_ghosts(unsigned int nghost,
                      float4 *d_pos,
                      unsigned int *d_copy_ghosts,
-                     float4 *d_pos_copybuf);
+                     float4 *d_pos_copybuf,
+                     unsigned int dir,
+                     const bool is_at_boundary[],
+                     const BoxDim& global_box);
 
 #endif // ENABLE_MPI

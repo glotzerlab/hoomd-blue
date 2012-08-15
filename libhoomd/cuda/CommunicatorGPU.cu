@@ -797,24 +797,81 @@ void gpu_update_rtag(unsigned int nptl, unsigned int start_idx, unsigned int *d_
     thrust::scatter(first, last, tag_ptr, rtag_ptr);
     }
 
+//! Fill ghost copy buffer & apply periodic boundary conditions to a ghost particle before sending
+template<int boundary>
+__global__ void gpu_copy_ghost_particles_kernel(float4 *pos,
+                                      unsigned int *copy_ghosts,
+                                      float4 *pos_copybuf,
+                                      unsigned int nghost,
+                                      Scalar3 L)
+    {
+    unsigned int ghost_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (ghost_idx >= nghost) return;
+    Scalar4 postype = pos[copy_ghosts[ghost_idx]];
+
+    // wrap particles global boundary back into global box before sending
+    switch(boundary)
+        {
+        case 0: // send west
+            postype.x -= L.x;
+            break;
+        case 1: // send east
+            postype.x += L.x;
+            break;
+        case 2: // send north
+            postype.y -= L.y;
+            break;
+        case 3: // send south
+            postype.y += L.y;
+            break;
+        case 4: // send up
+            postype.z -= L.z;
+            break;
+        case 5: // send down
+            postype.z += L.z;
+            break;
+        case -1: // do not wrap
+            break;
+        }
+    pos_copybuf[ghost_idx] = postype;
+    } 
+
+
 //! Copy ghost particle positions into send buffer
 /*! \param nghost Number of ghost particles to copy
  * \param d_pos Array of particle positions
  * \param d_copy_ghosts Global particle tags of particles to copy
  * \param d_pos_copybuf Send buffer of ghost particle positions
+ * \param dir Current send direction
+ * \param is_at_boundary Per-direction flags whether we share a boundary with the global box
+ * \paramm global_box Global boundaries
  */
 void gpu_copy_ghosts(unsigned int nghost,
                      float4 *d_pos,
                      unsigned int *d_copy_ghosts,
-                     float4 *d_pos_copybuf)
+                     float4 *d_pos_copybuf,
+                     unsigned int dir,
+                     const bool is_at_boundary[],
+                     const BoxDim& global_box)
     {
-    thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::device_ptr<unsigned int> copy_ghosts_ptr(d_copy_ghosts);
-    thrust::device_ptr<float4> copybuf_ptr(d_pos_copybuf);
 
-    gather(copy_ghosts_ptr, copy_ghosts_ptr + nghost, pos_ptr, copybuf_ptr);
-
-    }
+    unsigned int block_size = 512;
+    if (dir == 0 && is_at_boundary[0])
+        gpu_copy_ghost_particles_kernel<0><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, nghost, global_box.getL());
+    else if (dir == 1 && is_at_boundary[1])
+        gpu_copy_ghost_particles_kernel<1><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, nghost, global_box.getL());
+    else if (dir == 2 && is_at_boundary[2])
+        gpu_copy_ghost_particles_kernel<2><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, nghost, global_box.getL());
+    else if (dir == 3 && is_at_boundary[3])
+        gpu_copy_ghost_particles_kernel<3><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, nghost, global_box.getL());
+    else if (dir == 4 && is_at_boundary[4])
+        gpu_copy_ghost_particles_kernel<4><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, nghost, global_box.getL());
+    else if (dir == 5 && is_at_boundary[5])
+        gpu_copy_ghost_particles_kernel<5><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, nghost, global_box.getL());
+    else
+        gpu_copy_ghost_particles_kernel<-1><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, nghost, global_box.getL());
+    } 
 
 //! Reset reverse lookup tags of removed ghost particles to NOT_LOCAL
 /*! \param nghost Number of ghost particles for which the tags are to be reset

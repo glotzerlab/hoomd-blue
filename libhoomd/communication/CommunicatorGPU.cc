@@ -742,7 +742,13 @@ void CommunicatorGPU::copyGhosts()
             ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_copy_ghosts(m_copy_ghosts[dir], access_location::device, access_mode::read);
 
-            gpu_copy_ghosts(m_num_copy_ghosts[dir], d_pos.data, d_copy_ghosts.data, d_pos_copybuf.data);
+            gpu_copy_ghosts(m_num_copy_ghosts[dir],
+                            d_pos.data, 
+                            d_copy_ghosts.data,
+                            d_pos_copybuf.data,
+                            dir,
+                            m_is_at_boundary,
+                            m_pdata->getGlobalBox());
             CHECK_CUDA_ERROR();
             }
 
@@ -792,17 +798,6 @@ void CommunicatorGPU::copyGhosts()
 
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
-
-            {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-
-            gpu_wrap_ghost_particles(dir,
-                           m_num_recv_ghosts[dir],
-                           d_pos.data + start_idx,
-                           m_pdata->getGlobalBox(),
-                           m_is_at_boundary);
-            CHECK_CUDA_ERROR();
-            }
 
         } // end dir loop
 
