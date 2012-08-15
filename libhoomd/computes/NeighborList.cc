@@ -92,9 +92,6 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
       m_dist_check(true)
-#ifdef ENABLE_MPI
-      , m_num_cached_updates(0)
-#endif
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -113,6 +110,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
         
     // initialize values
     m_last_updated_tstep = 0;
+    m_last_checked_tstep = 0;
+    m_last_check_result = true;
     m_every = 0;
     m_Nmax = 0;
     m_exclusions_set = false;
@@ -786,8 +785,23 @@ void NeighborList::setLastUpdatedPos()
 */
 bool NeighborList::needsUpdating(unsigned int timestep)
     {
+    if (m_last_checked_tstep == timestep)
+        {
+        // reset just in case the update has been forced after the last check has returned true
+        m_force_update = false;
+        return m_last_check_result;
+        }
+
+    m_last_checked_tstep = timestep;
+
     if (timestep < (m_last_updated_tstep + m_every) && !m_force_update)
+        {
+        m_last_check_result = false;
         return false;
+        }
+
+    // temporary storage for return result
+    bool result = false;
 
     // check if this is a dangerous time
     // we are dangerous if m_every is greater than 1 and this is the first check after the
@@ -796,9 +810,6 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     if (m_dist_check && (m_every > 1 && timestep == (m_last_updated_tstep + m_every)))
         dangerous = true;
         
-    // temporary storage for return result
-    bool result = false;
-    
     // if the update has been forced, the result defaults to true
     if (m_force_update)
         {
@@ -848,7 +859,8 @@ bool NeighborList::needsUpdating(unsigned int timestep)
         m_exec_conf->msg->notice(2) << "nlist: Dangerous neighborlist build occured. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
         m_dangerous_updates += 1;
         }
-        
+       
+    m_last_check_result = result;
     return result;
     }
 
@@ -894,10 +906,6 @@ void NeighborList::printStats()
 void NeighborList::resetStats()
     {
     m_updates = m_forced_updates = m_dangerous_updates = 0;
-
-#ifdef ENABLE_MPI
-    m_num_cached_updates = 0;
-#endif
 
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
         m_update_periods[i] = 0;
@@ -1224,9 +1232,7 @@ bool NeighborList::peekUpdate(unsigned int timestep)
     {
     if (m_prof) m_prof->push("Neighbor");
 
-    bool result = distanceCheck();
-    if (result)
-        m_num_cached_updates++;
+    bool result = needsUpdating(timestep);
 
     if (m_prof) m_prof->pop();
 
