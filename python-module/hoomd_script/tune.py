@@ -49,16 +49,11 @@
 # -- end license --
 # Maintainer: joaander
 
-import globals
-import pair
-import bond
-import angle
-import dihedral
-import improper
-import init
-import hoomd_script
+from hoomd_script import globals
+from hoomd_script import init
 import hoomd
-import util
+from hoomd_script import util
+import hoomd_script
 
 import math
 import os
@@ -230,7 +225,7 @@ def _find_optimal_block_size_fc(fc, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             fc.cpp_force.setBlockSize(block_size);
             t = fc.benchmark(n);
             globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
@@ -258,7 +253,7 @@ def _find_optimal_block_size_nl(nl, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             nl.cpp_nlist.setBlockSize(block_size);
             t = nl.benchmark(n);
             globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
@@ -288,7 +283,7 @@ def _find_optimal_block_size_nl_filter(nl, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             nl.cpp_nlist.setBlockSizeFilter(block_size);
             t = nl.cpp_nlist.benchmarkFilter(n);
             globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
@@ -406,10 +401,10 @@ def find_optimal_block_sizes(save = True, only=None):
     improper_data = sysdef.sysdef.getImproperData();
     num_particles = len(polymer['type']) * polymer['count'];
     
-    for i in xrange(1,num_particles-3):
+    for i in range(1,num_particles-3):
         angle_data.addAngle(hoomd.Angle(0, i, i+1, i+2));
     
-    for i in xrange(1,num_particles-4):
+    for i in range(1,num_particles-4):
         dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
         improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
     
@@ -424,7 +419,7 @@ def find_optimal_block_sizes(save = True, only=None):
     # list of optimal databases
     optimal_dbs = [];
     num_repeats = 3;
-    for i in xrange(0,num_repeats):
+    for i in range(0,num_repeats):
         
         # initialize an empty database of optimal sizes
         optimal_db = {};
@@ -497,6 +492,7 @@ def bond_table(r, rmin, rmax, kappa, r0):
 ## \internal
 # \brief Setup pair.table for benchmarking
 def pair_table_setup():
+    from hoomd_script import pair
     table = pair.table(width=1000);
     table.pair_coeff.set('A', 'A', func=lj_table, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.0, sigma=1.0));
     
@@ -507,6 +503,7 @@ def pair_table_setup():
 ## \internal
 # \brief Setup pair.table for benchmarking
 def bond_table_setup():
+    from hoomd_script import bond
     btable = bond.table(width=1000)
     btable.bond_coeff.set('polymer', func=bond_table, rmin=0.1, rmax=10.0, coeff=dict(kappa=330, r0=0.84))
 
@@ -516,6 +513,7 @@ def bond_table_setup():
 ## \internal
 # \brief Setup pair.lj for benchmarking
 def pair_lj_setup():
+    from hoomd_script import pair
     fc = pair.lj(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -526,6 +524,7 @@ def pair_lj_setup():
 ## \internal
 # \brief Setup pair.force_shifted_lj for benchmarking
 def pair_force_shifted_lj_setup():
+    from hoomd_script import pair
     fc = pair.force_shifted_lj(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
 
@@ -536,6 +535,7 @@ def pair_force_shifted_lj_setup():
 ## \internal
 # \brief Setup pair.slj for benchmarking
 def pair_slj_setup():
+    from hoomd_script import pair
     fc = pair.slj(r_cut=3.0, d_max=1.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -546,6 +546,7 @@ def pair_slj_setup():
 ## \internal
 # \brief Setup pair.yukawa for benchmarking
 def pair_yukawa_setup():
+    from hoomd_script import pair
     fc = pair.yukawa(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0);
     
@@ -556,6 +557,7 @@ def pair_yukawa_setup():
 ## \internal
 # \brief Setup pair.ewald for benchmarking
 def pair_ewald_setup():
+    from hoomd_script import pair
     fc = pair.ewald(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', kappa=1.0, grid=16, order=4);
     
@@ -566,6 +568,7 @@ def pair_ewald_setup():
 ## \internal
 # \brief Setup pair.cgcmm for benchmarking
 def pair_cgcmm_setup():
+    from hoomd_script import pair
     fc = pair.cgcmm(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6');
     
@@ -576,6 +579,7 @@ def pair_cgcmm_setup():
 ## \internal
 # \brief Setup pair.cgcmm for benchmarking
 def pair_gauss_setup():
+    from hoomd_script import pair
     fc = pair.gauss(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -586,6 +590,7 @@ def pair_gauss_setup():
 ## \internal
 # \brief Setup pair.morse for benchmarking
 def pair_morse_setup():
+    from hoomd_script import pair
     fc = pair.morse(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0);
     
@@ -596,6 +601,7 @@ def pair_morse_setup():
 ## \internal
 # \brief Setup pair.dpd for benchmarking
 def pair_dpd_setup():
+    from hoomd_script import pair
     fc = pair.dpd(r_cut=3.0, T=1.0);
     fc.pair_coeff.set('A', 'A', A=40.0, gamma=4.5); 
     
@@ -606,6 +612,7 @@ def pair_dpd_setup():
 ## \internal
 # \brief Setup pair.dpdlj for benchmarking
 def pair_dpdlj_setup():
+    from hoomd_script import pair
     fc = pair.dpd(r_cut=3.0, T=1.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, gamma=4.5); 
     
@@ -616,6 +623,7 @@ def pair_dpdlj_setup():
 ## \internal
 # \brief Setup pair.dpd_conservative for benchmarking
 def pair_dpd_conservative_setup():
+    from hoomd_script import pair
     fc = pair.dpd_conservative(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', A=40);
     
@@ -626,6 +634,7 @@ def pair_dpd_conservative_setup():
 ## \internal
 # \brief Setup bond.fene for benchmarking
 def bond_fene_setup():
+    from hoomd_script import bond
     fc = bond.fene();
     fc.set_coeff('polymer', k=30.0, r0=3.0, sigma=1.0, epsilon=2.0);
     
@@ -634,9 +643,8 @@ def bond_fene_setup():
     return fc;
 
 import hoomd;
-import hoomd_script;
-import init;
-import globals;
+from hoomd_script import init;
+from hoomd_script import globals;
 
 ## Make a series of short runs to determine the fastest performing r_buff setting
 # \param warmup Number of time steps to run() to warm up the benchmark
@@ -681,7 +689,7 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     tps_list = [];
 
     # loop over all desired r_buff points
-    for i in xrange(0,jumps):
+    for i in range(0,jumps):
         # set the current r_buff
         r_buff = r_min + i * dr;
         globals.neighbor_list.set_params(r_buff=r_buff);

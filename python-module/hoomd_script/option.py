@@ -60,8 +60,8 @@
 from optparse import OptionParser;
 
 import hoomd;
-import globals;
-import init;
+from hoomd_script import globals;
+from hoomd_script import init;
 import sys;
 import shlex;
 

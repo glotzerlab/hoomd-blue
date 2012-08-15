@@ -53,7 +53,7 @@
 
 # First, we need to import the C++ module. It has the same name as this module (plugin_template) but with an underscore
 # in front
-import _plugin_template
+from hoomd_plugins.plugin_template import _plugin_template
 
 # Next, since we are extending an updater, we need to bring in the base class updater and some other parts from 
 # hoomd_script

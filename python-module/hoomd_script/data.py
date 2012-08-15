@@ -51,7 +51,7 @@
 # Maintainer: joaander
 
 import hoomd
-import globals
+from hoomd_script import globals
 
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
@@ -391,14 +391,17 @@ class particle_data:
             self.index = 0;
         def __iter__(self):
             return self;
-        def next(self):
+        def __next__(self):
             if self.index == len(self.data):
                 raise StopIteration;
             
             result = self.data[self.index];
             self.index += 1;
             return result;
-    
+   
+        # support python2
+        next = __next__;
+        
     ## \internal
     # \brief create a particle_data
     #
@@ -408,7 +411,7 @@ class particle_data:
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         self.types = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             self.types.append(globals.system_definition.getParticleData().getNameByType(i));
     
     ## \var pdata
@@ -625,13 +628,16 @@ class force_data:
             self.index = 0;
         def __iter__(self):
             return self;
-        def next(self):
+        def __next__(self):
             if self.index == len(self.data):
                 raise StopIteration;
             
             result = self.data[self.index];
             self.index += 1;
             return result;
+        
+        # support python2
+        next = __next__;
     
     ## \internal
     # \brief create a force_data
@@ -744,13 +750,16 @@ class bond_data:
             self.index = 0;
         def __iter__(self):
             return self;
-        def next(self):
+        def __next__(self):
             if self.index == len(self.data):
                 raise StopIteration;
             
             result = self.data[self.index];
             self.index += 1;
             return result;
+        
+        # support python2
+        next = __next__;
     
     ## \internal
     # \brief create a bond_data
@@ -910,13 +919,16 @@ class angle_data:
             self.index = 0;
         def __iter__(self):
             return self;
-        def next(self):
+        def __next__(self):
             if self.index == len(self.data):
                 raise StopIteration;
 
             result = self.data[self.index];
             self.index += 1;
             return result;
+        
+        # support python2
+        next = __next__;
 
     ## \internal
     # \brief create a angle_data
@@ -1084,13 +1096,16 @@ class dihedral_data:
             self.index = 0;
         def __iter__(self):
             return self;
-        def next(self):
+        def __next__(self):
             if self.index == len(self.data):
                 raise StopIteration;
 
             result = self.data[self.index];
             self.index += 1;
             return result;
+        
+        # support python2
+        next = __next__;
 
     ## \internal
     # \brief create a dihedral_data
@@ -1266,13 +1281,16 @@ class body_data:
             self.index = 0;
         def __iter__(self):
             return self;
-        def next(self):
+        def __next__(self):
             if self.index == len(self.data):
                 raise StopIteration;
             
             result = self.data[self.index];
             self.index += 1;
             return result;
+        
+        # support python2
+        next = __next__;
     
     ## \internal
     # \brief create a body_data
