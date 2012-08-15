@@ -128,71 +128,6 @@ struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsign
         }
      };
 
-//! Wrap a received particle across global box boundaries
-struct wrap_received_particle
-    {
-    const Scalar3 L;          //!< Lengths of global simulation box
-    const unsigned int dir;   //!< Current direction of particle migration
-    bool is_at_boundary[6];   //!< Flags to indicate whether this box share a boundary with the global box
-
-    //! Constructor
-    /*! \param _global_box Dimensions of global simulation box
-        \param _dir Direction along which the particle was received
-        \param _is_at_boundary Flags to indicate whether the local box shares a boundary with the global box
-     */
-    wrap_received_particle(const BoxDim _global_box, const unsigned int _dir,  const bool _is_at_boundary[])
-        : L(_global_box.getL()), dir(_dir)
-        {
-        for (unsigned int i = 0; i < 6; i++)
-            is_at_boundary[i] = _is_at_boundary[i];
-        }
-
-   //! Wrap particle across boundaries
-   /*! \param el particle data element to transform
-    * \return transformed particle data element
-    */
-    __host__ __device__ thrust::tuple<float4, int3> operator()(const thrust::tuple<float4, int3> t)
-        {
-        float4 postype = thrust::get<0>(t);
-        int3 image = thrust::get<1>(t);
-
-        // wrap particles received across a global boundary back into global box
-        if (dir==0 && is_at_boundary[1])
-            {
-            postype.x -= L.x;
-            image.x++;
-            }
-        else if (dir==1 && is_at_boundary[0])
-            {
-            postype.x += L.x;
-            image.x--;
-            }
-        else if (dir==2 && is_at_boundary[3])
-            {
-            postype.y -= L.y;
-            image.y++;
-            }
-        else if (dir==3 && is_at_boundary[2])
-            {
-            postype.y += L.y;
-            image.y--;
-            }
-        else if (dir==4 && is_at_boundary[5])
-            {
-            postype.z -= L.z;
-            image.z++;
-            }
-        else if (dir==5 && is_at_boundary[4])
-            {
-            postype.z += L.z;
-            image.z--;
-            }
-        return make_tuple(postype,image);
-        }
-
-     };
-
-
 thrust::device_vector<unsigned int> *keys;       //!< Temporary vector of sort keys
 
 unsigned int *d_n_send_particles;  //! Counter for construction of atom send lists
@@ -303,6 +238,7 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
     }
 
 //! Helper kernel to reorder particle data, step one
+template<int boundary>
 __global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
                                          float4 *d_pos_tmp,
                                          const float4 *d_vel,
@@ -326,6 +262,7 @@ __global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
                                          unsigned int N,
                                          const Scalar3 lo,
                                          const Scalar3 hi,
+                                         const Scalar3 L,
                                          const unsigned int dir)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -348,10 +285,42 @@ __global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
         {
         unsigned int n = atomicInc(n_send_ptls,0xffffffff);
 
-        d_pos_tmp[n] = d_pos[idx];
+        int3 image = d_image[idx];
+
+        switch (boundary)
+            {
+            case 0:
+                pos.x -= L.x; // wrap across western boundary
+                image.x++;
+                break;
+            case 1:
+                pos.x += L.x; // eastern boundary
+                image.x--;
+                break;
+            case 2:
+                pos.y -= L.y; // northern boundary
+                image.y++;
+                break;
+            case 3:
+                pos.y += L.y; // southern boundary
+                image.y--;
+                break;
+            case 4:
+                pos.z -= L.z; // upper boundary
+                image.z++;
+                break;
+            case 5:
+                pos.z += L.z; // lower boundary
+                image.z--;
+                break;
+            default:
+                break;            // no wrap
+            }
+
+        d_pos_tmp[n] = pos;
         d_vel_tmp[n] = d_vel[idx];
         d_accel_tmp[n] = d_accel[idx];
-        d_image_tmp[n] = d_image[idx];
+        d_image_tmp[n] = image;
         d_charge_tmp[n] = d_charge[idx];
         d_diameter_tmp[n] = d_diameter[idx];
         d_body_tmp[n] = d_body[idx];
@@ -414,14 +383,17 @@ void gpu_migrate_select_particles(unsigned int N,
                         unsigned int *d_tag,
                         unsigned int *d_tag_tmp,
                         const BoxDim& box,
-                        unsigned int dir)
+                        const BoxDim& global_box,
+                        unsigned int dir,
+                        const bool is_at_boundary[])
     {
     n_send_ptls = 0;
     cudaMemcpy(d_n_send_particles, &n_send_ptls, sizeof(unsigned int), cudaMemcpyHostToDevice);
 
     unsigned int block_size = 512;
 
-    gpu_select_send_particles_kernel<<<N/block_size+1,block_size>>>(d_pos,
+    if (dir == 0 && is_at_boundary[0])
+        gpu_select_send_particles_kernel<0><<<N/block_size+1,block_size>>>(d_pos,
                                                                     d_pos_tmp,
                                                                     d_vel,
                                                                     d_vel_tmp,
@@ -444,8 +416,165 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     N,
                                                                     box.getLo(), 
                                                                     box.getHi(),
+                                                                    global_box.getL(),
                                                                     dir);
-     
+     else if (dir == 1 && is_at_boundary[1])
+        gpu_select_send_particles_kernel<1><<<N/block_size+1,block_size>>>(d_pos,
+                                                                    d_pos_tmp,
+                                                                    d_vel,
+                                                                    d_vel_tmp,
+                                                                    d_accel, 
+                                                                    d_accel_tmp, 
+                                                                    d_image, 
+                                                                    d_image_tmp, 
+                                                                    d_charge, 
+                                                                    d_charge_tmp, 
+                                                                    d_diameter, 
+                                                                    d_diameter_tmp,
+                                                                    d_body,
+                                                                    d_body_tmp, 
+                                                                    d_orientation, 
+                                                                    d_orientation_tmp, 
+                                                                    d_tag,
+                                                                    d_tag_tmp,
+                                                                    d_remove_mask,
+                                                                    d_n_send_particles,
+                                                                    N,
+                                                                    box.getLo(), 
+                                                                    box.getHi(),
+                                                                    global_box.getL(),
+                                                                    dir);
+    else if (dir == 2 && is_at_boundary[2])
+        gpu_select_send_particles_kernel<2><<<N/block_size+1,block_size>>>(d_pos,
+                                                                    d_pos_tmp,
+                                                                    d_vel,
+                                                                    d_vel_tmp,
+                                                                    d_accel, 
+                                                                    d_accel_tmp, 
+                                                                    d_image, 
+                                                                    d_image_tmp, 
+                                                                    d_charge, 
+                                                                    d_charge_tmp, 
+                                                                    d_diameter, 
+                                                                    d_diameter_tmp,
+                                                                    d_body,
+                                                                    d_body_tmp, 
+                                                                    d_orientation, 
+                                                                    d_orientation_tmp, 
+                                                                    d_tag,
+                                                                    d_tag_tmp,
+                                                                    d_remove_mask,
+                                                                    d_n_send_particles,
+                                                                    N,
+                                                                    box.getLo(), 
+                                                                    box.getHi(),
+                                                                    global_box.getL(),
+                                                                    dir);
+    else if (dir == 3 && is_at_boundary[3])
+        gpu_select_send_particles_kernel<3><<<N/block_size+1,block_size>>>(d_pos,
+                                                                    d_pos_tmp,
+                                                                    d_vel,
+                                                                    d_vel_tmp,
+                                                                    d_accel, 
+                                                                    d_accel_tmp, 
+                                                                    d_image, 
+                                                                    d_image_tmp, 
+                                                                    d_charge, 
+                                                                    d_charge_tmp, 
+                                                                    d_diameter, 
+                                                                    d_diameter_tmp,
+                                                                    d_body,
+                                                                    d_body_tmp, 
+                                                                    d_orientation, 
+                                                                    d_orientation_tmp, 
+                                                                    d_tag,
+                                                                    d_tag_tmp,
+                                                                    d_remove_mask,
+                                                                    d_n_send_particles,
+                                                                    N,
+                                                                    box.getLo(), 
+                                                                    box.getHi(),
+                                                                    global_box.getL(),
+                                                                    dir);
+    else if (dir == 4 && is_at_boundary[4])
+        gpu_select_send_particles_kernel<4><<<N/block_size+1,block_size>>>(d_pos,
+                                                                    d_pos_tmp,
+                                                                    d_vel,
+                                                                    d_vel_tmp,
+                                                                    d_accel, 
+                                                                    d_accel_tmp, 
+                                                                    d_image, 
+                                                                    d_image_tmp, 
+                                                                    d_charge, 
+                                                                    d_charge_tmp, 
+                                                                    d_diameter, 
+                                                                    d_diameter_tmp,
+                                                                    d_body,
+                                                                    d_body_tmp, 
+                                                                    d_orientation, 
+                                                                    d_orientation_tmp, 
+                                                                    d_tag,
+                                                                    d_tag_tmp,
+                                                                    d_remove_mask,
+                                                                    d_n_send_particles,
+                                                                    N,
+                                                                    box.getLo(), 
+                                                                    box.getHi(),
+                                                                    global_box.getL(),
+                                                                    dir);
+    else if (dir == 5 && is_at_boundary[5])
+        gpu_select_send_particles_kernel<5><<<N/block_size+1,block_size>>>(d_pos,
+                                                                    d_pos_tmp,
+                                                                    d_vel,
+                                                                    d_vel_tmp,
+                                                                    d_accel, 
+                                                                    d_accel_tmp, 
+                                                                    d_image, 
+                                                                    d_image_tmp, 
+                                                                    d_charge, 
+                                                                    d_charge_tmp, 
+                                                                    d_diameter, 
+                                                                    d_diameter_tmp,
+                                                                    d_body,
+                                                                    d_body_tmp, 
+                                                                    d_orientation, 
+                                                                    d_orientation_tmp, 
+                                                                    d_tag,
+                                                                    d_tag_tmp,
+                                                                    d_remove_mask,
+                                                                    d_n_send_particles,
+                                                                    N,
+                                                                    box.getLo(), 
+                                                                    box.getHi(),
+                                                                    global_box.getL(),
+                                                                    dir);
+    else // no wrap
+        gpu_select_send_particles_kernel<-1><<<N/block_size+1,block_size>>>(d_pos,
+                                                                    d_pos_tmp,
+                                                                    d_vel,
+                                                                    d_vel_tmp,
+                                                                    d_accel, 
+                                                                    d_accel_tmp, 
+                                                                    d_image, 
+                                                                    d_image_tmp, 
+                                                                    d_charge, 
+                                                                    d_charge_tmp, 
+                                                                    d_diameter, 
+                                                                    d_diameter_tmp,
+                                                                    d_body,
+                                                                    d_body_tmp, 
+                                                                    d_orientation, 
+                                                                    d_orientation_tmp, 
+                                                                    d_tag,
+                                                                    d_tag_tmp,
+                                                                    d_remove_mask,
+                                                                    d_n_send_particles,
+                                                                    N,
+                                                                    box.getLo(), 
+                                                                    box.getHi(),
+                                                                    global_box.getL(),
+                                                                    dir); 
+
     cudaMemcpy(&n_send_ptls, d_n_send_particles, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
 
@@ -566,36 +695,6 @@ void gpu_reset_rtags_by_mask(unsigned int N,
     gpu_reset_rtags_by_mask_kernel<<<N/block_size+1,block_size>>>(N, d_remove_mask,d_tag,d_rtag);
     }
 
-
-//! Wrap received particles across global box boundaries
-/*! \param d_pos Particle positions array
- * \param d_image Particle images array
- * \param n_recv_ptl Number of received particles (return value)
- * \param global_box Dimensions of global box
- * \param dir Direction along which particles where received
- * \param is_at_boundary Array of per-direction flags to indicate whether this box lies at a global boundary
- */
-void gpu_migrate_wrap_received_particles(float4 *d_pos,
-                                 int3 *d_image,
-                                 unsigned int n_recv_ptl,
-                                 const BoxDim& global_box,
-                                 const unsigned int dir,
-                                 const bool is_at_boundary[])
-    {
-    thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::device_ptr<int3> image_ptr(d_image);
-
-    thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(
-                        pos_ptr,
-                        image_ptr)),
-                      thrust::make_zip_iterator(thrust::make_tuple(
-                        pos_ptr,
-                        image_ptr)) + n_recv_ptl,
-                      thrust::make_zip_iterator(thrust::make_tuple(
-                        pos_ptr,
-                        image_ptr)),
-                      wrap_received_particle(global_box, dir, is_at_boundary));
-    }
 
 //! Construct plans for sending non-bonded ghost particles
 /*! \param d_plan Array of ghost particle plans

@@ -168,7 +168,7 @@ void CommunicatorGPU::migrateAtoms()
 
             ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::readwrite);
 
-            // Stage particle data for sending
+            // Stage particle data for sending, wrap particles
             gpu_migrate_select_particles(m_pdata->getN(),
                                    n_send_ptls,
                                    d_remove_mask.data,                                
@@ -191,7 +191,9 @@ void CommunicatorGPU::migrateAtoms()
                                    d_global_tag.data,
                                    d_tag_stage.data,
                                    m_pdata->getBox(),
-                                   dir);
+                                   m_pdata->getGlobalBox(),
+                                   dir,
+                                   m_is_at_boundary);
             CHECK_CUDA_ERROR();
             
             }
@@ -334,18 +336,6 @@ void CommunicatorGPU::migrateAtoms()
 
         if (m_prof)
             m_prof->pop();
-
-            {
-            ArrayHandle<float4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-            ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
-            gpu_migrate_wrap_received_particles(d_pos.data + add_idx,
-                                                d_image.data + add_idx,
-                                                n_recv_ptls,
-                                                m_pdata->getGlobalBox(),
-                                                dir,
-                                                m_is_at_boundary);
-            CHECK_CUDA_ERROR();
-            }
 
         } // end dir loop
 

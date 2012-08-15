@@ -106,7 +106,9 @@ void gpu_migrate_select_particles(unsigned int N,
                         unsigned int *d_tag,
                         unsigned int *d_tag_tmp,
                         const BoxDim& box,
-                        unsigned int dir);
+                        const BoxDim& global_box,
+                        unsigned int dir,
+                        const bool is_at_boundary[]);
 
 void gpu_migrate_compact_particles(unsigned int N,
                         unsigned char *d_remove_mask,
@@ -154,14 +156,6 @@ void gpu_migrate_pack_send_buffer(unsigned int N,
                            unsigned int *d_tag,
                            char *d_send_buf,
                            char *&d_send_buf_end);
-
-//! Wrap received particles across global box boundaries
-void gpu_migrate_wrap_received_particles(float4 *d_pos,
-                                 int3 *d_image,
-                                 unsigned int n_recv_ptl,
-                                 const BoxDim& global_box,
-                                 const unsigned int dir,
-                                 const bool is_at_boundary[]);
 
 
 //! Construct plans for sending non-bonded ghost particles
