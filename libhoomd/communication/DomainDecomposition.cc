@@ -107,7 +107,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
        }
 
     // Print out information about the domain decomposition
-    m_exec_conf->msg->notice(1) << "HOOMD-blue is using the following domain decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << "." << std::endl;
+    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << "." << std::endl;
  
     // calculate physical box dimensions of every processor
 
