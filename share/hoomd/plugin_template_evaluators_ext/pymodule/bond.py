@@ -48,7 +48,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -- end license --
 
-import _evaluators_ext_template
+from hoomd_plugins.evaluators_ext_template import _evaluators_ext_template
 
 # Next, since we are extending a bond potential, we need to bring in the base class and some other parts from
 # hoomd_script
