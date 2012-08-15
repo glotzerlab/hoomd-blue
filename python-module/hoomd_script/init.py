@@ -589,7 +589,6 @@ def _perform_common_init_tasks():
     from hoomd_script import update;
     from hoomd_script import group;
     from hoomd_script import compute;
-    from hoomd_script import comm;
     # create the sorter, using the evil import __main__ trick to provide the user with a default variable
     import __main__;
     __main__.sorter = update.sort();
