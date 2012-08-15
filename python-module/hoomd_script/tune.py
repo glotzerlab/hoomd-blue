@@ -53,6 +53,7 @@ from hoomd_script import globals
 from hoomd_script import init
 import hoomd
 from hoomd_script import util
+import hoomd_script
 
 import math
 import os
