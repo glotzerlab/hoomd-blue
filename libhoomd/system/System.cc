@@ -463,7 +463,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 #ifdef ENABLE_MPI
                 // if any processor wants to end the run, end it on all processors
                 if (m_comm)
-                    end_run = all_reduce(*m_exec_conf->getMPICommunicator(), end_run, std::plus<unsigned char>());
+                    {
+                    if (int64_t(cur_time) - initial_time > 0.99*time_limit)
+                        {
+                        // if we are within 1% of the maximum run time
+                        // coordinate exit on all processos
+                        end_run = all_reduce(*m_exec_conf->getMPICommunicator(), end_run, std::plus<unsigned char>());
+                        }
+                    }
 #endif
 
                 if (end_run)
