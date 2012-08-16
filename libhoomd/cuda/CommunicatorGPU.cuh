@@ -166,27 +166,27 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       float r_ghost);
 
 //! Construct a list of particle tags to send as ghost particles
-void gpu_make_exchange_ghost_list(unsigned int n_total,
-                                  unsigned int N,
-                                  unsigned int dir,
-                                  unsigned char *d_plan,
-                                  unsigned int *d_global_tag,
-                                  unsigned int* d_copy_ghosts,
-                                  unsigned int *d_ghost_tag,
-                                  unsigned int &n_copy_ghosts);
-
-//! Fill send buffers of particles we are sending as ghost particles with partial particle data
-void gpu_exchange_ghosts(unsigned int nghost,
+void gpu_exchange_ghosts(unsigned int n_total,
+                         unsigned char *d_plan,
                          unsigned int *d_copy_ghosts,
+                         unsigned int *d_copy_ghosts_r,
                          float4 *d_pos,
                          float4 *d_pos_copybuf,
+                         float4 *d_pos_copybuf_r,
                          float *d_charge,
                          float *d_charge_copybuf,
+                         float *d_charge_copybuf_r,
                          float *d_diameter,
                          float *d_diameter_copybuf,
-                         unsigned char *d_plan,
+                         float *d_diameter_copybuf_r,
                          unsigned char *d_plan_copybuf,
-                         const unsigned int dir,
+                         unsigned char *d_plan_copybuf_r,
+                         unsigned int *d_tag,
+                         unsigned int *d_tag_copybuf,
+                         unsigned int *d_tag_copybuf_r,
+                         unsigned int &n_copy_ghosts,
+                         unsigned int &n_copy_ghosts_r,
+                         unsigned int dir,
                          const bool is_at_boundary[],
                          const BoxDim& global_box);
 

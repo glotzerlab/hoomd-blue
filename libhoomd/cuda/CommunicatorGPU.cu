@@ -132,6 +132,7 @@ thrust::device_vector<unsigned int> *keys;       //!< Temporary vector of sort k
 
 unsigned int *d_n_send_particles;  //! Counter for construction of atom send lists
 unsigned int *d_n_copy_ghosts;     //! Counter for ghost list construction
+unsigned int *d_n_copy_ghosts_r;     //! Counter for ghost list construction (reverse direction)
 
 void gpu_allocate_tmp_storage()
     {
@@ -139,6 +140,7 @@ void gpu_allocate_tmp_storage()
 
     cudaMalloc(&d_n_send_particles,sizeof(unsigned int));
     cudaMalloc(&d_n_copy_ghosts, sizeof(unsigned int));
+    cudaMalloc(&d_n_copy_ghosts_r, sizeof(unsigned int));
     }
 
 void gpu_deallocate_tmp_storage()
@@ -147,6 +149,7 @@ void gpu_deallocate_tmp_storage()
 
     cudaFree(d_n_send_particles);
     cudaFree(d_n_copy_ghosts);
+    cudaFree(d_n_copy_ghosts_r);
     }
 
 //! GPU Kernel to find incomplete bonds
@@ -724,14 +727,31 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
     }
 
 //! Kernel to construct list of ghosts to send
-__global__ void gpu_make_exchange_ghost_list_kernel(const unsigned int n_total,
-                                         const unsigned int N,
+template<unsigned int boundary>
+__global__ void gpu_exchange_ghosts_kernel(const unsigned int n_total,
                                          const unsigned int dir,
                                          const unsigned char *plan,
                                          const unsigned int *tag,
                                          unsigned int *copy_ghosts,
-                                         unsigned int *ghost_tag,
-                                         unsigned int *n_copy_ghosts)
+                                         unsigned int *copy_ghosts_r,
+                                         float4 *pos,
+                                         float4 *pos_copybuf,
+                                         float4 *pos_copybuf_r,
+                                         float *charge,
+                                         float *charge_copybuf,
+                                         float *charge_copybuf_r,
+                                         float *diameter,
+                                         float *diameter_copybuf,
+                                         float *diameter_copybuf_r,
+                                         unsigned char *plan_copybuf,
+                                         unsigned char *plan_copybuf_r,
+                                         unsigned int *tag_copybuf,
+                                         unsigned int *tag_copybuf_r,
+                                         unsigned int *n_copy_ghosts,
+                                         unsigned int *n_copy_ghosts_r,
+                                         const bool is_at_boundary,
+                                         const bool is_at_boundary_reverse,
+                                         Scalar3 L)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
     
@@ -739,13 +759,61 @@ __global__ void gpu_make_exchange_ghost_list_kernel(const unsigned int n_total,
 
     unsigned char p = plan[idx];
     bool do_send = (p & (1 << dir));
+    bool do_send_r = (p & (1 << (dir+1)));
 
     if (do_send)
         {
         unsigned int n = atomicInc(n_copy_ghosts, 0xffffffff);
-        ghost_tag[n] = tag[idx];
+        Scalar4 postype = pos[idx]; 
+
+        switch(boundary)
+            {
+            case 0:
+                if (is_at_boundary) postype.x -= L.x;
+                break;
+            case 1:
+                if (is_at_boundary) postype.y -= L.y;
+                break;
+            case 2:
+                if (is_at_boundary) postype.z -= L.z;
+                break;
+            }
+
+        pos_copybuf[n] = postype;
+        tag_copybuf[n] = tag[idx];
+        plan_copybuf[n] = plan[idx];
+        charge_copybuf[n] = charge[idx];
+        diameter_copybuf[n] = diameter[idx];
+
         copy_ghosts[n] = idx;
         }
+
+    if (do_send_r)
+        {
+        unsigned int n = atomicInc(n_copy_ghosts_r, 0xffffffff);
+        Scalar4 postype = pos[idx]; 
+
+        switch(boundary)
+            {
+            case 0:
+                if (is_at_boundary_reverse) postype.x += L.x;
+                break;
+            case 1:
+                if (is_at_boundary_reverse) postype.y += L.y;
+                break;
+            case 2:
+                if (is_at_boundary_reverse) postype.z += L.z;
+                break;
+            }
+
+        pos_copybuf_r[n] = postype;
+        tag_copybuf_r[n] = tag[idx];
+        plan_copybuf_r[n] = plan[idx];
+        charge_copybuf_r[n] = charge[idx];
+        diameter_copybuf_r[n] = diameter[idx];
+        copy_ghosts_r[n] = idx;
+        }
+       
     }
 
     
@@ -759,126 +827,113 @@ __global__ void gpu_make_exchange_ghost_list_kernel(const unsigned int n_total,
  * \param d_ghost_tag Array of ghost particle tags to be sent
  * \param n_copy_ghosts Number of local particles that are sent in the given direction as ghosts (return value)
  */
-void gpu_make_exchange_ghost_list(unsigned int n_total,
-                                  unsigned int N,
-                                  unsigned int dir,
-                                  unsigned char *d_plan,
-                                  unsigned int *d_global_tag,
-                                  unsigned int *d_copy_ghosts,
-                                  unsigned int *d_ghost_tag,
-                                  unsigned int &n_copy_ghosts)
-    {
-    n_copy_ghosts = 0;
-    cudaMemcpy(d_n_copy_ghosts, &n_copy_ghosts, sizeof(unsigned int), cudaMemcpyHostToDevice);
-
-    unsigned int block_size = 512;
-    gpu_make_exchange_ghost_list_kernel<<<n_total/block_size + 1, block_size>>>(n_total,
-                                                                                N,
-                                                                                dir,
-                                                                                d_plan,
-                                                                                d_global_tag,
-                                                                                d_copy_ghosts,
-                                                                                d_ghost_tag,
-                                                                                d_n_copy_ghosts);
-    cudaMemcpy(&n_copy_ghosts, d_n_copy_ghosts, sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    }
-
-//! Fill ghost copy buffer & apply periodic boundary conditions to a ghost particle before sending
-template<int boundary>
-__global__ void gpu_exchange_ghosts_kernel(float4 *pos,
-                                      unsigned int *copy_ghosts,
-                                      float4 *pos_copybuf,
-                                      float *charge,
-                                      float *charge_copybuf,
-                                      float *diameter,
-                                      float *diameter_copybuf,
-                                      unsigned char *plan,
-                                      unsigned char *plan_copybuf,
-                                      unsigned int nghost,
-                                      Scalar3 L)
-    {
-    unsigned int ghost_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (ghost_idx >= nghost) return;
-    unsigned int pidx = copy_ghosts[ghost_idx];
-    Scalar4 postype = pos[pidx];
-
-    // wrap particles global boundary back into global box before sending
-    switch(boundary)
-        {
-        case 0: // west boundary 
-            postype.x -= L.x;
-            break;
-        case 1: // east boundary
-            postype.x += L.x;
-            break;
-        case 2: // north boundary
-            postype.y -= L.y;
-            break;
-        case 3: // south boundary
-            postype.y += L.y;
-            break;
-        case 4: // upper boundary
-            postype.z -= L.z;
-            break;
-        case 5: // lower boundary
-            postype.z += L.z;
-            break;
-        case -1: // do not wrap
-            break;
-        }
-    pos_copybuf[ghost_idx] = postype;
-    charge_copybuf[ghost_idx] = charge[pidx];
-    diameter_copybuf[ghost_idx] = diameter[pidx];
-    plan_copybuf[ghost_idx] = plan[pidx];
-    } 
-
-
-//! Fill send buffers of particles we are sending as ghost particles with partial particle data
-/*! \param nghost Number of ghost particles to copy into send buffers
- * \param d_copy_ghosts Array of particle tags to copy as ghost particles
- * \param d_rtag Inverse look-up array for global tags <-> local indices
- * \param d_pos Array of particle positions
- * \param d_pos_copybuf Send buffer for particle positions
- * \param d_charge Array of particle charges
- * \param d_charge_copybuf Send buffer for particle charges
- * \param d_diameter Array of particle diameters
- * \param d_diameter_copybuf Send buffer for particle diameters
- * \param d_plan Array of particle plans
- * \param d_plan_copybuf Send buffer for particle plans
- * \param dir Current send direction
- * \param is_at_boundary Per-direction flag if we share a boundary with the global box
- * \param global_box The global box
- */
-void gpu_exchange_ghosts(unsigned int nghost,
+void gpu_exchange_ghosts(unsigned int n_total,
+                         unsigned char *d_plan,
                          unsigned int *d_copy_ghosts,
+                         unsigned int *d_copy_ghosts_r,
                          float4 *d_pos,
                          float4 *d_pos_copybuf,
+                         float4 *d_pos_copybuf_r,
                          float *d_charge,
                          float *d_charge_copybuf,
+                         float *d_charge_copybuf_r,
                          float *d_diameter,
                          float *d_diameter_copybuf,
-                         unsigned char *d_plan,
+                         float *d_diameter_copybuf_r,
                          unsigned char *d_plan_copybuf,
-                         const unsigned int dir,
+                         unsigned char *d_plan_copybuf_r,
+                         unsigned int *d_tag,
+                         unsigned int *d_tag_copybuf,
+                         unsigned int *d_tag_copybuf_r,
+                         unsigned int &n_copy_ghosts,
+                         unsigned int &n_copy_ghosts_r,
+                         unsigned int dir,
                          const bool is_at_boundary[],
                          const BoxDim& global_box)
     {
+    n_copy_ghosts = 0;
+    cudaMemcpy(d_n_copy_ghosts, &n_copy_ghosts, sizeof(unsigned int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_copy_ghosts_r, &n_copy_ghosts, sizeof(unsigned int), cudaMemcpyHostToDevice);
+
     unsigned int block_size = 512;
-    if (dir == 0 && is_at_boundary[0])
-        gpu_exchange_ghosts_kernel<0><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
-    else if (dir == 1 && is_at_boundary[1])
-        gpu_exchange_ghosts_kernel<1><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
-    else if (dir == 2 && is_at_boundary[2])
-        gpu_exchange_ghosts_kernel<2><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
-    else if (dir == 3 && is_at_boundary[3])
-        gpu_exchange_ghosts_kernel<3><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
-    else if (dir == 4 && is_at_boundary[4])
-        gpu_exchange_ghosts_kernel<4><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
-    else if (dir == 5 && is_at_boundary[5])
-        gpu_exchange_ghosts_kernel<5><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
-    else
-        gpu_exchange_ghosts_kernel<-1><<<nghost/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_pos_copybuf, d_charge, d_charge_copybuf, d_diameter, d_diameter_copybuf, d_plan, d_plan_copybuf, nghost, global_box.getL());
+    if (dir == 0)
+        gpu_exchange_ghosts_kernel<0><<<n_total/block_size+1, block_size>>>(n_total,
+                                         dir,
+                                         d_plan,
+                                         d_tag,
+                                         d_copy_ghosts,
+                                         d_copy_ghosts_r,
+                                         d_pos,
+                                         d_pos_copybuf,
+                                         d_pos_copybuf_r,
+                                         d_charge,
+                                         d_charge_copybuf,
+                                         d_charge_copybuf_r,
+                                         d_diameter,
+                                         d_diameter_copybuf,
+                                         d_diameter_copybuf_r,
+                                         d_plan_copybuf,
+                                         d_plan_copybuf_r,
+                                         d_tag_copybuf,
+                                         d_tag_copybuf_r,
+                                         d_n_copy_ghosts,
+                                         d_n_copy_ghosts_r,
+                                         is_at_boundary[dir],
+                                         is_at_boundary[dir+1],
+                                         global_box.getL());
+    else if (dir == 2)
+        gpu_exchange_ghosts_kernel<1><<<n_total/block_size+1, block_size>>>(n_total,
+                                         dir,
+                                         d_plan,
+                                         d_tag,
+                                         d_copy_ghosts,
+                                         d_copy_ghosts_r,
+                                         d_pos,
+                                         d_pos_copybuf,
+                                         d_pos_copybuf_r,
+                                         d_charge,
+                                         d_charge_copybuf,
+                                         d_charge_copybuf_r,
+                                         d_diameter,
+                                         d_diameter_copybuf,
+                                         d_diameter_copybuf_r,
+                                         d_plan_copybuf,
+                                         d_plan_copybuf_r,
+                                         d_tag_copybuf,
+                                         d_tag_copybuf_r,
+                                         d_n_copy_ghosts,
+                                         d_n_copy_ghosts_r,
+                                         is_at_boundary[dir],
+                                         is_at_boundary[dir+1],
+                                         global_box.getL());
+     else if (dir == 4)
+        gpu_exchange_ghosts_kernel<2><<<n_total/block_size+1, block_size>>>(n_total,
+                                         dir,
+                                         d_plan,
+                                         d_tag,
+                                         d_copy_ghosts,
+                                         d_copy_ghosts_r,
+                                         d_pos,
+                                         d_pos_copybuf,
+                                         d_pos_copybuf_r,
+                                         d_charge,
+                                         d_charge_copybuf,
+                                         d_charge_copybuf_r,
+                                         d_diameter,
+                                         d_diameter_copybuf,
+                                         d_diameter_copybuf_r,
+                                         d_plan_copybuf,
+                                         d_plan_copybuf_r,
+                                         d_tag_copybuf,
+                                         d_tag_copybuf_r,
+                                         d_n_copy_ghosts,
+                                         d_n_copy_ghosts_r,
+                                         is_at_boundary[dir],
+                                         is_at_boundary[dir+1],
+                                         global_box.getL());
+
+    cudaMemcpy(&n_copy_ghosts, d_n_copy_ghosts, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&n_copy_ghosts_r, d_n_copy_ghosts_r, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
 
 //! Update global tag <-> local particle index reverse lookup array
