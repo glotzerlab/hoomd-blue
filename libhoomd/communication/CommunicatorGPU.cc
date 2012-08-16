@@ -484,7 +484,8 @@ void CommunicatorGPU::exchangeGhosts()
     m_plan.clear();
 
     // resize plans
-    m_plan.resize(m_pdata->getN());
+    if (m_plan.size() < m_pdata->getN())
+        m_plan.resize(m_pdata->getN());
 
     /*
      * Mark particles that are part of incomplete bonds for sending
@@ -531,10 +532,14 @@ void CommunicatorGPU::exchangeGhosts()
      */
 
     // resize buffers
-    m_plan_copybuf.resize(m_pdata->getN());
-    m_pos_copybuf.resize(m_pdata->getN());
-    m_charge_copybuf.resize(m_pdata->getN());
-    m_diameter_copybuf.resize(m_pdata->getN());
+    if (m_plan_copybuf.size() < m_pdata->getN())
+        {
+        m_plan_copybuf.resize(m_pdata->getN());
+        m_pos_copybuf.resize(m_pdata->getN());
+        m_charge_copybuf.resize(m_pdata->getN());
+        m_diameter_copybuf.resize(m_pdata->getN());
+        m_tag_copybuf.resize(m_pdata->getN());
+        }
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
@@ -544,15 +549,18 @@ void CommunicatorGPU::exchangeGhosts()
 
         // resize array of ghost particle tags to copy 
         unsigned int max_copy_ghosts = m_pdata->getN() + m_pdata->getNGhosts();
-        m_copy_ghosts[dir].resize(max_copy_ghosts);
+        if (m_copy_ghosts[dir].size() < max_copy_ghosts)
+            m_copy_ghosts[dir].resize(max_copy_ghosts);
         
         // resize buffers
-        m_pos_copybuf.resize(max_copy_ghosts);
-        m_charge_copybuf.resize(max_copy_ghosts);
-        m_diameter_copybuf.resize(max_copy_ghosts);
-        m_plan_copybuf.resize(max_copy_ghosts);
-        m_tag_copybuf.resize(max_copy_ghosts);
-
+        if (m_pos_copybuf.size() < max_copy_ghosts)
+            {
+            m_pos_copybuf.resize(max_copy_ghosts);
+            m_charge_copybuf.resize(max_copy_ghosts);
+            m_diameter_copybuf.resize(max_copy_ghosts);
+            m_plan_copybuf.resize(max_copy_ghosts);
+            m_tag_copybuf.resize(max_copy_ghosts);
+            }
 
             {
             // Fill send buffer
