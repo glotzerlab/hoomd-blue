@@ -714,23 +714,46 @@ void CommunicatorGPU::copyGhosts()
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
 
 
+    boost::mpi::request reqs[4];
+
+    unsigned int max_copy_ghosts = 0;
+    for (unsigned int i = 0; i < 3; i++)
+        {
+        unsigned int n = m_num_copy_ghosts[2*i]+m_num_copy_ghosts[2*i+1];
+        if (n > max_copy_ghosts)
+            max_copy_ghosts = n;
+        }
+    m_pos_copybuf.resize(max_copy_ghosts);
+
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
 
         if (! isCommunicating(dir) ) continue;
 
+        unsigned int offset = (dir % 2) ? m_num_copy_ghosts[dir-1] : 0;
+
+        // Pack send data for direction dir and dir+1 (opposite) simultaneously.
+        // We assume that they are independent, i.e. a send in direction dir+1
+        // does not contain any ghosts received from that direction previously.
+        if ((dir % 2) == 0)
             {
+
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_copy_ghosts(m_copy_ghosts[dir], access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_copy_ghosts_r(m_copy_ghosts[dir+1], access_location::device, access_mode::read);
 
             gpu_copy_ghosts(m_num_copy_ghosts[dir],
+                            m_num_copy_ghosts[dir+1],
                             d_pos.data, 
                             d_copy_ghosts.data,
+                            d_copy_ghosts_r.data,
                             d_pos_copybuf.data,
+                            d_pos_copybuf.data + m_num_copy_ghosts[dir],
                             dir,
                             m_is_at_boundary,
                             m_pdata->getGlobalBox());
+
             CHECK_CUDA_ERROR();
             }
 
@@ -753,17 +776,17 @@ void CommunicatorGPU::copyGhosts()
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
 
-        boost::mpi::request reqs[2];
+        unsigned int shift = (dir % 2) ? 2 : 0;
 #ifdef ENABLE_MPI_CUDA
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            reqs[0] = m_mpi_comm->isend(send_neighbor,0,d_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,d_pos.data + start_idx, m_num_recv_ghosts[dir]);
+            reqs[0+shift] = m_mpi_comm->isend(send_neighbor,0,d_pos_copybuf.data+ offset, m_num_copy_ghosts[dir]);
+            reqs[1+shift] = m_mpi_comm->irecv(recv_neighbor,0,d_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
-            boost::mpi::wait_all(reqs,reqs+2);
+            if (dir %2 ) boost::mpi::wait_all(reqs,reqs+4);
             }
 #else
             {
@@ -771,10 +794,10 @@ void CommunicatorGPU::copyGhosts()
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            reqs[0] = m_mpi_comm->isend(send_neighbor,0,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
+            reqs[0] = m_mpi_comm->isend(send_neighbor,0,h_pos_copybuf.data + offset, m_num_copy_ghosts[dir]);
             reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
 
-            boost::mpi::wait_all(reqs,reqs+2);
+            if (dir % 2) boost::mpi::wait_all(reqs,reqs+4);
             }
 #endif
 
