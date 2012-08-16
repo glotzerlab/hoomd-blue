@@ -590,17 +590,18 @@ def _perform_common_init_tasks(mpi_options=dict()):
     import __main__;
     __main__.sorter = update.sort();
     
+   # Check if HOOMD has been compiled with MPI support
+    if comm.check_mpi():
+        # if so, use domain decomposition
+        comm.init_domain_decomposition(mpi_options)
+
     # create the default compute.thermo on the all group
     util._disable_status_lines = True;
     all = group.all();
     compute._get_unique_thermo(group=all);
     util._disable_status_lines = False;
    
-    # Check if HOOMD has been compiled with MPI support
-    if comm.check_mpi():
-        # if so, use domain decomposition
-        comm.init_domain_decomposition(mpi_options)
-
+ 
 ## Initializes the execution configuration
 #
 # \internal

@@ -77,7 +77,7 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
     assert(m_pdata);
-    GPUArray< Scalar > properties(10, exec_conf);
+    GPUArray< Scalar > properties(thermo_index::num_quantities, exec_conf);
     m_properties.swap(properties);
 
     m_logname_list.push_back(string("temperature") + suffix);

@@ -162,55 +162,23 @@ void ComputeThermoGPU::computeProperties()
     }
 
 #ifdef ENABLE_MPI
-    // for MPI, we have to copy data back to the host to perform collective operations
 
     boost::shared_ptr<const boost::mpi::communicator> mpi_comm;
-    if (m_comm)
+    if (m_pdata->getDomainDecomposition())
         {
         mpi_comm = m_exec_conf->getMPICommunicator();
-        assert(mpi_comm);
-        }
 
-    if (mpi_comm)
-        {
+
+        // copy data back to the host to perform collective operations
         ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
 
         if (m_prof)
-            m_prof->push("MPI collectives");
-
-        Scalar & T = h_properties.data[thermo_index::temperature];
-        Scalar & P = h_properties.data[thermo_index::pressure];
-        Scalar & ke =  h_properties.data[thermo_index::kinetic_energy];
-        Scalar & pe =  h_properties.data[thermo_index::potential_energy];
-        Scalar & Pxx =  h_properties.data[thermo_index::pressure_xx];
-        Scalar & Pxy =  h_properties.data[thermo_index::pressure_xy];
-        Scalar & Pxz =  h_properties.data[thermo_index::pressure_xz];
-        Scalar & Pyy =  h_properties.data[thermo_index::pressure_yy];
-        Scalar & Pyz =  h_properties.data[thermo_index::pressure_yz];
-        Scalar & Pzz =  h_properties.data[thermo_index::pressure_zz];
-        T = all_reduce(*mpi_comm, T, std::plus<Scalar>());
-
-        if (flags[pdata_flag::isotropic_virial])
-            P = all_reduce(*mpi_comm, P, std::plus<Scalar>());
-
-        ke = all_reduce(*mpi_comm, ke, std::plus<Scalar>());
-
-        if (flags[pdata_flag::potential_energy])
-            pe = all_reduce(*mpi_comm, pe, std::plus<Scalar>());
-
-        if (flags[pdata_flag::pressure_tensor])
-            {
-            Pxx = all_reduce(*mpi_comm, Pxx, std::plus<Scalar>());
-            Pxy = all_reduce(*mpi_comm, Pxy, std::plus<Scalar>());
-            Pxz = all_reduce(*mpi_comm, Pxz, std::plus<Scalar>());
-            Pyy = all_reduce(*mpi_comm, Pyy, std::plus<Scalar>());
-            Pyz = all_reduce(*mpi_comm, Pyz, std::plus<Scalar>());
-            Pzz = all_reduce(*mpi_comm, Pzz, std::plus<Scalar>());
-            }
+            m_prof->push("MPI Allreduce");
+        MPI_Allreduce(h_properties.data, h_properties.data, thermo_index::num_quantities, MPI_FLOAT, MPI_SUM, *mpi_comm);
         if (m_prof)
-            m_prof->pop();
+                m_prof->pop();
         }
-#endif
+#endif // ENABLE_MPI
 
     if (m_prof) m_prof->pop();
     }
