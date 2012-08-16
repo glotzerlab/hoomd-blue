@@ -130,18 +130,23 @@ void CommunicatorGPU::migrateAtoms()
             m_prof->push("remove ptls");
 
         // Reallocate send buffers
-        m_pos_stage.resize(m_pdata->getN());
-        m_vel_stage.resize(m_pdata->getN());
-        m_accel_stage.resize(m_pdata->getN());
-        m_charge_stage.resize(m_pdata->getN());
-        m_diameter_stage.resize(m_pdata->getN());
-        m_image_stage.resize(m_pdata->getN());
-        m_body_stage.resize(m_pdata->getN());
-        m_orientation_stage.resize(m_pdata->getN());
-        m_tag_stage.resize(m_pdata->getN());
+        unsigned int max_n = m_pdata->getPositions().getNumElements();
+        if (m_pos_stage.size() != max_n);
+            {
+            m_pos_stage.resize(max_n);
+            m_vel_stage.resize(max_n);
+            m_accel_stage.resize(max_n);
+            m_charge_stage.resize(max_n);
+            m_diameter_stage.resize(max_n);
+            m_image_stage.resize(max_n);
+            m_body_stage.resize(max_n);
+            m_orientation_stage.resize(max_n);
+            m_tag_stage.resize(max_n);
 
-        // resize mask and set newly allocated flags to zero
-        m_remove_mask.resize(m_pdata->getN());
+            // resize mask and set newly allocated flags to zero
+            m_remove_mask.resize(max_n);
+            }
+
 
             {
             // remove all particles from our domain that are going to be sent in the current direction
@@ -345,18 +350,22 @@ void CommunicatorGPU::migrateAtoms()
     // Reallocate particle data buffers
     // it is important to use the actual size of the arrays as arguments,
     // which can be larger than the particle number
-    m_pos_stage.resize(m_pdata->getPositions().getNumElements());
-    m_vel_stage.resize(m_pdata->getVelocities().getNumElements());
-    m_accel_stage.resize(m_pdata->getAccelerations().getNumElements());
-    m_charge_stage.resize(m_pdata->getCharges().getNumElements());
-    m_diameter_stage.resize(m_pdata->getDiameters().getNumElements());
-    m_image_stage.resize(m_pdata->getImages().getNumElements());
-    m_body_stage.resize(m_pdata->getBodies().getNumElements());
-    m_orientation_stage.resize(m_pdata->getOrientationArray().getNumElements());
-    m_tag_stage.resize(m_pdata->getGlobalTags().getNumElements());
+    unsigned int max_n = m_pdata->getPositions().getNumElements();
+    if (m_pos_stage.size() != max_n);
+        {
+        m_pos_stage.resize(max_n);
+        m_vel_stage.resize(max_n);
+        m_accel_stage.resize(max_n);
+        m_charge_stage.resize(max_n);
+        m_diameter_stage.resize(max_n);
+        m_image_stage.resize(max_n);
+        m_body_stage.resize(max_n);
+        m_orientation_stage.resize(max_n);
+        m_tag_stage.resize(max_n);
 
-    m_remove_mask.resize(m_pdata->getN());
-    CHECK_CUDA_ERROR();
+        // resize mask and set newly allocated flags to zero
+        m_remove_mask.resize(max_n);
+        }
 
         {
         // reset rtag of deleted particles
@@ -723,7 +732,9 @@ void CommunicatorGPU::copyGhosts()
         if (n > max_copy_ghosts)
             max_copy_ghosts = n;
         }
-    m_pos_copybuf.resize(max_copy_ghosts);
+    
+    if (max_copy_ghosts > m_pos_copybuf.size())
+        m_pos_copybuf.resize(max_copy_ghosts);
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
