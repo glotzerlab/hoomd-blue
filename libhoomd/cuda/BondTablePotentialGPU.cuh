@@ -62,8 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __BONDTABLEPOTENTIALGPU_CUH__
 
 //! Kernel driver that computes table forces on the GPU for TablePotentialGPU
-cudaError_t gpu_compute_bondtable_forces(float4* d_force,
-                                     float* d_virial,
+cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
+                                     Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
@@ -72,8 +72,8 @@ cudaError_t gpu_compute_bondtable_forces(float4* d_force,
                                      const unsigned int pitch,
                                      const unsigned int *n_bonds_list,
                                      const unsigned int n_bond_type,
-                                     const float2 *d_tables,
-                                     const float4 *d_params,
+                                     const Scalar2 *d_tables,
+                                     const Scalar4 *d_params,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
                                      unsigned int *d_flags,

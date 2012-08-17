@@ -109,7 +109,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     BoxDim box = m_pdata->getBox();
 
     // access the table data
-    ArrayHandle<float2> d_tables(m_tables, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_tables(m_tables, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
