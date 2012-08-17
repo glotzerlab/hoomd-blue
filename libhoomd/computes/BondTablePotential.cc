@@ -129,7 +129,7 @@ void BondTablePotential::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_bond_data->getNBondTypes())
         {
-        cout << endl << "***Error! Invalid bond type specified" << endl << endl;
+        m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
         }
 
@@ -317,7 +317,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
             }
         else
             {
-            cerr << endl << "***Error! Table bond out of bounds" << endl << endl;
+            m_exec_conf->msg->error() << "Table bond out of bounds" << endl;
             throw std::runtime_error("Error in bond calculation");
             }
 

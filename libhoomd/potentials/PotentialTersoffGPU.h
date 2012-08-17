@@ -79,7 +79,7 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
                             boost::shared_ptr<NeighborList> nlist,
                             const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialTersoffGPU() { };
+        virtual ~PotentialTersoffGPU();
 
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
@@ -104,21 +104,23 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_pt
                                                                               const std::string& log_suffix)
     : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
+    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << endl;
+
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
         {
-        std::cerr << std::endl << "***Error! Creating a PotentialTersoffGPU with no GPU in the execution configuration"
-                  << std::endl << std::endl;
-        throw std::runtime_error("Error initializing PotentialTersoffGPU");
-        }
-
-    if (this->m_pdata->getNTypes() > 44)
-        {
-        std::cerr << std::endl << "***Error! PotentialTersoffGPU cannot handle " << this->m_pdata->getNTypes() << " types"
-                  << std::endl << std::endl;
+        this->exec_conf->msg->error() << "***Error! Creating a PotentialTersoffGPU with no GPU in the execution configuration"
+                  << std::endl;
         throw std::runtime_error("Error initializing PotentialTersoffGPU");
         }
     }
+
+template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+                                                const typename evaluator::param_type *d_params) >
+PotentialTersoffGPU< evaluator, gpu_cgpf >::~PotentialTersoffGPU()
+        {
+        this->exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << endl;
+        }
 
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
@@ -134,8 +136,8 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        std::cerr << std::endl << "***Error! PotentialTersoffGPU cannot handle a half neighborlist"
-                  << std::endl << std::endl;
+        this->exec_conf->msg->error() << "***Error! PotentialTersoffGPU cannot handle a half neighborlist"
+                  << std::endl;
         throw std::runtime_error("Error computing forces in PotentialTersoffGPU");
         }
 
