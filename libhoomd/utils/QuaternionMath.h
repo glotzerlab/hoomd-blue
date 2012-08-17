@@ -83,14 +83,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __SIN sin
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
 //! Normalize a quaternion
 /*! 
     \param q Quaternion to be normalized

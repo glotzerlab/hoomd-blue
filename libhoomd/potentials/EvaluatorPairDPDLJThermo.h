@@ -78,14 +78,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
 // call different Saru PRNG initializers on the host / device
 // SARU is SaruGPU Class when included in nvcc and Saru Class when included into the host compiler
 #ifdef NVCC

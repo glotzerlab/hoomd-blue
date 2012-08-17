@@ -79,14 +79,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EXP exp
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
 //! Class for evaluating the Yukawa pair potential
 /*! <b>General Overview</b>
 
