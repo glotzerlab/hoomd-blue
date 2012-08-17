@@ -158,6 +158,8 @@ cudaError_t gpu_fire_rigid_zero_v(gpu_rigid_data_arrays rdata)
 
 /*! Kernel function to simultaneously compute the partial sum over Pt, vsq and fsq for the FIRE algorithm
     \param d_sum_Pt Array to hold the sum over Pt (f*v), v2 and f2
+    \param rdata_force The developer has chosen not to document this parameter
+    \param rdata_vel The developer has chosen not to document this parameter
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
 */

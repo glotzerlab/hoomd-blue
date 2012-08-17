@@ -85,6 +85,7 @@ texture<int4, 1, cudaReadModeElementType> improper_params_tex;
     \param virial_pitch pitch of 2D virial
     \param N number of particles
     \param d_pos Device memory of particle positions
+    \param d_params Force field parameters
     \param box Box dimensions for periodic boundary condition handling
     \param tlist Improper data to use in calculating the forces
     \param dihedral_ABCD List of relative atom positions in the dihedrals
