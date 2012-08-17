@@ -111,7 +111,7 @@ void ComputeThermoGPU::computeProperties()
     if (group_size == 0)
         return;
     
-    if (m_prof) m_prof->push("Thermo");
+    if (m_prof) m_prof->push(m_exec_conf,"Thermo");
     
     assert(m_pdata);
     assert(m_ndof != 0);
@@ -180,7 +180,7 @@ void ComputeThermoGPU::computeProperties()
         }
 #endif // ENABLE_MPI
 
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_ComputeThermoGPU()
