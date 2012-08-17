@@ -359,6 +359,10 @@ def _choose_optimal_block_sizes(optimal_dbs):
 # \note HOOMD ignores .hoomd_block_tuning files from older versions. You must rerun the tuning
 # script after upgrading HOOMD. 
 def find_optimal_block_sizes(save = True, only=None):
+    from hoomd_script import bond
+    from hoomd_script import angle
+    from hoomd_script import improper
+    from hoomd_script import dihedral
     util._disable_status_lines = True;
 
     # we cannot save if only is set
@@ -407,7 +411,7 @@ def find_optimal_block_sizes(save = True, only=None):
     for i in range(1,num_particles-4):
         dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
         improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
-    
+   
     del angle_data
     del dihedral_data
     del improper_data
