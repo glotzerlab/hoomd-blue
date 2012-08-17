@@ -240,20 +240,20 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-	#ifdef ENABLE_TEXTURES
+    #ifdef ENABLE_TEXTURES
     Scalar4 postypei = fetchScalar4Tex(pdata_dpd_pos_tex, idx);
-	#else
-	Scalar4 postypei = d_pos[idx];
-	#endif
+    #else
+    Scalar4 postypei = d_pos[idx];
+    #endif
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     // read in the velocity of our particle.
     // (MEM TRANSFER: 16 bytes)
-	#ifdef ENABLE_TEXTURES
+    #ifdef ENABLE_TEXTURES
     Scalar4 velmassi = fetchScalar4Tex(pdata_dpd_vel_tex, idx);
-	#else
-	Scalar4 velmassi = d_vel[idx];
-	#endif
+    #else
+    Scalar4 velmassi = d_vel[idx];
+    #endif
     Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
     // initialize the force to 0
@@ -286,19 +286,19 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-			#ifdef ENABLE_TEXTURES
+            #ifdef ENABLE_TEXTURES
             Scalar4 postypej = fetchScalar4Tex(pdata_dpd_pos_tex, cur_j);
-			#else
-			Scalar4 postypej = d_pos[cur_j];
-			#endif
+            #else
+            Scalar4 postypej = d_pos[cur_j];
+            #endif
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-			#ifdef ENABLE_TEXTURES
+            #ifdef ENABLE_TEXTURES
             Scalar4 velmassj = fetchScalar4Tex(pdata_dpd_vel_tex, cur_j);
-			#else
-			Scalar4 velmassj = d_vel[cur_j];
-			#endif
+            #else
+            Scalar4 velmassj = d_vel[cur_j];
+            #endif
             Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);;
 
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
@@ -401,7 +401,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     dim3 grid( args.N / args.block_size + 1, 1, 1);
     dim3 threads(args.block_size, 1, 1);
 
-	#ifdef ENABLE_TEXTURES
+    #ifdef ENABLE_TEXTURES
     // bind the position texture
     pdata_dpd_pos_tex.normalized = false;
     pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
@@ -415,7 +415,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     error = cudaBindTexture(0, pdata_dpd_vel_tex, args.d_vel,  sizeof(Scalar4)*args.N);
     if (error != cudaSuccess)
         return error;
-	#endif
+    #endif
 
     Index2D typpair_idx(args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))

@@ -135,7 +135,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     unsigned int n_neigh = d_n_neigh[idx];
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-	Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
+    Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     unsigned int typei = __scalar_as_int(postype.w);
 
@@ -172,7 +172,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
             next_neigh = d_nlist[nli(idx, (neigh_idx+1))];
 
             // get the neighbor's position
-			Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
+            Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
             Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)
@@ -200,8 +200,8 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
 
                 // compute index into the table and read in values
                 unsigned int value_i = floor(value_f);
-				Scalar2 VF0 = fetchScalar2Tex(tables_tex, table_value(value_i, cur_table_index));
-				Scalar2 VF1 = fetchScalar2Tex(tables_tex, table_value(value_i+1, cur_table_index));
+                Scalar2 VF0 = fetchScalar2Tex(tables_tex, table_value(value_i, cur_table_index));
+                Scalar2 VF1 = fetchScalar2Tex(tables_tex, table_value(value_i+1, cur_table_index));
 
                 // unpack the data
                 Scalar V0 = VF0.x;
@@ -295,7 +295,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-	// bind the pdata position texture
+    // bind the pdata position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4) * N);

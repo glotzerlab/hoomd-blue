@@ -130,7 +130,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-	Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
+    Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
@@ -163,7 +163,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
             next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-			Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
+            Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
             Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)

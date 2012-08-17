@@ -162,18 +162,18 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
 
 
     gpu_cgpf(tersoff_args_t(d_force.data,
-							this->m_pdata->getN(),
-							d_pos.data,
-							box,
-							d_n_neigh.data,
-							d_nlist.data,
-							nli,
-							d_rcutsq.data,
-							d_ronsq.data,
-							this->m_pdata->getNTypes(),
-							m_block_size,
-							this->m_shift_mode),
-							d_params.data);
+                            this->m_pdata->getN(),
+                            d_pos.data,
+                            box,
+                            d_n_neigh.data,
+                            d_nlist.data,
+                            nli,
+                            d_rcutsq.data,
+                            d_ronsq.data,
+                            this->m_pdata->getNTypes(),
+                            m_block_size,
+                            this->m_shift_mode),
+                            d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

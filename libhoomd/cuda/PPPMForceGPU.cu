@@ -120,24 +120,24 @@ texture<int2, 1, cudaReadModeElementType> pdata_charge_tex;
 #ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
-	
-	\param address Address to write the double to
-	\param val Value to add to address
+    
+    \param address Address to write the double to
+    \param val Value to add to address
 */
 static __device__ inline double atomicAdd(double* address, double val)
-{
-	unsigned long long int* address_as_ull = (unsigned long long int*)address;
-	unsigned long long int old = *address_as_ull, assumed;
+    {
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
 
-	do {
-		assumed = old;
-		old = atomicCAS(address_as_ull,
-			assumed,
-			__double_as_longlong(val + __longlong_as_double(assumed)));
-	} while (assumed != old);
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull,
+            assumed,
+            __double_as_longlong(val + __longlong_as_double(assumed)));
+    } while (assumed != old);
 
-	return __longlong_as_double(old);
-}
+    return __longlong_as_double(old);
+    }
 
 #endif
 
@@ -185,18 +185,19 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
-		#ifdef ENABLE_TEXTURES
+        #ifdef ENABLE_TEXTURES
         Scalar qi = fetchScalarTex(pdata_charge_tex, idx);
-		#else
-		Scalar qi = d_charge[idx];
-		#endif
+        #else
+        Scalar qi = d_charge[idx];
+        #endif
 
-        if(fabs(qi) > Scalar(0.0)) {
+        if(fabs(qi) > Scalar(0.0)) 
+            {
             #ifdef ENABLE_TEXTURES
-			Scalar4 posi = fetchScalar4Tex(pdata_pos_tex, idx);
-			#else
-			Scalar4 posi = d_pos[idx];
-			#endif
+            Scalar4 posi = fetchScalar4Tex(pdata_pos_tex, idx);
+            #else
+            Scalar4 posi = d_pos[idx];
+            #endif
             //calculate dx, dy, dz for the charge density grid:
             Scalar3 L = box.getL();
             Scalar box_dx = L.x / ((Scalar)Nx);
@@ -375,18 +376,18 @@ void calculate_forces_kernel(Scalar4 *d_force,
         {
         unsigned int idx = d_group_members[group_idx];
         //get particle information
-		#ifdef ENABLE_TEXTURES
+        #ifdef ENABLE_TEXTURES
         Scalar qi = fetchScalarTex(pdata_charge_tex, idx);
-		#else
-		Scalar qi = d_charge[idx];
-		#endif
+        #else
+        Scalar qi = d_charge[idx];
+        #endif
 
         if(fabs(qi) > Scalar(0.0)) {
             #ifdef ENABLE_TEXTURES
             Scalar4 posi = fetchScalar4Tex(pdata_pos_tex, idx);
-			#else
-			Scalar4 posi = d_pos[idx];
-			#endif
+            #else
+            Scalar4 posi = d_pos[idx];
+            #endif
     
             //calculate dx, dy, dz for the charge density grid:
             Scalar3 L = box.getL();
@@ -514,7 +515,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     dim3 N_threads(block_size, 1, 1);
 
     #ifdef ENABLE_TEXTURES
-	// bind the textures
+    // bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
@@ -522,7 +523,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
     if (error != cudaSuccess)
         return error;
-	#endif
+    #endif
 
 
     // set the grid charge to zero
@@ -1066,18 +1067,18 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         unsigned int idx = d_group_members[group_idx];
         const Scalar sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
-		#ifdef ENABLE_TEXTURES
+        #ifdef ENABLE_TEXTURES
         Scalar4 postypei =  fetchScalar4Tex(pdata_pos_tex, idx);
-		#else
-		Scalar4 postypei = d_pos[idx];
-		#endif
+        #else
+        Scalar4 postypei = d_pos[idx];
+        #endif
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-		#ifdef ENABLE_TEXTURES
+        #ifdef ENABLE_TEXTURES
         Scalar qi = fetchScalarTex(pdata_charge_tex, idx);
-		#else
-		Scalar qi = d_charge[idx];
-		#endif
+        #else
+        Scalar qi = d_charge[idx];
+        #endif
         // initialize the force to 0
         Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         Scalar virial[6];
@@ -1103,18 +1104,18 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
-					#ifdef ENABLE_TEXTURES
+                    #ifdef ENABLE_TEXTURES
                     Scalar4 postypej = fetchScalar4Tex(pdata_pos_tex, cur_j);
-					#else
-					Scalar4 postypej = d_pos[cur_j];
-					#endif
+                    #else
+                    Scalar4 postypej = d_pos[cur_j];
+                    #endif
                     Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
-					#ifdef ENABLE_TEXTURES
-					Scalar qj = fetchScalarTex(pdata_charge_tex, cur_j);
-					#else
-					Scalar qj = d_charge[cur_j];
-					#endif
+                    #ifdef ENABLE_TEXTURES
+                    Scalar qj = fetchScalarTex(pdata_charge_tex, cur_j);
+                    #else
+                    Scalar qj = d_charge[cur_j];
+                    #endif
 
                     // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                     Scalar3 dx = posi - posj;
@@ -1183,7 +1184,7 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
     dim3 threads(block_size, 1, 1);
 
     #ifdef ENABLE_TEXTURES
-	// bind the textures
+    // bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
@@ -1191,7 +1192,7 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
     error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
     if (error != cudaSuccess)
         return error;
-	#endif
+    #endif
 
 
 

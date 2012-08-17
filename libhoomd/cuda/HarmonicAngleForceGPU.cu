@@ -97,7 +97,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
                                                                     const unsigned int virial_pitch,
                                                                     const unsigned int N,
                                                                     const Scalar4 *d_pos,
-																	const Scalar2 *d_params,
+                                                                    const Scalar2 *d_params,
                                                                     BoxDim box,
                                                                     const uint4 *alist,
                                                                     const unsigned int pitch,
@@ -175,10 +175,10 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         #ifdef ENABLE_TEXTURES
-		Scalar2 params = fetchScalar2Tex(angle_params_tex, cur_angle_type);
-		#else
-		Scalar2 params = d_params[cur_angle_type];
-		#endif
+        Scalar2 params = fetchScalar2Tex(angle_params_tex, cur_angle_type);
+        #else
+        Scalar2 params = d_params[cur_angle_type];
+        #endif
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -302,11 +302,11 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
     
     // bind the texture
-	#ifdef ENABLE_TEXTURES
+    #ifdef ENABLE_TEXTURES
     cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
-	#endif
+    #endif
         
     // run the kernel
     gpu_compute_harmonic_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, atable, pitch, n_angles_list);

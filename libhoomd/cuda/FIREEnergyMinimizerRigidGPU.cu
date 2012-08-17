@@ -162,8 +162,8 @@ cudaError_t gpu_fire_rigid_zero_v(gpu_rigid_data_arrays rdata)
     \param n_bodies Number of rigid bodies
 */
 extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt, 
-															Scalar4* rdata_force,
-															Scalar4* rdata_vel,
+                                                            Scalar4* rdata_force,
+                                                            Scalar4* rdata_vel,
                                                             unsigned int n_group_bodies, 
                                                             unsigned int n_bodies)
     {
@@ -190,13 +190,13 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
             
             if (idx_body < n_bodies)
                 {
-				#ifdef ENABLE_TEXTURES
-				force = fetchScalar4Tex(rigid_data_force_tex, idx_body);
-				vel = fetchScalar4Tex(rigid_data_vel_tex, idx_body);
-				#else
-				force = rdata_force[idx_body];
-				vel = rdata_vel[idx_body];
-				#endif
+                #ifdef ENABLE_TEXTURES
+                force = fetchScalar4Tex(rigid_data_force_tex, idx_body);
+                vel = fetchScalar4Tex(rigid_data_vel_tex, idx_body);
+                #else
+                force = rdata_force[idx_body];
+                vel = rdata_vel[idx_body];
+                #endif
                 Ptrans = force.x * vel.x + force.y * vel.y + force.z * vel.z;
                 v2 = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
                 f2 = force.x * force.x + force.y * force.y + force.z * force.z;
@@ -252,8 +252,8 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
     \param n_bodies Number of rigid bodies
 */
 extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr, 
-															Scalar4* rdata_torque,
-															Scalar4* rdata_angvel,
+                                                            Scalar4* rdata_torque,
+                                                            Scalar4* rdata_angvel,
                                                             unsigned int n_group_bodies, 
                                                             unsigned int n_bodies)
     {
@@ -280,13 +280,13 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
             
             if (idx_body < n_bodies)
                 {
-				#ifdef ENABLE_TEXTURES
-				torque = fetchScalar4Tex(rigid_data_torque_tex, idx_body);
-				angvel = fetchScalar4Tex(rigid_data_angvel_tex, idx_body);
-				#else
-				torque = rdata_torque[idx_body];
-				angvel = rdata_angvel[idx_body];
-				#endif
+                #ifdef ENABLE_TEXTURES
+                torque = fetchScalar4Tex(rigid_data_torque_tex, idx_body);
+                angvel = fetchScalar4Tex(rigid_data_angvel_tex, idx_body);
+                #else
+                torque = rdata_torque[idx_body];
+                angvel = rdata_angvel[idx_body];
+                #endif
                 Prot = torque.x * angvel.x + torque.y * angvel.y + torque.z * angvel.z;
                 w2 = angvel.x * angvel.x + angvel.y * angvel.y + angvel.z * angvel.z;
                 t2 = torque.x * torque.x + torque.y * torque.y + torque.z * torque.z;
@@ -354,7 +354,7 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
         return error;
         
     #ifdef SINGLE_PRECISION
-	error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(Scalar4) * n_bodies);
+    error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
 
@@ -369,7 +369,7 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
     error = cudaBindTexture(0, rigid_data_torque_tex, rdata.torque, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
-	#endif
+    #endif
 
     // setup the grid to run the kernel
     unsigned int block_size = 128;
@@ -400,8 +400,8 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
 */
 extern "C" __global__ void gpu_fire_rigid_update_v_kernel(Scalar4* rdata_vel, 
                                                         Scalar4* rdata_angmom,
-														Scalar4* rdata_force,
-														Scalar4* rdata_torque,
+                                                        Scalar4* rdata_force,
+                                                        Scalar4* rdata_torque,
                                                         Scalar alpha, 
                                                         Scalar factor_t,
                                                         Scalar factor_r,
@@ -417,17 +417,17 @@ extern "C" __global__ void gpu_fire_rigid_update_v_kernel(Scalar4* rdata_vel,
         if (idx_body < n_bodies)
             {        
             // read the body data (MEM TRANSFER: 32 bytes)
-			#ifdef ENABLE_TEXTURES
-			Scalar4 vel = fetchScalar4Tex(rigid_data_vel_tex, idx_body);
-			Scalar4 angmom = fetchScalar4Tex(rigid_data_angmom_tex, idx_body);
-			Scalar4 force = fetchScalar4Tex(rigid_data_force_tex, idx_body);
-			Scalar4 torque = fetchScalar4Tex(rigid_data_torque_tex, idx_body);
-			#else
-			Scalar4 vel = rdata_vel[idx_body];
-			Scalar4 angmom = rdata_angmom[idx_body];
-			Scalar4 force = rdata_force[idx_body];
-			Scalar4 torque = rdata_torque[idx_body];
-			#endif
+            #ifdef ENABLE_TEXTURES
+            Scalar4 vel = fetchScalar4Tex(rigid_data_vel_tex, idx_body);
+            Scalar4 angmom = fetchScalar4Tex(rigid_data_angmom_tex, idx_body);
+            Scalar4 force = fetchScalar4Tex(rigid_data_force_tex, idx_body);
+            Scalar4 torque = fetchScalar4Tex(rigid_data_torque_tex, idx_body);
+            #else
+            Scalar4 vel = rdata_vel[idx_body];
+            Scalar4 angmom = rdata_angmom[idx_body];
+            Scalar4 force = rdata_force[idx_body];
+            Scalar4 torque = rdata_torque[idx_body];
+            #endif
             
             Scalar4 vel2;
             vel2.x = vel.x * (Scalar(1.0) - alpha) + force.x * factor_t;
@@ -468,7 +468,7 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
     dim3 threads(block_size, 1, 1);
     
     #ifdef ENABLE_TEXTURES
-	cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(Scalar) * n_group_bodies);
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(Scalar) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
         
@@ -487,13 +487,13 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
     error = cudaBindTexture(0, rigid_data_torque_tex, rdata.torque, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
-	#endif
+    #endif
         
     // run the kernel
     gpu_fire_rigid_update_v_kernel<<< grid, threads >>>(rdata.vel,
                                                     rdata.angmom,
-													rdata.force,
-													rdata.torque,
+                                                    rdata.force,
+                                                    rdata.torque,
                                                     alpha, 
                                                     factor_t,
                                                     factor_r,

@@ -192,7 +192,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-		Scalar2 params = fetchScalar2Tex(angle_params_tex, cur_angle_type);
+        Scalar2 params = fetchScalar2Tex(angle_params_tex, cur_angle_type);
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -222,14 +222,14 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
             vac[i] = Scalar(0.0);
 
         // get the angle E-S-R parameters (MEM TRANSFER: 12 bytes)
-		const Scalar2 cgSR = fetchScalar2Tex(angle_CGCMMsr_tex, cur_angle_type);
+        const Scalar2 cgSR = fetchScalar2Tex(angle_CGCMMsr_tex, cur_angle_type);
 
         Scalar cgsigma = cgSR.x;
         Scalar cgrcut = cgSR.y;
 
         if (rac < cgrcut)
             {
-			const Scalar4 cgEPOW = fetchScalar4Tex(angle_CGCMMepow_tex, cur_angle_type);
+            const Scalar4 cgEPOW = fetchScalar4Tex(angle_CGCMMepow_tex, cur_angle_type);
 
             // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
             Scalar cgeps = cgEPOW.x;
@@ -363,7 +363,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the textures
-	cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
+    cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
     if (error != cudaSuccess)
         return error;
 

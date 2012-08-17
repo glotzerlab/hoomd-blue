@@ -295,7 +295,7 @@ Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, u
 */
 template< class evaluator >
 void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
-{
+    {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
@@ -305,11 +305,11 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     // The three-body potentials can't handle a half neighbor list, so check now.
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
-    {
+        {
         std::cerr << std::endl << "***Error! PotentialTersoff cannot handle a half neighborlist"
                   << std::endl << std::endl;
         throw std::runtime_error("Error computing forces in PotentialTersoff");
-    }
+        }
 
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
@@ -344,39 +344,39 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     // for each particle
 #pragma omp for schedule(guided)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
-    {
+        {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
-		Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-		unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+        Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
         // initialize current force and potential energy of particle i to 0
-		Scalar3 fi = make_scalar3(0.0, 0.0, 0.0);
+        Scalar3 fi = make_scalar3(0.0, 0.0, 0.0);
         Scalar pei = 0.0;
 
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int j = 0; j < size; j++)
-        {
+            {
             // access the index of neighbor j (MEM TRANSFER: 1 scalar)
             unsigned int jj = h_nlist.data[nli(i, j)];
             assert(jj < m_pdata->getN());
 
             // access the position and type of particle j
-			Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
-			unsigned int typej = __scalar_as_int(h_pos.data[jj].w);
+            Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
+            unsigned int typej = __scalar_as_int(h_pos.data[jj].w);
             assert(typej < m_pdata->getNTypes());
 
             // initialize the current force and potential energy of particle j to 0
             Scalar3 fj = make_scalar3(0.0, 0.0, 0.0);
-			Scalar pej = 0.0;
+            Scalar pej = 0.0;
 
             // calculate dr_ij (MEM TRANSFER: 3 scalars / FLOPS: 3)
-			Scalar3 dxij = posi - posj;
-			
+            Scalar3 dxij = posi - posj;
+            
             // apply periodic boundary conditions
-			dxij = box.minImage(dxij);
+            dxij = box.minImage(dxij);
 
             // compute rij_sq (FLOPS: 5)
             Scalar rij_sq = dot(dxij, dxij);
@@ -393,34 +393,34 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
             bool evaluated = eval.evalRepulsiveAndAttractive(fR, fA);
 
             if (evaluated)
-            {
+                {
                 // evaluate chi
                 Scalar chi = 0.0;
                 for (unsigned int k = 0; k < size; k++)
-                {
+                    {
                     // access the index of neighbor k
                     unsigned int kk = h_nlist.data[nli(i,k)];
                     assert(kk < m_pdata->getN());
 
-					// access the position and type of neighbor k
-					Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
+                    // access the position and type of neighbor k
+                    Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
                     unsigned int typek = __scalar_as_int(h_pos.data[kk].w);
-					assert(typek < m_pdata->getNTypes());
+                    assert(typek < m_pdata->getNTypes());
 
-					// access the type pair parameters for i and k
-					typpair_idx = m_typpair_idx(typei, typek);
-					param_type temp_param = h_params.data[typpair_idx];
+                    // access the type pair parameters for i and k
+                    typpair_idx = m_typpair_idx(typei, typek);
+                    param_type temp_param = h_params.data[typpair_idx];
 
-					evaluator temp_eval(rij_sq, rcutsq, temp_param);
-					bool temp_evaluated = temp_eval.areInteractive();
+                    evaluator temp_eval(rij_sq, rcutsq, temp_param);
+                    bool temp_evaluated = temp_eval.areInteractive();
 
                     if (kk != jj && temp_evaluated)
-                    {
+                        {
                         // compute drik
-						Scalar3 dxik = posi - posk;
+                        Scalar3 dxik = posi - posk;
 
                         // apply periodic boundary conditions
-						dxik = box.minImage(dxik);
+                        dxik = box.minImage(dxik);
 
                         // compute rik_sq
                         Scalar rik_sq = dot(dxik, dxik);
@@ -436,8 +436,8 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                             eval.setAngle(cos_th);
 
                         eval.evalChi(chi);
+                        }
                     }
-                }
 
                 // evaluate the force and energy from the ij interaction
                 Scalar force_divr = Scalar(0.0);
@@ -446,42 +446,42 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 eval.evalForceij(fR, fA, chi, bij, force_divr, potential_eng);
 
                 // add this force to particle i
-				fi += force_divr * dxij;
+                fi += force_divr * dxij;
                 pei += potential_eng * Scalar(0.5);
 
                 // add this force to particle j
                 fj += Scalar(-1.0) * force_divr * dxij;
-				pej += potential_eng * Scalar(0.5);
+                pej += potential_eng * Scalar(0.5);
 
                 // evaluate the force from the ik interactions
                 for (unsigned int k = 0; k < size; k++)
-                {
+                    {
                     // access the index of neighbor k
                     unsigned int kk = h_nlist.data[nli(i, k)];
                     assert(kk < m_pdata->getN());
 
-					// access the position and type of neighbor k
-					Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
+                    // access the position and type of neighbor k
+                    Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
                     unsigned int typek = __scalar_as_int(h_pos.data[kk].w);
-					assert(typek < m_pdata->getNTypes());
+                    assert(typek < m_pdata->getNTypes());
 
-					// access the type pair parameters for i and k
-					typpair_idx = m_typpair_idx(typei, typek);
-					param_type temp_param = h_params.data[typpair_idx];
+                    // access the type pair parameters for i and k
+                    typpair_idx = m_typpair_idx(typei, typek);
+                    param_type temp_param = h_params.data[typpair_idx];
 
-					evaluator temp_eval(rij_sq, rcutsq, temp_param);
-					bool temp_evaluated = temp_eval.areInteractive();
+                    evaluator temp_eval(rij_sq, rcutsq, temp_param);
+                    bool temp_evaluated = temp_eval.areInteractive();
 
                     if (kk != jj && temp_evaluated)
-                    {
+                        {
                         // create variable for the force on k
-						Scalar3 fk = make_scalar3(0.0, 0.0, 0.0);
+                        Scalar3 fk = make_scalar3(0.0, 0.0, 0.0);
 
                         // compute dr_ik
-						Scalar3 dxik = posi - posk;
+                        Scalar3 dxik = posi - posk;
 
                         // apply periodic boundary conditions
-						dxik = box.minImage(dxik);
+                        dxik = box.minImage(dxik);
 
                         // compute rik_sq
                         Scalar rik_sq = dot(dxik, dxik);
@@ -522,29 +522,29 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                         m_fdata_partial[mem_idx].x += fk.x;
                         m_fdata_partial[mem_idx].y += fk.y;
                         m_fdata_partial[mem_idx].z += fk.z;
+                        }
                     }
                 }
-            }
             // increment the force and potential energy for particle j
             unsigned int mem_idx = m_index_thread_partial(jj, tid);
             m_fdata_partial[mem_idx].x += fj.x;
             m_fdata_partial[mem_idx].y += fj.y;
             m_fdata_partial[mem_idx].z += fj.z;
             m_fdata_partial[mem_idx].w += pej;
-        }
+            }
         // finally, increment the force and potential energy for particle i
         unsigned int mem_idx = m_index_thread_partial(i,tid);
         m_fdata_partial[mem_idx].x += fi.x;
         m_fdata_partial[mem_idx].y += fi.y;
         m_fdata_partial[mem_idx].z += fi.z;
         m_fdata_partial[mem_idx].w += pei;
-    }
+        }
 #pragma omp barrier
 
     // now that the partial sums are complete, sum up the results in parallel
 #pragma omp for
     for (int i = 0; i < (int)m_pdata->getN(); i++)
-    {
+        {
         // assign result from thread 0
         h_force.data[i].x  = m_fdata_partial[i].x;
         h_force.data[i].y = m_fdata_partial[i].y;
@@ -555,19 +555,19 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         // add results from other threads
         int nthreads = omp_get_num_threads();
         for (int thread = 1; thread < nthreads; thread++)
-        {
+            {
             unsigned int mem_idx = m_index_thread_partial(i,thread);
             h_force.data[i].x += m_fdata_partial[mem_idx].x;
             h_force.data[i].y += m_fdata_partial[mem_idx].y;
             h_force.data[i].z += m_fdata_partial[mem_idx].z;
             h_force.data[i].w += m_fdata_partial[mem_idx].w;
-        }
+            }
         #endif
-    }
-} // end omp parallel
+        }
+    } // end omp parallel
 
     if (m_prof) m_prof->pop();
-}
+    }
 
 //! Export this triplet potential to python
 /*! \param name Name of the class in the exported python module

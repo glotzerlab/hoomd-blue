@@ -74,7 +74,7 @@ HOSTDEVICE inline tersoff_params make_tersoff_params(Scalar cutoff_thickness,
                                                      Scalar lambda_cube,
                                                      Scalar3 ang_consts,
                                                      Scalar alpha)
-{
+    {
     tersoff_params retval;
     retval.cutoff_thickness = cutoff_thickness;
     retval.coeffs = coeffs;
@@ -86,11 +86,11 @@ HOSTDEVICE inline tersoff_params make_tersoff_params(Scalar cutoff_thickness,
     retval.ang_consts = ang_consts;
     retval.alpha = alpha;
     return retval;
-}
+    }
 
 //! Class for evaluating the Tersoff three-body potential
 class EvaluatorTersoff
-{
+    {
     public:
         //! Define the parameter type used by this evaluator
         typedef tersoff_params param_type;
@@ -106,43 +106,43 @@ class EvaluatorTersoff
               dimer_separation(_params.dimer_r), tersoff_n(_params.tersoff_n), gamman(_params.gamman), lambda_h3(_params.lambda_cube),
               tersoff_c2(_params.ang_consts.x), tersoff_d2(_params.ang_consts.y), tersoff_m(_params.ang_consts.z),
               cutoff_alpha(_params.alpha)
-        {
-        }
+            {
+            }
 
         //! Set the square distance between particles i and j
         DEVICE void setRij(Scalar rsq)
-        {
+            {
             rij_sq = rsq;
-        }
+            }
 
         //! Set the square distance between particles i and k
         DEVICE void setRik(Scalar rsq)
-        {
+            {
             rik_sq = rsq;
-        }
+            }
 
         //! The Tersoff potential needs the bond angle
         DEVICE static bool needsAngle() { return true; }
         //! Set the bond angle value
         //! \param _cos_th Cosine of the angle between ij and ik
         DEVICE void setAngle(Scalar _cos_th)
-        {
+            {
             cos_th = _cos_th;
-        }
+            }
 
         //! Check whether a pair of particles is interactive
         DEVICE bool areInteractive()
-        {
+            {
             if (tersoff_A > Scalar(0.0) || tersoff_B > Scalar(0.0))
                 return true;
             else return false;
-        }
+            }
 
         //! Evaluate the repulsive and attractive terms of the force
         DEVICE bool evalRepulsiveAndAttractive(Scalar& fR, Scalar& fA)
-        {
-            if (rij_sq < rcutsq && (tersoff_A > Scalar(0.0) || tersoff_B > Scalar(0.0)))
             {
+            if (rij_sq < rcutsq && (tersoff_A > Scalar(0.0) || tersoff_B > Scalar(0.0)))
+                {
                 // compute rij
                 Scalar rij = SQRT(rij_sq);
 
@@ -153,15 +153,15 @@ class EvaluatorTersoff
                 fA = tersoff_B * EXP( lambda_A * (dimer_separation - rij) );
 
                 return true;
-            }
+                }
             else return false;
-        }
+            }
 
         //! Evaluate chi for this triplet
         DEVICE void evalChi(Scalar& chi)
-        {
-            if (rik_sq < rcutsq && gamman != 0)
             {
+            if (rik_sq < rcutsq && gamman != 0)
+                {
                 // compute rij, rik, rcut, and r_shell_inner
                 Scalar rij = SQRT(rij_sq);
                 Scalar rik = SQRT(rik_sq);
@@ -171,7 +171,7 @@ class EvaluatorTersoff
                 // compute the rik cutoff function
                 Scalar fcut_ik = Scalar(1.0);
                 if (rik > r_shell_inner)
-                {
+                    {
                     Scalar cutoff_x = (rik - r_shell_inner) / cutoff_shell_thickness;
                     Scalar cutoff_x2 = cutoff_x * cutoff_x;
                     Scalar cutoff_x3 = cutoff_x2 * cutoff_x;
@@ -179,12 +179,12 @@ class EvaluatorTersoff
 
                     fcut_ik = EXP( cutoff_alpha * cutoff_x3 * inv_denom);
 
-//					Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//					Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
-//						/ cutoff_shell_thickness;
+//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+//                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
+//                        / cutoff_shell_thickness;
 //
-//					fcut_ik = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
-                }
+//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
+                    }
 
                 // compute the h function
                 Scalar delta_r = rij - rik;
@@ -197,8 +197,8 @@ class EvaluatorTersoff
                 Scalar g = Scalar(1.0) + tersoff_c2 / tersoff_d2 - tersoff_c2 / gdenom;
 
                 chi += fcut_ik * g * h;
+                }
             }
-        }
 
         //! Evaluate the force and potential energy due to ij interactions
         DEVICE void evalForceij(Scalar fR,
@@ -207,7 +207,7 @@ class EvaluatorTersoff
                                 Scalar& bij,
                                 Scalar& force_divr,
                                 Scalar& potential_eng)
-        {
+            {
             // compute rij, rcut, and r_shell_inner
             Scalar rij = SQRT(rij_sq);
             Scalar rcut = SQRT(rcutsq);
@@ -217,7 +217,7 @@ class EvaluatorTersoff
             Scalar fcut_ij = Scalar(1.0);
             Scalar dfcut_ij = Scalar(0.0);
             if (rij > r_shell_inner)
-            {
+                {
                 Scalar cutoff_x = (rij - r_shell_inner) / cutoff_shell_thickness;
                 Scalar cutoff_x2 = cutoff_x * cutoff_x;
                 Scalar cutoff_x3 = cutoff_x2 * cutoff_x;
@@ -227,13 +227,13 @@ class EvaluatorTersoff
                 dfcut_ij = Scalar(-3.0) * cutoff_alpha * cutoff_x2 * inv_denom * inv_denom
                     / cutoff_shell_thickness * fcut_ij;
 
-//				Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
-//					/ cutoff_shell_thickness;
+//                Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
+//                    / cutoff_shell_thickness;
 //
-//				fcut_ij = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
-//				dfcut_ij = Scalar(-M_PI / 2.0) / cutoff_shell_thickness
-//					* COS(cutoff_x);
-            }
+//                fcut_ij = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
+//                dfcut_ij = Scalar(-M_PI / 2.0) / cutoff_shell_thickness
+//                    * COS(cutoff_x);
+                }
 
             // compute the derivative of the base repulsive and attractive terms
             Scalar dfR = Scalar(-1.0) * lambda_R * fR;
@@ -252,7 +252,7 @@ class EvaluatorTersoff
 
             // compute the potential energy
             potential_eng = Scalar(0.5) * fcut_ij * (fR - bij * fA);
-        }
+            }
 
         //! Evaluate the forces due to ijk interactions
         DEVICE bool evalForceik(Scalar fR,
@@ -261,9 +261,9 @@ class EvaluatorTersoff
                                 Scalar bij,
                                 Scalar4& force_divr_ij,
                                 Scalar4& force_divr_ik)
-        {
-            if (rik_sq < rcutsq && chi != Scalar(0.0))
             {
+            if (rik_sq < rcutsq && chi != Scalar(0.0))
+                {
                 // compute rij, rik, rcut, and r_shell_inner
                 Scalar rij = SQRT(rij_sq);
                 Scalar rik = SQRT(rik_sq);
@@ -275,7 +275,7 @@ class EvaluatorTersoff
                 // compute the ij cutoff function
                 Scalar fcut_ij = Scalar(1.0);
                 if (rij > r_shell_inner)
-                {
+                    {
                     Scalar cutoff_x = (rij - r_shell_inner) / cutoff_shell_thickness;
                     Scalar cutoff_x2 = cutoff_x * cutoff_x;
                     Scalar cutoff_x3 = cutoff_x2 * cutoff_x;
@@ -283,18 +283,18 @@ class EvaluatorTersoff
 
                     fcut_ij = EXP( cutoff_alpha * cutoff_x3 * inv_denom );
 
-//					Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//					Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
-//						/ cutoff_shell_thickness;
+//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+//                    Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
+//                        / cutoff_shell_thickness;
 //
-//					fcut_ij = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
-                }
+//                    fcut_ij = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
+                    }
 
                 // compute the ik cutoff function and its derivative
                 Scalar fcut_ik = Scalar(1.0);
                 Scalar dfcut_ik = Scalar(0.0);
                 if (rik > r_shell_inner)
-                {
+                    {
                     Scalar cutoff_x = (rik - r_shell_inner) / cutoff_shell_thickness;
                     Scalar cutoff_x2 = cutoff_x * cutoff_x;
                     Scalar cutoff_x3 = cutoff_x2 * cutoff_x;
@@ -304,14 +304,14 @@ class EvaluatorTersoff
                     dfcut_ik = Scalar(-3.0) * cutoff_alpha * cutoff_x2 * inv_denom * inv_denom
                         / cutoff_shell_thickness * fcut_ik;
 
-//					Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//					Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
-//						/ cutoff_shell_thickness;
+//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+//                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
+//                        / cutoff_shell_thickness;
 //
-//					fcut_ik = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
-//					dfcut_ik = Scalar(-M_PI) / (Scalar(2.0) * cutoff_shell_thickness)
-//						* COS(cutoff_x);
-                }
+//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
+//                    dfcut_ik = Scalar(-M_PI) / (Scalar(2.0) * cutoff_shell_thickness)
+//                        * COS(cutoff_x);
+                    }
 
                 // h function and its derivatives
                 Scalar delta_r = rij - rik;
@@ -347,7 +347,7 @@ class EvaluatorTersoff
                 Scalar chin = POW( chi, tersoff_n );
                 Scalar sum_gamma_chi = Scalar(1.0) + gamman * chin;
                 Scalar dbij = Scalar(-0.5) * POW( chi, tersoff_n - Scalar(1.0) )
-					* gamman * POW( sum_gamma_chi, Scalar(-0.5) / tersoff_n - Scalar(1.0) );
+                    * gamman * POW( sum_gamma_chi, Scalar(-0.5) / tersoff_n - Scalar(1.0) );
 
                 // compute the forces and energy
                 Scalar F = Scalar(0.5) * fcut_ij * dbij * fA;
@@ -361,9 +361,9 @@ class EvaluatorTersoff
                 force_divr_ik.z = F * dchi_ik_k / rik;
 
                 return true;
-            }
+                }
             else return false;
-        }
+            }
 
         #ifndef NVCC
         //! Get the name of this potential
@@ -371,9 +371,9 @@ class EvaluatorTersoff
             energies will be logged as via analyze.log.
         */
         static std::string getName()
-        {
+            {
             return std::string("tersoff");
-        }
+            }
         #endif
 
     protected:
@@ -394,6 +394,6 @@ class EvaluatorTersoff
         Scalar tersoff_d2; //!< \a d^2 in the \a g(theta) portion of the Tersoff potential
         Scalar tersoff_m; //!< Cosine of the minimum-energy bonding angle
         Scalar cutoff_alpha; //!< \a alpha in the cutoff smoothing function
-};
+    };
 
 #endif

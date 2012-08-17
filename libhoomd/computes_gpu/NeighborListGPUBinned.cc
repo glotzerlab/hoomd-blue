@@ -215,7 +215,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_body,
                                  m_filter_diameter);
         }
-	#ifdef SINGLE_PRECISION
+    #ifdef SINGLE_PRECISION
     else
         {
         unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
@@ -258,7 +258,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     m_filter_body,
                                     m_filter_diameter);
         }
-	#endif
+    #endif
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

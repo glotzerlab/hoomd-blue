@@ -97,7 +97,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
-												 const Scalar4 *d_params,
+                                                 const Scalar4 *d_params,
                                                  BoxDim box,
                                                  const uint4 *tlist,
                                                  const uint1 *dihedral_ABCD,
@@ -191,10 +191,10 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
 
         // get the dihedral parameters (MEM TRANSFER: 12 bytes)
         #ifdef ENABLE_TEXTURES
-		Scalar4 params = fetchScalar4Tex(dihedral_params_tex, cur_dihedral_type);
-		#else
-		Scalar4 params = d_params[cur_dihedral_type];
-		#endif
+        Scalar4 params = fetchScalar4Tex(dihedral_params_tex, cur_dihedral_type);
+        #else
+        Scalar4 params = d_params[cur_dihedral_type];
+        #endif
         Scalar K = params.x;
         Scalar sign = params.y;
         Scalar multi = params.z;
@@ -387,11 +387,11 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
-	#ifdef ENABLE_TEXTURES
+    #ifdef ENABLE_TEXTURES
     cudaError_t error = cudaBindTexture(0, dihedral_params_tex, d_params, sizeof(Scalar4) * n_dihedral_types);
     if (error != cudaSuccess)
         return error;
-	#endif
+    #endif
 
     // run the kernel
     gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);

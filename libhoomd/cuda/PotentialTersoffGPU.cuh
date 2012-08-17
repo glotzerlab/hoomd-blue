@@ -61,21 +61,21 @@ struct tersoff_args_t
     {
     //! Construct a tersoff_args_t
     tersoff_args_t(Scalar4 *_d_force,
-				const unsigned int _N,
-				const Scalar4 *_d_pos,
-				const BoxDim& _box,
-				const unsigned int *_d_n_neigh,
-				const unsigned int *_d_nlist,
-				const Index2D& _nli,
-				const Scalar *_d_rcutsq,
-				const Scalar *_d_ronsq,
-				const unsigned int _ntypes,
-				const unsigned int _block_size,
-				const unsigned int _shift_mode)
+                const unsigned int _N,
+                const Scalar4 *_d_pos,
+                const BoxDim& _box,
+                const unsigned int *_d_n_neigh,
+                const unsigned int *_d_nlist,
+                const Index2D& _nli,
+                const Scalar *_d_rcutsq,
+                const Scalar *_d_ronsq,
+                const unsigned int _ntypes,
+                const unsigned int _block_size,
+                const unsigned int _shift_mode)
                 : d_force(_d_force),
-				  N(_N),
-				  d_pos(_d_pos),
-				  box(_box),
+                  N(_N),
+                  d_pos(_d_pos),
+                  box(_box),
                   d_n_neigh(_d_n_neigh),
                   d_nlist(_d_nlist),
                   nli(_nli),
@@ -87,10 +87,10 @@ struct tersoff_args_t
         {
         };
 
-	Scalar4 *d_force;                //!< Force to write out
-	const unsigned int N;			//!< Number of particles
-	const Scalar4 *d_pos;			//!< particle positions
-	const BoxDim& box;				//!< Simulation box in GPU format
+    Scalar4 *d_force;                //!< Force to write out
+    const unsigned int N;            //!< Number of particles
+    const Scalar4 *d_pos;            //!< particle positions
+    const BoxDim& box;                //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const Index2D& nli;             //!< Indexer for accessing d_nlist
@@ -116,24 +116,24 @@ texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
 #ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
-	
-	\param address Address to write the double to
-	\param val Value to add to address
+    
+    \param address Address to write the double to
+    \param val Value to add to address
 */
 static __device__ inline double atomicAdd(double* address, double val)
-{
-	unsigned long long int* address_as_ull = (unsigned long long int*)address;
-	unsigned long long int old = *address_as_ull, assumed;
+    {
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
 
-	do {
-		assumed = old;
-		old = atomicCAS(address_as_ull,
-						assumed,
-						__double_as_longlong(val + __longlong_as_double(assumed)));
-	} while (assumed != old);
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull,
+                        assumed,
+                        __double_as_longlong(val + __longlong_as_double(assumed)));
+    } while (assumed != old);
 
-	return __longlong_as_double(old);
-}
+    return __longlong_as_double(old);
+    }
 #endif
 
 //! Kernel for calculating the Tersoff forces
@@ -141,8 +141,8 @@ static __device__ inline double atomicAdd(double* address, double val)
     forces for each pair is handled via the template class \a evaluator.
 
     \param d_force Device memory to write computed forces
-	\param N Number of particles in the system
-	\param d_pos Positions of all the particles
+    \param N Number of particles in the system
+    \param d_pos Positions of all the particles
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -168,9 +168,9 @@ static __device__ inline double atomicAdd(double* address, double val)
 */
 template< class evaluator, unsigned int shift_mode >
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
-												  const unsigned int N,
-												  const Scalar4 *d_pos,
-												  const BoxDim box,
+                                                  const unsigned int N,
+                                                  const Scalar4 *d_pos,
+                                                  const BoxDim box,
                                                   const unsigned int *d_n_neigh,
                                                   const unsigned int *d_nlist,
                                                   const Index2D nli,
@@ -208,14 +208,14 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
 
-	// read in the position of the particle
-	// in single precision we will do a texture read, in double a global memory read
-	#ifdef ENABLE_TEXTURES
-	Scalar4 postypei = fetchScalar4Tex(pdata_pos_tex, idx);
-	#else
-	Scalar4 postypei = d_pos[idx];
-	#endif
-	Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+    // read in the position of the particle
+    // in single precision we will do a texture read, in double a global memory read
+    #ifdef ENABLE_TEXTURES
+    Scalar4 postypei = fetchScalar4Tex(pdata_pos_tex, idx);
+    #else
+    Scalar4 postypei = d_pos[idx];
+    #endif
+    Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     // initialize the force to 0
     Scalar4 forcei = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -244,24 +244,24 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx + 1)];
 
             // read the position of j (MEM TRANSFER: 16 bytes)
-			#ifdef ENABLE_TEXTURES
-			Scalar4 postypej = fetchScalar4Tex(pdata_pos_tex, cur_j);
-			#else
-			Scalar4 postypej = d_pos[cur_j];
-			#endif
-			Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+            #ifdef ENABLE_TEXTURES
+            Scalar4 postypej = fetchScalar4Tex(pdata_pos_tex, cur_j);
+            #else
+            Scalar4 postypej = d_pos[cur_j];
+            #endif
+            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // initialize the force on j
             Scalar4 forcej = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
             // compute r_ij (FLOPS: 3)
-			Scalar3 dxij = posi - posj;
+            Scalar3 dxij = posi - posj;
 
             // apply periodic boundary conditions (FLOPS: 12)
-			dxij = box.minImage(dxij);
+            dxij = box.minImage(dxij);
 
             // compute rij_sq (FLOPS: 5)
-			Scalar rij_sq = dot(dxij, dxij);
+            Scalar rij_sq = dot(dxij, dxij);
 
             // access the per type-pair parameters
             unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
@@ -275,7 +275,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             bool evaluatedij = eval.evalRepulsiveAndAttractive(fR, fA);
 
             if (evaluatedij)
-            {
+                {
                 // compute chi
                 Scalar chi = Scalar(0.0);
                 unsigned int cur_k = 0;
@@ -285,41 +285,41 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 #else
                 for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                 #endif
-                {
+                    {
                     #if (__CUDA_ARCH__ < 200)
                     if (neigh_idy < n_neigh)
                     #endif
-                    {
+                        {
                         // read the current index of k and prefetch the next one
                         cur_k = next_k;
                         next_k = d_nlist[nli(idx, neigh_idy+1)];
 
-						// get the position of neighbor k
-						#ifdef ENABLE_TEXTURES
-						Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
-						#else
-						Scalar4 postypek = d_pos[cur_k];
-						#endif
-						Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+                        // get the position of neighbor k
+                        #ifdef ENABLE_TEXTURES
+                        Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
+                        #else
+                        Scalar4 postypek = d_pos[cur_k];
+                        #endif
+                        Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
-						// get the type pair parameters for i and k
-						typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
-						Scalar temp_rcutsq = s_rcutsq[typpair];
-						typename evaluator::param_type temp_param = s_params[typpair];
+                        // get the type pair parameters for i and k
+                        typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
+                        Scalar temp_rcutsq = s_rcutsq[typpair];
+                        typename evaluator::param_type temp_param = s_params[typpair];
 
                         evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
                         bool temp_evaluated = temp_eval.areInteractive();
 
                         if (cur_k != cur_j && temp_evaluated)
-                        {
+                            {
                             // compute rik
-							Scalar3 dxik = posi - posk;
+                            Scalar3 dxik = posi - posk;
 
                             // apply the periodic boundary conditions
-							dxik = box.minImage(dxik);
+                            dxik = box.minImage(dxik);
 
                             // compute rik_sq
-							Scalar rik_sq = dot(dxik, dxik);
+                            Scalar rik_sq = dot(dxik, dxik);
 
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
@@ -334,9 +334,9 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
                             // compute the partial chi term
                             eval.evalChi(chi);
+                            }
                         }
                     }
-                }
                 // evaluate the force and energy from the ij interaction
                 Scalar force_divr = Scalar(0.0);
                 Scalar potential_eng = Scalar(0.0);
@@ -371,43 +371,43 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 #else
                 for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                 #endif
-                {
+                    {
                     #if (__CUDA_ARCH__ < 200)
                     if (neigh_idy < n_neigh)
                     #endif
-                    {
+                        {
                         // read the current neighbor index and prefetch the next one
                         cur_k = next_k;
                         next_k = d_nlist[nli(idx, neigh_idy+1)];
 
-						// get the position of neighbor k
-						#ifdef ENABLE_TEXTURES
-						Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
-						#else
-						Scalar4 postypek = d_pos[cur_k];
-						#endif
-						Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+                        // get the position of neighbor k
+                        #ifdef ENABLE_TEXTURES
+                        Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
+                        #else
+                        Scalar4 postypek = d_pos[cur_k];
+                        #endif
+                        Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
-						// get the type pair parameters for i and k
-						typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
-						Scalar temp_rcutsq = s_rcutsq[typpair];
-						typename evaluator::param_type temp_param = s_params[typpair];
+                        // get the type pair parameters for i and k
+                        typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
+                        Scalar temp_rcutsq = s_rcutsq[typpair];
+                        typename evaluator::param_type temp_param = s_params[typpair];
 
                         evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
                         bool temp_evaluated = temp_eval.areInteractive();
 
                         if (cur_k != cur_j && temp_evaluated)
-                        {
+                            {
                             Scalar4 forcek = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
                             // compute rik
-							Scalar3 dxik = posi - posk;
+                            Scalar3 dxik = posi - posk;
 
                             // apply the periodic boundary conditions
-							dxik = box.minImage(dxik);
+                            dxik = box.minImage(dxik);
 
                             // compute rik_sq
-							Scalar rik_sq = dot(dxik, dxik);
+                            Scalar rik_sq = dot(dxik, dxik);
 
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
@@ -426,7 +426,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             bool evaluatedjk = eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
 
                             if (evaluatedjk)
-                            {
+                                {
                                 // add the forces to their respective particles
                                 v_coeffs.y = Scalar(1.0 / 6.0) * rik_sq;
                                 #if (__CUDA_ARCH__ >= 200)
@@ -452,10 +452,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
                                 forcek.x += Scalar(1.0); // shuts up the compiler warning
                                 #endif
+                                }
                             }
                         }
                     }
-                }
                 // on Fermi hardware we can use atomicAdd to gain some speed
                 // otherwise we need to loop over neighbors of j
                 #if (__CUDA_ARCH__ >= 200)
@@ -482,31 +482,31 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 cur_k = 0;
                 next_k = d_nlist[nli(cur_j, 0)];
                 for (int neigh_idy = 0; neigh_idy < nli.getH(); neigh_idy++)
-                {
-                    if (neigh_idy < n_neighj)
                     {
+                    if (neigh_idy < n_neighj)
+                        {
                         // read the index of k and prefetch the next one
                         cur_k = next_k;
                         next_k = d_nlist[nli(cur_j, neigh_idy+1)];
 
                         if (cur_k != idx)
-                        {
+                            {
                             // get the position of neighbor k
-							#ifdef ENABLE_TEXTURES
-							Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
-							#else
-							Scalar4 postypek = d_pos[cur_k];
-							#endif
-							Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+                            #ifdef ENABLE_TEXTURES
+                            Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
+                            #else
+                            Scalar4 postypek = d_pos[cur_k];
+                            #endif
+                            Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                             // compute rjk
-							Scalar3 dxjk = posj - posk;
+                            Scalar3 dxjk = posj - posk;
 
                             // apply the periodic boundary conditions
-							dxjk = box.minImage(dxjk);
+                            dxjk = box.minImage(dxjk);
 
                             // compute rjk_sq
-							Scalar rjk_sq = dot(dxjk, dxjk);
+                            Scalar rjk_sq = dot(dxjk, dxjk);
 
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
@@ -521,9 +521,9 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
                             // evaluate chi
                             eval.evalChi(chi);
+                            }
                         }
                     }
-                }
                 // now compute the ji force
                 eval.evalForceij(fR, fA, chi, bij, force_divr, potential_eng);
 
@@ -537,31 +537,31 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 cur_k = 0;
                 next_k = d_nlist[nli(cur_j, 0)];
                 for (int neigh_idy = 0; neigh_idy < nli.getH(); neigh_idy++)
-                {
-                    if (neigh_idy < n_neighj)
                     {
+                    if (neigh_idy < n_neighj)
+                        {
                         // get the index of k and prefecth the next one
                         cur_k = next_k;
                         next_k = d_nlist[nli(cur_j, neigh_idy+1)];
 
                         if (cur_k != idx)
-                        {
+                            {
                             // get the position of k
-							#ifdef ENABLE_TEXTURES
-							Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
-							#else
-							Scalar4 postypek = d_pos[cur_k];
-							#endif
-							Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+                            #ifdef ENABLE_TEXTURES
+                            Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
+                            #else
+                            Scalar4 postypek = d_pos[cur_k];
+                            #endif
+                            Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                             // compute rjk
-							Scalar3 dxjk = posj - posk;
+                            Scalar3 dxjk = posj - posk;
 
                             // apply periodic boundary conditions
-							dxjk = box.minImage(dxjk);
+                            dxjk = box.minImage(dxjk);
 
                             // compute rjk_sq
-							Scalar rjk_sq = dot(dxjk, dxjk);
+                            Scalar rjk_sq = dot(dxjk, dxjk);
 
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
@@ -583,13 +583,13 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             forcei.x += __fmul_rn(dxjk.x, force_divr_jk.y) + __fmul_rn(dxij.x, force_divr_ij.y);
                             forcei.y += __fmul_rn(dxjk.y, force_divr_jk.y) + __fmul_rn(dxij.y, force_divr_ij.y);
                             forcei.z += __fmul_rn(dxjk.z, force_divr_jk.y) + __fmul_rn(dxij.z, force_divr_ij.y);
+                            }
                         }
                     }
-                }
                 #endif
+                }
             }
         }
-    }
     // potential energy per particle must be halved
     forcei.w *= Scalar(0.5);
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
@@ -601,7 +601,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     #else
     d_force[idx] = forcei;
     #endif
-}
+    }
 
 //! Kernel for zeroing forces before computation with atomic additions.
 /*! \param d_force Device memory to write forces to
@@ -610,7 +610,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 */
 __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
                                        const unsigned int N)
-{
+    {
     // identify the particle we are supposed to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -619,7 +619,7 @@ __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
 
     // zero the force
     d_force[idx] = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-}
+    }
 
 //! Kernel driver that computes the three-body forces
 /*! \param pair_args Other arugments to pass onto the kernel
@@ -641,13 +641,13 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     dim3 threads(pair_args.block_size, 1, 1);
 
     // bind the position texture
-	#ifdef ENABLE_TEXTURES
+    #ifdef ENABLE_TEXTURES
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
     if (error != cudaSuccess)
         return error;
-	#endif
+    #endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
@@ -660,8 +660,8 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     // compute the new forces
     gpu_compute_triplet_forces_kernel<evaluator, 0>
       <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-										pair_args.N,
-										pair_args.d_pos,
+                                        pair_args.N,
+                                        pair_args.d_pos,
                                         pair_args.box,
                                         pair_args.d_n_neigh,
                                         pair_args.d_nlist,
