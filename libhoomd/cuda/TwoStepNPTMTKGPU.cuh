@@ -90,7 +90,7 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                              Scalar deltaT);
 
 //! Kernel driver for reduction of temperature (part of second step)
-cudaError_t gpu_npt_mtk_temperature(float *d_temperature,
+cudaError_t gpu_npt_mtk_temperature(double *d_temperature,
                                     Scalar4 *d_vel,
                                     Scalar *d_scratch,
                                     unsigned int num_blocks,
