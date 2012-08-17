@@ -114,6 +114,7 @@ cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
 
 //! Computes the virial correction from the rigid body constraints
 cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
+                                              const unsigned int virial_pitch,
                                               const Scalar4 *d_net_force,
                                               const Scalar4 *d_oldpos,
                                               const Scalar4 *d_oldvel,

@@ -350,6 +350,7 @@ class NeighborList : public Compute
         GPUArray<unsigned int> m_nlist;      //!< Neighbor list data
         GPUArray<unsigned int> m_n_neigh;    //!< Number of neighbors for each particle
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
+        Scalar3 m_last_L;                    //!< Box lengths at last update
         unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
         GPUArray<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
         

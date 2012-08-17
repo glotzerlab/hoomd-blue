@@ -162,7 +162,6 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
     for (unsigned int i = 0; i < m_pos_array.size(); i++)
         {
         snapshot.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
-        snapshot.rtag[i] = i;
         }
 
     if (m_image_array.size() != 0)

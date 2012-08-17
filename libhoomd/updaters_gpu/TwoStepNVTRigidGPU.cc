@@ -103,7 +103,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
         // sanity check
         if (m_n_bodies <= 0)
             return;
-        
+
         GPUArray<Scalar> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
         m_partial_Ksum_t.swap(partial_Ksum_t);
         
@@ -115,7 +115,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
         
         GPUArray<Scalar> Ksum_r(1, m_pdata->getExecConf());
         m_Ksum_r.swap(Ksum_r);
-        
+
         m_first_step = false;
         }
         
@@ -189,12 +189,12 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
     gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = d_rdata.n_bodies;
+    d_nvt_rdata.n_bodies = m_n_bodies;
     d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
     d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
-    
+
     // perform the update on the GPU
     gpu_nvt_rigid_step_one(d_rdata,
                            d_index_array.data,
@@ -220,7 +220,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
-        
+
     // phase 1, reduce to find the final Ksum_t and Ksum_r
     {
     if (m_prof)
@@ -232,7 +232,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
 
     gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
+    d_nvt_rdata.n_bodies = m_n_bodies; 
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     d_nvt_rdata.Ksum_t = Ksum_t_handle.data;
@@ -245,7 +245,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-    
+
     // phase 1.5, move the thermostat variables forward
     {
     ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
@@ -323,7 +323,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
     gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = d_rdata.n_bodies;
+    d_nvt_rdata.n_bodies = m_n_bodies;
     d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
     d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;

@@ -70,7 +70,7 @@ else
     #set the version we just built in rh_old_revsion so it won't be built again
     echo $new_rev > $HOME/rh_old_revsion
     #move files to be uploaded
-    destination="devel/incoming/"`/bin/cat /etc/redhat-release | /usr/bin/awk '{print $1}' | tr '[:upper:]' '[:lower:]'`
+    destination="devel/incoming/"`/bin/cat /etc/redhat-release | /usr/bin/awk '{print $1$3}' FS="[ .]" | tr '[:upper:]' '[:lower:]'`
     rsync -ue /usr/bin/ssh rpmbuild/RPMS/$ARCH/hoomd*.rpm joaander@foxx.engin.umich.edu:$destination/
 fi
 

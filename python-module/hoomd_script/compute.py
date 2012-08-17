@@ -193,6 +193,11 @@ _compute.cur_id = 0;
 #    \f$ W = \frac{1}{2} \sum_{i}\sum_{j \ne i} \vec{F}_{ij} \cdot \vec{r_{ij}} \f$. In 2D simulations,
 #    \f$ P = (K + \frac{1}{2}\cdot W)/A \f$ where \f$ A \f$ is the area
 #    of the simulation box.
+#  - <b>pressure_xx</b><i>_groupname</i>, <b>pressure_xy</b><i>_groupname</i>, <b>pressure_xz</b><i>_groupname</i>,
+#    <b>pressure_yy</b><i>_groupname</i>, <b>pressure_yz</b><i>_groupname</i>, <b>pressure_zz</b><i>_groupname</i> - 
+#    instantaneous pressure tensor of the group (in pressure units).
+#    \f[ P_{ij} = \left[  \sum_{k\in[0..N)} m_k v_{k,i} v_{k,j} + 
+#                           \sum_{k\in[0..N)} \sum_{l > k} \frac{1}{2} \left(\vec{r}_{kl,i} \vec{F}_{kl,j} + \vec{r}_{kl,j} \vec{F}_{kl, i} \right) \right]/V \f]
 #
 # \sa analyze.log
 class thermo(_compute):

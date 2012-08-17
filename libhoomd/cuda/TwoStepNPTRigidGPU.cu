@@ -344,8 +344,8 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(Scalar4* rdata_com
     rdata_body_image[idx_body] = body_image;
     rdata_conjqm[idx_body] = conjqm2;
 
-    npt_rdata_partial_Ksum_t[idx_body] = akin_t;
-    npt_rdata_partial_Ksum_r[idx_body] = akin_r;
+    npt_rdata_partial_Ksum_t[group_idx] = akin_t;
+    npt_rdata_partial_Ksum_r[group_idx] = akin_r;
     }
 
 /*! \param rigid_data Rigid body data to step forward 1/2 step
@@ -534,8 +534,8 @@ extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(Scalar4* rdata_vel
     rdata_angvel[idx_body] = angvel2;
     rdata_conjqm[idx_body] = conjqm2;
     
-    npt_rdata_partial_Ksum_t[idx_body] = akin_t;
-    npt_rdata_partial_Ksum_r[idx_body] = akin_r;
+    npt_rdata_partial_Ksum_t[group_idx] = akin_t;
+    npt_rdata_partial_Ksum_r[group_idx] = akin_r;
     }
 
 /*! \param rigid_data Rigid body data to step forward 1/2 step

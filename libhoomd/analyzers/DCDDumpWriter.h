@@ -131,6 +131,9 @@ class DCDDumpWriter : public Analyzer
         bool m_unwrap_full;                 //!< True if coordinates should be written out fully unwrapped in the box
         bool m_unwrap_rigid;                //!< True if rigid bodies should be written out unwrapped
 
+        bool m_overwrite;                   //!< True if file should be overwritten
+        bool m_is_initialized;              //!< True if file IO has been initialized
+
         float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
         
         // helper functions
@@ -140,9 +143,11 @@ class DCDDumpWriter : public Analyzer
         //! Writes the frame header
         void write_frame_header(std::fstream &file);
         //! Writes the particle positions for a frame
-        void write_frame_data(std::fstream &file);
+        void write_frame_data(std::fstream &file, const SnapshotParticleData& snapshot);
         //! Updates the file header
         void write_updated_header(std::fstream &file, unsigned int timestep);
+        //! Initializes the output file for writing
+        void initFileIO();
         
     };
 

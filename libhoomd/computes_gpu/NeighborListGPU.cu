@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param N Number of particles
     \param box Box dimensions
     \param maxshiftsq The maximum drsq a particle can have before an update is needed
+    \param lambda Diagonal deformation tensor (for orthorhombic boundaries)
     \param checkn
     
     gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
@@ -77,6 +78,7 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const unsigned int N,
                                                         const BoxDim box,
                                                         const Scalar maxshiftsq,
+                                                        const Scalar3 lambda,
                                                         const unsigned int checkn)
     {
     // each thread will compare vs it's old position to see if the list needs updating
@@ -91,7 +93,7 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
         Scalar4 last_postype = d_last_pos[idx];
         Scalar3 last_pos = make_scalar3(last_postype.x, last_postype.y, last_postype.z);
 
-        Scalar3 dx = cur_pos - last_pos;
+        Scalar3 dx = cur_pos - lambda*last_pos;
         dx = box.minImage(dx);
 
         if (dot(dx, dx) >= maxshiftsq)
@@ -107,6 +109,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const unsigned int N,
                                              const BoxDim& box,
                                              const Scalar maxshiftsq,
+                                             const Scalar3 lambda,
                                              const unsigned int checkn)
     {
     unsigned int block_size = 128;
@@ -117,6 +120,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                                                       N,
                                                                       box,
                                                                       maxshiftsq,
+                                                                      lambda,
                                                                       checkn);
     
     return cudaSuccess;

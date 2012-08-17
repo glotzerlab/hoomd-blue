@@ -12,14 +12,6 @@ fi
 # don't modify anything below this line
 
 # search for a valid HOOMD_ROOT, but only if the user has not overriden it
-# first check the install location
-if [ -z "${HOOMD_ROOT}" ] ; then
-    # check that the path is an actual hoomd root
-    if [ -f "@CMAKE_INSTALL_PREFIX@/share/hoomd/hoomd_data_dir" ]
-    then
-        HOOMD_ROOT=@CMAKE_INSTALL_PREFIX@
-    fi
-fi
 
 # fall back to using which to find hoomd on the path
 if [ -z "${HOOMD_ROOT}" ] ; then
@@ -35,7 +27,7 @@ fi
 
 # alert user if we couldn't find hoomd
 if [ -z "${HOOMD_ROOT}" ] ; then
-    echo "Valid HOOMD_ROOT not found in @CMAKE_INSTALL_PREFIX@ or the PATH."
+    echo "Valid HOOMD_ROOT not found in the PATH."
     echo "Please specify the environment variable HOOMD_ROOT."
 fi
 

@@ -83,8 +83,8 @@ TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a LJForceComputeGPU with no GPU in the execution configuration" << endl;
-        throw std::runtime_error("Error initializing LJForceComputeGPU");
+        m_exec_conf->msg->error() << "Creating a TableForceComputeGPUwith no GPU in the execution configuration" << endl;
+        throw std::runtime_error("Error initializing TableForceComputeGPU");
         }
     }
 

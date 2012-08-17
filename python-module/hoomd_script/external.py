@@ -312,7 +312,6 @@ class periodic(_external_force):
             self.cpp_force = hoomd.PotentialExternalLamellar(globals.system_definition);
         else:
             self.cpp_force = hoomd.PotentialExternalLamellarGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('external.periodic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

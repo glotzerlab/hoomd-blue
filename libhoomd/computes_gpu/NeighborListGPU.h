@@ -111,8 +111,11 @@ class NeighborListGPU : public NeighborList
         //! Perform the nlist distance check on the GPU
         virtual bool distanceCheck();
         
-        //! GPU nlists set their last updated pos in the compute kernel, this call does nothing
-        virtual void setLastUpdatedPos() { }
+        //! GPU nlists set their last updated pos in the compute kernel, this call only resets the last box length
+        virtual void setLastUpdatedPos()
+            {
+            m_last_L = m_pdata->getGlobalBox().getL(); 
+            }
         
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();

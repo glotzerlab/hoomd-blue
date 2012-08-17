@@ -452,7 +452,7 @@ class mol2(analyze._analyzer):
 #
 # Particle positions are written directly in distance units, see \ref page_units for more information.
 #
-# Use in conjunction with dump.mol2 so that VMD has information on the
+# Use in conjunction with dump.xml so that VMD has information on the
 # particle names and %bond topology.
 #
 # Due to constraints of the DCD file format, once you stop writing to

@@ -261,6 +261,7 @@ cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
 
 //! Kernel driven by gpu_compute_virial_correction_end()
 __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
+                                                         unsigned int virial_pitch,
                                                          const Scalar4 *d_net_force,
                                                          const Scalar4 *d_oldpos,
                                                          const Scalar4 *d_oldvel,
@@ -285,12 +286,18 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
         fc.x = mass * (vel.x - old_vel.x) / deltaT - net_force.x;
         fc.y = mass * (vel.y - old_vel.y) / deltaT - net_force.y;
         fc.z = mass * (vel.z - old_vel.z) / deltaT - net_force.z;
-        
-        d_net_virial[pidx] += (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / Scalar(3.0);
+
+        d_net_virial[0*virial_pitch+pidx] += old_pos.x * fc.x;
+        d_net_virial[1*virial_pitch+pidx] += old_pos.x * fc.y;
+        d_net_virial[2*virial_pitch+pidx] += old_pos.x * fc.z;
+        d_net_virial[3*virial_pitch+pidx] += old_pos.y * fc.y;
+        d_net_virial[4*virial_pitch+pidx] += old_pos.y * fc.z;
+        d_net_virial[5*virial_pitch+pidx] += old_pos.z * fc.z;
         }
-    }        
+    }
 
 /*! \param d_net_virial Net virial data to update with correction terms
+    \param virial_pitch Pitch of d_net_virial
     \param d_net_force Net force on each particle
     \param d_oldpos Old position of particles saved at the start of the step
     \param d_oldvel Old velocity of particles saved at the start of the step
@@ -300,6 +307,7 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
     \param N number of particles in the box
 */
 cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
+                                              const unsigned int virial_pitch,
                                               const Scalar4 *d_net_force,
                                               const Scalar4 *d_oldpos,
                                               const Scalar4 *d_oldvel,
@@ -319,6 +327,7 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
     dim3 particle_threads(block_size, 1, 1);
     
     gpu_compute_virial_correction_end_kernel<<<particle_grid, particle_threads>>>(d_net_virial,
+                                                                                  virial_pitch,
                                                                                   d_net_force,
                                                                                   d_oldpos,
                                                                                   d_oldvel,
