@@ -85,6 +85,7 @@ texture<int4, 1, cudaReadModeElementType> dihedral_params_tex;
     \param virial_pitch pitch of 2D virial array
     \param N number of particles
     \param d_pos particle positions on the device
+    \param d_params Parameters for the angle force
     \param box Box dimensions for periodic boundary condition handling
     \param tlist Dihedral data to use in calculating the forces
     \param dihedral_ABCD List of relative atom positions in the dihedrals

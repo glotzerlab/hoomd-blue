@@ -72,7 +72,7 @@ texture<Scalar2, 1, cudaReadModeElementType> improper_params_tex;
 texture<int4, 1, cudaReadModeElementType> improper_params_tex;
 #endif
 
-//! ACOS is acosf when running in single precision and acos otherwise
+// ACOS is acosf when running in single precision and acos otherwise
 #ifdef SINGLE_PRECISION
 #define ACOS acosf
 #else

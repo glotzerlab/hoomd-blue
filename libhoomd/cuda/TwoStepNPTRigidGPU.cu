@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTRigidGPU.
 */
 
-//! EXP is __expf when running in single precision and exp otherwise
+// EXP is __expf when running in single precision and exp otherwise
 #ifdef SINGLE_PRECISION
 #define EXP __expf
 #else

@@ -68,13 +68,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EMUSYNC
 #endif
 
-//! There are several functions here that are dependent on precision:
-//! __scalar2int_rd is __float2int_rd in single, __double2int_rd in double
-//! EXP is expf in single, exp in double
-//! POW is powf in single, pow in double
-//! SIN is sinf in single, sin in double
-//! CUFFTCOMPLEX is cufftComplex in single, cufftDoubleComplex in double
-//! CUFFTEXEC is cufftExecC2C in single, cufftExecZ2Z in double
+// There are several functions here that are dependent on precision:
+// __scalar2int_rd is __float2int_rd in single, __double2int_rd in double
+// EXP is expf in single, exp in double
+// POW is powf in single, pow in double
+// SIN is sinf in single, sin in double
+// CUFFTCOMPLEX is cufftComplex in single, cufftDoubleComplex in double
+// CUFFTEXEC is cufftExecC2C in single, cufftExecZ2Z in double
 #ifdef SINGLE_PRECISION
 #define __scalar2int_rd __float2int_rd
 #define EXP expf

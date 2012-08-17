@@ -72,7 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-//! CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
+// CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
 #if defined ENABLE_CUDA && !defined SINGLE_PRECISION
 #define CUFFTCOMPLEX cufftDoubleComplex
 #else

@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the harmonic angle forces. Used by HarmonicAngleForceComputeGPU.
 */
 
-//! ACOS is acosf when running in single precision and acos otherwise
+// ACOS is acosf when running in single precision and acos otherwise
 #ifdef SINGLE_PRECISION
 #define ACOS acosf
 #else
@@ -87,6 +87,7 @@ texture<int4, 1, cudaReadModeElementType> angle_params_tex;
     \param virial_pitch Pitch of 2D virial array
     \param N number of particles
     \param d_pos device array of particle positions
+    \param d_params Parameters for the angle force
     \param box Box dimensions for periodic boundary condition handling
     \param alist Angle data to use in calculating the forces
     \param pitch Pitch of 2D angles list

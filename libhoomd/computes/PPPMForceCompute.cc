@@ -74,7 +74,7 @@ using namespace std;
     \brief Contains code for the PPPMForceCompute class
 */
 
-//! CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
+// CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
 #if defined ENABLE_CUDA && !defined SINGLE_PRECISION
 #define CUFFTCOMPLEX cufftDoubleComplex
 #else

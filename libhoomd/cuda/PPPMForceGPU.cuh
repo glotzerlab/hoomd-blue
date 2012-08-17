@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __PPPMFORCEGPU_CUH__
 #define __PPPMFORCEGPU_CUH__
 
-//! CUFFTCOMPLEX is cufftComplex in single precision and cufftDoubleComplex in double precision
+// CUFFTCOMPLEX is cufftComplex in single precision and cufftDoubleComplex in double precision
 #ifdef SINGLE_PRECISION
 #define CUFFTCOMPLEX cufftComplex
 #else

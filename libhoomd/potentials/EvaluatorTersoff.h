@@ -19,29 +19,29 @@
 #define HOSTDEVICE
 #endif
 
-//! SQRT is sqrtf when included in nvcc and sqrt when included in the host compiler
+// SQRT is sqrtf when included in nvcc and sqrt when included in the host compiler
 #if defined NVCC && defined SINGLE_PRECISION
 #define SQRT sqrtf
 #else
 #define SQRT sqrt
 #endif
 
-//! EXP is expf when included in nvcc and exp when included in the host compiler
+// EXP is expf when included in nvcc and exp when included in the host compiler
 #if defined NVCC && defined SINGLE_PRECISION
 #define EXP expf
 #else
 #define EXP exp
 #endif
 
-//! POW is powf when included in nvcc and pow when included in the host compiler
+// POW is powf when included in nvcc and pow when included in the host compiler
 #if defined NVCC && defined SINGLE_PRECISION
 #define POW powf
 #else
 #define POW pow
 #endif
 
-//! COS is cosf when included in nvcc and cos when included in the host compiler
-//! SIN is sinf when included in nvcc and sin when included in the host compiler
+// COS is cosf when included in nvcc and cos when included in the host compiler
+// SIN is sinf when included in nvcc and sin when included in the host compiler
 #if defined NVCC && defined SINGLE_PRECISION
 #define COS cosf
 #define SIN sinf
@@ -52,7 +52,7 @@
 
 //! Parameter type for this potential
 struct tersoff_params
-{
+    {
     Scalar cutoff_thickness; //!< Thickness of the cutoff shell (2D)
     Scalar2 coeffs; //!< Contains the coefficients for the repulsive (x) and attractive (y) terms
     Scalar2 exp_consts; //!< Gives the coefficients in the exponential functions for the repulsive (x) and attractive (y) terms

@@ -76,6 +76,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Define complex type
 typedef float2 cufftComplex;
+//! Double complex type
 typedef double2 cufftDoubleComplex;
 #endif
 

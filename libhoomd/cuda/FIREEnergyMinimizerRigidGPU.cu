@@ -250,6 +250,8 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
     \param d_sum_Pr Array to hold the sum over Pr (t*w), w2 and t2
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
+    \param rdata_torque The developer has chosen not to document this variable
+    \param rdata_angvel The developer has chosen not to document this variable
 */
 extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr, 
                                                             Scalar4* rdata_torque,
@@ -391,6 +393,8 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
 //! Kernel function to update the velocties used by the FIRE algorithm
 /*! \param rdata_vel Body velocities to be updated
     \param rdata_angmom Angular momenta to be updated 
+    \param rdata_force The developer has chosen not to document this variable
+    \param rdata_torque The developer has chosen not to document this variable
     \param alpha Alpha coupling parameter used by the FIRE algorithm
     \param factor_t factor equal to alpha*vnorm/fnorm
     \param factor_r factor equal to alpha*wnorm/tnorm

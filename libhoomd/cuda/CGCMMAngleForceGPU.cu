@@ -65,8 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the CGCMM angle forces. Used by CGCMMAngleForceComputeGPU.
 */
 
-//! POW is __powf when running in single precision and pow otherwise
-//! ACOS is acosf when running in single precision and acos otherwise
+// POW is __powf when running in single precision and pow otherwise
+// ACOS is acosf when running in single precision and acos otherwise
 #ifdef SINGLE_PRECISION
 #define POW __powf
 #define ACOS acosf

@@ -65,7 +65,7 @@ using namespace boost;
 
 using namespace std;
 
-//! CUFFTCOMPLEX is cufftComplex in single precision and cufftDoubleComplex in double precision
+// CUFFTCOMPLEX is cufftComplex in single precision and cufftDoubleComplex in double precision
 #ifdef SINGLE_PRECISION
 #define CUFFTCOMPLEX cufftComplex
 #else
