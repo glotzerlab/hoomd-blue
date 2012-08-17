@@ -103,7 +103,7 @@ def _save_override_file(common_optimal_db):
         globals.msg.warning(fname + " exists. This file is being overwritten with new settings\n");
 
     # save the file
-    f = file(fname, 'w');
+    f = open(fname, 'wb');
     globals.msg.notice(2, 'Writing optimal block sizes to ' + str(fname) + '\n');
     
     # write the version of the file
@@ -132,7 +132,7 @@ def _load_override_file():
         return
 
     # save the file
-    f = file(fname, 'r');
+    f = open(fname, 'rb');
     globals.msg.notice(2, 'Reading optimal block sizes from ' + str(fname) + '\n');
     
     # read the version of the file
