@@ -51,13 +51,12 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 import hoomd;
-import globals;
-import compute;
-import util;
-import variant;
+from hoomd_script import globals;
+from hoomd_script import compute;
+from hoomd_script import util;
+from hoomd_script import variant;
 import sys;
-import init;
-import pair;
+from hoomd_script import init;
 
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way

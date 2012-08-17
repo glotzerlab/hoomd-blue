@@ -50,12 +50,12 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-import force;
-import globals;
+from hoomd_script import force;
+from hoomd_script import globals;
 import hoomd;
 import sys;
 import math;
-import util;
+from hoomd_script import util;
 
 ## \package hoomd_script.wall
 # \brief Commands that specify %wall forces
@@ -159,7 +159,7 @@ class lj(force._force):
         # get a list of all particle types in the simulation
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
             
         # check to see if all particle types have been set

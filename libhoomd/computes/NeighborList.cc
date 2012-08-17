@@ -717,7 +717,10 @@ void NeighborList::setLastUpdatedPos()
         {
         h_last_pos.data[i] = make_scalar4(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z, Scalar(0.0));
         }
-    
+   
+    // update last box length
+    m_last_L = m_pdata->getGlobalBox().getL();
+
     if (m_prof) m_prof->pop();
     }
 

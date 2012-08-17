@@ -50,5 +50,10 @@
 # this file exists to mark this directory as a python module
 
 # need to import all submodules defined in this directory
-import pair
-import bond
+
+# NOTE: adjust the import statements to match the name of the template
+# (here: plugin_template)
+
+from hoomd_plugins.evaluators_ext_template import pair
+from hoomd_plugins.evaluators_ext_template import bond
+

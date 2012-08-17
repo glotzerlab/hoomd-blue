@@ -52,10 +52,10 @@
 
 import hoomd;
 import sys;
-import util;
-import globals;
-import data;
-import init;
+from hoomd_script import util;
+from hoomd_script import globals;
+from hoomd_script import data;
+from hoomd_script import init;
 
 ## \package hoomd_script.group
 # \brief Commands for grouping particles
@@ -128,13 +128,16 @@ class group:
             self.index = 0;
         def __iter__(self):
             return self;
-        def next(self):
+        def __next__(self):
             if self.index == len(self.data):
                 raise StopIteration;
             
             result = self.data[self.index];
             self.index += 1;
             return result;
+        
+        # support python2
+        next = __next__;
     
     ## \internal
     # \brief Creates a group
@@ -485,7 +488,7 @@ def type(type, name=None):
     # get a list of types from the particle data
     ntypes = globals.system_definition.getParticleData().getNTypes();
     type_list = [];
-    for i in xrange(0,ntypes):
+    for i in range(0,ntypes):
         type_list.append(globals.system_definition.getParticleData().getNameByType(i));
     
     if type not in type_list:
@@ -532,7 +535,7 @@ def charged(name='charged'):
     charged_tags = [];
     sysdef = globals.system_definition;
     pdata = data.particle_data(sysdef.getParticleData());
-    for i in xrange(0,len(pdata)):
+    for i in range(0,len(pdata)):
         if pdata[i].charge != 0.0:
             charged_tags.append(i);
     

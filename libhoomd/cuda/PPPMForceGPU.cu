@@ -1197,7 +1197,7 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
 
     // zero the force arrays for all particles
     // zero_forces <<< grid, threads >>> (force_data, N);
-    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
+//    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
     cudaMemset(d_virial, 0, 6*sizeof(Scalar)*virial_pitch);
 
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,

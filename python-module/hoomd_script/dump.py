@@ -58,11 +58,11 @@
 # each command writes.
 
 import hoomd;
-import globals;
-import analyze;
+from hoomd_script import globals;
+from hoomd_script import analyze;
 import sys;
-import util;
-import group as hs_group;
+from hoomd_script import util;
+from hoomd_script import group as hs_group;
 
 ## Writes simulation snapshots in the HOOMD XML format
 #

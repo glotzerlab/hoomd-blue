@@ -94,12 +94,12 @@
 # This code snippet runs the first 100 time steps with T=1.2 and the next 100 with T=1.0
 
 import hoomd;
-import globals;
-import compute;
+from hoomd_script import globals;
+from hoomd_script import compute;
 import sys;
-import util;
-import variant;
-import init;
+from hoomd_script import util;
+from hoomd_script import variant;
+from hoomd_script import init;
 
 ## \internal
 # \brief Base class for integrators
@@ -932,11 +932,11 @@ class bdnvt(_integration_method):
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
         # change the parameters
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
         
@@ -1155,11 +1155,11 @@ class bdnvt_rigid(_integration_method):
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
         # change the parameters
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
 

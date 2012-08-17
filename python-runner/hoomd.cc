@@ -75,6 +75,10 @@ using namespace boost::filesystem;
 #include <iostream>
 using namespace std;
 
+#if PY_MAJOR_VERSION >= 3
+#include "stdlib.h"
+#endif
+
 // hack to support both version 2 and version 3 of the boost filesystem API
 #if (BOOST_VERSION >= 104400)
 #define native_file_string string
@@ -85,7 +89,11 @@ using namespace std;
 */
 
 //! forward declaration of the inithoomd function that inits the python module from hoomd_module.cc
+#if PY_MAJOR_VERSION >= 3
+extern "C" PyObject *PyInit_hoomd();
+#else
 extern "C" void inithoomd();
+#endif
 
 //! A simple method for finding the hoomd_script python module
 string find_hoomd_script()
@@ -130,7 +138,11 @@ int main(int argc, char **argv)
         }
 
     char module_name[] = "hoomd";
+#if PY_MAJOR_VERSION >= 3
+    PyImport_AppendInittab(module_name, &PyInit_hoomd);
+#else
     PyImport_AppendInittab(module_name, &inithoomd);
+#endif
     Py_Initialize();
     
     // Need to inject the hoomd module path and the plugins dir into sys.path
@@ -139,6 +151,7 @@ int main(int argc, char **argv)
     if (hoomd_script_dir != "")
         {
         python_cmds += string("sys.path.insert(0, r\"") + hoomd_script_dir + string("\")\n");
+        python_cmds += string("sys.path.insert(0, r\"") + hoomd_script_dir + "/hoomd_script" +  string("\")\n");
         }
     
     if (getenv("HOOMD_PLUGINS_DIR"))
@@ -149,9 +162,22 @@ int main(int argc, char **argv)
         }
         
     PyRun_SimpleString(python_cmds.c_str());
-        
-    int retval = Py_Main(argc, argv);
-    
+       
+#if PY_MAJOR_VERSION >= 3
+    setlocale(LC_ALL,NULL);
+    wchar_t **argv_w;
+    argv_w = new wchar_t *[argc];
+    for (int i=0; i < argc; i++)
+        {
+        unsigned int n = strlen(argv[i])+1;
+        argv_w[i] = new wchar_t[n];
+        mbstowcs(argv_w[i], argv[i], n);
+        }
+    int retval = Py_Main(argc, argv_w);
+#else
+    int retval = Py_Main(argc, argv);  
+#endif
+
     // trying to clean up python's messy memory leaks
     Py_Finalize();
     return retval;
