@@ -118,7 +118,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
         {
         exec_mode = GPU;
         
-        initializeGPU(-1, min_cpu);
+        initializeGPU(guessLocalRank(), min_cpu);
         }
     else
         exec_mode = CPU;
@@ -621,6 +621,28 @@ unsigned int ExecutionConfiguration::guessRank()
 
     return 0;
     }
+
+int ExecutionConfiguration::guessLocalRank()
+    {
+    std::vector<std::string> env_vars;
+
+    // setup common environment variables containing local rank information
+    env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
+    env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
+
+    std::vector<std::string>::iterator it;
+
+    for (it = env_vars.begin(); it != env_vars.end(); it++)
+        {
+        char *env;
+        if ((env = getenv(it->c_str())) != NULL)
+            return atoi(env);
+
+        }
+
+    return -1;
+    }
+
 
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
 */
