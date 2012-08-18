@@ -218,7 +218,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
 #ifdef ENABLE_MPI
     // only the root processor writes the output file
-    if (m_pdata->getDomainDecomposition() && ! m_pdata->getDomainDecomposition()->isRoot())
+    if (m_pdata->getDomainDecomposition() && ! m_exec_conf->isMPIRoot())
         return;
 #endif
 

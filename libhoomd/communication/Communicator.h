@@ -251,12 +251,6 @@ class Communicator
             m_r_ghost = ghost_width;
             }
 
-        //! Returns true if this is the root processor
-        bool isRoot()
-            {
-            return (m_decomposition->getRoot() == (unsigned int) m_mpi_comm->rank());
-            }
-
         //@}
 
         //! \name communication methods

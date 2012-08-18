@@ -74,12 +74,11 @@ BOOST_IS_MPI_DATATYPE(uint3)
 BOOST_IS_MPI_DATATYPE(int3)
 
 //! Constructor
-/*! The constructor performs a spatial domain decomposition of the simulation box of processor with rank \b root.
+/*! The constructor performs a spatial domain decomposition of the simulation box of processor with rank \b exec_conf->getMPIroot().
  * The domain dimensions are distributed on the other processors.
  */
 DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                Scalar3 L,
-                               unsigned int root,
                                unsigned int nx,
                                unsigned int ny,
                                unsigned int nz
@@ -88,7 +87,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     {
     unsigned int rank = m_mpi_comm->rank();
 
-    if (rank == root)
+    if (rank == m_exec_conf->getMPIRoot())
         {
         bool found_decomposition = findDecomposition(L, nx, ny, nz);
         if (! found_decomposition)
@@ -112,20 +111,18 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     // calculate physical box dimensions of every processor
 
     // broadcast global box dimensions
-    boost::mpi::broadcast(*m_mpi_comm, L, root);
+    boost::mpi::broadcast(*m_mpi_comm, L, m_exec_conf->getMPIRoot());
 
     // broadcast grid dimensions
-    boost::mpi::broadcast(*m_mpi_comm, m_nx, root);
-    boost::mpi::broadcast(*m_mpi_comm, m_ny, root);
-    boost::mpi::broadcast(*m_mpi_comm, m_nz, root);
+    boost::mpi::broadcast(*m_mpi_comm, m_nx, m_exec_conf->getMPIRoot());
+    boost::mpi::broadcast(*m_mpi_comm, m_ny, m_exec_conf->getMPIRoot());
+    boost::mpi::broadcast(*m_mpi_comm, m_nz, m_exec_conf->getMPIRoot());
 
     // Initialize domain indexer
     m_index = Index3D(m_nx,m_ny,m_nz);
 
     // calculate position of this box in the domain grid
     m_grid_pos = m_index.getTriple(rank);
-
-    m_root = root;
     }
 
 //! Find a domain decomposition with given parameters
@@ -251,7 +248,7 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
 void export_DomainDecomposition()
     {
     class_<DomainDecomposition, boost::shared_ptr<DomainDecomposition>, boost::noncopyable >("DomainDecomposition",
-           init< boost::shared_ptr<ExecutionConfiguration>, Scalar3, unsigned int, unsigned int, unsigned int, unsigned int>())
+           init< boost::shared_ptr<ExecutionConfiguration>, Scalar3, unsigned int, unsigned int, unsigned int>())
     ;
     }
 #endif // ENABLE_MPI

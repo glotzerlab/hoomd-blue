@@ -109,35 +109,20 @@ class DomainDecomposition
     {
     public:
         //! Constructor
-        /*! \param comm MPI communicator to use to initialize the sub-domains
+        /*! \param exec_conf The execution configuration
          * \param L Box lengths of global box to sub-divide
-         * \param root Rank of processor to perform the domain decomposition on
          * \param nx Requested number of domains along the x direction (0 == choose default)
          * \param ny Requested number of domains along the y direction (0 == choose default)
          * \param nz Requested number of domains along the z direction (0 == choose default)
          */
         DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
                        Scalar3 L,
-                       unsigned int root,
                        unsigned int nx = 0,
                        unsigned int ny = 0,
                        unsigned int nz = 0);
- 
+
         //! Calculate MPI ranks of neighboring domain.
         unsigned int getNeighborRank(unsigned int dir) const;
-
-        //! Return the rank of the root processor
-        unsigned int getRoot() const
-            {
-            return m_root;
-            }
-
-        //! Returns true if this is the root processor
-        bool isRoot() const
-            {
-            assert(m_mpi_comm);
-            return ((unsigned int) m_mpi_comm->rank()  == m_root);
-            }
 
         //! Get domain indexer
         const Index3D& getDomainIndexer() const
@@ -158,7 +143,6 @@ class DomainDecomposition
 
         uint3 m_grid_pos;            //!< Position of this domain in the grid
         Index3D m_index;             //!< Index to the 3D processor grid
-        unsigned int m_root;         //!< Rank of the root processor
      
         //! Find a domain decomposition with given parameters
         bool findDecomposition(Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz);

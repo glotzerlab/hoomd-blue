@@ -61,70 +61,45 @@ from hoomd_script import globals;
 
 import sys;
 
-## \internal
-# Check if MPI is available inside HOOMD
-#
-# \returns true if the HOOMD library has been compiled with MPI support
-#
-def check_mpi():
-    return hoomd.is_MPI_available()
-
-## \internal
-# \brief Check if the python bindings for Boost.MPI is available, if so, import them
-#
-# Importing the Boost.MPI python bindings initializes the MPI environment.
-# The module is imported upon calling this function, allowing the user to initialize MPI
-# at a late instant,  e.g. after GPU initialization. This initialization order is
-# required for some CUDA-MPI implementations to work correctly.
-#
-def check_boost_mpi():
-    global mpi
-    try:
-        # Try standard location
-        import mpi
-    except ImportError:
-        try:
-            # According to the Boost.MPI documentation, this should be used
-            import boost.mpi as mpi
-        except ImportError:
-            # Boost.MPI is not available, throw an exception
-            globals.msg.warning("Could not load Boost.MPI python bindings. Disabling MPI support.")
-            return False
-
-    return True
-
 ## Setup up domain decomposition
 # \brief Initialize the domain decomposition of the global simulation domain
 # \internal
-def init_domain_decomposition(mpi_arguments):
+def init_domain_decomposition(mpi_options):
         if not init.is_initialized():
-            globals.msg.error("Possible internal error! Cannot create MPI partition before initialization.")
-            raise RuntimeError('Error setting up MPI partition');
+            globals.msg.error("Possible internal error! Cannot create domain decomposition before initialization.")
+            raise RuntimeError('Error setting up domain decomposition');
 
-        if type(mpi_arguments) != type(dict()):
-            globals.msg.error("MPI partition parameters specified incorrectly.")
-            raise RuntimeError('Error setting up MPI partition');
-    
+        # options for this partition
+        this_options = dict()
+
+        if mpi_options is not None:
+            if type(mpi_options) != type([]):
+                globals.msg.error("MPI options specified incorrectly. See documentation.")
+                raise RuntimeError('Error setting up domain decomposition');
+   
+            if type(mpi_options) != type([]):
+                globals.msg.error("MPI options parameters specified incorrectly. See documentation.")
+                raise RuntimeError('Error setting up domain decomposition');
+
+            this_partition = globals.exec_conf.getMPIPartition()
+            this_options = mpi_options[this_partition % len(mpi_options)]
+
+        if type(this_options) != type(dict()):
+            globals.msg.error("MPI options specified incorrectly. See documentation.")
         # default values for arguents
-        root = 0
         nx = ny = nz = 0
         linear = False
 
-        if 'root' in mpi_arguments:
-            root = mpi_arguments['root']
-        if 'nx' in mpi_arguments:
-            nx = mpi_arguments['nx']
-        if 'ny' in mpi_arguments:
-            ny = mpi_arguments['ny']
-        if 'nz' in mpi_arguments:
-            nz = mpi_arguments['nz']
-        if 'linear' in mpi_arguments:
-            linear = mpi_arguments['linear']
+        if 'nx' in this_options:
+            nx = this_options['nx']
+        if 'ny' in this_options:
+            ny = this_options['ny']
+        if 'nz' in this_options:
+            nz = this_options['nz']
+        if 'linear' in this_options:
+            linear = this_options['linear']
 
         mpi_comm = globals.exec_conf.getMPICommunicator()
-        if not (root >= 0 and root < mpi_comm.size()):
-            globals.msg.warning("Invalid root processor rank (%d). Proceeding with rank 0 as root." % (root))
-            root = 0
 
         if linear is True:
             # set up linear decomposition
@@ -141,7 +116,7 @@ def init_domain_decomposition(mpi_arguments):
         pdata.takeSnapshot(snap)
 
         # initialize domain decomposition
-        cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, pdata.getGlobalBox().getL(), root, nx, ny, nz);
+        cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, pdata.getGlobalBox().getL(), nx, ny, nz);
 
         # create the c++ mirror Communicator
         if not globals.exec_conf.isCUDAEnabled():

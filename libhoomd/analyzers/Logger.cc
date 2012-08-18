@@ -97,7 +97,7 @@ void Logger::openOutputFiles()
 #ifdef ENABLE_MPI
     // only output to file on root processor
     if (m_comm)
-        if (! m_comm->isRoot())
+        if (! m_exec_conf->isMPIRoot())
             return;
 #endif
     // open the file
@@ -192,7 +192,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 #ifdef ENABLE_MPI
     // only output to file on root processor
     if (m_pdata->getDomainDecomposition())
-        if (! m_pdata->getDomainDecomposition()->isRoot())
+        if (! m_exec_conf->isMPIRoot())
             return;
 #endif
 
@@ -256,7 +256,7 @@ void Logger::analyze(unsigned int timestep)
 #ifdef ENABLE_MPI
     // only output to file on root processor
     if (m_comm)
-        if (! m_comm->isRoot())
+        if (! m_exec_conf->isMPIRoot())
             {
             if (m_prof) m_prof->pop();
             return;

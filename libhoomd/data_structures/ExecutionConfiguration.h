@@ -105,7 +105,8 @@ struct ExecutionConfiguration : boost::noncopyable
                            bool ignore_display=false,
                            boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
 #ifdef ENABLE_MPI
-                           , bool init_mpi=true 
+                           , std::vector<unsigned int> partition = std::vector<unsigned int>(),
+                           bool init_mpi = true
 #endif
                            );
     
@@ -116,7 +117,8 @@ struct ExecutionConfiguration : boost::noncopyable
                            bool ignore_display=false,
                            boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
 #ifdef ENABLE_MPI
-                           , bool init_mpi=true 
+                           , std::vector<unsigned int> partition = std::vector<unsigned int>(),
+                           bool init_mpi = true
 #endif
                            );
     
@@ -198,6 +200,35 @@ struct ExecutionConfiguration : boost::noncopyable
     void checkCUDAError(const char *file, unsigned int line) const;
 #endif
 
+#ifdef ENABLE_MPI
+    //! Returns the partition number of this processor
+    unsigned int getMPIPartition() const
+        {
+        return m_partition;
+        }
+
+    //! Returns the number of processors in this partition
+    unsigned int getMPIPartitionSize() const
+        {
+        int size;
+        MPI_Comm_size(*m_mpi_comm, &size);
+        return size;
+        }
+
+    //! Returns the root rank of this partition
+    unsigned int getMPIRoot() const
+        {
+        return m_root;
+        }
+
+    //! Returns true if this is the root processor
+    bool isMPIRoot() const
+        {
+        assert(m_mpi_comm);
+        return ((unsigned int) m_mpi_comm->rank()  == m_root);
+        }
+#endif
+
 private:
 #ifdef ENABLE_CUDA
     //! Initialize the GPU with the given id
@@ -227,7 +258,10 @@ private:
 #endif
   
 #ifdef ENABLE_MPI
-    void initializeMPI();                                   //!< Initialize MPI environment
+    void initializeMPI(std::vector<unsigned int>);          //!< Initialize MPI environment
+
+    unsigned int m_partition;                               //!< The partition number
+    unsigned int m_root;                                    //!< The root rank fo this partition
 
     boost::mpi::environment *m_mpi_env;                     //!< The boost.MPI environment
     boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The boost.MPI communicator
