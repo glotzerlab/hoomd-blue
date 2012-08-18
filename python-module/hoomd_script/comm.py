@@ -66,7 +66,7 @@ import sys;
 # \internal
 def init_domain_decomposition(mpi_options):
         if not init.is_initialized():
-            globals.msg.error("Possible internal error! Cannot create domain decomposition before initialization.")
+            globals.msg.error("Possible internal error! Cannot create domain decomposition before initialization.\n")
             raise RuntimeError('Error setting up domain decomposition');
 
         # options for this partition
@@ -74,18 +74,18 @@ def init_domain_decomposition(mpi_options):
 
         if mpi_options is not None:
             if type(mpi_options) != type([]):
-                globals.msg.error("MPI options specified incorrectly. See documentation.")
+                globals.msg.error("MPI options specified incorrectly. See documentation.\n")
                 raise RuntimeError('Error setting up domain decomposition');
    
             if type(mpi_options) != type([]):
-                globals.msg.error("MPI options parameters specified incorrectly. See documentation.")
+                globals.msg.error("MPI options parameters specified incorrectly. See documentation.\n")
                 raise RuntimeError('Error setting up domain decomposition');
 
             this_partition = globals.exec_conf.getMPIPartition()
             this_options = mpi_options[this_partition % len(mpi_options)]
 
         if type(this_options) != type(dict()):
-            globals.msg.error("MPI options specified incorrectly. See documentation.")
+            globals.msg.error("MPI options specified incorrectly. See documentation.\n")
         # default values for arguents
         nx = ny = nz = 0
         linear = False
