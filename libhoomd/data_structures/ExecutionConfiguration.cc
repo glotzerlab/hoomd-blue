@@ -740,6 +740,10 @@ void export_ExecutionConfiguration()
                          .def("getMPIPartition", &ExecutionConfiguration::getMPIPartition)
                          .def("getMPIPartitionSize", &ExecutionConfiguration::getMPIPartitionSize)
                          .def("getNumMPIRanks", &ExecutionConfiguration::getNumMPIRanks)
+                         .def("guessRank", &ExecutionConfiguration::guessRank)
+                         .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
+                         .staticmethod("guessRank")
+                         .staticmethod("guessLocalRank")
 #endif
                          ;
                          
