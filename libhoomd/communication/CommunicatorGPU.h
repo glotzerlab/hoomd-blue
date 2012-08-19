@@ -103,8 +103,6 @@ class CommunicatorGPU : public Communicator
         GPUVector<int3> m_image_stage;              //!< Temporary storage of particle images
         GPUVector<Scalar> m_charge_stage;           //!< Temporary storage of particle charges
         GPUVector<Scalar> m_diameter_stage;         //!< Temporary storage of particle diameters
-        GPUVector<unsigned int> m_body_stage;       //!< Temporary storage of particle body ids
-        GPUVector<Scalar4> m_orientation_stage;     //!< Temporary storage of particle orientations
         GPUVector<unsigned int> m_tag_stage;        //!< Temporary storage of particle tags
     };
 

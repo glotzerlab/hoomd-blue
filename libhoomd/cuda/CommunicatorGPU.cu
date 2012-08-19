@@ -254,10 +254,6 @@ __global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
                                          float *d_charge_tmp,
                                          const float *d_diameter,
                                          float *d_diameter_tmp,
-                                         const unsigned int *d_body,
-                                         unsigned int *d_body_tmp,
-                                         const float4  *d_orientation,
-                                         float4 *d_orientation_tmp,
                                          const unsigned int *d_tag,
                                          unsigned int *d_tag_tmp,
                                          unsigned char *remove_mask,
@@ -326,8 +322,6 @@ __global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
         d_image_tmp[n] = image;
         d_charge_tmp[n] = d_charge[idx];
         d_diameter_tmp[n] = d_diameter[idx];
-        d_body_tmp[n] = d_body[idx];
-        d_orientation_tmp[n] = d_orientation[idx];
         d_tag_tmp[n] = d_tag[idx];
 
         // mark particle for removal
@@ -355,10 +349,6 @@ __global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
  *  \param d_charge_tmp Array of particle charges
  *  \param d_diameter Array of particle diameter
  *  \param d_diameter_tmp Array of particle diameter
- *  \param d_body Array of particle body ids
- *  \param d_body_tmp Array of particle body ids
- *  \param d_orientation Array of particle orientations
- *  \param d_orientation_tmp Array of particle orientations
  *  \param d_tag Array of particle global tags
  *  \param d_tag_tmp Array of particle global tags
  *  \param box Dimensions of local simulation box
@@ -379,10 +369,6 @@ void gpu_migrate_select_particles(unsigned int N,
                         float *d_charge_tmp,
                         float *d_diameter,
                         float *d_diameter_tmp,
-                        unsigned int *d_body,
-                        unsigned int *d_body_tmp,
-                        float4 *d_orientation,
-                        float4 *d_orientation_tmp,
                         unsigned int *d_tag,
                         unsigned int *d_tag_tmp,
                         const BoxDim& box,
@@ -408,10 +394,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_charge_tmp, 
                                                                     d_diameter, 
                                                                     d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
                                                                     d_tag,
                                                                     d_tag_tmp,
                                                                     d_remove_mask,
@@ -434,10 +416,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_charge_tmp, 
                                                                     d_diameter, 
                                                                     d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
                                                                     d_tag,
                                                                     d_tag_tmp,
                                                                     d_remove_mask,
@@ -460,10 +438,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_charge_tmp, 
                                                                     d_diameter, 
                                                                     d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
                                                                     d_tag,
                                                                     d_tag_tmp,
                                                                     d_remove_mask,
@@ -486,10 +460,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_charge_tmp, 
                                                                     d_diameter, 
                                                                     d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
                                                                     d_tag,
                                                                     d_tag_tmp,
                                                                     d_remove_mask,
@@ -512,10 +482,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_charge_tmp, 
                                                                     d_diameter, 
                                                                     d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
                                                                     d_tag,
                                                                     d_tag_tmp,
                                                                     d_remove_mask,
@@ -538,10 +504,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_charge_tmp, 
                                                                     d_diameter, 
                                                                     d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
                                                                     d_tag,
                                                                     d_tag_tmp,
                                                                     d_remove_mask,
@@ -564,10 +526,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_charge_tmp, 
                                                                     d_diameter, 
                                                                     d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
                                                                     d_tag,
                                                                     d_tag_tmp,
                                                                     d_remove_mask,
@@ -596,10 +554,6 @@ void gpu_migrate_compact_particles(unsigned int N,
                         float *d_charge_tmp,
                         float *d_diameter,
                         float *d_diameter_tmp,
-                        unsigned int *d_body,
-                        unsigned int *d_body_tmp,
-                        float4 *d_orientation,
-                        float4 *d_orientation_tmp,
                         unsigned int *d_tag,
                         unsigned int *d_tag_tmp)
     {
@@ -630,10 +584,6 @@ void gpu_migrate_compact_particles(unsigned int N,
     thrust::device_ptr<float> charge_tmp_ptr(d_charge_tmp);
     thrust::device_ptr<float> diameter_ptr(d_diameter);
     thrust::device_ptr<float> diameter_tmp_ptr(d_diameter_tmp);
-    thrust::device_ptr<unsigned int> body_ptr(d_body);
-    thrust::device_ptr<unsigned int> body_tmp_ptr(d_body_tmp);
-    thrust::device_ptr<float4> orientation_ptr(d_orientation);
-    thrust::device_ptr<float4> orientation_tmp_ptr(d_orientation_tmp);
     thrust::device_ptr<unsigned int> tag_ptr(d_tag);
     thrust::device_ptr<unsigned int> tag_tmp_ptr(d_tag_tmp);
 
@@ -644,8 +594,6 @@ void gpu_migrate_compact_particles(unsigned int N,
     thrust::gather(keys->begin(), keys_middle, image_ptr, image_tmp_ptr);
     thrust::gather(keys->begin(), keys_middle, charge_ptr, charge_tmp_ptr);
     thrust::gather(keys->begin(), keys_middle, diameter_ptr, diameter_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, body_ptr, body_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, orientation_ptr, orientation_tmp_ptr);
     thrust::gather(keys->begin(), keys_middle, tag_ptr, tag_tmp_ptr);
     }
 

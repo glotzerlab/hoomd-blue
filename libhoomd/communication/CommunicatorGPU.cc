@@ -83,8 +83,6 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_image_stage(m_exec_conf),
       m_charge_stage(m_exec_conf),
       m_diameter_stage(m_exec_conf),
-      m_body_stage(m_exec_conf),
-      m_orientation_stage(m_exec_conf),
       m_tag_stage(m_exec_conf)
     {
     // allocate temporary GPU buffers
@@ -139,8 +137,6 @@ void CommunicatorGPU::migrateAtoms()
             m_charge_stage.resize(max_n);
             m_diameter_stage.resize(max_n);
             m_image_stage.resize(max_n);
-            m_body_stage.resize(max_n);
-            m_orientation_stage.resize(max_n);
             m_tag_stage.resize(max_n);
 
             // resize mask and set newly allocated flags to zero
@@ -157,8 +153,6 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
             ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_pos_stage(m_pos_stage, access_location::device, access_mode::overwrite);
@@ -167,8 +161,6 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar> d_charge_stage(m_charge_stage, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar> d_diameter_stage(m_diameter_stage, access_location::device, access_mode::overwrite);
             ArrayHandle<int3> d_image_stage(m_image_stage, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_body_stage(m_body_stage, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> d_orientation_stage(m_orientation_stage, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_tag_stage(m_tag_stage, access_location::device, access_mode::overwrite);
 
             ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::readwrite);
@@ -189,10 +181,6 @@ void CommunicatorGPU::migrateAtoms()
                                    d_charge_stage.data,
                                    d_diameter.data,
                                    d_diameter_stage.data,
-                                   d_body.data,
-                                   d_body_stage.data,
-                                   d_orientation.data,
-                                   d_orientation_stage.data,
                                    d_global_tag.data,
                                    d_tag_stage.data,
                                    m_pdata->getBox(),
@@ -220,10 +208,11 @@ void CommunicatorGPU::migrateAtoms()
 
         unsigned int n_recv_ptls;
         // communicate size of the message that will contain the particle data
-        boost::mpi::request reqs[20];
-        reqs[0] = m_mpi_comm->isend(send_neighbor,0,n_send_ptls);
-        reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,n_recv_ptls);
-        boost::mpi::wait_all(reqs,reqs+2);
+        MPI_Request reqs[16];
+        MPI_Status status[16];
+        MPI_Isend(&n_send_ptls, sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, *m_mpi_comm, & reqs[0]);
+        MPI_Irecv(&n_recv_ptls, sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, *m_mpi_comm, & reqs[1]);
+        MPI_Waitall(2, reqs, status);
 
         // start index for atoms to be added
         unsigned int add_idx = m_pdata->getN();
@@ -239,8 +228,6 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar> d_charge_stage(m_charge_stage, access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter_stage(m_diameter_stage, access_location::device, access_mode::read);
             ArrayHandle<int3> d_image_stage(m_image_stage, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_body_stage(m_body_stage, access_location::device, access_mode::read);
-            ArrayHandle<Scalar4> d_orientation_stage(m_orientation_stage, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_tag_stage(m_tag_stage, access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -249,39 +236,32 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
             ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
 
 
             // exchange actual particle data
-            reqs[2] = m_mpi_comm->isend(send_neighbor,1,d_pos_stage.data,n_send_ptls);
-            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,d_pos.data+add_idx,n_recv_ptls);
+            MPI_Isend(d_pos_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, *m_mpi_comm, &reqs[2]);
+            MPI_Irecv(d_pos.data+add_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, *m_mpi_comm, &reqs[3]);
 
-            reqs[4] = m_mpi_comm->isend(send_neighbor,2,d_vel_stage.data,n_send_ptls);
-            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,d_vel.data+add_idx,n_recv_ptls);
+            MPI_Isend(d_vel_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, *m_mpi_comm, &reqs[4]);
+            MPI_Irecv(d_vel.data+add_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, *m_mpi_comm, &reqs[5]);
 
-            reqs[6] = m_mpi_comm->isend(send_neighbor,3,d_accel_stage.data,n_send_ptls);
-            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,d_accel.data+add_idx,n_recv_ptls);
+            MPI_Isend(d_accel_stage.data, n_send_ptls*sizeof(Scalar3), MPI_BYTE, send_neighbor, 3, *m_mpi_comm, &reqs[6]);
+            MPI_Irecv(d_accel.data+add_idx, n_recv_ptls*sizeof(Scalar3), MPI_BYTE, recv_neighbor, 3, *m_mpi_comm, &reqs[7]);
 
-            reqs[8] = m_mpi_comm->isend(send_neighbor,4,d_image_stage.data,n_send_ptls);
-            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,d_image.data+add_idx,n_recv_ptls);
+            MPI_Isend(d_image_stage.data, n_send_ptls*sizeof(int3), MPI_BYTE, send_neighbor, 4, *m_mpi_comm, &reqs[8]);
+            MPI_Irecv(d_image.data+add_idx, n_recv_ptls*sizeof(int3), MPI_BYTE, recv_neighbor, 4, *m_mpi_comm, &reqs[9]);
 
-            reqs[10] = m_mpi_comm->isend(send_neighbor,5,d_charge_stage.data,n_send_ptls);
-            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,d_charge.data+add_idx,n_recv_ptls);
+            MPI_Isend(d_charge_stage.data, n_send_ptls*sizeof(Scalar), MPI_BYTE, send_neighbor, 5, *m_mpi_comm, &reqs[10]);
+            MPI_Irecv(d_charge.data+add_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 5, *m_mpi_comm, &reqs[11]);
 
-            reqs[12] = m_mpi_comm->isend(send_neighbor,6,d_diameter_stage.data,n_send_ptls);
-            reqs[13] = m_mpi_comm->irecv(recv_neighbor,6,d_diameter.data+add_idx,n_recv_ptls);
+            MPI_Isend(d_diameter_stage.data, n_send_ptls*sizeof(Scalar), MPI_BYTE, send_neighbor, 6, *m_mpi_comm, &reqs[12]);
+            MPI_Irecv(d_diameter.data+add_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 6, *m_mpi_comm, &reqs[13]);
 
-            reqs[14] = m_mpi_comm->isend(send_neighbor,7,d_diameter_stage.data,n_send_ptls);
-            reqs[15] = m_mpi_comm->irecv(recv_neighbor,7,d_diameter.data+add_idx,n_recv_ptls);
+            MPI_Isend(d_tag_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, *m_mpi_comm, &reqs[14]);
+            MPI_Irecv(d_global_tag.data+add_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 6, *m_mpi_comm, &reqs[15]);
 
-            reqs[16] = m_mpi_comm->isend(send_neighbor,8,d_body_stage.data,n_send_ptls);
-            reqs[17] = m_mpi_comm->irecv(recv_neighbor,8,d_body.data+add_idx,n_recv_ptls);
-
-            reqs[18] = m_mpi_comm->isend(send_neighbor,9,d_tag_stage.data,n_send_ptls);
-            reqs[19] = m_mpi_comm->irecv(recv_neighbor,9,d_global_tag.data+add_idx,n_recv_ptls);
-            boost::mpi::wait_all(reqs+2,reqs+20);
+            MPI_Waitall(14,reqs+2, status+2);
             }
 
 #else
@@ -292,8 +272,6 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar> h_charge_stage(m_charge_stage, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter_stage(m_diameter_stage, access_location::host, access_mode::read);
             ArrayHandle<int3> h_image_stage(m_image_stage, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_body_stage(m_body_stage, access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_orientation_stage(m_orientation_stage, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_tag_stage(m_tag_stage, access_location::host, access_mode::read);
 
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -302,8 +280,6 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
 
 
@@ -329,9 +305,6 @@ void CommunicatorGPU::migrateAtoms()
 
             reqs[14] = m_mpi_comm->isend(send_neighbor,7,h_diameter_stage.data,n_send_ptls);
             reqs[15] = m_mpi_comm->irecv(recv_neighbor,7,h_diameter.data+adh_idx,n_recv_ptls);
-
-            reqs[16] = m_mpi_comm->isend(send_neighbor,8,h_body_stage.data,n_send_ptls);
-            reqs[17] = m_mpi_comm->irecv(recv_neighbor,8,h_body.data+adh_idx,n_recv_ptls);
 
             reqs[18] = m_mpi_comm->isend(send_neighbor,9,h_tag_stage.data,n_send_ptls);
             reqs[19] = m_mpi_comm->irecv(recv_neighbor,9,h_global_tag.data+adh_idx,n_recv_ptls);
@@ -359,8 +332,6 @@ void CommunicatorGPU::migrateAtoms()
         m_charge_stage.resize(max_n);
         m_diameter_stage.resize(max_n);
         m_image_stage.resize(max_n);
-        m_body_stage.resize(max_n);
-        m_orientation_stage.resize(max_n);
         m_tag_stage.resize(max_n);
 
         // resize mask and set newly allocated flags to zero
@@ -388,8 +359,6 @@ void CommunicatorGPU::migrateAtoms()
         ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
         ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
 
         ArrayHandle<Scalar4> d_pos_stage(m_pos_stage, access_location::device, access_mode::overwrite);
@@ -398,8 +367,6 @@ void CommunicatorGPU::migrateAtoms()
         ArrayHandle<Scalar> d_charge_stage(m_charge_stage, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_diameter_stage(m_diameter_stage, access_location::device, access_mode::overwrite);
         ArrayHandle<int3> d_image_stage(m_image_stage, access_location::device, access_mode::overwrite);
-        ArrayHandle<unsigned int> d_body_stage(m_body_stage, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_orientation_stage(m_orientation_stage, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_tag_stage(m_tag_stage, access_location::device, access_mode::overwrite);
 
         ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::read);
@@ -419,10 +386,6 @@ void CommunicatorGPU::migrateAtoms()
                                d_charge_stage.data,
                                d_diameter.data,
                                d_diameter_stage.data,
-                               d_body.data,
-                               d_body_stage.data,
-                               d_orientation.data,
-                               d_orientation_stage.data,
                                d_global_tag.data,
                                d_tag_stage.data);
         CHECK_CUDA_ERROR();
@@ -436,8 +399,6 @@ void CommunicatorGPU::migrateAtoms()
     m_pdata->getImages().swap(m_image_stage);
     m_pdata->getCharges().swap(m_charge_stage);
     m_pdata->getDiameters().swap(m_diameter_stage);
-    m_pdata->getBodies().swap(m_body_stage);
-    m_pdata->getOrientationArray().swap(m_orientation_stage);
     m_pdata->getGlobalTags().swap(m_tag_stage);
 
     m_pdata->removeParticles(n_remove_ptls);
