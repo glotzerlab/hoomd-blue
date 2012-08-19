@@ -619,7 +619,7 @@ def _create_exec_conf():
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:
         if globals.options.nrank is not None:
-            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, nrank);
+            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
         else:
             exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
     else:

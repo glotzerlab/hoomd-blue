@@ -113,7 +113,7 @@ def _parse_command_line():
     parser.add_option("--notice-level", dest="notice_level", help="Minimum level of notice messages to print");
     parser.add_option("--msg-file", dest="msg_file", help="Name of file to write messages to");
     parser.add_option("--shared-msg-file", dest="shared_msg_file", help="(MPI only) Name of shared file to write message to (append partition #)");
-    parser.add_option("--ranks-per-partition", dest="nrank", help="(MPI only) Number of ranks to include in a partition");
+    parser.add_option("--nrank", dest="nrank", help="(MPI only) Number of ranks to include in a partition");
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();
@@ -184,7 +184,7 @@ def _parse_command_line():
 
     if cmd_options.nrank is not None:
         if not hoomd.is_MPI_available():
-            globals.msg.error("The --ranks-per-partition option is only avaible in MPI builds.\n");
+            globals.msg.error("The --nrank option is only avaible in MPI builds.\n");
             raise RuntimeError('Error setting option');
         globals.options.nrank = int(cmd_options.nrank);
 
