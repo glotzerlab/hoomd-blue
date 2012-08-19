@@ -269,6 +269,9 @@ mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
     filename.copy(cfilename,len);
     cfilename[len] = '\0';
 
+    // overwrite old file
+    MPI_File_delete(cfilename, MPI_INFO_NULL);
+
     // open the log file
     int ret = MPI_File_open(m_mpi_comm, cfilename,  MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &m_file);
 
