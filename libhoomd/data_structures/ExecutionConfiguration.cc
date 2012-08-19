@@ -93,13 +93,13 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
                                                bool ignore_display,
                                                boost::shared_ptr<Messenger> _msg
 #ifdef ENABLE_MPI
-                                               , std::vector<unsigned int> partition,
+                                               , unsigned int n_ranks,
                                                bool init_mpi
 #endif
                                                )
     : m_cuda_error_checking(false), msg(_msg)
 #ifdef ENABLE_MPI
-    , m_rank(0), m_num_mpi_ranks(1), m_mpi_env(NULL)
+    , m_num_mpi_ranks(1), m_mpi_env(NULL)
 #endif
     {
     if (!msg)
@@ -132,7 +132,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
 
 #ifdef ENABLE_MPI
     if (init_mpi)
-        initializeMPI(partition);
+        initializeMPI(n_ranks);
 #endif
 
     setupStats();
@@ -153,13 +153,13 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool ignore_display,
                                                boost::shared_ptr<Messenger> _msg
 #ifdef ENABLE_MPI
-                                               , std::vector<unsigned int> partition,
+                                               , unsigned int n_ranks,
                                                bool init_mpi
 #endif
                                                )
     : m_cuda_error_checking(false), msg(_msg)
 #ifdef ENABLE_MPI
-    , m_rank(0), m_mpi_env(NULL)
+    , m_mpi_env(NULL)
 #endif
     {
     if (!msg)
@@ -185,7 +185,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
 #ifdef ENABLE_MPI
     if (init_mpi)
-        initializeMPI(partition);
+        initializeMPI(n_ranks);
 #endif
 
     setupStats();
@@ -207,7 +207,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
     }
 
 #ifdef ENABLE_MPI
-void ExecutionConfiguration::initializeMPI(std::vector<unsigned int> partition)
+void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     {
     m_mpi_env = new boost::mpi::environment();
 
@@ -217,45 +217,22 @@ void ExecutionConfiguration::initializeMPI(std::vector<unsigned int> partition)
     MPI_Comm_size(mpi_comm, &num_ranks);
     m_num_mpi_ranks = num_ranks;
 
-    m_partition = 0;
-    if (partition.size() != 0)
+    if  (n_ranks != 0)
         {
-        // Partition the communicator
-        
-        // check if the partitioning is correct
-        unsigned int cnt = 0;
-        std::vector<unsigned int>::iterator it;
-        for (it = partition.begin(); it != partition.end(); it++)
-            cnt += *it;
-        
         int  rank;
         MPI_Comm_rank(mpi_comm, &rank);
-        m_rank = rank;
 
-        if (cnt != m_num_mpi_ranks)
+        if (m_num_mpi_ranks % n_ranks != 0)
             {
-            if (m_rank == 0)
-                {
-                msg->error() << "Invalid partition. Total number of ranks must match size of communicator (" << m_num_mpi_ranks << ")" << std::endl;
-                }
-            throw(runtime_error("MPI setup error"));
+            msg->error() << "Unable to split communicator with requested setting --ranks-per-partition" << std::endl;
+            throw(runtime_error("Error setting up MPI."));
             }
 
-        cnt = 0;
-        for (it = partition.begin(); it != partition.end(); it++)
-            {
-            for (unsigned int i = cnt; i < cnt + *it; i++)
-                {
-                if (i == m_rank)
-                    {
-                    m_partition = it - partition.begin();
-                    }
-                }
-            cnt += *it;
-            }
+        m_partition = rank / n_ranks;
 
+        // Split the communicator
         MPI_Comm new_comm; 
-        MPI_Comm_split(mpi_comm, m_partition, m_rank, &new_comm);
+        MPI_Comm_split(mpi_comm, m_partition, rank, &new_comm);
 
         // update communicator
         mpi_comm = new_comm;
@@ -744,11 +721,11 @@ void export_ExecutionConfiguration()
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
                          ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger> >())
 #ifdef ENABLE_MPI
-                         .def(init< bool, bool, boost::shared_ptr<Messenger>, std::vector<unsigned int> >())
+                         .def(init< bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
 #endif 
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
 #ifdef ENABLE_MPI
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, std::vector<unsigned int> >())
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
 #endif
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)

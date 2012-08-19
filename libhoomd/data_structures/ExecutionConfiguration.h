@@ -105,7 +105,7 @@ struct ExecutionConfiguration : boost::noncopyable
                            bool ignore_display=false,
                            boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
 #ifdef ENABLE_MPI
-                           , std::vector<unsigned int> partition = std::vector<unsigned int>(),
+                           , unsigned int n_ranks = 0,
                            bool init_mpi = true
 #endif
                            );
@@ -117,7 +117,7 @@ struct ExecutionConfiguration : boost::noncopyable
                            bool ignore_display=false,
                            boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
 #ifdef ENABLE_MPI
-                           , std::vector<unsigned int> partition = std::vector<unsigned int>(),
+                           , unsigned int n_ranks = 0,
                            bool init_mpi = true
 #endif
                            );
@@ -245,10 +245,9 @@ private:
 #endif
   
 #ifdef ENABLE_MPI
-    void initializeMPI(std::vector<unsigned int>);          //!< Initialize MPI environment
+    void initializeMPI(unsigned int n_ranks);               //!< Initialize MPI environment
 
     unsigned int m_partition;                               //!< The partition number
-    unsigned int m_rank;                                    //!< This processor's MPI rank
     unsigned int m_num_mpi_ranks;                           //!< The total number of MPI ranks
 
     boost::mpi::environment *m_mpi_env;                     //!< The boost.MPI environment
