@@ -47,7 +47,6 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 // Maintainer: joaander
 
 #include "ExecutionConfiguration.h"
@@ -100,16 +99,13 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
                                                )
     : m_cuda_error_checking(false), msg(_msg)
 #ifdef ENABLE_MPI
-    , m_root(0), m_mpi_env(NULL)
+    , m_rank(0), m_num_mpi_ranks(1), m_mpi_env(NULL)
 #endif
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << min_cpu << " " << ignore_display << endl;
-
-    // preliminarily setup rank
-    msg->setRank(guessRank());
 
 #ifdef ENABLE_CUDA
     // scan the available GPUs
@@ -163,7 +159,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                )
     : m_cuda_error_checking(false), msg(_msg)
 #ifdef ENABLE_MPI
-    , m_root(0), m_mpi_env(NULL)
+    , m_rank(0), m_mpi_env(NULL)
 #endif
     {
     if (!msg)
@@ -172,9 +168,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
     
-    // preliminarily setup rank
-    msg->setRank(guessRank());
-
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -220,6 +213,10 @@ void ExecutionConfiguration::initializeMPI(std::vector<unsigned int> partition)
 
     MPI_Comm mpi_comm = MPI_COMM_WORLD;
 
+    int num_ranks;
+    MPI_Comm_size(mpi_comm, &num_ranks);
+    m_num_mpi_ranks = num_ranks;
+
     m_partition = 0;
     if (partition.size() != 0)
         {
@@ -231,16 +228,15 @@ void ExecutionConfiguration::initializeMPI(std::vector<unsigned int> partition)
         for (it = partition.begin(); it != partition.end(); it++)
             cnt += *it;
         
-        int  size;
-        MPI_Comm_size(mpi_comm,&size); 
-        int rank;
+        int  rank;
         MPI_Comm_rank(mpi_comm, &rank);
+        m_rank = rank;
 
-        if (cnt != (unsigned int) size) 
+        if (cnt != m_num_mpi_ranks)
             {
-            if (rank == 0)
+            if (m_rank == 0)
                 {
-                msg->error() << "Invalid partition. Total number of ranks must match size of communicator (" << size << ")" << std::endl;
+                msg->error() << "Invalid partition. Total number of ranks must match size of communicator (" << m_num_mpi_ranks << ")" << std::endl;
                 }
             throw(runtime_error("MPI setup error"));
             }
@@ -250,23 +246,25 @@ void ExecutionConfiguration::initializeMPI(std::vector<unsigned int> partition)
             {
             for (unsigned int i = cnt; i < cnt + *it; i++)
                 {
-                if (i == (unsigned int)rank)
+                if (i == m_rank)
                     {
                     m_partition = it - partition.begin();
-                    m_root = cnt;
                     }
                 }
             cnt += *it;
             }
 
         MPI_Comm new_comm; 
-        MPI_Comm_split(mpi_comm, m_partition, rank, &new_comm);
+        MPI_Comm_split(mpi_comm, m_partition, m_rank, &new_comm);
 
         // update communicator
         mpi_comm = new_comm;
         }
 
-    setMPICommunicator(boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator(mpi_comm,boost::mpi::comm_attach)));
+    m_mpi_comm = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator(mpi_comm,boost::mpi::comm_attach));
+
+    msg->setRank(m_mpi_comm->rank(),m_partition);
+    msg->setMPICommunicator(m_mpi_comm);
     }
 #endif
 
@@ -703,7 +701,6 @@ int ExecutionConfiguration::guessLocalRank()
     return -1;
     }
 
-
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
 */
 void ExecutionConfiguration::setupStats()
@@ -745,8 +742,14 @@ void ExecutionConfiguration::setupStats()
 void export_ExecutionConfiguration()
     {
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-                         ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger>, std::vector<unsigned int> >())
+                         ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger> >())
+#ifdef ENABLE_MPI
+                         .def(init< bool, bool, boost::shared_ptr<Messenger>, std::vector<unsigned int> >())
+#endif 
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
+#ifdef ENABLE_MPI
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, std::vector<unsigned int> >())
+#endif
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
                          .def("getGPUName", &ExecutionConfiguration::getGPUName)
@@ -759,6 +762,7 @@ void export_ExecutionConfiguration()
                          .def("getMPICommunicator", &ExecutionConfiguration::getMPICommunicator)
                          .def("getMPIPartition", &ExecutionConfiguration::getMPIPartition)
                          .def("getMPIPartitionSize", &ExecutionConfiguration::getMPIPartitionSize)
+                         .def("getNumMPIRanks", &ExecutionConfiguration::getNumMPIRanks)
 #endif
                          ;
                          

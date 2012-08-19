@@ -574,7 +574,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     if (m_decomposition)
         {
         // gather box information from all processors
-        unsigned int root = m_exec_conf->getMPIRoot();
+        unsigned int root = 0;
 
         // Define per-processor particle data
         std::vector< std::vector<Scalar3> > pos_proc;              // Position array of every processor
@@ -606,7 +606,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         global_tag_proc.resize(size);
         N_proc.resize(size);
 
-        if (my_rank == m_exec_conf->getMPIRoot())
+        if (my_rank == 0)
             {
             Scalar3 scale = m_global_box.getL() / m_box.getL();
             const Index3D& di = m_decomposition->getDomainIndexer();
@@ -883,7 +883,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         body_proc.resize(size);
         rtag_map_proc.resize(size);
 
-        unsigned int root = m_exec_conf->getMPIRoot();
+        unsigned int root = 0;
 
         // collect all particle data on the root processor
         boost::mpi::gather(*mpi_comm, pos, pos_proc, root);

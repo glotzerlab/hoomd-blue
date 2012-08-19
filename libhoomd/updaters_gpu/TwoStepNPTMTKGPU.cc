@@ -226,7 +226,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     if (m_comm)
         {
         assert(m_exec_conf->getMPICommunicator()->size());
-        unsigned int root = m_exec_conf->getMPIRoot();
+        unsigned int root = 0;
         // broadcast integrator variables from rank 0 to other processors
         broadcast(*m_exec_conf->getMPICommunicator(), eta, root);
         broadcast(*m_exec_conf->getMPICommunicator(), xi,  root);
@@ -425,7 +425,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     if (m_comm)
         {
         assert(m_exec_conf->getMPICommunicator()->size());
-        unsigned int root = m_exec_conf->getMPIRoot();
+        unsigned int root = 0;
         // broadcast integrator variables from rank 0 to other processors
         broadcast(*m_exec_conf->getMPICommunicator(), eta, root);
         broadcast(*m_exec_conf->getMPICommunicator(), xi, root);

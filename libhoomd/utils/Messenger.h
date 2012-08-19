@@ -62,6 +62,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include <boost/mpi.hpp>
+#include <boost/iostreams/stream.hpp>
+#include <boost/iostreams/categories.hpp>
+
+namespace io = boost::iostreams;
 #endif 
 
 #ifdef NVCC
@@ -79,6 +83,38 @@ struct nullstream: std::ostream
     //! Construct a null stream
     nullstream(): std::ios(0), std::ostream(0) {}
     };
+
+#ifdef ENABLE_MPI
+//! Class that supports writing to a shared log file using MPI-IO
+class mpi_io
+    {
+    public:
+        //! Defintions used by boost::iostreams
+        typedef char         char_type;
+        typedef io::sink_tag category;
+
+        //! Constructor
+        mpi_io(const MPI_Comm& mpi_comm, const std::string& filename);
+        virtual ~mpi_io() { };
+
+        //! Close the log file
+        void close(); 
+
+        //! \return true if file is open
+        bool is_open()
+            {
+            return m_file_open;
+            }
+
+        //! Write a sequence of characters
+        std::streamsize write ( const char * s, std::streamsize n );
+
+    private:
+        const MPI_Comm& m_mpi_comm; //!< The MPI communciator
+        MPI_File m_file;            //!< The file handle
+        bool m_file_open;           //!< Whether the file is open
+    };
+#endif
 
 //! Utility class for controlling message printing
 /*! Large code projects need something more inteligent than just cout's for warning and
@@ -180,21 +216,22 @@ class Messenger
         void noticeStr(unsigned int level, const std::string& msg) const;
 
         //! Set processor rank
-        /*! All messages are prefixed with rank information.
+        /*! Error and warning messages are prefixed with rank information.
 
-            Messages are only output on processor 0.
+            Notice messages are only output on processor with rank 0.
 
             \param rank This processor's rank
+
          */ 
-        void setRank(unsigned int rank)
+        void setRank(unsigned int rank, unsigned int partition)
             {
             // prefix all messages with rank information
             std::ostringstream oss;
-            oss << "Rank " << rank << " ";
+            oss << "(" << rank << ")";
             m_rank_prefix = oss.str();
-
-            if (rank != 0)
-                m_notice_level = 0;
+            m_rank = rank;
+            m_notice_level = (m_rank == 0) ? m_default_notice_level :0;
+            m_partition = partition;
             }
 
 
@@ -205,6 +242,10 @@ class Messenger
         void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
             {
             m_mpi_comm = mpi_comm;
+
+            // open shared log file if necessary
+            if (m_shared_filename != "")
+                openSharedFile();
             }
 #endif
 
@@ -312,6 +353,19 @@ class Messenger
         //! Open a file for error, warning, and notice streams
         void openFile(const std::string& fname);
 
+#ifdef ENABLE_MPI
+        //! Request logging of notices, warning and errors into shared log file
+        /*! \param fname The filenam
+         */
+        void setSharedFile(const std::string& fname)
+            {
+            m_shared_filename = fname;
+
+            if (m_mpi_comm)
+                openSharedFile();
+            }
+#endif
+
         //! Open stdout and stderr again, closing any open file
         void openStd();
     private:
@@ -322,17 +376,25 @@ class Messenger
         std::ostringstream m_collective_notice_stream;  //!< String for serialized notices
 
         boost::shared_ptr<nullstream>    m_nullstream;   //!< null stream
-        boost::shared_ptr<std::ofstream> m_file;         //!< File stream
+        boost::shared_ptr<std::ostream>  m_file;           //!< File stream
 
         std::string m_err_prefix;       //!< Prefix for error messages
         std::string m_warning_prefix;   //!< Prefix for warning messages
         std::string m_notice_prefix;    //!< Prefix for notice messages
 
         unsigned int m_notice_level;    //!< Notice level
+        unsigned int m_default_notice_level; //!< Initial notice level
 
         std::string m_rank_prefix;      //!< Prefix indicating processor rank
+        unsigned int m_rank;            //!< The MPI rank (default 0)
+        unsigned int m_partition;       //!< The MPI partition
+
 #ifdef ENABLE_MPI
+        std::string m_shared_filename;  //!< Filename of shared log file
         boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The MPI communicator
+
+        //! Open a shared file for error, warning, and notice streams
+        void openSharedFile();
 #endif
     };
 

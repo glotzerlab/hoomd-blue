@@ -81,6 +81,7 @@ class options:
         self.user = [];
         self.notice_level = 2;
         self.msg_file = None;
+        self.shared_msg_file = None;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -91,7 +92,8 @@ class options:
                    ignore_display=self.ignore_display,
                    user=self.user,
                    notice_level=self.notice_level,
-                   msg_file=self.msg_file);
+                   msg_file=self.msg_file,
+                   shared_msg_file=self.shared_msg_file);
         return str(tmp);
 
 ## Parses command line options
@@ -108,6 +110,7 @@ def _parse_command_line():
     parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
     parser.add_option("--notice-level", dest="notice_level", help="Minimum level of notice messages to print");
     parser.add_option("--msg-file", dest="msg_file", help="Name of file to write messages to");
+    parser.add_option("--shared-msg-file", dest="shared_msg_file", help="(MPI only) Name of shared file to write message to (append partition #)");
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();
@@ -168,6 +171,13 @@ def _parse_command_line():
     if cmd_options.msg_file is not None:
         globals.options.msg_file = cmd_options.msg_file;
         globals.msg.openFile(globals.options.msg_file);
+
+    if cmd_options.shared_msg_file is not None:
+        if not hoomd.is_MPI_available():
+            globals.msg.error("Shared log files are only available in MPI builds\n");
+            raise RuntimeError('Error setting option');
+        globals.options.shared_msg_file = cmd_options.shared_msg_file;
+        globals.msg.setSharedFile(globals.options.shared_msg_file);
 
     if cmd_options.user is not None:
         globals.options.user = shlex.split(cmd_options.user);

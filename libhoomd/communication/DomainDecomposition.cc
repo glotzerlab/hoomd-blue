@@ -87,7 +87,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     {
     unsigned int rank = m_mpi_comm->rank();
 
-    if (rank == m_exec_conf->getMPIRoot())
+    if (rank == 0)
         {
         bool found_decomposition = findDecomposition(L, nx, ny, nz);
         if (! found_decomposition)
@@ -111,12 +111,12 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     // calculate physical box dimensions of every processor
 
     // broadcast global box dimensions
-    boost::mpi::broadcast(*m_mpi_comm, L, m_exec_conf->getMPIRoot());
+    boost::mpi::broadcast(*m_mpi_comm, L, 0);
 
     // broadcast grid dimensions
-    boost::mpi::broadcast(*m_mpi_comm, m_nx, m_exec_conf->getMPIRoot());
-    boost::mpi::broadcast(*m_mpi_comm, m_ny, m_exec_conf->getMPIRoot());
-    boost::mpi::broadcast(*m_mpi_comm, m_nz, m_exec_conf->getMPIRoot());
+    boost::mpi::broadcast(*m_mpi_comm, m_nx, 0);
+    boost::mpi::broadcast(*m_mpi_comm, m_ny, 0);
+    boost::mpi::broadcast(*m_mpi_comm, m_nz, 0);
 
     // Initialize domain indexer
     m_index = Index3D(m_nx,m_ny,m_nz);

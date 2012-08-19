@@ -222,8 +222,8 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
         {
         assert(m_exec_conf->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_exec_conf->getMPICommunicator(), eta, m_exec_conf->getMPIRoot());
-        broadcast(*m_exec_conf->getMPICommunicator(), xi, m_exec_conf->getMPIRoot());
+        broadcast(*m_exec_conf->getMPICommunicator(), eta, 0);
+        broadcast(*m_exec_conf->getMPICommunicator(), xi, 0);
         }
 #endif
 

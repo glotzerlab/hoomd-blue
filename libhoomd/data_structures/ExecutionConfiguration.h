@@ -130,18 +130,6 @@ struct ExecutionConfiguration : boost::noncopyable
         {
         return m_mpi_comm;
         }
-
-    //! Set the MPI Communciator
-    /*! \param mpi_comm The MPI Communicator
-     */
-    void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
-        {
-        assert(mpi_comm);
-
-        m_mpi_comm = mpi_comm;
-        msg->setRank(m_mpi_comm->rank());
-        msg->setMPICommunicator(m_mpi_comm);
-        }
 #endif
 
     //! Guess rank of this processor
@@ -214,18 +202,17 @@ struct ExecutionConfiguration : boost::noncopyable
         MPI_Comm_size(*m_mpi_comm, &size);
         return size;
         }
-
-    //! Returns the root rank of this partition
-    unsigned int getMPIRoot() const
+    //! Returns the total number of ranks in this simulation
+    unsigned int getNumMPIRanks() const
         {
-        return m_root;
+        return m_num_mpi_ranks;
         }
 
     //! Returns true if this is the root processor
     bool isMPIRoot() const
         {
         assert(m_mpi_comm);
-        return ((unsigned int) m_mpi_comm->rank()  == m_root);
+        return ((unsigned int) m_mpi_comm->rank()  == 0);
         }
 #endif
 
@@ -261,7 +248,8 @@ private:
     void initializeMPI(std::vector<unsigned int>);          //!< Initialize MPI environment
 
     unsigned int m_partition;                               //!< The partition number
-    unsigned int m_root;                                    //!< The root rank fo this partition
+    unsigned int m_rank;                                    //!< This processor's MPI rank
+    unsigned int m_num_mpi_ranks;                           //!< The total number of MPI ranks
 
     boost::mpi::environment *m_mpi_env;                     //!< The boost.MPI environment
     boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The boost.MPI communicator
