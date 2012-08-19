@@ -69,35 +69,25 @@ def init_domain_decomposition(mpi_options):
             globals.msg.error("Possible internal error! Cannot create domain decomposition before initialization.\n")
             raise RuntimeError('Error setting up domain decomposition');
 
-        # options for this partition
-        this_options = dict()
-
         if mpi_options is not None:
-            if type(mpi_options) != type([]):
-                globals.msg.error("MPI options specified incorrectly. See documentation.\n")
-                raise RuntimeError('Error setting up domain decomposition');
-   
-            if type(mpi_options) != type([]):
+            if type(mpi_options) != type(dict()):
                 globals.msg.error("MPI options parameters specified incorrectly. See documentation.\n")
                 raise RuntimeError('Error setting up domain decomposition');
+        else:
+            mpi_options = dict()
 
-            this_partition = globals.exec_conf.getMPIPartition()
-            this_options = mpi_options[this_partition % len(mpi_options)]
-
-        if type(this_options) != type(dict()):
-            globals.msg.error("MPI options specified incorrectly. See documentation.\n")
         # default values for arguents
         nx = ny = nz = 0
         linear = False
 
-        if 'nx' in this_options:
-            nx = this_options['nx']
-        if 'ny' in this_options:
-            ny = this_options['ny']
-        if 'nz' in this_options:
-            nz = this_options['nz']
-        if 'linear' in this_options:
-            linear = this_options['linear']
+        if 'nx' in mpi_options:
+            nx = mpi_options['nx']
+        if 'ny' in mpi_options:
+            ny = mpi_options['ny']
+        if 'nz' in mpi_options:
+            nz = mpi_options['nz']
+        if 'linear' in mpi_options:
+            linear = mpi_options['linear']
 
         mpi_comm = globals.exec_conf.getMPICommunicator()
 
