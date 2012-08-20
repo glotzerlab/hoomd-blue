@@ -382,10 +382,12 @@ void Communicator::migrateAtoms()
         unsigned int n_recv_ptls;
 
         // communicate size of the message that will contain the particle data
-        boost::mpi::request reqs[2];
-        reqs[0] = m_mpi_comm->isend(send_neighbor,0,n_send_ptls);
-        reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,n_recv_ptls);
-        boost::mpi::wait_all(reqs,reqs+2);
+        MPI_Request reqs[2];
+        MPI_Status status[2];
+
+        MPI_Isend(&n_send_ptls, sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, *m_mpi_comm, & reqs[0]);
+        MPI_Irecv(&n_recv_ptls, sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, *m_mpi_comm, & reqs[1]);
+        MPI_Waitall(2, reqs, status);
 
         // Resize receive buffer 
         m_recvbuf.resize(n_recv_ptls*m_packed_size);
@@ -394,9 +396,9 @@ void Communicator::migrateAtoms()
             ArrayHandle<char> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
             // exchange actual particle data
-            reqs[0] = m_mpi_comm->isend(send_neighbor,1,h_sendbuf.data,n_send_ptls*m_packed_size);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,h_recvbuf.data,n_recv_ptls*m_packed_size);
-            boost::mpi::wait_all(reqs,reqs+2);
+            MPI_Isend(h_sendbuf.data, n_send_ptls*m_packed_size, MPI_BYTE, send_neighbor, 1, *m_mpi_comm, & reqs[0]);
+            MPI_Irecv(h_recvbuf.data, n_recv_ptls*m_packed_size, MPI_BYTE, recv_neighbor, 1, *m_mpi_comm, & reqs[1]);
+            MPI_Waitall(2, reqs, status);
             }
 
         if (m_prof)
@@ -487,17 +489,6 @@ void Communicator::migrateAtoms()
                 }
             }
         } // end dir loop
-
-#ifndef NDEBUG
-    // check that global number of particles is conserved
-    unsigned int N;
-    reduce(*m_mpi_comm,m_pdata->getN(), N, std::plus<unsigned int>(), 0);
-    if (m_mpi_comm->rank() == 0 && N != m_pdata->getNGlobal())
-        {
-        cerr << endl << "***Error! Global number of particles has changed unexpectedly." << endl << endl;
-        throw runtime_error("Error in MPI communication.");
-        }
-#endif
 
     // notify ParticleData that addition / removal of particles is complete
     m_pdata->notifyParticleSort();
@@ -676,10 +667,12 @@ void Communicator::exchangeGhosts()
             m_prof->push("MPI send/recv");
 
         // communicate size of the message that will contain the particle data
-        boost::mpi::request reqs[12];
-        reqs[0] = m_mpi_comm->isend(send_neighbor,0,m_num_copy_ghosts[dir]);
-        reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,m_num_recv_ghosts[dir]);
-        boost::mpi::wait_all(reqs,reqs+2);
+        MPI_Request reqs[12];
+        MPI_Status status[12];
+
+        MPI_Isend(&m_num_copy_ghosts[dir], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, *m_mpi_comm, &reqs[0]); 
+        MPI_Irecv(&m_num_recv_ghosts[dir], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, *m_mpi_comm, &reqs[1]);
+        MPI_Waitall(2, reqs, status);
 
         if (m_prof)
             m_prof->pop();
@@ -710,22 +703,22 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
 
-            reqs[2] = m_mpi_comm->isend(send_neighbor,1,h_plan_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_plan.data + start_idx, m_num_recv_ghosts[dir]);
+            MPI_Isend(h_plan_copybuf.data, m_num_copy_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, send_neighbor, 1, *m_mpi_comm, &reqs[2]);
+            MPI_Irecv(h_plan.data + start_idx, m_num_recv_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, recv_neighbor, 1, *m_mpi_comm, &reqs[3]);
 
-            reqs[4] = m_mpi_comm->isend(send_neighbor,2,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
+            MPI_Isend(h_pos_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, *m_mpi_comm, &reqs[4]);
+            MPI_Irecv(h_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, *m_mpi_comm, &reqs[5]);
 
-            reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_copy_ghosts.data, m_num_copy_ghosts[dir]);
-            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_global_tag.data + start_idx, m_num_recv_ghosts[dir]);
+            MPI_Isend(h_copy_ghosts.data, m_num_copy_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, send_neighbor, 3, *m_mpi_comm, &reqs[6]);
+            MPI_Irecv(h_global_tag.data + start_idx, m_num_recv_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 3, *m_mpi_comm, &reqs[7]);
 
-            reqs[8] = m_mpi_comm->isend(send_neighbor,4,h_charge_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_charge.data + start_idx, m_num_recv_ghosts[dir]);
+            MPI_Isend(h_charge_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 4, *m_mpi_comm, &reqs[8]);
+            MPI_Irecv(h_charge.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 4, *m_mpi_comm, &reqs[9]);
 
-            reqs[10] = m_mpi_comm->isend(send_neighbor,5,h_diameter_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_diameter.data + start_idx, m_num_recv_ghosts[dir]);
-
-            boost::mpi::wait_all(reqs+2,reqs+12);
+            MPI_Isend(h_diameter_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 5, *m_mpi_comm, &reqs[10]);
+            MPI_Irecv(h_diameter.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 5, *m_mpi_comm, &reqs[11]);
+            
+            MPI_Waitall(10, reqs+2, status+2);
             }
 
         if (m_prof)
@@ -825,17 +818,17 @@ void Communicator::copyGhosts()
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
 
-
             {
-            boost::mpi::request reqs[2];
+            MPI_Request reqs[2];
+            MPI_Status status[2];
 
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            reqs[0] = m_mpi_comm->isend(send_neighbor,1,h_pos_copybuf.data, m_num_copy_ghosts[dir]);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,1,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
-            boost::mpi::wait_all(reqs,reqs+2);
+            MPI_Isend(h_pos_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, *m_mpi_comm, &reqs[0]);
+            MPI_Irecv(h_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, *m_mpi_comm, &reqs[1]);
+            MPI_Waitall(2, reqs, status);
             }
 
 

@@ -450,18 +450,6 @@ void CommunicatorGPU::migrateAtoms()
         }
 
  
-#ifndef NDEBUG
-    // check that total particle number is conserved
-    unsigned int N;
-    reduce(*m_mpi_comm,m_pdata->getN(), N, std::plus<unsigned int>(), 0);
-    if (m_mpi_comm->rank() == 0 && N != m_pdata->getNGlobal())
-        {
-        cerr << endl << "***Error! Global number of particles has changed unexpectedly (" <<
-                N << " != " << m_pdata->getNGlobal() << ")." << endl << endl;
-        throw runtime_error("Error in MPI communication.");
-        }
-#endif
-
     // notify ParticleData that addition / removal of particles is complete
     m_pdata->notifyParticleSort();
 
