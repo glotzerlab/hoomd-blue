@@ -104,7 +104,7 @@ std::ostream& Messenger::error() const
     {
     assert(m_err_stream);
     if (m_err_prefix != string(""))
-        *m_err_stream << m_rank_prefix << m_err_prefix << ": ";
+        *m_err_stream << m_err_prefix << m_rank_prefix << ": ";
     return *m_err_stream;
     }
 
