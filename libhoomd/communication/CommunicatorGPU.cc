@@ -819,8 +819,9 @@ void CommunicatorGPU::copyGhosts()
 
             if (m_prof)
                 {
-                unsigned int n = m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir]+m_num_recv_ghosts[dir+1]+m_num_copy_ghosts[dir+1];
+                unsigned int n = m_num_recv_ghosts[dir-1]+m_num_copy_ghosts[dir-1]+m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir];
                 m_prof->pop(0, n*sizeof(Scalar4));
+                }
             }
 
         } // end dir loop
