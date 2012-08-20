@@ -1069,7 +1069,7 @@ Scalar3 ParticleData::getPosition(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar3 result;
+    Scalar3 result = make_scalar3(0.0,0.0,0.0);
     if (found)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
@@ -1092,7 +1092,7 @@ Scalar3 ParticleData::getVelocity(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar3 result;
+    Scalar3 result = make_scalar3(0.0,0.0,0.0);
     if (found)
         {
         ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
@@ -1115,7 +1115,7 @@ Scalar3 ParticleData::getAcceleration(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar3 result;
+    Scalar3 result = make_scalar3(0.0,0.0,0.0);
     if (found)
         {
         ArrayHandle< Scalar3 > h_accel(m_accel, access_location::host, access_mode::read);
@@ -1138,7 +1138,7 @@ int3 ParticleData::getImage(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    int3 result;
+    int3 result = make_int3(0,0,0);
     if (found)
         {
         ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::read);
@@ -1161,7 +1161,7 @@ Scalar ParticleData::getCharge(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar result;
+    Scalar result = 0.0;
     if (found)
         {
         ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::read);
@@ -1184,7 +1184,7 @@ Scalar ParticleData::getMass(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar result;
+    Scalar result = 0.0;
     if (found)
         {
         ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
@@ -1207,7 +1207,7 @@ Scalar ParticleData::getDiameter(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar result;
+    Scalar result = 0.0;
     if (found)
         {
         ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::read);
@@ -1230,7 +1230,7 @@ unsigned int ParticleData::getBody(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    unsigned int result;
+    unsigned int result = 0;
     if (found)
         {
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
@@ -1253,7 +1253,7 @@ unsigned int ParticleData::getType(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    unsigned int result;
+    unsigned int result = 0;
     if (found)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
@@ -1276,7 +1276,7 @@ Scalar4 ParticleData::getOrientation(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar4 result;
+    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
     if (found)
         {
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::read);
@@ -1299,7 +1299,7 @@ Scalar4 ParticleData::getPNetForce(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar4 result;
+    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
     if (found)
         {
         ArrayHandle< Scalar4 > h_net_force(m_net_force, access_location::host, access_mode::read);
@@ -1323,7 +1323,7 @@ Scalar4 ParticleData::getNetTorque(unsigned int global_tag) const
     {
     unsigned int idx = getGlobalRTag(global_tag);
     bool found = (idx < getN());
-    Scalar4 result;
+    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
     if (found)
         {
         ArrayHandle< Scalar4 > h_net_torque(m_net_torque, access_location::host, access_mode::read);
@@ -1612,7 +1612,9 @@ void export_ParticleData()
     .def("setInertiaTensor", &ParticleData::setInertiaTensor)
     .def("takeSnapshot", &ParticleData::takeSnapshot)
     .def("initializeFromSnapshot", &ParticleData::initializeFromSnapshot)
+#ifdef ENABLE_MPI
     .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
+#endif
     ;
     }
 
