@@ -124,6 +124,8 @@ struct pdata_element
     float charge;             //!< Charge
     float diameter;           //!< Diameter
     int3 image;               //!< Image
+    unsigned int body;        //!< Body id
+    float4 orientation;       //!< Orientation
     unsigned int global_tag;  //!< global tag
     };
 

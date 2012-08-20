@@ -231,6 +231,8 @@ void Communicator::migrateAtoms()
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
 
             /* Reorder particles.
@@ -292,6 +294,16 @@ void Communicator::migrateAtoms()
                 h_image.data[i] = int3_tmp[i];
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                scal4_tmp[i] = h_orientation.data[sort_keys[i]];
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                h_orientation.data[i] = scal4_tmp[i];
+
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                uint_tmp[i] = h_body.data[sort_keys[i]];
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                h_body.data[i] = uint_tmp[i];
+
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 uint_tmp[i] = h_global_tag.data[sort_keys[i]];
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 h_global_tag.data[i] = uint_tmp[i];
@@ -321,6 +333,8 @@ void Communicator::migrateAtoms()
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
 
             ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
@@ -339,6 +353,8 @@ void Communicator::migrateAtoms()
                 p.charge = h_charge.data[idx];
                 p.diameter = h_diameter.data[idx];
                 p.image = h_image.data[idx];
+                p.body = h_body.data[idx];
+                p.orientation = h_orientation.data[idx];
                 p.global_tag = h_global_tag.data[idx];
 
                 // Reset the global rtag for the particle we are sending to indicate it is no longer local
@@ -444,6 +460,8 @@ void Communicator::migrateAtoms()
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
 
@@ -459,6 +477,8 @@ void Communicator::migrateAtoms()
                 h_charge.data[add_idx] = p.charge;
                 h_diameter.data[add_idx] = p.diameter;
                 h_image.data[add_idx] = p.image;
+                h_body.data[add_idx] = p.body;
+                h_orientation.data[add_idx] = p.orientation;
                 h_global_tag.data[add_idx] = p.global_tag;
 
                 assert(h_global_rtag.data[h_global_tag.data[add_idx]] == NOT_LOCAL);
