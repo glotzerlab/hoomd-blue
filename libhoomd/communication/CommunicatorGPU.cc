@@ -273,14 +273,14 @@ void CommunicatorGPU::migrateAtoms()
             MPI_Isend(d_diameter_stage.data, n_send_ptls*sizeof(Scalar), MPI_BYTE, send_neighbor, 6, *m_mpi_comm, &reqs[12]);
             MPI_Irecv(d_diameter.data+add_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 6, *m_mpi_comm, &reqs[13]);
 
-            MPI_Isend(d_tag_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, *m_mpi_comm, &reqs[14]);
-            MPI_Irecv(d_global_tag.data+add_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 6, *m_mpi_comm, &reqs[15]);
+            MPI_Isend(d_tag_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, *m_mpi_comm, &reqs[14]);
+            MPI_Irecv(d_global_tag.data+add_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 7, *m_mpi_comm, &reqs[15]);
 
-            MPI_Isend(d_body_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, *m_mpi_comm, &reqs[16]);
-            MPI_Irecv(d_body.data+add_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 7, *m_mpi_comm, &reqs[17]);
+            MPI_Isend(d_body_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, *m_mpi_comm, &reqs[16]);
+            MPI_Irecv(d_body.data+add_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 8, *m_mpi_comm, &reqs[17]);
 
-            MPI_Isend(d_orientation_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 8, *m_mpi_comm, &reqs[18]);
-            MPI_Irecv(d_orientation.data+add_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 8, *m_mpi_comm, &reqs[19]);
+            MPI_Isend(d_orientation_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 9, *m_mpi_comm, &reqs[18]);
+            MPI_Irecv(d_orientation.data+add_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 9, *m_mpi_comm, &reqs[19]);
 
             MPI_Waitall(18,reqs+2, status+2);
             }
@@ -307,36 +307,34 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<unsigned> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
 
+            MPI_Isend(h_pos_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, *m_mpi_comm, &reqs[2]);
+            MPI_Irecv(h_pos.data+adh_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, *m_mpi_comm, &reqs[3]);
 
+            MPI_Isend(h_vel_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, *m_mpi_comm, &reqs[4]);
+            MPI_Irecv(h_vel.data+adh_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, *m_mpi_comm, &reqs[5]);
 
-            // exchange actual particle data
-            reqs[2] = m_mpi_comm->isend(send_neighbor,1,h_pos_stage.data,n_send_ptls);
-            reqs[3] = m_mpi_comm->irecv(recv_neighbor,1,h_pos.data+adh_idx,n_recv_ptls);
+            MPI_Isend(h_accel_stage.data, n_send_ptls*sizeof(Scalar3), MPI_BYTE, send_neighbor, 3, *m_mpi_comm, &reqs[6]);
+            MPI_Irecv(h_accel.data+adh_idx, n_recv_ptls*sizeof(Scalar3), MPI_BYTE, recv_neighbor, 3, *m_mpi_comm, &reqs[7]);
 
-            reqs[4] = m_mpi_comm->isend(send_neighbor,2,h_vel_stage.data,n_send_ptls);
-            reqs[5] = m_mpi_comm->irecv(recv_neighbor,2,h_vel.data+adh_idx,n_recv_ptls);
+            MPI_Isend(h_image_stage.data, n_send_ptls*sizeof(int3), MPI_BYTE, send_neighbor, 4, *m_mpi_comm, &reqs[8]);
+            MPI_Irecv(h_image.data+adh_idx, n_recv_ptls*sizeof(int3), MPI_BYTE, recv_neighbor, 4, *m_mpi_comm, &reqs[9]);
 
-            reqs[6] = m_mpi_comm->isend(send_neighbor,3,h_accel_stage.data,n_send_ptls);
-            reqs[7] = m_mpi_comm->irecv(recv_neighbor,3,h_accel.data+adh_idx,n_recv_ptls);
+            MPI_Isend(h_charge_stage.data, n_send_ptls*sizeof(Scalar), MPI_BYTE, send_neighbor, 5, *m_mpi_comm, &reqs[10]);
+            MPI_Irecv(h_charge.data+adh_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 5, *m_mpi_comm, &reqs[11]);
 
-            reqs[8] = m_mpi_comm->isend(send_neighbor,4,h_image_stage.data,n_send_ptls);
-            reqs[9] = m_mpi_comm->irecv(recv_neighbor,4,h_image.data+adh_idx,n_recv_ptls);
+            MPI_Isend(h_diameter_stage.data, n_send_ptls*sizeof(Scalar), MPI_BYTE, send_neighbor, 6, *m_mpi_comm, &reqs[12]);
+            MPI_Irecv(h_diameter.data+adh_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 6, *m_mpi_comm, &reqs[13]);
 
-            reqs[10] = m_mpi_comm->isend(send_neighbor,5,h_charge_stage.data,n_send_ptls);
-            reqs[11] = m_mpi_comm->irecv(recv_neighbor,5,h_charge.data+adh_idx,n_recv_ptls);
+            MPI_Isend(h_tag_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, *m_mpi_comm, &reqs[14]);
+            MPI_Irecv(h_global_tag.data+adh_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 7, *m_mpi_comm, &reqs[15]);
 
-            reqs[12] = m_mpi_comm->isend(send_neighbor,6,h_diameter_stage.data,n_send_ptls);
-            reqs[13] = m_mpi_comm->irecv(recv_neighbor,6,h_diameter.data+adh_idx,n_recv_ptls);
+            MPI_Isend(h_body_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, *m_mpi_comm, &reqs[16]);
+            MPI_Irecv(h_body.data+adh_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 8, *m_mpi_comm, &reqs[17]);
 
-            reqs[14] = m_mpi_comm->isend(send_neighbor,7,h_body_stage.data,n_send_ptls);
-            reqs[15] = m_mpi_comm->irecv(recv_neighbor,7,h_body.data+adh_idx,n_recv_ptls);
+            MPI_Isend(h_orientation_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 9, *m_mpi_comm, &reqs[18]);
+            MPI_Irecv(h_orientation.data+adh_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 9, *m_mpi_comm, &reqs[19]);
 
-            reqs[16] = m_mpi_comm->isend(send_neighbor,7,h_orientation_stage.data,n_send_ptls);
-            reqs[17] = m_mpi_comm->irecv(recv_neighbor,7,h_orientationy.data+adh_idx,n_recv_ptls);
-
-            reqs[18] = m_mpi_comm->isend(send_neighbor,9,h_tag_stage.data,n_send_ptls);
-            reqs[19] = m_mpi_comm->irecv(recv_neighbor,9,h_global_tag.data+adh_idx,n_recv_ptls);
-            boost::mpi::wait_all(reqs+2,reqs+20);
+            MPI_Waitall(18,reqs+2, status+2);
             }
 #endif
 
@@ -532,7 +530,8 @@ void CommunicatorGPU::exchangeGhosts()
      * Fill send buffers, exchange particles according to plans
      */
 
-    boost::mpi::request reqs[24];
+    MPI_Request reqs[24];
+    MPI_Status status[24];
     unsigned int start_idx = 0;
     unsigned int max_copy_ghosts = 0;
     for (unsigned int dir = 0; dir < 6; dir ++)
@@ -623,12 +622,12 @@ void CommunicatorGPU::exchangeGhosts()
 
 
             // communicate size of the message that will contain the particle data
-            reqs[0] = m_mpi_comm->isend(send_neighbor,0,m_num_copy_ghosts[dir]);
-            reqs[1] = m_mpi_comm->irecv(recv_neighbor,0,m_num_recv_ghosts[dir]);
+            MPI_Isend(&m_num_copy_ghosts[dir], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, *m_mpi_comm, & reqs[0]);
+            MPI_Irecv(&m_num_recv_ghosts[dir], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, *m_mpi_comm, & reqs[1]);
             // reverse send & receive neighbor for opposite direction
-            reqs[2] = m_mpi_comm->isend(recv_neighbor,1,m_num_copy_ghosts[dir+1]);
-            reqs[3] = m_mpi_comm->irecv(send_neighbor,1,m_num_recv_ghosts[dir+1]);
-            boost::mpi::wait_all(reqs,reqs+4);
+            MPI_Isend(&m_num_copy_ghosts[dir+1], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, *m_mpi_comm, & reqs[2]);
+            MPI_Irecv(&m_num_recv_ghosts[dir+1], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, *m_mpi_comm, & reqs[3]);
+            MPI_Waitall(4, reqs, status);
 
             if (m_prof)
                 m_prof->pop();
@@ -661,24 +660,20 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> d_global_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::readwrite);
 
+            MPI_Isend(d_plan_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, send_neighbor, 2+shift, *m_mpi_comm, &reqs[4+shift]);
+            MPI_Irecv(d_plan.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, recv_neighbor, 2+shift, *m_mpi_comm, &reqs[5+shift]);
 
-            reqs[4+shift] = m_mpi_comm->isend(send_neighbor,2 + shift,d_plan_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[5+shift] = m_mpi_comm->irecv(recv_neighbor,2 + shift,d_plan.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
+            MPI_Isend(d_pos_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 3+shift, *m_mpi_comm, &reqs[6+shift]);
+            MPI_Irecv(d_pos.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 3+shift, *m_mpi_comm, &reqs[7+shift]);
 
-            reqs[6+shift] = m_mpi_comm->isend(send_neighbor,3 + shift,d_pos_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[7+shift] = m_mpi_comm->irecv(recv_neighbor,3 + shift,d_pos.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
+            MPI_Isend(d_tag_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, send_neighbor, 4+shift, *m_mpi_comm, &reqs[8+shift]);
+            MPI_Irecv(d_global_tag.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 4+shift, *m_mpi_comm, &reqs[9+shift]);
 
-            reqs[8+shift] = m_mpi_comm->isend(send_neighbor,4 + shift,d_tag_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[9+shift] = m_mpi_comm->irecv(recv_neighbor,4 + shift,d_global_tag.data + start_idx+ offset_in_pdata, m_num_recv_ghosts[dir]);
+            MPI_Isend(d_charge_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 5+shift, *m_mpi_comm, &reqs[10+shift]);
+            MPI_Irecv(d_charge.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 5+shift, *m_mpi_comm, &reqs[11+shift]);
 
-            reqs[10+shift] = m_mpi_comm->isend(send_neighbor,5 + shift,d_charge_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[11+shift] = m_mpi_comm->irecv(recv_neighbor,5 + shift,d_charge.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
-
-            reqs[12+shift] = m_mpi_comm->isend(send_neighbor,6 + shift,d_diameter_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[13+shift] = m_mpi_comm->irecv(recv_neighbor,6 + shift,d_diameter.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
-
-            if (dir%2)
-                boost::mpi::wait_all(reqs+4,reqs+24);
+            MPI_Isend(d_diameter_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 6+shift, *m_mpi_comm, &reqs[12+shift]);
+            MPI_Irecv(d_diameter.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 6+shift, *m_mpi_comm, &reqs[13+shift]);
             }
 #else
             {
@@ -694,25 +689,25 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
 
-            reqs[4+shift] = m_mpi_comm->isend(send_neighbor,2 + shift,h_plan_copybuf.data+offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[5+shift] = m_mpi_comm->irecv(recv_neighbor,2 + shift,h_plan.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
+            MPI_Isend(h_plan_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, send_neighbor, 2+shift, *m_mpi_comm, &reqs[4+shift]);
+            MPI_Irecv(h_plan.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, recv_neighbor, 2+shift, *m_mpi_comm, &reqs[5+shift]);
 
-            reqs[6+shift] = m_mpi_comm->isend(send_neighbor,3 + shift,h_pos_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[7+shift] = m_mpi_comm->irecv(recv_neighbor,3 + shift,h_pos.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
+            MPI_Isend(h_pos_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 3+shift, *m_mpi_comm, &reqs[6+shift]);
+            MPI_Irecv(h_pos.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 3+shift, *m_mpi_comm, &reqs[7+shift]);
 
-            reqs[8+shift] = m_mpi_comm->isend(send_neighbor,4 + shift,h_tag_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[9+shift] = m_mpi_comm->irecv(recv_neighbor,4 + shift,h_global_tag.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
+            MPI_Isend(h_tag_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, send_neighbor, 4+shift, *m_mpi_comm, &reqs[8+shift]);
+            MPI_Irecv(h_global_tag.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 4+shift, *m_mpi_comm, &reqs[9+shift]);
 
-            reqs[10+shift] = m_mpi_comm->isend(send_neighbor,5 + shift,h_charge_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[11+shift] = m_mpi_comm->irecv(recv_neighbor,5 + shift,h_charge.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
+            MPI_Isend(h_charge_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 5+shift, *m_mpi_comm, &reqs[10+shift]);
+            MPI_Irecv(h_charge.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 5+shift, *m_mpi_comm, &reqs[11+shift]);
 
-            reqs[12+shift] = m_mpi_comm->isend(send_neighbor,6 + shift,h_diameter_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]);
-            reqs[13+shift] = m_mpi_comm->irecv(recv_neighbor,6 + shift,h_diameter.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]);
-
-            if (dir%2)
-                boost::mpi::wait_all(reqs+4,reqs+24);
+            MPI_Isend(h_diameter_copybuf.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 6+shift, *m_mpi_comm, &reqs[12+shift]);
+            MPI_Irecv(h_diameter.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 6+shift, *m_mpi_comm, &reqs[13+shift]);
             }
 #endif
+
+        if (dir%2) MPI_Waitall(20, reqs+4, status+4);
+                
         if (m_prof)
             m_prof->pop();
 
@@ -745,8 +740,8 @@ void CommunicatorGPU::copyGhosts()
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
 
 
-    boost::mpi::request reqs[4];
-
+    MPI_Request reqs[4];
+    MPI_Status status[4];
     unsigned int max_copy_ghosts = 0;
     for (unsigned int i = 0; i < 3; i++)
         {
@@ -801,7 +796,7 @@ void CommunicatorGPU::copyGhosts()
 
         unsigned int start_idx;
 
-        if (m_prof)
+        if (m_prof && (dir%2 == 0))
             m_prof->push("MPI send/recv");
 
 
@@ -816,10 +811,8 @@ void CommunicatorGPU::copyGhosts()
             ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            reqs[0+shift] = m_mpi_comm->isend(send_neighbor,dir%2,d_pos_copybuf.data+ offset, m_num_copy_ghosts[dir]);
-            reqs[1+shift] = m_mpi_comm->irecv(recv_neighbor,dir%2,d_pos.data + start_idx, m_num_recv_ghosts[dir]);
-
-            if (dir %2 ) boost::mpi::wait_all(reqs,reqs+4);
+            MPI_Isend(d_pos_copybuf.data + offset, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, *m_mpi_comm, &reqs[0+shift]);
+            MPI_Irecv(d_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, *m_mpi_comm, &reqs[1+shift]);
             }
 #else
             {
@@ -827,15 +820,18 @@ void CommunicatorGPU::copyGhosts()
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            reqs[0+shift] = m_mpi_comm->isend(send_neighbor,dir%2,h_pos_copybuf.data + offset, m_num_copy_ghosts[dir]);
-            reqs[1+shift] = m_mpi_comm->irecv(recv_neighbor,dir%2,h_pos.data + start_idx, m_num_recv_ghosts[dir]);
-
-            if (dir % 2) boost::mpi::wait_all(reqs,reqs+4);
+            MPI_Isend(h_pos_copybuf.data + offset, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, *m_mpi_comm, &reqs[0+shift]);
+            MPI_Irecv(h_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, *m_mpi_comm, &reqs[1+shift]);
             }
 #endif
 
-        if (m_prof)
-            m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
+        if (dir %2)
+            {
+            MPI_Waitall(4, reqs, status);
+
+            if (m_prof)
+                m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
+            }
 
         } // end dir loop
 
