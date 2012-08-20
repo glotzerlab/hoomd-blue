@@ -818,7 +818,9 @@ void CommunicatorGPU::copyGhosts()
             MPI_Waitall(4, reqs, status);
 
             if (m_prof)
-                m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
+                {
+                unsigned int n = m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir]+m_num_recv_ghosts[dir+1]+m_num_copy_ghosts[dir+1];
+                m_prof->pop(0, n*sizeof(Scalar4));
             }
 
         } // end dir loop
