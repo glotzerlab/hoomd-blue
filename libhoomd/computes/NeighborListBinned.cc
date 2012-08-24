@@ -189,11 +189,13 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
             unsigned int size = h_cell_size.data[neigh_cell];
             for (unsigned int cur_offset = 0; cur_offset < size; cur_offset++)
                 {
-                Scalar4 cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
-                
-                Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
+                Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
-                
+               
+                if (m_storage_mode == half && i > (int)cur_neigh) continue;
+
+                Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
+
                 Scalar3 dx = my_pos - neigh_pos;
                 
                 dx = box.minImage(dx);
