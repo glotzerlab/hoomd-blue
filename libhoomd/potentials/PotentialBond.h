@@ -227,20 +227,25 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
 
     Scalar bond_virial[6];
+    for (unsigned int i = 0; i< 6; i++)
+        bond_virial[i]=Scalar(0.0);
+
+    ArrayHandle<uint2> h_bonds(m_bond_data->getBondTable(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_type(m_bond_data->getBondTypes(), access_location::host, access_mode::read);
 
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const Bond& bond = m_bond_data->getBond(i);
-        assert(bond.a < m_pdata->getNGlobal());
-        assert(bond.b < m_pdata->getNGlobal());
+        const uint2& bond = h_bonds.data[i];
+        assert(bond.x < m_pdata->getNGlobal());
+        assert(bond.y < m_pdata->getNGlobal());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[bond.a];
-        unsigned int idx_b = h_rtag.data[bond.b];
+        unsigned int idx_a = h_rtag.data[bond.x];
+        unsigned int idx_b = h_rtag.data[bond.y];
 
 #ifdef ENABLE_MPI
         // ignore bonds that do not have at least one local member
@@ -285,7 +290,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         Scalar rsq = dot(dx,dx);
 
         // get parameters for this bond type
-        param_type param = h_params.data[bond.type];
+        param_type param = h_params.data[h_type.data[i]];
 
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
