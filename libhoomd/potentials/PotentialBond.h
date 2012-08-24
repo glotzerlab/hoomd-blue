@@ -223,6 +223,11 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
  
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+
+    Scalar bond_virial[6];
+
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
     for (unsigned int i = 0; i < size; i++)
@@ -299,14 +304,16 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         if (evaluated)
             {
             // calculate virial
-            Scalar bond_virial[6];
-            Scalar force_div2r = Scalar(1.0/2.0)*force_divr;
-            bond_virial[0] = dx.x * dx.x * force_div2r; // xx
-            bond_virial[1] = dx.x * dx.y * force_div2r; // xy
-            bond_virial[2] = dx.x * dx.z * force_div2r; // xz
-            bond_virial[3] = dx.y * dx.y * force_div2r; // yy
-            bond_virial[4] = dx.y * dx.z * force_div2r; // yz
-            bond_virial[5] = dx.z * dx.z * force_div2r; // zz
+            if (compute_virial)
+                {
+                Scalar force_div2r = Scalar(1.0/2.0)*force_divr;
+                bond_virial[0] = dx.x * dx.x * force_div2r; // xx
+                bond_virial[1] = dx.x * dx.y * force_div2r; // xy
+                bond_virial[2] = dx.x * dx.z * force_div2r; // xz
+                bond_virial[3] = dx.y * dx.y * force_div2r; // yy
+                bond_virial[4] = dx.y * dx.z * force_div2r; // yz
+                bond_virial[5] = dx.z * dx.z * force_div2r; // zz
+                }
 
             // add the force to the particles (only for non-ghost particles)
             if (idx_b < m_pdata->getN())
@@ -315,8 +322,9 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
                 h_force.data[idx_b].y += force_divr * dx.y;
                 h_force.data[idx_b].z += force_divr * dx.z;
                 h_force.data[idx_b].w += bond_eng;
-                for (unsigned int i = 0; i < 6; i++)
-                    h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+                if (compute_virial)
+                    for (unsigned int i = 0; i < 6; i++)
+                        h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
                 }
 
             if (idx_a < m_pdata->getN())
@@ -325,25 +333,10 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
                 h_force.data[idx_a].y -= force_divr * dx.y;
                 h_force.data[idx_a].z -= force_divr * dx.z;
                 h_force.data[idx_a].w += bond_eng;
-                for (unsigned int i = 0; i < 6; i++)
-                    h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
+                if (compute_virial)
+                    for (unsigned int i = 0; i < 6; i++)
+                        h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
                 }
-            // add the force to the particles
-            // (MEM TRANSFER: 20 Scalars / FLOPS 16)
-            h_force.data[idx_b].x += force_divr * dx.x;
-            h_force.data[idx_b].y += force_divr * dx.y;
-            h_force.data[idx_b].z += force_divr * dx.z;
-            h_force.data[idx_b].w += bond_eng;
-            for (unsigned int i = 0; i < 6; i++)
-                h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
-
-            h_force.data[idx_a].x -= force_divr * dx.x;
-            h_force.data[idx_a].y -= force_divr * dx.y;
-            h_force.data[idx_a].z -= force_divr * dx.z;
-            h_force.data[idx_a].w += bond_eng;
-            for (unsigned int i = 0; i < 6; i++)
-                h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
-
             }
         else
             {
