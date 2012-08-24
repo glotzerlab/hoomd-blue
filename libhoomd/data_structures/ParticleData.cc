@@ -616,7 +616,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 {
 
                 // determine domain the particle is placed into
-                Scalar3 f = m_global_box.makeFraction(*it);
+                Scalar3 f = m_global_box.makeFraction(*it,make_scalar3(0.0,0.0,0.0));
                 int i= (unsigned int) (f.x * scale.x);
                 int j= (unsigned int) (f.y * scale.y);
                 int k= (unsigned int) (f.z * scale.z);

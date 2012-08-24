@@ -474,7 +474,7 @@ void SFCPackUpdater::getSortedOrder2D()
         {
         // find the bin each particle belongs in
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
-        Scalar3 f = box.makeFraction(p);
+        Scalar3 f = box.makeFraction(p,make_scalar3(0.0,0.0,0.0));
         unsigned int ib = (unsigned int)(f.x * m_grid) % m_grid;
         unsigned int jb = (unsigned int)(f.y * m_grid) % m_grid;
 
@@ -551,7 +551,7 @@ void SFCPackUpdater::getSortedOrder3D()
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
-        Scalar3 f = box.makeFraction(p);
+        Scalar3 f = box.makeFraction(p,make_scalar3(0.0,0.0,0.0));
         unsigned int ib = (unsigned int)(f.x * m_grid) % m_grid;
         unsigned int jb = (unsigned int)(f.y * m_grid) % m_grid;
         unsigned int kb = (unsigned int)(f.z * m_grid) % m_grid;

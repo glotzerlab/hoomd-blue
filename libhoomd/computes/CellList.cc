@@ -274,9 +274,9 @@ void CellList::initializeWidth()
 
  
     Scalar3 L = box.getL();
-    m_width.x = L.x / Scalar(m_dim.x-m_num_ghost_cells.x);
-    m_width.y = L.y / Scalar(m_dim.y-m_num_ghost_cells.y);
-    m_width.z = L.z / Scalar(m_dim.z-m_num_ghost_cells.z);
+    m_width.x = (L.x + m_nominal_width*m_num_ghost_cells.x) / Scalar(m_dim.x);
+    m_width.y = (L.y + m_nominal_width*m_num_ghost_cells.y) / Scalar(m_dim.y);
+    m_width.z = (L.z + m_nominal_width*m_num_ghost_cells.z) / Scalar(m_dim.z);
 
     if (m_prof)
         m_prof->pop();
@@ -416,11 +416,7 @@ void CellList::computeCellList()
     // for each particle
     unsigned n_tot_particles = m_pdata->getN() + m_pdata->getNGhosts();
 
-    uint3 scale, shift;
-    scale = make_uint3(m_dim.x - m_num_ghost_cells.x,
-                       m_dim.y - m_num_ghost_cells.y,
-                       m_dim.z - m_num_ghost_cells.z);
-    shift = make_uint3(m_num_ghost_cells.x/2, m_num_ghost_cells.y/2, m_num_ghost_cells.z/2);
+    Scalar3 ghost_width = m_nominal_width/Scalar(2.0)*make_scalar3((Scalar)m_num_ghost_cells.x, (Scalar)m_num_ghost_cells.y, (Scalar)m_num_ghost_cells.z);
 
     for (unsigned int n = 0; n < n_tot_particles; n++)
         {
@@ -432,10 +428,10 @@ void CellList::computeCellList()
             }
             
         // find the bin each particle belongs in
-        Scalar3 f = box.makeFraction(p);
-        int ib = (int)(f.x * scale.x) + shift.x;
-        int jb = (int)(f.y * scale.y) + shift.y;
-        int kb = (int)(f.z * scale.z) + shift.z;
+        Scalar3 f = box.makeFraction(p,ghost_width);
+        int ib = (int)(f.x * m_dim.x);
+        int jb = (int)(f.y * m_dim.y);
+        int kb = (int)(f.z * m_dim.z);
         
 #ifdef ENABLE_MPI
         if (n >= m_pdata->getN())
