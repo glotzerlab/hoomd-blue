@@ -265,12 +265,14 @@ void ComputeThermo::computeProperties()
     
     // total potential energy 
     double pe_total = 0.0;
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    if (flags[pdata_flag::potential_energy])
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        pe_total += (double)h_net_force.data[j].w;
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            pe_total += (double)h_net_force.data[j].w;
+            }
         }
- 
 
     double W = 0.0;
     double virial_xx = 0.0;
