@@ -218,15 +218,12 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 
                 if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {
-                    if (m_storage_mode == full || i < (int)cur_neigh)
-                        {
-                        if (cur_n_neigh < m_nlist_indexer.getH())
-                            h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
-                        else
-                            h_conditions.data[0] = max(h_conditions.data[0], cur_n_neigh+1);
-                        
-                        cur_n_neigh++;
-                        }
+                    if (cur_n_neigh < m_nlist_indexer.getH())
+                        h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
+                    else
+                        h_conditions.data[0] = max(h_conditions.data[0], cur_n_neigh+1);
+                    
+                    cur_n_neigh++;
                     }
                 }
             }
