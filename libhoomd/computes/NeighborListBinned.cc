@@ -116,7 +116,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     uint3 num_ghost_cells = m_cl->getNGhostCells();
 
-    uint3 scale = m_cl->getDim();
     Scalar nominal_width  = m_r_cut + m_r_buff + m_d_max - Scalar(1.0);
     Scalar3 ghost_width = nominal_width*Scalar(1.0/2.0)*make_scalar3((Scalar)num_ghost_cells.x, (Scalar)num_ghost_cells.y, (Scalar)num_ghost_cells.z);
 
@@ -164,9 +163,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos,ghost_width);
-        unsigned int ib = (unsigned int)(f.x * scale.x);
-        unsigned int jb = (unsigned int)(f.y * scale.y);
-        unsigned int kb = (unsigned int)(f.z * scale.z);
+        unsigned int ib = (unsigned int)(f.x * dim.x);
+        unsigned int jb = (unsigned int)(f.y * dim.y);
+        unsigned int kb = (unsigned int)(f.z * dim.z);
 
         // need to handle the case where the particle is exactly at the box hi
         if (ib == dim.x)
