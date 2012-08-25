@@ -519,7 +519,7 @@ void Communicator::exchangeGhosts()
         ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
         ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
-        ArrayHandle<float4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
         unsigned nbonds = bdata->getNumBonds();
         unsigned int N = m_pdata->getN();

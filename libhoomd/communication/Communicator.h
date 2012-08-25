@@ -118,14 +118,14 @@ namespace boost
 //! Structure to store packed particle data
 struct pdata_element
     {
-    float4 pos;               //!< Position
-    float4 vel;               //!< Velocity
-    float3 accel;             //!< Acceleration
-    float charge;             //!< Charge
-    float diameter;           //!< Diameter
+    Scalar4 pos;               //!< Position
+    Scalar4 vel;               //!< Velocity
+    Scalar3 accel;             //!< Acceleration
+    Scalar charge;             //!< Charge
+    Scalar diameter;           //!< Diameter
     int3 image;               //!< Image
     unsigned int body;        //!< Body id
-    float4 orientation;       //!< Orientation
+    Scalar4 orientation;       //!< Orientation
     unsigned int global_tag;  //!< global tag
     };
 
