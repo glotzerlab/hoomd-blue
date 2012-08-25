@@ -162,7 +162,6 @@ void ComputeThermoGPU::computeProperties()
     }
 
 #ifdef ENABLE_MPI
-
     boost::shared_ptr<const boost::mpi::communicator> mpi_comm;
     if (m_pdata->getDomainDecomposition())
         {
@@ -174,7 +173,7 @@ void ComputeThermoGPU::computeProperties()
 
         if (m_prof)
             m_prof->push("MPI Allreduce");
-        MPI_Allreduce(h_properties.data, h_properties.data, thermo_index::num_quantities, MPI_FLOAT, MPI_SUM, *mpi_comm);
+        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_FLOAT, MPI_SUM, *mpi_comm);
         if (m_prof)
                 m_prof->pop();
         }

@@ -245,17 +245,6 @@ void ComputeThermo::computeProperties()
             pressure_kinetic_yz += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].z );
             pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
             }
-#ifdef ENABLE_MPI
-        if (mpi_comm)
-            {
-            pressure_kinetic_xx = all_reduce(*mpi_comm, pressure_kinetic_xx, std::plus<double>());
-            pressure_kinetic_xy = all_reduce(*mpi_comm, pressure_kinetic_xy, std::plus<double>());
-            pressure_kinetic_xz = all_reduce(*mpi_comm, pressure_kinetic_xz, std::plus<double>());
-            pressure_kinetic_yy = all_reduce(*mpi_comm, pressure_kinetic_yy, std::plus<double>());
-            pressure_kinetic_yz = all_reduce(*mpi_comm, pressure_kinetic_yz, std::plus<double>());
-            pressure_kinetic_zz = all_reduce(*mpi_comm, pressure_kinetic_zz, std::plus<double>());
-            }
-#endif
         // kinetic energy = 1/2 trace of kinetic part of pressure tensor
         ke_total = Scalar(0.5)*(pressure_kinetic_xx + pressure_kinetic_yy + pressure_kinetic_zz);
         }
@@ -272,10 +261,6 @@ void ComputeThermo::computeProperties()
             }
 
         ke_total *= Scalar(0.5);
-#ifdef ENABLE_MPI
-        if (mpi_comm)
-            ke_total = all_reduce(*mpi_comm, ke_total, std::plus<double>());
-#endif
         }
     
     // total potential energy 
@@ -285,10 +270,6 @@ void ComputeThermo::computeProperties()
         unsigned int j = m_group->getMemberIndex(group_idx);
         pe_total += (double)h_net_force.data[j].w;
         }
-#ifdef ENABLE_MPI
-    if (mpi_comm)
-        pe_total = all_reduce(*mpi_comm, pe_total, std::plus<double>());
-#endif
  
 
     double W = 0.0;
@@ -313,17 +294,6 @@ void ComputeThermo::computeProperties()
             virial_yz += (double)h_net_virial.data[j+4*virial_pitch];
             virial_zz += (double)h_net_virial.data[j+5*virial_pitch];
             }
-#ifdef ENABLE_MPI
-        if (mpi_comm)
-            {
-            virial_xx = all_reduce(*mpi_comm, virial_xx, std::plus<double>());
-            virial_xy = all_reduce(*mpi_comm, virial_xy, std::plus<double>());
-            virial_xz = all_reduce(*mpi_comm, virial_xz, std::plus<double>());
-            virial_yy = all_reduce(*mpi_comm, virial_yy, std::plus<double>());
-            virial_yz = all_reduce(*mpi_comm, virial_yz, std::plus<double>());
-            virial_zz = all_reduce(*mpi_comm, virial_zz, std::plus<double>());
-            }
-#endif
 
         if (flags[pdata_flag::isotropic_virial])
             {
@@ -342,10 +312,6 @@ void ComputeThermo::computeProperties()
                                  (double)h_net_virial.data[j+3*virial_pitch] +
                                  (double)h_net_virial.data[j+5*virial_pitch] );
             }
-#ifdef ENABLE_MPI
-        if (mpi_comm)
-            W = all_reduce(*mpi_comm, W, std::plus<double>());
-#endif
         }
 
     // compute the temperature
@@ -394,6 +360,21 @@ void ComputeThermo::computeProperties()
     h_properties.data[thermo_index::pressure_yz] = pressure_yz;
     h_properties.data[thermo_index::pressure_zz] = pressure_zz;
 
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        boost::shared_ptr<const boost::mpi::communicator> mpi_comm = m_exec_conf->getMPICommunicator();
+
+        if (m_prof)
+            m_prof->push("MPI Allreduce");
+
+        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_FLOAT, MPI_SUM, *mpi_comm);
+
+        if (m_prof)
+                m_prof->pop();
+        }
+#endif // ENABLE_MPI
+ 
     if (m_prof) m_prof->pop();
     }
 
