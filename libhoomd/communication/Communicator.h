@@ -217,7 +217,7 @@ class Communicator
          */
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<DomainDecomposition> decomposition);
-        virtual ~Communicator();
+        virtual ~Communicator() {};
 
         //! \name accessor methods
         //@{
@@ -383,10 +383,6 @@ class Communicator
         std::vector<Scalar> scal_tmp;            //!< Temporary list used to apply the sort order to the particle data
         std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
-
-   private:
-        boost::signals::connection m_sort_connection;                    //!< Connection to particle sort signal
-
     };
 
 //! Declaration of python export function

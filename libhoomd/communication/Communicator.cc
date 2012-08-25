@@ -153,15 +153,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
         }
-
-    // Connect to maximum particle number change signal
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&Communicator::forceMigrate, this));
-    }
-
-//! Destructor
-Communicator::~Communicator()
-    {
-    m_sort_connection.disconnect();
     }
 
 //! Interface to the communication methods.
