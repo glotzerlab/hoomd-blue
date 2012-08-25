@@ -116,6 +116,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     uint3 num_ghost_cells = m_cl->getNGhostCells();
 
+    uint3 scale = m_cl->getDim();
     Scalar nominal_width  = m_r_cut + m_r_buff + m_d_max - Scalar(1.0);
     Scalar3 ghost_width = nominal_width*Scalar(1.0/2.0)*make_scalar3((Scalar)num_ghost_cells.x, (Scalar)num_ghost_cells.y, (Scalar)num_ghost_cells.z);
 
@@ -163,9 +164,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos,ghost_width);
-        unsigned int ib = (unsigned int)(f.x * dim.x);
-        unsigned int jb = (unsigned int)(f.y * dim.y);
-        unsigned int kb = (unsigned int)(f.z * dim.z);
+        unsigned int ib = (unsigned int)(f.x * scale.x);
+        unsigned int jb = (unsigned int)(f.y * scale.y);
+        unsigned int kb = (unsigned int)(f.z * scale.z);
 
         // need to handle the case where the particle is exactly at the box hi
         if (ib == dim.x)
@@ -177,27 +178,20 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
             
         // identify the bin
         unsigned int my_cell = ci(ib,jb,kb);
-      
-        bool search_all_cells = true;
-        if (m_storage_mode == half)
-            search_all_cells = (ib < num_ghost_cells.x || ib >= dim.x - num_ghost_cells.x) ||
-                               (jb < num_ghost_cells.y || jb >= dim.y - num_ghost_cells.y) ||
-                               (kb < num_ghost_cells.z || kb >= dim.z - num_ghost_cells.z);
-
+        
         // loop through all neighboring bins
         for (unsigned int cur_adj = 0; cur_adj < cadji.getW(); cur_adj++)
             {
             unsigned int neigh_cell = h_cell_adj.data[cadji(cur_adj, my_cell)];
-           
-            // apply criterium based on cell index to filter cells that need to be searched
-            if ((! search_all_cells) && my_cell > neigh_cell) continue;
-
+                
             // check against all the particles in that neighboring bin to see if it is a neighbor
             unsigned int size = h_cell_size.data[neigh_cell];
             for (unsigned int cur_offset = 0; cur_offset < size; cur_offset++)
                 {
                 Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
+               
+                if (m_storage_mode == half && i > (int)cur_neigh) continue;
 
                 Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
 
@@ -224,8 +218,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 
                 if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {
-                    // inside one cell, we order pairs by particle index
-                    if (m_storage_mode == full || (my_cell != neigh_cell) || i < (int)cur_neigh)
+                    if (m_storage_mode == full || i < (int)cur_neigh)
                         {
                         if (cur_n_neigh < m_nlist_indexer.getH())
                             h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
