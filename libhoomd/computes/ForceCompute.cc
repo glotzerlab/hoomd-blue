@@ -241,6 +241,100 @@ double ForceCompute::benchmark(unsigned int num_iters)
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
 
+/*! \param tag Global particle tag
+    \returns Torque of particle referenced by tag
+ */
+Scalar4 ForceCompute::getTorque(unsigned int tag)
+    {
+    unsigned int i = m_pdata->getGlobalRTag(tag);
+    bool found = (i < m_pdata->getN());
+    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::read);
+        result = h_torque.data[i];
+        }
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        unsigned int owner_rank = m_pdata->getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar4), MPI_BYTE, owner_rank, *m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+/*! \param tag Global particle tag
+    \returns Force of particle referenced by tag
+ */
+Scalar3 ForceCompute::getForce(unsigned int tag)
+    {
+    unsigned int i = m_pdata->getGlobalRTag(tag);
+    bool found = (i < m_pdata->getN());
+    Scalar3 result = make_scalar3(0.0,0.0,0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
+        result = make_scalar3(h_force.data[i].x, h_force.data[i].y, h_force.data[i].z);
+        }
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        unsigned int owner_rank = m_pdata->getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar3), MPI_BYTE, owner_rank, *m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+/*! \param tag Global particle tag
+    \param component Virial component (0=xx, 1=xy, 2=xz, 3=yy, 4=yz, 5=zz)
+    \returns Force of particle referenced by tag
+ */
+Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
+    {
+    unsigned int i = m_pdata->getGlobalRTag(tag);
+    bool found = (i < m_pdata->getN());
+    Scalar result = Scalar(0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
+        result = h_virial.data[m_virial_pitch*component+i];
+        }
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        unsigned int owner_rank = m_pdata->getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, *m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+/*! \param tag Global particle tag
+    \returns Energy of particle referenced by tag
+ */
+Scalar ForceCompute::getEnergy(unsigned int tag)
+    {
+    unsigned int i = m_pdata->getGlobalRTag(tag);
+    bool found = (i < m_pdata->getN());
+    Scalar result = Scalar(0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
+        result = h_force.data[i].w;
+        }
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        unsigned int owner_rank = m_pdata->getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, *m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+
 //! Wrapper class for wrapping pure virtual methodos of ForceCompute in python
 class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
     {

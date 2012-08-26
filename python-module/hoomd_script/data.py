@@ -723,7 +723,12 @@ class force_data_proxy:
             f = self.fdata.cpp_force.getForce(self.tag);
             return (f.x, f.y, f.z);
         if name == "virial":
-            return self.fdata.cpp_force.getVirial(self.tag);
+            return (self.fdata.cpp_force.getVirial(self.tag,0),
+                    self.fdata.cpp_force.getVirial(self.tag,1),
+                    self.fdata.cpp_force.getVirial(self.tag,2),
+                    self.fdata.cpp_force.getVirial(self.tag,3),
+                    self.fdata.cpp_force.getVirial(self.tag,4),
+                    self.fdata.cpp_force.getVirial(self.tag,5));
         if name == "energy":
             energy = self.fdata.cpp_force.getEnergy(self.tag);
             return energy;

@@ -115,34 +115,16 @@ class ForceCompute : public Compute
         Scalar calcEnergySum();
 
         //! Easy access to the torque on a single particle
-        Scalar4 getTorque(unsigned int tag)
-            {
-            ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return h_torque.data[i];
-            }
+        Scalar4 getTorque(unsigned int tag);
 
         //! Easy access to the force on a single particle
-        Scalar3 getForce(unsigned int tag)
-            {
-            ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return make_scalar3(h_force.data[i].x,h_force.data[i].y,h_force.data[i].z);
-            }
+        Scalar3 getForce(unsigned int tag);
+
         //! Easy access to the virial on a single particle
-        Scalar getVirial(unsigned int tag)
-            {
-            ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return h_virial.data[i];
-            }
+        Scalar getVirial(unsigned int tag, unsigned int component);
+
         //! Easy access to the energy on a single particle
-        Scalar getEnergy(unsigned int tag)
-            {
-            ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return h_force.data[i].w;
-            }
+        Scalar getEnergy(unsigned int tag);
         
         //! Get the array of computed forces
         GPUArray<Scalar4>& getForceArray()
