@@ -270,12 +270,12 @@ from hoomd_script import globals
 # \code
 # >>> lj = pair.lj(r_cut=3.0)
 # >>> lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# >>> print lj.forces[0]
+# >>> print lj.forces()[0]
 # tag         : 0
 # force       : (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
 # virial      : -0.0931386947632
 # energy      : -0.0469368174672
-# >>> f0 = lj.forces[0]
+# >>> f0 = lj.forces()[0]
 # >>> print f0.force
 # (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
 # >>> print f0.virial
