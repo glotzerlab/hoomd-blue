@@ -282,7 +282,6 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_exec_conf->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&eta, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
         MPI_Bcast(&xi, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
@@ -386,10 +385,7 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
 
 #ifdef ENABLE_MPI
     if (m_comm)
-        {
-        assert(m_exec_conf->getMPICommunicator());
         MPI_Allreduce(MPI_IN_PLACE, &m_v2_sum, 1, MPI_FLOAT, MPI_SUM, *m_exec_conf->getMPICommunicator() );
-        } 
 #endif
 
     // Advance thermostat half a time step

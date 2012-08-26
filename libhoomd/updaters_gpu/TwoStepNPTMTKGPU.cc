@@ -225,17 +225,15 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_exec_conf->getMPICommunicator()->size());
-        unsigned int root = 0;
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_exec_conf->getMPICommunicator(), eta, root);
-        broadcast(*m_exec_conf->getMPICommunicator(), xi,  root);
-        broadcast(*m_exec_conf->getMPICommunicator(), nux, root);
-        broadcast(*m_exec_conf->getMPICommunicator(), nuy, root);
-        broadcast(*m_exec_conf->getMPICommunicator(), nuz, root);
+        MPI_Bcast(&eta, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&xi, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nux, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuy, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuz, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
 
         // broadcast box dimensions
-        broadcast(*m_exec_conf->getMPICommunicator(), m_L, root);
+        MPI_Bcast(&m_L,sizeof(Scalar3), MPI_BYTE, 0, *m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -337,10 +335,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
 #ifdef ENABLE_MPI
     if (m_comm)
-        {
-        assert(m_exec_conf->getMPICommunicator()->size());
-        T_prime = all_reduce(*m_exec_conf->getMPICommunicator(), T_prime, std::plus<double>());
-        }
+        MPI_Allreduce(MPI_IN_PLACE, &T_prime, 1, MPI_FLOAT, MPI_SUM, *m_exec_conf->getMPICommunicator() );
 #endif
 
     // Advance thermostat half a time step
@@ -424,14 +419,12 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_exec_conf->getMPICommunicator()->size());
-        unsigned int root = 0;
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_exec_conf->getMPICommunicator(), eta, root);
-        broadcast(*m_exec_conf->getMPICommunicator(), xi, root);
-        broadcast(*m_exec_conf->getMPICommunicator(), nux, root);
-        broadcast(*m_exec_conf->getMPICommunicator(), nuy, root);
-        broadcast(*m_exec_conf->getMPICommunicator(), nuz, root);
+        MPI_Bcast(&eta, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&xi, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nux, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuy, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuz, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
         }
 #endif
 
