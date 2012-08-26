@@ -166,7 +166,11 @@ Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int times
 */
 void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     {
+#ifdef ENABLE_MPI
+    unsigned int group_size = m_group->getNumLocalMembers();
+#else
     unsigned int group_size = m_group->getNumMembers();
+#endif
     if (group_size == 0)
         return;
 
@@ -255,9 +259,16 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     
     // update energy reservoir        
     if (m_tally) {
+        #ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &bd_energy_transfer, 1, MPI_FLOAT, MPI_SUM, *m_exec_conf->getMPICommunicator()); 
+            } 
+        #endif
         m_reservoir_energy -= bd_energy_transfer*m_deltaT;
         m_extra_energy_overdeltaT = 0.5*bd_energy_transfer;
-        }
+        
+       }
         
     // done profiling
     if (m_prof)

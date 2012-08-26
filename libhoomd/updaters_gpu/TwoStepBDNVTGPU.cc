@@ -212,6 +212,12 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     if (m_tally)
         {
         ArrayHandle<float> h_sumBD(m_sum, access_location::host, access_mode::read);   
+        #ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &h_sumBD.data[0], 1, MPI_FLOAT, MPI_SUM, *m_exec_conf->getMPICommunicator()); 
+            } 
+        #endif
         m_reservoir_energy -= h_sumBD.data[0]*m_deltaT;
         m_extra_energy_overdeltaT= 0.5*h_sumBD.data[0];
         }
