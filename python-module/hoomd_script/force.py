@@ -102,9 +102,6 @@ class _force:
         self.log =True;
         globals.forces.append(self);
         
-        # create force data iterator
-        self.forces = data.force_data(self);
-
     ## \var enabled
     # \internal
     # \brief True if the force is enabled
@@ -234,7 +231,12 @@ class _force:
         pass
         raise RuntimeError("_force.update_coeffs should not be called");
         # does nothing: this is for derived classes to implement
-    
+
+    ## Returns the force data
+    #
+    def forces(self):
+        return data.force_data(self);
+
 # set default counter
 _force.cur_id = 0;
 

@@ -263,9 +263,6 @@ class _bond(force._force):
 
         self.enabled = True;
 
-        # create force data iterator
-        self.forces = data.force_data(self);
-
     def update_coeffs(self):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
