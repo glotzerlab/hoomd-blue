@@ -1424,9 +1424,9 @@ struct MPISetup
         char **argv = boost::unit_test::framework::master_test_suite().argv;
 
 #ifdef ENABLE_CUDA
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
+        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU, -1, false, false, boost::shared_ptr<Messenger>(), 0, false));
 #endif
-        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
+        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>(), 0, false));
         env = new boost::mpi::environment(argc,argv);
         world = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());
 #ifdef ENABLE_CUDA

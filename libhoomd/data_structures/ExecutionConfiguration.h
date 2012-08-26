@@ -214,6 +214,12 @@ struct ExecutionConfiguration : boost::noncopyable
         assert(m_mpi_comm);
         return ((unsigned int) m_mpi_comm->rank()  == 0);
         }
+
+    //! Set the MPI communicator
+    void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
+        {
+        m_mpi_comm = mpi_comm;
+        } 
 #endif
 
 private:

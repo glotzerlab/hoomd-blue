@@ -263,6 +263,7 @@ class Messenger
         void setNoticeLevel(unsigned int level)
             {
             m_notice_level = level;
+            m_default_notice_level = level;
             }
 
         //! Set the error stream
