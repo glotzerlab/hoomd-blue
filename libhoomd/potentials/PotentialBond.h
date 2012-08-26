@@ -90,7 +90,7 @@ class PotentialBond : public ForceCompute
                       const std::string& log_suffix="");
 
         //! Destructor
-        ~PotentialBond();
+        virtual ~PotentialBond();
 
         //! Set the parameters
         virtual void setParams(unsigned int type, const param_type &param);
