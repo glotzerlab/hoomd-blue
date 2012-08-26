@@ -139,6 +139,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     assert(m_mpi_comm);
     assert(m_decomposition);
 
+    m_exec_conf->msg->notice(5) << "Constructing Communicator" << endl;
+
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         m_is_at_boundary[dir] = m_decomposition->isAtBoundary(dir);
@@ -153,6 +155,12 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
         }
+    }
+
+//! Destructor
+Communicator::~Communicator()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying Communicator";
     }
 
 //! Interface to the communication methods.

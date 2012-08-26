@@ -217,7 +217,7 @@ class Communicator
          */
         Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                      boost::shared_ptr<DomainDecomposition> decomposition);
-        virtual ~Communicator() {};
+        virtual ~Communicator();
 
         //! \name accessor methods
         //@{

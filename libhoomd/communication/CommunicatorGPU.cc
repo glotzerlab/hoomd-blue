@@ -86,7 +86,8 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_body_stage(m_exec_conf),
       m_orientation_stage(m_exec_conf),
       m_tag_stage(m_exec_conf)
-    {
+    { 
+    m_exec_conf->msg->notice(5) << "Constructing CommunicatorGPU" << std::endl;
     // allocate temporary GPU buffers
     gpu_allocate_tmp_storage();
     }
@@ -94,6 +95,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 //! Destructor
 CommunicatorGPU::~CommunicatorGPU()
     {
+    m_exec_conf->msg->notice(5) << "Destroying CommunicatorGPU";
     gpu_deallocate_tmp_storage();
     }
 
