@@ -44,6 +44,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include "PotentialExternal.h"
+#include "PotentialExternalGPU.cuh"
 
 /*! \file PotentialExternalGPU.h
     \brief Declares a class for computing an external potential field on the GPU
