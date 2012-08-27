@@ -534,15 +534,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             }
         }
 
-#ifdef ENABLE_MPI
-    // at end of simulation run, make sure all particles are found inside the global simulation box
-    if (m_comm)
-        {
-        m_comm->forceMigrate();
-        m_comm->communicate(m_cur_tstep);
-        }
-#endif
-
     // generate a final status line
     if (!m_quiet_run)
         generateStatusLine();
