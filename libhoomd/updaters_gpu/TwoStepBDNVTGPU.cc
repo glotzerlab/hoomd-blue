@@ -97,7 +97,7 @@ TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     
     // initialize the partial sum array
     m_block_size = 256; 
-    unsigned int group_size = m_group->getIndexArray().getNumElements();    
+    unsigned int group_size = m_group->getNumMembers();
     m_num_blocks = group_size / m_block_size + 1;
     GPUArray<float> partial_sum1(m_num_blocks, exec_conf);
     m_partial_sum1.swap(partial_sum1);          
@@ -119,7 +119,7 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getIndexArray().getNumElements();
+    unsigned int group_size = m_group->getNumLocalMembers();
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -172,8 +172,11 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
         
+        unsigned int group_size = m_group->getNumLocalMembers();
+        m_num_blocks = group_size / m_block_size + 1;
+
         // perform the update on the GPU
         bdnvt_step_two_args args;
         args.d_gamma = d_gamma.data;
@@ -188,8 +191,6 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         args.num_blocks = m_num_blocks;
         args.tally = m_tally;
         
-        unsigned int group_size = m_group->getIndexArray().getNumElements();
-   
         gpu_bdnvt_step_two(d_pos.data,
                            d_vel.data,
                            d_accel.data,
