@@ -246,7 +246,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
  */
 Scalar4 ForceCompute::getTorque(unsigned int tag)
     {
-    unsigned int i = m_pdata->getGlobalRTag(tag);
+    unsigned int i = m_pdata->getRTag(tag);
     bool found = (i < m_pdata->getN());
     Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
     if (found)
@@ -269,7 +269,7 @@ Scalar4 ForceCompute::getTorque(unsigned int tag)
  */
 Scalar3 ForceCompute::getForce(unsigned int tag)
     {
-    unsigned int i = m_pdata->getGlobalRTag(tag);
+    unsigned int i = m_pdata->getRTag(tag);
     bool found = (i < m_pdata->getN());
     Scalar3 result = make_scalar3(0.0,0.0,0.0);
     if (found)
@@ -293,7 +293,7 @@ Scalar3 ForceCompute::getForce(unsigned int tag)
  */
 Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
     {
-    unsigned int i = m_pdata->getGlobalRTag(tag);
+    unsigned int i = m_pdata->getRTag(tag);
     bool found = (i < m_pdata->getN());
     Scalar result = Scalar(0.0);
     if (found)
@@ -316,7 +316,7 @@ Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
  */
 Scalar ForceCompute::getEnergy(unsigned int tag)
     {
-    unsigned int i = m_pdata->getGlobalRTag(tag);
+    unsigned int i = m_pdata->getRTag(tag);
     bool found = (i < m_pdata->getN());
     Scalar result = Scalar(0.0);
     if (found)

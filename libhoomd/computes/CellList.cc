@@ -522,7 +522,7 @@ bool CellList::checkConditions()
     if (h_conditions.data[2])
         {
         unsigned int n = h_conditions.data[2] - 1;
-        m_exec_conf->msg->error() << "Particle " << m_pdata->getGlobalRTag(n) << " is no longer in the simulation box." << endl
+        m_exec_conf->msg->error() << "Particle " << m_pdata->getRTag(n) << " is no longer in the simulation box." << endl
              << endl;
              {
              ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);

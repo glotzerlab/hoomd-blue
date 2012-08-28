@@ -390,9 +390,9 @@ class ParticleDataInitializer
     \warning Local particles can and will be rearranged in the arrays throughout a simulation.
     So, a particle that was once at index 5 may be at index 123 the next time the data
     is acquired. Individual particles can be tracked through all these changes by their (global) tag.
-    The tag of a particle is stored in the \c m_global_tag array, and the ith element contains the tag of the particle
-    with index i. Conversely, the the index of a particle with tag \c global_tag can be read from
-    the element at position \c global_tag in the a \c m_global_rtag array.
+    The tag of a particle is stored in the \c m_tag array, and the ith element contains the tag of the particle
+    with index i. Conversely, the the index of a particle with tag \c tag can be read from
+    the element at position \c tag in the a \c m_rtag array.
 
     In a parallel simulation, the global tag is unique among all processors.
 
@@ -593,13 +593,6 @@ class ParticleData : boost::noncopyable
         //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
 
-        //! Return global tags
-        const GPUArray< unsigned int >& getGlobalTags() const { return m_global_tag; }
-
-        //! Return array of global reverse lookup tags
-        const GPUArray< unsigned int >& getGlobalRTags() { return m_global_rtag; }
-
-        
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
         */
@@ -650,47 +643,38 @@ class ParticleData : boost::noncopyable
 #endif
 
         //! Get the current position of a particle
-        Scalar3 getPosition(unsigned int global_tag) const;
+        Scalar3 getPosition(unsigned int tag) const;
 
         //! Get the current velocity of a particle
-        Scalar3 getVelocity(unsigned int global_tag) const;
+        Scalar3 getVelocity(unsigned int tag) const;
 
         //! Get the current acceleration of a particle
-        Scalar3 getAcceleration(unsigned int global_tag) const;
+        Scalar3 getAcceleration(unsigned int tag) const;
 
         //! Get the current image flags of a particle
-        int3 getImage(unsigned int global_tag) const;
+        int3 getImage(unsigned int tag) const;
 
         //! Get the current mass of a particle
-        Scalar getMass(unsigned int global_tag) const;
+        Scalar getMass(unsigned int tag) const;
 
         //! Get the current diameter of a particle
-        Scalar getDiameter(unsigned int global_tag) const;
+        Scalar getDiameter(unsigned int tag) const;
 
         //! Get the current charge of a particle
-        Scalar getCharge(unsigned int global_tag) const;
+        Scalar getCharge(unsigned int tag) const;
 
         //! Get the body id of a particle
-        unsigned int getBody(unsigned int global_tag) const;
+        unsigned int getBody(unsigned int tag) const;
 
         //! Get the current type of a particle
-        unsigned int getType(unsigned int global_tag) const;
-
-        //! Get the current index of a particle with a given local tag
-        unsigned int getRTag(unsigned int tag) const
-            {
-            assert(tag < getN());
-            ArrayHandle< unsigned int> h_rtag(m_rtag, access_location::host, access_mode::read);
-            unsigned int idx = h_rtag.data[tag];
-            return idx;
-            }
+        unsigned int getType(unsigned int tag) const;
 
         //! Get the current index of a particle with a given global tag
-        inline unsigned int getGlobalRTag(unsigned int global_tag) const
+        inline unsigned int getRTag(unsigned int tag) const
             {
-            assert(global_tag < m_nglobal);
-            ArrayHandle< unsigned int> h_global_rtag(m_global_rtag,access_location::host, access_mode::read);
-            unsigned int idx = h_global_rtag.data[global_tag];
+            assert(tag < m_nglobal);
+            ArrayHandle< unsigned int> h_rtag(m_rtag,access_location::host, access_mode::read);
+            unsigned int idx = h_rtag.data[tag];
 #ifdef ENABLE_MPI
             assert(m_decomposition || idx < getN());
 #endif
@@ -699,15 +683,15 @@ class ParticleData : boost::noncopyable
             }
 
         //! Return true if particle is local (= owned by this processor)
-        bool isParticleLocal(unsigned int global_tag) const
+        bool isParticleLocal(unsigned int tag) const
              {
-             assert(global_tag < m_nglobal);
-             ArrayHandle< unsigned int> h_global_rtag(m_global_rtag,access_location::host, access_mode::read);
-             return h_global_rtag.data[global_tag] < getN();
+             assert(tag < m_nglobal);
+             ArrayHandle< unsigned int> h_rtag(m_rtag,access_location::host, access_mode::read);
+             return h_rtag.data[tag] < getN();
              }
 
         //! Get the orientation of a particle with a given tag
-        Scalar4 getOrientation(unsigned int global_tag) const;
+        Scalar4 getOrientation(unsigned int tag) const;
 
         //! Get the inertia tensor of a particle with a given tag
         const InertiaTensor& getInertiaTensor(unsigned int tag) const
@@ -716,42 +700,42 @@ class ParticleData : boost::noncopyable
             }
 
         //! Get the net force / energy on a given particle
-        Scalar4 getPNetForce(unsigned int global_tag) const;
+        Scalar4 getPNetForce(unsigned int tag) const;
 
         //! Get the net torque on a given particle
-        Scalar4 getNetTorque(unsigned int global_tag) const;
+        Scalar4 getNetTorque(unsigned int tag) const;
 
         //! Set the current position of a particle
-        void setPosition(unsigned int global_tag, const Scalar3& pos);
+        void setPosition(unsigned int tag, const Scalar3& pos);
 
         //! Set the current velocity of a particle
-        void setVelocity(unsigned int global_tag, const Scalar3& vel);
+        void setVelocity(unsigned int tag, const Scalar3& vel);
 
         //! Set the current image flags of a particle
-        void setImage(unsigned int global_tag, const int3& image);
+        void setImage(unsigned int tag, const int3& image);
 
         //! Set the current charge of a particle
-        void setCharge(unsigned int global_tag, Scalar charge);
+        void setCharge(unsigned int tag, Scalar charge);
 
         //! Set the current mass of a particle
-        void setMass(unsigned int global_tag, Scalar mass);
+        void setMass(unsigned int tag, Scalar mass);
 
         //! Set the current diameter of a particle
-        void setDiameter(unsigned int global_tag, Scalar diameter);
+        void setDiameter(unsigned int tag, Scalar diameter);
 
         //! Set the body id of a particle
-        void setBody(unsigned int global_tag, int body);
+        void setBody(unsigned int tag, int body);
 
         //! Set the current type of a particle
-        void setType(unsigned int global_tag, unsigned int typ);
+        void setType(unsigned int tag, unsigned int typ);
 
         //! Set the orientation of a particle with a given tag
-        void setOrientation(unsigned int global_tag, const Scalar4& orientation);
+        void setOrientation(unsigned int tag, const Scalar4& orientation);
 
         //! Get the inertia tensor of a particle with a given tag
-        void setInertiaTensor(unsigned int global_tag, const InertiaTensor& tensor)
+        void setInertiaTensor(unsigned int tag, const InertiaTensor& tensor)
             {
-            m_inertia_tensor[global_tag] = tensor;
+            m_inertia_tensor[tag] = tensor;
             }
             
         //! Get the particle data flags
@@ -835,8 +819,6 @@ class ParticleData : boost::noncopyable
         GPUArray<int3> m_image;                     //!< particle images
         GPUArray<unsigned int> m_tag;               //!< particle tags
         GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
-        GPUArray<unsigned int> m_global_tag;        //!< global particle tags
-        GPUArray<unsigned int> m_global_rtag;       //!< reverse lookup of local particle indices from global tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
 
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.

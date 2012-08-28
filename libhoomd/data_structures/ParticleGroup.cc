@@ -546,7 +546,7 @@ void ParticleGroup::rebuildIndexList()
                 {
                 if (m_pdata->isParticleLocal(h_member_tags.data[member_idx]))
                     {
-                    unsigned int idx = m_pdata->getGlobalRTag(h_member_tags.data[member_idx]);
+                    unsigned int idx = m_pdata->getRTag(h_member_tags.data[member_idx]);
                     assert(idx < m_pdata->getN());
                     h_is_member.data[idx] = 1;
                     }
@@ -579,7 +579,7 @@ void ParticleGroup::rebuildIndexListGPU()
     ArrayHandle<unsigned char> d_is_member(m_is_member, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_member_tags(m_member_tags, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_member_idx(m_member_idx, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_global_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
 
     // reset membership properties
     gpu_clear_membership_flags(m_pdata->getN(), d_is_member.data);
@@ -591,7 +591,7 @@ void ParticleGroup::rebuildIndexListGPU()
                            d_member_tags.data,
                            d_is_member.data,
                            d_member_idx.data,
-                           d_global_rtag.data,
+                           d_rtag.data,
                            m_num_local_members);
         }
     else

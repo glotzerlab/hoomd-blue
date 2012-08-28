@@ -169,7 +169,7 @@ void IntegrationMethodTwoStep::validateGroup()
         if (m_pdata->isParticleLocal(tag))
             {
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
             unsigned int body = h_body.data[h_rtag.data[tag]];
 

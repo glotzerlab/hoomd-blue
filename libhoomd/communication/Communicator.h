@@ -126,7 +126,7 @@ struct pdata_element
     int3 image;               //!< Image
     unsigned int body;        //!< Body id
     Scalar4 orientation;       //!< Orientation
-    unsigned int global_tag;  //!< global tag
+    unsigned int tag;  //!< global tag
     };
 
 //! Perform a logical or operation on the return values of several signals

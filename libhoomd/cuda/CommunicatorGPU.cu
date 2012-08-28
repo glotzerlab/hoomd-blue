@@ -822,7 +822,7 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int n_total,
  * \param N number of local particles
  * \param dir Direction in which ghost particles are sent
  * \param d_plan Array of particle exchange plans
- * \param d_global_tag Array of particle global tags
+ * \param d_tag Array of particle global tags
  * \param d_copy_ghosts Array to be fillled with indices of particles that are to be sent as ghosts
  * \param d_ghost_tag Array of ghost particle tags to be sent
  * \param n_copy_ghosts Number of local particles that are sent in the given direction as ghosts (return value)
@@ -1053,9 +1053,9 @@ void gpu_copy_ghosts(unsigned int nghost,
  * \param d_gloal_rtag Pointer to reverse-lookup tags to reset
  */
 void gpu_reset_ghost_rtag(unsigned int nghost,
-                          unsigned int *d_global_rtag)
+                          unsigned int *d_rtag)
      {
-     thrust::device_ptr<unsigned int> global_rtag_ptr(d_global_rtag);
-     thrust::fill(global_rtag_ptr, global_rtag_ptr + nghost, NOT_LOCAL);
+     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+     thrust::fill(rtag_ptr, rtag_ptr + nghost, NOT_LOCAL);
      }
 #endif

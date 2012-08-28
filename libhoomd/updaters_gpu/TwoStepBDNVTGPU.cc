@@ -172,7 +172,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
         
         unsigned int group_size = m_group->getNumLocalMembers();
         m_num_blocks = group_size / m_block_size + 1;

@@ -263,8 +263,8 @@ void NeighborListGPU::updateExListIdx()
     {
     if (m_prof)
         m_prof->push("update-ex");
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_tag(m_pdata->getGlobalTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     ArrayHandle<unsigned int> d_n_ex_tag(m_n_ex_tag, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_ex_list_tag(m_ex_list_tag, access_location::device, access_mode::read);

@@ -508,7 +508,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "<orientation num=\"" << m_pdata->getN() << "\">" << "\n";
         
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
         
         for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {

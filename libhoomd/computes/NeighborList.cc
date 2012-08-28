@@ -1054,8 +1054,8 @@ void NeighborList::updateExListIdx()
     if (m_prof)
         m_prof->push("update-ex");
     // access data
-    ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
@@ -1066,7 +1066,7 @@ void NeighborList::updateExListIdx()
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
         // get the tag for this index
-        unsigned int tag = h_global_tag.data[idx];
+        unsigned int tag = h_tag.data[idx];
 
         // copy the number of exclusions over
         unsigned int n = h_n_ex_tag.data[tag];
@@ -1076,7 +1076,7 @@ void NeighborList::updateExListIdx()
         for (unsigned int offset = 0; offset < n; offset++)
             {
             unsigned int ex_tag = h_ex_list_tag.data[m_ex_list_indexer_tag(tag,offset)];
-            unsigned int ex_idx = h_global_rtag.data[ex_tag];
+            unsigned int ex_idx = h_rtag.data[ex_tag];
 
             assert (ex_idx < m_pdata->getN() + m_pdata->getNGhosts());
 

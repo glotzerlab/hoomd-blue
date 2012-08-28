@@ -197,12 +197,12 @@ void Communicator::migrateAtoms()
 
     // wipe out reverse-lookup tag -> idx for old ghost atoms
         {
-        ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
         for (unsigned int i = 0; i < m_pdata->getNGhosts(); i++)
             {
             unsigned int idx = m_pdata->getN() + i;
-            h_global_rtag.data[h_global_tag.data[idx]] = NOT_LOCAL;
+            h_rtag.data[h_tag.data[idx]] = NOT_LOCAL;
             }
         }
 
@@ -232,7 +232,7 @@ void Communicator::migrateAtoms()
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
 
             /* Reorder particles.
                Particles that stay in our domain come first, followed by the particles that are sent to a
@@ -303,9 +303,9 @@ void Communicator::migrateAtoms()
                 h_body.data[i] = uint_tmp[i];
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                uint_tmp[i] = h_global_tag.data[sort_keys[i]];
+                uint_tmp[i] = h_tag.data[sort_keys[i]];
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_global_tag.data[i] = uint_tmp[i];
+                h_tag.data[i] = uint_tmp[i];
             }
 
         // remove particles from local data that are being sent
@@ -313,11 +313,11 @@ void Communicator::migrateAtoms()
 
             {
             // update reverse lookup tags
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
             for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
                 {
-                h_global_rtag.data[h_global_tag.data[idx]] = idx;
+                h_rtag.data[h_tag.data[idx]] = idx;
                 }
             }
 
@@ -334,9 +334,9 @@ void Communicator::migrateAtoms()
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
 
             ArrayHandle<char> h_sendbuf(m_sendbuf, access_location::host, access_mode::overwrite);
 
@@ -354,11 +354,11 @@ void Communicator::migrateAtoms()
                 p.image = h_image.data[idx];
                 p.body = h_body.data[idx];
                 p.orientation = h_orientation.data[idx];
-                p.global_tag = h_global_tag.data[idx];
+                p.tag = h_tag.data[idx];
 
                 // Reset the global rtag for the particle we are sending to indicate it is no longer local
-                assert(h_global_rtag.data[h_global_tag.data[idx]] < m_pdata->getN() + n_send_ptls);
-                h_global_rtag.data[h_global_tag.data[idx]] = NOT_LOCAL;
+                assert(h_rtag.data[h_tag.data[idx]] < m_pdata->getN() + n_send_ptls);
+                h_rtag.data[h_tag.data[idx]] = NOT_LOCAL;
 
                 ( (pdata_element *) h_sendbuf.data)[i] = p;
                 }
@@ -463,8 +463,8 @@ void Communicator::migrateAtoms()
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
 
             ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::read);
             for (unsigned int i = 0; i < n_recv_ptls; i++)
@@ -480,10 +480,10 @@ void Communicator::migrateAtoms()
                 h_image.data[add_idx] = p.image;
                 h_body.data[add_idx] = p.body;
                 h_orientation.data[add_idx] = p.orientation;
-                h_global_tag.data[add_idx] = p.global_tag;
+                h_tag.data[add_idx] = p.tag;
 
-                assert(h_global_rtag.data[h_global_tag.data[add_idx]] == NOT_LOCAL);
-                h_global_rtag.data[h_global_tag.data[add_idx]] = add_idx;
+                assert(h_rtag.data[h_tag.data[add_idx]] == NOT_LOCAL);
+                h_rtag.data[h_tag.data[add_idx]] = add_idx;
                 add_idx++;
                 }
             }
@@ -526,7 +526,7 @@ void Communicator::exchangeGhosts()
         const GPUVector<uint2>& btable = bdata->getBondTable();
         ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
         ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
         unsigned nbonds = bdata->getNumBonds();
@@ -628,7 +628,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<unsigned char>  h_plan(m_plan, access_location::host, access_mode::read);
 
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::overwrite);
@@ -648,7 +648,7 @@ void Communicator::exchangeGhosts()
                     h_diameter_copybuf.data[m_num_copy_ghosts[dir]] = h_diameter.data[idx];
                     h_plan_copybuf.data[m_num_copy_ghosts[dir]] = h_plan.data[idx];
 
-                    h_copy_ghosts.data[m_num_copy_ghosts[dir]] = h_global_tag.data[idx];
+                    h_copy_ghosts.data[m_num_copy_ghosts[dir]] = h_tag.data[idx];
                     m_num_copy_ghosts[dir]++;
                     }
                 }
@@ -700,7 +700,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
 
             MPI_Isend(h_plan_copybuf.data, m_num_copy_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, send_neighbor, 1, *m_mpi_comm, &reqs[2]);
             MPI_Irecv(h_plan.data + start_idx, m_num_recv_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, recv_neighbor, 1, *m_mpi_comm, &reqs[3]);
@@ -709,7 +709,7 @@ void Communicator::exchangeGhosts()
             MPI_Irecv(h_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, *m_mpi_comm, &reqs[5]);
 
             MPI_Isend(h_copy_ghosts.data, m_num_copy_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, send_neighbor, 3, *m_mpi_comm, &reqs[6]);
-            MPI_Irecv(h_global_tag.data + start_idx, m_num_recv_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 3, *m_mpi_comm, &reqs[7]);
+            MPI_Irecv(h_tag.data + start_idx, m_num_recv_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 3, *m_mpi_comm, &reqs[7]);
 
             MPI_Isend(h_charge_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 4, *m_mpi_comm, &reqs[8]);
             MPI_Irecv(h_charge.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 4, *m_mpi_comm, &reqs[9]);
@@ -727,8 +727,8 @@ void Communicator::exchangeGhosts()
 
 
             {
-            ArrayHandle<unsigned int> h_global_tag(m_pdata->getGlobalTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
@@ -751,8 +751,8 @@ void Communicator::exchangeGhosts()
 
 
                 // set reverse-lookup tag -> idx
-                assert(h_global_rtag.data[h_global_tag.data[idx]] == NOT_LOCAL);
-                h_global_rtag.data[h_global_tag.data[idx]] = idx;
+                assert(h_rtag.data[h_tag.data[idx]] == NOT_LOCAL);
+                h_rtag.data[h_tag.data[idx]] = idx;
                 }
             }
         } // end dir loop
@@ -784,12 +784,12 @@ void Communicator::copyGhosts()
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_global_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
             // copy positions of ghost particles
             for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
                 {
-                unsigned int idx = h_global_rtag.data[h_copy_ghosts.data[ghost_idx]];
+                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
 
                 assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
 

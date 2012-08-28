@@ -342,7 +342,7 @@ void BondData::updateBondTableGPU()
 
         {
         ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
         gpu_find_max_bond_number(max_bond_num,
                                  d_n_bonds.data,
@@ -363,7 +363,7 @@ void BondData::updateBondTableGPU()
         ArrayHandle<uint2> d_gpu_bondlist(m_gpu_bondlist, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getGlobalRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         gpu_create_bondtable(d_gpu_bondlist.data,
                              d_n_bonds.data,
                              d_bonds.data,
@@ -385,7 +385,7 @@ void BondData::updateBondTableGPU()
 void BondData::updateBondTable()
     {
 
-    ArrayHandle< unsigned int > h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     unsigned int num_bonds_max = 0;
         {
