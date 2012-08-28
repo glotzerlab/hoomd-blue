@@ -124,7 +124,7 @@ std::ostream& Messenger::warning() const
     {
     assert(m_warning_stream);
     if (m_warning_prefix != string(""))
-        *m_warning_stream << m_rank_prefix << m_warning_prefix << ": ";
+        *m_warning_stream << m_warning_prefix << m_rank_prefix << ": ";
     return *m_warning_stream;
     }
 
