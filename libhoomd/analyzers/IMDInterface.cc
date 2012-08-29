@@ -69,6 +69,7 @@ using namespace boost;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
+#include "HOOMDMPI.h"
 #endif
 
 #include "vmdsock.h"
@@ -190,7 +191,7 @@ void IMDInterface::analyze(unsigned int timestep)
 #ifdef ENABLE_MPI
     bool is_root = true;
     if (m_comm)
-        is_root = m_exec_conf->isMPIRoot(); 
+        is_root = m_exec_conf->isRoot(); 
 
     if (is_root && ! m_is_initialized)
         initConnection();
@@ -236,7 +237,7 @@ void IMDInterface::analyze(unsigned int timestep)
 
     if (m_comm)
         {
-        broadcast(*m_exec_conf->getMPICommunicator(), send_coords, 0);
+        bcast(send_coords, 0, m_exec_conf->getMPICommunicator());
         }
 
     if (send_coords)
@@ -479,7 +480,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
 #ifdef ENABLE_MPI
     // return now if not root rank
     if (m_comm)
-        if (! m_exec_conf->isMPIRoot()) return;
+        if (! m_exec_conf->isRoot()) return;
 #endif
 
     assert(m_connected_sock != NULL);

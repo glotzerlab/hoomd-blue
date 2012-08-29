@@ -121,7 +121,7 @@ class DomainDecomposition
         bool findDecomposition(Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz);
 
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
-        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< MPI communicator
+        const MPI_Comm m_mpi_comm; //!< MPI communicator
  
    };
 

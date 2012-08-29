@@ -77,7 +77,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                                )
       : m_exec_conf(exec_conf), m_mpi_comm(m_exec_conf->getMPICommunicator())
     {
-    unsigned int rank = m_mpi_comm->rank();
+    unsigned int rank = m_exec_conf->getRank();
 
     if (rank == 0)
         {
@@ -85,7 +85,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         if (! found_decomposition)
             {
             m_exec_conf->msg->error() << "***Warning! Unable to find a decomposition of total number of domains == "
-                 << m_mpi_comm->size()
+                 << m_exec_conf->getNRanks()
                  << endl << "with requested dimensions. Choosing default decomposition.";
 
             nx = ny = nz = 0;
@@ -103,12 +103,12 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     // calculate physical box dimensions of every processor
 
     // broadcast global box dimensions
-    bcast(L, 0, *m_mpi_comm);
+    bcast(L, 0, m_mpi_comm);
 
     // broadcast grid dimensions
-    bcast( m_nx, 0, *m_mpi_comm);
-    bcast( m_ny, 0, *m_mpi_comm);
-    bcast( m_nz, 0, *m_mpi_comm);
+    bcast( m_nx, 0, m_mpi_comm);
+    bcast( m_ny, 0, m_mpi_comm);
+    bcast( m_nz, 0, m_mpi_comm);
 
     // Initialize domain indexer
     m_index = Index3D(m_nx,m_ny,m_nz);
@@ -126,7 +126,7 @@ bool DomainDecomposition::findDecomposition(const Scalar3 L, unsigned int& nx, u
 
     // Calulate the number of sub-domains in every direction
     // by minimizing the surface area between domains at constant number of domains
-    double min_surface_area = L.x*L.y*m_mpi_comm->size()+L.x*L.z+L.y*L.z;
+    double min_surface_area = L.x*L.y*m_exec_conf->getNRanks()+L.x*L.z+L.y*L.z;
 
     unsigned int nx_in = nx;
     unsigned int ny_in = ny;
@@ -135,24 +135,24 @@ bool DomainDecomposition::findDecomposition(const Scalar3 L, unsigned int& nx, u
     bool found_decomposition = (nx_in == 0 && ny_in == 0 && nz_in == 0);
 
     // initial guess
+    unsigned int nranks = m_exec_conf->getNRanks();
     nx = 1;
     ny = 1;
-    nz = m_mpi_comm->size();
+    nz = nranks;
 
-
-    for (unsigned int nx_try = 1; nx_try <= (unsigned int) m_mpi_comm->size(); nx_try++)
+    for (unsigned int nx_try = 1; nx_try <= nranks; nx_try++)
         {
         if (nx_in != 0 && nx_try != nx_in)
             continue;
-        for (unsigned int ny_try = 1; nx_try*ny_try <= (unsigned int) m_mpi_comm->size(); ny_try++)
+        for (unsigned int ny_try = 1; nx_try*ny_try <= nranks; ny_try++)
             {
             if (ny_in != 0 && ny_try != ny_in)
                 continue;
-            for (unsigned int nz_try = 1; nx_try*ny_try*nz_try <= (unsigned int) m_mpi_comm->size(); nz_try++)
+            for (unsigned int nz_try = 1; nx_try*ny_try*nz_try <= nranks; nz_try++)
                 {
                 if (nz_in != 0 && nz_try != nz_in)
                     continue;
-                if (nx_try*ny_try*nz_try != (unsigned int) m_mpi_comm->size()) continue;
+                if (nx_try*ny_try*nz_try != nranks) continue;
                 double surface_area = L.x*L.y*nz_try + L.x*L.z*ny_try + L.y*L.z*nx_try;
                 if (surface_area < min_surface_area || !found_decomposition)
                     {

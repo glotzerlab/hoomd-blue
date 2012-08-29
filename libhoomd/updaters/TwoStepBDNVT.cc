@@ -60,6 +60,10 @@ using namespace boost::python;
 
 #include "TwoStepBDNVT.h"
 
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 /*! \file TwoStepBDNVT.h
     \brief Contains code for the TwoStepBDNVT class
 */
@@ -262,7 +266,7 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         #ifdef ENABLE_MPI
         if (m_comm)
             {
-            MPI_Allreduce(MPI_IN_PLACE, &bd_energy_transfer, 1, MPI_FLOAT, MPI_SUM, *m_exec_conf->getMPICommunicator()); 
+            MPI_Allreduce(MPI_IN_PLACE, &bd_energy_transfer, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator()); 
             } 
         #endif
         m_reservoir_energy -= bd_energy_transfer*m_deltaT;

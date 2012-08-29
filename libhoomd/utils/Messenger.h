@@ -61,10 +61,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 
 #ifdef ENABLE_MPI
-#include <boost/mpi.hpp>
+#include "HOOMDMPI.h"
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/categories.hpp>
-
 namespace io = boost::iostreams;
 #endif 
 
@@ -110,7 +109,7 @@ class mpi_io
         std::streamsize write ( const char * s, std::streamsize n );
 
     private:
-        const MPI_Comm& m_mpi_comm; //!< The MPI communciator
+        MPI_Comm m_mpi_comm;        //!< The MPI communciator
         MPI_File m_file;            //!< The file handle
         bool m_file_open;           //!< Whether the file is open
     };
@@ -239,7 +238,7 @@ class Messenger
         //! Set MPI communicator
         /*! \param mpi_comm The MPI communicator to use
          */
-        void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
+        void setMPICommunicator(const MPI_Comm mpi_comm)
             {
             m_mpi_comm = mpi_comm;
 
@@ -392,7 +391,7 @@ class Messenger
 
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file
-        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The MPI communicator
+        MPI_Comm m_mpi_comm;            //!< The MPI communicator
 
         //! Open a shared file for error, warning, and notice streams
         void openSharedFile();

@@ -67,7 +67,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 
 #include <mpi.h>
+
 #include <sstream>
+#include <vector>
+
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -127,7 +130,7 @@ namespace boost
 
 //! Wrapper around MPI_Bcast that handles any serializable object
 template<typename T>
-void bcast(T& val, unsigned int root, const MPI_Comm& mpi_comm)
+void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     {
     int rank;
     MPI_Comm_rank(mpi_comm, &rank);
@@ -172,7 +175,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm& mpi_comm)
 
 //! Wrapper around MPI_Scatterv that scatters a vector of serializable objects
 template<typename T>
-void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root, const MPI_Comm& mpi_comm)
+void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root, const MPI_Comm mpi_comm)
     {
     int rank;
     int size;
@@ -243,7 +246,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
 
 //! Wrapper around MPI_Gatherv
 template<typename T>
-void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root, const MPI_Comm& mpi_comm)
+void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root, const MPI_Comm mpi_comm)
     {
     int rank;
     int size;

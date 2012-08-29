@@ -69,6 +69,7 @@ using namespace boost;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
+#include "HOOMDMPI.h"
 #endif
 
 #include <iostream>
@@ -162,7 +163,7 @@ void ComputeThermoGPU::computeProperties()
     }
 
 #ifdef ENABLE_MPI
-    boost::shared_ptr<const boost::mpi::communicator> mpi_comm;
+    const MPI_Comm mpi_comm;
     if (m_pdata->getDomainDecomposition())
         {
         mpi_comm = m_exec_conf->getMPICommunicator();
@@ -173,7 +174,7 @@ void ComputeThermoGPU::computeProperties()
 
         if (m_prof)
             m_prof->push("MPI Allreduce");
-        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_FLOAT, MPI_SUM, *mpi_comm);
+        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR, MPI_SUM, mpi_comm);
         if (m_prof)
                 m_prof->pop();
         }

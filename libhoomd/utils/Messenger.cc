@@ -61,6 +61,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 #include <boost/python.hpp>
+
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 using namespace boost::python;
 
 /*! \post Warning and error streams are set to cerr
@@ -178,7 +183,7 @@ void Messenger::flushCollectiveNotice(unsigned int level)
 #ifdef ENABLE_MPI
     if (m_mpi_comm)
         {
-        boost::mpi::gather(*m_mpi_comm, m_collective_notice_stream.str(), rank_notices, 0);
+        gather_v(m_collective_notice_stream.str(), rank_notices, 0, m_mpi_comm);
         }
     else
 #endif
@@ -187,7 +192,7 @@ void Messenger::flushCollectiveNotice(unsigned int level)
         }
 
 #ifdef ENABLE_MPI
-    if (m_mpi_comm && m_mpi_comm->rank() == 0)
+    if (m_mpi_comm && m_rank == 0)
 #endif
         {
         // Output notices in rank order
@@ -236,7 +241,7 @@ void Messenger::openSharedFile()
 
     std::ostringstream oss;
     oss << m_shared_filename << "." << m_partition;
-    io::stream<mpi_io> *mpi_ios = new io::stream<mpi_io>((const MPI_Comm&) *m_mpi_comm, oss.str());
+    io::stream<mpi_io> *mpi_ios = new io::stream<mpi_io>((const MPI_Comm&) m_mpi_comm, oss.str());
 
     // now update the error, warning, and notice streams
     m_file = boost::shared_ptr<std::ostream>(mpi_ios);

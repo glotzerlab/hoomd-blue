@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <limits>
 
-#ifdef ENABLE_MPI
-#include <boost/mpi.hpp>
-#endif
-
 #include "Compute.h"
 #include "GPUArray.h"
 #include "ComputeThermoTypes.h"
@@ -227,9 +223,6 @@ class ComputeThermo : public Compute
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
         unsigned int m_ndof;            //!< Stores the number of degrees of freedom in the system
         vector<string> m_logname_list;  //!< Cache all generated logged quantities names
-#ifdef ENABLE_MPI
-        boost::shared_ptr<boost::mpi::communicator> m_mpi_comm;//! MPI communicator
-#endif 
 
         //! Does the actual computation
         virtual void computeProperties();

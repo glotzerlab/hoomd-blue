@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #ifdef ENABLE_MPI
-#include <boost/mpi.hpp>
 #include "Communicator.h"
 #endif
 
@@ -741,9 +740,9 @@ bool NeighborList::distanceCheck()
     if (m_comm)
         {
         // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
-        unsigned int local_result = result ? 1 : 0;
-        unsigned int global_result = 0;
-        all_reduce(*m_exec_conf->getMPICommunicator(), local_result, global_result,  boost::mpi::maximum<unsigned int>());
+        int local_result = result ? 1 : 0;
+        int global_result = 0;
+        MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
         result = (global_result > 0);
         }
 #endif

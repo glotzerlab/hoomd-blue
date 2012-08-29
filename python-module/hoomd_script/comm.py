@@ -89,14 +89,12 @@ def init_domain_decomposition(mpi_options):
         if 'linear' in mpi_options:
             linear = mpi_options['linear']
 
-        mpi_comm = globals.exec_conf.getMPICommunicator()
-
         if linear is True:
             # set up linear decomposition
-            nz = mpi_comm.size()
+            nz = globals.exec_conf.getNRanks()
   
         # exit early if we are only running on one processor
-        if mpi_comm.size() == 1:
+        if globals.exec_conf.getNRanks() == 1:
             return
 
         # take a snapshot of the global system

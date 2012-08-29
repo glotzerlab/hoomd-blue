@@ -65,6 +65,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #endif
 
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -98,9 +102,6 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
 #endif
                                                )
     : m_cuda_error_checking(false), msg(_msg)
-#ifdef ENABLE_MPI
-    , m_num_mpi_ranks(1), m_mpi_env(NULL)
-#endif
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
@@ -158,9 +159,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #endif
                                                )
     : m_cuda_error_checking(false), msg(_msg)
-#ifdef ENABLE_MPI
-    , m_mpi_env(NULL)
-#endif
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
@@ -201,30 +199,27 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #endif
 
     #ifdef ENABLE_MPI
-    if (m_mpi_env)
-        delete m_mpi_env;
+    if (m_mpi_comm) MPI_Finalize();
     #endif
     }
 
 #ifdef ENABLE_MPI
 void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     {
-    m_mpi_env = new boost::mpi::environment();
+    MPI_Init(0, (char ***) NULL);
+    m_mpi_comm = MPI_COMM_WORLD;
 
-    MPI_Comm mpi_comm = MPI_COMM_WORLD;
-
-    int num_ranks;
-    MPI_Comm_size(mpi_comm, &num_ranks);
-    m_num_mpi_ranks = num_ranks;
+    int num_total_ranks;
+    MPI_Comm_size(m_mpi_comm, &num_total_ranks);
 
     if  (n_ranks != 0)
         {
         int  rank;
-        MPI_Comm_rank(mpi_comm, &rank);
+        MPI_Comm_rank(m_mpi_comm, &rank);
 
-        if (m_num_mpi_ranks % n_ranks != 0)
+        if (num_total_ranks % n_ranks != 0)
             {
-            msg->error() << "Unable to split communicator with requested setting --ranks-per-partition" << std::endl;
+            msg->error() << "Unable to split communicator with requested setting --nranks" << std::endl;
             throw(runtime_error("Error setting up MPI."));
             }
 
@@ -232,15 +227,16 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
 
         // Split the communicator
         MPI_Comm new_comm; 
-        MPI_Comm_split(mpi_comm, m_partition, rank, &new_comm);
+        MPI_Comm_split(m_mpi_comm, m_partition, rank, &new_comm);
 
         // update communicator
-        mpi_comm = new_comm;
+        m_mpi_comm = new_comm;
         }
 
-    m_mpi_comm = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator(mpi_comm,boost::mpi::comm_attach));
+    int rank;
+    MPI_Comm_rank(m_mpi_comm, &rank);
 
-    msg->setRank(m_mpi_comm->rank(),m_partition);
+    msg->setRank(rank, m_partition);
     msg->setMPICommunicator(m_mpi_comm);
     }
 #endif
@@ -716,6 +712,22 @@ void ExecutionConfiguration::setupStats()
         }
     }
 
+unsigned int ExecutionConfiguration::getRank() const
+    {
+    assert(m_mpi_comm);
+    int rank;
+    MPI_Comm_rank(m_mpi_comm, &rank);
+    return rank;
+    }
+    
+unsigned int ExecutionConfiguration::getNRanks() const
+    {
+    assert(m_mpi_comm);
+    int size;
+    MPI_Comm_size(m_mpi_comm, &size);
+    return size;
+    }
+
 void export_ExecutionConfiguration()
     {
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
@@ -736,10 +748,9 @@ void export_ExecutionConfiguration()
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
 #ifdef ENABLE_MPI
-                         .def("getMPICommunicator", &ExecutionConfiguration::getMPICommunicator)
-                         .def("getMPIPartition", &ExecutionConfiguration::getMPIPartition)
-                         .def("getMPIPartitionSize", &ExecutionConfiguration::getMPIPartitionSize)
-                         .def("getNumMPIRanks", &ExecutionConfiguration::getNumMPIRanks)
+                         .def("getPartition", &ExecutionConfiguration::getPartition)
+                         .def("getNRanks", &ExecutionConfiguration::getNRanks)
+                         .def("getRank", &ExecutionConfiguration::getRank)
                          .def("guessRank", &ExecutionConfiguration::guessRank)
                          .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
                          .staticmethod("guessRank")
@@ -752,12 +763,4 @@ void export_ExecutionConfiguration()
     .value("CPU", ExecutionConfiguration::CPU)
     ;
 
-#ifdef ENABLE_MPI
-    // Export MPI Communicator
-    class_<boost::mpi::communicator, boost::shared_ptr<boost::mpi::communicator> >
-                         ("mpi_comm", init< >())
-                         .def("size", &boost::mpi::communicator::size)
-                         .def("rank", &boost::mpi::communicator::rank)
-                         ;
-#endif
     }

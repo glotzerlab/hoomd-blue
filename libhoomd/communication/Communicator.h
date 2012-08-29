@@ -67,7 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
-#include <boost/mpi.hpp>
 
 /*! \ingroup hoomd_lib
     @{
@@ -321,7 +320,7 @@ class Communicator
         boost::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         boost::shared_ptr<ParticleData> m_pdata;                      //!< Particle data
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
-        boost::shared_ptr<const boost::mpi::communicator> m_mpi_comm; //!< MPI communciator
+        const MPI_Comm m_mpi_comm; //!< MPI communciator
         boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
         boost::shared_ptr<Profiler> m_prof;                           //!< Profiler
 

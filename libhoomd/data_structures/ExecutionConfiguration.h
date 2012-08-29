@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef ENABLE_MPI
-#include <boost/mpi.hpp>
+#include <mpi.h>
 #endif
 
 #include "Messenger.h"
@@ -126,7 +126,7 @@ struct ExecutionConfiguration : boost::noncopyable
    
 #ifdef ENABLE_MPI
     //! Returns the boost MPI communicator
-    boost::shared_ptr<boost::mpi::communicator> getMPICommunicator() const
+    const MPI_Comm getMPICommunicator() const
         {
         return m_mpi_comm;
         }
@@ -190,33 +190,25 @@ struct ExecutionConfiguration : boost::noncopyable
 
 #ifdef ENABLE_MPI
     //! Returns the partition number of this processor
-    unsigned int getMPIPartition() const
+    unsigned int getPartition() const
         {
         return m_partition;
         }
 
-    //! Returns the number of processors in this partition
-    unsigned int getMPIPartitionSize() const
-        {
-        int size;
-        MPI_Comm_size(*m_mpi_comm, &size);
-        return size;
-        }
-    //! Returns the total number of ranks in this simulation
-    unsigned int getNumMPIRanks() const
-        {
-        return m_num_mpi_ranks;
-        }
+    //! Return the rank of this processor in the partition
+    unsigned int getRank() const;
+    
+    //! Return the number of ranks in this partition
+    unsigned int getNRanks() const;
 
     //! Returns true if this is the root processor
-    bool isMPIRoot() const
+    bool isRoot() const
         {
-        assert(m_mpi_comm);
-        return ((unsigned int) m_mpi_comm->rank()  == 0);
+        return getRank() == 0;
         }
 
     //! Set the MPI communicator
-    void setMPICommunicator(boost::shared_ptr<boost::mpi::communicator> mpi_comm)
+    void setMPICommunicator(const MPI_Comm mpi_comm)
         {
         m_mpi_comm = mpi_comm;
         } 
@@ -254,10 +246,8 @@ private:
     void initializeMPI(unsigned int n_ranks);               //!< Initialize MPI environment
 
     unsigned int m_partition;                               //!< The partition number
-    unsigned int m_num_mpi_ranks;                           //!< The total number of MPI ranks
 
-    boost::mpi::environment *m_mpi_env;                     //!< The boost.MPI environment
-    boost::shared_ptr<boost::mpi::communicator> m_mpi_comm; //!< The boost.MPI communicator
+    MPI_Comm m_mpi_comm;                                    //!< The boost.MPI communicator
 #endif
 
     //! Setup and print out stats on the chosen CPUs/GPUs

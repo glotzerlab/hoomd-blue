@@ -62,6 +62,7 @@ using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
+#include "HOOMDMPI.h"
 #endif 
 
 /*! \file TwoStepNVT.h
@@ -220,10 +221,9 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_exec_conf->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_exec_conf->getMPICommunicator(), eta, 0);
-        broadcast(*m_exec_conf->getMPICommunicator(), xi, 0);
+        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 

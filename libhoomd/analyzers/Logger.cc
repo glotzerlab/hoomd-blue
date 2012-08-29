@@ -72,7 +72,6 @@ using namespace boost::filesystem;
 using namespace std;
 
 #ifdef ENABLE_MPI
-#include <boost/mpi.hpp>
 #include "Communicator.h"
 #endif
 
@@ -97,7 +96,7 @@ void Logger::openOutputFiles()
 #ifdef ENABLE_MPI
     // only output to file on root processor
     if (m_comm)
-        if (! m_exec_conf->isMPIRoot())
+        if (! m_exec_conf->isRoot())
             return;
 #endif
     // open the file
@@ -192,7 +191,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 #ifdef ENABLE_MPI
     // only output to file on root processor
     if (m_pdata->getDomainDecomposition())
-        if (! m_exec_conf->isMPIRoot())
+        if (! m_exec_conf->isRoot())
             return;
 #endif
 
@@ -256,7 +255,7 @@ void Logger::analyze(unsigned int timestep)
 #ifdef ENABLE_MPI
     // only output to file on root processor
     if (m_comm)
-        if (! m_exec_conf->isMPIRoot())
+        if (! m_exec_conf->isRoot())
             {
             if (m_prof) m_prof->pop();
             return;

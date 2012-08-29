@@ -63,6 +63,7 @@ using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
+#include "HOOMDMPI.h"
 #endif
 
 /*! \file TwoStepNPTMTKGPU.h
@@ -226,14 +227,14 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     if (m_comm)
         {
         // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&eta, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&xi, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nux, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuy, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuz, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nux, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
 
         // broadcast box dimensions
-        MPI_Bcast(&m_L,sizeof(Scalar3), MPI_BYTE, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_L,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -335,7 +336,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
 #ifdef ENABLE_MPI
     if (m_comm)
-        MPI_Allreduce(MPI_IN_PLACE, &T_prime, 1, MPI_FLOAT, MPI_SUM, *m_exec_conf->getMPICommunicator() );
+        MPI_Allreduce(MPI_IN_PLACE, &T_prime, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator() );
 #endif
 
     // Advance thermostat half a time step
@@ -420,11 +421,11 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     if (m_comm)
         {
         // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&eta, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&xi, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nux, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuy, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuz, 1, MPI_FLOAT, 0, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nux, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 

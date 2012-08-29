@@ -468,7 +468,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                         {
                         // if we are within 1% of the maximum run time
                         // coordinate exit on all processos
-                        end_run = all_reduce(*m_exec_conf->getMPICommunicator(), end_run, std::plus<unsigned char>());
+                        MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_CHAR, MPI_SUM, m_exec_conf->getMPICommunicator());
                         }
                     }
 #endif

@@ -64,6 +64,10 @@ using namespace boost;
 #include "TwoStepNVEGPU.cuh"
 #include "TwoStepBDNVTGPU.cuh"
 
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 /*! \file TwoStepBDNVTGPU.h
     \brief Contains code for the TwoStepBDNVTGPU class
 */
@@ -216,7 +220,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         #ifdef ENABLE_MPI
         if (m_comm)
             {
-            MPI_Allreduce(MPI_IN_PLACE, &h_sumBD.data[0], 1, MPI_FLOAT, MPI_SUM, *m_exec_conf->getMPICommunicator()); 
+            MPI_Allreduce(MPI_IN_PLACE, &h_sumBD.data[0], 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator()); 
             } 
         #endif
         m_reservoir_energy -= h_sumBD.data[0]*m_deltaT;

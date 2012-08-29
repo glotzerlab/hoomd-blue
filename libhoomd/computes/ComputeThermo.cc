@@ -60,6 +60,7 @@ using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
+#include "HOOMDMPI.h"
 #endif
 
 #include <iostream>
@@ -195,15 +196,6 @@ void ComputeThermo::computeProperties()
     // just drop out if the group is an empty group
     if (group_size == 0)
         return;
-
-#ifdef ENABLE_MPI
-    boost::shared_ptr<const boost::mpi::communicator> mpi_comm;
-    if (m_comm)
-        {
-        mpi_comm = m_exec_conf->getMPICommunicator();
-        assert(mpi_comm);
-        }
-#endif
 
     if (m_prof) m_prof->push("Thermo");
     
@@ -365,12 +357,12 @@ void ComputeThermo::computeProperties()
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        boost::shared_ptr<const boost::mpi::communicator> mpi_comm = m_exec_conf->getMPICommunicator();
+        MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
 
         if (m_prof)
             m_prof->push("MPI Allreduce");
 
-        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_FLOAT, MPI_SUM, *mpi_comm);
+        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR, MPI_SUM, mpi_comm);
 
         if (m_prof)
                 m_prof->pop();

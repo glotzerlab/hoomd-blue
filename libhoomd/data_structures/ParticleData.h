@@ -85,7 +85,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "Index1D.h"
 #include "DomainDecomposition.h"
-#include <boost/mpi.hpp>
 #endif
 
 #include <stdlib.h>

@@ -72,7 +72,6 @@ using namespace boost;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
-#include <boost/mpi.hpp>
 #endif
 
 /*! \param sysdef System to compute forces on
@@ -183,7 +182,7 @@ Scalar ForceCompute::calcEnergySum()
     if (m_comm)
         {
         // reduce potential energy on all processors
-        pe_total = all_reduce(*m_exec_conf->getMPICommunicator(), pe_total, std::plus<double>());
+        MPI_Allreduce(MPI_IN_PLACE, &pe_total, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
         }
 #endif
     return Scalar(pe_total);
@@ -258,7 +257,7 @@ Scalar4 ForceCompute::getTorque(unsigned int tag)
     if (m_pdata->getDomainDecomposition())
         {
         unsigned int owner_rank = m_pdata->getOwnerRank(tag);
-        MPI_Bcast(&result, sizeof(Scalar4), MPI_BYTE, owner_rank, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&result, sizeof(Scalar4), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
         }
     #endif
     return result;
@@ -281,7 +280,7 @@ Scalar3 ForceCompute::getForce(unsigned int tag)
     if (m_pdata->getDomainDecomposition())
         {
         unsigned int owner_rank = m_pdata->getOwnerRank(tag);
-        MPI_Bcast(&result, sizeof(Scalar3), MPI_BYTE, owner_rank, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&result, sizeof(Scalar3), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
         }
     #endif
     return result;
@@ -305,7 +304,7 @@ Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
     if (m_pdata->getDomainDecomposition())
         {
         unsigned int owner_rank = m_pdata->getOwnerRank(tag);
-        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
         }
     #endif
     return result;
@@ -328,7 +327,7 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
     if (m_pdata->getDomainDecomposition())
         {
         unsigned int owner_rank = m_pdata->getOwnerRank(tag);
-        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, *m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
         }
     #endif
     return result;
