@@ -24,10 +24,10 @@ else (PYTHON_SITEDIR)
        # if we are compiling with MPI support built in, set appropriate
        # compiler/linker flags
        if(MPI_COMPILE_FLAGS)
-           set_target_properties(hoomd PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+           set_target_properties(hoomd PROPERTIES COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS}")
        endif(MPI_COMPILE_FLAGS)
        if(MPI_LINK_FLAGS)
-           set_target_properties(hoomd PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+           set_target_properties(hoomd PROPERTIES LINK_FLAGS "${MPI_CXX_LINK_FLAGS}")
        endif(MPI_LINK_FLAGS)
     endif(ENABLE_MPI)
 

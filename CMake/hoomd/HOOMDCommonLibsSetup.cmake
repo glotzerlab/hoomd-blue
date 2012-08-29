@@ -45,9 +45,9 @@ else (WIN32)
 
 
     # these libraries are needed for MPI
-    if (Boost_MPI_LIBRARY AND Boost_SERIALIZATION_LIBRARY)
-       set(BOOST_LIBS ${BOOST_LIBS} ${Boost_MPI_LIBRARY} ${Boost_SERIALIZATION_LIBRARY})
-    endif (Boost_MPI_LIBRARY AND Boost_SERIALIZATION_LIBRARY)
+    if(ENABLE_MPI)
+    set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SERIALIZATION_LIBRARY})
+    endif(ENABLE_MPI)
 
     ## An update to to CentOS5's python broke linking of the hoomd exe. According
     ## to an ancient post online, adding -lutil fixed this in python 2.2
@@ -70,20 +70,10 @@ else (WIN32)
             )
 endif (WIN32)
 
-if (ENABLE_MPI)
-    # Check that we can compile a program against the Boost Libraries
-    set(CMAKE_REQUIRED_LIBRARIES ${HOOMD_COMMON_LIBS} ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-    set(CMAKE_REQUIRED_FLAGS ${MPI_LINK_FLAGS} ${MPI_COMPILE_FLAGS})
-    include(CheckLibraryExists)
-    CHECK_LIBRARY_EXISTS("${Boost_MPI_LIBRARY}" exit "" BOOST_CAN_COMPILE)
-    if (NOT BOOST_CAN_COMPILE)
-       message(WARNING "Cannot link against Boost.MPI. Disabling MPI.")
-       set(ENABLE_MPI FALSE CACHE BOOL "Enable the compilation of the MPI communication code" FORCE)
-    endif(NOT BOOST_CAN_COMPILE)
-
-    list(APPEND HOOMD_COMMON_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-endif (ENABLE_MPI)
-
 if (ENABLE_CUDA)
     list(APPEND HOOMD_COMMON_LIBS ${CUDA_LIBRARIES} ${CUDA_cufft_LIBRARY})
 endif (ENABLE_CUDA)
+
+if (ENABLE_MPI)
+    list(APPEND HOOMD_COMMON_LIBS ${MPI_CXX_LIBRARIES})
+endif (ENABLE_MPI)

@@ -57,7 +57,7 @@ if (ENABLE_MPI)
 
     if (ENABLE_MPI)
         # add include directories
-        include_directories(${MPI_INCLUDE_PATH})
+        include_directories(${MPI_C_INCLUDE_PATH})
     endif()
 
 endif (ENABLE_MPI)

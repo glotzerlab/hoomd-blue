@@ -25,45 +25,24 @@ set(Boost_ADDITIONAL_VERSIONS "1.53.0;1.52.0;1.51.0;1.50.0;1.49.0;1.48.0;1.47.0;
 set(BOOST_PYTHON_COMPONENT "python")
 # endif()
 
-set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signals program_options unit_test_framework iostreams)
+set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signals program_options unit_test_framework iostreams serialization)
 
-#if MPI support is enabled, require Boost.MPI and Boost.Serialization
-if (ENABLE_MPI)
-    find_package(Boost 1.44.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS} system mpi serialization)
+# see if we can get any supported version of Boost
+find_package(Boost 1.32.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS})
 
-    # if python is not found, try python-X.Y (gentoo style)
-    if (NOT Boost_PYTHON_FOUND)
-    message(STATUS "Python ${BOOST_PYTHON_COMPONENT} not found, trying python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-    list(REMOVE_ITEM REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
-    list(APPEND REQUIRED_BOOST_COMPONENTS "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-    endif()
+# if python is not found, try python-X.Y (gentoo style)
+if (NOT Boost_PYTHON_FOUND)
+message(STATUS "Python ${BOOST_PYTHON_COMPONENT} not found, trying python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+list(REMOVE_ITEM REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
+list(APPEND REQUIRED_BOOST_COMPONENTS "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+endif()
 
-    find_package(Boost 1.44.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS} system mpi serialization)
+# if we get boost 1.35 or greator, we need to get the system library too
+if (Boost_MINOR_VERSION GREATER 34)
+list(APPEND REQUIRED_BOOST_COMPONENTS "system")
+endif ()
 
-    if (NOT Boost_FOUND)
-        message(WARNING "Boost (>= 1.44.0) with mpi and serialization components not found. Disabling MPI.")
-        set(ENABLE_MPI FALSE CACHE BOOL "Enable the compilation of the MPI communication code" FORCE)
-    endif (NOT Boost_FOUND)
-endif(ENABLE_MPI)
-
-if (NOT ENABLE_MPI)
-    # see if we can get any supported version of Boost
-    find_package(Boost 1.32.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS})
-
-    # if python is not found, try python-X.Y (gentoo style)
-    if (NOT Boost_PYTHON_FOUND)
-    message(STATUS "Python ${BOOST_PYTHON_COMPONENT} not found, trying python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-    list(REMOVE_ITEM REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
-    list(APPEND REQUIRED_BOOST_COMPONENTS "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-    endif()
-
-    # if we get boost 1.35 or greator, we need to get the system library too
-    if (Boost_MINOR_VERSION GREATER 34)
-    list(APPEND REQUIRED_BOOST_COMPONENTS "system")
-    endif ()
-
-    find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
-endif(NOT ENABLE_MPI)
+find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 
 # add include directories
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
