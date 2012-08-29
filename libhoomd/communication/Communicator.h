@@ -88,33 +88,6 @@ class Profiler;
 class BoxDim;
 class ParticleData;
 
-namespace boost
-   {
-    //! Serialization functions for some of our data types
-    namespace serialization
-        {
-        //! Serialization of Scalar4
-        template<class Archive>
-        void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
-            {
-            ar & s.x;
-            ar & s.y;
-            ar & s.z;
-            ar & s.w;
-            }
-
-        //! Serialization of int3
-        template<class Archive>
-        void serialize(Archive & ar, int3 & i, const unsigned int version)
-            {
-            ar & i.x;
-            ar & i.y;
-            ar & i.z;
-            }
-
-        }
-    }
-
 //! Structure to store packed particle data
 struct pdata_element
     {

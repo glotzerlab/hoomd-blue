@@ -60,18 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SystemDefinition.h"
 #include "ParticleData.h"
 
-#include <boost/mpi.hpp>
+#include "HOOMDMPI.h"
 #include <boost/python.hpp>
-#include <boost/serialization/map.hpp>
 
 using namespace boost::python;
-
-// Define some of our types as fixed-size MPI datatypes for performance optimization
-BOOST_IS_MPI_DATATYPE(Scalar4)
-BOOST_IS_MPI_DATATYPE(Scalar3)
-BOOST_IS_MPI_DATATYPE(Scalar)
-BOOST_IS_MPI_DATATYPE(uint3)
-BOOST_IS_MPI_DATATYPE(int3)
 
 //! Constructor
 /*! The constructor performs a spatial domain decomposition of the simulation box of processor with rank \b exec_conf->getMPIroot().
@@ -111,12 +103,12 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     // calculate physical box dimensions of every processor
 
     // broadcast global box dimensions
-    boost::mpi::broadcast(*m_mpi_comm, L, 0);
+    bcast(L, 0, *m_mpi_comm);
 
     // broadcast grid dimensions
-    boost::mpi::broadcast(*m_mpi_comm, m_nx, 0);
-    boost::mpi::broadcast(*m_mpi_comm, m_ny, 0);
-    boost::mpi::broadcast(*m_mpi_comm, m_nz, 0);
+    bcast( m_nx, 0, *m_mpi_comm);
+    bcast( m_ny, 0, *m_mpi_comm);
+    bcast( m_nz, 0, *m_mpi_comm);
 
     // Initialize domain indexer
     m_index = Index3D(m_nx,m_ny,m_nz);

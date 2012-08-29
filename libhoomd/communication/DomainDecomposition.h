@@ -63,33 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BoxDim.h"
 #include "ExecutionConfiguration.h"
 
-#include <boost/mpi.hpp>
-namespace boost
-   {
-    //! Serialization functions for some of our data types
-    namespace serialization
-        {
-        //! serialization of uint3
-        template<class Archive>
-        void serialize(Archive & ar, uint3 & u, const unsigned int version)
-            {
-            ar & u.x;
-            ar & u.y;
-            ar & u.z;
-            }
-
-        //! serialization of Scalar3
-        template<class Archive>
-        void serialize(Archive & ar, Scalar3 & s, const unsigned int version)
-            {
-            ar & s.x;
-            ar & s.y;
-            ar & s.z;
-            }
- 
-        }
-    }
-
 /*! \ingroup communication
 */
 

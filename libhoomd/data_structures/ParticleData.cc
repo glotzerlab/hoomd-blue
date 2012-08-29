@@ -77,11 +77,10 @@ using namespace boost::python;
 #include "DihedralData.h"
 
 #ifdef ENABLE_MPI
-#include "Communicator.h"
+#include "HOOMDMPI.h"
 
 #include <boost/mpi.hpp>
 #include <boost/serialization/map.hpp>
-using namespace boost::mpi;
 
 // Define some of our types as fixed-size MPI datatypes for performance optimization
 BOOST_IS_MPI_DATATYPE(Scalar4)
@@ -657,14 +656,14 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         m_type_mapping = snapshot.type_mapping;
 
         // broadcast number of particle types
-        boost::mpi::broadcast(*mpi_comm, m_ntypes, root);
+        bcast(m_ntypes, root, *mpi_comm);
 
         // broadcast type mapping
-        boost::mpi::broadcast(*mpi_comm, m_type_mapping, root);
+        bcast(m_type_mapping, root, *mpi_comm);
 
         // broadcast global number of particles
         unsigned int nglobal = snapshot.size;
-        boost::mpi::broadcast(*mpi_comm, nglobal, root);
+        bcast(nglobal, root, *mpi_comm);
 
         setNGlobal(nglobal);
 
@@ -681,19 +680,21 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector<unsigned int> tag;
  
         // distribute particle data
-        boost::mpi::scatter(*mpi_comm, pos_proc,pos,root);
-        boost::mpi::scatter(*mpi_comm, vel_proc,vel,root);
-        boost::mpi::scatter(*mpi_comm, accel_proc, accel, root);
-        boost::mpi::scatter(*mpi_comm, type_proc, type, root);
-        boost::mpi::scatter(*mpi_comm, mass_proc, mass, root);
-        boost::mpi::scatter(*mpi_comm, charge_proc, charge, root);
-        boost::mpi::scatter(*mpi_comm, diameter_proc, diameter, root);
-        boost::mpi::scatter(*mpi_comm, image_proc, image, root);
-        boost::mpi::scatter(*mpi_comm, body_proc, body, root);
-        boost::mpi::scatter(*mpi_comm, tag_proc, tag, root);
+        scatter_v(pos_proc,pos,root, *mpi_comm);
+        scatter_v(vel_proc,vel,root, *mpi_comm);
+        scatter_v(accel_proc, accel, root, *mpi_comm);
+        scatter_v(type_proc, type, root, *mpi_comm);
+        scatter_v(mass_proc, mass, root, *mpi_comm);
+        scatter_v(charge_proc, charge, root, *mpi_comm);
+        scatter_v(diameter_proc, diameter, root, *mpi_comm);
+        scatter_v(image_proc, image, root, *mpi_comm);
+        scatter_v(body_proc, body, root, *mpi_comm);
+        scatter_v(image_proc, image, root, *mpi_comm);
+        scatter_v(body_proc, body, root, *mpi_comm);
+        scatter_v(tag_proc, tag, root, *mpi_comm);
 
         // distribute number of particles
-        boost::mpi::scatter(*mpi_comm, N_proc, m_nparticles, root);
+        scatter_v(N_proc, m_nparticles, root, *mpi_comm);
 
         // reset all reverse lookup tags to NOT_LOCAL flag
             {
@@ -886,18 +887,18 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         unsigned int root = 0;
 
         // collect all particle data on the root processor
-        boost::mpi::gather(*mpi_comm, pos, pos_proc, root);
-        boost::mpi::gather(*mpi_comm, vel, vel_proc, root);
-        boost::mpi::gather(*mpi_comm, accel, accel_proc, root);
-        boost::mpi::gather(*mpi_comm, type, type_proc, root);
-        boost::mpi::gather(*mpi_comm, mass, mass_proc, root);
-        boost::mpi::gather(*mpi_comm, charge, charge_proc, root);
-        boost::mpi::gather(*mpi_comm, diameter, diameter_proc, root);
-        boost::mpi::gather(*mpi_comm, image, image_proc, root);
-        boost::mpi::gather(*mpi_comm, body, body_proc, root);
+        gather_v(pos, pos_proc, root,*mpi_comm);
+        gather_v(vel, vel_proc, root, *mpi_comm);
+        gather_v(accel, accel_proc, root, *mpi_comm);
+        gather_v(type, type_proc, root, *mpi_comm);
+        gather_v(mass, mass_proc, root, *mpi_comm);
+        gather_v(charge, charge_proc, root, *mpi_comm);
+        gather_v(diameter, diameter_proc, root, *mpi_comm);
+        gather_v(image, image_proc, root, *mpi_comm);
+        gather_v(body, body_proc, root, *mpi_comm);
 
         // gather the reverse-lookup maps
-        boost::mpi::gather(*mpi_comm, rtag_map, rtag_map_proc, root);
+        gather_v(rtag_map, rtag_map_proc, root, *mpi_comm);
 
         if (rank == root)
             {
@@ -1033,12 +1034,12 @@ void ParticleData::addGhostParticles(const unsigned int nghosts)
 unsigned int ParticleData::getOwnerRank(unsigned int tag) const
     {
     assert(m_decomposition);
-    bool is_local = (getRTag(tag) < getN());
+    int is_local = (getRTag(tag) < getN()) ? 1 : 0;
     int n_found;
 
     boost::shared_ptr<boost::mpi::communicator> mpi_comm = m_exec_conf->getMPICommunicator();
     // First check that the particle is on exactly one processor
-    all_reduce(*mpi_comm, is_local ? 1 : 0, n_found, std::plus<int>());
+    MPI_Allreduce(&is_local, &n_found, 1, MPI_INT, MPI_SUM, *mpi_comm);
 
     if (n_found == 0)
         {
@@ -1079,7 +1080,7 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1102,7 +1103,7 @@ Scalar3 ParticleData::getVelocity(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1125,7 +1126,7 @@ Scalar3 ParticleData::getAcceleration(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1148,7 +1149,7 @@ int3 ParticleData::getImage(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1171,7 +1172,7 @@ Scalar ParticleData::getCharge(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1194,7 +1195,7 @@ Scalar ParticleData::getMass(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1217,7 +1218,7 @@ Scalar ParticleData::getDiameter(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1240,7 +1241,7 @@ unsigned int ParticleData::getBody(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1263,7 +1264,7 @@ unsigned int ParticleData::getType(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1286,7 +1287,7 @@ Scalar4 ParticleData::getOrientation(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1309,7 +1310,7 @@ Scalar4 ParticleData::getPNetForce(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1333,7 +1334,7 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        broadcast(*m_exec_conf->getMPICommunicator(), result, owner_rank);
+        bcast(result, owner_rank, *m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
