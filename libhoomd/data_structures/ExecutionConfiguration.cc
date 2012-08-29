@@ -206,6 +206,13 @@ ExecutionConfiguration::~ExecutionConfiguration()
 #ifdef ENABLE_MPI
 void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     {
+    // if we are using an MPI-CUDA implementation, enable this feature
+    // before the MPI_Init
+#ifdef ENABLE_MPI_CUDA
+    char enable_mpi_cuda[] = "MV2_USE_CUDA=1";
+    putenv(enable_mpi_cuda);
+#endif
+
     MPI_Init(0, (char ***) NULL);
     m_mpi_comm = MPI_COMM_WORLD;
 
