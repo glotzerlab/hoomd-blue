@@ -24,25 +24,19 @@ if (ENABLE_MPI)
                 endif()
             endif()
         elseif(MPI_LIBRARY MATCHES libmpi)
-            # find out if this OpenMPI
-            if (MPI_INCLUDE_PATH)
-               foreach(_dir ${MPI_INCLUDE_PATH})
-                   if (EXISTS ${_dir}/openmpi/opal_config.h)
-                       file( STRINGS ${_dir}/openmpi/opal_config.h
-                             _ompi_cuda_support
-                             REGEX "#define OMPI_CUDA_SUPPORT[ \t]+([0-9x]+)$"
-                           )
-                       if (_ompi_cuda_support)
-                           string( REGEX REPLACE
-                               "#define OMPI_CUDA_SUPPORT[ \t]+"
-                               "" _ompi_cuda_support ${_ompi_cuda_support} )
-                           if (_ompi_cuda_support MATCHES 1)
-                               message(STATUS "Found OpenMPI with CUDA support.")
-                               set(MPI_CUDA TRUE)
-                           endif()
-                       endif()
-                    endif()
-               endforeach()
+            # find out if this is OpenMPI
+            get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+            find_program(OMPI_INFO
+                NAMES ompi_info
+                HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
+            )
+            if (OMPI_INFO)
+                execute_process(COMMAND ${OMPI_INFO}
+                                OUTPUT_VARIABLE _output)
+                if (_output MATCHES "smcuda")
+                    set(MPI_CUDA TRUE)
+                    message(STATUS "Found OpenMPI with CUDA support.")
+                endif()
             endif()
         endif()
 
