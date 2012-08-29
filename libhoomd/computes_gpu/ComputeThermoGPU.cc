@@ -163,10 +163,9 @@ void ComputeThermoGPU::computeProperties()
     }
 
 #ifdef ENABLE_MPI
-    const MPI_Comm mpi_comm;
     if (m_pdata->getDomainDecomposition())
         {
-        mpi_comm = m_exec_conf->getMPICommunicator();
+        MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
 
 
         // copy data back to the host to perform collective operations
