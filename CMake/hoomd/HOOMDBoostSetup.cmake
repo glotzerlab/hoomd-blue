@@ -19,19 +19,13 @@ endif(ENABLE_STATIC)
 set(Boost_ADDITIONAL_VERSIONS "1.53.0;1.52.0;1.51.0;1.50.0;1.49.0;1.48.0;1.47.0;1.46;1.46.0;1.45.1;1.45.0;1.45;1.44.1;1.44.0;1.44;1.43.1;1.43.0;1.43;1.42.1;1.42.0;1.42;1.41.0;1.41;1.41;1.40.0;1.40;1.39.0;1.39;1.38.0;1.38")
 
 
-# if (PYTHON_VERSION VERSION_GREATER 3)
-# set(BOOST_PYTHON_COMPONENT "python3")
-# else()
-set(BOOST_PYTHON_COMPONENT "python")
-# endif()
-
 set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signals program_options unit_test_framework iostreams)
 
 # first, see if we can get any supported version of Boost
 find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 
 # if python is not found, try python-X.Y (gentoo style)
-if (NOT Boost_PYTHON_FOUND)
+if (NOT Boost_PYTHON_FOUND AND NOT Boost_PYTHON3_FOUND)
 message(STATUS "Python ${BOOST_PYTHON_COMPONENT} not found, trying python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 list(REMOVE_ITEM REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
 list(APPEND REQUIRED_BOOST_COMPONENTS "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
