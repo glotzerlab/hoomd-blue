@@ -18,6 +18,10 @@ endif(ENABLE_STATIC)
 # setup some additional boost versions so that the newest versions of boost will be found
 set(Boost_ADDITIONAL_VERSIONS "1.53.0;1.52.0;1.51.0;1.50.0;1.49.0;1.48.0;1.47.0;1.46;1.46.0;1.45.1;1.45.0;1.45;1.44.1;1.44.0;1.44;1.43.1;1.43.0;1.43;1.42.1;1.42.0;1.42;1.41.0;1.41;1.41;1.40.0;1.40;1.39.0;1.39;1.38.0;1.38")
 
+# When BOOST_ROOT is specified, make sure that we find the one the user intends
+if ((BOOST_ROOT OR NOT $ENV{BOOST_ROOT} STREQUAL "") OR NOT $ENV{BOOSTROOT} STREQUAL "" OR NOT $ENV{Boost_DIR} STREQUAL "")
+    set(Boost_NO_SYSTEM_PATHS ON)
+endif()
 
 # if (PYTHON_VERSION VERSION_GREATER 3)
 # set(BOOST_PYTHON_COMPONENT "python3")
