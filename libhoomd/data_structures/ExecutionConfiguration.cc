@@ -132,6 +132,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
 #endif
 
 #ifdef ENABLE_MPI
+    m_partition = 0;
     if (init_mpi)
         initializeMPI(n_ranks);
 #endif
@@ -182,6 +183,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #endif
 
 #ifdef ENABLE_MPI
+    m_partition = 0;
     if (init_mpi)
         initializeMPI(n_ranks);
 #endif
