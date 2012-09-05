@@ -25,14 +25,15 @@ endif()
 
 set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signals program_options unit_test_framework iostreams serialization)
 
-# see if we can get any supported version of Boost
+# first, see if we can get any supported version of Boost
 find_package(Boost 1.32.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS})
 
 # if python is not found, try python-X.Y (gentoo style)
 if (NOT Boost_PYTHON_FOUND AND NOT Boost_PYTHON3_FOUND)
 message(STATUS "Python ${BOOST_PYTHON_COMPONENT} not found, trying python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 list(REMOVE_ITEM REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
-list(APPEND REQUIRED_BOOST_COMPONENTS "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+set(BOOST_PYTHON_COMPONENT "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+list(APPEND REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
 endif()
 
 # if we get boost 1.35 or greator, we need to get the system library too
