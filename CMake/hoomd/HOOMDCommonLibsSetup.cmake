@@ -37,7 +37,11 @@ else (WIN32)
             ${Boost_IOSTREAMS_LIBRARY}
             )
 
-    set(BOOST_LIBS ${BOOST_LIBS} ${Boost_PYTHON_LIBRARY})
+    if (BOOST_PYTHON_COMPONENT MATCHES "python3")
+        set(BOOST_LIBS ${BOOST_LIBS} ${Boost_PYTHON3_LIBRARY})
+    else()
+        set(BOOST_LIBS ${BOOST_LIBS} ${Boost_PYTHON_LIBRARY})
+    endif()
 
     if (Boost_SYSTEM_LIBRARY)
         set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})

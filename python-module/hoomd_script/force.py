@@ -232,10 +232,13 @@ class _force:
         raise RuntimeError("_force.update_coeffs should not be called");
         # does nothing: this is for derived classes to implement
 
-    ## Returns the force data
+    ## \internal
+    # \brief Returns the force data
     #
-    def forces(self):
+    def __forces(self):
         return data.force_data(self);
+
+    forces = property(__forces);
 
 # set default counter
 _force.cur_id = 0;

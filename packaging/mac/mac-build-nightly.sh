@@ -1,4 +1,4 @@
-BRANCH=master
+BRANCH=maint
 
 echo "--- Building nightly Mac OS X hoomd package on `date`"
 
