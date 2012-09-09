@@ -309,9 +309,9 @@ class periodic(_external_force):
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialExternalLamellar(globals.system_definition);
+            self.cpp_force = hoomd.PotentialExternalLamellar(globals.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialExternalLamellarGPU(globals.system_definition);
+            self.cpp_force = hoomd.PotentialExternalLamellarGPU(globals.system_definition,self.name);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

@@ -371,6 +371,8 @@ class imd(_analyzer):
 #   - **bond_fene_energy** (bond.fene) - Total fene bond potential energy (in energy units)
 #   - **bond_harmonic_energy** (bond.harmonic) - Total harmonic bond potential energy (in energy units)
 #   - **bond_table_energy** (bond.table) - Total table bond potential energy (in energy units)
+# - External potentials
+#   - **external_lamellar_energy** (external.lamellar) - Total DPD conservative potential energy (in energy units)
 # - Wall potentials
 #   - **wall_lj_energy** (wall.lj) - Total Lennard-Jones wall energy (in energy units)
 # - Integrators

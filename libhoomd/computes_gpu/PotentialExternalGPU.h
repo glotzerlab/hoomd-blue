@@ -44,6 +44,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include "PotentialExternal.h"
+#include "PotentialExternalGPU.cuh"
 
 /*! \file PotentialExternalGPU.h
     \brief Declares a class for computing an external potential field on the GPU
@@ -65,7 +66,8 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     {
     public:
         //! Constructs the compute
-        PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                             const std::string& log_suffix="");
 
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
@@ -91,8 +93,9 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
  */
 template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
                                                const typename evaluator::param_type *d_params)>
-PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef)
-    : PotentialExternal<evaluator>(sysdef), m_block_size(128)
+PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                                                const std::string& log_suffix)
+    : PotentialExternal<evaluator>(sysdef, log_suffix), m_block_size(128)
     {
     }
 
@@ -133,7 +136,7 @@ template < class T, class base >
 void export_PotentialExternalGPU(const std::string& name)
     {
     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition> >())
+                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string&  >())
                   .def("setParams", &T::setParams)
                   .def("setBlockSize", &T::setBlockSize)
                   ;

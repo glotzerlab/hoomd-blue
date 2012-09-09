@@ -44,6 +44,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __EVALUATOR_EXTERNAL_LAMELLAR_H__
 #define __EVALUATOR_EXTERNAL_LAMELLAR_H__
 
+#ifndef NVCC
+#include <string>
+#endif
+
 #include <math.h>
 #include "HOOMDMath.h"
 
@@ -164,6 +168,17 @@ class EvaluatorExternalLamellar
                 F.z = force;
 
             }
+
+        #ifndef NVCC
+        //! Get the name of this potential
+        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
+            via analyze.log.
+        */
+        static std::string getName()
+            {
+            return std::string("lamellar");
+            }
+        #endif
 
     protected:
         Scalar3 m_pos;                //!< particle position
