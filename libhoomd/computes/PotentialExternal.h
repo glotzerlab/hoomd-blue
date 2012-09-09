@@ -200,7 +200,7 @@ void PotentialExternal<evaluator>::setParams(unsigned int type, param_type param
     {
     if (type >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "external.lamellar: Trying to set external potential params for a non existant type! "
+        this->m_exec_conf->msg->error() << "external.periodic: Trying to set external potential params for a non existant type! "
                                         << type << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialExternal");
         }

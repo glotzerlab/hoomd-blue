@@ -128,6 +128,7 @@ void Logger::registerCompute(boost::shared_ptr<Compute> compute)
             m_exec_conf->msg->warning() << "analyze.log: The log quantity " << provided_quantities[i] <<
                  " has been registered more than once. Only the most recent registration takes effect" << endl;
         m_compute_quantities[provided_quantities[i]] = compute;
+        m_exec_conf->msg->notice(6) << "analyze.log: Registering log quantity " << provided_quantities[i] << endl;
         }
     }
 

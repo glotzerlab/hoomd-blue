@@ -54,7 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __ALL_EXTERNAL_POTENTIALS__H__
 
 #include "PotentialExternal.h"
-#include "EvaluatorExternalLamellar.h"
+#include "EvaluatorExternalPeriodic.h"
 
 #ifdef ENABLE_CUDA
 #include "AllDriverPotentialExternalGPU.cuh"
@@ -69,12 +69,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-//! External potential to impose lamellar structure
-typedef PotentialExternal<EvaluatorExternalLamellar> PotentialExternalLamellar;
+//! External potential to impose periodic structure
+typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
 
 #ifdef ENABLE_CUDA
-//! External potential to impose lamellar structure on the GPU
-typedef PotentialExternalGPU<EvaluatorExternalLamellar, gpu_compute_lamellar_forces> PotentialExternalLamellarGPU;
+//! External potential to impose periodic structure on the GPU
+typedef PotentialExternalGPU<EvaluatorExternalPeriodic, gpu_compute_periodic_forces> PotentialExternalPeriodicGPU;
 #endif
 
 #endif // __EXTERNAL_POTENTIALS_H__
