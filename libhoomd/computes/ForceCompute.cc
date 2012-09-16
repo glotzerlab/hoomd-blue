@@ -104,6 +104,10 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ForceCompute::reallocate, this));
+
+    // reset external virial
+    for (unsigned int i = 0; i < 6; ++i)
+        m_external_virial[i] = Scalar(0.0);
     }
 
 /*! \post m_fdata and virial _partial are both allocated, and m_index_thread_partial is intiialized for indexing them

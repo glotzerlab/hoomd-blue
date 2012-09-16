@@ -143,7 +143,14 @@ class ForceCompute : public Compute
             {
             return m_torque;
             }
-        
+       
+        //! Get the contribution to the external virial
+        Scalar getExternalVirial(unsigned int dir)
+            {
+            assert(dir<6);
+            return m_external_virial[dir];
+            }
+
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory
         
@@ -187,6 +194,8 @@ class ForceCompute : public Compute
         Scalar4* m_torque_partial; //!< Stores partial torque data
 
         Index2D m_index_thread_partial;         //!< Indexer to index the above 2 arrays by (particle, thread)
+
+        Scalar m_external_virial[6]; //!< Stores external contribution to virial
 
         //! Connection to the signal notifying when particles are resorted
         boost::signals::connection m_sort_connection;   
