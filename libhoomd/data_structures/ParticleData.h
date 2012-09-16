@@ -748,7 +748,7 @@ class ParticleData : boost::noncopyable
         void setFlags(const PDataFlags& flags) { m_flags = flags; }
        
         //! Set the external contribution to the virial
-        void setExternalVirial(Scalar v, unsigned int i)
+        void setExternalVirial(unsigned int i, Scalar v)
             {
             assert(i<6);
             m_external_virial[i] = v;
