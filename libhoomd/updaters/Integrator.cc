@@ -316,6 +316,8 @@ void Integrator::computeNetForce(unsigned int timestep)
         memset((void *)h_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
         memset((void *)h_net_virial.data, 0, sizeof(Scalar)*net_virial.getNumElements());
         memset((void *)h_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
+        for (unsigned int i = 0; i < 6; ++i)
+            m_pdata->setExternalVirial(i,Scalar(0.0));
         
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
@@ -458,6 +460,10 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         assert(nparticles <= net_force.getNumElements());
         assert(nparticles*6 <= net_virial.getNumElements());
         assert(nparticles <= net_torque.getNumElements());
+
+        // zero external virial
+        for (unsigned int i = 0; i < 6; ++i)
+            m_pdata->setExternalVirial(i,Scalar(0.0));
 
         // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
         // will do that

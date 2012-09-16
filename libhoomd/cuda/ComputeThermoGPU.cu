@@ -342,12 +342,22 @@ __global__ void gpu_compute_pressure_tensor_final_sums(float *d_properties,
                                               float *d_scratch,
                                               BoxDim box,
                                               unsigned int group_size,
-                                              unsigned int num_partial_sums)
+                                              unsigned int num_partial_sums,
+                                              Scalar external_virial_xx,
+                                              Scalar external_virial_xy,
+                                              Scalar external_virial_xz,
+                                              Scalar external_virial_yy,
+                                              Scalar external_virial_yz,
+                                              Scalar external_virial_zz)
     {
     float final_sum[6];
 
-    for (unsigned int i = 0; i < 6; i++)
-        final_sum[i] = 0.0f;
+    final_sum[0] = external_virial_xx;
+    final_sum[1] = external_virial_xy;
+    final_sum[2] = external_virial_xz;
+    final_sum[3] = external_virial_yy;
+    final_sum[4] = external_virial_yz;
+    final_sum[5] = external_virial_zz;
 
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_partial_sums; start += blockDim.x)
@@ -479,7 +489,14 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                                args.d_scratch_pressure_tensor,
                                                                                box,
                                                                                group_size,
-                                                                               args.n_blocks);
+                                                                               args.n_blocks,
+                                                                               args.external_virial_xx,
+                                                                               args.external_virial_xy,
+                                                                               args.external_virial_xz,
+                                                                               args.external_virial_yy,
+                                                                               args.external_virial_yz,
+                                                                               args.external_virial_zz
+                                                                               );
         }
 
     return cudaSuccess;

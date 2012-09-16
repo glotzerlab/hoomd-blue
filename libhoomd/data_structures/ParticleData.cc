@@ -161,7 +161,11 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         name[1] = '\0';
         m_type_mapping.push_back(string(name));
         }
-    
+   
+    // reset external virial
+    for (unsigned int i = 0; i < 6; i++)
+        m_external_virial[i] = Scalar(0.0);
+
     // initially, global box = local box
     m_global_box = box;
     }
@@ -204,6 +208,10 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
             h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
             }
         }
+
+    // reset external virial
+    for (unsigned int i = 0; i < 6; i++)
+        m_external_virial[i] = Scalar(0.0);
 
     // initialize box dimensions
     setGlobalBoxL(init.getBox().getL());

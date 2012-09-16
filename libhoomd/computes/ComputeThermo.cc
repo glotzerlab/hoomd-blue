@@ -267,12 +267,12 @@ void ComputeThermo::computeProperties()
         }
 
     double W = 0.0;
-    double virial_xx = 0.0;
-    double virial_xy = 0.0;
-    double virial_xz = 0.0;
-    double virial_yy = 0.0;
-    double virial_yz = 0.0;
-    double virial_zz = 0.0;
+    double virial_xx = m_pdata->getExternalVirial(0);
+    double virial_xy = m_pdata->getExternalVirial(1);
+    double virial_xz = m_pdata->getExternalVirial(2);
+    double virial_yy = m_pdata->getExternalVirial(3);
+    double virial_yz = m_pdata->getExternalVirial(4);
+    double virial_zz = m_pdata->getExternalVirial(5);
 
     if (flags[pdata_flag::pressure_tensor])
         {

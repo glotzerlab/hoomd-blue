@@ -746,7 +746,21 @@ class ParticleData : boost::noncopyable
             analyzers and updaters to determine the value of the flags for any given time step.
         */
         void setFlags(const PDataFlags& flags) { m_flags = flags; }
-        
+       
+        //! Set the external contribution to the virial
+        void setExternalVirial(Scalar v, unsigned int i)
+            {
+            assert(i<6);
+            m_external_virial[i] = v;
+            };
+
+        //! Get the external contribution to the virial
+        Scalar getExternalVirial(unsigned int i)
+            {
+            assert(i<6);
+            return m_external_virial[i];
+            }
+
         //! Remove the given flag
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
@@ -828,6 +842,7 @@ class ParticleData : boost::noncopyable
         GPUArray< Scalar4 > m_orientation;           //!< Orientation quaternion for each particle (ignored if not anisotropic)
         std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle
 
+        Scalar m_external_virial[6];                 //!< External potential contribution to the virial
         const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         

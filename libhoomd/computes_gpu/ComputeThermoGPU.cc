@@ -148,6 +148,12 @@ void ComputeThermoGPU::computeProperties()
     args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
     args.block_size = m_block_size;
     args.n_blocks = m_num_blocks;
+    args.external_virial_xx = m_pdata->getExternalVirial(0);
+    args.external_virial_xy = m_pdata->getExternalVirial(1);
+    args.external_virial_xz = m_pdata->getExternalVirial(2);
+    args.external_virial_yy = m_pdata->getExternalVirial(3);
+    args.external_virial_yz = m_pdata->getExternalVirial(4);
+    args.external_virial_zz = m_pdata->getExternalVirial(5);
 
     // perform the computation on the GPU
     gpu_compute_thermo( d_properties.data,
