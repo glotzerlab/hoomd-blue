@@ -66,6 +66,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidData.h"
 #include "GPUArray.h"
 #include "RigidBodyGroup.h"
+#include "Variant.h"
+#include "ComputeThermo.h"
 
 /*! \file TwoStepNVERigid.h
  \brief Declares the TwoStepNVERigid class
@@ -103,22 +105,137 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         //! Validate that all members in the particle group are valid (throw an exception if they are not)
         virtual void validateGroup();
 
+        //! Update the temperature
+        /*! \param T New temperature to set
+        */
+        virtual void setT(boost::shared_ptr<Variant> T)
+            {
+            m_temperature = T;
+            }
+        
+        //! Update the pressure
+        /*! \param P New pressure to set
+        */
+        virtual void setP(boost::shared_ptr<Variant> P)
+            {
+            m_pressure = P;
+            }
+        
+        //! Update the tau value
+        /*! \param tau New time constant to set
+        */
+        virtual void setTau(Scalar tau)
+            {
+            t_freq = tau;
+            }
+        
+        //! Update the nuP value
+        /*! \param tauP New pressure constant to set
+        */
+        virtual void setTauP(Scalar tauP)
+            {
+            p_freq = tauP;
+            }
+        
+        //! Set the partial scale option
+        /*! \param partial_scale New partial_scale option to set
+        */
+        void setPartialScale(bool partial_scale)
+            {
+            m_partial_scale = partial_scale;
+            }
+
+        //! Update thermostats
+        void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);
+
+        //! Update the thermostat chain coupled with barostat
+        void update_nhcb(unsigned int timestep);
+
+        //! Remap the particles from the old box to the new one
+        void remap();
+        
+        //! Adjust rigid body center of mass with deformed box
+        void deform(unsigned int flag);
+
+        //! Get needed pdata flags
+        /*! NPT and NPH need the pressure, so the isotropic_virial flag is set
+        */
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            PDataFlags flags;
+            flags[pdata_flag::isotropic_virial] = 1;
+            return flags;
+            }
+
     protected:
-        //! Integrator variables
-        virtual void setRestartIntegratorVariables();
-        
-        //! Set positions and velocities for particles in rigid bodies at the first step
-        //void set_xv(unsigned int timestep);
-        
-        //! Set velocities for particles in rigid bodies at the second step
-        //void set_v(unsigned int timestep);
-        
         unsigned int m_n_bodies;                    //!< Number of rigid bodies
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to rigid data
         boost::shared_ptr<ParticleData> m_pdata;    //!< Pointer to particle data
         boost::shared_ptr<RigidBodyGroup> m_body_group; //!< Group of rigid bodies to work with
         
-        bool m_first_step;                  //!< True if first step
+        bool m_first_step;                          //!< True if first step
+        
+        bool t_stat;                                //!< True if using thermostat (NVT or NPT)
+        bool p_stat;                                //!< True if using barostat (NPT or NPH)
+        boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
+        boost::shared_ptr<ComputeThermo> m_thermo_all;     //!< ComputeThermo operating on the group of all particles
+
+        bool m_partial_scale;                       //!< True if only the particles in the group should be scaled to the new box
+        Scalar t_freq;                              //!< tau value for Nose-Hoover
+        Scalar p_freq;                              //!< tauP value for the barostat
+        boost::shared_ptr<Variant> m_temperature;   //!< Temperature set point
+        boost::shared_ptr<Variant> m_pressure;      //!< Pressure set point
+        Scalar m_curr_group_T;                      //!< Current group temperature
+        Scalar m_curr_P;                            //!< Current system pressure
+        
+        Scalar boltz;                               //!< Boltzmann constant
+        Scalar nf_t;                                //!< Translational degrees of freedom        
+        Scalar nf_r;                                //!< Rotational degrees of freedom 
+        Scalar g_f, onednft, onednfr;
+
+        unsigned int dimension;                     //!< System dimension
+        Scalar m_dof;                               //!< Total number degrees of freedom used for system temperature compute 
+        unsigned int chain;                         //!< Number of thermostats
+        unsigned int iter;                          //!< Number of iterations
+        unsigned int order;                         //!< Number of thermostat per chain
+        
+        Scalar  dilation;                           //!< Box size change
+        Scalar  epsilon;                            //!< Volume scaling "position" 
+        Scalar  epsilon_dot;                        //!< Volume scaling "velocity" 
+        Scalar  f_epsilon;                          //!< Volume scaling "force"
+        Scalar  W;                                  //!< Volume scaling "mass"
+
+        Scalar* q_t;                                //!< Thermostat translational mass
+        Scalar* q_r;                                //!< Thermostat rotational mass
+        Scalar* q_b;                                //!< Thermostat mass, which is coupled with the barostat 
+        Scalar* eta_t;                              //!< Thermostat translational position
+        Scalar* eta_r;                              //!< Thermostat rotational position
+        Scalar* eta_b;                              //!< Thermostat position, which is coupled with the barostat
+        Scalar* eta_dot_t;                          //!< Thermostat translational velocity
+        Scalar* eta_dot_r;                          //!< Thermostat rotational velocity
+        Scalar* eta_dot_b;                          //!< Thermostat velocity, which is coupled with the barostat
+        Scalar* f_eta_t;                            //!< Thermostat translational force
+        Scalar* f_eta_r;                            //!< Thermostat rotational force
+        Scalar* f_eta_b;                            //!< Thermostat force, which is coupled with the barostat
+
+        Scalar* w;                                  //!< Thermostat chain multi-step integration coeffs
+        Scalar* wdti1;                              //!< Thermostat chain multi-step integration coeffs
+        Scalar* wdti2;                              //!< Thermostat chain multi-step integration coeffs
+        Scalar* wdti4;                              //!< Thermostat chain multi-step integration coeffs
+
+        //! Maclaurin expansion
+        inline Scalar maclaurin_series(Scalar x)
+            {
+            Scalar x2, x4;
+            x2 = x * x;
+            x4 = x2 * x2;
+            return (1.0 + (1.0/6.0) * x2 + (1.0/120.0) * x4 + (1.0/5040.0) * x2 * x4 + (1.0/362880.0) * x4 * x4);
+            }
+
+    protected:
+        //! Integrator variables
+        virtual void setRestartIntegratorVariables();
+
     };
 
 //! Exports the TwoStepNVERigid class to python

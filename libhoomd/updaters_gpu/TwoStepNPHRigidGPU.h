@@ -50,66 +50,65 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-/*! \file TwoStepNVTRigid.h
-    \brief Declares an updater that implements NVT dynamics for rigid bodies
+#include "TwoStepNPHRigid.h"
+
+#ifndef __TWO_STEP_NPH_RIGID_GPU_H__
+#define __TWO_STEP_NPH_RIGID_GPU_H__
+
+/*! \file TwoStepNPHRigidGPU.h
+    \brief Declares the TwoStepNPHRigidGPU class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "TwoStepNVERigid.h"
-
-#include <vector>
-#include <boost/shared_ptr.hpp>
-
-#ifndef __TWO_STEP_NVT_RIGID_H__
-#define __TWO_STEP_NVT_RIGID_H__
-
-//! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant temperature (NVT) dynamics. Particle positions and velocities are
-    updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
-    in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on
-    each particle.
-    
-    Integrator variables mapping:
-     - [0] -> eta_t
-     - [1] -> eta_r
-     - [2] -> eta_dot_t
-     - [3] -> eta_dot_r
+//! Integrates part of the system forward in two steps in the NPH ensemble on the GPU
+/*! Implements velocity-verlet NPH integration through the IntegrationMethodTwoStep interface, runs on the GPU
     
     \ingroup updaters
 */
-
-class TwoStepNVTRigid : public TwoStepNVERigid
+class TwoStepNPHRigidGPU : public TwoStepNPHRigid
     {
     public:
-        //! Constructor
-        TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef, 
-                        boost::shared_ptr<ParticleGroup> group,
-                        boost::shared_ptr<ComputeThermo> thermo,
-                        boost::shared_ptr<Variant> T,
-                        Scalar tau=10.0,
-                        bool skip_restart=false);
-        ~TwoStepNVTRigid();
+        //! Constructs the integration method and associates it with the system
+        TwoStepNPHRigidGPU(boost::shared_ptr<SystemDefinition> sysdef, 
+                            boost::shared_ptr<ParticleGroup> group,
+                            boost::shared_ptr<ComputeThermo> thermo_group,
+                            boost::shared_ptr<ComputeThermo> thermo_all,
+                            Scalar tauP,
+                            boost::shared_ptr<Variant> P,
+                            bool skip_restart=false);
+                            
+        virtual ~TwoStepNPHRigidGPU() {};
         
-        //! Setup the initial net forces, torques and angular momenta
-        void setup();
-        
-        //! First step of velocit Verlet integration
+        //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
         
-        //! Second step of velocit Verlet integration
+        //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-        
+       
     protected:
-        //! Integrator variables
-        virtual void setRestartIntegratorVariables();
+        GPUArray<Scalar> m_partial_Ksum_t;  //!< Translational kinetic energy per body
+        GPUArray<Scalar> m_partial_Ksum_r;  //!< Rotational kinetic energy per body
+        GPUArray<Scalar> m_Ksum_t;          //!< Translational kinetic energy 
+        GPUArray<Scalar> m_Ksum_r;          //!< Rotational kinetic energy
+        GPUArray<Scalar4> m_new_box;        //!< New box size
+        GPUArray<Scalar> m_partial_sum_virial_rigid;  //!< Partial sum for first pass reduction
+        GPUArray<Scalar> m_sum_virial_rigid;  //!< Total sum of virial on the GPU
         
+        unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
+        unsigned int m_group_num_blocks;  //!< Number of blocks of \a block_size to launch when updating the group
+        unsigned int m_full_num_blocks;   //!< Number of blocks to launch when updating all particles
+        GPUArray<Scalar> m_partial_sum2K;  //!< Partial sums from the first pass reduction
+        GPUArray<Scalar> m_sum2K;          //!< Total sum of 2K on the GPU
+        GPUArray<Scalar> m_partial_sumW;   //!< Partial sums for the first pass reduction of W
+        GPUArray<Scalar> m_sumW;           //!< Total sum of W on the GPU
+    
     };
 
-//! Exports the TwoStepNVTRigid class to python
-void export_TwoStepNVTRigid();
+//! Exports the TwoStepNPHRigidGPU class to python
+void export_TwoStepNPHRigidGPU();
 
-#endif
+#endif // #ifndef __TWO_STEP_NPH_RIGID_GPU_H__
 

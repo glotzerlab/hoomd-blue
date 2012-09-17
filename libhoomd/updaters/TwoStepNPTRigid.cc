@@ -85,9 +85,18 @@ TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P,
                        bool skip_restart)
-    : TwoStepNVERigid(sysdef, group, true), m_thermo_group(thermo_group), m_thermo_all(thermo_all), m_partial_scale(false), m_temperature(T), m_pressure(P)
+    : TwoStepNVERigid(sysdef, group, true)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTRigid" << endl;
+
+    m_thermo_group = thermo_group;
+    m_thermo_all = thermo_all;
+    m_partial_scale = false;
+    m_temperature = T; 
+    m_pressure = P;
+
+    t_stat = true;
+    p_stat = true;
 
     if (tau <= 0.0)
         m_exec_conf->msg->warning() << "integrate.npt_rigid: tau set less than or equal 0.0" << endl;
@@ -99,71 +108,80 @@ TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
     
     boltz = 1.0;
     chain = 5;
-    
+    order = 3;
+    iter = 5;
+
     // allocate memory for thermostat chains
-    
-    GPUArray<Scalar> q_t_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> q_r_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> q_b_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> eta_t_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> eta_r_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> eta_b_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> eta_dot_t_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> eta_dot_r_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> eta_dot_b_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> f_eta_t_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> f_eta_r_alloc(chain, m_pdata->getExecConf());
-    GPUArray<Scalar> f_eta_b_alloc(chain, m_pdata->getExecConf());
-    
-    q_t.swap(q_t_alloc);
-    q_r.swap(q_r_alloc);
-    q_b.swap(q_b_alloc);
-    eta_t.swap(eta_t_alloc);
-    eta_r.swap(eta_r_alloc);
-    eta_b.swap(eta_b_alloc);
-    eta_dot_t.swap(eta_dot_t_alloc);
-    eta_dot_r.swap(eta_dot_r_alloc);
-    eta_dot_b.swap(eta_dot_b_alloc);
-    f_eta_t.swap(f_eta_t_alloc);
-    f_eta_r.swap(f_eta_r_alloc);
-    f_eta_b.swap(f_eta_b_alloc);
-    
-    {
-    ArrayHandle<Scalar> q_b_handle(q_b, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_b_handle(eta_b, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_t_handle(f_eta_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_r_handle(f_eta_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_b_handle(f_eta_b, access_location::host, access_mode::readwrite);
-    
-    // initialize thermostat chain positions, velocites, forces
-    
-    eta_t_handle.data[0] = eta_r_handle.data[0] = eta_b_handle.data[0] = 0.0;
-    eta_dot_t_handle.data[0] = eta_dot_r_handle.data[0] = eta_dot_b_handle.data[0] = 0.0;
-    f_eta_t_handle.data[0] = f_eta_r_handle.data[0] = f_eta_b_handle.data[0] = 0.0;
+
+    q_t = new Scalar [chain];
+    q_r = new Scalar [chain];
+    q_b = new Scalar [chain];
+    eta_t = new Scalar [chain];
+    eta_r = new Scalar [chain];
+    eta_b = new Scalar [chain];
+    eta_dot_t = new Scalar [chain];
+    eta_dot_r = new Scalar [chain];
+    eta_dot_b = new Scalar [chain];
+    f_eta_t = new Scalar [chain];
+    f_eta_r = new Scalar [chain];
+    f_eta_b = new Scalar [chain];
+
+    eta_t[0] = eta_r[0] = eta_b[0] = 0.0;
+    eta_dot_t[0] = eta_dot_r[0] = eta_dot_b[0] = 0.0;
+    f_eta_t[0] = f_eta_r[0] = f_eta_b[0] = 0.0;
     for (unsigned int i = 1; i < chain; i++)
         {
-        eta_t_handle.data[i] = eta_r_handle.data[i] = eta_b_handle.data[i] = 0.0;
-        eta_dot_t_handle.data[i] = eta_dot_r_handle.data[i] = eta_dot_b_handle.data[i] = 0.0;
-        f_eta_t_handle.data[i] = f_eta_r_handle.data[i] = f_eta_b_handle.data[i] = 0.0;
+        eta_t[i] = eta_r[i] = eta_b[i] = 0.0;
+        eta_dot_t[i] = eta_dot_r[i] = eta_dot_b[i] = 0.0;
+        f_eta_t[i] = f_eta_r[i] = f_eta_b[i] = 0.0;
         }
-        
-    }
-    
+
+    w = new Scalar [order];
+    wdti1 = new Scalar [order];
+    wdti2 = new Scalar [order];
+    wdti4 = new Scalar [order];
+
+    if (order == 3)
+        {
+        w[0] = 1.0 / (2.0 - pow(2.0, 1.0/3.0));
+        w[1] = 1.0 - 2.0*w[0];
+        w[2] = w[0];
+        }
+    else if (order == 5)
+        {
+        w[0] = 1.0 / (4.0 - pow(4.0, 1.0/3.0));
+        w[1] = w[0];
+        w[2] = 1.0 - 4.0 * w[0];
+        w[3] = w[0];
+        w[4] = w[0];
+        }
+
     if (!skip_restart)
         {
         setRestartIntegratorVariables();
         }
-        
     }
 
 TwoStepNPTRigid::~TwoStepNPTRigid()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepNPTRigid" << endl;
+
+    delete [] w;
+    delete [] wdti1;
+    delete [] wdti2;
+    delete [] wdti4;
+    delete [] q_t;
+    delete [] q_r;
+    delete [] q_b;
+    delete [] eta_t;
+    delete [] eta_r;
+    delete [] eta_b;
+    delete [] eta_dot_t;
+    delete [] eta_dot_r;
+    delete [] eta_dot_b;
+    delete [] f_eta_t;
+    delete [] f_eta_r;
+    delete [] f_eta_b;
     }
 
 /* Set integrator variables for restart info
@@ -210,65 +228,37 @@ void TwoStepNPTRigid::setup()
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
     
-    ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> q_b_handle(q_b, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_b_handle(eta_b, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_t_handle(f_eta_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_r_handle(f_eta_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_b_handle(f_eta_b, access_location::host, access_mode::readwrite);
-    
     // retrieve integrator variables from restart files
     IntegratorVariables v = getIntegratorVariables();
-    eta_t_handle.data[0] = v.variable[0];
-    eta_r_handle.data[0] = v.variable[1];
-    eta_b_handle.data[0] = v.variable[2];
-    eta_dot_r_handle.data[0] = v.variable[3];
-    eta_dot_t_handle.data[0] = v.variable[4];
-    eta_dot_b_handle.data[0] = v.variable[5];
-    f_eta_r_handle.data[0] = v.variable[6];
-    f_eta_t_handle.data[0] = v.variable[7];
-    f_eta_b_handle.data[0] = v.variable[8];
+    eta_t[0] = v.variable[0];
+    eta_r[0] = v.variable[1];
+    eta_b[0] = v.variable[2];
+    eta_dot_r[0] = v.variable[3];
+    eta_dot_t[0] = v.variable[4];
+    eta_dot_b[0] = v.variable[5];
+    f_eta_r[0] = v.variable[6];
+    f_eta_t[0] = v.variable[7];
+    f_eta_b[0] = v.variable[8];
     
-    //! Total translational and rotational degrees of freedom of rigid bodies
-    nf_t = 3 * m_n_bodies;
-    nf_r = 3 * m_n_bodies;
-    
-    //! Subtract from nf_r one for each singular moment inertia of a rigid body
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-        if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1;
-        if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1;
-        if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1;
-        }
-        
     Scalar kt = boltz * m_temperature->getValue(0);
     Scalar t_mass = kt / (t_freq * t_freq);
     Scalar p_mass = kt / (p_freq * p_freq);
-    dimension = m_sysdef->getNDimensions();
-    q_t_handle.data[0] = nf_t * t_mass;
-    q_r_handle.data[0] = nf_r * t_mass;
-    q_b_handle.data[0] = dimension * dimension * p_mass;
+    q_t[0] = nf_t * t_mass;
+    q_r[0] = nf_r * t_mass;
+    q_b[0] = dimension * dimension * p_mass;
     for (unsigned int i = 1; i < chain; i++)
         {
-        q_t_handle.data[i] = q_r_handle.data[i] = t_mass;
-        q_b_handle.data[i] = p_mass;
+        q_t[i] = q_r[i] = t_mass;
+        q_b[i] = p_mass;
         }    
     
     // initialize thermostat chain positions, velocites, forces
 
     for (unsigned int i = 1; i < chain; i++)
         {
-        f_eta_t_handle.data[i] = q_t_handle.data[i-1] * eta_dot_t_handle.data[i-1] * eta_dot_t_handle.data[i-1] - kt;
-        f_eta_r_handle.data[i] = q_r_handle.data[i-1] * eta_dot_r_handle.data[i-1] * eta_dot_r_handle.data[i-1] - kt;
-        f_eta_b_handle.data[i] = q_b_handle.data[i] * eta_dot_b_handle.data[i-1] * eta_dot_b_handle.data[i-1] - kt;
+        f_eta_t[i] = q_t[i-1] * eta_dot_t[i-1] * eta_dot_t[i-1] - kt;
+        f_eta_r[i] = q_r[i-1] * eta_dot_r[i-1] * eta_dot_r[i-1] - kt;
+        f_eta_b[i] = q_b[i] * eta_dot_b[i-1] * eta_dot_b[i-1] - kt;
         }
             
     // initialize barostat parameters
@@ -282,7 +272,7 @@ void TwoStepNPTRigid::setup()
     else 
         vol = L.x * L.y * L.z;
 
-    w = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
+    W = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
     epsilon = log(vol) / dimension;
     epsilon_dot = f_epsilon = 0.0;
 
@@ -324,39 +314,33 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     Scalar tmp, akin_t, akin_r, scale, scale_t, scale_r, scale_v;
     Scalar4 mbody, tbody, fquat;
     Scalar dtfm, dt_half;
-    Scalar onednft, onednfr;
     
     dt_half = 0.5 * m_deltaT;
     
     // update barostat
-        {
-        ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
     
-        Scalar vol;   // volume
-        if (dimension == 2) 
-            vol = L.x * L.y;
-        else 
-            vol = L.x * L.y * L.z;
+    Scalar vol;   // volume
+    if (dimension == 2) 
+        vol = L.x * L.y;
+    else 
+        vol = L.x * L.y * L.z;
 
-        // compute the current thermodynamic properties
-        // m_thermo_group->compute(timestep);
-        m_thermo_all->compute(timestep);
+    // compute the current thermodynamic properties
+    // m_thermo_group->compute(timestep);
+    m_thermo_all->compute(timestep);
         
-        // compute pressure for the next half time step
-        m_curr_P = m_thermo_all->getPressure();
-        // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
-        // rare circumstances, usually at the start of the simulation before things are initialize)
-        if (isnan(m_curr_P))
-            m_curr_P = m_pressure->getValue(timestep);
+    // compute pressure for the next half time step
+    m_curr_P = m_thermo_all->getPressure();
+    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
+    // rare circumstances, usually at the start of the simulation before things are initialize)
+    if (isnan(m_curr_P))
+        m_curr_P = m_pressure->getValue(timestep);
         
-        Scalar p_target = m_pressure->getValue(timestep);
-        f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
-        f_epsilon /= w;
-        tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);
-        epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
-        }
-
-    
+    Scalar p_target = m_pressure->getValue(timestep);
+    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
+    f_epsilon /= W;
+    tmp = exp(-1.0 * dt_half * eta_dot_b[0]);
+    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
     
     akin_t = akin_r = 0.0;
 
@@ -380,39 +364,26 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> conjqm_handle(m_rigid_data->getConjqm(), access_location::host, access_mode::readwrite);
             
     // update barostat variables a half step
-    {
-    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
-    
-    Scalar kt = boltz * m_temperature->getValue(timestep);
-    w = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
 
-    tmp = -1.0 * dt_half * eta_dot_b_handle.data[0];
+    tmp = -1.0 * dt_half * eta_dot_b[0];
     scale = exp(tmp);
     epsilon_dot += dt_half * f_epsilon;
     epsilon_dot *= scale;
     epsilon += m_deltaT * epsilon_dot;
     dilation = exp(m_deltaT * epsilon_dot);
-    }
     
     // update thermostat coupled to barostat
 
     update_nhcb(timestep);
 
     // compute scale variables
-    {
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    
-    onednft = 1.0 + (Scalar) (dimension) / (double) (nf_t);
-    onednfr = (double) (dimension) / (double) (nf_r);
 
-    tmp = -1.0 * dt_half * (eta_dot_t_handle.data[0] + onednft * epsilon_dot);
+    tmp = -1.0 * dt_half * (eta_dot_t[0] + onednft * epsilon_dot);
     scale_t = exp(tmp);
-    tmp = -1.0 * dt_half * (eta_dot_r_handle.data[0] + onednfr * epsilon_dot);
+    tmp = -1.0 * dt_half * (eta_dot_r[0] + onednfr * epsilon_dot);
     scale_r = exp(tmp);
     tmp = dt_half * epsilon_dot;
     scale_v = m_deltaT * exp(tmp) * maclaurin_series(tmp);
-    }
     
     akin_t = akin_r = 0.0;
 
@@ -491,7 +462,6 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
         akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x
                   + angmom_handle.data[body].y * angvel_handle.data[body].y
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
-
         }
     }
     
@@ -547,16 +517,11 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> conjqm_handle(m_rigid_data->getConjqm(), access_location::host, access_mode::readwrite);
     
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     // intialize velocity scale for translation and rotation
   
-    onednft = 1.0 + (Scalar) (dimension) / (Scalar) (nf_t);
-    onednfr = (Scalar) (dimension) / (Scalar) (nf_r);
-
-    tmp = -1.0 * dt_half * (eta_dot_t_handle.data[0] + onednft * epsilon_dot);
+    tmp = -1.0 * dt_half * (eta_dot_t[0] + onednft * epsilon_dot);
     scale_t = exp(tmp);
-    tmp = -1.0 * dt_half * (eta_dot_r_handle.data[0] + onednfr * epsilon_dot);
+    tmp = -1.0 * dt_half * (eta_dot_r[0] + onednfr * epsilon_dot);
     scale_r = exp(tmp);
 
     akin_t = akin_r = 0.0;
@@ -609,293 +574,17 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
     }
 
-/*! Calculate the new box size from dilation
-    Remap the rigid body COMs from old box to new box
-    Note that NPT rigid currently only deals with rigid bodies, no point particles
-    For hybrid systems, use TwoStepNPT coupled with TwoStepNVTRigid to avoid duplicating box resize
-*/
-void TwoStepNPTRigid::remap()
-{
-    Scalar oldlo, oldhi, ctr;
-    Scalar invLx, invLy, invLz;
-    
-    BoxDim box = m_pdata->getBox();
-    
-    // convert rigid body COMs to lamda coords
-
-    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-    
-    Scalar3 lo = box.getLo();
-    Scalar3 hi = box.getHi();
-    Scalar3 L = box.getL();
-    invLx = 1.0 / L.x;
-    invLy = 1.0 / L.y;
-    invLz = 1.0 / L.z;
-    
-    Scalar4 delta;
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-        delta.x = com_handle.data[body].x - lo.x;
-        delta.y = com_handle.data[body].y - lo.y;
-        delta.z = com_handle.data[body].z - lo.z;
-
-        com_handle.data[body].x = invLx * delta.x;
-        com_handle.data[body].y = invLy * delta.y;
-        com_handle.data[body].z = invLz * delta.z;
-        }
-
-    // reset box to new size/shape
-    oldlo = lo.x;
-    oldhi = hi.x;
-    ctr = 0.5 * (oldlo + oldhi);
-    lo.x = (oldlo - ctr) * dilation + ctr;
-    hi.x = (oldhi - ctr) * dilation + ctr;
-    L.x = hi.x - lo.x;
-    
-    oldlo = lo.y;
-    oldhi = hi.y;
-    ctr = 0.5 * (oldlo + oldhi);
-    lo.y = (oldlo - ctr) * dilation + ctr;
-    hi.y = (oldhi - ctr) * dilation + ctr;
-    L.y = hi.y - lo.y;
-    
-    if (dimension == 3)
-        {
-        oldlo = lo.z;
-        oldhi = hi.z;
-        ctr = 0.5 * (oldlo + oldhi);
-        lo.z = (oldlo - ctr) * dilation + ctr;
-        hi.z = (oldhi - ctr) * dilation + ctr;
-        L.z = hi.z - lo.z;
-        }
-    
-    m_pdata->setGlobalBoxL(L);
-    
-    // convert rigid body COMs back to box coords
-    Scalar4 newboxlo;
-    newboxlo.x = -L.x/2.0;
-    newboxlo.y = -L.y/2.0;
-    newboxlo.z = -L.z/2.0;
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-        com_handle.data[body].x = L.x * com_handle.data[body].x + newboxlo.x;
-        com_handle.data[body].y = L.y * com_handle.data[body].y + newboxlo.y;
-        com_handle.data[body].z = L.z * com_handle.data[body].z + newboxlo.z;
-        }
-    
-    }
-
-/*! Update Nose-Hoover thermostats
-    \param akin_t Translational kinetic energy
-    \param akin_r Rotational kinetic energy
-    \param timestep Current time step
-*/
-void TwoStepNPTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep)
-{
-    Scalar kt, gfkt_t, gfkt_r, tmp, ms, s, s2;
-    Scalar dtv, dtq;
-    
-    dtv = m_deltaT;
-    dtq = 0.5 * m_deltaT;
-    kt = boltz * m_temperature->getValue(timestep);
-    gfkt_t = nf_t * kt;
-    gfkt_r = nf_r * kt;
-    
-    ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_t_handle(f_eta_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_r_handle(f_eta_r, access_location::host, access_mode::readwrite);
-        
-    // update thermostat masses
-
-    Scalar t_mass = boltz * m_temperature->getValue(timestep) / (t_freq * t_freq);
-    q_t_handle.data[0] = nf_t * t_mass;
-    q_r_handle.data[0] = nf_r * t_mass;
-    for (unsigned int i = 1; i < chain; i++)
-        q_t_handle.data[i] = q_r_handle.data[i] = t_mass;
-            
-    // update force of thermostats coupled to particles
-        
-    f_eta_t_handle.data[0] = (akin_t - gfkt_t) / q_t_handle.data[0];
-    f_eta_r_handle.data[0] = (akin_r - gfkt_r) / q_r_handle.data[0];
-        
-    // update thermostat velocities half step
-
-    eta_dot_t_handle.data[chain-1] += dtq * f_eta_t_handle.data[chain-1];
-    eta_dot_r_handle.data[chain-1] += dtq * f_eta_r_handle.data[chain-1];
-
-    for (unsigned int k = 1; k < chain; k++) 
-        {
-        tmp = dtq * eta_dot_t_handle.data[chain-k];
-        ms = maclaurin_series(tmp);
-        s = exp(-0.5 * tmp);
-        s2 = s * s;
-        eta_dot_t_handle.data[chain-k-1] = eta_dot_t_handle.data[chain-k-1] * s2 + 
-                                dtq * f_eta_t_handle.data[chain-k-1] * s * ms;
-          
-        tmp = dtq * eta_dot_r_handle.data[chain-k];
-        ms = maclaurin_series(tmp);
-        s = exp(-0.5 * tmp);
-        s2 = s * s;
-        eta_dot_r_handle.data[chain-k-1] = eta_dot_r_handle.data[chain-k-1] * s2 + 
-                                dtq * f_eta_r_handle.data[chain-k-1] * s * ms;
-        }
-
-    // update thermostat positions a full step
-
-    for (unsigned int k = 0; k < chain; k++) 
-        {
-        eta_t_handle.data[k] += dtv * eta_dot_t_handle.data[k];
-        eta_r_handle.data[k] += dtv * eta_dot_r_handle.data[k];
-        }
-
-    // update thermostat forces
-
-    for (unsigned int k = 1; k < chain; k++) 
-        {
-        f_eta_t_handle.data[k] = q_t_handle.data[k-1] * eta_dot_t_handle.data[k-1] * eta_dot_t_handle.data[k-1] - kt;
-        f_eta_t_handle.data[k] /= q_t_handle.data[k];
-        f_eta_r_handle.data[k] = q_r_handle.data[k-1] * eta_dot_r_handle.data[k-1] * eta_dot_r_handle.data[k-1] - kt;
-        f_eta_r_handle.data[k] /= q_r_handle.data[k];
-        }
-
-    // update thermostat velocities a full step
-
-    for (unsigned int k = 0; k < chain-1; k++) 
-        {
-        tmp = dtq * eta_dot_t_handle.data[k+1];
-        ms = maclaurin_series(tmp);
-        s = exp(-0.5 * tmp);
-        s2 = s * s;
-        eta_dot_t_handle.data[k] = eta_dot_t_handle.data[k] * s2 + dtq * f_eta_t_handle.data[k] * s * ms;
-        tmp = q_t_handle.data[k] * eta_dot_t_handle.data[k] * eta_dot_t_handle.data[k] - kt;
-        f_eta_t_handle.data[k+1] = tmp / q_t_handle.data[k+1];
-
-        tmp = dtq * eta_dot_r_handle.data[k+1];
-        ms = maclaurin_series(tmp);
-        s = exp(-0.5 * tmp);
-        s2 = s * s;
-        eta_dot_r_handle.data[k] = eta_dot_r_handle.data[k] * s2 + dtq * f_eta_r_handle.data[k] * s * ms;
-        tmp = q_r_handle.data[k] * eta_dot_r_handle.data[k] * eta_dot_r_handle.data[k] - kt;
-        f_eta_r_handle.data[k+1] = tmp / q_r_handle.data[k+1];
-
-        }
-
-    eta_dot_t_handle.data[chain-1] += dtq * f_eta_t_handle.data[chain-1];
-    eta_dot_r_handle.data[chain-1] += dtq * f_eta_r_handle.data[chain-1];
-    
-    }
-
-/*! Update Nose-Hoover barostats
-    \param timestep Current time step
-*/
-void TwoStepNPTRigid::update_nhcb(unsigned int timestep)
-    {
-    Scalar kt, tmp, ms, s, s2;
-    Scalar dt_half;
-    
-    dt_half = 0.5 * m_deltaT;
-    kt = boltz * m_temperature->getValue(timestep);
-    
-    ArrayHandle<Scalar> q_b_handle(q_b, access_location::host, access_mode::readwrite);    
-    ArrayHandle<Scalar> eta_b_handle(eta_b, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> f_eta_b_handle(f_eta_b, access_location::host, access_mode::readwrite);
-    
-    // update thermostat masses
-    
-    double tb_mass = kt / (p_freq * p_freq);
-    q_b_handle.data[0] = dimension * dimension * tb_mass;
-    for (unsigned int i = 1; i < chain; i++) 
-        q_b_handle.data[i] = tb_mass;
-
-    // update forces acting on thermostat
-
-    tmp = w * epsilon_dot * epsilon_dot;
-    f_eta_b_handle.data[0] = (tmp - kt) / q_b_handle.data[0];
-
-    // update thermostat velocities a half step
-
-    eta_dot_b_handle.data[chain-1] += dt_half * f_eta_b_handle.data[chain-1];
-
-    for (unsigned int k = 1; k < chain; k++) 
-        {
-        tmp = dt_half * eta_dot_b_handle.data[chain-k];
-        ms = maclaurin_series(tmp);
-        s = exp(-0.5 * tmp);
-        s2 = s * s;
-        eta_dot_b_handle.data[chain-k-1] = eta_dot_b_handle.data[chain-k-1] * s2 + 
-                                            dt_half * f_eta_b_handle.data[chain-k-1] * s * ms;
-        }
-
-    // update thermostat positions
-
-    for (unsigned int k = 0; k < chain; k++)
-        eta_b_handle.data[k] += m_deltaT * eta_dot_b_handle.data[k];
-
-    // update thermostat forces
-
-    for (unsigned int k = 1; k < chain; k++) 
-        {
-        f_eta_b_handle.data[k] = q_b_handle.data[k-1] * eta_dot_b_handle.data[k-1] * eta_dot_b_handle.data[k-1] - kt;
-        f_eta_b_handle.data[k] /= q_b_handle.data[k];
-        }
-
-    // update thermostat velocites a full step
-
-    for (unsigned int k = 0; k < chain-1; k++) 
-        {
-        tmp = dt_half * eta_dot_b_handle.data[k+1];
-        ms = maclaurin_series(tmp);
-        s = exp(-0.5 * tmp);
-        s2 = s * s;
-        eta_dot_b_handle.data[k] = eta_dot_b_handle.data[k] * s2 + dt_half * f_eta_b_handle.data[k] * s * ms;
-        tmp = q_b_handle.data[k] * eta_dot_b_handle.data[k] * eta_dot_b_handle.data[k] - kt;
-        f_eta_b_handle.data[k+1] = tmp / q_b_handle.data[k+1];
-        }
-
-    eta_dot_b_handle.data[chain-1] += dt_half * f_eta_b_handle.data[chain-1];
-
-    }
-
-/*! Maclaurine expansion
-    \param x Point to take the expansion
-
-*/
-inline Scalar TwoStepNPTRigid::maclaurin_series(Scalar x)
-    {
-    Scalar x2, x4;
-    x2 = x * x;
-    x4 = x2 * x2;
-    return (1.0 + (1.0/6.0) * x2 + (1.0/120.0) * x4 + (1.0/5040.0) * x2 * x4 + (1.0/362880.0) * x4 * x4);
-    }
-
-  
 void export_TwoStepNPTRigid()
     {
-    class_<TwoStepNPTRigid, boost::shared_ptr<TwoStepNPTRigid>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepNPTRigid", init< boost::shared_ptr<SystemDefinition>,
+    class_<TwoStepNPTRigid, boost::shared_ptr<TwoStepNPTRigid>, bases<TwoStepNVERigid>, boost::noncopyable>
+    ("TwoStepNPTRigid", init< boost::shared_ptr<SystemDefinition>,
                        boost::shared_ptr<ParticleGroup>,
                        boost::shared_ptr<ComputeThermo>,
                        boost::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
                        boost::shared_ptr<Variant>,
-                       boost::shared_ptr<Variant> >())
-        .def("setT", &TwoStepNPTRigid::setT)
-        .def("setP", &TwoStepNPTRigid::setP)
-        .def("setTau", &TwoStepNPTRigid::setTau)
-        .def("setTauP", &TwoStepNPTRigid::setTauP)
-        .def("setPartialScale", &TwoStepNPTRigid::setPartialScale)
-        ;
+                       boost::shared_ptr<Variant> >());
     }
 
 #ifdef WIN32

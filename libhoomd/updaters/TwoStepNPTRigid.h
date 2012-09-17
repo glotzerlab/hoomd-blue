@@ -87,46 +87,6 @@ class TwoStepNPTRigid : public TwoStepNVERigid
                    bool skip_restart=false);
         virtual ~TwoStepNPTRigid();
         
-        //! Update the temperature
-        /*! \param T New temperature to set
-        */
-        virtual void setT(boost::shared_ptr<Variant> T)
-            {
-            m_temperature = T;
-            }
-        
-        //! Update the pressure
-        /*! \param P New pressure to set
-        */
-        virtual void setP(boost::shared_ptr<Variant> P)
-            {
-            m_pressure = P;
-            }
-        
-        //! Update the tau value
-        /*! \param tau New time constant to set
-        */
-        virtual void setTau(Scalar tau)
-            {
-            t_freq = tau;
-            }
-        
-        //! Update the nuP value
-        /*! \param tauP New pressure constant to set
-        */
-        virtual void setTauP(Scalar tauP)
-            {
-            p_freq = tauP;
-            }
-        
-        //! Set the partial scale option
-        /*! \param partial_scale New partial_scale option to set
-        */
-        void setPartialScale(bool partial_scale)
-            {
-            m_partial_scale = partial_scale;
-            }
-        
         //! Computes initial forces and torques and initializes thermostats/barostats
         virtual void setup();
         
@@ -136,70 +96,9 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
     
-        //! Get needed pdata flags
-        /*! TwoStepNPT needs the pressure, so the isotropic_virial flag is set
-        */
-        virtual PDataFlags getRequestedPDataFlags()
-            {
-            PDataFlags flags;
-            flags[pdata_flag::isotropic_virial] = 1;
-            return flags;
-            }
-
-    protected:
-        boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
-        boost::shared_ptr<ComputeThermo> m_thermo_all;     //!< ComputeThermo operating on the group of all particles
-        
-        bool m_partial_scale;                       //!< True if only the particles in the group should be scaled to the new box
-        Scalar t_freq;                              //!< tau value for Nose-Hoover
-        Scalar p_freq;                              //!< tauP value for the barostat
-        boost::shared_ptr<Variant> m_temperature;   //!< Temperature set point
-        boost::shared_ptr<Variant> m_pressure;      //!< Pressure set point
-        Scalar m_curr_group_T;                      //!< Current group temperature
-        Scalar m_curr_P;                            //!< Current system pressure
     protected:
         //! Integrator variables
-        virtual void setRestartIntegratorVariables();
-        
-        //! Update thermostats
-        void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);
-        
-        //! Update barostats
-        void update_nhcb(unsigned int timestep);
-
-        //! Remap the particles from the old box to the new one
-        void remap();
-        
-        //! Adjust rigid body center of mass with deformed box
-        void deform(unsigned int flag);
-        
-        //! Maclaurin expansion
-        inline Scalar maclaurin_series(Scalar x);
-        
-        unsigned int dimension;                     //!< System dimension
-        Scalar boltz;                               //!< Boltzmann constant
-        unsigned int nf_t;                          //!< Translational degrees of freedom
-        unsigned int nf_r;                          //!< Rotational degrees of freedom
-        Scalar m_dof;                               //!< Total number degrees of freedom used for system temperature compute 
-        unsigned int chain;                         //!< Number of thermostats
-        
-        Scalar  dilation;                           //!< Box size change
-        Scalar  epsilon;                            //!< Volume scaling "position" 
-        Scalar  epsilon_dot;                        //!< Volume scaling "velocity" 
-        Scalar  f_epsilon;                          //!< Volume scaling "force"
-        Scalar  w;                                  //!< Volume scaling "mass"
-        GPUArray<Scalar>    q_t;                    //!< Thermostat translational mass
-        GPUArray<Scalar>    q_r;                    //!< Thermostat rotational mass
-        GPUArray<Scalar>    q_b;                    //!< Barostat rotational mass
-        GPUArray<Scalar>    eta_t;                  //!< Thermostat translational position
-        GPUArray<Scalar>    eta_r;                  //!< Thermostat rotational position
-        GPUArray<Scalar>    eta_b;                  //!< Barostat rotational position
-        GPUArray<Scalar>    eta_dot_t;              //!< Thermostat translational velocity
-        GPUArray<Scalar>    eta_dot_r;              //!< Thermostat rotational velocity
-        GPUArray<Scalar>    eta_dot_b;              //!< Barostat rotational velocity
-        GPUArray<Scalar>    f_eta_t;                //!< Thermostat translational force
-        GPUArray<Scalar>    f_eta_r;                //!< Thermostat rotational force
-        GPUArray<Scalar>    f_eta_b;                //!< Barostat rotational force
+        virtual void setRestartIntegratorVariables();        
     };
 
 //! Exports the TwoStepNVTRigid class to python

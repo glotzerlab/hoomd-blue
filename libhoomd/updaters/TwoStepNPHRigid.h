@@ -50,66 +50,57 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-/*! \file TwoStepNVTRigid.h
-    \brief Declares an updater that implements NVT dynamics for rigid bodies
+#include "TwoStepNVERigid.h"
+#include "Variant.h"
+#include "ComputeThermo.h"
+
+#ifndef __TWO_STEP_NPH_RIGID_H__
+#define __TWO_STEP_NPH_RIGID_H__
+
+/*! \file TwoStepNPHRigid.h
+    \brief Declares the TwoStepNPHRigid class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "TwoStepNVERigid.h"
-
-#include <vector>
-#include <boost/shared_ptr.hpp>
-
-#ifndef __TWO_STEP_NVT_RIGID_H__
-#define __TWO_STEP_NVT_RIGID_H__
-
-//! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant temperature (NVT) dynamics. Particle positions and velocities are
-    updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
-    in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on
-    each particle.
+//! Integrates part of the system forward in two steps in the NPH ensemble
+/*! Implements Nose-Hoover NPH integration through the IntegrationMethodTwoStep interface
     
-    Integrator variables mapping:
-     - [0] -> eta_t
-     - [1] -> eta_r
-     - [2] -> eta_dot_t
-     - [3] -> eta_dot_r
+    This class and TwoStepNVTRigid are supposed to be re-organized due to shared member functions
     
     \ingroup updaters
 */
-
-class TwoStepNVTRigid : public TwoStepNVERigid
+class TwoStepNPHRigid : public TwoStepNVERigid
     {
     public:
-        //! Constructor
-        TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef, 
-                        boost::shared_ptr<ParticleGroup> group,
-                        boost::shared_ptr<ComputeThermo> thermo,
-                        boost::shared_ptr<Variant> T,
-                        Scalar tau=10.0,
-                        bool skip_restart=false);
-        ~TwoStepNVTRigid();
+        //! Constructs the integration method and associates it with the system
+        TwoStepNPHRigid(boost::shared_ptr<SystemDefinition> sysdef,
+                   boost::shared_ptr<ParticleGroup> group,
+                   boost::shared_ptr<ComputeThermo> thermo_group,
+                   boost::shared_ptr<ComputeThermo> thermo_all,
+                   Scalar tauP,
+                   boost::shared_ptr<Variant> P,
+                   bool skip_restart=false);
+        virtual ~TwoStepNPHRigid();
         
-        //! Setup the initial net forces, torques and angular momenta
-        void setup();
+        //! Computes initial forces and torques and initializes thermostats/barostats
+        virtual void setup();
         
-        //! First step of velocit Verlet integration
+        //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
         
-        //! Second step of velocit Verlet integration
-        virtual void integrateStepTwo(unsigned int timestep);
-        
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);    
+
     protected:
         //! Integrator variables
         virtual void setRestartIntegratorVariables();
-        
     };
 
-//! Exports the TwoStepNVTRigid class to python
-void export_TwoStepNVTRigid();
+//! Exports the TwoStepNPHRigid class to python
+void export_TwoStepNPHRigid();
 
-#endif
+#endif // #ifndef __TWO_STEP_NPH_RIGID_H__
 
