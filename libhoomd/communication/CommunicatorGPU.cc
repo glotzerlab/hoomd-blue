@@ -289,7 +289,7 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<int3> h_image_stage(m_image_stage, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_tag_stage(m_tag_stage, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_body_stage(m_body_stage, access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_orientation_stage(m_orientation, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation_stage(m_orientation_stage, access_location::host, access_mode::read);
 
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
@@ -302,31 +302,31 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
 
             MPI_Isend(h_pos_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[2]);
-            MPI_Irecv(h_pos.data+adh_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[3]);
+            MPI_Irecv(h_pos.data+add_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[3]);
 
             MPI_Isend(h_vel_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &reqs[4]);
-            MPI_Irecv(h_vel.data+adh_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[5]);
+            MPI_Irecv(h_vel.data+add_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[5]);
 
             MPI_Isend(h_accel_stage.data, n_send_ptls*sizeof(Scalar3), MPI_BYTE, send_neighbor, 3, m_mpi_comm, &reqs[6]);
-            MPI_Irecv(h_accel.data+adh_idx, n_recv_ptls*sizeof(Scalar3), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[7]);
+            MPI_Irecv(h_accel.data+add_idx, n_recv_ptls*sizeof(Scalar3), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[7]);
 
             MPI_Isend(h_image_stage.data, n_send_ptls*sizeof(int3), MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[8]);
-            MPI_Irecv(h_image.data+adh_idx, n_recv_ptls*sizeof(int3), MPI_BYTE, recv_neighbor, 4, m_mpi_comm, &reqs[9]);
+            MPI_Irecv(h_image.data+add_idx, n_recv_ptls*sizeof(int3), MPI_BYTE, recv_neighbor, 4, m_mpi_comm, &reqs[9]);
 
             MPI_Isend(h_charge_stage.data, n_send_ptls*sizeof(Scalar), MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[10]);
-            MPI_Irecv(h_charge.data+adh_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 5, m_mpi_comm, &reqs[11]);
+            MPI_Irecv(h_charge.data+add_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 5, m_mpi_comm, &reqs[11]);
 
             MPI_Isend(h_diameter_stage.data, n_send_ptls*sizeof(Scalar), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[12]);
-            MPI_Irecv(h_diameter.data+adh_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 6, m_mpi_comm, &reqs[13]);
+            MPI_Irecv(h_diameter.data+add_idx, n_recv_ptls*sizeof(Scalar), MPI_BYTE, recv_neighbor, 6, m_mpi_comm, &reqs[13]);
 
             MPI_Isend(h_tag_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[14]);
-            MPI_Irecv(h_tag.data+adh_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 7, m_mpi_comm, &reqs[15]);
+            MPI_Irecv(h_tag.data+add_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 7, m_mpi_comm, &reqs[15]);
 
             MPI_Isend(h_body_stage.data, n_send_ptls*sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[16]);
-            MPI_Irecv(h_body.data+adh_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 8, m_mpi_comm, &reqs[17]);
+            MPI_Irecv(h_body.data+add_idx, n_recv_ptls*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 8, m_mpi_comm, &reqs[17]);
 
             MPI_Isend(h_orientation_stage.data, n_send_ptls*sizeof(Scalar4), MPI_BYTE, send_neighbor, 9, m_mpi_comm, &reqs[18]);
-            MPI_Irecv(h_orientation.data+adh_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 9, m_mpi_comm, &reqs[19]);
+            MPI_Irecv(h_orientation.data+add_idx, n_recv_ptls*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 9, m_mpi_comm, &reqs[19]);
 
             MPI_Waitall(18,reqs+2, status+2);
             }
