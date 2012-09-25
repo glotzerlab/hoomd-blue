@@ -109,7 +109,7 @@ void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int times
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
-    const BoxDim& box = this->m_pdata->getBox();
+    const BoxDim& box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
