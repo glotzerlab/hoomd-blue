@@ -195,13 +195,13 @@ ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
 
+    #ifdef ENABLE_MPI
+    if (m_mpi_comm) MPI_Finalize();
+    #endif
+
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         cudaThreadExit();
-    #endif
-
-    #ifdef ENABLE_MPI
-    if (m_mpi_comm) MPI_Finalize();
     #endif
     }
 
