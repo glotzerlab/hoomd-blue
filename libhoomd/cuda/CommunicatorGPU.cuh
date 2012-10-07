@@ -207,6 +207,7 @@ void gpu_copy_ghosts(const unsigned int nghost,
                      float4 *d_pos_copybuf_r,
                      const unsigned int dir,
                      const unsigned int *is_at_boundary,
-                     const BoxDim& global_box);
+                     const BoxDim& global_box,
+                     const cudaStream_t stream);
 
 #endif // ENABLE_MPI

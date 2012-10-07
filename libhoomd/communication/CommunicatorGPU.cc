@@ -65,6 +65,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+//! Constructor
+ghost_gpu_thread::ghost_gpu_thread()
+    : h_pos_copybuf(NULL),
+      h_pos_recvbuf(NULL),
+      m_size_copy_buf(0),
+      m_size_recv_buf(0)
+    { }
+
+//! Destructor
+ghost_gpu_thread::~ghost_gpu_thread()
+    {
+    if (h_pos_copybuf) cudaFreeHost(h_pos_copybuf);
+    if (h_pos_recvbuf) cudaFreeHost(h_pos_recvbuf);
+    }
+
 //! Main routine of ghost update worker thread
 void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
     {
@@ -95,56 +110,69 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
     MPI_Request reqs[4];
     MPI_Status status[4];
 
-    for (unsigned int dir = 0; dir < 6; dir ++)
+    for (unsigned int dir = 0; dir < 6; dir +=2)
         {
 
         if (! params.is_communicating[dir]) continue;
 
-        unsigned int offset = (dir % 2) ? params.num_copy_ghosts[dir-1] : 0;
-
         // Pack send data for direction dir and dir+1 (opposite) simultaneously.
         // We assume that they are independent, i.e. a send in direction dir+1
         // does not contain any ghosts received from that direction previously.
-        if ((dir % 2) == 0)
-            {
-            gpu_copy_ghosts(params.num_copy_ghosts[dir],
-                            params.num_copy_ghosts[dir+1],
-                            params.d_pos_data, 
-                            params.d_copy_ghosts[dir],
-                            params.d_copy_ghosts[dir+1],
-                            params.d_pos_copybuf,
-                            params.d_pos_copybuf + params.num_copy_ghosts[dir],
-                            dir,
-                            params.is_at_boundary,
-                            params.box);
+        gpu_copy_ghosts(params.num_copy_ghosts[dir],
+                        params.num_copy_ghosts[dir+1],
+                        params.d_pos_data, 
+                        params.d_copy_ghosts[dir],
+                        params.d_copy_ghosts[dir+1],
+                        params.d_pos_copybuf,
+                        params.d_pos_copybuf + params.num_copy_ghosts[dir],
+                        dir,
+                        params.is_at_boundary,
+                        params.box,
+                        params.stream);
 
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-            }
 
         unsigned int send_neighbor = params.decomposition->getNeighborRank(dir);
+        unsigned int recv_neighbor = params.decomposition->getNeighborRank(dir+1);
 
-        // we receive from the direction opposite to the one we send to
-        unsigned int recv_neighbor;
-        if (dir % 2 == 0)
-            recv_neighbor = params.decomposition->getNeighborRank(dir+1);
-        else
-            recv_neighbor = params.decomposition->getNeighborRank(dir-1);
+        unsigned int start_idx = params.N + num_tot_recv_ghosts;
+        num_tot_recv_ghosts += params.num_recv_ghosts[dir] + params.num_recv_ghosts[dir+1];
 
-        unsigned int start_idx;
+        unsigned int max_copybuf = (params.num_copy_ghosts[dir] + params.num_copy_ghosts[dir+1])*sizeof(Scalar4);
+        if (m_size_copy_buf < max_copybuf)
+            {
+            unsigned int new_size = 1;
+            while (new_size < max_copybuf) new_size*=2;
+            if (h_pos_copybuf) cudaFreeHost(h_pos_copybuf);
+            cudaMallocHost(&h_pos_copybuf, new_size);
+            m_size_copy_buf = new_size;
+            }
 
-        start_idx = params.N + num_tot_recv_ghosts;
-
-        num_tot_recv_ghosts += params.num_recv_ghosts[dir];
-
-        unsigned int shift = (dir % 2) ? 2 : 0;
+        unsigned int max_recvbuf = (params.num_recv_ghosts[dir] + params.num_recv_ghosts[dir+1])*sizeof(Scalar4);
+        if (m_size_recv_buf < max_recvbuf)
+            {
+            unsigned int new_size = 1;
+            while (new_size < max_recvbuf) new_size*=2;
+            if (h_pos_recvbuf) cudaFreeHost(h_pos_recvbuf);
+            cudaMallocHost(&h_pos_recvbuf, new_size);
+            m_size_recv_buf = new_size;
+            }
 
         // exchange particle data, write directly to the particle data arrays
-        MPI_Isend(params.d_pos_copybuf + offset, params.num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[0+shift]);
-        MPI_Irecv(params.d_pos_data + start_idx, params.num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[1+shift]);
+        cudaMemcpyAsync(h_pos_copybuf, params.d_pos_copybuf, (params.num_copy_ghosts[dir]+params.num_copy_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyDeviceToHost, params.stream);
+        cudaStreamSynchronize(params.stream);
 
-        if (dir %2)
-            MPI_Waitall(4, reqs, status);
+        MPI_Isend(h_pos_copybuf, params.num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[0]);
+        MPI_Irecv(h_pos_recvbuf, params.num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[1]);
 
+        MPI_Isend(h_pos_copybuf+params.num_copy_ghosts[dir], params.num_copy_ghosts[dir+1]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[2]);
+        MPI_Irecv(h_pos_recvbuf+params.num_recv_ghosts[dir], params.num_recv_ghosts[dir+1]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[3]);
+
+        MPI_Waitall(4, reqs, status);
+
+        cudaMemcpyAsync(params.d_pos_data + start_idx, h_pos_recvbuf, (params.num_recv_ghosts[dir]+params.num_recv_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyHostToDevice, params.stream);
+        cudaStreamSynchronize(params.stream);
         } // end dir loop
 
     } 
@@ -170,6 +198,12 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     // create a worker thread for ghost updates
     m_worker_thread = boost::thread(ghost_gpu_thread(), boost::ref(m_work_queue), boost::ref(m_barrier));
+
+    // create CUDA streams for concurrent copying / kernel execution
+    for (int i = 0; i < 2; ++i)
+        cudaStreamCreate(&m_streams[i]);
+
+    m_exec_conf->setKernelExecutionStream(m_streams[0]);
     }
 
 //! Destructor
@@ -181,6 +215,10 @@ CommunicatorGPU::~CommunicatorGPU()
     // finish worker thread
     m_worker_thread.interrupt();
     m_worker_thread.join();
+
+    // destroy CUDA streams
+    for (int i = 0; i < 2; ++i)
+        cudaStreamDestroy(m_streams[i]);
     }
 
 #ifdef ENABLE_MPI_CUDA
@@ -191,6 +229,9 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     {
     if (timestep < m_next_ghost_update)
         return;
+
+    if (m_prof)
+        m_prof->push("copy_ghosts");
 
     // fill thread parameters
     for (unsigned int i = 0; i < 6; ++i)
@@ -215,7 +256,10 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
          d_pos_data,
          d_pos_copybuf_data,
          m_pdata->getGlobalBox(),
-         m_exec_conf));
+         m_exec_conf,
+         m_streams[1]));
+
+    if (m_prof) m_prof->pop();
     }
 
 //! Finish ghost communication
@@ -225,7 +269,10 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
         return;
 
     // wait for worker thread to finish task
+    if (m_prof) m_prof->push("copy_ghosts");
     m_barrier.wait();
+
+    if (m_prof) m_prof->pop();
 
     // release locked arrays
     for (unsigned int i = 0; i < 6; ++i)
@@ -251,7 +298,8 @@ void CommunicatorGPU::migrateAtoms()
                         d_tag.data + m_pdata->getN(),
                         d_rtag.data);
 
-        CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
     // reset ghost particle number
@@ -338,7 +386,8 @@ void CommunicatorGPU::migrateAtoms()
                                    m_pdata->getGlobalBox(),
                                    dir,
                                    m_is_at_boundary);
-            CHECK_CUDA_ERROR();
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             
             }
 
@@ -514,7 +563,8 @@ void CommunicatorGPU::migrateAtoms()
                                d_remove_mask.data,
                                d_tag.data,
                                d_rtag.data);
-        CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
 
@@ -563,7 +613,9 @@ void CommunicatorGPU::migrateAtoms()
                                d_orientation_stage.data,
                                d_tag.data,
                                d_tag_stage.data);
-        CHECK_CUDA_ERROR();
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
 
         }
    
@@ -585,7 +637,9 @@ void CommunicatorGPU::migrateAtoms()
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
         gpu_update_rtag(m_pdata->getN(),0, d_tag.data, d_rtag.data);
-        CHECK_CUDA_ERROR();
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
  
@@ -634,7 +688,9 @@ void CommunicatorGPU::exchangeGhosts()
                                                m_pdata->getN(),
                                                bdata->getNumBonds(),
                                                m_pdata->getBox());
-        CHECK_CUDA_ERROR();
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
 
@@ -650,7 +706,9 @@ void CommunicatorGPU::exchangeGhosts()
                                          d_pos.data,
                                          m_pdata->getBox(),
                                          m_r_ghost);
-        CHECK_CUDA_ERROR();
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
     /*
@@ -725,7 +783,9 @@ void CommunicatorGPU::exchangeGhosts()
                                 dir,
                                 m_is_at_boundary,
                                 m_pdata->getGlobalBox());
-            CHECK_CUDA_ERROR();
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
 
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
@@ -845,7 +905,9 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
 
         gpu_update_rtag(m_pdata->getNGhosts(), m_pdata->getN(), d_tag.data+ m_pdata->getN(), d_rtag.data);
-        CHECK_CUDA_ERROR();
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
 
         }
 
@@ -907,9 +969,11 @@ void CommunicatorGPU::copyGhosts()
                             d_pos_copybuf.data + m_num_copy_ghosts[dir],
                             dir,
                             m_is_at_boundary,
-                            m_pdata->getGlobalBox());
+                            m_pdata->getGlobalBox(),
+                            0);
 
-            CHECK_CUDA_ERROR();
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
 
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);

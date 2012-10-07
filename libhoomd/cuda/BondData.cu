@@ -135,6 +135,7 @@ __global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
     \param N Number of particles in the system
     \param d_rtag Array of reverse-lookup particle tag . particle index
     \param use_ghost_bonds True if we are only considering bonds with ghost particles
+    \param stream Cuda stream to use for concurrent kernel execution
  */
 cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
                                      unsigned int *d_n_bonds,
@@ -142,7 +143,8 @@ cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
                                      const unsigned int num_bonds,
                                      const unsigned int N,
                                      const unsigned int *d_rtag,
-                                     bool use_ghost_bonds)
+                                     bool use_ghost_bonds,
+                                     cudaStream_t stream)
     {
     assert(d_bonds);
     assert(d_rtag);
@@ -153,7 +155,7 @@ cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
     // clear n_bonds array
     cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
 
-    gpu_find_max_bond_number_kernel<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
+    gpu_find_max_bond_number_kernel<<<num_bonds/block_size + 1, block_size,0,stream>>>(d_bonds,
                                                                               d_rtag,
                                                                               d_n_bonds,
                                                                               num_bonds,
@@ -175,6 +177,7 @@ cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
     \param pitch Pitch of 2D bondtable array
     \param N Number of particles
     \param use_ghost_bonds True if we are only considering bonds with ghost particles
+    \param stream Cuda stream to use for concurrent kernel execution
  */
 cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
                                  unsigned int *d_n_bonds,
@@ -184,14 +187,15 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
                                  const unsigned int num_bonds,
                                  unsigned int pitch,
                                  unsigned int N,
-                                 bool use_ghost_bonds)
+                                 bool use_ghost_bonds,
+                                 cudaStream_t stream)
     {
     unsigned int block_size = 512;
 
     // clear n_bonds array
     cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
 
-    gpu_fill_gpu_bond_table<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
+    gpu_fill_gpu_bond_table<<<num_bonds/block_size + 1, block_size,0,stream>>>(d_bonds,
                                                                       d_bond_type,
                                                                       d_gpu_bondtable,
                                                                       pitch,

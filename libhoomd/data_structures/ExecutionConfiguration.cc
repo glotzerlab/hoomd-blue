@@ -137,6 +137,10 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
         initializeMPI(n_ranks);
 #endif
 
+#ifdef ENABLE_CUDA
+    m_kernel_stream = 0;
+#endif
+
     setupStats();
     }
 
@@ -186,6 +190,10 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     m_partition = 0;
     if (init_mpi)
         initializeMPI(n_ranks);
+#endif
+
+#ifdef ENABLE_CUDA
+    m_kernel_stream = 0;
 #endif
 
     setupStats();

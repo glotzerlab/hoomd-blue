@@ -175,7 +175,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
-
     gpu_cgpf(pair_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
@@ -194,7 +193,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          m_block_size,
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         false),
+                         false,
+                         this->m_exec_conf->getKernelExecutionStream()),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
@@ -254,7 +254,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeGhostForces(unsigned int ti
                          m_block_size,
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         true),
+                         true,
+                         0),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

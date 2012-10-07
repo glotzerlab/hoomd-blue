@@ -178,7 +178,8 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              d_gpu_n_bonds.data,
                              this->m_bond_data->getNBondTypes(),
                              m_block_size,
-                             false),
+                             false,
+                             this->m_exec_conf->getKernelExecutionStream()),
                  d_params.data,
                  d_flags.data);
         }
@@ -244,7 +245,8 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeGhostForces(unsigned int ti
                              d_gpu_n_ghost_bonds.data,
                              this->m_bond_data->getNBondTypes(),
                              m_block_size,
-                             true),
+                             true,
+                             0),
                  d_params.data,
                  d_flags.data);
         }

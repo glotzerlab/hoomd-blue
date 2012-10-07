@@ -357,7 +357,8 @@ void BondData::updateBondTableGPU()
                                  m_bonds.size(),
                                  m_pdata->getN(),
                                  d_rtag.data,
-                                 false);
+                                 false,
+                                 m_exec_conf->getKernelExecutionStream());
         }
 
     // re allocate memory if needed
@@ -380,7 +381,8 @@ void BondData::updateBondTableGPU()
                              m_bonds.size(),
                              m_gpu_bondlist.getPitch(),
                              m_pdata->getN(),
-                             false);
+                             false,
+                             m_exec_conf->getKernelExecutionStream());
         }
 
 #ifdef ENABLE_MPI
@@ -397,7 +399,8 @@ void BondData::updateBondTableGPU()
                                      m_bonds.size(),
                                      m_pdata->getN(),
                                      d_rtag.data,
-                                     true);
+                                     true,
+                                     m_exec_conf->getKernelExecutionStream());
             }
 
         // re allocate memory if needed
@@ -420,7 +423,8 @@ void BondData::updateBondTableGPU()
                                  m_bonds.size(),
                                  m_gpu_ghost_bondlist.getPitch(),
                                  m_pdata->getN(),
-                                 true);
+                                 true,
+                                 m_exec_conf->getKernelExecutionStream());
             }
         }
 #endif

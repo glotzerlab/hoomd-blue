@@ -1033,18 +1033,19 @@ void gpu_copy_ghosts(const unsigned int nghost,
                      float4 *d_pos_copybuf_r,
                      const unsigned int dir,
                      const unsigned int *is_at_boundary,
-                     const BoxDim& global_box)
+                     const BoxDim& global_box,
+                     const cudaStream_t stream)
     {
 
     unsigned int block_size = 192;
     unsigned int n = (nghost > nghost_r) ? nghost : nghost_r;
 
     if (dir == 0)
-        gpu_copy_ghost_particles_kernel<0><<<n/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
+        gpu_copy_ghost_particles_kernel<0><<<n/block_size+1, block_size,0,stream>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
     else if (dir == 2)
-        gpu_copy_ghost_particles_kernel<1><<<n/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
+        gpu_copy_ghost_particles_kernel<1><<<n/block_size+1, block_size,0,stream>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
     else if (dir == 4)
-        gpu_copy_ghost_particles_kernel<2><<<n/block_size+1, block_size>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
+        gpu_copy_ghost_particles_kernel<2><<<n/block_size+1, block_size,0,stream>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
  
     } 
 

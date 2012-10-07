@@ -535,7 +535,8 @@ template<class T> void GPUArray<T>::allocate()
         {
         cudaHostAlloc(&h_data, m_num_elements*sizeof(T), cudaHostAllocDefault);
         cudaMalloc(&d_data, m_num_elements*sizeof(T));
-        CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
     else
         {
@@ -567,7 +568,8 @@ template<class T> void GPUArray<T>::deallocate()
         assert(d_data);
         cudaFreeHost(h_data);
         cudaFree(d_data);
-        CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
     else
         {
@@ -937,22 +939,24 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     // allocate resized array
     T *d_tmp;
     cudaMalloc(&d_tmp, num_elements*sizeof(T));
-    CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
     assert(d_tmp);
 
     // clear memory
     cudaMemset(d_tmp, 0, num_elements*sizeof(T));
-    CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
     // copy over data
     unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
     cudaMemcpy(d_tmp, d_data, sizeof(T)*num_copy_elements,cudaMemcpyDeviceToDevice);
-    CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
     // free old memory location
     cudaFree(d_data);
-    CHECK_CUDA_ERROR();
 
     d_data = d_tmp;
     return d_data;
@@ -971,13 +975,15 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
     // allocate resized array
     T *d_tmp;
     cudaMalloc(&d_tmp, new_pitch*new_height*sizeof(T));
-    CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
     assert(d_tmp);
 
     // clear memory
     cudaMemset(d_tmp, 0, new_pitch*new_height*sizeof(T));
-    CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
     // copy over data
     // every column is copied separately such as to align with the new pitch
@@ -987,12 +993,13 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
     for (unsigned int i = 0; i < num_copy_rows; i++)
         {
         cudaMemcpy(d_tmp + i * new_pitch, d_data + i * pitch, sizeof(T)*num_copy_columns,cudaMemcpyDeviceToDevice);
-        CHECK_CUDA_ERROR();
         }
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
 
     // free old memory location
     cudaFree(d_data);
-    CHECK_CUDA_ERROR();
 
     d_data = d_tmp;
     return d_data;

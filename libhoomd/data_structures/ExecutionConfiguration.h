@@ -132,6 +132,20 @@ struct ExecutionConfiguration : boost::noncopyable
         }
 #endif
 
+#ifdef ENABLE_CUDA
+    //! Set the stream used for concurrent kernel execution
+    void setKernelExecutionStream(cudaStream_t stream) const
+        {
+        m_kernel_stream = stream;
+        }
+
+    //! Get the stream for concurrent kernel execution
+    cudaStream_t getKernelExecutionStream() const
+        {
+        return m_kernel_stream;
+        }
+#endif
+
     //! Guess rank of this processor
     /*! \returns Rank guessed from common environment variables, 0 is default
      */
@@ -249,6 +263,8 @@ private:
 
     MPI_Comm m_mpi_comm;                                    //!< The boost.MPI communicator
 #endif
+
+    mutable cudaStream_t m_kernel_stream;  //!< Stream for kernel execution
 
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();

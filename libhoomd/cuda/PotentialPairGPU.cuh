@@ -89,7 +89,8 @@ struct pair_args_t
               const unsigned int _block_size,
               const unsigned int _shift_mode,
               const unsigned int _compute_virial,
-              const unsigned int _add_to_force)
+              const unsigned int _add_to_force,
+              const cudaStream_t _stream)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
@@ -108,7 +109,8 @@ struct pair_args_t
                   block_size(_block_size),
                   shift_mode(_shift_mode),
                   compute_virial(_compute_virial),
-                  add_to_force(_add_to_force)
+                  add_to_force(_add_to_force),
+                  stream(_stream)
         {
         };
 
@@ -131,6 +133,7 @@ struct pair_args_t
     const unsigned int shift_mode;  //!< The potential energy shift mode
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const bool add_to_force;        //!< True if we should add to the force array (instead of overwriting it)
+    const cudaStream_t stream;      //!< Cuda stream for concurrent kernel execution
     };
 
 #ifdef NVCC
@@ -474,15 +477,15 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             {
             case 0:
                 gpu_compute_pair_forces_kernel<evaluator, 0, 1>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
+                  <<<grid, threads, shared_bytes,pair_args.stream>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
                 break;
             case 1:
                 gpu_compute_pair_forces_kernel<evaluator, 1, 1>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
+                  <<<grid, threads, shared_bytes,pair_args.stream>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
                 break;
             case 2:
                 gpu_compute_pair_forces_kernel<evaluator, 2, 1>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
+                  <<<grid, threads, shared_bytes,pair_args.stream>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
                 break;
             default:
                 return cudaErrorUnknown;
@@ -494,15 +497,15 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             {
             case 0:
                 gpu_compute_pair_forces_kernel<evaluator, 0, 0>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
+                  <<<grid, threads, shared_bytes,pair_args.stream>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
                 break;
             case 1:
                 gpu_compute_pair_forces_kernel<evaluator, 1, 0>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
+                  <<<grid, threads, shared_bytes,pair_args.stream>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
                 break;
             case 2:
                 gpu_compute_pair_forces_kernel<evaluator, 2, 0>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
+                  <<<grid, threads, shared_bytes,pair_args.stream>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, pair_args.add_to_force);
                 break;
             default:
                 return cudaErrorUnknown;
