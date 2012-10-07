@@ -107,7 +107,15 @@ class ForceCompute : public Compute
         
         //! Computes the forces
         virtual void compute(unsigned int timestep);
-        
+
+#ifdef ENABLE_MPI
+        //! Perform computation of forces due to ghost particles
+        /*! This function may be implemented in forces which depend on ghost particles
+            \param timestep Current time step
+         */
+        virtual void computeGhostForces(unsigned int timestep) { }
+#endif
+       
         //! Benchmark the force compute
         virtual double benchmark(unsigned int num_iters);
         
@@ -209,6 +217,7 @@ class ForceCompute : public Compute
             \param timestep Current time step
         */
         virtual void computeForces(unsigned int timestep)=0;
+
     };
 
 //! Exports the ForceCompute class to python

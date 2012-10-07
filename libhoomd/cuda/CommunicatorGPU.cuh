@@ -198,14 +198,14 @@ void gpu_update_rtag(unsigned int nptl,
 
 
 //! Copy ghost particle positions into send buffer
-void gpu_copy_ghosts(unsigned int nghost,
-                     unsigned int nghost_r,
-                     float4 *d_pos,
-                     unsigned int *d_copy_ghosts,
-                     unsigned int *d_copy_ghosts_r,
+void gpu_copy_ghosts(const unsigned int nghost,
+                     const unsigned int nghost_r,
+                     const float4 *d_pos,
+                     const unsigned int *d_copy_ghosts,
+                     const unsigned int *d_copy_ghosts_r,
                      float4 *d_pos_copybuf,
                      float4 *d_pos_copybuf_r,
-                     unsigned int dir,
+                     const unsigned int dir,
                      const bool is_at_boundary[],
                      const BoxDim& global_box);
 

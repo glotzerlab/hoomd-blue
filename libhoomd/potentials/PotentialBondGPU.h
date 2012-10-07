@@ -102,8 +102,14 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         unsigned int m_block_size;      //!< Block size to execute on the GPU
 
         GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+
+#ifdef ENABLE_MPI
+        //! Compute forces due to ghost particles
+        virtual void computeGhostForces(unsigned int timestep);
+#endif
     };
 
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
@@ -171,7 +177,8 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              this->m_bond_data->getGPUBondList().getPitch(),
                              d_gpu_n_bonds.data,
                              this->m_bond_data->getNBondTypes(),
-                             m_block_size),
+                             m_block_size,
+                             false),
                  d_params.data,
                  d_flags.data);
         }
@@ -188,18 +195,83 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
             this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
-#ifdef ENABLE_MPI
-        if (h_flags.data[0]==2)
-            {
-            this->m_exec_conf->msg->error() << "Found incomplete bond. Try increasing the bond stiffness or reduce number of domains."  << endl << endl;
-            throw std::runtime_error("Error in bond calculation");
-            }
-#endif
 
         }
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
+
+#ifdef ENABLE_MPI
+template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+                                                const typename evaluator::param_type *d_params,
+                                                unsigned int *d_flags) >
+void PotentialBondGPU< evaluator, gpu_cgbf >::computeGhostForces(unsigned int timestep)
+    {
+    // start the profile
+    if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
+
+    // access the particle data
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
+    BoxDim box = this->m_pdata->getBox();
+
+    // access parameters
+    ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+
+    // access net force & virial
+    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+
+        {
+        // Access the bond table for reading
+        ArrayHandle<uint2> d_gpu_ghost_bondlist(this->m_bond_data->getGPUGhostBondList(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int > d_gpu_n_ghost_bonds(this->m_bond_data->getNGhostBondsArray(), access_location::device, access_mode::read);
+
+        // access the flags array for overwriting
+        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
+
+        gpu_cgbf(bond_args_t(d_force.data,
+                             d_virial.data,
+                             this->m_virial.getPitch(),
+                             this->m_pdata->getN(),
+                             d_pos.data,
+                             d_charge.data,
+                             d_diameter.data,
+                             box,
+                             d_gpu_ghost_bondlist.data,
+                             this->m_bond_data->getGPUGhostBondList().getPitch(),
+                             d_gpu_n_ghost_bonds.data,
+                             this->m_bond_data->getNBondTypes(),
+                             m_block_size,
+                             true),
+                 d_params.data,
+                 d_flags.data);
+        }
+
+    if (this->exec_conf->isCUDAErrorCheckingEnabled())
+        {
+        CHECK_CUDA_ERROR();
+
+        // check the flags for any errors
+        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
+
+        if (h_flags.data[0]==1)
+            {
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
+        if (h_flags.data[0]==2)
+            {
+            this->m_exec_conf->msg->error() << "Found incomplete bond. Try increasing the bond stiffness or reduce number of domains."  << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
+
+        }
+
+    if (this->m_prof) this->m_prof->pop(this->exec_conf);
+    }
+#endif
 
 //! Export this bond potential to python
 /*! \param name Name of the class in the exported python module

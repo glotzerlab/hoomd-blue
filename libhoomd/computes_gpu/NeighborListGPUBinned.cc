@@ -184,6 +184,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_ghost_nlist(m_ghost_nlist, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_ghost_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
@@ -201,7 +203,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (exec_conf->getComputeCapability() >= 200)
         {
         gpu_compute_nlist_binned(d_nlist.data,
+                                 d_ghost_nlist.data,
                                  d_n_neigh.data,
+                                 d_n_ghost_neigh.data,
                                  d_last_pos.data,
                                  d_conditions.data,
                                  m_nlist_indexer,
@@ -221,7 +225,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_block_size,
                                  m_filter_body,
                                  m_filter_diameter,
-                                 ghost_width);
+                                 ghost_width,
+                                 (m_pdata->getDomainDecomposition()));
         }
     else
         {

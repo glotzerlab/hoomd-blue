@@ -166,6 +166,14 @@ void NeighborList::reallocate()
 
     m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_ghost_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
+        m_n_ghost_neigh.resize(m_pdata->getMaxN());
+        }
+#endif
     }
 
 NeighborList::~NeighborList()
@@ -1154,11 +1162,25 @@ void NeighborList::allocateNlist()
         // allocate the memory
         GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
         m_nlist.swap(nlist);
+
+#ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            GPUArray<unsigned int> ghost_nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
+            m_ghost_nlist.swap(ghost_nlist);
+            }
+#endif
         }
     else
         {
         // reallocate
         m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
+#ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            m_ghost_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
+            }
+#endif
         }
 
     // update the indexer

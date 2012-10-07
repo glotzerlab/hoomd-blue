@@ -169,7 +169,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
         {
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly
+        // b) that forces are calculated correctly, if ghost atom positions are updated every time step
         m_comm->communicate(timestep+1);
         }
 #endif
@@ -310,12 +310,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         
 #ifdef ENABLE_MPI
     if (m_comm)
-        {
-        // perform all necessary communication steps. This ensures
-        // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly
         m_comm->communicate(timestep);
-        }
 #endif
 
         // net force is always needed (ticket #393)

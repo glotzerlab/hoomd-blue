@@ -83,7 +83,8 @@ struct bond_args_t
               const unsigned int _pitch,
               const unsigned int *_d_gpu_n_bonds,
               const unsigned int _n_bond_types,
-              const unsigned int _block_size)
+              const unsigned int _block_size,
+              const bool _add_force)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
@@ -96,7 +97,8 @@ struct bond_args_t
                   pitch(_pitch),
                   d_gpu_n_bonds(_d_gpu_n_bonds),
                   n_bond_types(_n_bond_types),
-                  block_size(_block_size)
+                  block_size(_block_size),
+                  add_force(_add_force)
         {
         };
 
@@ -113,6 +115,7 @@ struct bond_args_t
     const unsigned int *d_gpu_n_bonds; //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;   //!< Number of bond types in the simulation
     const unsigned int block_size;     //!< Block size to execute
+    const bool add_force;              //!< True if we are adding to the force array (instead of overwriting)
     };
 
 #ifdef NVCC
@@ -134,6 +137,7 @@ struct bond_args_t
     \param n_bond_type number of bond types
     \param d_params Parameters for the potential, stored per bond type
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be evaluated
+    \param add_force True if we are adding to the force array
 
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
@@ -154,7 +158,8 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
                                                const unsigned int *n_bonds_list,
                                                const unsigned int n_bond_type,
                                                const typename evaluator::param_type *d_params,
-                                               unsigned int *d_flags)
+                                               unsigned int *d_flags,
+                                               const bool add_force)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -272,9 +277,23 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
         }
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
-    d_force[idx] = force;
-    for (unsigned int i = 0; i < 6 ; i++)
-        d_virial[i*virial_pitch + idx] = virial[i];
+    if (add_force)
+        {
+        Scalar4 old_force = d_force[idx];
+        force.x += old_force.x;
+        force.y += old_force.y;
+        force.z += old_force.z;
+        force.w += old_force.w;
+        d_force[idx] = force;
+        for (unsigned int i = 0; i < 6 ; i++)
+            d_virial[i*virial_pitch + idx] += virial[i];
+        } 
+    else
+        {
+        d_force[idx] = force;
+        for (unsigned int i = 0; i < 6 ; i++)
+            d_virial[i*virial_pitch + idx] = virial[i];
+        }
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
@@ -307,7 +326,7 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     gpu_compute_bond_forces_kernel<evaluator><<<grid, threads, shared_bytes>>>(
         bond_args.d_force, bond_args.d_virial, bond_args.virial_pitch, bond_args.N,
         bond_args.d_pos, bond_args.d_charge, bond_args.d_diameter, bond_args.box, bond_args.d_gpu_bondlist,
-        bond_args.pitch, bond_args.d_gpu_n_bonds, bond_args.n_bond_types, d_params, d_flags);
+        bond_args.pitch, bond_args.d_gpu_n_bonds, bond_args.n_bond_types, d_params, d_flags, bond_args.add_force);
 
     return cudaSuccess;
     }

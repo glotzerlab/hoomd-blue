@@ -251,7 +251,25 @@ void NeighborListGPU::filterNlist()
                      m_ex_list_indexer,
                      m_pdata->getN(),
                      m_block_size_filter);
-    
+   
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // filter ghost neighbors
+        ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_ghost_nlist(m_nlist, access_location::device, access_mode::readwrite);
+
+        gpu_nlist_filter(d_n_ghost_neigh.data,
+                     d_ghost_nlist.data,
+                     m_nlist_indexer,
+                     d_n_ex_idx.data,
+                     d_ex_list_idx.data,
+                     m_ex_list_indexer,
+                     m_pdata->getN(),
+                     m_block_size_filter);
+        }
+#endif
+
     if (m_prof)
         m_prof->pop(exec_conf);
     }

@@ -349,7 +349,8 @@ void BondData::updateBondTableGPU()
                                  d_bonds.data,
                                  m_bonds.size(),
                                  m_pdata->getN(),
-                                 d_rtag.data);
+                                 d_rtag.data,
+                                 false);
         }
 
     // re allocate memory if needed
@@ -371,8 +372,52 @@ void BondData::updateBondTableGPU()
                              d_rtag.data,
                              m_bonds.size(),
                              m_gpu_bondlist.getPitch(),
-                             m_pdata->getN());
+                             m_pdata->getN(),
+                             false);
         }
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // update ghost bonds list
+            {
+            ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
+            gpu_find_max_bond_number(max_bond_num,
+                                     d_n_ghost_bonds.data,
+                                     d_bonds.data,
+                                     m_bonds.size(),
+                                     m_pdata->getN(),
+                                     d_rtag.data,
+                                     true);
+            }
+
+        // re allocate memory if needed
+        if (max_bond_num > m_gpu_ghost_bondlist.getHeight())
+            {
+            m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), max_bond_num);
+            }
+
+            {
+            ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
+            ArrayHandle<uint2> d_gpu_ghost_bondlist(m_gpu_ghost_bondlist, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+            gpu_create_bondtable(d_gpu_ghost_bondlist.data,
+                                 d_n_ghost_bonds.data,
+                                 d_bonds.data,
+                                 d_bond_type.data,
+                                 d_rtag.data,
+                                 m_bonds.size(),
+                                 m_gpu_ghost_bondlist.getPitch(),
+                                 m_pdata->getN(),
+                                 true);
+            }
+        }
+#endif
+
     }
 #endif
 
@@ -467,6 +512,14 @@ void BondData::reallocate()
     {
     m_gpu_bondlist.resize(m_pdata->getMaxN(), m_gpu_bondlist.getHeight());
     m_n_bonds.resize(m_pdata->getMaxN());
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), m_gpu_ghost_bondlist.getHeight());
+        m_n_ghost_bonds.resize(m_pdata->getMaxN());
+        }
+#endif
     }
 
 /*! \param height Height for the bond table
@@ -482,6 +535,16 @@ void BondData::allocateBondTable(int height)
     GPUArray<unsigned int> n_bonds(m_pdata->getMaxN(), exec_conf);
     m_n_bonds.swap(n_bonds);
 
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        GPUArray<uint2> gpu_ghost_bondlist(m_pdata->getMaxN(), height, exec_conf);
+        m_gpu_ghost_bondlist.swap(gpu_ghost_bondlist);
+            
+        GPUArray<unsigned int> n_ghost_bonds(m_pdata->getMaxN(), exec_conf);
+        m_n_ghost_bonds.swap(n_ghost_bonds);
+        }
+#endif 
     }
 
 //! Takes a snapshot of the current bond data

@@ -220,9 +220,9 @@ void Integrator::computeAccelerations(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        // perform all necessary communication steps. This ensures
+        // Move particles between domains. This ensures
         // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly
+        // b) that forces are calculated correctly, if additionally ghosts are updated every timestep
         m_comm->communicate(timestep);
         }
 #endif
@@ -449,11 +449,30 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         throw runtime_error("Error computing accelerations");
         }
 
+#ifdef ENABLE_MPI
+    // begin with concurrent communication of ghost positions
+    if (m_pdata->getDomainDecomposition())
+        m_comm->startGhostsUpdate(timestep);
+#endif
+
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
-    
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // wait for ghost communication to finish
+        m_comm->finishGhostsUpdate(timestep);
+
+        // compute additional forces due to ghost atoms
+        std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+        for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+            (*force_compute)->computeGhostForces(timestep);
+        }
+#endif
+
     if (m_prof)
         {
         m_prof->push("Integrate");

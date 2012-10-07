@@ -954,16 +954,16 @@ void gpu_update_rtag(unsigned int nptl, unsigned int start_idx, unsigned int *d_
 
 //! Fill ghost copy buffer & apply periodic boundary conditions to a ghost particle before sending
 template<int boundary>
-__global__ void gpu_copy_ghost_particles_kernel(float4 *pos,
-                                      unsigned int *copy_ghosts,
-                                      unsigned int *copy_ghosts_reverse,
+__global__ void gpu_copy_ghost_particles_kernel(const float4 *pos,
+                                      const unsigned int *copy_ghosts,
+                                      const unsigned int *copy_ghosts_reverse,
                                       float4 *pos_copybuf,
                                       float4 *pos_copybuf_reverse,
-                                      unsigned int nghost,
-                                      unsigned int nghost_reverse,
-                                      Scalar3 L,
-                                      bool is_at_boundary,
-                                      bool is_at_boundary_reverse)
+                                      const unsigned int nghost,
+                                      const unsigned int nghost_reverse,
+                                      const Scalar3 L,
+                                      const bool is_at_boundary,
+                                      const bool is_at_boundary_reverse)
     {
     unsigned int ghost_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1024,14 +1024,14 @@ __global__ void gpu_copy_ghost_particles_kernel(float4 *pos,
  * \param is_at_boundary Per-direction flags whether we share a boundary with the global box
  * \paramm global_box Global boundaries
  */
-void gpu_copy_ghosts(unsigned int nghost,
-                     unsigned int nghost_r,
-                     float4 *d_pos,
-                     unsigned int *d_copy_ghosts,
-                     unsigned int *d_copy_ghosts_r,
+void gpu_copy_ghosts(const unsigned int nghost,
+                     const unsigned int nghost_r,
+                     const float4 *d_pos,
+                     const unsigned int *d_copy_ghosts,
+                     const unsigned int *d_copy_ghosts_r,
                      float4 *d_pos_copybuf,
                      float4 *d_pos_copybuf_r,
-                     unsigned int dir,
+                     const unsigned int dir,
                      const bool is_at_boundary[],
                      const BoxDim& global_box)
     {

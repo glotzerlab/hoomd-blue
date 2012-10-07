@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Kernel call for generating neighbor list on the GPU
-/*! \tparam filter_flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
+/*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering. Set bit 3 to enable separate ghost neighbor list construction
     \param d_nlist Neighbor list data structure to write
     \param d_n_neigh Number of neighbors to write
     \param d_last_updated_pos Particle positions at this update are written to this array
@@ -81,9 +81,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     \note optimized for Fermi
 */
-template<unsigned char filter_flags>
+template<unsigned char flags>
 __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
+                                                    unsigned int *d_ghost_nlist,
                                                     unsigned int *d_n_neigh,
+                                                    unsigned int *d_n_ghost_neigh,
                                                     float4 *d_last_updated_pos,
                                                     unsigned int *d_conditions,
                                                     const Index2D nli,
@@ -103,8 +105,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     const float r_max,
                                                     const Scalar3 ghost_width) 
     {
-    bool filter_body = filter_flags & 1;
-    bool filter_diameter = filter_flags & 2;
+    bool filter_body = flags & 1;
+    bool filter_diameter = flags & 2;
+    bool compute_ghost_nlist = flags & 4;
 
     // each thread is going to compute the neighbor list for a single particle
     int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -140,8 +143,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     int my_cell = ci(ib,jb,kb);
 
     // each thread will determine the neighborlist of a single particle
-    // count number of neighbors found so far in n_neigh
+    // count number of neighbors found so far in n_neigh and n_ghost_neigh
     int n_neigh = 0;
+    int n_ghost_neigh = 0;
 
     // loop over all adjacent bins
     for (unsigned int cur_adj = 0; cur_adj < cadji.getW(); cur_adj++)
@@ -190,17 +194,35 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
 
             if (drsq <= (r_maxsq + sqshift) && !excluded)
                 {
-                if (n_neigh < nli.getH())
-                    d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
-                else
-                    n_neigh_needed = n_neigh+1;
+                if (cur_neigh < N || !compute_ghost_nlist)
+                    {
+                    // regular particle
+                    if (n_neigh < nli.getH())
+                        d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
+                    else
+                        n_neigh_needed = n_neigh+1;
 
-                n_neigh++;
+                    n_neigh++;
+                    }
+                else
+                    {
+                    // ghost particle
+                    if (n_ghost_neigh < nli.getH())
+                        d_ghost_nlist[nli(my_pidx, n_ghost_neigh)] = cur_neigh;
+                    else
+                        n_neigh_needed = n_ghost_neigh+1;
+
+                    n_ghost_neigh++;
+                    }
                 }
             }
         }
 
     d_n_neigh[my_pidx] = n_neigh;
+
+    if (compute_ghost_nlist)
+        d_n_ghost_neigh[my_pidx] = n_ghost_neigh;
+
     d_last_updated_pos[my_pidx] = my_postype;
 
     if (n_neigh_needed > 0)
@@ -208,7 +230,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     }
 
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
+                                     unsigned int *d_ghost_nlist,
                                      unsigned int *d_n_neigh,
+                                     unsigned int *d_n_ghost_neigh,
                                      float4 *d_last_updated_pos,
                                      unsigned int *d_conditions,
                                      const Index2D& nli,
@@ -228,14 +252,17 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const unsigned int block_size,
                                      bool filter_body,
                                      bool filter_diameter,
-                                     const Scalar3& ghost_width)
+                                     const Scalar3& ghost_width,
+                                     bool compute_ghost_neighbors)
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
 
-    if (!filter_diameter && !filter_body)
+    if (!filter_diameter && !filter_body && !compute_ghost_neighbors)
         {
         gpu_compute_nlist_binned_new_kernel<0><<<n_blocks, block_size>>>(d_nlist,
+                                                                         d_ghost_nlist,
                                                                          d_n_neigh,
+                                                                         d_n_ghost_neigh,
                                                                          d_last_updated_pos,
                                                                          d_conditions,
                                                                          nli,
@@ -255,10 +282,12 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          sqrtf(r_maxsq),
                                                                          ghost_width);
         }
-    if (!filter_diameter && filter_body)
+    if (!filter_diameter && filter_body &&!compute_ghost_neighbors)
         {
         gpu_compute_nlist_binned_new_kernel<1><<<n_blocks, block_size>>>(d_nlist,
+                                                                         d_ghost_nlist,
                                                                          d_n_neigh,
+                                                                         d_n_ghost_neigh,
                                                                          d_last_updated_pos,
                                                                          d_conditions,
                                                                          nli,
@@ -278,10 +307,12 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          sqrtf(r_maxsq),
                                                                          ghost_width);
         }
-    if (filter_diameter && !filter_body)
+    if (filter_diameter && !filter_body && !compute_ghost_neighbors)
         {
         gpu_compute_nlist_binned_new_kernel<2><<<n_blocks, block_size>>>(d_nlist,
+                                                                         d_ghost_nlist,
                                                                          d_n_neigh,
+                                                                         d_n_ghost_neigh,
                                                                          d_last_updated_pos,
                                                                          d_conditions,
                                                                          nli,
@@ -301,10 +332,12 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          sqrtf(r_maxsq),
                                                                          ghost_width);
         }
-    if (filter_diameter && filter_body)
+    if (filter_diameter && filter_body && !compute_ghost_neighbors)
         {
         gpu_compute_nlist_binned_new_kernel<3><<<n_blocks, block_size>>>(d_nlist,
+                                                                         d_ghost_nlist,
                                                                          d_n_neigh,
+                                                                         d_n_ghost_neigh,
                                                                          d_last_updated_pos,
                                                                          d_conditions,
                                                                          nli,
@@ -324,6 +357,107 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          sqrtf(r_maxsq),
                                                                          ghost_width);
         }
+    if (!filter_diameter && !filter_body && compute_ghost_neighbors)
+        {
+        gpu_compute_nlist_binned_new_kernel<4><<<n_blocks, block_size>>>(d_nlist,
+                                                                         d_ghost_nlist,
+                                                                         d_n_neigh,
+                                                                         d_n_ghost_neigh,
+                                                                         d_last_updated_pos,
+                                                                         d_conditions,
+                                                                         nli,
+                                                                         d_pos,
+                                                                         d_body,
+                                                                         d_diameter,
+                                                                         N,
+                                                                         d_cell_size,
+                                                                         d_cell_xyzf,
+                                                                         d_cell_tdb,
+                                                                         d_cell_adj,
+                                                                         ci,
+                                                                         cli,
+                                                                         cadji,
+                                                                         box,
+                                                                         r_maxsq,
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width);
+        }
+    if (!filter_diameter && filter_body && compute_ghost_neighbors)
+        {
+        gpu_compute_nlist_binned_new_kernel<5><<<n_blocks, block_size>>>(d_nlist,
+                                                                         d_ghost_nlist,
+                                                                         d_n_neigh,
+                                                                         d_n_ghost_neigh,
+                                                                         d_last_updated_pos,
+                                                                         d_conditions,
+                                                                         nli,
+                                                                         d_pos,
+                                                                         d_body,
+                                                                         d_diameter,
+                                                                         N,
+                                                                         d_cell_size,
+                                                                         d_cell_xyzf,
+                                                                         d_cell_tdb,
+                                                                         d_cell_adj,
+                                                                         ci,
+                                                                         cli,
+                                                                         cadji,
+                                                                         box,
+                                                                         r_maxsq,
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width);
+        }
+    if (filter_diameter && !filter_body && compute_ghost_neighbors)
+        {
+        gpu_compute_nlist_binned_new_kernel<6><<<n_blocks, block_size>>>(d_nlist,
+                                                                         d_ghost_nlist,
+                                                                         d_n_neigh,
+                                                                         d_n_ghost_neigh,
+                                                                         d_last_updated_pos,
+                                                                         d_conditions,
+                                                                         nli,
+                                                                         d_pos,
+                                                                         d_body,
+                                                                         d_diameter,
+                                                                         N,
+                                                                         d_cell_size,
+                                                                         d_cell_xyzf,
+                                                                         d_cell_tdb,
+                                                                         d_cell_adj,
+                                                                         ci,
+                                                                         cli,
+                                                                         cadji,
+                                                                         box,
+                                                                         r_maxsq,
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width);
+        }
+    if (filter_diameter && filter_body && compute_ghost_neighbors)
+        {
+        gpu_compute_nlist_binned_new_kernel<7><<<n_blocks, block_size>>>(d_nlist,
+                                                                         d_ghost_nlist,
+                                                                         d_n_neigh,
+                                                                         d_n_ghost_neigh,
+                                                                         d_last_updated_pos,
+                                                                         d_conditions,
+                                                                         nli,
+                                                                         d_pos,
+                                                                         d_body,
+                                                                         d_diameter,
+                                                                         N,
+                                                                         d_cell_size,
+                                                                         d_cell_xyzf,
+                                                                         d_cell_tdb,
+                                                                         d_cell_adj,
+                                                                         ci,
+                                                                         cli,
+                                                                         cadji,
+                                                                         box,
+                                                                         r_maxsq,
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width);
+        }
+
 
     return cudaSuccess;
     }

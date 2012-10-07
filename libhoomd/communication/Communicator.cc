@@ -126,7 +126,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_plan_copybuf(m_exec_conf),
             m_tag_copybuf(m_exec_conf),
             m_r_ghost(Scalar(0.0)),
-            m_plan(m_exec_conf)
+            m_plan(m_exec_conf),
+            m_no_ghost_update(false)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -156,6 +157,23 @@ Communicator::~Communicator()
     m_exec_conf->msg->notice(5) << "Destroying Communicator";
     }
 
+//! Start ghosts communication
+/*! This is the serial (non-threaded) version. All updating is done upon calling finishGhostsUpdate
+ */
+void Communicator::startGhostsUpdate(unsigned int timestep)
+    {
+    if (m_no_ghost_update)
+        {
+        m_no_ghost_update = false;
+        }
+    }
+
+//! Finish ghost communication
+void Communicator::finishGhostsUpdate(unsigned int timestep)
+    {
+    copyGhosts();
+    }
+
 //! Interface to the communication methods.
 void Communicator::communicate(unsigned int timestep)
     {
@@ -172,11 +190,9 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
-        }
-    else
-        {
-        // only update ghost atom coordinates
-        copyGhosts();
+
+        // No ghost update in this step
+        m_no_ghost_update = true;
         }
 
     m_is_communicating = false;

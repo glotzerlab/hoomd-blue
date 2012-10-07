@@ -234,6 +234,35 @@ class Communicator
          */
         void communicate(unsigned int timestep);
 
+        /*! Start ghost communication.
+         * Ghost-communication can be multi-threaded, if so this method spawns the corresponding thread
+         */
+        virtual void startGhostsUpdate(unsigned int timestep);
+
+        /*! Finish ghost communication.
+         */
+        virtual void finishGhostsUpdate(unsigned int timestep);
+
+        //@}
+
+        //! Force particle migration
+        void forceMigrate()
+            {
+            // prevent recursive force particle migration
+            if (! m_is_communicating)
+                m_force_migrate = true;
+            }
+
+    protected:
+        /*! Exchange positions of ghost particles
+         * Using the previously constructed ghost exchange lists, ghost positions are updated on the
+         * neighboring processors.
+         *
+         * \pre The ghost exchange list has been constructed in a previous time step, using exchangeGhosts().
+         * \post The ghost positions on the neighboring processors are current
+         */
+        virtual void copyGhosts();
+
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
          *
@@ -255,27 +284,6 @@ class Communicator
          *       neighboring processors are current.
          */
         virtual void exchangeGhosts();
-
-        /*! Exchange positions of ghost particles
-         * Using the previously constructed ghost exchange lists, ghost positions are updated on the
-         * neighboring processors.
-         *
-         * \pre The ghost exchange list has been constructed in a previous time step, using exchangeGhosts().
-         * \post The ghost positions on the neighboring processors are current
-         */
-        virtual void copyGhosts();
-
-        //@}
-
-        //! Force particle migration
-        void forceMigrate()
-            {
-            // prevent recursive force particle migration
-            if (! m_is_communicating)
-                m_force_migrate = true;
-            }
-
-    protected:
 
         //! Set size of a packed data element
         /*! \param size size of data element (in bytes)
@@ -355,6 +363,8 @@ class Communicator
         std::vector<Scalar> scal_tmp;            //!< Temporary list used to apply the sort order to the particle data
         std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
+
+        bool m_no_ghost_update;                  //!< True if the next ghost update is skipped
     };
 
 //! Declaration of python export function

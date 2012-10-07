@@ -227,9 +227,23 @@ class BondData : boost::noncopyable
             return m_n_bonds;
             }
 
+        //! Gets the number of ghost bonds array
+        const GPUArray<unsigned int>& getNGhostBondsArray() const
+            {
+            return m_n_ghost_bonds;
+            }
+
+
         //! Access the bonds on the GPU
         const GPUArray<uint2>& getGPUBondList();
-        
+       
+        //! Access the ghost bond list on the GPU
+        const GPUArray<uint2> & getGPUGhostBondList()
+            {
+            assert(!m_bonds_dirty);
+            return m_gpu_ghost_bondlist;
+            }
+
         //! Takes a snapshot of the current bond data
         void takeSnapshot(SnapshotBondData& snapshot);
 
@@ -275,8 +289,10 @@ class BondData : boost::noncopyable
             m_bonds_dirty = true;
             }
             
-        GPUArray<uint2> m_gpu_bondlist;     //!< List of bonds on the GPU
-        GPUArray<unsigned int> m_n_bonds;   //!< Array of the number of bonds
+        GPUArray<uint2> m_gpu_bondlist;         //!< List of bonds on the GPU
+        GPUArray<uint2> m_gpu_ghost_bondlist;   //!< List of ghost bonds on the GPU
+        GPUArray<unsigned int> m_n_bonds;       //!< Array of the number of bonds
+        GPUArray<unsigned int> m_n_ghost_bonds; //!< Array of the number of ghost bonds
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
