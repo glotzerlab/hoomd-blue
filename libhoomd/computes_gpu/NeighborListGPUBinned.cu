@@ -114,6 +114,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
 
     // track the number of neighbors needed
     unsigned int n_neigh_needed = 0;
+    unsigned int n_ghost_neigh_needed = 0;
 
     // quit early if we are past the end of the array
     if (my_pidx >= N)
@@ -210,7 +211,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                     if (n_ghost_neigh < nli.getH())
                         d_ghost_nlist[nli(my_pidx, n_ghost_neigh)] = cur_neigh;
                     else
-                        n_neigh_needed = n_ghost_neigh+1;
+                        n_ghost_neigh_needed = n_ghost_neigh+1;
 
                     n_ghost_neigh++;
                     }
@@ -227,6 +228,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
 
     if (n_neigh_needed > 0)
         atomicMax(&d_conditions[0], n_neigh_needed);
+
+    if (n_ghost_neigh_needed > 0 && compute_ghost_nlist)
+        atomicMax(&d_conditions[0], n_ghost_neigh_needed);
     }
 
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,

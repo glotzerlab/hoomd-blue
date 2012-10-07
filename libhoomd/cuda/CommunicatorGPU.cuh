@@ -108,7 +108,7 @@ void gpu_migrate_select_particles(unsigned int N,
                         const BoxDim& box,
                         const BoxDim& global_box,
                         unsigned int dir,
-                        const bool is_at_boundary[]);
+                        const unsigned int *is_at_boundary);
 
 void gpu_migrate_compact_particles(unsigned int N,
                         unsigned char *d_remove_mask,
@@ -187,7 +187,7 @@ void gpu_exchange_ghosts(unsigned int n_total,
                          unsigned int &n_copy_ghosts,
                          unsigned int &n_copy_ghosts_r,
                          unsigned int dir,
-                         const bool is_at_boundary[],
+                         const unsigned int *is_at_boundary,
                          const BoxDim& global_box);
 
 //! Update global tag <-> local particle index reverse lookup array
@@ -206,7 +206,7 @@ void gpu_copy_ghosts(const unsigned int nghost,
                      float4 *d_pos_copybuf,
                      float4 *d_pos_copybuf_r,
                      const unsigned int dir,
-                     const bool is_at_boundary[],
+                     const unsigned int *is_at_boundary,
                      const BoxDim& global_box);
 
 #endif // ENABLE_MPI

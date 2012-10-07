@@ -388,7 +388,7 @@ void gpu_migrate_select_particles(unsigned int N,
                         const BoxDim& box,
                         const BoxDim& global_box,
                         unsigned int dir,
-                        const bool is_at_boundary[])
+                        const unsigned int *is_at_boundary)
     {
     n_send_ptls = 0;
     cudaMemcpy(d_n_send_particles, &n_send_ptls, sizeof(unsigned int), cudaMemcpyHostToDevice);
@@ -848,7 +848,7 @@ void gpu_exchange_ghosts(unsigned int n_total,
                          unsigned int &n_copy_ghosts,
                          unsigned int &n_copy_ghosts_r,
                          unsigned int dir,
-                         const bool is_at_boundary[],
+                         const unsigned int *is_at_boundary,
                          const BoxDim& global_box)
     {
     n_copy_ghosts = 0;
@@ -1032,7 +1032,7 @@ void gpu_copy_ghosts(const unsigned int nghost,
                      float4 *d_pos_copybuf,
                      float4 *d_pos_copybuf_r,
                      const unsigned int dir,
-                     const bool is_at_boundary[],
+                     const unsigned int *is_at_boundary,
                      const BoxDim& global_box)
     {
 

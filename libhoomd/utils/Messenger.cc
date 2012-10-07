@@ -87,6 +87,7 @@ Messenger::Messenger()
 
 #ifdef ENABLE_MPI
     m_shared_filename = "";
+    m_has_mpi_comm = false;
 #endif
 
     // preliminarily initialize rank and partiton
@@ -181,7 +182,7 @@ void Messenger::flushCollectiveNotice(unsigned int level)
     std::vector<std::string> rank_notices;
 
 #ifdef ENABLE_MPI
-    if (m_mpi_comm)
+    if (m_has_mpi_comm)
         {
         gather_v(m_collective_notice_stream.str(), rank_notices, 0, m_mpi_comm);
         }
@@ -192,7 +193,7 @@ void Messenger::flushCollectiveNotice(unsigned int level)
         }
 
 #ifdef ENABLE_MPI
-    if (m_mpi_comm && m_rank == 0)
+    if (!m_has_mpi_comm || m_rank == 0)
 #endif
         {
         // Output notices in rank order
@@ -237,7 +238,7 @@ void Messenger::openFile(const std::string& fname)
 */
 void Messenger::openSharedFile()
     {
-    assert(m_mpi_comm);
+    assert(m_has_mpi_comm);
 
     std::ostringstream oss;
     oss << m_shared_filename << "." << m_partition;

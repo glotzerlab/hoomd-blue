@@ -65,9 +65,31 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
-//! Thread for updating ghost positions
-void ghost_gpu_thread::operator()(const ghost_gpu_thread_params& params)
+//! Main routine of ghost update worker thread
+void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
     {
+    bool done = false;
+    while (! done)
+        {
+        try
+            {
+            ghost_gpu_thread_params &params = queue.wait_and_pop();
+            update_ghosts(params);
+
+            // synchronize with host thread
+            barrier.wait();
+            }
+        catch(boost::thread_interrupted const)
+            {
+            done = true;
+            }
+        }
+    }
+
+void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
+    {
+    m_exec_conf = params.exec_conf;
+
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
 
     MPI_Request reqs[4];
@@ -96,7 +118,7 @@ void ghost_gpu_thread::operator()(const ghost_gpu_thread_params& params)
                             params.is_at_boundary,
                             params.box);
 
-            //CHECK_CUDA_ERROR();
+            CHECK_CUDA_ERROR();
             }
 
         unsigned int send_neighbor = params.decomposition->getNeighborRank(dir);
@@ -110,22 +132,22 @@ void ghost_gpu_thread::operator()(const ghost_gpu_thread_params& params)
 
         unsigned int start_idx;
 
-        start_idx = num_tot_recv_ghosts;
+        start_idx = params.N + num_tot_recv_ghosts;
 
         num_tot_recv_ghosts += params.num_recv_ghosts[dir];
 
         unsigned int shift = (dir % 2) ? 2 : 0;
 
         // exchange particle data, write directly to the particle data arrays
-        MPI_Isend(params.d_pos_copybuf + offset, params.num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, params.mpi_comm, &reqs[0+shift]);
-        MPI_Irecv(params.d_pos_data + start_idx, params.num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, params.mpi_comm, &reqs[1+shift]);
+        MPI_Isend(params.d_pos_copybuf + offset, params.num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[0+shift]);
+        MPI_Irecv(params.d_pos_data + start_idx, params.num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[1+shift]);
 
         if (dir %2)
             MPI_Waitall(4, reqs, status);
 
         } // end dir loop
 
-    } // end of worker-thread
+    } 
 
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
@@ -139,11 +161,15 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_diameter_stage(m_exec_conf),
       m_body_stage(m_exec_conf),
       m_orientation_stage(m_exec_conf),
-      m_tag_stage(m_exec_conf)
+      m_tag_stage(m_exec_conf),
+      m_barrier(2)
     { 
     m_exec_conf->msg->notice(5) << "Constructing CommunicatorGPU" << std::endl;
     // allocate temporary GPU buffers
     gpu_allocate_tmp_storage();
+
+    // create a worker thread for ghost updates
+    m_worker_thread = boost::thread(ghost_gpu_thread(), boost::ref(m_work_queue), boost::ref(m_barrier));
     }
 
 //! Destructor
@@ -151,6 +177,10 @@ CommunicatorGPU::~CommunicatorGPU()
     {
     m_exec_conf->msg->notice(5) << "Destroying CommunicatorGPU";
     gpu_deallocate_tmp_storage();
+
+    // finish worker thread
+    m_worker_thread.interrupt();
+    m_worker_thread.join();
     }
 
 #ifdef ENABLE_MPI_CUDA
@@ -165,26 +195,27 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     // fill thread parameters
     for (unsigned int i = 0; i < 6; ++i)
         {
-        m_copy_ghosts_data[i] = m_copy_ghosts[i].lock(0, access_location::device, access_mode::read);
+        m_copy_ghosts_data[i] = m_copy_ghosts[i].lock(access_location::device, access_mode::read);
         m_communication_dir[i] = isCommunicating(i);
         }
 
-    // lock ghost particle part of positions array
-    Scalar4 *d_pos_data = m_pdata->getPositions().lock(m_pdata->getN(), access_location::device, access_mode::readwrite);
+    // lock positions array against writing
+    Scalar4 *d_pos_data = m_pdata->getPositions().lock(access_location::device, access_mode::readwrite);
+    Scalar4 *d_pos_copybuf_data = m_pos_copybuf.lock(access_location::device, access_mode::overwrite);
 
-    Scalar4 *d_pos_copybuf_data = m_pos_copybuf.lock(0, access_location::device, access_mode::overwrite);
-
-    m_worker_thread = boost::thread(ghost_gpu_thread(), ghost_gpu_thread_params(
+    // post the parameters to the worker thread
+    m_work_queue.push(ghost_gpu_thread_params(
          m_decomposition,
          m_communication_dir,
          m_is_at_boundary,
+         m_pdata->getN(),
          m_num_copy_ghosts,
          m_num_recv_ghosts,
          m_copy_ghosts_data,
          d_pos_data,
          d_pos_copybuf_data,
-         m_pdata->getBox(),
-         m_exec_conf->getMPICommunicator()));
+         m_pdata->getGlobalBox(),
+         m_exec_conf));
     }
 
 //! Finish ghost communication
@@ -193,7 +224,8 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
     if (timestep < m_next_ghost_update)
         return;
 
-    m_worker_thread.join();
+    // wait for worker thread to finish task
+    m_barrier.wait();
 
     // release locked arrays
     for (unsigned int i = 0; i < 6; ++i)

@@ -219,11 +219,11 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
 #endif
 
     int provided;
-    MPI_Init_thread(0, (char ***) NULL, MPI_THREAD_SERIALIZED, &provided);
+    MPI_Init_thread(0, (char ***) NULL, MPI_THREAD_MULTIPLE, &provided);
 
-    if (provided != MPI_THREAD_SERIALIZED)
+    if (provided != MPI_THREAD_MULTIPLE)
         {
-        msg->error() << "Unable to initialize with MPI_THREAD_SERIALIZED." << std::endl;
+        msg->error() << "Unable to initialize with MPI_THREAD_MULTIPLE." << std::endl;
         throw(runtime_error("Error setting up MPI."));
         }
      

@@ -253,7 +253,6 @@ class Communicator
                 m_force_migrate = true;
             }
 
-    protected:
         /*! Exchange positions of ghost particles
          * Using the previously constructed ghost exchange lists, ghost positions are updated on the
          * neighboring processors.
@@ -285,6 +284,7 @@ class Communicator
          */
         virtual void exchangeGhosts();
 
+    protected:
         //! Set size of a packed data element
         /*! \param size size of data element (in bytes)
          */
@@ -335,7 +335,7 @@ class Communicator
         bool m_is_communicating;               //!< Whether we are currently communicating
         bool m_force_migrate;                  //!< True if particle migration is forced
 
-        bool m_is_at_boundary[6];              //!< Array of flags indicating whether this box lies at a global boundary
+        unsigned int m_is_at_boundary[6];      //!< Array of flags indicating whether this box lies at a global boundary
 
         GPUVector<char> m_sendbuf;             //!< Buffer for particles that are sent
         GPUVector<char> m_recvbuf;             //!< Buffer for particles that are received
@@ -364,7 +364,7 @@ class Communicator
         std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
 
-        bool m_next_ghost_update;                  //!< True if the next ghost update is skipped
+        unsigned int m_next_ghost_update;        //!< Timestep in which the ghosts are next updated
     };
 
 //! Declaration of python export function

@@ -7,7 +7,6 @@
 #include "ExecutionConfiguration.h"
 #include "System.h"
 
-#include <boost/mpi.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "Communicator.h"
@@ -20,12 +19,6 @@
 #include <algorithm>
 
 using namespace boost;
-
-//! MPI environment
-boost::mpi::environment *env;
-
-//! MPI communicator
-boost::shared_ptr<boost::mpi::communicator> world;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef boost::function<shared_ptr<Communicator> (shared_ptr<SystemDefinition> sysdef,
@@ -53,7 +46,9 @@ boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
 void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 {
     // this test needs to be run on eight processors
-    if (world->size() != 8)
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (size != 8)
         {
         std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
         throw std::runtime_error("Error setting up unit test");
@@ -183,7 +178,10 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
-    if (world->size() != 8)
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+ 
+    if (size != 8)
         {
         std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
         throw std::runtime_error("Error setting up unit test");
@@ -366,7 +364,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     comm->migrateAtoms();
 
     // check number of particles
-    switch (world->rank())
+    switch (exec_conf->getRank())
         {
         case 0:
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
@@ -450,7 +448,9 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
 void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
-    if (world->size() != 8)
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (size != 8)
         {
         std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
         throw std::runtime_error("Error setting up unit test");
@@ -514,7 +514,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     Scalar ghost_layer_width = Scalar(0.1);
     comm->setGhostLayerWidth(ghost_layer_width);
     // Check number of particles
-    switch (world->rank())
+    switch (exec_conf->getRank())
         {
         case 0:
             BOOST_CHECK_EQUAL(pdata->getN(), 6);
@@ -551,9 +551,9 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
    // check ghost atom numbers and positions
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_global_rtag(pdata->getGlobalRTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_global_rtag(pdata->getRTags(), access_location::host, access_mode::read);
         unsigned int rtag;
-        switch (world->rank())
+        switch (exec_conf->getRank())
             {
             case 0:
                 BOOST_CHECK_EQUAL(pdata->getNGhosts(), 3);
@@ -777,7 +777,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     comm->migrateAtoms();
 
     // Check number of particles
-    switch (world->rank())
+    switch (exec_conf->getRank())
         {
         case 0:
             BOOST_CHECK_EQUAL(pdata->getN(), 7);
@@ -812,9 +812,9 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
    // wrapped across the boundaries
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_global_rtag(pdata->getGlobalRTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_global_rtag(pdata->getRTags(), access_location::host, access_mode::read);
         unsigned int rtag;
-        switch (world->rank())
+        switch (exec_conf->getRank())
             {
             case 0:
                 BOOST_CHECK_EQUAL(pdata->getNGhosts(), 1);
@@ -1048,14 +1048,17 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
    pdata->setPosition(15, make_scalar3( 0.6, 1.001, 1.012));
 
    // update ghosts
-   comm->copyGhosts();
+   comm->startGhostsUpdate(0);
+   comm->finishGhostsUpdate(0);
 
    // check ghost positions, taking into account that the particles should have been wrapped across the boundaries
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_global_rtag(pdata->getGlobalRTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_global_rtag(pdata->getRTags(), access_location::host, access_mode::read);
         unsigned int rtag;
-        switch (world->rank())
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        switch (rank)
             {
             case 0:
                 rtag = h_global_rtag.data[15];
@@ -1262,7 +1265,10 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
-    if (world->size() != 8)
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    if (size != 8)
         {
         std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
         throw std::runtime_error("Error setting up unit test");
@@ -1340,7 +1346,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
         // all bonds should be complete, every processor should have three bonds
         ArrayHandle<uint2> h_gpu_bondlist(bdata->getGPUBondList(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_bonds(bdata->getNBondsArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_tag(pdata->getGlobalTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
 
         BOOST_CHECK_EQUAL(h_n_bonds.data[0],3);
         unsigned int pitch = bdata->getGPUBondList().getPitch();
@@ -1353,7 +1359,10 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
         std::sort(sorted_tags, sorted_tags + 3);
 
         // check bond partners
-        switch (world->rank())
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+        switch (rank)
             {
             case 0:
                 BOOST_CHECK_EQUAL(sorted_tags[0], 1);
@@ -1427,18 +1436,20 @@ struct MPISetup
         exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU, -1, false, false, boost::shared_ptr<Messenger>(), 0, false));
 #endif
         exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>(), 0, false));
-        env = new boost::mpi::environment(argc,argv);
-        world = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());
+
+        int provided;
+        MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
 #ifdef ENABLE_CUDA
-        exec_conf_gpu->setMPICommunicator(world);
+        exec_conf_gpu->setMPICommunicator(MPI_COMM_WORLD);
 #endif
-        exec_conf_cpu->setMPICommunicator(world);
+        exec_conf_cpu->setMPICommunicator(MPI_COMM_WORLD);
         }
 
     //! Cleanup
     ~MPISetup()
         {
-        delete env;
+        MPI_Finalize();
         }
 
     };

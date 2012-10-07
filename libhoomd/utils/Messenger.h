@@ -241,6 +241,7 @@ class Messenger
         void setMPICommunicator(const MPI_Comm mpi_comm)
             {
             m_mpi_comm = mpi_comm;
+            m_has_mpi_comm = true;
 
             // open shared log file if necessary
             if (m_shared_filename != "")
@@ -392,6 +393,7 @@ class Messenger
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file
         MPI_Comm m_mpi_comm;            //!< The MPI communicator
+        bool m_has_mpi_comm;            //!< True if MPI communicator has been set
 
         //! Open a shared file for error, warning, and notice streams
         void openSharedFile();

@@ -137,7 +137,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
-        m_is_at_boundary[dir] = m_decomposition->isAtBoundary(dir);
+        m_is_at_boundary[dir] = m_decomposition->isAtBoundary(dir) ? 1 : 0;
         }
 
     m_packed_size = sizeof(pdata_element);
