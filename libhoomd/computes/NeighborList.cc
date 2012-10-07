@@ -118,6 +118,14 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // allocate m_n_neigh and m_last_pos
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        GPUArray<unsigned int> n_ghost_neigh(m_pdata->getMaxN(), exec_conf);
+        m_n_ghost_neigh.swap(n_ghost_neigh);
+        }
+#endif
     GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
     m_last_pos.swap(last_pos);
    

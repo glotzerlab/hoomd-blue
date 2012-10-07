@@ -664,7 +664,6 @@ template<class T> void GPUArray<T>::memcpyLockDeviceToHost() const
     
     unsigned int size = m_num_elements - m_lock_start;
 
-    // if locked, only copy un-locked part
     m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(size*sizeof(T))/1024.0f/1024.0f << " MB device->host" <<  std::endl;
 #ifdef ENABLE_CUDA
     cudaMemcpy(h_data+m_lock_start, d_data + m_lock_start, sizeof(T)*size, cudaMemcpyDeviceToHost);
@@ -1038,6 +1037,13 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
     assert(! m_locked);
     assert(num_elements > 0);
 
+    // zero elements are equivalent to deallocation
+    if (num_elements == 0)
+        {
+        deallocate();
+        return;
+        }
+
     // if not allocated, simply allocate
     if (isNull())
         {
@@ -1073,7 +1079,13 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
     unsigned int new_pitch = (width + (16 - (width & 15)));
 
     unsigned int num_elements = new_pitch * height;
-    assert(num_elements > 0);
+
+    // zero elements are equivalent to deallocation
+    if (num_elements == 0)
+        {
+        deallocate();
+        return;
+        }
 
     // if not allocated, simply allocate
     if (isNull())
@@ -1159,6 +1171,8 @@ void GPUArray<T>::unlock() const
     assert(m_locked);
     assert(! m_acquired);
 
+    if (isNull()) return;
+
 #ifdef ENABLE_CUDA
     // copy locked part to current data location if necessary
     if (m_exec_conf->isCUDAEnabled())
@@ -1172,5 +1186,8 @@ void GPUArray<T>::unlock() const
             memcpyLockDeviceToHost();
         }
 #endif
+
+    m_locked = false;
+    m_lock_start = 0;
     }
 #endif // __GPUARRAY_H__

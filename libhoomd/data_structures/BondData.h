@@ -293,6 +293,7 @@ class BondData : boost::noncopyable
         GPUArray<uint2> m_gpu_ghost_bondlist;   //!< List of ghost bonds on the GPU
         GPUArray<unsigned int> m_n_bonds;       //!< Array of the number of bonds
         GPUArray<unsigned int> m_n_ghost_bonds; //!< Array of the number of ghost bonds
+        bool m_ghost_bond_table_allocated;      //!< True if ghost bond table has been allocated
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
@@ -305,6 +306,9 @@ class BondData : boost::noncopyable
 
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);
+
+        //! Helper function to allocate the ghost bond table
+        void allocateGhostBondTable(int height);
         
     };
 

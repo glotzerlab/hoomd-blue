@@ -106,6 +106,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
         
     // allocate memory for the GPU bond table
     allocateBondTable(1);
+    m_ghost_bond_table_allocated = false;
     }
 
 BondData::~BondData()
@@ -306,6 +307,12 @@ std::string BondData::getNameByType(unsigned int type)
 */
 const GPUArray<uint2>& BondData::getGPUBondList()
     {
+#ifdef ENABLE_MPI
+    // late initialization of ghost bond table
+    if (m_pdata->getDomainDecomposition() && !m_ghost_bond_table_allocated)
+        allocateGhostBondTable(1);
+#endif            
+ 
     if (m_bonds_dirty)
         {
         if (m_prof)
@@ -514,7 +521,7 @@ void BondData::reallocate()
     m_n_bonds.resize(m_pdata->getMaxN());
 
 #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
+    if (m_ghost_bond_table_allocated)
         {
         m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), m_gpu_ghost_bondlist.getHeight());
         m_n_ghost_bonds.resize(m_pdata->getMaxN());
@@ -534,18 +541,24 @@ void BondData::allocateBondTable(int height)
         
     GPUArray<unsigned int> n_bonds(m_pdata->getMaxN(), exec_conf);
     m_n_bonds.swap(n_bonds);
-
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        GPUArray<uint2> gpu_ghost_bondlist(m_pdata->getMaxN(), height, exec_conf);
-        m_gpu_ghost_bondlist.swap(gpu_ghost_bondlist);
-            
-        GPUArray<unsigned int> n_ghost_bonds(m_pdata->getMaxN(), exec_conf);
-        m_n_ghost_bonds.swap(n_ghost_bonds);
-        }
-#endif 
     }
+
+/*! \param height Height for the bond table
+*/
+void BondData::allocateGhostBondTable(int height)
+    {
+    // make sure the arrays have been deallocated
+    assert(m_n_ghost_bonds.isNull());
+    
+    GPUArray<uint2> gpu_ghost_bondlist(m_pdata->getMaxN(), height, exec_conf);
+    m_gpu_ghost_bondlist.swap(gpu_ghost_bondlist);
+        
+    GPUArray<unsigned int> n_ghost_bonds(m_pdata->getMaxN(), exec_conf);
+    m_n_ghost_bonds.swap(n_ghost_bonds);
+
+    m_ghost_bond_table_allocated = true;
+    }
+
 
 //! Takes a snapshot of the current bond data
 /*! \param snapshot The snapshot that will contain the bond data

@@ -256,8 +256,8 @@ void NeighborListGPU::filterNlist()
     if (m_pdata->getDomainDecomposition())
         {
         // filter ghost neighbors
-        ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_ghost_nlist(m_nlist, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_ghost_neigh, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_ghost_nlist(m_ghost_nlist, access_location::device, access_mode::readwrite);
 
         gpu_nlist_filter(d_n_ghost_neigh.data,
                      d_ghost_nlist.data,

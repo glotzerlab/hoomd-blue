@@ -127,7 +127,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_tag_copybuf(m_exec_conf),
             m_r_ghost(Scalar(0.0)),
             m_plan(m_exec_conf),
-            m_no_ghost_update(false)
+            m_next_ghost_update(0)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -162,16 +162,13 @@ Communicator::~Communicator()
  */
 void Communicator::startGhostsUpdate(unsigned int timestep)
     {
-    if (m_no_ghost_update)
-        {
-        m_no_ghost_update = false;
-        }
     }
 
 //! Finish ghost communication
 void Communicator::finishGhostsUpdate(unsigned int timestep)
     {
-    copyGhosts();
+    if (timestep >= m_next_ghost_update)
+        copyGhosts();
     }
 
 //! Interface to the communication methods.
@@ -191,8 +188,8 @@ void Communicator::communicate(unsigned int timestep)
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
 
-        // No ghost update in this step
-        m_no_ghost_update = true;
+        // Skip this timestep for ghost updating
+        m_next_ghost_update = timestep + 1;
         }
 
     m_is_communicating = false;

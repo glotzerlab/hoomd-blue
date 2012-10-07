@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
-//! Multi-threaded routine for updating ghost positions
+//! Thread for updating ghost positions
 void ghost_gpu_thread::operator()(const ghost_gpu_thread_params& params)
     {
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
@@ -99,14 +99,14 @@ void ghost_gpu_thread::operator()(const ghost_gpu_thread_params& params)
             //CHECK_CUDA_ERROR();
             }
 
-        unsigned int send_neighbor = params.neighbor_rank[dir];
+        unsigned int send_neighbor = params.decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
         unsigned int recv_neighbor;
         if (dir % 2 == 0)
-            recv_neighbor = params.neighbor_rank[dir+1];
+            recv_neighbor = params.decomposition->getNeighborRank(dir+1);
         else
-            recv_neighbor = params.neighbor_rank[dir-1];
+            recv_neighbor = params.decomposition->getNeighborRank(dir-1);
 
         unsigned int start_idx;
 
@@ -159,19 +159,14 @@ CommunicatorGPU::~CommunicatorGPU()
  */
 void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     {
-    if (m_no_ghost_update)
-        {
-        m_no_ghost_update = false;
-        }
+    if (timestep < m_next_ghost_update)
+        return;
 
     // fill thread parameters
     for (unsigned int i = 0; i < 6; ++i)
         {
-        m_is_communicating[i] = isCommunicating(i);
-        m_is_at_boundary[i] = m_decomposition->isAtBoundary(i);
-        m_neighbor_rank[i] = m_decomposition->getNeighborRank(i);
-   
         m_copy_ghosts_data[i] = m_copy_ghosts[i].lock(0, access_location::device, access_mode::read);
+        m_communication_dir[i] = isCommunicating(i);
         }
 
     // lock ghost particle part of positions array
@@ -180,9 +175,9 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     Scalar4 *d_pos_copybuf_data = m_pos_copybuf.lock(0, access_location::device, access_mode::overwrite);
 
     m_worker_thread = boost::thread(ghost_gpu_thread(), ghost_gpu_thread_params(
-         m_is_communicating,
+         m_decomposition,
+         m_communication_dir,
          m_is_at_boundary,
-         m_neighbor_rank,
          m_num_copy_ghosts,
          m_num_recv_ghosts,
          m_copy_ghosts_data,
@@ -195,14 +190,17 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
 //! Finish ghost communication
 void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
     {
+    if (timestep < m_next_ghost_update)
+        return;
+
+    m_worker_thread.join();
+
     // release locked arrays
     for (unsigned int i = 0; i < 6; ++i)
         m_copy_ghosts[i].unlock();
 
     m_pdata->getPositions().unlock();
     m_pos_copybuf.unlock();
-
-    m_worker_thread.join();
     }
 #endif
 

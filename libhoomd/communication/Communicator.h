@@ -364,7 +364,7 @@ class Communicator
         std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
 
-        bool m_no_ghost_update;                  //!< True if the next ghost update is skipped
+        bool m_next_ghost_update;                  //!< True if the next ghost update is skipped
     };
 
 //! Declaration of python export function

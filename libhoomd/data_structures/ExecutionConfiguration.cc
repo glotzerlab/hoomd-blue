@@ -218,7 +218,15 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
         }
 #endif
 
-    MPI_Init(0, (char ***) NULL);
+    int provided;
+    MPI_Init_thread(0, (char ***) NULL, MPI_THREAD_SERIALIZED, &provided);
+
+    if (provided != MPI_THREAD_SERIALIZED)
+        {
+        msg->error() << "Unable to initialize with MPI_THREAD_SERIALIZED." << std::endl;
+        throw(runtime_error("Error setting up MPI."));
+        }
+     
     m_mpi_comm = MPI_COMM_WORLD;
 
     int num_total_ranks;
