@@ -66,8 +66,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 //! Constructor
-ghost_gpu_thread::ghost_gpu_thread()
-    : h_pos_copybuf(NULL),
+ghost_gpu_thread::ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+    : m_exec_conf(exec_conf),
+      h_pos_copybuf(NULL),
       h_pos_recvbuf(NULL),
       m_size_copy_buf(0),
       m_size_recv_buf(0)
@@ -83,8 +84,11 @@ ghost_gpu_thread::~ghost_gpu_thread()
 //! Main routine of ghost update worker thread
 void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
     {
+    #ifdef VTRACE
     // initialize device context for thresd
-    cudaFree(0);
+    if (m_exec_conf->isCUDAEnabled())
+         cudaFree(0);
+    #endif
 
     bool done = false;
     while (! done)
@@ -106,8 +110,6 @@ void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boo
 
 void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
     {
-    m_exec_conf = params.exec_conf;
-
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
 
     MPI_Request reqs[4];
@@ -200,7 +202,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     gpu_allocate_tmp_storage();
 
     // create a worker thread for ghost updates
-    m_worker_thread = boost::thread(ghost_gpu_thread(), boost::ref(m_work_queue), boost::ref(m_barrier));
+    m_worker_thread = boost::thread(ghost_gpu_thread(m_exec_conf), boost::ref(m_work_queue), boost::ref(m_barrier));
 
     // create CUDA stream for concurrent copying / kernel execution
     cudaStreamCreate(&m_worker_stream);

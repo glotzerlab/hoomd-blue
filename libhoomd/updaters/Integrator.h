@@ -110,14 +110,15 @@ struct integrator_worker_thread
     {
     public:
         //! Constructor
-        integrator_worker_thread(unsigned int thread_id)
-            : m_thread_id(thread_id)
+        integrator_worker_thread(unsigned int thread_id, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+            : m_thread_id(thread_id), m_exec_conf(exec_conf)
             { }
 
         void operator()(WorkQueue<integrator_thread_params>& queue);
 
     private:
-        unsigned int m_thread_id;   //!< A unique identifier for this thread
+        unsigned int m_thread_id;                               //!< A unique identifier for this thread
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< The execution configuration
     };
 
 //! Base class that defines an integrator
@@ -213,7 +214,7 @@ class Integrator : public Updater
         std::vector< boost::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
 
         WorkQueue<integrator_thread_params> m_work_queue;            //!< The work queue
-        std::vector<boost::thread *> m_worker_threads;               //!< List of pointers to worker threads for force calculation
+        std::vector<boost::shared_ptr<boost::thread> > m_worker_threads; //!< List of pointers to worker threads for force calculation
         unsigned int m_num_worker_threads;                           //!< Number of worker threads
         bool m_threads_initialized;                                  //!< True if threads have been initialized
         boost::barrier m_barrier;                                    //!< Thread barrier for synchronization

@@ -119,7 +119,7 @@ class ghost_gpu_thread
     {
     public:
         //! Constructor
-        ghost_gpu_thread();
+        ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         virtual ~ghost_gpu_thread();
 
         //! The thread main routine

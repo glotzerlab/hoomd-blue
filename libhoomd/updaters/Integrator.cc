@@ -79,6 +79,11 @@ using namespace std;
 //! The worker thread main routine
 void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& queue)
     {
+#if defined(ENABLE_CUDA) && defined(VTRACE)
+    if (m_exec_conf->isCUDAEnabled())
+        cudaFree(0);
+#endif
+
     bool done = false;
     while (! done)
         {
@@ -892,15 +897,13 @@ void Integrator::createWorkerThreads()
     {
     assert(! m_threads_initialized);
 
-    m_worker_threads.resize(m_num_worker_threads);
-
 #ifdef ENABLE_CUDA
     std::vector<cudaStream_t> streams;
 #endif
     for (unsigned int i = 0; i < m_num_worker_threads; ++i)
         {
-        m_worker_threads.push_back(new boost::thread(integrator_worker_thread(i),
-                                               boost::ref(m_work_queue)));
+        m_worker_threads.push_back(boost::shared_ptr<boost::thread>(
+            new boost::thread(integrator_worker_thread(i, m_exec_conf), boost::ref(m_work_queue))));
 #ifdef ENABLE_CUDA
         if (m_exec_conf->isCUDAEnabled())        
             {
@@ -924,12 +927,13 @@ void Integrator::terminateWorkerThreads()
     {
     assert(m_threads_initialized);
 
+    assert(m_worker_threads.size() == m_num_worker_threads);
+
     while (!m_worker_threads.empty())
         {
-        boost::thread &t = *m_worker_threads.back();
-        t.interrupt();
-        t.join();
-        delete &t;
+        boost::shared_ptr<boost::thread> t = m_worker_threads.back();
+        t->interrupt();
+        t->join();
         m_worker_threads.pop_back();
         }
 #ifdef ENABLE_CUDA
