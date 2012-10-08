@@ -87,7 +87,10 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
             integrator_thread_params params = queue.wait_and_pop();
 
             //! Call the force compute 
-            params.fc->computeThread(params.timestep, m_thread_id);
+            if (! params.compute_ghost_forces)
+                params.fc->computeThread(params.timestep, m_thread_id);
+            else
+                params.fc->computeGhostForces(params.timestep);
 
             // increment counter
             boost::unique_lock<boost::mutex> lock(params.mutex);
@@ -523,6 +526,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         //(*force_compute)->compute(timestep);
         m_work_queue.push(integrator_thread_params(*force_compute,
                                                    timestep,
+                                                   false,
                                                    m_forces.size(),
                                                    m_completed_tasks,
                                                    m_mutex,
@@ -536,10 +540,22 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         // wait for ghost communication to finish
         m_comm->finishGhostsUpdate(timestep);
 
+        m_completed_tasks = 0;
+
         // compute additional forces due to ghost atoms
         std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-            (*force_compute)->computeGhostForces(timestep);
+//            (*force_compute)->computeGhostForces(timestep);
+            m_work_queue.push(integrator_thread_params(*force_compute,
+                                                       timestep,
+                                                       true,
+                                                       m_forces.size(),
+                                                       m_completed_tasks,
+                                                       m_mutex,
+                                                       m_barrier));
+
+        m_barrier.wait();
+
         }
 #endif
 

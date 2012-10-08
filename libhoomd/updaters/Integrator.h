@@ -82,12 +82,14 @@ struct integrator_thread_params
     integrator_thread_params(
         boost::shared_ptr<ForceCompute> _fc,
         const unsigned int _timestep,
+        const bool _compute_ghost_forces,
         const unsigned int _num_tasks,
         unsigned int &_counter,
         boost::mutex& _mutex,
         boost::barrier& _barrier
         ) : fc(_fc),
             timestep(_timestep),
+            compute_ghost_forces(_compute_ghost_forces),
             num_tasks(_num_tasks),
             counter(_counter),
             mutex(_mutex),
@@ -95,10 +97,11 @@ struct integrator_thread_params
         { }
 
     boost::shared_ptr<ForceCompute> fc; //!< The forceCompute for which we should compute forces
-    const unsigned int timestep;              //!< The timestep
-    const unsigned int num_tasks;             //!< Total number of tasks
+    const unsigned int timestep;        //!< The timestep
+    const bool compute_ghost_forces;    //!< True if forces due to ghost atoms should be calculated
+    const unsigned int num_tasks;       //!< Total number of tasks
     unsigned int &counter;              //!< The counter for completed tasks
-    boost::mutex& mutex;         //!< Lock for the shared counter
+    boost::mutex& mutex;                //!< Lock for the shared counter
     boost::barrier& barrier;            //!< Barrier for synchronizing with host thread
     };
 
