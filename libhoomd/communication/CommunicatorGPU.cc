@@ -83,6 +83,9 @@ ghost_gpu_thread::~ghost_gpu_thread()
 //! Main routine of ghost update worker thread
 void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
     {
+    // initialize device context for thresd
+    cudaFree(0);
+
     bool done = false;
     while (! done)
         {
