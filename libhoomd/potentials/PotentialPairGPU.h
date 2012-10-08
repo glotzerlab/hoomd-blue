@@ -194,7 +194,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                          false,
-                         this->m_exec_conf->getKernelExecutionStream()),
+                         this->m_exec_conf->getThreadStream(this->m_thread_id)),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

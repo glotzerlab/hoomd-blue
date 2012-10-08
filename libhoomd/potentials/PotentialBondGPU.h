@@ -179,7 +179,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              this->m_bond_data->getNBondTypes(),
                              m_block_size,
                              false,
-                             this->m_exec_conf->getKernelExecutionStream()),
+                             this->m_exec_conf->getThreadStream(this->m_thread_id)),
                  d_params.data,
                  d_flags.data);
         }

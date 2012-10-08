@@ -72,6 +72,50 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
+#include <boost/thread.hpp>
+#include <boost/thread/locks.hpp>
+#include "WorkQueue.h"
+
+//! Parameter structure defining a task for the worker thread
+struct integrator_thread_params
+    {
+    integrator_thread_params(
+        boost::shared_ptr<ForceCompute> _fc,
+        const unsigned int _timestep,
+        const unsigned int _num_tasks,
+        unsigned int &_counter,
+        boost::mutex& _mutex,
+        boost::barrier& _barrier
+        ) : fc(_fc),
+            timestep(_timestep),
+            num_tasks(_num_tasks),
+            counter(_counter),
+            mutex(_mutex),
+            barrier(_barrier)
+        { }
+
+    boost::shared_ptr<ForceCompute> fc; //!< The forceCompute for which we should compute forces
+    const unsigned int timestep;              //!< The timestep
+    const unsigned int num_tasks;             //!< Total number of tasks
+    unsigned int &counter;              //!< The counter for completed tasks
+    boost::mutex& mutex;         //!< Lock for the shared counter
+    boost::barrier& barrier;            //!< Barrier for synchronizing with host thread
+    };
+
+//! The definition of the worker thread
+struct integrator_worker_thread
+    {
+    public:
+        //! Constructor
+        integrator_worker_thread(unsigned int thread_id)
+            : m_thread_id(thread_id)
+            { }
+
+        void operator()(WorkQueue<integrator_thread_params>& queue);
+
+    private:
+        unsigned int m_thread_id;   //!< A unique identifier for this thread
+    };
 
 //! Base class that defines an integrator
 /*! An Integrator steps the entire simulation forward one time step in time.
@@ -164,7 +208,15 @@ class Integrator : public Updater
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
 
         std::vector< boost::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
-        
+
+        WorkQueue<integrator_thread_params> m_work_queue;            //!< The work queue
+        std::vector<boost::thread *> m_worker_threads;               //!< List of pointers to worker threads for force calculation
+        unsigned int m_num_worker_threads;                           //!< Number of worker threads
+        bool m_threads_initialized;                                  //!< True if threads have been initialized
+        boost::barrier m_barrier;                                    //!< Thread barrier for synchronization
+        boost::mutex m_mutex;                                        //!< A mutex lock for locking access to the completed tasks counter
+        unsigned int m_completed_tasks;                              //!< Number of completed thread tasks
+
         //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep);
         
@@ -175,6 +227,13 @@ class Integrator : public Updater
         //! helper function to compute net force/virial on the GPU
         void computeNetForceGPU(unsigned int timestep);
 #endif
+
+    private:
+        //! Create the worker threads
+        void createWorkerThreads();
+
+        //! Terminate worker threads
+        void terminateWorkerThreads();
     };
 
 //! Exports the NVEUpdater class to python

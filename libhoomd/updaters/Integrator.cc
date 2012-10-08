@@ -76,10 +76,37 @@ using namespace boost;
 
 using namespace std;
 
+//! The worker thread main routine
+void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& queue)
+    {
+    bool done = false;
+    while (! done)
+        {
+        try
+            {
+            integrator_thread_params params = queue.wait_and_pop();
+
+            //! Call the force compute 
+            params.fc->computeThread(params.timestep, m_thread_id);
+
+            // increment counter
+            boost::unique_lock<boost::mutex> lock(params.mutex);
+            params.counter++;
+            if (params.counter == params.num_tasks)
+                // signal host thread
+                params.barrier.wait();
+            }
+        catch(boost::thread_interrupted const)
+            {
+            done = true;
+            }
+        }
+    } 
+
 /*! \param sysdef System to update
     \param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
+Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT), m_num_worker_threads(2), m_threads_initialized(false), m_barrier(2)
     {
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
@@ -87,6 +114,8 @@ Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT
 
 Integrator::~Integrator()
     {
+    if (m_threads_initialized)
+        terminateWorkerThreads();
     }
 
 /*! \param fc ForceCompute to add
@@ -293,10 +322,38 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 void Integrator::computeNetForce(unsigned int timestep)
     {
     // compute all the forces first
+
+#ifdef ENABLE_MPI
+    // begin with concurrent communication of ghost positions
+    if (m_pdata->getDomainDecomposition())
+        m_comm->startGhostsUpdate(timestep);
+#endif
+
+    if (! m_threads_initialized)
+        createWorkerThreads();
+
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
-    
+        //m_work_queue.push(integrator_thread_params(*force_compute,timestep));
+
+    // wait for threads to finish
+    //m_barrier->wait();
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // wait for ghost communication to finish
+        m_comm->finishGhostsUpdate(timestep);
+
+        // compute additional forces due to ghost atoms
+        std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+        for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+            (*force_compute)->computeGhostForces(timestep);
+        }
+#endif
+
+ 
     if (m_prof)
         {
         m_prof->push("Integrate");
@@ -449,6 +506,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         throw runtime_error("Error computing accelerations");
         }
 
+    if (! m_threads_initialized)
+        createWorkerThreads();
+
 #ifdef ENABLE_MPI
     // begin with concurrent communication of ghost positions
     if (m_pdata->getDomainDecomposition())
@@ -457,8 +517,18 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    m_completed_tasks = 0;
+
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->compute(timestep);
+        //(*force_compute)->compute(timestep);
+        m_work_queue.push(integrator_thread_params(*force_compute,
+                                                   timestep,
+                                                   m_forces.size(),
+                                                   m_completed_tasks,
+                                                   m_mutex,
+                                                   m_barrier));
+
+    m_barrier.wait();
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -800,6 +870,60 @@ void Integrator::update(unsigned int timestep)
 */
 void Integrator::prepRun(unsigned int timestep)
     {
+    }
+
+void Integrator::createWorkerThreads()
+    {
+    assert(! m_threads_initialized);
+
+    m_worker_threads.resize(m_num_worker_threads);
+
+#ifdef ENABLE_CUDA
+    std::vector<cudaStream_t> streams;
+#endif
+    for (unsigned int i = 0; i < m_num_worker_threads; ++i)
+        {
+        m_worker_threads.push_back(new boost::thread(integrator_worker_thread(i),
+                                               boost::ref(m_work_queue)));
+#ifdef ENABLE_CUDA
+        if (m_exec_conf->isCUDAEnabled())        
+            {
+            // create CUDA stream
+            cudaStream_t stream;
+            cudaStreamCreate(&stream);
+            CHECK_CUDA_ERROR();
+            streams.push_back(stream);
+            }
+#endif
+        }
+
+#ifdef ENABLE_CUDA
+    m_exec_conf->setThreadStreams(streams);
+#endif
+
+    m_threads_initialized = true;
+    }
+
+void Integrator::terminateWorkerThreads()
+    {
+    assert(m_threads_initialized);
+
+    while (!m_worker_threads.empty())
+        {
+        boost::thread &t = *m_worker_threads.back();
+        t.interrupt();
+        t.join();
+        delete &t;
+        m_worker_threads.pop_back();
+        }
+#ifdef ENABLE_CUDA
+    for (unsigned int i = 0; i < m_num_worker_threads; ++i)
+        {
+        cudaStreamDestroy(m_exec_conf->getThreadStream(i));
+        }
+
+    m_exec_conf->setThreadStreams(std::vector<cudaStream_t>());
+#endif
     }
 
 void export_Integrator()

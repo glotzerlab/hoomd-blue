@@ -91,7 +91,7 @@ void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boo
         {
         try
             {
-            ghost_gpu_thread_params &params = queue.wait_and_pop();
+            ghost_gpu_thread_params params = queue.wait_and_pop();
             update_ghosts(params);
 
             // synchronize with host thread
@@ -202,11 +202,8 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // create a worker thread for ghost updates
     m_worker_thread = boost::thread(ghost_gpu_thread(), boost::ref(m_work_queue), boost::ref(m_barrier));
 
-    // create CUDA streams for concurrent copying / kernel execution
-    for (int i = 0; i < 2; ++i)
-        cudaStreamCreate(&m_streams[i]);
-
-    m_exec_conf->setKernelExecutionStream(m_streams[0]);
+    // create CUDA stream for concurrent copying / kernel execution
+    cudaStreamCreate(&m_worker_stream);
     }
 
 //! Destructor
@@ -219,9 +216,8 @@ CommunicatorGPU::~CommunicatorGPU()
     m_worker_thread.interrupt();
     m_worker_thread.join();
 
-    // destroy CUDA streams
-    for (int i = 0; i < 2; ++i)
-        cudaStreamDestroy(m_streams[i]);
+    // destroy CUDA stream
+    cudaStreamDestroy(m_worker_stream);
     }
 
 #ifdef ENABLE_MPI_CUDA
@@ -260,7 +256,7 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
          d_pos_copybuf_data,
          m_pdata->getGlobalBox(),
          m_exec_conf,
-         m_streams[1]));
+         m_worker_stream));
 
     if (m_prof) m_prof->pop();
     }

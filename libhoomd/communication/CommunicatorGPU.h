@@ -198,7 +198,7 @@ class CommunicatorGPU : public Communicator
         const unsigned int *m_copy_ghosts_data[6];  //!< Per-direction pointers to ghost particle send list buffer
         bool m_communication_dir[6];                //!< Per-direction flag, true if we are communicating in this direction
 
-        cudaStream_t m_streams[2];                  //!< CUDA Streams for concurrent copying and kernel excecution
+        cudaStream_t m_worker_stream;               //!< CUDA Streams for concurrent copying and kernel excecution in worker thread
         
     };
 

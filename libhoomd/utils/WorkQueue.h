@@ -1,6 +1,9 @@
 // implemented after
 // http://www.justsoftwaresolutions.co.uk/threading/implementing-a-thread-safe-queue-using-condition-variables.html
 
+#ifndef __WORK_QUEUE_H__
+#define __WORK_QUEUE_H__
+
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <queue>
@@ -51,7 +54,7 @@ class WorkQueue
             return true;
         }
 
-        Data& wait_and_pop()
+        Data wait_and_pop()
         {
             boost::mutex::scoped_lock lock(m_mutex);
             while(m_queue.empty())
@@ -59,7 +62,7 @@ class WorkQueue
                 m_condition_variable.wait(lock);
                 }
             
-            Data& popped_value=m_queue.front();
+            Data popped_value=m_queue.front();
             m_queue.pop();
             if (m_limit && m_queue.size() < m_limit)
                 m_below_limit.notify_one();
@@ -73,3 +76,5 @@ class WorkQueue
         boost::condition_variable m_below_limit;
         unsigned int m_limit;
 };
+
+#endif // __WORK_QUEUE_H

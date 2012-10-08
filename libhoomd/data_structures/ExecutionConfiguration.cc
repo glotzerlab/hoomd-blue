@@ -137,10 +137,6 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
         initializeMPI(n_ranks);
 #endif
 
-#ifdef ENABLE_CUDA
-    m_kernel_stream = 0;
-#endif
-
     setupStats();
     }
 
@@ -192,10 +188,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         initializeMPI(n_ranks);
 #endif
 
-#ifdef ENABLE_CUDA
-    m_kernel_stream = 0;
-#endif
-
     setupStats();
     }
 
@@ -223,6 +215,10 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
         {
         char enable_mpi_cuda[] = "MV2_USE_CUDA=1";
         putenv(enable_mpi_cuda);
+
+        // enable multi-threading
+        char enable_threads[] = "MV2_ENABLE_AFFINITY=0";
+        putenv(enable_threads);
         }
 #endif
 
