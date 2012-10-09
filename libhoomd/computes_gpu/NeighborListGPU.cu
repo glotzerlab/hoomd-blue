@@ -223,7 +223,8 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                              const unsigned int *d_ex_list,
                              const Index2D& exli,
                              const unsigned int N,
-                             const unsigned int block_size)
+                             const unsigned int block_size,
+                             cudaStream_t stream)
     {
     // determine parameters for kernel launch
     int n_blocks = (int)ceil(float(N)/(float)block_size);
@@ -233,7 +234,7 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
     unsigned int ex_start = 0;
     for (unsigned int batch = 0; batch < n_batches; batch++)
         {
-        gpu_nlist_filter_kernel<<<n_blocks, block_size>>>(d_n_neigh,
+        gpu_nlist_filter_kernel<<<n_blocks, block_size,0,stream>>>(d_n_neigh,
                                                           d_nlist,
                                                           nli,
                                                           d_n_ex,

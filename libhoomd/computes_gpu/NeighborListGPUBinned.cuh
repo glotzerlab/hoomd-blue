@@ -88,7 +88,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      bool filter_body,
                                      bool filter_diameter,
                                      const Scalar3& ghost_width,
-                                     bool compute_ghost_nlist);
+                                     bool compute_ghost_nlist,
+                                     cudaStream_t stream);
 
 //! Kernel driver for gpu_compute_nlist_binned_1x_kernel()
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,

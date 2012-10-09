@@ -239,6 +239,7 @@ class BondData : boost::noncopyable
         //! Compute the GPU bond list inside a thread
         void computeGPUBondListThread(unsigned int thread_id)
             {
+            boost::mutex::scoped_lock l(m_mutex);
             checkUpdateBondList(true,thread_id);
             }
 

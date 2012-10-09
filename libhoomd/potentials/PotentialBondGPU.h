@@ -108,7 +108,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
 
 #ifdef ENABLE_MPI
         //! Compute forces due to ghost particles
-        virtual void computeGhostForces(unsigned int timestep);
+        virtual void computeGhostForcesThread(unsigned int timestep, unsigned int thread_id);
 #endif
     };
 
@@ -212,7 +212,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
-void PotentialBondGPU< evaluator, gpu_cgbf >::computeGhostForces(unsigned int timestep)
+void PotentialBondGPU< evaluator, gpu_cgbf >::computeGhostForcesThread(unsigned int timestep, unsigned int thread_id)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
@@ -232,6 +232,8 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeGhostForces(unsigned int ti
 
         {
         // Access the bond table for reading
+        this->m_bond_data->computeGPUBondListThread(thread_id);
+
         ArrayHandle<uint2> d_gpu_ghost_bondlist(this->m_bond_data->getGPUGhostBondList(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int > d_gpu_n_ghost_bonds(this->m_bond_data->getNGhostBondsArray(), access_location::device, access_mode::read);
 
@@ -252,7 +254,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeGhostForces(unsigned int ti
                              this->m_bond_data->getNBondTypes(),
                              m_block_size,
                              true,
-                             0),
+                             this->m_exec_conf->getThreadStream(thread_id)),
                  d_params.data,
                  d_flags.data);
         }

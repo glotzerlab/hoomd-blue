@@ -204,6 +204,10 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
+        cudaStream_t stream = 0;
+        if (m_inside_thread)
+            stream = m_exec_conf->getThreadStream(m_thread_id);
+
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_ghost_nlist.data,
                                  d_n_neigh.data,
@@ -228,7 +232,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_body,
                                  m_filter_diameter,
                                  ghost_width,
-                                 compute_ghost_nlist);
+                                 compute_ghost_nlist,
+                                 stream);
         }
     else
         {

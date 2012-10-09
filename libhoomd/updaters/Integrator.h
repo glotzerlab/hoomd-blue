@@ -206,7 +206,10 @@ class Integrator : public Updater
         
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep);
-        
+       
+        //! Set number of worker threads
+        void setNumWorkerThreads(unsigned int num_threads);
+
     protected:
         Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes

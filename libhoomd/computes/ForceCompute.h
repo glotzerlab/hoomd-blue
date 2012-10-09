@@ -110,10 +110,13 @@ class ForceCompute : public Compute
 
 #ifdef ENABLE_MPI
         //! Perform computation of forces due to ghost particles
-        /*! This function may be implemented in forces which depend on ghost particles
+        /*! This function may be implemented in forces which depend on ghost particles.
+            It is supposed to be called AFTER a call to compute().
+
             \param timestep Current time step
+            \param thread_id The thread from which this routine is called
          */
-        virtual void computeGhostForces(unsigned int timestep) { }
+        virtual void computeGhostForcesThread(unsigned int timestep, unsigned int thread_id) { }
 #endif
        
         //! Benchmark the force compute

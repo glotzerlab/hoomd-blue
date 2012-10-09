@@ -250,7 +250,8 @@ void NeighborListGPU::filterNlist()
                      d_ex_list_idx.data,
                      m_ex_list_indexer,
                      m_pdata->getN(),
-                     m_block_size_filter);
+                     m_block_size_filter,
+                     m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
    
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -266,7 +267,8 @@ void NeighborListGPU::filterNlist()
                      d_ex_list_idx.data,
                      m_ex_list_indexer,
                      m_pdata->getN(),
-                     m_block_size_filter);
+                     m_block_size_filter,
+                     m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
         }
 #endif
 

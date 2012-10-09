@@ -336,7 +336,10 @@ class mode_standard(_integrator):
         # initialize the reflected c++ class
         self.cpp_integrator = hoomd.IntegratorTwoStep(globals.system_definition, dt);
         self.supports_methods = True;
-        
+       
+        # set number of worker threads
+        self.cpp_integrator.setNumWorkerThreads(globals.options.num_worker_threads)
+
         globals.system.setIntegrator(self.cpp_integrator);
     
     ## Changes parameters of an existing integration mode

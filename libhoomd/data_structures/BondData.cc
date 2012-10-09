@@ -319,7 +319,6 @@ void BondData::checkUpdateBondList(bool inside_thread, unsigned int thread_id)
         allocateGhostBondTable(1);
 #endif            
 
-    m_mutex.lock();
     if (m_bonds_dirty)
         {
         if (m_prof)
@@ -339,7 +338,6 @@ void BondData::checkUpdateBondList(bool inside_thread, unsigned int thread_id)
         if (m_prof)
             m_prof->pop();
         }
-    m_mutex.unlock();
     }
 
 

@@ -95,7 +95,7 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
             if (! params.compute_ghost_forces)
                 params.fc->computeThread(params.timestep, m_thread_id);
             else
-                params.fc->computeGhostForces(params.timestep);
+                params.fc->computeGhostForcesThread(params.timestep, m_thread_id);
 
             // increment counter
             boost::unique_lock<boost::mutex> lock(params.mutex);
@@ -114,7 +114,7 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
 /*! \param sysdef System to update
     \param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT), m_num_worker_threads(2), m_threads_initialized(false), m_barrier(2)
+Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT), m_num_worker_threads(1), m_threads_initialized(false), m_barrier(2)
     {
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
@@ -974,6 +974,24 @@ void Integrator::terminateWorkerThreads()
         }
     }
 
+//! Set number of worker threads
+void Integrator::setNumWorkerThreads(unsigned int num_threads)
+    {
+    if (m_threads_initialized)
+        {
+        m_exec_conf->msg->error() << "integrate.*: Cannot set number of worker threads after first run." << endl;
+        throw runtime_error("Error setting number of worker threads");
+        }
+    if (num_threads == 0)
+        {
+        m_exec_conf->msg->error() << "integrate.*: Invalid number of threads requested." << endl;
+        throw runtime_error("Error initializing Integrator");
+        }
+
+    m_num_worker_threads = num_threads;
+    }
+
+
 void export_Integrator()
     {
     class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
@@ -983,6 +1001,7 @@ void export_Integrator()
     .def("removeForceComputes", &Integrator::removeForceComputes)
     .def("setDeltaT", &Integrator::setDeltaT)
     .def("getNDOF", &Integrator::getNDOF)
+    .def("setNumWorkerThreads", &Integrator::setNumWorkerThreads)
     ;
     }
 
