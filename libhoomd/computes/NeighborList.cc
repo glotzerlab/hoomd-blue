@@ -132,8 +132,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getL();
 
-    // allocate conditions array
-    GPUArray<unsigned int> conditions(1, exec_conf);
+    // allocate conditions flags
+    GPUFlags<unsigned int> conditions(exec_conf);
     m_conditions.swap(conditions);
     
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
@@ -979,8 +979,8 @@ void NeighborList::buildNlist(unsigned int timestep)
     // access the nlist data
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
-    
+    unsigned int conditions = 0;
+
     // start by clearing the entire list
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
     
@@ -1027,7 +1027,7 @@ void NeighborList::buildNlist(unsigned int timestep)
                         if (posi < m_Nmax)
                             h_nlist.data[m_nlist_indexer(i, posi)] = j;
                         else
-                            h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[i]+1);
+                            conditions = max(conditions, h_n_neigh.data[i]+1);
                         
                         h_n_neigh.data[i]++;
                        
@@ -1038,7 +1038,7 @@ void NeighborList::buildNlist(unsigned int timestep)
                             if (posj < m_Nmax)
                                 h_nlist.data[m_nlist_indexer(j, posj)] = i;
                             else
-                                h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[j]+1);
+                                conditions = max(conditions, h_n_neigh.data[j]+1);
 
                             h_n_neigh.data[j]++;
                             }
@@ -1051,14 +1051,17 @@ void NeighborList::buildNlist(unsigned int timestep)
                     if (pos < m_Nmax)
                         h_nlist.data[m_nlist_indexer(i, pos)] = j;
                     else
-                        h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[i]+1);
+                        conditions = max(conditions, h_n_neigh.data[i]+1);
                     
                     h_n_neigh.data[i]++;
                     }
                 }
             }
         }
-        
+   
+    // write out conditions
+    m_conditions.resetFlags(conditions);
+
     if (m_prof) m_prof->pop();
     }
 
@@ -1199,12 +1202,16 @@ bool NeighborList::checkConditions()
     {
     bool result = false;
 
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::read);
+    unsigned int conditions;
+    if (m_inside_thread)
+        conditions = m_conditions.readFlags();
+    else
+        conditions = m_conditions.readFlagsThread(m_thread_id);
 
     // up m_Nmax to the overflow value, reallocate memory and set the overflow condition
-    if (h_conditions.data[0] > m_Nmax)
+    if (conditions > m_Nmax)
         {
-        m_Nmax = h_conditions.data[0];
+        m_Nmax = conditions;
         result = true;
         }
 
@@ -1213,8 +1220,10 @@ bool NeighborList::checkConditions()
 
 void NeighborList::resetConditions()
     {
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
-    h_conditions.data[0] = 0;
+    if (m_inside_thread)
+        m_conditions.resetFlagsThread(0, m_thread_id);
+    else
+        m_conditions.resetFlags(0);
     }
 
 void NeighborList::growExclusionList()

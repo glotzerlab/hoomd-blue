@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 #include "GPUArray.h"
+#include "GPUFlags.h"
 
 #include "Index1D.h"
 #include "Compute.h"
@@ -304,7 +305,7 @@ class CellList : public Compute
         GPUArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
         GPUArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
-        GPUArray<unsigned int> m_conditions; //!< Condition flags set during the computeCellList() call
+        GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
         
         boost::signals::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal

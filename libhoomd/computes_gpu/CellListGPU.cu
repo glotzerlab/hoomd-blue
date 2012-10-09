@@ -79,7 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              float4 *d_xyzf,
                                              float4 *d_tdb,
-                                             unsigned int *d_conditions,
+                                             uint3 *d_conditions,
                                              const float4 *d_pos,
                                              const float *d_charge,
                                              const float *d_diameter,
@@ -120,7 +120,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
         {
-        d_conditions[1] = idx+1;
+        (*d_conditions).y = idx+1;
         return;
         }
 
@@ -153,7 +153,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     // check if the particle is inside the dimensions
     if (bin >= ci.getNumElements())
         {
-        d_conditions[2] = idx+1;
+        (*d_conditions).z = idx+1;
         return;
         }
 
@@ -168,14 +168,14 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     else
         {
         // handle overflow
-        atomicMax(&d_conditions[0], size+1);
+        atomicMax(&(*d_conditions).x, size+1);
         }
     }
 
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   float4 *d_xyzf,
                                   float4 *d_tdb,
-                                  unsigned int *d_conditions,
+                                  uint3 *d_conditions,
                                   const float4 *d_pos,
                                   const float *d_charge,
                                   const float *d_diameter,
@@ -374,7 +374,7 @@ template<unsigned int block_size>
 __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
                                                 float4 *d_xyzf,
                                                 float4 *d_tdb,
-                                                unsigned int *d_conditions,
+                                                uint3 *d_conditions,
                                                 const float4 *d_pos,
                                                 const float *d_charge,
                                                 const float *d_diameter,
@@ -419,13 +419,13 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     // check if the particle is inside the dimensions
     if (bin >= ci.getNumElements())
         {
-        d_conditions[2] = idx+1;
+        (*d_conditions).z = idx+1;
         bin = INVALID_BIN;
         }
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
         {
-        d_conditions[1] = idx+1;
+        (*d_conditions).y = idx+1;
         bin = INVALID_BIN;
         }
     // if we are past the end of the array, mark the bin as invalid
@@ -520,14 +520,14 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     else
         {
         // handle overflow
-        atomicMax(&d_conditions[0], size+1);
+        atomicMax(&(*d_conditions).x, size+1);
         }
     }
 
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      float4 *d_xyzf,
                                      float4 *d_tdb,
-                                     unsigned int *d_conditions,
+                                     uint3 *d_conditions,
                                      const float4 *d_pos,
                                      const float *d_charge,
                                      const float *d_diameter,

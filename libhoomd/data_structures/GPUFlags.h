@@ -387,9 +387,8 @@ template<class T> inline const T GPUFlags<T>::readFlagsThread(unsigned int threa
         {
         // async memcpy the results to the host
         cudaMemcpyAsync(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost,stream);
+        cudaStreamSynchronize(stream);
         }
-
-    cudaStreamSynchronize(stream);
 #endif    
 
     // return value of flags
@@ -427,13 +426,13 @@ template<class T> inline void GPUFlags<T>::resetFlagsThread(const T flags, unsig
     {
     if (m_mapped)
         {
+        // set the flags
+        *h_data = flags;
 #ifdef ENABLE_CUDA
         cudaStream_t stream = m_exec_conf->getThreadStream(thread_id);
         // synch to wait for kernels
         cudaStreamSynchronize(stream);
 #endif
-        // set the flags
-        *h_data = flags;
         }
     else
         {

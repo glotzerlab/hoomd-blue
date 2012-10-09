@@ -143,7 +143,6 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -155,7 +154,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     gpu_compute_nlist_nsq(d_nlist.data,
                           d_n_neigh.data,
                           d_last_pos.data,
-                          d_conditions.data,
+                          m_conditions.getDeviceFlags(),
                           m_nlist_indexer,
                           d_pos.data,
                           m_pdata->getN(),

@@ -90,7 +90,6 @@ void CellListGPU::computeCellList()
     ArrayHandle<unsigned int> d_cell_size(m_cell_size, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_tdb(m_tdb, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
     Scalar3 ghost_width = m_nominal_width/Scalar(2.0)*make_scalar3((Scalar)m_num_ghost_cells.x, (Scalar)m_num_ghost_cells.y, (Scalar)m_num_ghost_cells.z);
 
@@ -100,7 +99,7 @@ void CellListGPU::computeCellList()
         gpu_compute_cell_list(d_cell_size.data,
                               d_xyzf.data,
                               d_tdb.data,
-                              d_conditions.data,
+                              m_conditions.getDeviceFlags(),
                               d_pos.data,
                               d_charge.data,
                               d_diameter.data,
@@ -120,7 +119,7 @@ void CellListGPU::computeCellList()
         gpu_compute_cell_list_1x(d_cell_size.data,
                                  d_xyzf.data,
                                  d_tdb.data,
-                                 d_conditions.data,
+                                 m_conditions.getDeviceFlags(),
                                  d_pos.data,
                                  d_charge.data,
                                  d_diameter.data,

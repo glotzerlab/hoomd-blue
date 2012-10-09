@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Compute.h"
 #include "GPUArray.h"
+#include "GPUFlags.h"
 #include "Index1D.h"
 
 /*! \file NeighborList.h
@@ -403,7 +404,7 @@ class NeighborList : public Compute
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
         Scalar3 m_last_L;                    //!< Box lengths at last update
         unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
-        GPUArray<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
+        GPUFlags<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
         
         GPUArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
         GPUArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
@@ -462,7 +463,7 @@ class NeighborList : public Compute
 
         //! Resets the condition status
         void resetConditions();
-        
+
         //! Grow the exclusions list memory capacity by one row
         void growExclusionList();
     };

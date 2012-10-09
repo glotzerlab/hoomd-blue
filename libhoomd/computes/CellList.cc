@@ -79,7 +79,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_params_changed = true;
     m_particles_sorted = false;
     m_box_changed = false;
-    GPUArray<unsigned int> conditions(3, exec_conf);
+    GPUFlags<uint3> conditions(exec_conf);
     m_conditions.swap(conditions);
     m_num_ghost_cells = make_uint3(0,0,0);
     
@@ -404,8 +404,8 @@ void CellList::computeCellList()
     ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_xyzf(m_xyzf, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_tdb(m_tdb, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
-    
+    uint3 conditions = make_uint3(0,0,0);
+
     // shorthand copies of the indexers
     Index3D ci = m_cell_indexer;
     Index2D cli = m_cell_list_indexer;
@@ -423,7 +423,7 @@ void CellList::computeCellList()
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
         if (isnan(p.x) || isnan(p.y) || isnan(p.z))
             {
-            h_conditions.data[1] = n+1;
+            conditions.y = n+1;
             continue;
             }
             
@@ -459,7 +459,7 @@ void CellList::computeCellList()
         // check if the particle is inside the dimensions
         if (bin >= ci.getNumElements())
             {
-            h_conditions.data[2] = n+1;
+            conditions.z = n+1;
             continue;
             }
 
@@ -486,13 +486,16 @@ void CellList::computeCellList()
             }
         else
             {
-            h_conditions.data[0] = max(h_conditions.data[0], offset+1);
+            conditions.x = max(conditions.x, offset+1);
             }
         
         // increment the cell occupancy counter
         h_cell_size.data[bin]++;
         }
-        
+
+    // write out conditions
+    m_conditions.resetFlags(conditions);
+
     if (m_prof)
         m_prof->pop();
     }
@@ -501,27 +504,31 @@ bool CellList::checkConditions()
     {
     bool result = false;
 
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::read);
+    uint3 conditions;
+    if (m_inside_thread)
+        conditions = m_conditions.readFlagsThread(m_thread_id);
+    else
+        conditions = m_conditions.readFlags();
 
     // up m_Nmax to the overflow value, reallocate memory and set the overflow condition
-    if (h_conditions.data[0] > m_Nmax)
+    if (conditions.x > m_Nmax)
         {
-        m_Nmax = h_conditions.data[0];
+        m_Nmax = conditions.x;
         result = true;
         }                 
 
     // detect nan position errors
-    if (h_conditions.data[1])
+    if (conditions.y)
         {
-        unsigned int n = h_conditions.data[1] - 1;
+        unsigned int n = conditions.y - 1;
         m_exec_conf->msg->error() << "Particle " << n << " has NaN for its position." << endl;
         throw runtime_error("Error computing cell list");
         }
 
     // detect particles leaving box errors
-    if (h_conditions.data[2])
+    if (conditions.z)
         {
-        unsigned int n = h_conditions.data[2] - 1;
+        unsigned int n = conditions.z - 1;
         m_exec_conf->msg->error() << "Particle " << m_pdata->getRTag(n) << " is no longer in the simulation box." << endl
              << endl;
              {
@@ -540,10 +547,10 @@ bool CellList::checkConditions()
 
 void CellList::resetConditions()
     {
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
-    h_conditions.data[0] = 0;
-    h_conditions.data[1] = 0;
-    h_conditions.data[2] = 0;
+    if (m_inside_thread)
+        m_conditions.resetFlagsThread(make_uint3(0,0,0),m_thread_id);
+    else
+        m_conditions.resetFlags(make_uint3(0,0,0));
     }
 
 

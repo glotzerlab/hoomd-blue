@@ -144,8 +144,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
-    
+   
+    unsigned int conditions = 0;
+
     // access indexers
     Index3D ci = m_cl->getCellIndexer();
     Index2D cli = m_cl->getCellListIndexer();
@@ -220,7 +221,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     if (cur_n_neigh < m_nlist_indexer.getH())
                         h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
                     else
-                        h_conditions.data[0] = max(h_conditions.data[0], cur_n_neigh+1);
+                        conditions = max(conditions, cur_n_neigh+1);
                     
                     cur_n_neigh++;
                     }
@@ -229,7 +230,10 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         
         h_n_neigh.data[i] = cur_n_neigh;
         }
-    
+   
+    // write out conditions
+    m_conditions.resetFlags(conditions);
+
     if (m_prof)
         m_prof->pop(exec_conf);
     }
