@@ -209,7 +209,11 @@ bool NeighborListGPU::distanceCheck()
         CHECK_CUDA_ERROR();
 
     bool result;
-    result = (m_flags.readFlags() == m_checkn);
+    if (m_inside_thread)
+        result = (m_flags.readFlagsThread(m_thread_id) == m_checkn);
+    else
+        result = (m_flags.readFlags() == m_checkn);
+
     m_checkn++;
 
     if (m_prof) m_prof->pop(exec_conf);
