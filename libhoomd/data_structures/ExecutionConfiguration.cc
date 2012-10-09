@@ -138,6 +138,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
 
 #ifdef ENABLE_MPI
     m_partition = 0;
+    m_has_mpi_comm = false;
     if (init_mpi)
         initializeMPI(n_ranks);
 #endif
@@ -189,6 +190,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
 #ifdef ENABLE_MPI
     m_partition = 0;
+    m_has_mpi_comm = false;
     if (init_mpi)
         initializeMPI(n_ranks);
 #endif
@@ -200,10 +202,6 @@ ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
 
-    #ifdef ENABLE_MPI
-    if (m_mpi_comm) MPI_Finalize();
-    #endif
-
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
@@ -214,7 +212,16 @@ ExecutionConfiguration::~ExecutionConfiguration()
             cudaStreamDestroy(s);
             m_thread_streams.pop_back();
             }
+        }
+    #endif
 
+    #ifdef ENABLE_MPI
+    if (m_has_mpi_comm) MPI_Finalize();
+    #endif
+
+    #ifdef ENABLE_CUDA
+    if (exec_mode == GPU)
+        {
         cudaDeviceReset();
         }
     #endif
@@ -276,6 +283,8 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
 
     msg->setRank(rank, m_partition);
     msg->setMPICommunicator(m_mpi_comm);
+
+    m_has_mpi_comm = true;
     }
 #endif
 
@@ -752,7 +761,6 @@ void ExecutionConfiguration::setupStats()
 
 unsigned int ExecutionConfiguration::getRank() const
     {
-    assert(m_mpi_comm);
     int rank;
     MPI_Comm_rank(m_mpi_comm, &rank);
     return rank;
@@ -760,7 +768,6 @@ unsigned int ExecutionConfiguration::getRank() const
     
 unsigned int ExecutionConfiguration::getNRanks() const
     {
-    assert(m_mpi_comm);
     int size;
     MPI_Comm_size(m_mpi_comm, &size);
     return size;

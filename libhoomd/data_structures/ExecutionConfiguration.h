@@ -235,6 +235,7 @@ struct ExecutionConfiguration : boost::noncopyable
     void setMPICommunicator(const MPI_Comm mpi_comm)
         {
         m_mpi_comm = mpi_comm;
+        m_has_mpi_comm = true;
         } 
 #endif
 
@@ -274,7 +275,8 @@ private:
 
     unsigned int m_partition;                               //!< The partition number
 
-    MPI_Comm m_mpi_comm;                                    //!< The boost.MPI communicator
+    MPI_Comm m_mpi_comm;                                    //!< The MPI communicator
+    bool m_has_mpi_comm;                                    //!< True if we have a communicator
 #endif
 
     //! Setup and print out stats on the chosen CPUs/GPUs
