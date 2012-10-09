@@ -69,7 +69,8 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int * d_result,
                                              const BoxDim& box,
                                              const float maxshiftsq,
                                              const float3 lambda,
-                                             const unsigned int checkn);
+                                             const unsigned int checkn,
+                                             cudaStream_t stream);
 
 //! Kernel driver for gpu_nlist_filter_kernel()
 cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,

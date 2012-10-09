@@ -203,7 +203,8 @@ bool NeighborListGPU::distanceCheck()
                                      box,
                                      maxshiftsq,
                                      lambda,
-                                     m_checkn);
+                                     m_checkn,
+                                     m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

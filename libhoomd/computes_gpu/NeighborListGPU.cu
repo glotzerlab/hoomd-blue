@@ -110,11 +110,12 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const BoxDim& box,
                                              const float maxshiftsq,
                                              const float3 lambda,
-                                             const unsigned int checkn)
+                                             const unsigned int checkn,
+                                             cudaStream_t stream)
     {
     unsigned int block_size = 128;
     int n_blocks = (int)ceil(float(N)/(float)block_size);
-    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size>>>(d_result,
+    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size,0,stream>>>(d_result,
                                                                       d_last_pos,
                                                                       d_pos,
                                                                       N,
