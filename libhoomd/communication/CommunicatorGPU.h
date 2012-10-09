@@ -152,7 +152,6 @@ class CommunicatorGPU : public Communicator
                         boost::shared_ptr<DomainDecomposition> decomposition);
         virtual ~CommunicatorGPU();
 
-#ifdef ENABLE_MPI_CUDA
         /*! Start ghost communication.
          * Ghost-communication can be multi-threaded, if so this method spawns the corresponding thread
          */
@@ -161,7 +160,6 @@ class CommunicatorGPU : public Communicator
         /*! Finish ghost communication.
          */
         virtual void finishGhostsUpdate(unsigned int timestep);
-#endif
 
         //! \name communication methods
         //@{

@@ -112,7 +112,8 @@ void CellListGPU::computeCellList()
                               box,
                               m_cell_indexer,
                               m_cell_list_indexer,
-                              ghost_width);
+                              ghost_width,
+                              m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
         }
     else
         {

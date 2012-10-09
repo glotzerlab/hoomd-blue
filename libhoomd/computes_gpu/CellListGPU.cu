@@ -187,7 +187,8 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const BoxDim& box,
                                   const Index3D& ci,
                                   const Index2D& cli,
-                                  const Scalar3& ghost_width)
+                                  const Scalar3& ghost_width,
+                                  cudaStream_t stream)
     {
     unsigned int block_size = 256;
     int n_blocks = (int)ceil(float(N+n_ghost)/(float)block_size);
@@ -198,7 +199,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     if (err != cudaSuccess)
         return err;
     
-    gpu_compute_cell_list_kernel<<<n_blocks, block_size>>>(d_cell_size,
+    gpu_compute_cell_list_kernel<<<n_blocks, block_size,0,stream>>>(d_cell_size,
                                                            d_xyzf,
                                                            d_tdb,
                                                            d_conditions,

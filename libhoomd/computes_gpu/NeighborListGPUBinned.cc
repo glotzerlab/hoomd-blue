@@ -155,8 +155,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
         throw runtime_error("Error computing neighbor list");
         }
-    
-    m_cl->compute(timestep);
+   
+    if (m_inside_thread)
+        m_cl->computeThread(timestep,m_thread_id);
+    else
+        m_cl->compute(timestep);
     
     // check that at least 3x3x3 cells are computed
     uint3 dim = m_cl->getDim();

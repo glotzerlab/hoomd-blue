@@ -222,7 +222,6 @@ CommunicatorGPU::~CommunicatorGPU()
     cudaStreamDestroy(m_worker_stream);
     }
 
-#ifdef ENABLE_MPI_CUDA
 //! Start ghosts communication
 /*! This is the multi-threaded version.
  */
@@ -283,7 +282,6 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
     m_pdata->getPositions().release();
     m_pos_copybuf.release();
     }
-#endif
 
 //! Transfer particles between neighboring domains
 void CommunicatorGPU::migrateAtoms()
