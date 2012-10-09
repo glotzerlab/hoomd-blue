@@ -137,6 +137,9 @@ template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
+    // get the CUDA stream associated with this thread
+    cudaStream_t stream = this->m_inside_thread ? this->m_exec_conf->getThreadStream(this->m_thread_id) : 0;
+
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
     
@@ -194,7 +197,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                          false,
-                         this->m_exec_conf->getThreadStream(this->m_thread_id)),
+                         stream),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

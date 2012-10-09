@@ -311,7 +311,7 @@ std::string BondData::getNameByType(unsigned int type)
          the GPU implementation of updateBondTableGPU() and the CPU implementation updateBondTable().
          It is therefore unspecified (but in, in any case, deterministic).
 */
-void BondData::checkUpdateBondList()
+void BondData::checkUpdateBondList(bool inside_thread, unsigned int thread_id)
     {
 #ifdef ENABLE_MPI
     // late initialization of ghost bond table
@@ -328,7 +328,7 @@ void BondData::checkUpdateBondList()
 #ifdef ENABLE_CUDA
         // update bond table
         if (exec_conf->isCUDAEnabled())
-            updateBondTableGPU();
+            updateBondTableGPU(inside_thread, thread_id);
         else
             updateBondTable();
 #else
@@ -350,7 +350,7 @@ void BondData::checkUpdateBondList()
     on particle index for use in the GPU kernel. This new bond table is then uploaded
     to the device.
 */
-void BondData::updateBondTableGPU()
+void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
     {
     bool compute_ghost_bonds = false;
 #ifdef ENABLE_MPI
@@ -358,6 +358,9 @@ void BondData::updateBondTableGPU()
         compute_ghost_bonds = true;
 #endif
     unsigned int need_reallocate = 0;
+
+    // use CUDA stream associated with thread
+    cudaStream_t stream = inside_thread ? m_exec_conf->getThreadStream(thread_id) : 0;
 
     do
         {
@@ -378,7 +381,7 @@ void BondData::updateBondTableGPU()
                                      m_max_bond_num,
                                      m_max_ghost_bond_num,
                                      m_condition.getDeviceFlags(),
-                                     0);
+                                     stream);
             }
 
         need_reallocate = m_condition.readFlags();
@@ -416,7 +419,7 @@ void BondData::updateBondTableGPU()
                              m_gpu_ghost_bondlist.getPitch(),
                              m_pdata->getN(),
                              compute_ghost_bonds,
-                             0);
+                             stream);
         }
 
     }

@@ -938,28 +938,23 @@ void Integrator::createWorkerThreads()
     {
     assert(! m_threads_initialized);
 
-#ifdef ENABLE_CUDA
-    std::vector<cudaStream_t> streams;
-#endif
     for (unsigned int i = 0; i < m_num_worker_threads; ++i)
         {
-        m_worker_threads.push_back(boost::shared_ptr<boost::thread>(
-            new boost::thread(integrator_worker_thread(i, m_exec_conf), boost::ref(m_work_queue))));
+        unsigned int thread_id;
 #ifdef ENABLE_CUDA
-        if (m_exec_conf->isCUDAEnabled())        
-            {
-            // create CUDA stream
-            cudaStream_t stream;
-            cudaStreamCreate(&stream);
-            CHECK_CUDA_ERROR();
-            streams.push_back(stream);
-            }
+        if (m_exec_conf->isCUDAEnabled())
+            // couple thread to CUDA stream
+            thread_id = m_exec_conf->requestThreadStream();
+        else
+            thread_id = i;
+#else
+        thread_id = i;
 #endif
-        }
 
-#ifdef ENABLE_CUDA
-    m_exec_conf->setThreadStreams(streams);
-#endif
+        m_worker_threads.push_back(boost::shared_ptr<boost::thread>(
+            new boost::thread(integrator_worker_thread(thread_id, m_exec_conf),
+                boost::ref(m_work_queue))));
+        }
 
     m_threads_initialized = true;
     }
@@ -977,14 +972,6 @@ void Integrator::terminateWorkerThreads()
         t->join();
         m_worker_threads.pop_back();
         }
-#ifdef ENABLE_CUDA
-    for (unsigned int i = 0; i < m_num_worker_threads; ++i)
-        {
-        cudaStreamDestroy(m_exec_conf->getThreadStream(i));
-        }
-
-    m_exec_conf->setThreadStreams(std::vector<cudaStream_t>());
-#endif
     }
 
 void export_Integrator()

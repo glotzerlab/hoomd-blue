@@ -236,6 +236,12 @@ class BondData : boost::noncopyable
             }
 
 
+        //! Compute the GPU bond list inside a thread
+        void computeGPUBondListThread(unsigned int thread_id)
+            {
+            checkUpdateBondList(true,thread_id);
+            }
+
         //! Access the bonds on the GPU
         const GPUArray<uint2>& getGPUBondList()
             {
@@ -311,11 +317,11 @@ class BondData : boost::noncopyable
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
         //! Helper function to update the bond table on the device
-        void updateBondTableGPU();
+        void updateBondTableGPU(bool inside_thread=false, unsigned int thread_id=0);
 #endif
 
         //! Helper function to check and update the GPU bondlist
-        void checkUpdateBondList();
+        void checkUpdateBondList(bool inside_thread=false, unsigned int thread_id=0);
 
         //! Helper function to update the GPU bond table
         void updateBondTable();

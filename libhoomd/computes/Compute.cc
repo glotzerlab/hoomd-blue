@@ -72,7 +72,8 @@ using namespace std;
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
 Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
-        exec_conf(m_pdata->getExecConf()), m_last_computed(0), m_first_compute(true), m_force_compute(false)
+        exec_conf(m_pdata->getExecConf()), m_inside_thread(false), m_thread_id(0),
+        m_last_computed(0), m_first_compute(true), m_force_compute(false)
     {
     // sanity check
     assert(m_sysdef);
@@ -119,9 +120,6 @@ void SomeClass::compute(unsgned int timestep)
 */
 bool Compute::shouldCompute(unsigned int timestep)
     {
-    // make this thread-safe
-    boost::mutex::scoped_lock(m_mutex);
-
     // handle case where no computation has been performed yet
     if (m_first_compute)
         {
@@ -149,6 +147,27 @@ bool Compute::shouldCompute(unsigned int timestep)
     // failing the above, we perform no computation
     return false;
     }
+
+/*! Performs the computation from within a thread.
+    \param timestep Current timestep
+    \param thread_id Identifier for this thread
+    
+    This variant takes a thread id as a second argument, and is supposed to be called
+    from within a thread. The id can be used to couple to GPU hardware streams.
+ */
+void Compute::computeThread(unsigned int timestep, unsigned int thread_id)
+    {
+    // make this thread-safe
+    boost::mutex::scoped_lock(m_mutex);
+
+    m_thread_id = thread_id;
+    m_inside_thread = true;
+
+    compute(timestep);
+
+    m_inside_thread = false;
+    }
+
 
 void Compute::forceCompute(unsigned int timestep)
     {

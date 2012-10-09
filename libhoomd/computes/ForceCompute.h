@@ -108,9 +108,6 @@ class ForceCompute : public Compute
         //! Computes the forces
         virtual void compute(unsigned int timestep);
 
-        //! Compute the forces (when called from a thread)
-        virtual void computeThread(unsigned int timestep, unsigned int thread_id);
-
 #ifdef ENABLE_MPI
         //! Perform computation of forces due to ghost particles
         /*! This function may be implemented in forces which depend on ghost particles
@@ -207,8 +204,6 @@ class ForceCompute : public Compute
         Index2D m_index_thread_partial;         //!< Indexer to index the above 2 arrays by (particle, thread)
 
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
-
-        unsigned int m_thread_id;    //!< In multi-threading, this stores the thread ID from which the force compute was called
 
         //! Connection to the signal notifying when particles are resorted
         boost::signals::connection m_sort_connection;   

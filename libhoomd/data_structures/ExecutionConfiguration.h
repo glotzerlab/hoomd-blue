@@ -133,10 +133,19 @@ struct ExecutionConfiguration : boost::noncopyable
 #endif
 
 #ifdef ENABLE_CUDA
-    //! Set the stream used for concurrent kernel execution
-    void setThreadStreams(std::vector<cudaStream_t> streams) const
+    //! Requests a CUDA stream for a thread
+    /*! \returns a unique thread id
+     */
+    unsigned int requestThreadStream() const
         {
-        m_thread_streams = streams;
+        assert(exec_mode == GPU);
+        // create CUDA stream
+        cudaStream_t stream;
+        cudaStreamCreate(&stream);
+
+        unsigned int thread_id = m_thread_streams.size();
+        m_thread_streams.push_back(stream);
+        return thread_id;
         }
 
     //! Get the stream for concurrent kernel execution
@@ -255,6 +264,9 @@ private:
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
+
+    mutable std::vector<cudaStream_t> m_thread_streams;     //!< CUDA Streams for kernel execution
+    unsigned int m_stream_count;            //!< Number of active CUDA streams
 #endif
   
 #ifdef ENABLE_MPI
@@ -264,8 +276,6 @@ private:
 
     MPI_Comm m_mpi_comm;                                    //!< The boost.MPI communicator
 #endif
-
-    mutable std::vector<cudaStream_t> m_thread_streams;     //!< Streams for kernel execution
 
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();

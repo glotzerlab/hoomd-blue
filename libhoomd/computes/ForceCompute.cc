@@ -109,8 +109,6 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     for (unsigned int i = 0; i < 6; ++i)
         m_external_virial[i] = Scalar(0.0);
 
-    m_thread_id = 0;
-
     }
 
 /*! \post m_fdata and virial _partial are both allocated, and m_index_thread_partial is intiialized for indexing them
@@ -210,19 +208,6 @@ void ForceCompute::compute(unsigned int timestep)
         
     computeForces(timestep);
     m_particles_sorted = false;
-    }
-
-/*! Performs the force computation.
-    \param timestep Current timestep
-    
-    This variant takes a thread id as a second argument, and is supposed to be called
-    from within a thread. The id can be used to couple to GPU hardware streams.
- */
-void ForceCompute::computeThread(unsigned int timestep, unsigned int thread_id)
-    {
-    m_thread_id = thread_id;
-
-    compute(timestep);
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark

@@ -201,7 +201,17 @@ ExecutionConfiguration::~ExecutionConfiguration()
 
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
-        cudaThreadExit();
+        {
+        // destroy streams
+        while (! m_thread_streams.empty())
+            {
+            cudaStream_t s = m_thread_streams.back();
+            cudaStreamDestroy(s);
+            m_thread_streams.pop_back();
+            }
+
+        cudaDeviceReset();
+        }
     #endif
     }
 
