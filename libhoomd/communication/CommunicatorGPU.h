@@ -84,8 +84,7 @@ struct ghost_gpu_thread_params
                   Scalar4 *_d_pos_data,
                   Scalar4 *_d_pos_copybuf,
                   const BoxDim &_box,
-                  boost::shared_ptr<const ExecutionConfiguration> _exec_conf,
-                  const cudaStream_t& _stream)
+                  boost::shared_ptr<const ExecutionConfiguration> _exec_conf)
         : decomposition(_decomposition), 
           is_communicating(_is_communicating),
           is_at_boundary(_is_at_boundary),
@@ -96,8 +95,7 @@ struct ghost_gpu_thread_params
           d_pos_data(_d_pos_data),
           d_pos_copybuf(_d_pos_copybuf),
           box(_box),
-          exec_conf(_exec_conf),
-          stream(_stream)
+          exec_conf(_exec_conf)
         { } 
 
     boost::shared_ptr<DomainDecomposition> decomposition;   //!< Information about the domain decomposition
@@ -111,7 +109,6 @@ struct ghost_gpu_thread_params
     Scalar4 *d_pos_copybuf;              //!< Buffer pointer for copying positions
     const BoxDim& box;                   //!< Dimensions of global box
     boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Execution configuration
-    const cudaStream_t stream;          //!<  CUDA stream to use 
     };
 
 //! Thread that handles update of ghost particles
@@ -132,7 +129,7 @@ class ghost_gpu_thread
         Scalar4 *h_pos_recvbuf;                                       //!< Ghost receive buffer
         unsigned int m_size_copy_buf;                                 //!< Size of send buffer
         unsigned int m_size_recv_buf;                                 //!< Size of receive buffer
-        cudaEvent_t m_event;                                          //!< Cuda event for synchronization
+        unsigned int m_thread_id;                                     //!< GPU thread id
 
         //! The routine that does the actual ghost update
         /*! \param params The parameters for this update
@@ -197,8 +194,6 @@ class CommunicatorGPU : public Communicator
         const unsigned int *m_copy_ghosts_data[6];  //!< Per-direction pointers to ghost particle send list buffer
         bool m_communication_dir[6];                //!< Per-direction flag, true if we are communicating in this direction
 
-        cudaStream_t m_worker_stream;               //!< CUDA Streams for concurrent copying and kernel excecution in worker thread
-        
     };
 
 //! Export CommunicatorGPU class to python

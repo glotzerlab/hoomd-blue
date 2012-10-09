@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
+#include <boost/thread.hpp>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -133,26 +134,21 @@ struct ExecutionConfiguration : boost::noncopyable
 #endif
 
 #ifdef ENABLE_CUDA
-    //! Requests a CUDA stream for a thread
-    /*! \returns a unique thread id
-     */
-    unsigned int requestThreadStream() const
-        {
-        assert(exec_mode == GPU);
-        // create CUDA stream
-        cudaStream_t stream;
-        cudaStreamCreate(&stream);
-
-        unsigned int thread_id = m_thread_streams.size();
-        m_thread_streams.push_back(stream);
-        return thread_id;
-        }
+    //! Requests an ID for a thread running on a GPU
+    unsigned int requestGPUThreadId() const;
 
     //! Get the stream for concurrent kernel execution
     cudaStream_t getThreadStream(unsigned int thread_id) const
         {
         assert(thread_id < m_thread_streams.size());
         return m_thread_streams[thread_id];
+        }
+
+    //! Get a reusable event for this thread
+    cudaEvent_t getThreadEvent(unsigned int thread_id) const
+        {
+        assert(thread_id < m_thread_events.size());
+        return m_thread_events[thread_id];
         }
 #endif
 
@@ -267,7 +263,8 @@ private:
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
 
     mutable std::vector<cudaStream_t> m_thread_streams;     //!< CUDA Streams for kernel execution
-    unsigned int m_stream_count;            //!< Number of active CUDA streams
+    mutable std::vector<cudaEvent_t> m_thread_events;       //!< Reusable events for every thread
+    mutable boost::mutex m_mutex;                   //!< Lock for thread-safe requesting of streams
 #endif
   
 #ifdef ENABLE_MPI

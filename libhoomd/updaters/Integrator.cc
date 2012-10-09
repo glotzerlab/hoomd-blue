@@ -84,6 +84,13 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
         cudaFree(0);
 #endif
 
+#ifdef ENABLE_CUDA
+    // for execution on the GPU, we need to a unique thread identifer
+    if (m_exec_conf->isCUDAEnabled())
+        // couple thread to CUDA stream
+        m_thread_id = m_exec_conf->requestGPUThreadId();
+#endif
+
     bool done = false;
     while (! done)
         {
@@ -940,20 +947,8 @@ void Integrator::createWorkerThreads()
 
     for (unsigned int i = 0; i < m_num_worker_threads; ++i)
         {
-        unsigned int thread_id;
-#ifdef ENABLE_CUDA
-        if (m_exec_conf->isCUDAEnabled())
-            // couple thread to CUDA stream
-            thread_id = m_exec_conf->requestThreadStream();
-        else
-            thread_id = i;
-#else
-        thread_id = i;
-#endif
-
         m_worker_threads.push_back(boost::shared_ptr<boost::thread>(
-            new boost::thread(integrator_worker_thread(thread_id, m_exec_conf),
-                boost::ref(m_work_queue))));
+            new boost::thread(integrator_worker_thread(m_exec_conf), boost::ref(m_work_queue))));
         }
 
     m_threads_initialized = true;

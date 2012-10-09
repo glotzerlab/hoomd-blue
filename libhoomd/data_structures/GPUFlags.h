@@ -377,8 +377,7 @@ template<class T> const T GPUFlags<T>::readFlags()
 template<class T> inline const T GPUFlags<T>::readFlagsThread(unsigned int thread_id)
     {
 #ifdef ENABLE_CUDA
-    cudaEvent_t ev;
-    cudaEventCreate(&ev);
+    cudaEvent_t ev = m_exec_conf->getThreadEvent(thread_id);
     cudaStream_t stream = m_exec_conf->getThreadStream(thread_id);
     if (m_mapped)
         {
@@ -392,7 +391,6 @@ template<class T> inline const T GPUFlags<T>::readFlagsThread(unsigned int threa
         cudaEventRecord(ev,stream);
         }
     cudaEventSynchronize(ev);
-    cudaEventDestroy(ev);
 #endif    
 
     // return value of flags

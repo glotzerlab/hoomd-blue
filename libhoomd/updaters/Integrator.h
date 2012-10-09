@@ -110,8 +110,8 @@ struct integrator_worker_thread
     {
     public:
         //! Constructor
-        integrator_worker_thread(unsigned int thread_id, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
-            : m_thread_id(thread_id), m_exec_conf(exec_conf)
+        integrator_worker_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+            : m_thread_id(0), m_exec_conf(exec_conf)
             { }
 
         void operator()(WorkQueue<integrator_thread_params>& queue);

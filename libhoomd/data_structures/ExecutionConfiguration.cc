@@ -72,6 +72,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#include <boost/thread.hpp>
+
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
@@ -211,6 +213,14 @@ ExecutionConfiguration::~ExecutionConfiguration()
             cudaStream_t s = m_thread_streams.back();
             cudaStreamDestroy(s);
             m_thread_streams.pop_back();
+            }
+
+        // destroy events
+        while (! m_thread_events.empty())
+            {
+            cudaEvent_t ev = m_thread_events.back();
+            cudaEventDestroy(ev);
+            m_thread_events.pop_back();
             }
         }
     #endif
@@ -773,6 +783,32 @@ unsigned int ExecutionConfiguration::getNRanks() const
     MPI_Comm_size(m_mpi_comm, &size);
     return size;
     }
+
+#ifdef ENABLE_CUDA
+/*! For cudaEventCreate to work correctly, this routine has to be called from within a thread
+ * \returns a unique thread id
+ */
+unsigned int ExecutionConfiguration::requestGPUThreadId() const
+        {
+        assert(exec_mode == GPU);
+        
+        // make this routine thread-safe
+        boost::mutex::scoped_lock l(m_mutex);
+
+        // create CUDA stream
+        cudaStream_t stream;
+        cudaStreamCreate(&stream);
+
+        unsigned int thread_id = m_thread_streams.size();
+        m_thread_streams.push_back(stream);
+
+        cudaEvent_t ev;
+        cudaEventCreate(&ev);
+        m_thread_events.push_back(ev);
+
+        return thread_id;
+        }
+#endif
 
 void export_ExecutionConfiguration()
     {
