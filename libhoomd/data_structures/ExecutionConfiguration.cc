@@ -81,6 +81,11 @@ using namespace boost::python;
 using namespace std;
 using namespace boost;
 
+//! Environment variables needed for setting up MPI
+char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
+//! enable multi-threading
+char env_enable_threads[] = "MV2_ENABLE_AFFINITY=0";
+
 /*! \file ExecutionConfiguration.cc
     \brief Defines ExecutionConfiguration and related classes
 */
@@ -223,12 +228,11 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
 #ifdef ENABLE_MPI_CUDA
     if (exec_mode==GPU)
         {
-        char enable_mpi_cuda[] = "MV2_USE_CUDA=1";
-        putenv(enable_mpi_cuda);
+        // enable MPI-CUDA support
+        putenv(env_enable_mpi_cuda);
 
         // enable multi-threading
-        char enable_threads[] = "MV2_ENABLE_AFFINITY=0";
-        putenv(enable_threads);
+        putenv(env_enable_threads);
         }
 #endif
 
