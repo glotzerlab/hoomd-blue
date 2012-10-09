@@ -83,7 +83,7 @@ using namespace boost;
 
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
-//! enable multi-threading
+//! Enable multi-threading
 char env_enable_threads[] = "MV2_ENABLE_AFFINITY=0";
 
 /*! \file ExecutionConfiguration.cc
@@ -230,16 +230,17 @@ ExecutionConfiguration::~ExecutionConfiguration()
 #ifdef ENABLE_MPI
 void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     {
+
+    // enable multi-threading
+    putenv(env_enable_threads);
+
+#ifdef ENABLE_MPI_CUDA
     // if we are using an MPI-CUDA implementation, enable this feature
     // before the MPI_Init
-#ifdef ENABLE_MPI_CUDA
     if (exec_mode==GPU)
         {
         // enable MPI-CUDA support
         putenv(env_enable_mpi_cuda);
-
-        // enable multi-threading
-        putenv(env_enable_threads);
         }
 #endif
 
