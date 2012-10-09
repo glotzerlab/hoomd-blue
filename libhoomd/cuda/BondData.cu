@@ -204,9 +204,9 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
     unsigned int block_size = 512;
 
     // clear n_bonds array
-    cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
+    cudaMemsetAsync(d_n_bonds, 0, sizeof(unsigned int) * N,stream);
     if (compute_ghost_bonds)
-        cudaMemset(d_n_ghost_bonds, 0, sizeof(unsigned int) * N);
+        cudaMemsetAsync(d_n_ghost_bonds, 0, sizeof(unsigned int) * N,stream);
 
     gpu_find_max_bond_number_kernel<<<num_bonds/block_size + 1, block_size,0,stream>>>(d_bonds,
                                                                               d_rtag,
@@ -252,10 +252,10 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
     unsigned int block_size = 512;
 
     // clear n_bonds array
-    cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
+    cudaMemsetAsync(d_n_bonds, 0, sizeof(unsigned int) * N,stream);
 
     if (compute_ghost_bonds)
-        cudaMemset(d_n_ghost_bonds, 0, sizeof(unsigned int) * N);
+        cudaMemsetAsync(d_n_ghost_bonds, 0, sizeof(unsigned int) * N,stream);
 
     gpu_fill_gpu_bond_table<<<num_bonds/block_size + 1, block_size,0,stream>>>(d_bonds,
                                                                       d_bond_type,
