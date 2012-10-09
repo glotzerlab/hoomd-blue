@@ -301,7 +301,10 @@ class BondData : boost::noncopyable
         GPUArray<unsigned int> m_n_ghost_bonds; //!< Array of the number of ghost bonds
         bool m_ghost_bond_table_allocated;      //!< True if ghost bond table has been allocated
 #ifdef ENABLE_CUDA
-        GPUFlags<unsigned int> m_max_bond_num;  //!< Maximum bond number
+        unsigned int m_max_bond_num;            //!< Maximum bond number
+        unsigned int m_max_ghost_bond_num;      //!< Maximum ghost bond number
+        GPUFlags<unsigned int> m_condition;     //!< Condition variable for bond counting
+        GPUArray<unsigned int> m_reduce_scratch; //!< Scratch space for the redution kernel
 #endif
         boost::mutex m_mutex;                   //!< Mutex to protect against simultaneous updates of the bond table
 

@@ -78,7 +78,8 @@ using namespace std;
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
     : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
-      m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
+      m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf),
+      m_max_bond_num(0), m_max_ghost_bond_num(0)
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
@@ -107,6 +108,11 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     // allocate memory for the GPU bond table
     allocateBondTable(1);
     m_ghost_bond_table_allocated = false;
+
+    #ifdef ENABLE_CUDA
+    GPUFlags<unsigned int> condition(exec_conf);
+    m_condition.swap(condition);
+    #endif
     }
 
 BondData::~BondData()
@@ -346,39 +352,49 @@ void BondData::checkUpdateBondList()
 */
 void BondData::updateBondTableGPU()
     {
-    unsigned int max_bond_num = 0;
-    unsigned int max_ghost_bond_num = 0;
-
     bool compute_ghost_bonds = false;
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         compute_ghost_bonds = true;
 #endif
+    unsigned int need_reallocate = 0;
 
+    do
         {
-        ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
-        ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
-//        gpu_find_max_bond_number(m_max_bond_num.getDeviceFlags(),
-        gpu_find_max_bond_number(max_bond_num,
-                                 max_ghost_bond_num,
-                                 d_n_bonds.data,
-                                 d_n_ghost_bonds.data,
-                                 d_bonds.data,
-                                 m_bonds.size(),
-                                 m_pdata->getN(),
-                                 d_rtag.data,
-                                 compute_ghost_bonds,
-                                 0);
+        m_condition.resetFlags(0);
+
+            {
+            ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
+            gpu_find_max_bond_number(d_n_bonds.data,
+                                     d_n_ghost_bonds.data,
+                                     d_bonds.data,
+                                     m_bonds.size(),
+                                     m_pdata->getN(),
+                                     d_rtag.data,
+                                     compute_ghost_bonds,
+                                     m_max_bond_num,
+                                     m_max_ghost_bond_num,
+                                     m_condition.getDeviceFlags(),
+                                     0);
+            }
+
+        need_reallocate = m_condition.readFlags();
+
+        if (need_reallocate & 1)
+            {
+            // reallocate bond list
+            m_gpu_bondlist.resize(m_pdata->getMaxN(), ++m_max_bond_num);
+            }
+
+        if (compute_ghost_bonds && (need_reallocate & 2))
+            {
+            m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), ++m_max_ghost_bond_num);
+            }
         }
-
-    // re allocate memory if needed
-    if (max_bond_num > m_gpu_bondlist.getHeight())
-        m_gpu_bondlist.resize(m_pdata->getMaxN(), max_bond_num);
-
-    if (compute_ghost_bonds && max_ghost_bond_num > m_gpu_ghost_bondlist.getHeight())
-        m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), max_ghost_bond_num);
+    while (need_reallocate);
 
         {
         ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);

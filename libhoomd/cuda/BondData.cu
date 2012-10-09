@@ -65,6 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Implements the helper functions (GPU version) for updating the GPU bond table
 */
 
+#define MAX(i,j) (i > j ? i : j)
+
 //! Kernel to find the maximum number of angles per particle
 __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
                                              const unsigned int *d_rtag,
@@ -72,7 +74,10 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
                                              unsigned int *d_n_ghost_bonds,
                                              unsigned int num_bonds,
                                              unsigned int N,
-                                             bool ghost_bonds)
+                                             bool ghost_bonds,
+                                             const unsigned int cur_max,
+                                             const unsigned int cur_ghost_max,
+                                             unsigned int *condition)
     {
     int bond_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -85,15 +90,35 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
     unsigned int idx1 = d_rtag[tag1];
     unsigned int idx2 = d_rtag[tag2];
 
+    bool bond_needed = false;
+    bool ghost_bond_needed = false;
     if (idx1 < N && (idx2 < N || !ghost_bonds))
-        atomicInc(&d_n_bonds[idx1], 0xffffffff);
+        {
+        unsigned int n = atomicInc(&d_n_bonds[idx1], 0xffffffff);
+        if (n >= cur_max) bond_needed = true;
+        }
     if (idx2 < N && (idx1 < N || !ghost_bonds))
-        atomicInc(&d_n_bonds[idx2], 0xffffffff);
+        {
+        unsigned int n = atomicInc(&d_n_bonds[idx2], 0xffffffff);
+        if (n >= cur_max) bond_needed = true;
+        }
 
     if (idx1 < N && idx2 >= N && ghost_bonds)
-        atomicInc(&d_n_ghost_bonds[idx1], 0xffffffff);
+        {
+        unsigned int n = atomicInc(&d_n_ghost_bonds[idx1], 0xffffffff);
+        if (n >= cur_ghost_max) ghost_bond_needed = true;
+        }
     if (idx2 < N && idx1 >= N && ghost_bonds)
-        atomicInc(&d_n_ghost_bonds[idx2], 0xffffffff);
+        {
+        unsigned int n = atomicInc(&d_n_ghost_bonds[idx2], 0xffffffff);
+        if (n >= cur_ghost_max) ghost_bond_needed = true;
+        }
+
+    if (bond_needed)
+        atomicOr(condition, 1);
+
+    if (ghost_bond_needed)
+        atomicOr(condition, 2);
     }
 
 //! Kernel to fill the GPU bond table
@@ -148,25 +173,28 @@ __global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
 
 
 //! Find the maximum number of bonds per particle
-/*! \param max_bond_num Maximum number of bonds (return value)
-    \param d_n_bonds Number of bonds per particle (return array)
+/*! \param d_n_bonds Number of bonds per particle (return array)
     \param d_n_ghost_bonds Number of ghost bonds per particle (return array)
     \param d_bonds Array of bonds
     \param num_bonds Size of bond array
     \param N Number of particles in the system
     \param d_rtag Array of reverse-lookup particle tag . particle index
     \param compute_ghost_bonds True if we are considering bonds with ghost particles
+    \param cur_max Current maximum bonded particle number
+    \param cur_ghost_max Current maximum bonded ghost particle number
+    \param condition Condition variable, set to unequal zero if we exceed the maximum numbers
     \param stream Cuda stream to use for concurrent kernel execution
  */
-cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
-                                     unsigned int& max_ghost_bond_num,
-                                     unsigned int *d_n_bonds,
+cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                      unsigned int *d_n_ghost_bonds,
                                      const uint2 *d_bonds,
                                      const unsigned int num_bonds,
                                      const unsigned int N,
                                      const unsigned int *d_rtag,
                                      bool compute_ghost_bonds,
+                                     const unsigned int cur_max,
+                                     const unsigned int cur_ghost_max,
+                                     unsigned int *d_condition,
                                      cudaStream_t stream)
     {
     assert(d_bonds);
@@ -186,16 +214,11 @@ cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
                                                                               d_n_ghost_bonds,
                                                                               num_bonds,
                                                                               N,
-                                                                              compute_ghost_bonds);
+                                                                              compute_ghost_bonds,
+                                                                              cur_max,
+                                                                              cur_ghost_max,
+                                                                              d_condition);
 
-    thrust::device_ptr<unsigned int> n_bonds_ptr(d_n_bonds);
-    max_bond_num = *thrust::max_element(n_bonds_ptr, n_bonds_ptr + N);
-
-    if (compute_ghost_bonds)
-        {
-        thrust::device_ptr<unsigned int> n_ghost_bonds_ptr(d_n_ghost_bonds);
-        max_ghost_bond_num = *thrust::max_element(n_ghost_bonds_ptr, n_ghost_bonds_ptr + N);
-        }
     return cudaSuccess;
     }
 
