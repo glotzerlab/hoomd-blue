@@ -72,7 +72,8 @@ ghost_gpu_thread::ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguratio
       h_pos_recvbuf(NULL),
       m_size_copy_buf(0),
       m_size_recv_buf(0)
-    { }
+    {
+    }
 
 //! Destructor
 ghost_gpu_thread::~ghost_gpu_thread()
@@ -90,6 +91,8 @@ void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boo
          cudaFree(0);
     #endif
 
+    cudaEventCreate(&m_event);
+
     bool done = false;
     while (! done)
         {
@@ -106,6 +109,8 @@ void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boo
             done = true;
             }
         }
+
+    cudaEventDestroy(m_event);
     }
 
 void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
@@ -166,7 +171,8 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
 
         // exchange particle data, write directly to the particle data arrays
         cudaMemcpyAsync(h_pos_copybuf, params.d_pos_copybuf, (params.num_copy_ghosts[dir]+params.num_copy_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyDeviceToHost, params.stream);
-        cudaStreamSynchronize(params.stream);
+        cudaEventRecord(m_event, params.stream);
+        cudaEventSynchronize(m_event);
 
         MPI_Isend(h_pos_copybuf, params.num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[0]);
         MPI_Irecv(h_pos_recvbuf, params.num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[1]);
@@ -177,7 +183,7 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         MPI_Waitall(4, reqs, status);
 
         cudaMemcpyAsync(params.d_pos_data + start_idx, h_pos_recvbuf, (params.num_recv_ghosts[dir]+params.num_recv_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyHostToDevice, params.stream);
-        cudaStreamSynchronize(params.stream);
+        //cudaStreamSynchronize(params.stream);
         } // end dir loop
 
     } 

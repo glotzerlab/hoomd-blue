@@ -132,6 +132,7 @@ class ghost_gpu_thread
         Scalar4 *h_pos_recvbuf;                                       //!< Ghost receive buffer
         unsigned int m_size_copy_buf;                                 //!< Size of send buffer
         unsigned int m_size_recv_buf;                                 //!< Size of receive buffer
+        cudaEvent_t m_event;                                          //!< Cuda event for synchronization
 
         //! The routine that does the actual ghost update
         /*! \param params The parameters for this update
