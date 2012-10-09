@@ -191,7 +191,8 @@ def _parse_command_line():
             raise RuntimeError('Error setting option');
         globals.options.nrank = int(cmd_options.nrank);
 
-    globals.options.num_worker_threads = int(cmd_options.num_worker_threads);
+    if cmd_options.num_worker_threads is not None:
+        globals.options.num_worker_threads = int(cmd_options.num_worker_threads);
 
     if cmd_options.user is not None:
         globals.options.user = shlex.split(cmd_options.user);
