@@ -337,16 +337,30 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_comm->startGhostsUpdate(timestep);
 #endif
 
+    if (m_prof)
+        m_prof->push("Forces");
+
     if (! m_threads_initialized)
         createWorkerThreads();
 
+    m_completed_tasks = 0;
+
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->compute(timestep);
-        //m_work_queue.push(integrator_thread_params(*force_compute,timestep));
+//        (*force_compute)->compute(timestep);
+        m_work_queue.push(integrator_thread_params(*force_compute,
+                                                   timestep,
+                                                   false,
+                                                   m_forces.size(),
+                                                   m_completed_tasks,
+                                                   m_mutex,
+                                                   m_barrier));
 
     // wait for threads to finish
-    //m_barrier->wait();
+    m_barrier.wait();
+
+    if (m_prof)
+        m_prof->pop();
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -354,10 +368,26 @@ void Integrator::computeNetForce(unsigned int timestep)
         // wait for ghost communication to finish
         m_comm->finishGhostsUpdate(timestep);
 
+        m_completed_tasks = 0;
+
+        if (m_prof)
+            m_prof->push("Forces");
+
         // compute additional forces due to ghost atoms
         std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-            (*force_compute)->computeGhostForces(timestep);
+//            (*force_compute)->computeGhostForces(timestep);
+            m_work_queue.push(integrator_thread_params(*force_compute,
+                                                       timestep,
+                                                       true,
+                                                       m_forces.size(),
+                                                       m_completed_tasks,
+                                                       m_mutex,
+                                                       m_barrier));
+
+        m_barrier.wait();
+        if (m_prof)
+            m_prof->pop();
         }
 #endif
 
@@ -523,6 +553,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_comm->startGhostsUpdate(timestep);
 #endif
 
+    if (m_prof)
+        m_prof->push("Forces");
+
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     m_completed_tasks = 0;
@@ -539,11 +572,17 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
     m_barrier.wait();
 
+    if (m_prof)
+        m_prof->pop();
+
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         // wait for ghost communication to finish
         m_comm->finishGhostsUpdate(timestep);
+
+        if (m_prof)
+            m_prof->push("Forces");
 
         m_completed_tasks = 0;
 
@@ -561,6 +600,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
         m_barrier.wait();
 
+        if (m_prof)
+            m_prof->pop();
         }
 #endif
 

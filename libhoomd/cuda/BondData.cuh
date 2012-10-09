@@ -61,22 +61,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Find the maximum number of bonds per particle
 cudaError_t gpu_find_max_bond_number(unsigned int& max_bond_num,
+                                     unsigned int& max_ghost_bond_num,
                                      unsigned int *d_n_bonds,
+                                     unsigned int *d_n_ghost_bonds,
                                      const uint2 *d_bonds,
                                      const unsigned int num_bonds,
                                      const unsigned int N,
                                      const unsigned int *d_rtag,
-                                     bool use_ghost_bonds,
+                                     bool find_ghost_bonds,
                                      cudaStream_t stream);
 
 //! Construct the GPU bond table
 cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
+                                 uint2 *d_n_ghost_bondtable,
                                  unsigned int *d_n_bonds,
+                                 unsigned int *d_n_ghost_bonds,
                                  const uint2 *d_bonds,
                                  const unsigned int *d_bond_type,
                                  const unsigned int *d_rtag,
                                  const unsigned int num_bonds,
                                  unsigned int pitch,
+                                 unsigned int ghost_pitch,
                                  unsigned int N,
                                  bool use_ghost_bonds,
                                  cudaStream_t stream);

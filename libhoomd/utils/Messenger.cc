@@ -242,7 +242,7 @@ void Messenger::openSharedFile()
 
     std::ostringstream oss;
     oss << m_shared_filename << "." << m_partition;
-    io::stream<mpi_io> *mpi_ios = new io::stream<mpi_io>((const MPI_Comm&) m_mpi_comm, oss.str());
+    boost::iostreams::stream<mpi_io> *mpi_ios = new boost::iostreams::stream<mpi_io>((const MPI_Comm&) m_mpi_comm, oss.str());
 
     // now update the error, warning, and notice streams
     m_file = boost::shared_ptr<std::ostream>(mpi_ios);

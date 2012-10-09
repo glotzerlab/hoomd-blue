@@ -115,8 +115,18 @@ template<class T> class GPUFlags
         //! Read the flags on the host
         inline const T readFlags();
 
+        //! Read the flags on the host (threaded version)
+        /*! \param thread_id The thread from which this method is called
+         */
+        inline const T readFlagsThread(unsigned int thread_id);
+
         //! Reset the flags on the host
         inline void resetFlags(const T flags);
+
+        //! Reset the flags on the host (threaded version)
+        /*! \param thread_id The thread from which this method is called
+         */
+        inline void resetFlagsThread(const T flags, unsigned int thread_id);
 
 #ifdef ENABLE_CUDA
         //! Get the flags on the device
@@ -364,6 +374,28 @@ template<class T> const T GPUFlags<T>::readFlags()
     return *h_data;
     }
 
+template<class T> inline const T GPUFlags<T>::readFlagsThread(unsigned int thread_id)
+    {
+#ifdef ENABLE_CUDA
+    cudaStream_t stream = m_exec_conf->getThreadStream(thread_id);
+    if (m_mapped)
+        {
+        // synch to wait for kernels
+        cudaStreamSynchronize(stream);
+        }
+    else
+        {
+        // async memcpy the results to the host
+        cudaMemcpyAsync(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost,stream);
+        }
+
+    cudaStreamSynchronize(stream);
+#endif    
+
+    // return value of flags
+    return *h_data;
+    } 
+
 /*! \param flags Value of flags to set
     \note resetFlags synchronizes with the GPU execution stream. It waits for all prior kernel launches to complete
     before actually resetting the flags so that a possibly executing kernel doesn't unintentionally overwrite the
@@ -391,5 +423,29 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         }
     }
 
+template<class T> inline void GPUFlags<T>::resetFlagsThread(const T flags, unsigned int thread_id)
+    {
+    if (m_mapped)
+        {
+#ifdef ENABLE_CUDA
+        cudaStream_t stream = m_exec_conf->getThreadStream(thread_id);
+        // synch to wait for kernels
+        cudaStreamSynchronize(stream);
+#endif
+        // set the flags
+        *h_data = flags;
+        }
+    else
+        {
+        // set the flags
+        *h_data = flags;
+#ifdef ENABLE_CUDA
+        cudaStream_t stream = m_exec_conf->getThreadStream(thread_id);
+        // copy to the device
+        cudaMemcpyAsync(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice,stream);
+        cudaStreamSynchronize(stream);
+#endif
+        }
+    } 
 #endif
 

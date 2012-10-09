@@ -75,6 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/signal.hpp>
 #include <boost/utility.hpp>
+#include <boost/thread.hpp>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -82,6 +83,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "GPUVector.h"
+#include "GPUFlags.h"
 #include "ExecutionConfiguration.h"
 #include "HOOMDMath.h"
 
@@ -235,12 +237,16 @@ class BondData : boost::noncopyable
 
 
         //! Access the bonds on the GPU
-        const GPUArray<uint2>& getGPUBondList();
+        const GPUArray<uint2>& getGPUBondList()
+            {
+            checkUpdateBondList();
+            return m_gpu_bondlist;
+            }
        
         //! Access the ghost bond list on the GPU
         const GPUArray<uint2> & getGPUGhostBondList()
             {
-            assert(!m_bonds_dirty);
+            checkUpdateBondList();
             return m_gpu_ghost_bondlist;
             }
 
@@ -294,12 +300,19 @@ class BondData : boost::noncopyable
         GPUArray<unsigned int> m_n_bonds;       //!< Array of the number of bonds
         GPUArray<unsigned int> m_n_ghost_bonds; //!< Array of the number of ghost bonds
         bool m_ghost_bond_table_allocated;      //!< True if ghost bond table has been allocated
+#ifdef ENABLE_CUDA
+        GPUFlags<unsigned int> m_max_bond_num;  //!< Maximum bond number
+#endif
+        boost::mutex m_mutex;                   //!< Mutex to protect against simultaneous updates of the bond table
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
         //! Helper function to update the bond table on the device
         void updateBondTableGPU();
 #endif
+
+        //! Helper function to check and update the GPU bondlist
+        void checkUpdateBondList();
 
         //! Helper function to update the GPU bond table
         void updateBondTable();

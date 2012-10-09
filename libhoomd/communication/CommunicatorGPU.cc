@@ -237,13 +237,14 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     // fill thread parameters
     for (unsigned int i = 0; i < 6; ++i)
         {
-        m_copy_ghosts_data[i] = m_copy_ghosts[i].lock(access_location::device, access_mode::read);
+        m_copy_ghosts_data[i] = m_copy_ghosts[i].acquire(access_location::device, access_mode::read);
         m_communication_dir[i] = isCommunicating(i);
         }
 
     // lock positions array against writing
-    Scalar4 *d_pos_data = m_pdata->getPositions().lock(access_location::device, access_mode::readwrite);
-    Scalar4 *d_pos_copybuf_data = m_pos_copybuf.lock(access_location::device, access_mode::overwrite);
+    Scalar4 *d_pos_data = m_pdata->getPositions().acquire(access_location::device, access_mode::readwrite_shared);
+
+    Scalar4 *d_pos_copybuf_data = m_pos_copybuf.acquire(access_location::device, access_mode::overwrite);
 
     // post the parameters to the worker thread
     m_work_queue.push(ghost_gpu_thread_params(
@@ -277,10 +278,10 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
 
     // release locked arrays
     for (unsigned int i = 0; i < 6; ++i)
-        m_copy_ghosts[i].unlock();
+        m_copy_ghosts[i].release();
 
-    m_pdata->getPositions().unlock();
-    m_pos_copybuf.unlock();
+    m_pdata->getPositions().release();
+    m_pos_copybuf.release();
     }
 #endif
 

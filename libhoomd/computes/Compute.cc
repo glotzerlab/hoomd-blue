@@ -119,6 +119,9 @@ void SomeClass::compute(unsgned int timestep)
 */
 bool Compute::shouldCompute(unsigned int timestep)
     {
+    // make this thread-safe
+    boost::mutex::scoped_lock(m_mutex);
+
     // handle case where no computation has been performed yet
     if (m_first_compute)
         {

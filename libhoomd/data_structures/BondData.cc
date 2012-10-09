@@ -305,14 +305,15 @@ std::string BondData::getNameByType(unsigned int type)
          the GPU implementation of updateBondTableGPU() and the CPU implementation updateBondTable().
          It is therefore unspecified (but in, in any case, deterministic).
 */
-const GPUArray<uint2>& BondData::getGPUBondList()
+void BondData::checkUpdateBondList()
     {
 #ifdef ENABLE_MPI
     // late initialization of ghost bond table
     if (m_pdata->getDomainDecomposition() && !m_ghost_bond_table_allocated)
         allocateGhostBondTable(1);
 #endif            
- 
+
+    m_mutex.lock();
     if (m_bonds_dirty)
         {
         if (m_prof)
@@ -332,7 +333,7 @@ const GPUArray<uint2>& BondData::getGPUBondList()
         if (m_prof)
             m_prof->pop();
         }
-    return m_gpu_bondlist;
+    m_mutex.unlock();
     }
 
 
@@ -345,89 +346,62 @@ const GPUArray<uint2>& BondData::getGPUBondList()
 */
 void BondData::updateBondTableGPU()
     {
-    unsigned int max_bond_num;
+    unsigned int max_bond_num = 0;
+    unsigned int max_ghost_bond_num = 0;
+
+    bool compute_ghost_bonds = false;
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        compute_ghost_bonds = true;
+#endif
 
         {
         ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
+//        gpu_find_max_bond_number(m_max_bond_num.getDeviceFlags(),
         gpu_find_max_bond_number(max_bond_num,
+                                 max_ghost_bond_num,
                                  d_n_bonds.data,
+                                 d_n_ghost_bonds.data,
                                  d_bonds.data,
                                  m_bonds.size(),
                                  m_pdata->getN(),
                                  d_rtag.data,
-                                 false,
+                                 compute_ghost_bonds,
                                  0);
         }
 
     // re allocate memory if needed
     if (max_bond_num > m_gpu_bondlist.getHeight())
-        {
         m_gpu_bondlist.resize(m_pdata->getMaxN(), max_bond_num);
-        }
+
+    if (compute_ghost_bonds && max_ghost_bond_num > m_gpu_ghost_bondlist.getHeight())
+        m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), max_ghost_bond_num);
 
         {
         ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
         ArrayHandle<uint2> d_gpu_bondlist(m_gpu_bondlist, access_location::device, access_mode::overwrite);
+        ArrayHandle<uint2> d_gpu_ghost_bondlist(m_gpu_ghost_bondlist, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
         gpu_create_bondtable(d_gpu_bondlist.data,
+                             d_gpu_ghost_bondlist.data,
                              d_n_bonds.data,
+                             d_n_ghost_bonds.data,
                              d_bonds.data,
                              d_bond_type.data,
                              d_rtag.data,
                              m_bonds.size(),
                              m_gpu_bondlist.getPitch(),
+                             m_gpu_ghost_bondlist.getPitch(),
                              m_pdata->getN(),
-                             false,
+                             compute_ghost_bonds,
                              0);
         }
-
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        // update ghost bonds list
-            {
-            ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
-            gpu_find_max_bond_number(max_bond_num,
-                                     d_n_ghost_bonds.data,
-                                     d_bonds.data,
-                                     m_bonds.size(),
-                                     m_pdata->getN(),
-                                     d_rtag.data,
-                                     true,
-                                     0);
-            }
-
-        // re allocate memory if needed
-        if (max_bond_num > m_gpu_ghost_bondlist.getHeight())
-            {
-            m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), max_bond_num);
-            }
-
-            {
-            ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
-            ArrayHandle<uint2> d_gpu_ghost_bondlist(m_gpu_ghost_bondlist, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-            gpu_create_bondtable(d_gpu_ghost_bondlist.data,
-                                 d_n_ghost_bonds.data,
-                                 d_bonds.data,
-                                 d_bond_type.data,
-                                 d_rtag.data,
-                                 m_bonds.size(),
-                                 m_gpu_ghost_bondlist.getPitch(),
-                                 m_pdata->getN(),
-                                 true,
-                                 0);
-            }
-        }
-#endif
 
     }
 #endif
@@ -554,10 +528,10 @@ void BondData::allocateGhostBondTable(int height)
     // make sure the arrays have been deallocated
     assert(m_n_ghost_bonds.isNull());
     
-    GPUArray<uint2> gpu_ghost_bondlist(m_pdata->getMaxN(), height, exec_conf);
+    GPUArray<uint2> gpu_ghost_bondlist(m_pdata->getMaxN(), height, m_exec_conf);
     m_gpu_ghost_bondlist.swap(gpu_ghost_bondlist);
         
-    GPUArray<unsigned int> n_ghost_bonds(m_pdata->getMaxN(), exec_conf);
+    GPUArray<unsigned int> n_ghost_bonds(m_pdata->getMaxN(), m_exec_conf);
     m_n_ghost_bonds.swap(n_ghost_bonds);
 
     m_ghost_bond_table_allocated = true;

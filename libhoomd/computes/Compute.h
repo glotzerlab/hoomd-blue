@@ -52,9 +52,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
+#include <boost/thread.hpp>
 #include <string>
 #include <vector>
-
+#
 #include "SystemDefinition.h"
 #include "Profiler.h"
 
@@ -201,6 +202,8 @@ class Compute : boost::noncopyable
         unsigned int m_last_computed;   //!< Stores the last timestep compute was called
         bool m_first_compute;           //!< true if compute has not yet been called
         bool m_force_compute;           //!< true if calculation is enforced
+
+        bool m_mutex;                   //!< Mutex to protect against simultaneous updates of the same compute
         
         //! The python export needs to be a friend to export shouldCompute()
         friend void export_Compute();

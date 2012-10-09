@@ -315,7 +315,7 @@ template<class T> void GPUVector<T>::clear()
  */
 template<class T> T * GPUVector<T>::acquireHost(const access_mode::Enum mode) const
     {
-    return GPUArray<T>::acquire(access_location::host, access_mode::readwrite,false);
+    return GPUArray<T>::acquire(access_location::host, access_mode::readwrite);
     }
 
 #endif

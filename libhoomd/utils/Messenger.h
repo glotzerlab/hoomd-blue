@@ -64,7 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMPI.h"
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/categories.hpp>
-namespace io = boost::iostreams;
 #endif 
 
 #ifdef NVCC
@@ -90,7 +89,7 @@ class mpi_io
     public:
         //! Defintions used by boost::iostreams
         typedef char         char_type;
-        typedef io::sink_tag category;
+        typedef boost::iostreams::sink_tag category;
 
         //! Constructor
         mpi_io(const MPI_Comm& mpi_comm, const std::string& filename);

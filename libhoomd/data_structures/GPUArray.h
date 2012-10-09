@@ -72,6 +72,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include <algorithm>
 #include <boost/bind.hpp>
+#include <boost/thread.hpp>
+
+// error out when lock policy is violated (only in debug mode)
+#define LOCK(m) { assert(m.try_lock()); }
+#define UPGRADE_LOCK(m) { assert(m.try_lock_upgrade()); }
+#define SHARED_LOCK(m) { assert(m.try_lock_shared()); }
+#ifndef NDEBUG
+#define UNLOCK(m) m.unlock();
+#define UNLOCK_UPGRADE(m) m.unlock_upgrade();
+#define UNLOCK_SHARED(m) m.unlock_shared();
+#else
+#define UNLOCK(m)  { }
+#define UNLOCK_UPGRADE(m) { }
+#define UNLOCK_SHARED(m) { }
+#endif
 
 //! Specifies where to acquire the data
 struct access_location
@@ -106,9 +121,23 @@ struct access_mode
     //! The enum
     enum Enum
         {
-        read,       //!< Data will be accessed read only
-        readwrite,  //!< Data will be accessed for read and write
-        overwrite   //!< The data is to be completely overwritten during this acquire
+        read,       //!< Data will be accessed read only 
+        readwrite,  //!< Data will be accessed for read and write (
+        overwrite,  //!< The data is to be completely overwritten during this acquire (exclusive)
+        readwrite_shared, //!< Access for reading and writing, exclusive, but other threads can still use read mode
+        overwrite_shared  //!< Access for overwriting, exclusive, but other threads can still use read mode
+        };
+    };
+
+//! Specifies the type of write mode 
+struct write_mode
+    {
+    //! Theenum
+    enum Enum
+        { 
+        none,      //!< Shared read mode
+        exclusive, //!< Exclusive write mode
+        shared     //!< Shared write mode
         };
     };
 
@@ -192,7 +221,18 @@ ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwri
 h_handle.data[i*pitch + j] = 5;
 \endcode
 
-A future modification of GPUArray will allow mirroring or splitting the data across multiple GPUs.
+GPUArray is pseudo thread-safe. This means, it uses an internal mutex lock to track simultaneous writing
+attempts to the array. Violation of this policy is however not enforced in a hard way, unless in debug mode.
+The caller routine should ensure thread-safety.
+
+There are two possible write modes, exclusive and shared. In exclusive write mode
+(access_mode::readwrite and access_mode::overwrite), every other thread has to wait until the
+lock is released. In shared-write mode (access_mode::readwrite_shared, access_mode::overwrite_shared),
+which can be acquired by one thread only at a time, reading from the GPUArray is still possible by other threads.
+
+\warning GPUarray does not implement a true single-writer/multiple-reader functionality, since that
+would require to constantly copy data between host and device. It is therefore assumed, that
+in shared-write mode the writing thread accesses a different portion of the data than the reading threads.
 
 \ingroup data_structs
 */
@@ -266,11 +306,11 @@ template<class T> class GPUArray
         //! Resize a 2D GPUArray
         virtual void resize(unsigned int width, unsigned int height);
 
-        //! Protect a part of the array against being overwritten through acquire operation
-        virtual T* lock(const access_location::Enum location, const access_mode::Enum mode) const;
+        //! Acquires the data pointer for use
+        inline T* acquire(const access_location::Enum location, const access_mode::Enum mode) const;
 
-        //! Unlock the previously locked part of the array
-        virtual void unlock() const;
+        // Releases the data pointer
+        inline void release() const;
 
     protected:
         //! Clear memory starting from a given element
@@ -278,24 +318,14 @@ template<class T> class GPUArray
          */
         inline void memclear(unsigned int first=0);
 
-        //! Acquires the data pointer for use
-        inline T* acquire(const access_location::Enum location, const access_mode::Enum mode, bool lock) const;
-
-        //! Release the data pointer
-        inline void release() const
-            {
-            m_acquired = false;
-            }
-
     private:
         mutable unsigned int m_num_elements;            //!< Number of elements
         mutable unsigned int m_pitch;                   //!< Pitch of the rows in elements
         mutable unsigned int m_height;                  //!< Number of allocated rows
         
-        mutable bool m_acquired;                        //!< Tracks whether the data has been acquired
-        mutable bool m_locked;                                  //!< Tracks whether a part of the array has been locked
+        mutable boost::upgrade_mutex m_mutex;           //!< A mutex tracking the locking state
+        mutable write_mode::Enum m_write_mode;          //!< The writing mode
         mutable access_location::Enum  m_lock_access_location;  //!< Data location of locked part
-        mutable access_mode::Enum m_lock_access_mode;           //!< The access mode for the locked part of memory
         mutable data_location::Enum m_data_location;    //!< Tracks the current location of the data
     
     // ok, this looks weird, but I want m_exec_conf to be protected and not have to go reorder all of the initializers
@@ -345,14 +375,13 @@ template<class T> class GPUArray
 */
 template<class T> ArrayHandle<T>::ArrayHandle(const GPUArray<T>& gpu_array, const access_location::Enum location,
                                               const access_mode::Enum mode) :
-        data(gpu_array.acquire(location, mode, false)), m_gpu_array(gpu_array)
+        data(gpu_array.acquire(location, mode)), m_gpu_array(gpu_array)
     {
     }
 
 template<class T> ArrayHandle<T>::~ArrayHandle()
     {
-    assert(m_gpu_array.m_acquired);
-    m_gpu_array.m_acquired = false;
+    m_gpu_array.release();
     }
 
 //******************************************
@@ -360,7 +389,7 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
 // *****************************************
 
 template<class T> GPUArray<T>::GPUArray() :
-        m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_locked(false), m_lock_access_location(access_location::host), m_lock_access_mode(access_mode::read), m_data_location(data_location::host),
+        m_num_elements(0), m_pitch(0), m_height(0), m_write_mode(write_mode::none), m_lock_access_location(access_location::host), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
@@ -372,7 +401,7 @@ template<class T> GPUArray<T>::GPUArray() :
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
-        m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_locked(false), m_lock_access_location(access_location::host), m_lock_access_mode(access_mode::read), m_data_location(data_location::host), m_exec_conf(exec_conf),
+        m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_write_mode(write_mode::none), m_lock_access_location(access_location::host), m_data_location(data_location::host), m_exec_conf(exec_conf),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
@@ -388,7 +417,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
-        m_height(height), m_acquired(false), m_locked(false), m_lock_access_location(access_location::host), m_lock_access_mode(access_mode::read), m_data_location(data_location::host), m_exec_conf(exec_conf),
+        m_height(height), m_write_mode(write_mode::none), m_lock_access_location(access_location::host), m_data_location(data_location::host), m_exec_conf(exec_conf),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
@@ -411,7 +440,7 @@ template<class T> GPUArray<T>::~GPUArray()
     }
 
 template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
-        m_height(from.m_height), m_acquired(false), m_locked(false), m_lock_access_location(access_location::host), m_lock_access_mode(access_mode::read), m_data_location(data_location::host), m_exec_conf(from.m_exec_conf),
+        m_height(from.m_height), m_write_mode(write_mode::none), m_lock_access_location(access_location::host), m_data_location(data_location::host), m_exec_conf(from.m_exec_conf),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
@@ -431,12 +460,12 @@ template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(f
 
 template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
     {
+    // lock mutexes exclusively
+    LOCK(m_mutex);
+    LOCK(rhs.m_mutex);
+
     if (this != &rhs) // protect against invalid self-assignment
         {
-        // sanity check
-        assert(!m_acquired && !rhs.m_acquired);
-        assert(!m_locked && !rhs.m_locked);
-        
         // free current memory
         deallocate();
         
@@ -460,7 +489,10 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
             memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
             }
         }
-        
+     
+    UNLOCK(m_mutex);
+    UNLOCK(rhs.m_mutex);
+
     return *this;
     }
 
@@ -478,38 +510,44 @@ b = c;
 */
 template<class T> void GPUArray<T>::swap(GPUArray& from)
     {
-    // this may work, but really shouldn't be done when acquired
-    assert(!m_acquired && !from.m_acquired);
-    assert(!m_locked && !from.m_locked);
-    
+    // lock mutexes
+    LOCK(m_mutex);
+    LOCK(from.m_mutex);
+
     std::swap(m_num_elements, from.m_num_elements);
     std::swap(m_pitch, from.m_pitch);
     std::swap(m_height, from.m_height);
-    std::swap(m_acquired, from.m_acquired);
     std::swap(m_data_location, from.m_data_location);
     std::swap(m_exec_conf, from.m_exec_conf);
 #ifdef ENABLE_CUDA
     std::swap(d_data, from.d_data);
 #endif
     std::swap(h_data, from.h_data);
+
+    // unlock
+    UNLOCK(m_mutex);
+    UNLOCK(from.m_mutex);
     }
 
 //! Swap the pointers of two GPUArrays (const version)
 template<class T> void GPUArray<T>::swap(GPUArray& from) const
     {
-    assert(!m_acquired && !from.m_acquired);
-    assert(!m_locked && !from.m_locked);
+    LOCK(m_mutex);
+    LOCK(from.m_mutex);
 
     std::swap(m_num_elements, from.m_num_elements);
     std::swap(m_pitch, from.m_pitch);
     std::swap(m_height, from.m_height);
     std::swap(m_exec_conf, from.m_exec_conf);
-    std::swap(m_acquired, from.m_acquired);
     std::swap(m_data_location, from.m_data_location);
 #ifdef ENABLE_CUDA
     std::swap(d_data, from.d_data);
 #endif
     std::swap(h_data, from.h_data);
+
+    // unlock
+    UNLOCK(m_mutex);
+    UNLOCK(from.m_mutex);
     }
 
 /*! \pre m_num_elements is set
@@ -557,8 +595,6 @@ template<class T> void GPUArray<T>::deallocate()
         return;
         
     // sanity check
-    assert(!m_acquired);
-    assert(!m_locked);
     assert(h_data);
     
     // free memory
@@ -658,30 +694,38 @@ template<class T> void GPUArray<T>::memcpyHostToDevice() const
 
     acquire() cannot be directly called by the user class. Data must be accessed through ArrayHandle.
 */
-template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, const access_mode::Enum mode,
-                                         bool lock) const
+template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, const access_mode::Enum mode) const
     {
-    // sanity check
-    assert(!m_acquired);
-    assert(! (lock && m_locked));
-
-    if (lock)
+    if (mode == access_mode::readwrite_shared || mode == access_mode::overwrite_shared)
         {
-        m_locked = true;
-        m_lock_access_mode = mode;
+        // Only one thread can acquire shared write access rights
+        UPGRADE_LOCK(m_mutex);
+        assert(m_write_mode == write_mode::none);
+
+        // remember to which location we are writing
         m_lock_access_location = location;
+
+        m_write_mode = write_mode::shared;
+        }
+    else if (mode == access_mode::read)
+        {    
+        // read is always possible, unless an exclusive lock is present
+        SHARED_LOCK(m_mutex);
+        }
+    else if (mode == access_mode::readwrite || mode == access_mode::overwrite)
+        {
+        // lock for exclusive write access
+        LOCK(m_mutex);
+        assert(m_write_mode == write_mode::none); // upgrade functionality is not really supported
+
+        m_write_mode = write_mode::exclusive;
         }
     else
         {
-        m_acquired = true;
-  
-        if (m_locked && (mode==access_mode::overwrite  || mode == access_mode::readwrite))
-            {
-            m_exec_conf->msg->error() << "Cannot write to a locked GPUArray." << std::endl;
-            throw std::runtime_error("Error acquiring data");
-            }
+        m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
+        throw std::runtime_error("Error acquiring data");
         }
-
+ 
     // base case - handle acquiring a NULL GPUArray by simply returning NULL to prevent any memcpys from being attempted
     if (isNull())
         return NULL;
@@ -701,9 +745,9 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
             // finally perform the action baed on the access mode requested
             if (mode == access_mode::read)  // state stays on hostdevice
                 m_data_location = data_location::hostdevice;
-            else if (mode == access_mode::readwrite)    // state goes to host
+            else if (mode == access_mode::readwrite || mode == access_mode::readwrite_shared)    // state goes to host
                 m_data_location = data_location::host;
-            else if (mode == access_mode::overwrite)    // state goes to host
+            else if (mode == access_mode::overwrite || mode == access_mode::overwrite_shared)    // state goes to host
                 m_data_location = data_location::host;
             else
                 {
@@ -723,14 +767,14 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
                 // state goes to hostdevice
                 m_data_location = data_location::hostdevice;
                 }
-            else if (mode == access_mode::readwrite)
+            else if (mode == access_mode::readwrite || mode == access_mode::readwrite_shared)
                 {
                 // need to copy data from the device to the host
                 memcpyDeviceToHost();
                 // state goes to host
                 m_data_location = data_location::host;
                 }
-            else if (mode == access_mode::overwrite)
+            else if (mode == access_mode::overwrite || mode == access_mode::overwrite_shared)
                 {
                 // no need to copy data, it will be overwritten
                 // state goes to host
@@ -773,14 +817,14 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
                 // state goes to hostdevice
                 m_data_location = data_location::hostdevice;
                 }
-            else if (mode == access_mode::readwrite)
+            else if (mode == access_mode::readwrite || mode == access_mode::readwrite_shared)
                 {
                 // need to copy data to the device
                 memcpyHostToDevice();
                 // state goes to device
                 m_data_location = data_location::device;
                 }
-            else if (mode == access_mode::overwrite)
+            else if (mode == access_mode::overwrite || mode == access_mode::overwrite_shared)
                 {
                 // no need to copy data to the device, it is to be overwritten
                 // state goes to device
@@ -799,9 +843,9 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
             // finally perform the action baed on the access mode requested
             if (mode == access_mode::read)  // state stays on hostdevice
                 m_data_location = data_location::hostdevice;
-            else if (mode == access_mode::readwrite)    // state goes to device
+            else if (mode == access_mode::readwrite || mode == access_mode::readwrite_shared)    // state goes to device
                 m_data_location = data_location::device;
-            else if (mode == access_mode::overwrite)    // state goes to device
+            else if (mode == access_mode::overwrite || mode == access_mode::overwrite_shared)    // state goes to device
                 m_data_location = data_location::device;
             else
                 {
@@ -829,6 +873,42 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
         throw std::runtime_error("Error acquiring data");
         return NULL;
         }
+    }
+
+template<class T> void GPUArray<T>::release() const
+    {
+    if (m_write_mode == write_mode::shared)
+        {
+#ifdef ENABLE_CUDA
+        // If data was written to by one thread, make sure this is reflected in the data location
+        // (in the mean time, a different thread could have changed the state to hostdevice)
+        if (m_exec_conf->isCUDAEnabled())
+            {
+            if (m_lock_access_location == access_location::host)
+                m_data_location = data_location::host;
+
+            if (m_lock_access_location == access_location::device)
+                m_data_location = data_location::device;
+            }
+#endif
+        UNLOCK_UPGRADE(m_mutex);
+        m_write_mode = write_mode::none;
+        }
+    else if (m_write_mode == write_mode::exclusive)
+        {
+        m_write_mode = write_mode::none;
+        UNLOCK(m_mutex);
+        }
+    else if (m_write_mode == write_mode::none)
+        {
+        UNLOCK_SHARED(m_mutex);
+        }
+    else
+        {
+        m_exec_conf->msg->error() << "Invalid write mode. Internal error." << std::endl;
+        throw std::runtime_error("Error releasing data");
+        }
+ 
     }
 
 /*! \post Memory on the host is resized, the newly allocated part of the array
@@ -1016,14 +1096,15 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
 */
 template<class T> void GPUArray<T>::resize(unsigned int num_elements)
     {
-    assert(! m_acquired);
-    assert(! m_locked);
+    LOCK(m_mutex);
+
     assert(num_elements > 0);
 
     // zero elements are equivalent to deallocation
     if (num_elements == 0)
         {
         deallocate();
+        UNLOCK(m_mutex);
         return;
         }
 
@@ -1032,6 +1113,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
         {
         m_num_elements = num_elements;
         allocate();
+        UNLOCK(m_mutex);
         return;
         };
 
@@ -1044,6 +1126,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
 #endif
     m_num_elements = num_elements;
     m_pitch = num_elements;
+    UNLOCK(m_mutex); 
     }
 
 /*! \param width new width of array
@@ -1055,8 +1138,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
 */
 template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int height)
     {
-    assert(! m_acquired);
-    assert(! m_locked);
+    LOCK(m_mutex);
 
     // make m_pitch the next multiple of 16 larger or equal to the given width
     unsigned int new_pitch = (width + (16 - (width & 15)));
@@ -1067,6 +1149,7 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
     if (num_elements == 0)
         {
         deallocate();
+        UNLOCK(m_mutex);
         return;
         }
 
@@ -1077,6 +1160,7 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
         allocate();
         m_pitch = new_pitch;
         m_height = height;
+        UNLOCK(m_mutex);
         return;
         };
 
@@ -1090,32 +1174,8 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
     m_height = height;
     m_pitch  = new_pitch;
     m_num_elements = m_pitch * m_height;
+
+    UNLOCK(m_mutex);
     }
 
-template<class T>
-T* GPUArray<T>::lock(const access_location::Enum location, const access_mode::Enum mode) const
-    {
-    return acquire(location, mode, true);
-    }
-
-template<class T>
-void GPUArray<T>::unlock() const
-    {
-    assert(m_locked);
-    assert(! m_acquired);
-
-#ifdef ENABLE_CUDA
-    // copy locked part to current data location if necessary
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        if (m_lock_access_location == access_location::host && m_lock_access_mode != access_mode::read)
-            m_data_location = data_location::host;
-
-        if (m_lock_access_location == access_location::device && m_lock_access_mode != access_mode::read)
-            m_data_location = data_location::device;
-        }
-#endif
-
-    m_locked = false;
-    }
 #endif // __GPUARRAY_H__
