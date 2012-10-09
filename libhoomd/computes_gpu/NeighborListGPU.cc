@@ -298,7 +298,8 @@ void NeighborListGPU::updateExListIdx()
                               d_n_ex_idx.data,
                               d_ex_list_idx.data,
                               m_ex_list_indexer,
-                              m_pdata->getN());
+                              m_pdata->getN(),
+                              m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
     if (m_prof)
         m_prof->pop();
     }
