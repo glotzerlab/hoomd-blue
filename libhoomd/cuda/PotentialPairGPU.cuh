@@ -235,7 +235,7 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 postypei = tex1Dfetch(pdata_pos_tex, idx);
+    float4 postypei = d_pos[idx];
     float3 posi = make_float3(postypei.x, postypei.y, postypei.z);
 
     float di;
@@ -283,7 +283,7 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
+            float4 postypej = d_pos[cur_j];
             float3 posj = make_float3(postypej.x, postypej.y, postypej.z);
 
             float dj = 0.0f;
@@ -446,6 +446,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
     dim3 threads(pair_args.block_size, 1, 1);
 
+#if 0
     // bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
@@ -465,6 +466,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.Ntot);
     if (error != cudaSuccess)
         return error;
+#endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
@@ -515,7 +517,32 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
         
     return cudaSuccess;
     }
-#endif
 
+template<class evaluator>
+cudaError_t gpu_compute_pair_forces_set_cache_config()
+    {
+    cudaError_t error;
+    error = cudaFuncSetCacheConfig(gpu_compute_pair_forces_kernel<evaluator, 0, 0>, cudaFuncCachePreferL1);
+    if (error != cudaSuccess)
+        return error;
+    error = cudaFuncSetCacheConfig(gpu_compute_pair_forces_kernel<evaluator, 1, 0>, cudaFuncCachePreferL1);
+    if (error != cudaSuccess)
+        return error;
+    error = cudaFuncSetCacheConfig(gpu_compute_pair_forces_kernel<evaluator, 2, 0>, cudaFuncCachePreferL1);
+    if (error != cudaSuccess)
+        return error;
+    error = cudaFuncSetCacheConfig(gpu_compute_pair_forces_kernel<evaluator, 0, 1>, cudaFuncCachePreferL1);
+    if (error != cudaSuccess)
+        return error;
+    error = cudaFuncSetCacheConfig(gpu_compute_pair_forces_kernel<evaluator, 1, 1>, cudaFuncCachePreferL1);
+    if (error != cudaSuccess)
+        return error;
+    error = cudaFuncSetCacheConfig(gpu_compute_pair_forces_kernel<evaluator, 2, 1>, cudaFuncCachePreferL1);
+    if (error != cudaSuccess)
+        return error;
+
+    return cudaSuccess;
+    }
+#endif
 #endif // __POTENTIAL_PAIR_GPU_CUH__
 

@@ -86,7 +86,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \sa export_PotentialPairGPU()
 */
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params) >
+                                                const typename evaluator::param_type *d_params),
+                           cudaError_t gpu_igpf()>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
     public:
@@ -119,8 +120,9 @@ class PotentialPairGPU : public PotentialPair<evaluator>
     };
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params) >
-PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                                const typename evaluator::param_type *d_params),
+                           cudaError_t gpu_igpf()>
+PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
@@ -131,11 +133,15 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
                   << std::endl;
         throw std::runtime_error("Error initializing PotentialPairGPU");
         }
+
+    // set cache configuration
+    gpu_igpf();
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params) >
-void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
+                                                const typename evaluator::param_type *d_params),
+                           cudaError_t gpu_igpf()>
+void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned int timestep)
     {
     // get the CUDA stream associated with this thread
     cudaStream_t stream = this->m_inside_thread ? this->m_exec_conf->getThreadStream(this->m_thread_id) : 0;
@@ -211,8 +217,9 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
 
 #ifdef ENABLE_MPI
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params) >
-void PotentialPairGPU< evaluator, gpu_cgpf >::computeGhostForcesThread(unsigned int timestep, unsigned int thread_id)
+                                                const typename evaluator::param_type *d_params),
+                           cudaError_t gpu_igpf() >
+void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForcesThread(unsigned int timestep, unsigned int thread_id)
     {
     assert(this->m_pdata->getDomainDecomposition());
 
