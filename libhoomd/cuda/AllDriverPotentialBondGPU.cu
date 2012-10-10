@@ -58,6 +58,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorBondFENE.h"
 #include "AllDriverPotentialBondGPU.cuh"
 
+cudaError_t gpu_init_harmonic_forces()
+    {
+    return gpu_compute_bond_forces_set_cache_config<EvaluatorBondHarmonic>();
+    }
+
+cudaError_t gpu_init_fene_forces()
+    {
+    return gpu_compute_bond_forces_set_cache_config<EvaluatorBondFENE>();
+    }
+
 cudaError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
                                         const float2 *d_params,
                                         unsigned int *d_flags)

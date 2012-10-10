@@ -77,9 +77,9 @@ typedef PotentialBond<EvaluatorBondFENE> PotentialBondFENE;
 
 #ifdef ENABLE_CUDA
 //! Bond potential force compute for harmonic forces on the GPU
-typedef PotentialBondGPU< EvaluatorBondHarmonic, gpu_compute_harmonic_forces > PotentialBondHarmonicGPU;
+typedef PotentialBondGPU< EvaluatorBondHarmonic, gpu_compute_harmonic_forces, gpu_init_harmonic_forces > PotentialBondHarmonicGPU;
 //! Bond potential force compute for FENE forces on the GPU
-typedef PotentialBondGPU< EvaluatorBondFENE, gpu_compute_fene_forces > PotentialBondFENEGPU;
+typedef PotentialBondGPU< EvaluatorBondFENE, gpu_compute_fene_forces, gpu_init_fene_forces > PotentialBondFENEGPU;
 #endif
 
 #endif // __BOND_POTENTIALS_H__

@@ -59,6 +59,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PotentialBondGPU.cuh"
 
+//! Initialize harmonic bond forces on the GPU with BondEvaluatorHarmonic
+cudaError_t gpu_init_harmonic_forces();
+
+//! Initialize FENE bond forces on the GPU with BondEvaluatorFENE
+cudaError_t gpu_init_fene_forces();
+
 //! Compute harmonic bond forces on the GPU with BondEvaluatorHarmonic
 cudaError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
                                       const float2 *d_params,
