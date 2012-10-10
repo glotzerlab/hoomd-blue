@@ -791,9 +791,10 @@ unsigned int ExecutionConfiguration::getNRanks() const
 unsigned int ExecutionConfiguration::requestGPUThreadId() const
         {
         assert(exec_mode == GPU);
-        
+       
         // make this routine thread-safe
         boost::mutex::scoped_lock l(m_mutex);
+        msg->notice(6) << "Creating CUDA stream and event (" << m_thread_streams.size() << ")" << std::endl;
 
         // create CUDA stream
         cudaStream_t stream;
