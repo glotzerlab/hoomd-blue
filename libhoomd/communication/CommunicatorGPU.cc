@@ -174,6 +174,9 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         // exchange particle data, write directly to the particle data arrays
         cudaMemcpyAsync(h_pos_copybuf, params.d_pos_copybuf, (params.num_copy_ghosts[dir]+params.num_copy_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyDeviceToHost, stream);
 
+        // we have posted our first CUDA operations, now let the other threads continue
+        m_exec_conf->releaseThreads();
+
         // wait for copy to finish
         cudaEvent_t ev = m_exec_conf->getThreadEvent(m_thread_id);
         cudaEventRecord(ev, stream);
@@ -248,6 +251,9 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     Scalar4 *d_pos_data = m_pdata->getPositions().acquire(access_location::device, access_mode::readwrite_shared);
 
     Scalar4 *d_pos_copybuf_data = m_pos_copybuf.acquire(access_location::device, access_mode::overwrite);
+
+    // we want to proceed with communication quickly, so partly block scheduling of other CUDA kernels
+    m_exec_conf->blockThreads();
 
     // post the parameters to the worker thread
     m_work_queue.push(ghost_gpu_thread_params(

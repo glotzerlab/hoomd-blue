@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/locks.hpp>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -151,6 +152,33 @@ struct ExecutionConfiguration : boost::noncopyable
         return m_thread_events[thread_id];
         }
 #endif
+
+    //! Wait inside a thread until another thread signals release
+    void waitRelease() const
+        {
+        boost::unique_lock<boost::mutex> lock(m_condition_mutex);
+        while (! m_release_threads)
+            {
+            m_condition.wait(lock);
+            }
+        }
+
+    //! Block waiting threads
+    void blockThreads() const
+        {
+        boost::lock_guard<boost::mutex> lock_guard(m_condition_mutex);
+        m_release_threads = false;
+        }
+
+    //! Release waiting thrads
+    void releaseThreads() const
+        {
+            {
+            boost::lock_guard<boost::mutex> lock_guard(m_condition_mutex);
+            m_release_threads = true;
+            }
+        m_condition.notify_all();
+        }
 
     //! Guess rank of this processor
     /*! \returns Rank guessed from common environment variables, 0 is default
@@ -265,6 +293,9 @@ private:
     mutable std::vector<cudaStream_t> m_thread_streams;     //!< CUDA Streams for kernel execution
     mutable std::vector<cudaEvent_t> m_thread_events;       //!< Reusable events for every thread
     mutable boost::mutex m_mutex;                   //!< Lock for thread-safe requesting of streams
+    mutable boost::mutex m_condition_mutex;         //!< Mutex to enable subscribing to the condition variable
+    mutable boost::condition_variable m_condition;  //!< Boost condition variable
+    mutable bool m_release_threads;                 //!< True if threads may continue 
 #endif
   
 #ifdef ENABLE_MPI

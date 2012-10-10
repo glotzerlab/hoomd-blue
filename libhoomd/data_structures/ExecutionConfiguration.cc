@@ -108,7 +108,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
                                                bool init_mpi
 #endif
                                                )
-    : m_cuda_error_checking(false), msg(_msg)
+    : m_cuda_error_checking(false), msg(_msg), m_release_threads(true)
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
@@ -167,7 +167,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool init_mpi
 #endif
                                                )
-    : m_cuda_error_checking(false), msg(_msg)
+    : m_cuda_error_checking(false), msg(_msg), m_release_threads(true)
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());

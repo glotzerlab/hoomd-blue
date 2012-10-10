@@ -98,6 +98,11 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
             {
             integrator_thread_params params = queue.wait_and_pop();
 
+            #ifdef ENABLE_MPI
+            // Allow the communication thread to proceed first
+            m_exec_conf->waitRelease();
+            #endif
+
             //! Call the force compute 
             if (! params.compute_ghost_forces)
                 params.fc->computeThread(params.timestep, m_thread_id);
