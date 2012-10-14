@@ -202,7 +202,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     Scalar nominal_width  = m_r_cut + m_r_buff + m_d_max - Scalar(1.0);
     Scalar3 ghost_width = nominal_width*Scalar(1.0/2.0)*make_scalar3((Scalar)num_ghost_cells.x, (Scalar)num_ghost_cells.y, (Scalar)num_ghost_cells.z);
 
-    bool compute_ghost_nlist = m_pdata->getDomainDecomposition();
+    bool compute_ghost_nlist = false;
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        compute_ghost_nlist = true;
+#endif
 
     if (exec_conf->getComputeCapability() >= 200)
         {
