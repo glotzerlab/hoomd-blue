@@ -126,6 +126,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_plan_copybuf(m_exec_conf),
             m_tag_copybuf(m_exec_conf),
             m_r_ghost(Scalar(0.0)),
+            m_r_buff(Scalar(0.0)),
             m_plan(m_exec_conf),
             m_next_ghost_update(0)
     {
@@ -199,7 +200,7 @@ void Communicator::communicate(unsigned int timestep)
 void Communicator::migrateAtoms()
     {
     if (m_prof)
-        m_prof->push("migrate_atoms");
+        m_prof->push("migrate_particles");
 
     // wipe out reverse-lookup tag -> idx for old ghost atoms
         {

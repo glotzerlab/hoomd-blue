@@ -68,6 +68,59 @@ enum gpu_send_flags
     send_down = 32
     };
 
+enum gpu_edge_flags
+    {
+    edge_east_north = 0 ,
+    edge_east_south,
+    edge_east_up,
+    edge_east_down,
+    edge_west_north,
+    edge_west_south,
+    edge_west_up,
+    edge_west_down,
+    edge_north_up,
+    edge_north_down,
+    edge_south_up,
+    edge_south_down
+    };
+
+enum gpu_face_flags
+    {
+    face_east = 0,
+    face_west,
+    face_north,
+    face_south,
+    face_up,
+    face_down
+    };
+
+enum gpu_corner_flags
+    {
+    corner_east_north_up = 0,
+    corner_east_north_down,
+    corner_east_south_up,
+    corner_east_south_down,
+    corner_west_north_up,
+    corner_west_north_down,
+    corner_west_south_up,
+    corner_west_south_down
+    };
+
+struct pdata_element_gpu
+    {
+    Scalar4 pos;               //!< Position
+    Scalar4 vel;               //!< Velocity
+    Scalar3 accel;             //!< Acceleration
+    Scalar charge;             //!< Charge
+    Scalar diameter;           //!< Diameter
+    int3 image;                //!< Image
+    unsigned int body;         //!< Body id
+    Scalar4 orientation;       //!< Orientation
+    unsigned int tag;          //!< global tag
+    };
+
+unsigned int gpu_pdata_element_size();
+
 //! Allocate temporary device memory for reordering particles
 void gpu_allocate_tmp_storage();
 
@@ -85,77 +138,55 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
 
 //! Reorder the particle data
 void gpu_migrate_select_particles(unsigned int N,
-                        unsigned int &n_send_ptls,
+                                  const Scalar4 *d_pos,
+                                  const Scalar4 *d_vel,
+                                  const Scalar3 *d_accel,
+                                  const int3 *d_image,
+                                  const Scalar *d_charge,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_body,
+                                  const Scalar4 *d_orientation,
+                                  const unsigned int *d_tag,
+                                  unsigned int *d_rtag,
+                                  unsigned int *n_send_ptls_corner,
+                                  unsigned int *n_send_ptls_edge,
+                                  unsigned int *n_send_ptls_face,
+                                  unsigned int &n_remove_ptls,
+                                  unsigned n_max_send_ptls_corner,
+                                  unsigned n_max_send_ptls_edge,
+                                  unsigned n_max_send_ptls_face,
+                                  unsigned char *d_remove_mask,
+                                  char *d_corner_buf,
+                                  unsigned int corner_buf_pitch,
+                                  char *d_edge_buf,
+                                  unsigned int edge_buf_pitch,
+                                  char *d_face_buf,
+                                  unsigned int face_buf_pitch,
+                                  const BoxDim& box,
+                                  const BoxDim& global_box,
+                                  const unsigned int *is_at_boundary,
+                                  unsigned int *d_condition);
+ 
+void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
+                        unsigned int n_recv_ptls,
+                        unsigned int n_remove_ptls,
                         unsigned char *d_remove_mask,
+                        char *d_recv_buf,
                         float4 *d_pos,
-                        float4 *d_pos_tmp,
                         float4 *d_vel,
-                        float4 *d_vel_tmp,
                         float3 *d_accel,
-                        float3 *d_accel_tmp,
                         int3 *d_image,
-                        int3 *d_image_tmp,
                         float *d_charge,
-                        float *d_charge_tmp,
                         float *d_diameter,
-                        float *d_diameter_tmp,
                         unsigned int *d_body,
-                        unsigned int *d_body_tmp,
                         float4 *d_orientation,
-                        float4 *d_orientation_tmp,
                         unsigned int *d_tag,
-                        unsigned int *d_tag_tmp,
-                        const BoxDim& box,
-                        const BoxDim& global_box,
-                        unsigned int dir,
-                        const unsigned int *is_at_boundary);
-
-void gpu_migrate_compact_particles(unsigned int N,
-                        unsigned char *d_remove_mask,
-                        unsigned int &n_remove_ptls,
-                        float4 *d_pos,
-                        float4 *d_pos_tmp,
-                        float4 *d_vel,
-                        float4 *d_vel_tmp,
-                        float3 *d_accel,
-                        float3 *d_accel_tmp,
-                        int3 *d_image,
-                        int3 *d_image_tmp,
-                        float *d_charge,
-                        float *d_charge_tmp,
-                        float *d_diameter,
-                        float *d_diameter_tmp,
-                        unsigned int *d_body,
-                        unsigned int *d_body_tmp,
-                        float4 *d_orientation,
-                        float4 *d_orientation_tmp,
-                        unsigned int *d_tag,
-                        unsigned int *d_tag_tmp);
+                        unsigned int *d_rtag);
  
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
                      unsigned int *d_rtag);
-
-void gpu_reset_rtags_by_mask(unsigned int N,
-                     unsigned char *d_remove_mask,
-                     unsigned int *d_tag,
-                     unsigned int *d_rtag);
- 
-
-//! Pack particle data into send buffer
-void gpu_migrate_pack_send_buffer(unsigned int N,
-                           float4 *d_pos,
-                           float4 *d_vel,
-                           float3 *d_accel,
-                           int3 *d_image,
-                           float *d_charge,
-                           float *d_diameter,
-                           unsigned int *d_body,
-                           float4  *d_orientation,
-                           unsigned int *d_tag,
-                           char *d_send_buf,
-                           char *&d_send_buf_end);
 
 
 //! Construct plans for sending non-bonded ghost particles
@@ -190,12 +221,10 @@ void gpu_exchange_ghosts(unsigned int n_total,
                          const unsigned int *is_at_boundary,
                          const BoxDim& global_box);
 
-//! Update global tag <-> local particle index reverse lookup array
 void gpu_update_rtag(unsigned int nptl,
                      unsigned int start_idx,
                      unsigned int *d_tag,
                      unsigned int *d_rtag);
-
 
 //! Copy ghost particle positions into send buffer
 void gpu_copy_ghosts(const unsigned int nghost,

@@ -223,6 +223,16 @@ class Communicator
             m_r_ghost = ghost_width;
             }
 
+        //! Set skin layer width
+        /*! \param r_buff The width of the skin buffer
+         */
+        void setRBuff(Scalar r_buff)
+            {
+            assert(r_buff > 0);
+
+            m_r_buff = r_buff;
+            }
+            
         //@}
 
         //! \name communication methods
@@ -352,6 +362,7 @@ class Communicator
         BoxDim m_global_box;                     //!< Global simulation box
         unsigned int m_packed_size;              //!< Size of packed particle data element in bytes
         Scalar m_r_ghost;                        //!< Width of ghost layer
+        Scalar m_r_buff;                         //!< Width of skin layer
 
         GPUVector<unsigned char> m_plan;         //!< Array of per-direction flags that determine the sending route
 

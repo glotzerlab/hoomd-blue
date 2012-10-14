@@ -79,6 +79,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace thrust;
 
+unsigned int gpu_pdata_element_size()
+    {
+    return sizeof(pdata_element_gpu);
+    }
+
 //! Select local particles that within a boundary layer of the neighboring domain in a given direction
 struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
     {
@@ -128,26 +133,36 @@ struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsign
         }
      };
 
-thrust::device_vector<unsigned int> *keys;       //!< Temporary vector of sort keys
+unsigned int *d_boundary;                 //!< Flags indicating whether we share a boundary with the global boundary
+unsigned int *d_n_send_particles_corner;  //!< Number of particles sent via a corner
+unsigned int *d_n_send_particles_edge;    //!< Number of particles sent via an edge
+unsigned int *d_n_send_particles_face;    //!< Number of particles sent via a face
+unsigned int *d_n_remove_ptls;            //!< Number of particles that will be removed
+unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
-unsigned int *d_n_send_particles;  //! Counter for construction of atom send lists
-unsigned int *d_n_copy_ghosts;     //! Counter for ghost list construction
-unsigned int *d_n_copy_ghosts_r;     //! Counter for ghost list construction (reverse direction)
+unsigned int *d_n_copy_ghosts;            //! Counter for ghost list construction
+unsigned int *d_n_copy_ghosts_r;          //! Counter for ghost list construction (reverse direction)
 
 void gpu_allocate_tmp_storage()
     {
-    keys = new thrust::device_vector<unsigned int>;
-
-    cudaMalloc(&d_n_send_particles,sizeof(unsigned int));
+    cudaMalloc(&d_boundary,6*sizeof(unsigned int));
+    cudaMalloc(&d_n_send_particles_corner,8*sizeof(unsigned int));
+    cudaMalloc(&d_n_send_particles_edge,12*sizeof(unsigned int));
+    cudaMalloc(&d_n_send_particles_face,6*sizeof(unsigned int));
+    cudaMalloc(&d_n_remove_ptls,sizeof(unsigned int));
+    cudaMalloc(&d_n_fetch_ptl,sizeof(unsigned int));
     cudaMalloc(&d_n_copy_ghosts, sizeof(unsigned int));
     cudaMalloc(&d_n_copy_ghosts_r, sizeof(unsigned int));
     }
 
 void gpu_deallocate_tmp_storage()
     {
-    delete keys;
-
-    cudaFree(d_n_send_particles);
+    cudaFree(d_boundary);
+    cudaFree(d_n_send_particles_corner);
+    cudaFree(d_n_send_particles_edge);
+    cudaFree(d_n_send_particles_face);
+    cudaFree(d_n_remove_ptls);
+    cudaFree(d_n_fetch_ptl);
     cudaFree(d_n_copy_ghosts);
     cudaFree(d_n_copy_ghosts_r);
     }
@@ -241,32 +256,36 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
     }
 
 //! Helper kernel to reorder particle data, step one
-template<int boundary>
-__global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
-                                         float4 *d_pos_tmp,
-                                         const float4 *d_vel,
-                                         float4 *d_vel_tmp,
-                                         const float3 *d_accel,
-                                         float3 *d_accel_tmp,
-                                         const int3 *d_image,
-                                         int3 *d_image_tmp,
-                                         const float *d_charge,
-                                         float *d_charge_tmp,
-                                         const float *d_diameter,
-                                         float *d_diameter_tmp,
-                                         const unsigned int *d_body,
-                                         unsigned int *d_body_tmp,
-                                         const float4  *d_orientation,
-                                         float4 *d_orientation_tmp,
-                                         const unsigned int *d_tag,
-                                         unsigned int *d_tag_tmp,
-                                         unsigned char *remove_mask,
-                                         unsigned int *n_send_ptls,
-                                         unsigned int N,
-                                         const Scalar3 lo,
-                                         const Scalar3 hi,
-                                         const Scalar3 L,
-                                         const unsigned int dir)
+__global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
+                                                 const Scalar4 *d_vel,
+                                                 const Scalar3 *d_accel,
+                                                 const int3 *d_image,
+                                                 const Scalar *d_charge,
+                                                 const Scalar *d_diameter,
+                                                 const unsigned int *d_body,
+                                                 const Scalar4 *d_orientation,
+                                                 const unsigned int *d_tag,
+                                                 unsigned int *d_rtag,
+                                                 char *corner_buf,
+                                                 const unsigned int corner_buf_pitch,
+                                                 char *edge_buf,
+                                                 const unsigned int edge_buf_pitch,
+                                                 char *face_buf,
+                                                 const unsigned int face_buf_pitch,
+                                                 unsigned char *remove_mask,
+                                                 unsigned int *n_send_ptls_corner,
+                                                 unsigned int *n_send_ptls_edge,
+                                                 unsigned int *n_send_ptls_face,
+                                                 unsigned int *n_remove_ptls,
+                                                 unsigned int max_send_ptls_corner,
+                                                 unsigned int max_send_ptls_edge,
+                                                 unsigned int max_send_ptls_face,
+                                                 unsigned int *condition,
+                                                 unsigned int N,
+                                                 const Scalar3 lo,
+                                                 const Scalar3 hi,
+                                                 const Scalar3 L,
+                                                 unsigned int *boundary)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -274,65 +293,178 @@ __global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
         return;
 
     Scalar4 pos = d_pos[idx];
-    bool send = ((dir == 0 && pos.x >= hi.x)||  // send east
-                (dir == 1 && pos.x < lo.x)  ||  // send west
-                (dir == 2 && pos.y >= hi.y) ||  // send north
-                (dir == 3 && pos.y < lo.y)  ||  // send south
-                (dir == 4 && pos.z >= hi.z) ||  // send up
-                (dir == 5 && pos.z < lo.z));    // send down
 
-    // do not send particles twice
-    bool remove = (remove_mask[idx] == 1);
+    unsigned int plan = 0;
+    unsigned int count = 0;
 
-    if (send && !remove)
+    if (pos.x >= hi.x)
         {
-        unsigned int n = atomicInc(n_send_ptls,0xffffffff);
+        plan |= send_east;
+        count++;
+        }
+    else if (pos.x < lo.x)
+        {
+        plan |= send_west;
+        count++;
+        }
+
+    if (pos.y >= hi.y)
+        {
+        plan |= send_north;
+        count++;
+        }
+    else if (pos.y < lo.y)
+        {
+        plan |= send_south;
+        count++;
+        }
+
+    if (pos.z >= hi.z)
+        {
+        plan |= send_up; 
+        count++;
+        }
+    else if (pos.z < lo.z)
+        {
+        plan |= send_down; 
+        count++;
+        }
+
+    if (count)
+        {
+        const unsigned int pdata_size = sizeof(pdata_element_gpu);
 
         int3 image = d_image[idx];
 
-        switch (boundary)
+        // apply global boundary conditions
+        if ((plan & send_east) && boundary[0])
             {
-            case 0:
-                pos.x -= L.x; // wrap across western boundary
-                image.x++;
-                break;
-            case 1:
-                pos.x += L.x; // eastern boundary
-                image.x--;
-                break;
-            case 2:
-                pos.y -= L.y; // northern boundary
-                image.y++;
-                break;
-            case 3:
-                pos.y += L.y; // southern boundary
-                image.y--;
-                break;
-            case 4:
-                pos.z -= L.z; // upper boundary
-                image.z++;
-                break;
-            case 5:
-                pos.z += L.z; // lower boundary
-                image.z--;
-                break;
-            default:
-                break;            // no wrap
+            pos.x -= L.x;
+            image.x++;
+            }
+        if ((plan & send_west) && boundary[1])
+            {
+            pos.x += L.x; 
+            image.x--;
+            }
+        if ((plan & send_north) && boundary[2])
+            {
+            pos.y -= L.y;
+            image.y++;
+            }
+        if ((plan & send_south) && boundary[3])
+            {
+            pos.y += L.y;
+            image.y--;
+            }
+        if ((plan & send_up) && boundary[4])
+            {
+            pos.z -= L.z;
+            image.z++;
+            }
+        if ((plan & send_down) && boundary[5])
+            {
+            pos.z += L.z; 
+            image.z--;
             }
 
-        d_pos_tmp[n] = pos;
-        d_vel_tmp[n] = d_vel[idx];
-        d_accel_tmp[n] = d_accel[idx];
-        d_image_tmp[n] = image;
-        d_charge_tmp[n] = d_charge[idx];
-        d_diameter_tmp[n] = d_diameter[idx];
-        d_body_tmp[n] = d_body[idx];
-        d_orientation_tmp[n] = d_orientation[idx];
-        d_tag_tmp[n] = d_tag[idx];
+        // fill up buffer element
+        pdata_element_gpu el;
+        el.pos = pos;
+        el.vel = d_vel[idx];
+        el.accel = d_accel[idx];
+        el.image = image;
+        el.charge = d_charge[idx];
+        el.diameter = d_diameter[idx];
+        el.body = d_body[idx];
+        el.orientation = d_orientation[idx];
+
+        unsigned int tag = d_tag[idx];
+        el.tag = tag;
 
         // mark particle for removal
         remove_mask[idx] = 1;
+
+        // reset rtag
+        d_rtag[tag] = NOT_LOCAL;
+
+        atomicInc(n_remove_ptls, 0xffffffff);
+
+        if (count == 1)
+            {
+            // face ptl
+            unsigned int face;
+            if (plan & send_east) face = face_east;
+            else if (plan & send_west) face = face_west;
+            else if (plan & send_north) face = face_north;
+            else if (plan & send_south) face = face_south;
+            else if (plan & send_up) face = face_up;
+            else if (plan & send_down) face = face_down;
+
+            unsigned int n = atomicInc(&n_send_ptls_face[face],0xffffffff);
+            if (n < max_send_ptls_face)
+                *((pdata_element_gpu *) &face_buf[n*pdata_size+face*face_buf_pitch]) = el;
+            else
+                atomicOr(condition,1);
+            }
+        else if (count == 2)
+            {
+            // edge ptl
+            unsigned int edge;
+            if ((plan & send_east) && (plan & send_north)) edge = edge_east_north;
+            else if ((plan & send_east) && (plan & send_south)) edge = edge_east_south;
+            else if ((plan & send_east) && (plan & send_up)) edge = edge_east_up;
+            else if ((plan & send_east) && (plan & send_down)) edge = edge_east_down;
+            else if ((plan & send_west) && (plan & send_north)) edge = edge_west_north;
+            else if ((plan & send_west) && (plan & send_south)) edge = edge_west_south;
+            else if ((plan & send_west) && (plan & send_up)) edge = edge_west_up;
+            else if ((plan & send_west) && (plan & send_down)) edge = edge_west_down;
+            else if ((plan & send_north) && (plan & send_up)) edge = edge_north_up;
+            else if ((plan & send_north) && (plan & send_down)) edge = edge_north_down;
+            else if ((plan & send_south) && (plan & send_up)) edge = edge_south_up;
+            else if ((plan & send_south) && (plan & send_down)) edge = edge_south_down;
+
+            unsigned int n = atomicInc(&n_send_ptls_edge[edge],0xffffffff);
+            if (n < max_send_ptls_edge)
+                *((pdata_element_gpu *) &edge_buf[n*pdata_size+edge*edge_buf_pitch]) = el;
+            else
+                atomicOr(condition,2);
+            }
+        else if (count == 3)
+            {
+            // corner ptl
+            unsigned int corner;
+            if ((plan & send_east) && (plan & send_north) && (plan & send_up))
+                corner = corner_east_north_up;
+            if ((plan & send_east) && (plan & send_north) && (plan & send_down))
+                corner = corner_east_north_down;
+            if ((plan & send_east) && (plan & send_south) && (plan & send_up))
+                corner = corner_east_south_up;
+            if ((plan & send_east) && (plan & send_south) && (plan & send_down))
+                corner = corner_east_south_down;
+            if ((plan & send_west) && (plan & send_north) && (plan & send_up))
+                corner = corner_west_north_up;
+            if ((plan & send_west) && (plan & send_north) && (plan & send_down))
+                corner = corner_west_north_down;
+            if ((plan & send_west) && (plan & send_south) && (plan & send_up))
+                corner = corner_west_south_up;
+            if ((plan & send_west) && (plan & send_south) && (plan & send_down))
+                corner = corner_west_south_down;
+ 
+            unsigned int n = atomicInc(&n_send_ptls_corner[corner],0xffffffff);
+            if (n < max_send_ptls_corner)
+                *((pdata_element_gpu *) &corner_buf[n*pdata_size+corner*corner_buf_pitch]) = el;
+            else
+                atomicOr(condition,4);
+            }
+        else
+            {
+            // invalid box
+            atomicOr(condition,8);
+            }
         }
+    else
+        remove_mask[idx] = 0;
 
     }
 
@@ -341,312 +473,214 @@ __global__ void gpu_select_send_particles_kernel(const float4 *d_pos,
  *  specified direction
  *
  *  \param N Number of particles in local simulation box
- *  \param n_send_ptls Number of particles that are sent (return value)
+ *  \param n_send_ptls_corner Number of particles that are sent via a corner (per corner)
+ *  \param n_send_ptls_edge Number of particles that are sent via an edge (per edge)
+ *  \param n_send_ptls_face Number of particles that are sent via a face (per face)
+ *  \param n_remove_ptls Number of particles that will be removed
+ *  \param n_max_send_ptls_corner Maximum size of corner send buf
+ *  \param n_max_send_ptls_edge Maximum size of edge send buf
+ *  \param n_max_send_ptls_face Maximum size of face send buf
  *  \param d_remove_mask Per-particle flag if particle has been sent
- *  \param d_pos Array of particle positions
- *  \param d_pos_tmp Array of particle positions to write to
- *  \param d_vel Array of particle velocities
- *  \param d_vel_tmp Array of particle velocities to write to
- *  \param d_accel Array of particle accelerations
- *  \param d_accel_tmp Array of particle accelerations to write to
- *  \param d_image Array of particle images
- *  \param d_image_tmp Array of particle images
- *  \param d_charge Array of particle charges
- *  \param d_charge_tmp Array of particle charges
- *  \param d_diameter Array of particle diameter
- *  \param d_diameter_tmp Array of particle diameter
- *  \param d_body Array of particle body ids
- *  \param d_body_tmp Array of particle body ids
- *  \param d_orientation Array of particle orientations
- *  \param d_orientation_tmp Array of particle orientations
- *  \param d_tag Array of particle global tags
- *  \param d_tag_tmp Array of particle global tags
+ *  \param d_corner_buf 2D Array of particle data elements that are sent via a corner
+ *  \param corner_buf_pitch Pitch of 2D corner send buf
+ *  \param d_edge_buf 2D Array of particle data elements that are sent via an edge
+ *  \param edge_buf_pitch Pitch of 2D edge send buf
+ *  \param d_face_buf 2D Array of particle data elements that are sent via a face
+ *  \param face_buf_pitch Pitch of 2D face send buf
+ *  \param tag_pitch
  *  \param box Dimensions of local simulation box
  *  \param dir Direction to send particles to
  */
 void gpu_migrate_select_particles(unsigned int N,
-                        unsigned int &n_send_ptls,
-                        unsigned char *d_remove_mask,
-                        float4 *d_pos,
-                        float4 *d_pos_tmp,
-                        float4 *d_vel,
-                        float4 *d_vel_tmp,
-                        float3 *d_accel,
-                        float3 *d_accel_tmp,
-                        int3 *d_image,
-                        int3 *d_image_tmp,
-                        float *d_charge,
-                        float *d_charge_tmp,
-                        float *d_diameter,
-                        float *d_diameter_tmp,
-                        unsigned int *d_body,
-                        unsigned int *d_body_tmp,
-                        float4 *d_orientation,
-                        float4 *d_orientation_tmp,
-                        unsigned int *d_tag,
-                        unsigned int *d_tag_tmp,
-                        const BoxDim& box,
-                        const BoxDim& global_box,
-                        unsigned int dir,
-                        const unsigned int *is_at_boundary)
+                                  const Scalar4 *d_pos,
+                                  const Scalar4 *d_vel,
+                                  const Scalar3 *d_accel,
+                                  const int3 *d_image,
+                                  const Scalar *d_charge,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_body,
+                                  const Scalar4 *d_orientation,
+                                  const unsigned int *d_tag,
+                                  unsigned int *d_rtag,
+                                  unsigned int *n_send_ptls_corner,
+                                  unsigned int *n_send_ptls_edge,
+                                  unsigned int *n_send_ptls_face,
+                                  unsigned int &n_remove_ptls,
+                                  unsigned n_max_send_ptls_corner,
+                                  unsigned n_max_send_ptls_edge,
+                                  unsigned n_max_send_ptls_face,
+                                  unsigned char *d_remove_mask,
+                                  char *d_corner_buf,
+                                  unsigned int corner_buf_pitch,
+                                  char *d_edge_buf,
+                                  unsigned int edge_buf_pitch,
+                                  char *d_face_buf,
+                                  unsigned int face_buf_pitch,
+                                  const BoxDim& box,
+                                  const BoxDim& global_box,
+                                  const unsigned int *is_at_boundary,
+                                  unsigned int *d_condition)
     {
-    n_send_ptls = 0;
-    cudaMemcpy(d_n_send_particles, &n_send_ptls, sizeof(unsigned int), cudaMemcpyHostToDevice);
+    cudaMemset(d_n_send_particles_corner, 0, sizeof(unsigned int)*8);
+    cudaMemset(d_n_send_particles_edge, 0, sizeof(unsigned int)*12);
+    cudaMemset(d_n_send_particles_face, 0, sizeof(unsigned int)*6);
+    cudaMemset(d_n_remove_ptls, 0, sizeof(unsigned int));
+    cudaMemcpy(d_boundary, is_at_boundary, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
 
     unsigned int block_size = 512;
 
-    if (dir == 0 && is_at_boundary[0])
-        gpu_select_send_particles_kernel<0><<<N/block_size+1,block_size>>>(d_pos,
-                                                                    d_pos_tmp,
+    gpu_select_send_particles_kernel<<<N/block_size+1,block_size>>>(d_pos,
                                                                     d_vel,
-                                                                    d_vel_tmp,
-                                                                    d_accel, 
-                                                                    d_accel_tmp, 
-                                                                    d_image, 
-                                                                    d_image_tmp, 
-                                                                    d_charge, 
-                                                                    d_charge_tmp, 
-                                                                    d_diameter, 
-                                                                    d_diameter_tmp,
+                                                                    d_accel,
+                                                                    d_image,
+                                                                    d_charge,
+                                                                    d_diameter,
                                                                     d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
+                                                                    d_orientation,
                                                                     d_tag,
-                                                                    d_tag_tmp,
+                                                                    d_rtag,
+                                                                    d_corner_buf,
+                                                                    corner_buf_pitch,
+                                                                    d_edge_buf,
+                                                                    edge_buf_pitch,
+                                                                    d_face_buf,
+                                                                    face_buf_pitch,
                                                                     d_remove_mask,
-                                                                    d_n_send_particles,
+                                                                    d_n_send_particles_corner,
+                                                                    d_n_send_particles_edge,
+                                                                    d_n_send_particles_face,
+                                                                    d_n_remove_ptls,
+                                                                    n_max_send_ptls_corner,
+                                                                    n_max_send_ptls_edge,
+                                                                    n_max_send_ptls_face,
+                                                                    d_condition,
                                                                     N,
                                                                     box.getLo(), 
                                                                     box.getHi(),
                                                                     global_box.getL(),
-                                                                    dir);
-     else if (dir == 1 && is_at_boundary[1])
-        gpu_select_send_particles_kernel<1><<<N/block_size+1,block_size>>>(d_pos,
-                                                                    d_pos_tmp,
-                                                                    d_vel,
-                                                                    d_vel_tmp,
-                                                                    d_accel, 
-                                                                    d_accel_tmp, 
-                                                                    d_image, 
-                                                                    d_image_tmp, 
-                                                                    d_charge, 
-                                                                    d_charge_tmp, 
-                                                                    d_diameter, 
-                                                                    d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
-                                                                    d_tag,
-                                                                    d_tag_tmp,
-                                                                    d_remove_mask,
-                                                                    d_n_send_particles,
-                                                                    N,
-                                                                    box.getLo(), 
-                                                                    box.getHi(),
-                                                                    global_box.getL(),
-                                                                    dir);
-    else if (dir == 2 && is_at_boundary[2])
-        gpu_select_send_particles_kernel<2><<<N/block_size+1,block_size>>>(d_pos,
-                                                                    d_pos_tmp,
-                                                                    d_vel,
-                                                                    d_vel_tmp,
-                                                                    d_accel, 
-                                                                    d_accel_tmp, 
-                                                                    d_image, 
-                                                                    d_image_tmp, 
-                                                                    d_charge, 
-                                                                    d_charge_tmp, 
-                                                                    d_diameter, 
-                                                                    d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
-                                                                    d_tag,
-                                                                    d_tag_tmp,
-                                                                    d_remove_mask,
-                                                                    d_n_send_particles,
-                                                                    N,
-                                                                    box.getLo(), 
-                                                                    box.getHi(),
-                                                                    global_box.getL(),
-                                                                    dir);
-    else if (dir == 3 && is_at_boundary[3])
-        gpu_select_send_particles_kernel<3><<<N/block_size+1,block_size>>>(d_pos,
-                                                                    d_pos_tmp,
-                                                                    d_vel,
-                                                                    d_vel_tmp,
-                                                                    d_accel, 
-                                                                    d_accel_tmp, 
-                                                                    d_image, 
-                                                                    d_image_tmp, 
-                                                                    d_charge, 
-                                                                    d_charge_tmp, 
-                                                                    d_diameter, 
-                                                                    d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
-                                                                    d_tag,
-                                                                    d_tag_tmp,
-                                                                    d_remove_mask,
-                                                                    d_n_send_particles,
-                                                                    N,
-                                                                    box.getLo(), 
-                                                                    box.getHi(),
-                                                                    global_box.getL(),
-                                                                    dir);
-    else if (dir == 4 && is_at_boundary[4])
-        gpu_select_send_particles_kernel<4><<<N/block_size+1,block_size>>>(d_pos,
-                                                                    d_pos_tmp,
-                                                                    d_vel,
-                                                                    d_vel_tmp,
-                                                                    d_accel, 
-                                                                    d_accel_tmp, 
-                                                                    d_image, 
-                                                                    d_image_tmp, 
-                                                                    d_charge, 
-                                                                    d_charge_tmp, 
-                                                                    d_diameter, 
-                                                                    d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
-                                                                    d_tag,
-                                                                    d_tag_tmp,
-                                                                    d_remove_mask,
-                                                                    d_n_send_particles,
-                                                                    N,
-                                                                    box.getLo(), 
-                                                                    box.getHi(),
-                                                                    global_box.getL(),
-                                                                    dir);
-    else if (dir == 5 && is_at_boundary[5])
-        gpu_select_send_particles_kernel<5><<<N/block_size+1,block_size>>>(d_pos,
-                                                                    d_pos_tmp,
-                                                                    d_vel,
-                                                                    d_vel_tmp,
-                                                                    d_accel, 
-                                                                    d_accel_tmp, 
-                                                                    d_image, 
-                                                                    d_image_tmp, 
-                                                                    d_charge, 
-                                                                    d_charge_tmp, 
-                                                                    d_diameter, 
-                                                                    d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
-                                                                    d_tag,
-                                                                    d_tag_tmp,
-                                                                    d_remove_mask,
-                                                                    d_n_send_particles,
-                                                                    N,
-                                                                    box.getLo(), 
-                                                                    box.getHi(),
-                                                                    global_box.getL(),
-                                                                    dir);
-    else // no wrap
-        gpu_select_send_particles_kernel<-1><<<N/block_size+1,block_size>>>(d_pos,
-                                                                    d_pos_tmp,
-                                                                    d_vel,
-                                                                    d_vel_tmp,
-                                                                    d_accel, 
-                                                                    d_accel_tmp, 
-                                                                    d_image, 
-                                                                    d_image_tmp, 
-                                                                    d_charge, 
-                                                                    d_charge_tmp, 
-                                                                    d_diameter, 
-                                                                    d_diameter_tmp,
-                                                                    d_body,
-                                                                    d_body_tmp, 
-                                                                    d_orientation, 
-                                                                    d_orientation_tmp, 
-                                                                    d_tag,
-                                                                    d_tag_tmp,
-                                                                    d_remove_mask,
-                                                                    d_n_send_particles,
-                                                                    N,
-                                                                    box.getLo(), 
-                                                                    box.getHi(),
-                                                                    global_box.getL(),
-                                                                    dir); 
+                                                                    d_boundary);
 
-    cudaMemcpy(&n_send_ptls, d_n_send_particles, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(n_send_ptls_corner, d_n_send_particles_corner, 8*sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(n_send_ptls_edge, d_n_send_particles_edge, 12*sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(n_send_ptls_face, d_n_send_particles_face, 6*sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&n_remove_ptls, d_n_remove_ptls, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
 
-void gpu_migrate_compact_particles(unsigned int N,
-                        unsigned char *d_remove_mask,
-                        unsigned int &n_remove_ptls,
-                        float4 *d_pos,
-                        float4 *d_pos_tmp,
-                        float4 *d_vel,
-                        float4 *d_vel_tmp,
-                        float3 *d_accel,
-                        float3 *d_accel_tmp,
-                        int3 *d_image,
-                        int3 *d_image_tmp,
-                        float *d_charge,
-                        float *d_charge_tmp,
-                        float *d_diameter,
-                        float *d_diameter_tmp,
-                        unsigned int *d_body,
-                        unsigned int *d_body_tmp,
-                        float4 *d_orientation,
-                        float4 *d_orientation_tmp,
-                        unsigned int *d_tag,
-                        unsigned int *d_tag_tmp)
+__global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_nparticles,
+                                             unsigned int n_recv_ptls,
+                                             unsigned int n_remove_ptls,
+                                             unsigned int *n_fetch_ptl,
+                                             unsigned char *remove_mask,
+                                             char *recv_buf,
+                                             float4 *d_pos,
+                                             float4 *d_vel,
+                                             float3 *d_accel,
+                                             int3 *d_image,
+                                             float *d_charge,
+                                             float *d_diameter,
+                                             unsigned int *d_body,
+                                             float4 *d_orientation,
+                                             unsigned int *d_tag,
+                                             unsigned int *d_rtag)
     {
-    keys->resize(N);
+    unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    thrust::counting_iterator<unsigned int> count(0);
-    thrust::copy(count, count + N, keys->begin());
+    unsigned int new_nparticles = old_nparticles - n_remove_ptls + n_recv_ptls;
 
-    thrust::device_ptr<unsigned char> remove_mask_ptr(d_remove_mask);
-    thrust::device_vector<unsigned int>::iterator keys_middle;
+    if (idx >= new_nparticles) return;
 
-    keys_middle = thrust::remove_if(keys->begin(),
-                             keys->end(),
-                             remove_mask_ptr, 
-                             thrust::identity<unsigned char>());
+    unsigned char replace = 1;
 
-    n_remove_ptls = keys->end()- keys_middle;
- 
-    thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::device_ptr<float4> pos_tmp_ptr(d_pos_tmp);
-    thrust::device_ptr<float4> vel_ptr(d_vel);
-    thrust::device_ptr<float4> vel_tmp_ptr(d_vel_tmp);
-    thrust::device_ptr<float3> accel_ptr(d_accel);
-    thrust::device_ptr<float3> accel_tmp_ptr(d_accel_tmp);
-    thrust::device_ptr<int3> image_ptr(d_image);
-    thrust::device_ptr<int3> image_tmp_ptr(d_image_tmp);
-    thrust::device_ptr<float> charge_ptr(d_charge);
-    thrust::device_ptr<float> charge_tmp_ptr(d_charge_tmp);
-    thrust::device_ptr<float> diameter_ptr(d_diameter);
-    thrust::device_ptr<float> diameter_tmp_ptr(d_diameter_tmp);
-    thrust::device_ptr<unsigned int> body_ptr(d_body);
-    thrust::device_ptr<unsigned int> body_tmp_ptr(d_body_tmp);
-    thrust::device_ptr<float4> orientation_ptr(d_orientation);
-    thrust::device_ptr<float4> orientation_tmp_ptr(d_orientation_tmp);
-    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> tag_tmp_ptr(d_tag_tmp);
+    if (idx < old_nparticles)
+        replace = remove_mask[idx];
 
-    // reorder particle data, write into temporary arrays
-    thrust::gather(keys->begin(), keys_middle, pos_ptr, pos_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, vel_ptr, vel_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, accel_ptr, accel_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, image_ptr, image_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, charge_ptr, charge_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, diameter_ptr, diameter_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, body_ptr, body_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, orientation_ptr, orientation_tmp_ptr);
-    thrust::gather(keys->begin(), keys_middle, tag_ptr, tag_tmp_ptr);
+    if (replace)
+        {
+        // try to atomically fetch a particle from the received list
+        unsigned int n = atomicInc(n_fetch_ptl, 0xffffffff);
+       
+        if (n < n_recv_ptls) 
+            {
+            // copy over receive buffer data
+            pdata_element_gpu &el= ((pdata_element_gpu *) recv_buf)[n];
+
+            d_pos[idx] = el.pos;
+            d_vel[idx] = el.vel;
+            d_accel[idx] = el.accel;
+            d_image[idx] = el.image;
+            d_charge[idx] = el.charge;
+            d_diameter[idx] = el.diameter;
+            d_body[idx] = el.body;
+            d_orientation[idx] = el.orientation;
+
+            unsigned int tag = el.tag;
+            d_tag[idx] = tag;
+            d_rtag[tag] = idx;
+            }
+        else
+            {
+            unsigned int fetch_idx = new_nparticles + (n - n_recv_ptls);
+            unsigned char remove = remove_mask[fetch_idx];
+
+            while (remove)  {
+                n = atomicInc(n_fetch_ptl, 0xffffffff);
+                fetch_idx = new_nparticles + (n - n_recv_ptls);
+                remove = remove_mask[fetch_idx];
+                }
+
+            // backfill with a particle from the end
+            d_pos[idx] = d_pos[fetch_idx];
+            d_vel[idx] = d_vel[fetch_idx];
+            d_accel[idx] = d_accel[fetch_idx];
+            d_image[idx] = d_image[fetch_idx];
+            d_charge[idx] = d_charge[fetch_idx];
+            d_diameter[idx] = d_diameter[fetch_idx];
+            d_body[idx] = d_body[fetch_idx];
+            d_orientation[idx] = d_orientation[fetch_idx];
+
+            unsigned int tag = d_tag[fetch_idx];
+            d_tag[idx] = tag;
+            d_rtag[tag] = idx;
+            }
+        } // if replace
+    }
+
+void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
+                        unsigned int n_recv_ptls,
+                        unsigned int n_remove_ptls,
+                        unsigned char *d_remove_mask,
+                        char *d_recv_buf,
+                        float4 *d_pos,
+                        float4 *d_vel,
+                        float3 *d_accel,
+                        int3 *d_image,
+                        float *d_charge,
+                        float *d_diameter,
+                        unsigned int *d_body,
+                        float4 *d_orientation,
+                        unsigned int *d_tag,
+                        unsigned int *d_rtag)
+    {
+    cudaMemset(d_n_fetch_ptl, 0, sizeof(unsigned int));
+
+    unsigned int block_size = 512;
+    unsigned int new_end = old_nparticles + n_recv_ptls - n_remove_ptls;
+    gpu_migrate_fill_particle_arrays_kernel<<<new_end/block_size+1,block_size>>>(old_nparticles,
+                                             n_recv_ptls,
+                                             n_remove_ptls,
+                                             d_n_fetch_ptl,
+                                             d_remove_mask,
+                                             d_recv_buf,
+                                             d_pos,
+                                             d_vel,
+                                             d_accel,
+                                             d_image,
+                                             d_charge,
+                                             d_diameter,
+                                             d_body,
+                                             d_orientation,
+                                             d_tag,
+                                             d_rtag);
     }
 
  
@@ -669,35 +703,22 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
                     rtag_ptr);
     }
 
-__global__ void gpu_reset_rtags_by_mask_kernel(const unsigned int N,
-                                        const unsigned char *remove_mask,
-                                        unsigned int *tag,
-                                        unsigned int *rtag)
-    {
-    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
-    
-    if (idx >= N) return;
 
-    if (remove_mask[idx])
-        rtag[tag[idx]] = NOT_LOCAL;
-    }
-
-//! Reset reverse lookup tags of particles by the remove mask
-/* \param n_delete_ptls Number of particles to check
- * \param d_remove_mask Mask indicating which particles are to be removed
- * \param d_tag Array of particle tags
- * \param d_rtag Array for tag->idx lookup
+//! Update global tag <-> local particle index reverse lookup array
+/*! \param nptl Number of particles for which we are updating the reverse lookup tags
+ * \param start_idx starting index of first particle in local particle data arrays
+ * \param d_tag array of particle tags
+ * \param d_rtag array of particle reverse lookup tags to store information to
  */
-void gpu_reset_rtags_by_mask(unsigned int N,
-                     unsigned char *d_remove_mask,
-                     unsigned int *d_tag,
-                     unsigned int *d_rtag)
+void gpu_update_rtag(unsigned int nptl, unsigned int start_idx, unsigned int *d_tag, unsigned int *d_rtag)
     {
-    unsigned int block_size = 512;
+    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    gpu_reset_rtags_by_mask_kernel<<<N/block_size+1,block_size>>>(N, d_remove_mask,d_tag,d_rtag);
+    thrust::counting_iterator<unsigned int> first(start_idx);
+    thrust::counting_iterator<unsigned int> last = first + nptl;
+    thrust::scatter(first, last, tag_ptr, rtag_ptr);
     }
-
 
 //! Construct plans for sending non-bonded ghost particles
 /*! \param d_plan Array of ghost particle plans
@@ -934,22 +955,6 @@ void gpu_exchange_ghosts(unsigned int n_total,
 
     cudaMemcpy(&n_copy_ghosts, d_n_copy_ghosts, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     cudaMemcpy(&n_copy_ghosts_r, d_n_copy_ghosts_r, sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    }
-
-//! Update global tag <-> local particle index reverse lookup array
-/*! \param nptl Number of particles for which we are updating the reverse lookup tags
- * \param start_idx starting index of first particle in local particle data arrays
- * \param d_tag array of particle tags
- * \param d_rtag array of particle reverse lookup tags to store information to
- */
-void gpu_update_rtag(unsigned int nptl, unsigned int start_idx, unsigned int *d_tag, unsigned int *d_rtag)
-    {
-    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    thrust::counting_iterator<unsigned int> first(start_idx);
-    thrust::counting_iterator<unsigned int> last = first + nptl;
-    thrust::scatter(first, last, tag_ptr, rtag_ptr);
     }
 
 //! Fill ghost copy buffer & apply periodic boundary conditions to a ghost particle before sending

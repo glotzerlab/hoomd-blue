@@ -307,6 +307,7 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
         // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(rmax);
+        m_comm->setRBuff(m_r_buff);
         }
 #endif
     forceUpdate();
@@ -1259,6 +1260,7 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
         // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(rmax);
+        m_comm->setRBuff(m_r_buff);
         }
     }
 

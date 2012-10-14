@@ -66,6 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/barrier.hpp>
 
 #include "WorkQueue.h"
+#include "GPUFlags.h"
 
 /*! \ingroup communication
 */
@@ -178,15 +179,18 @@ class CommunicatorGPU : public Communicator
     private:
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
 
-        GPUVector<Scalar4> m_pos_stage;             //!< Temporary storage of particle positions
-        GPUVector<Scalar4> m_vel_stage;             //!< Temporary storage of particle velocities
-        GPUVector<Scalar3> m_accel_stage;           //!< Temporary storage of particle accelerations
-        GPUVector<int3> m_image_stage;              //!< Temporary storage of particle images
-        GPUVector<Scalar> m_charge_stage;           //!< Temporary storage of particle charges
-        GPUVector<Scalar> m_diameter_stage;         //!< Temporary storage of particle diameters
-        GPUVector<unsigned int> m_body_stage;       //!< Temporary storage of particle body ids
-        GPUVector<Scalar4> m_orientation_stage;     //!< Temporary storage of particle orientations
-        GPUVector<unsigned int> m_tag_stage;        //!< Temporary storage of particle tags
+        GPUArray<char> m_corner_send_buf;          //!< Send buffer for corner ptls
+        GPUArray<char> m_edge_send_buf;            //!< Send buffer for edge ptls
+        GPUArray<char> m_face_send_buf;            //!< Send buffer for edge ptls
+        GPUArray<char> m_recv_buf;                 //!< Receive buffer for particle data
+
+        bool m_buffers_allocated;                   //!< True if buffers have been allocated
+        unsigned int m_max_send_ptls_corner;        //!< Size of corner ptl send buffer
+        unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
+        unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer
+
+        const float m_resize_factor;                //!< Factor used for amortized array resizing
+        GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
 
         boost::thread m_worker_thread;              //!< The worker thread for updating ghost positions
         WorkQueue<ghost_gpu_thread_params> m_work_queue; //!< The queue of parameters processed by the worker thread
@@ -194,6 +198,8 @@ class CommunicatorGPU : public Communicator
         const unsigned int *m_copy_ghosts_data[6];  //!< Per-direction pointers to ghost particle send list buffer
         bool m_communication_dir[6];                //!< Per-direction flag, true if we are communicating in this direction
 
+        //! Helper function to allocate various buffers
+        void allocateBuffers();
     };
 
 //! Export CommunicatorGPU class to python
