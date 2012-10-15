@@ -369,6 +369,9 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_n_bonds(m_n_bonds, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
+
+            m_exec_conf->useContext();
+
             gpu_find_max_bond_number(d_n_bonds.data,
                                      d_n_ghost_bonds.data,
                                      d_bonds.data,
@@ -380,6 +383,8 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
                                      m_max_ghost_bond_num,
                                      m_condition.getDeviceFlags(),
                                      stream);
+
+            m_exec_conf->releaseContext();
             }
 
         need_reallocate = m_condition.readFlags();
@@ -405,6 +410,8 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
         ArrayHandle<unsigned int> d_n_ghost_bonds(m_n_ghost_bonds, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+
+        m_exec_conf->useContext();
         gpu_create_bondtable(d_gpu_bondlist.data,
                              d_gpu_ghost_bondlist.data,
                              d_n_bonds.data,
@@ -418,6 +425,7 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
                              m_pdata->getN(),
                              compute_ghost_bonds,
                              stream);
+        m_exec_conf->releaseContext();
         }
 
     }

@@ -93,21 +93,11 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
             {
             integrator_thread_params params = queue.wait_and_pop();
 
-            #ifdef ENABLE_CUDA
-            // use host thread context
-            m_exec_conf->useContext();
-            #endif
-
             //! Call the force compute 
             if (! params.compute_ghost_forces)
                 params.fc->computeThread(params.timestep, m_thread_id);
             else
                 params.fc->computeGhostForcesThread(params.timestep, m_thread_id);
-
-            #ifdef ENABLE_CUDA
-            // release thread context
-            m_exec_conf->releaseContext();
-            #endif
 
             // increment counter
             boost::unique_lock<boost::mutex> lock(params.mutex);

@@ -214,6 +214,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         if (m_inside_thread)
             stream = m_exec_conf->getThreadStream(m_thread_id);
 
+        m_exec_conf->useContext();
+
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_ghost_nlist.data,
                                  d_n_neigh.data,
@@ -240,6 +242,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  ghost_width,
                                  compute_ghost_nlist,
                                  stream);
+
+        m_exec_conf->releaseContext();
+
         }
     else
         {

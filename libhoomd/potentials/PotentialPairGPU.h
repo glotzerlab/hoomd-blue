@@ -187,6 +187,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
+    this->m_exec_conf->useContext();
     gpu_cgpf(pair_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
@@ -211,7 +212,9 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+   
+    this->m_exec_conf->releaseContext();
+
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 
@@ -249,6 +252,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForcesThread
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
+    this->m_exec_conf->useContext();
     gpu_cgpf(pair_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
@@ -273,7 +277,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForcesThread
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+    this->m_exec_conf->releaseContext();
+
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 #endif

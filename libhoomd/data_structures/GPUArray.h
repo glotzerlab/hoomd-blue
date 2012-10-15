@@ -664,7 +664,9 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost() const
 
     m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(size*sizeof(T))/1024.0f/1024.0f << " MB device->host" <<  std::endl;
 #ifdef ENABLE_CUDA
+    m_exec_conf->useContext();
     cudaMemcpy(h_data, d_data, sizeof(T)*size, cudaMemcpyDeviceToHost);
+    m_exec_conf->releaseContext();
 #endif
     }
 
@@ -680,7 +682,9 @@ template<class T> void GPUArray<T>::memcpyHostToDevice() const
 
     m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(size*sizeof(T))/1024.0f/1024.0f << " MB host->device" <<  std::endl;
 #ifdef ENABLE_CUDA
+    m_exec_conf->useContext();
     cudaMemcpy(d_data, h_data, sizeof(T)*size, cudaMemcpyHostToDevice);
+    m_exec_conf->releaseContext();
 #endif
     }
 
@@ -925,7 +929,9 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
+        m_exec_conf->useContext();
         cudaHostAlloc(&h_tmp, num_elements*sizeof(T), cudaHostAllocDefault);
+        m_exec_conf->releaseContext();
         }
     else
         {
@@ -946,7 +952,9 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
+        m_exec_conf->useContext();
         cudaFreeHost(h_data);
+        m_exec_conf->releaseContext();
         }
     else
         {
@@ -971,7 +979,9 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
+        m_exec_conf->useContext();
         cudaHostAlloc(&h_tmp, new_pitch*new_height*sizeof(T), cudaHostAllocDefault);
+        m_exec_conf->releaseContext();
         }
     else
         {
@@ -995,7 +1005,9 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
+        m_exec_conf->useContext();
         cudaFreeHost(h_data);
+        m_exec_conf->releaseContext();
         }
     else
         {
@@ -1052,6 +1064,8 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
 template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsigned int new_pitch, unsigned int height, unsigned int new_height)
     {
 #ifdef ENABLE_CUDA
+    m_exec_conf->useContext();
+
     // allocate resized array
     T *d_tmp;
     cudaMalloc(&d_tmp, new_pitch*new_height*sizeof(T));
@@ -1082,6 +1096,9 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
     cudaFree(d_data);
 
     d_data = d_tmp;
+
+    m_exec_conf->releaseContext();
+
     return d_data;
 #else
     return NULL;
