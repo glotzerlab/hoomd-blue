@@ -343,6 +343,13 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 void Integrator::computeNetForce(unsigned int timestep)
     {
     // compute all the forces first
+#ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_exec_conf->releaseContext();
+#endif
+
+    if (! m_threads_initialized)
+        createWorkerThreads();
 
 #ifdef ENABLE_MPI
     // begin with concurrent communication of ghost positions
@@ -353,13 +360,6 @@ void Integrator::computeNetForce(unsigned int timestep)
     if (m_prof)
         m_prof->push("Forces");
 
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        m_exec_conf->releaseContext();
-#endif
-
-    if (! m_threads_initialized)
-        createWorkerThreads();
 
     m_completed_tasks = 0;
 
