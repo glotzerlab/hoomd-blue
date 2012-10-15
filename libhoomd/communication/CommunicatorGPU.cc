@@ -85,12 +85,6 @@ ghost_gpu_thread::~ghost_gpu_thread()
 //! Main routine of ghost update worker thread
 void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
     {
-    #ifdef VTRACE
-    // initialize device context for thresd
-    if (m_exec_conf->isCUDAEnabled())
-         cudaFree(0);
-    #endif
-
     // request GPU thread id
     m_thread_id = m_exec_conf->requestGPUThreadId();
 
@@ -126,6 +120,8 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         if (! params.is_communicating[dir]) continue;
 
         cudaStream_t stream = m_exec_conf->getThreadStream(m_thread_id);
+
+        m_exec_conf->useContext();
 
         // Pack send data for direction dir and dir+1 (opposite) simultaneously.
         // We assume that they are independent, i.e. a send in direction dir+1
@@ -174,13 +170,13 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         // exchange particle data, write directly to the particle data arrays
         cudaMemcpyAsync(h_pos_copybuf, params.d_pos_copybuf, (params.num_copy_ghosts[dir]+params.num_copy_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyDeviceToHost, stream);
 
-        // we have posted our first CUDA operations, now let the other threads continue
-        m_exec_conf->releaseThreads();
 
         // wait for copy to finish
         cudaEvent_t ev = m_exec_conf->getThreadEvent(m_thread_id);
         cudaEventRecord(ev, stream);
         cudaEventSynchronize(ev);
+
+        m_exec_conf->releaseContext();
 
         MPI_Isend(h_pos_copybuf, params.num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[0]);
         MPI_Irecv(h_pos_recvbuf, params.num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[1]);
@@ -190,7 +186,10 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
 
         MPI_Waitall(4, reqs, status);
 
+        m_exec_conf->useContext();
         cudaMemcpyAsync(params.d_pos_data + start_idx, h_pos_recvbuf, (params.num_recv_ghosts[dir]+params.num_recv_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyHostToDevice, stream);
+        m_exec_conf->releaseContext();
+
         } // end dir loop
 
     } 
@@ -201,14 +200,12 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : Communicator(sysdef, decomposition), m_remove_mask(m_exec_conf),
       m_buffers_allocated(false),
       m_resize_factor(9.f/8.f),
+      m_thread_created(false),
       m_barrier(2)
     { 
     m_exec_conf->msg->notice(5) << "Constructing CommunicatorGPU" << std::endl;
     // allocate temporary GPU buffers
     gpu_allocate_tmp_storage();
-
-    // create a worker thread for ghost updates
-    m_worker_thread = boost::thread(ghost_gpu_thread(m_exec_conf), boost::ref(m_work_queue), boost::ref(m_barrier));
 
     GPUFlags<unsigned int> condition(m_exec_conf);
     m_condition.swap(condition);
@@ -236,6 +233,13 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     if (m_prof)
         m_prof->push("copy_ghosts");
 
+    // create a worker thread for ghost updates
+    if (! m_thread_created)
+        {
+        m_worker_thread = boost::thread(ghost_gpu_thread(m_exec_conf), boost::ref(m_work_queue), boost::ref(m_barrier));
+        m_thread_created = true;
+        }
+
     // fill thread parameters
     for (unsigned int i = 0; i < 6; ++i)
         {
@@ -247,9 +251,6 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     Scalar4 *d_pos_data = m_pdata->getPositions().acquire(access_location::device, access_mode::readwrite_shared);
 
     Scalar4 *d_pos_copybuf_data = m_pos_copybuf.acquire(access_location::device, access_mode::overwrite);
-
-    // we want to proceed with communication quickly, so partly block scheduling of other CUDA kernels
-    m_exec_conf->blockThreads();
 
     // post the parameters to the worker thread
     m_work_queue.push(ghost_gpu_thread_params(

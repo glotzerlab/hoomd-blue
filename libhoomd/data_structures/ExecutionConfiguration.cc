@@ -794,7 +794,12 @@ unsigned int ExecutionConfiguration::requestGPUThreadId() const
        
         // make this routine thread-safe
         boost::mutex::scoped_lock l(m_mutex);
+
+
         msg->notice(6) << "Creating CUDA stream and event (" << m_thread_streams.size() << ")" << std::endl;
+
+        // use a previously released CUDA context
+        useContext();
 
         // create CUDA stream
         cudaStream_t stream;
@@ -805,6 +810,10 @@ unsigned int ExecutionConfiguration::requestGPUThreadId() const
 
         cudaEvent_t ev;
         cudaEventCreate(&ev);
+
+        // release CUDA context
+        releaseContext();
+
         m_thread_events.push_back(ev);
 
         return thread_id;

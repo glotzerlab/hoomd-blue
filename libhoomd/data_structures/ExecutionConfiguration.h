@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/locks.hpp>
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#include <cuda.h>
 #endif
 
 #ifdef ENABLE_MPI
@@ -150,6 +150,29 @@ struct ExecutionConfiguration : boost::noncopyable
         {
         assert(thread_id < m_thread_events.size());
         return m_thread_events[thread_id];
+        }
+
+    //! Release the current CUDA context
+    void releaseContext() const
+        {
+        CUresult res = cuCtxPopCurrent(&m_cuda_context);
+
+        if (m_cuda_error_checking && res != CUDA_SUCCESS)
+            {
+            msg->error() << "Release of CUDA context failed.";
+            throw std::runtime_error("CUDA driver error.");
+            }
+        }
+
+    //! Use the previously released CUDA context
+    void useContext() const
+        {
+        CUresult res = cuCtxPushCurrent(m_cuda_context);
+        if (m_cuda_error_checking && res != CUDA_SUCCESS)
+            {
+            msg->error() << "Use of CUDA context failed.";
+            throw std::runtime_error("CUDA driver error.");
+            } 
         }
 #endif
 
@@ -293,11 +316,13 @@ private:
     mutable std::vector<cudaStream_t> m_thread_streams;     //!< CUDA Streams for kernel execution
     mutable std::vector<cudaEvent_t> m_thread_events;       //!< Reusable events for every thread
     mutable boost::mutex m_mutex;                   //!< Lock for thread-safe requesting of streams
+    mutable CUcontext m_cuda_context;               //!< The CUDA context
+#endif
+  
     mutable boost::mutex m_condition_mutex;         //!< Mutex to enable subscribing to the condition variable
     mutable boost::condition_variable m_condition;  //!< Boost condition variable
     mutable bool m_release_threads;                 //!< True if threads may continue 
-#endif
-  
+
 #ifdef ENABLE_MPI
     void initializeMPI(unsigned int n_ranks);               //!< Initialize MPI environment
 

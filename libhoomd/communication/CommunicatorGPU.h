@@ -193,6 +193,7 @@ class CommunicatorGPU : public Communicator
         GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
 
         boost::thread m_worker_thread;              //!< The worker thread for updating ghost positions
+        bool m_thread_created;                      //!< True if the worker thread has been created
         WorkQueue<ghost_gpu_thread_params> m_work_queue; //!< The queue of parameters processed by the worker thread
         boost::barrier m_barrier;                   //!< Barrier to synchronize with worker thread
         const unsigned int *m_copy_ghosts_data[6];  //!< Per-direction pointers to ghost particle send list buffer

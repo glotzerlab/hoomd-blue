@@ -79,11 +79,6 @@ using namespace std;
 //! The worker thread main routine
 void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& queue)
     {
-#if defined(ENABLE_CUDA) && defined(VTRACE)
-    if (m_exec_conf->isCUDAEnabled())
-        cudaFree(0);
-#endif
-
 #ifdef ENABLE_CUDA
     // for execution on the GPU, we need to a unique thread identifer
     if (m_exec_conf->isCUDAEnabled())
@@ -98,9 +93,9 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
             {
             integrator_thread_params params = queue.wait_and_pop();
 
-            #ifdef ENABLE_MPI
-            // Allow the communication thread to proceed first
-            m_exec_conf->waitRelease();
+            #ifdef ENABLE_CUDA
+            // use host thread context
+            m_exec_conf->useContext();
             #endif
 
             //! Call the force compute 
@@ -109,11 +104,16 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
             else
                 params.fc->computeGhostForcesThread(params.timestep, m_thread_id);
 
+            #ifdef ENABLE_CUDA
+            // release thread context
+            m_exec_conf->releaseContext();
+            #endif
+
             // increment counter
             boost::unique_lock<boost::mutex> lock(params.mutex);
             params.counter++;
             if (params.counter == params.num_tasks)
-                // signal host thread
+                // if we are the thread that finished the last task, signal host thread
                 params.barrier.wait();
             }
         catch(boost::thread_interrupted const)
@@ -121,6 +121,7 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
             done = true;
             }
         }
+
     } 
 
 /*! \param sysdef System to update
@@ -352,6 +353,11 @@ void Integrator::computeNetForce(unsigned int timestep)
     if (m_prof)
         m_prof->push("Forces");
 
+#ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_exec_conf->releaseContext();
+#endif
+
     if (! m_threads_initialized)
         createWorkerThreads();
 
@@ -403,6 +409,10 @@ void Integrator::computeNetForce(unsigned int timestep)
         }
 #endif
 
+#ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_exec_conf->useContext();
+#endif
  
     if (m_prof)
         {
@@ -556,9 +566,12 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         throw runtime_error("Error computing accelerations");
         }
 
+    // release host thread context
+    m_exec_conf->releaseContext();
+
     if (! m_threads_initialized)
         createWorkerThreads();
-
+ 
 #ifdef ENABLE_MPI
     // begin with concurrent communication of ghost positions
     if (m_pdata->getDomainDecomposition())
@@ -616,6 +629,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             m_prof->pop();
         }
 #endif
+
+    // reuse CUDA context
+    m_exec_conf->useContext();
 
     if (m_prof)
         {
