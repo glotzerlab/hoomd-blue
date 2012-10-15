@@ -582,10 +582,13 @@ void ParticleGroup::rebuildIndexListGPU()
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
 
     // reset membership properties
+    m_pdata->getExecConf()->useContext();
     gpu_clear_membership_flags(m_pdata->getN(), d_is_member.data);
+    m_pdata->getExecConf()->releaseContext();
 
     if (m_member_tags.getNumElements() > 0)
         {
+        m_pdata->getExecConf()->useContext();
         gpu_rebuild_index_list(m_pdata->getN(),
                            m_member_tags.getNumElements(),
                            d_member_tags.data,
@@ -593,6 +596,7 @@ void ParticleGroup::rebuildIndexListGPU()
                            d_member_idx.data,
                            d_rtag.data,
                            m_num_local_members);
+        m_pdata->getExecConf()->releaseContext();
         }
     else
         m_num_local_members = 0;

@@ -153,7 +153,7 @@ struct ExecutionConfiguration : boost::noncopyable
         }
 
     //! Release the current CUDA context
-    void releaseContext() const
+    inline void releaseContext() const
         {
         CUresult res = cuCtxPopCurrent(&m_cuda_context);
 
@@ -165,7 +165,7 @@ struct ExecutionConfiguration : boost::noncopyable
         }
 
     //! Use the previously released CUDA context
-    void useContext() const
+    inline void useContext() const
         {
         CUresult res = cuCtxPushCurrent(m_cuda_context);
         if (m_cuda_error_checking && res != CUDA_SUCCESS)

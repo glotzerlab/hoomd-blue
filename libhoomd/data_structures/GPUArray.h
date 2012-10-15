@@ -571,10 +571,12 @@ template<class T> void GPUArray<T>::allocate()
     assert(d_data == NULL);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
+        m_exec_conf->useContext();
         cudaHostAlloc(&h_data, m_num_elements*sizeof(T), cudaHostAllocDefault);
         cudaMalloc(&d_data, m_num_elements*sizeof(T));
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        m_exec_conf->releaseContext();
         }
     else
         {
@@ -602,10 +604,12 @@ template<class T> void GPUArray<T>::deallocate()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
+        m_exec_conf->useContext();
         cudaFreeHost(h_data);
         cudaFree(d_data);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        m_exec_conf->releaseContext();
         }
     else
         {
@@ -645,7 +649,11 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
 
         assert(d_data);
         if (m_data_location == data_location::device || m_data_location == data_location::hostdevice )
+            {
+            m_exec_conf->useContext();
             cudaMemset(d_data+first, 0, (m_num_elements-first)*sizeof(T));
+            m_exec_conf->releaseContext();
+            }
         }
 #endif
     }
@@ -1028,6 +1036,8 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     {
 #ifdef ENABLE_CUDA
+    m_exec_conf->useContext();
+
     // allocate resized array
     T *d_tmp;
     cudaMalloc(&d_tmp, num_elements*sizeof(T));
@@ -1051,6 +1061,9 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     cudaFree(d_data);
 
     d_data = d_tmp;
+    
+    m_exec_conf->releaseContext();
+
     return d_data;
 #else
     return NULL;

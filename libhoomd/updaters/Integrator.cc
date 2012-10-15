@@ -333,11 +333,6 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 void Integrator::computeNetForce(unsigned int timestep)
     {
     // compute all the forces first
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        m_exec_conf->releaseContext();
-#endif
-
     if (! m_threads_initialized)
         createWorkerThreads();
 
@@ -397,11 +392,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         if (m_prof)
             m_prof->pop();
         }
-#endif
-
-#ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        m_exec_conf->useContext();
 #endif
  
     if (m_prof)
@@ -556,9 +546,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         throw runtime_error("Error computing accelerations");
         }
 
-    // release host thread context
-    m_exec_conf->releaseContext();
-
     if (! m_threads_initialized)
         createWorkerThreads();
  
@@ -619,9 +606,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             m_prof->pop();
         }
 #endif
-
-    // reuse CUDA context
-    m_exec_conf->useContext();
 
     if (m_prof)
         {
@@ -754,6 +738,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             // access flags
             PDataFlags flags = this->m_pdata->getFlags();
 
+            m_exec_conf->useContext();
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
                                          net_virial_pitch,
@@ -765,6 +750,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
+            m_exec_conf->releaseContext();
             }
         }
    

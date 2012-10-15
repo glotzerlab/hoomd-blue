@@ -135,7 +135,9 @@ PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::PotentialPairGPU(boost::share
         }
 
     // set cache configuration
+    this->m_exec_conf->useContext();
     gpu_igpf();
+    this->m_exec_conf->releaseContext();
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,

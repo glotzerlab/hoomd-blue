@@ -79,8 +79,10 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
 
+    m_exec_conf->useContext();
     gpu_setup_compute_nlist_binned();
     CHECK_CUDA_ERROR();
+    m_exec_conf->releaseContext();
     
     // default to 0 last allocated quantities
     m_last_dim = make_uint3(0,0,0);
@@ -291,7 +293,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         }
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
+        {
+        m_exec_conf->useContext();
         CHECK_CUDA_ERROR();
+        m_exec_conf->releaseContext();
+        }
 
     if (m_prof)
         m_prof->pop(exec_conf);
