@@ -75,61 +75,110 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct ghost_gpu_thread_params
     {
     //! Constructor
-    ghost_gpu_thread_params(boost::shared_ptr<DomainDecomposition> _decomposition,
-                  const bool *_is_communicating,
-                  const unsigned int *_is_at_boundary,
-                  const unsigned int _N,
-                  const unsigned int *_num_copy_ghosts,
-                  const unsigned int *_num_recv_ghosts,
-                  const unsigned int **_d_copy_ghosts,
-                  Scalar4 *_d_pos_data,
-                  Scalar4 *_d_pos_copybuf,
-                  const BoxDim &_box,
-                  boost::shared_ptr<const ExecutionConfiguration> _exec_conf)
-        : decomposition(_decomposition), 
+    ghost_gpu_thread_params(const unsigned int *_ghost_idx_face_handle, 
+                            const unsigned int _ghost_idx_face_pitch,   
+                            const unsigned int *_ghost_idx_edge_handle, 
+                            const unsigned int _ghost_idx_edge_pitch,   
+                            const unsigned int *_ghost_idx_corner_handle, 
+                            const unsigned int _ghost_idx_corner_pitch, 
+                            char *_corner_update_buf_handle,            
+                            const unsigned int _corner_update_buf_pitch, 
+                            char *_edge_update_buf_handle,             
+                            const unsigned int _edge_update_buf_pitch, 
+                            char *_face_update_buf_handle,             
+                            const unsigned int _face_update_buf_pitch, 
+                            char *_update_recv_buf_handle,             
+                            const bool *_is_communicating,          
+                            const unsigned int *_is_at_boundary,
+                            const unsigned int _N,                     
+                            const std::vector<unsigned int> _n_recv_ghosts_local,
+                            const std::vector<unsigned int *> _n_recv_ghosts_face,
+                            const std::vector<unsigned int *> _n_recv_ghosts_edge,
+                            const unsigned int *_n_copy_ghosts_corner,
+                            const unsigned int *_n_copy_ghosts_edge,  
+                            const unsigned int *_n_copy_ghosts_face,  
+                            const unsigned int _n_tot_recv_ghosts,     
+                            const unsigned int *_n_local_ghosts_edge,  
+                            const unsigned int *_n_local_ghosts_face,  
+                            Scalar4 *_pos_handle,                      
+                            const BoxDim& _global_box)
+        : ghost_idx_face_handle(_ghost_idx_face_handle),
+          ghost_idx_face_pitch(_ghost_idx_face_pitch),
+          ghost_idx_edge_handle(_ghost_idx_edge_handle),
+          ghost_idx_edge_pitch(_ghost_idx_edge_pitch),
+          ghost_idx_corner_handle(_ghost_idx_corner_handle),
+          ghost_idx_corner_pitch(_ghost_idx_corner_pitch),
+          corner_update_buf_handle(_corner_update_buf_handle),
+          corner_update_buf_pitch(_corner_update_buf_pitch),
+          edge_update_buf_handle(_edge_update_buf_handle),
+          edge_update_buf_pitch(_edge_update_buf_pitch),
+          face_update_buf_handle(_face_update_buf_handle),
+          face_update_buf_pitch(_face_update_buf_pitch),
+          update_recv_buf_handle(_update_recv_buf_handle),
           is_communicating(_is_communicating),
           is_at_boundary(_is_at_boundary),
           N(_N),
-          num_copy_ghosts(_num_copy_ghosts),
-          num_recv_ghosts(_num_recv_ghosts),
-          d_copy_ghosts(_d_copy_ghosts),
-          d_pos_data(_d_pos_data),
-          d_pos_copybuf(_d_pos_copybuf),
-          box(_box),
-          exec_conf(_exec_conf)
-        { } 
+          n_recv_ghosts_local(_n_recv_ghosts_local),
+          n_recv_ghosts_face(_n_recv_ghosts_face),
+          n_recv_ghosts_edge(_n_recv_ghosts_edge),
+          n_copy_ghosts_corner(_n_copy_ghosts_corner),
+          n_copy_ghosts_edge(_n_copy_ghosts_edge),
+          n_copy_ghosts_face(_n_copy_ghosts_face),
+          n_tot_recv_ghosts(_n_tot_recv_ghosts),
+          n_local_ghosts_edge(_n_local_ghosts_edge),
+          n_local_ghosts_face(_n_local_ghosts_face),
+          pos_handle(_pos_handle),
+          global_box(_global_box)
+        { }
 
-    boost::shared_ptr<DomainDecomposition> decomposition;   //!< Information about the domain decomposition
-    const bool *is_communicating;        //!< Per-direction flag, true if we are communicating in that direction
-    const unsigned int *is_at_boundary;  //!< Per-direction flag, true if we are at a global boundary
-    const unsigned int N;                //!< Number of local particles
-    const unsigned int *num_copy_ghosts; //!< Per-direction list of ghost particles to send
-    const unsigned int *num_recv_ghosts; //!< Per-direction list of ghost particles to receive
-    const unsigned int **d_copy_ghosts;  //!< Per-direction pointer to array of particle indicies to copy as ghosts
-    Scalar4 *d_pos_data;                 //!< Device pointer to ghost positions array
-    Scalar4 *d_pos_copybuf;              //!< Buffer pointer for copying positions
-    const BoxDim& box;                   //!< Dimensions of global box
-    boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Execution configuration
+    const unsigned int *ghost_idx_face_handle; //!< Device pointer to 'face' ghost particle indices array
+    const unsigned int ghost_idx_face_pitch;   //!< Pitch of 'face' ghost particle indices array
+    const unsigned int *ghost_idx_edge_handle; //!< Device pointer to 'edge' ghost particle indices array
+    const unsigned int ghost_idx_edge_pitch;   //!< Pitch of 'edge' ghost particle indices array
+    const unsigned int *ghost_idx_corner_handle; //!< Device pointer to 'corner' ghost particle indices array
+    const unsigned int ghost_idx_corner_pitch; //!< Pitch of 'corner' ghost particle indices array
+    char *corner_update_buf_handle;            //!< Send/recv buffer for ghosts that are updated over a corner
+    const unsigned int corner_update_buf_pitch; //!< Pitch of corner ghost update buffer
+    char *edge_update_buf_handle;             //!< Send/recv buffer for ghosts that are updated over a edge
+    const unsigned int edge_update_buf_pitch; //!< Pitch of edge ghost update buffer
+    char *face_update_buf_handle;             //!< Send/recv buffer for ghosts that are updated over a face
+    const unsigned int face_update_buf_pitch; //!< Pitch of face ghost update buffer
+    char *update_recv_buf_handle;             //!< Buffer for ghosts received for the local box
+    const bool *is_communicating;              //!< Per-direction true if we are communicating in that direction
+    const unsigned int *is_at_boundary;     //!< Per-direction, true if we are at a global boundary
+    const unsigned int N;                     //!< Number of local particles
+    const std::vector<unsigned int> n_recv_ghosts_local; //!< Number of locally received ghost particles, per direction
+    const std::vector<unsigned int *> n_recv_ghosts_face; //!< Number of ghosts received for updating over a face,per direction
+    const std::vector<unsigned int *> n_recv_ghosts_edge; //!< Number of ghosts received for updating over an edge, per direction
+    const unsigned int *n_copy_ghosts_corner;//!< Number of ghosts to be updated over a corner
+    const unsigned int *n_copy_ghosts_edge;  //!< Number of ghosts to be updated over an edge
+    const unsigned int *n_copy_ghosts_face;  //!< Number of ghosts to be updated over a face
+    const unsigned int n_tot_recv_ghosts;     //!< Total number of ghosts received
+    const unsigned int *n_local_ghosts_edge;  //!< Number of local ghosts sent over an edge
+    const unsigned int *n_local_ghosts_face;  //!< Number of local ghosts sent over a face
+    Scalar4 *pos_handle;                      //!< Device pointer to ghost positions array
+    const BoxDim& global_box;                 //!< Dimensions of global box
     };
+
+//! Forward declaration
+class CommunicatorGPU;
 
 //! Thread that handles update of ghost particles
 class ghost_gpu_thread
     {
     public:
         //! Constructor
-        ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
-        virtual ~ghost_gpu_thread();
+        ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                         boost::shared_ptr<CommunicatorGPU> communicator);
+        virtual ~ghost_gpu_thread() {}
 
         //! The thread main routine
         void operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier);
 
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< The execution configuration
+        boost::shared_ptr<CommunicatorGPU> m_communicator;            //!< The communciator from which the thread was called
 
-        Scalar4 *h_pos_copybuf;                                       //!< Ghost send buffer
-        Scalar4 *h_pos_recvbuf;                                       //!< Ghost receive buffer
-        unsigned int m_size_copy_buf;                                 //!< Size of send buffer
-        unsigned int m_size_recv_buf;                                 //!< Size of receive buffer
         unsigned int m_thread_id;                                     //!< GPU thread id
 
         //! The routine that does the actual ghost update
@@ -171,10 +220,35 @@ class CommunicatorGPU : public Communicator
          */
         virtual void exchangeGhosts();
 
-        //! Update ghost particle positions
-        virtual void copyGhosts();
-
         //@}
+
+    protected:
+        //! Helper function to perform the first part of the communication (exchange of message sizes)
+        void communicateStepOne(unsigned int dir,
+                                unsigned int *n_send_ptls_corner,
+                                unsigned int *n_send_ptls_edge,
+                                unsigned int *n_send_ptls_face,
+                                unsigned int *n_recv_ptls_face,
+                                unsigned int *n_recv_ptls_edge,
+                                unsigned int *n_recv_ptls_local);
+
+        //! Helper function to perform the first part of the communication (exchange of particle data)
+        void communicateStepTwo(unsigned int face,
+                                char *corner_send_buf,
+                                char *edge_send_buf,
+                                char *face_send_buf,
+                                const unsigned int cpitch,
+                                const unsigned int epitch,
+                                const unsigned int fpitch,
+                                char *local_recv_buf,
+                                const unsigned int *n_send_ptls_corner,
+                                const unsigned int *n_send_ptls_edge,
+                                const unsigned int *n_send_ptls_face,
+                                const unsigned int *n_recv_ptls_edge,
+                                const unsigned int *n_recv_ptls_face,
+                                const unsigned int n_recv_ptls_local,
+                                const unsigned int n_tot_recv_ptls_local,
+                                const unsigned int element_size);
 
     private:
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
@@ -184,10 +258,41 @@ class CommunicatorGPU : public Communicator
         GPUArray<char> m_face_send_buf;            //!< Send buffer for edge ptls
         GPUArray<char> m_recv_buf;                 //!< Receive buffer for particle data
 
-        bool m_buffers_allocated;                   //!< True if buffers have been allocated
         unsigned int m_max_send_ptls_corner;        //!< Size of corner ptl send buffer
         unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
         unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer
+
+        GPUArray<char> m_corner_ghosts_buf;         //!< Copy buffer for ghosts lying at the edge
+        GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
+        GPUArray<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
+        GPUArray<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
+
+        GPUArray<unsigned int> m_ghost_idx_corner;  //!< Indices of particles copied as ghosts via corner
+        GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge
+        GPUArray<unsigned int> m_ghost_idx_face;    //!< Indices of particles copied as ghosts via a face
+
+        GPUArray<char> m_corner_update_buf;         //!< Copy buffer for 'corner' ghost positions 
+        GPUArray<char> m_edge_update_buf;           //!< Copy buffer for 'corner' ghost positions 
+        GPUArray<char> m_face_update_buf;           //!< Copy buffer for 'corner' ghost positions 
+        GPUArray<char> m_update_recv_buf;           //!< Receive buffer for ghost positions 
+
+        unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
+        unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
+        unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
+
+        unsigned int m_n_copy_ghosts_face[6];       //!< Number of ghosts copied via a face of the box
+        unsigned int m_n_copy_ghosts_edge[12];      //!< Number of ghosts copied via an edge of the box
+        unsigned int m_n_copy_ghosts_corner[8];     //!< Number of ghosts copied via a corner of the box
+        unsigned int m_n_local_ghosts_face[6];      //!< Local ghosts sent over a face
+        unsigned int m_n_local_ghosts_edge[12];     //!< Local ghosts sent over an edge
+
+        std::vector< unsigned int *> m_n_recv_ghosts_face; //!< Number of ghosts received for copying over a face, per communication step
+        std::vector< unsigned int *> m_n_recv_ghosts_edge; //!< Number of ghosts received for copying over an edge, per communication step
+        std::vector< unsigned int > m_n_recv_ghosts_local; //!< Number of ghosts received for the local box, per communication step
+
+        unsigned int m_n_tot_recv_ghosts;           //!< Total number of ghosts recveived
+
+        bool m_buffers_allocated;                   //!< True if buffers have been allocated
 
         const float m_resize_factor;                //!< Factor used for amortized array resizing
         GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
@@ -196,11 +301,12 @@ class CommunicatorGPU : public Communicator
         bool m_thread_created;                      //!< True if the worker thread has been created
         WorkQueue<ghost_gpu_thread_params> m_work_queue; //!< The queue of parameters processed by the worker thread
         boost::barrier m_barrier;                   //!< Barrier to synchronize with worker thread
-        const unsigned int *m_copy_ghosts_data[6];  //!< Per-direction pointers to ghost particle send list buffer
         bool m_communication_dir[6];                //!< Per-direction flag, true if we are communicating in this direction
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
+
+        friend class ghost_gpu_thread;
     };
 
 //! Export CommunicatorGPU class to python

@@ -66,21 +66,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 //! Constructor
-ghost_gpu_thread::ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+ghost_gpu_thread::ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                   boost::shared_ptr<CommunicatorGPU> communicator)
     : m_exec_conf(exec_conf),
-      h_pos_copybuf(NULL),
-      h_pos_recvbuf(NULL),
-      m_size_copy_buf(0),
-      m_size_recv_buf(0)
-    {
-    }
-
-//! Destructor
-ghost_gpu_thread::~ghost_gpu_thread()
-    {
-    if (h_pos_copybuf) cudaFreeHost(h_pos_copybuf);
-    if (h_pos_recvbuf) cudaFreeHost(h_pos_recvbuf);
-    }
+      m_communicator(communicator)
+    { }
 
 //! Main routine of ghost update worker thread
 void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
@@ -109,89 +99,90 @@ void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boo
 
 void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
     {
-    unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
+    m_exec_conf->useContext();
+    gpu_update_ghosts_pack(params.n_tot_recv_ghosts,
+                        params.ghost_idx_face_handle,
+                        params.ghost_idx_face_pitch,
+                        params.ghost_idx_edge_handle, 
+                        params.ghost_idx_edge_pitch,
+                        params.ghost_idx_corner_handle,
+                        params.ghost_idx_corner_pitch,
+                        params.pos_handle,
+                        params.corner_update_buf_handle,
+                        params.corner_update_buf_pitch, 
+                        params.edge_update_buf_handle,
+                        params.edge_update_buf_pitch,
+                        params.face_update_buf_handle,
+                        params.face_update_buf_pitch,
+                        params.n_copy_ghosts_corner,
+                        params.n_copy_ghosts_edge,
+                        params.n_copy_ghosts_face,
+                        params.is_at_boundary,
+                        params.global_box,
+                        m_exec_conf->getThreadStream(m_thread_id));
 
-    MPI_Request reqs[4];
-    MPI_Status status[4];
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
-    for (unsigned int dir = 0; dir < 6; dir +=2)
+    m_exec_conf->releaseContext();
+
+    unsigned int n_tot_recv_ghosts_local = 0;
+
+    for (unsigned int face = 0; face < 6; ++face)
         {
 
-        if (! params.is_communicating[dir]) continue;
+        if (! params.is_communicating[face]) continue;
 
-        cudaStream_t stream = m_exec_conf->getThreadStream(m_thread_id);
+        m_communicator->communicateStepTwo(face,
+                                           params.corner_update_buf_handle,
+                                           params.edge_update_buf_handle,
+                                           params.face_update_buf_handle,
+                                           params.corner_update_buf_pitch,
+                                           params.edge_update_buf_pitch,
+                                           params.face_update_buf_pitch,
+                                           params.update_recv_buf_handle,
+                                           params.n_copy_ghosts_corner,
+                                           params.n_copy_ghosts_edge,
+                                           params.n_copy_ghosts_face,
+                                           params.n_recv_ghosts_edge[face],
+                                           params.n_recv_ghosts_face[face],
+                                           params.n_recv_ghosts_local[face],
+                                           n_tot_recv_ghosts_local,
+                                           gpu_update_element_size());
 
-        m_exec_conf->useContext();
-
-        // Pack send data for direction dir and dir+1 (opposite) simultaneously.
-        // We assume that they are independent, i.e. a send in direction dir+1
-        // does not contain any ghosts received from that direction previously.
-        gpu_copy_ghosts(params.num_copy_ghosts[dir],
-                        params.num_copy_ghosts[dir+1],
-                        params.d_pos_data, 
-                        params.d_copy_ghosts[dir],
-                        params.d_copy_ghosts[dir+1],
-                        params.d_pos_copybuf,
-                        params.d_pos_copybuf + params.num_copy_ghosts[dir],
-                        dir,
-                        params.is_at_boundary,
-                        params.box,
-                        stream);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-
-        unsigned int send_neighbor = params.decomposition->getNeighborRank(dir);
-        unsigned int recv_neighbor = params.decomposition->getNeighborRank(dir+1);
-
-        unsigned int start_idx = params.N + num_tot_recv_ghosts;
-        num_tot_recv_ghosts += params.num_recv_ghosts[dir] + params.num_recv_ghosts[dir+1];
-
-        unsigned int max_copybuf = (params.num_copy_ghosts[dir] + params.num_copy_ghosts[dir+1])*sizeof(Scalar4);
-        if (m_size_copy_buf < max_copybuf)
-            {
-            unsigned int new_size = 1;
-            while (new_size < max_copybuf) new_size*=2;
-            if (h_pos_copybuf) cudaFreeHost(h_pos_copybuf);
-            cudaMallocHost(&h_pos_copybuf, new_size);
-            m_size_copy_buf = new_size;
-            }
-
-        unsigned int max_recvbuf = (params.num_recv_ghosts[dir] + params.num_recv_ghosts[dir+1])*sizeof(Scalar4);
-        if (m_size_recv_buf < max_recvbuf)
-            {
-            unsigned int new_size = 1;
-            while (new_size < max_recvbuf) new_size*=2;
-            if (h_pos_recvbuf) cudaFreeHost(h_pos_recvbuf);
-            cudaMallocHost(&h_pos_recvbuf, new_size);
-            m_size_recv_buf = new_size;
-            }
-
-        // exchange particle data, write directly to the particle data arrays
-        cudaMemcpyAsync(h_pos_copybuf, params.d_pos_copybuf, (params.num_copy_ghosts[dir]+params.num_copy_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyDeviceToHost, stream);
-
-
-        // wait for copy to finish
-        cudaEvent_t ev = m_exec_conf->getThreadEvent(m_thread_id);
-        cudaEventRecord(ev, stream);
-        cudaEventSynchronize(ev);
-
-        m_exec_conf->releaseContext();
-
-        MPI_Isend(h_pos_copybuf, params.num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[0]);
-        MPI_Irecv(h_pos_recvbuf, params.num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[1]);
-
-        MPI_Isend(h_pos_copybuf+params.num_copy_ghosts[dir], params.num_copy_ghosts[dir+1]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[2]);
-        MPI_Irecv(h_pos_recvbuf+params.num_recv_ghosts[dir], params.num_recv_ghosts[dir+1]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_exec_conf->getMPICommunicator(), &reqs[3]);
-
-        MPI_Waitall(4, reqs, status);
-
-        m_exec_conf->useContext();
-        cudaMemcpyAsync(params.d_pos_data + start_idx, h_pos_recvbuf, (params.num_recv_ghosts[dir]+params.num_recv_ghosts[dir+1])*sizeof(Scalar4), cudaMemcpyHostToDevice, stream);
-        m_exec_conf->releaseContext();
-
+        n_tot_recv_ghosts_local += params.n_recv_ghosts_local[face];
         } // end dir loop
 
+    unsigned int n_forward_ghosts_face[6];
+    unsigned int n_forward_ghosts_edge[12];
+    for (unsigned int i = 0; i < 6; ++i)
+        n_forward_ghosts_face[i] = params.n_copy_ghosts_face[i] - params.n_local_ghosts_face[i];
+
+    for (unsigned int i = 0; i < 12; ++i)
+        n_forward_ghosts_edge[i] = params.n_copy_ghosts_edge[i] - params.n_local_ghosts_edge[i];
+
+
+    // unpack particles
+    m_exec_conf->useContext();
+    gpu_update_ghosts_unpack(params.N,
+                             params.n_tot_recv_ghosts,
+                             params.n_local_ghosts_face,
+                             params.n_local_ghosts_edge,
+                             n_forward_ghosts_face,
+                             n_forward_ghosts_edge,
+                             n_tot_recv_ghosts_local,
+                             params.face_update_buf_handle,
+                             params.face_update_buf_pitch,
+                             params.edge_update_buf_handle,
+                             params.edge_update_buf_pitch,
+                             params.update_recv_buf_handle,
+                             params.pos_handle,
+                             m_exec_conf->getThreadStream(m_thread_id));
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_exec_conf->releaseContext();
+ 
     } 
 
 //! Constructor
@@ -211,6 +202,15 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     GPUFlags<unsigned int> condition(m_exec_conf);
     m_condition.swap(condition);
+
+    m_n_recv_ghosts_face.resize(6);
+    m_n_recv_ghosts_edge.resize(6);
+    m_n_recv_ghosts_local.resize(6);
+    for (unsigned int i = 0; i < 6; ++i)
+        {
+        m_n_recv_ghosts_face[i] = new unsigned int[6];
+        m_n_recv_ghosts_edge[i] = new unsigned int[12];
+        }
     }
 
 //! Destructor
@@ -218,6 +218,12 @@ CommunicatorGPU::~CommunicatorGPU()
     {
     m_exec_conf->msg->notice(5) << "Destroying CommunicatorGPU";
 
+    for (unsigned int i = 0; i < 6; ++i)
+        {
+        delete m_n_recv_ghosts_face[i];
+        delete m_n_recv_ghosts_edge[i];
+        }
+ 
     m_exec_conf->useContext();
 
     gpu_deallocate_tmp_storage();
@@ -243,35 +249,51 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     // create a worker thread for ghost updates
     if (! m_thread_created)
         {
-        m_worker_thread = boost::thread(ghost_gpu_thread(m_exec_conf), boost::ref(m_work_queue), boost::ref(m_barrier));
+        m_worker_thread = boost::thread(ghost_gpu_thread(m_exec_conf,
+                                                         boost::shared_ptr<CommunicatorGPU>(this)),
+                                        boost::ref(m_work_queue), boost::ref(m_barrier));
         m_thread_created = true;
         }
 
-    // fill thread parameters
+    bool is_communicating[6];
     for (unsigned int i = 0; i < 6; ++i)
         {
-        m_copy_ghosts_data[i] = m_copy_ghosts[i].acquire(access_location::device, access_mode::read);
-        m_communication_dir[i] = isCommunicating(i);
+        is_communicating[i] = isCommunicating(i);
         }
 
-    // lock positions array against writing
-    Scalar4 *d_pos_data = m_pdata->getPositions().acquire(access_location::device, access_mode::readwrite_shared);
 
-    Scalar4 *d_pos_copybuf_data = m_pos_copybuf.acquire(access_location::device, access_mode::overwrite);
+    // fill thread parameters
+    ghost_gpu_thread_params params(
+        m_ghost_idx_face.acquire(access_location::device, access_mode::read),
+        m_ghost_idx_face.getPitch(),
+        m_ghost_idx_edge.acquire(access_location::device, access_mode::read),
+        m_ghost_idx_edge.getPitch(),
+        m_ghost_idx_corner.acquire(access_location::device, access_mode::read),
+        m_ghost_idx_corner.getPitch(),
+        m_corner_update_buf.acquire(access_location::device, access_mode::readwrite),
+        m_corner_update_buf.getPitch(),
+        m_edge_update_buf.acquire(access_location::device, access_mode::readwrite),
+        m_edge_update_buf.getPitch(),
+        m_face_update_buf.acquire(access_location::device, access_mode::readwrite),
+        m_face_update_buf.getPitch(),
+        m_update_recv_buf.acquire(access_location::device, access_mode::overwrite),
+        is_communicating,
+        m_is_at_boundary,
+        m_pdata->getN(), 
+        m_n_recv_ghosts_local,
+        m_n_recv_ghosts_face,
+        m_n_recv_ghosts_edge,
+        m_n_copy_ghosts_corner,
+        m_n_copy_ghosts_edge,
+        m_n_copy_ghosts_face,
+        m_n_tot_recv_ghosts,
+        m_n_local_ghosts_edge,
+        m_n_local_ghosts_face,
+        m_pdata->getPositions().acquire(access_location::device, access_mode::readwrite_shared),
+        m_pdata->getGlobalBox());
 
     // post the parameters to the worker thread
-    m_work_queue.push(ghost_gpu_thread_params(
-         m_decomposition,
-         m_communication_dir,
-         m_is_at_boundary,
-         m_pdata->getN(),
-         m_num_copy_ghosts,
-         m_num_recv_ghosts,
-         m_copy_ghosts_data,
-         d_pos_data,
-         d_pos_copybuf_data,
-         m_pdata->getGlobalBox(),
-         m_exec_conf));
+    m_work_queue.push(ghost_gpu_thread_params(params));
 
     if (m_prof) m_prof->pop();
     }
@@ -289,16 +311,23 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
     if (m_prof) m_prof->pop();
 
     // release locked arrays
-    for (unsigned int i = 0; i < 6; ++i)
-        m_copy_ghosts[i].release();
+    m_ghost_idx_face.release();
+    m_face_update_buf.release();
+    m_ghost_idx_edge.release();
+    m_edge_update_buf.release();
 
+    m_ghost_idx_corner.release();
+    m_corner_update_buf.release();
+
+    m_update_recv_buf.release();
     m_pdata->getPositions().release();
-    m_pos_copybuf.release();
     }
 
 void CommunicatorGPU::allocateBuffers()
     {
-    // initial size = max of avg. number of ptls in ghost layer in any direction
+    /*
+     * initial size of particle send buffers = max of avg. number of ptls in skin layer in any direction
+     */ 
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getL();
 
@@ -334,7 +363,65 @@ void CommunicatorGPU::allocateBuffers()
 
     GPUArray<char> recv_buf(gpu_pdata_element_size()*m_max_send_ptls_face, m_exec_conf);
     m_recv_buf.swap(recv_buf);
+   
+    /*
+     * initial size of ghost send buffers = max of avg number of ptls in ghost layer in every direction
+     */ 
+    maxx = m_pdata->getN()*m_r_ghost/L.x;
+    maxy = m_pdata->getN()*m_r_ghost/L.y;
+    maxz = m_pdata->getN()*m_r_ghost/L.z;
+
+    m_max_copy_ghosts_face = 1;
+    m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxx ? m_max_copy_ghosts_face : maxx;
+    m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxy ? m_max_copy_ghosts_face : maxy;
+    m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxz ? m_max_copy_ghosts_face : maxz;
+
+    GPUArray<char> face_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
+    m_face_ghosts_buf.swap(face_ghosts_buf);
+
+    GPUArray<char> face_update_buf(gpu_update_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
+    m_face_update_buf.swap(face_update_buf);
+
+    maxxy = m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.y;
+    maxxz = m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.z;
+    maxyz = m_pdata->getN()*m_r_ghost*m_r_ghost/L.y/L.z;
+
+    m_max_copy_ghosts_edge = 1;
+    m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxxy ? m_max_copy_ghosts_edge : maxxy;
+    m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxxz ? m_max_copy_ghosts_edge : maxxz;
+    m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxyz ? m_max_copy_ghosts_edge : maxyz;
+
+    GPUArray<char> edge_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
+    m_edge_ghosts_buf.swap(edge_ghosts_buf);
+
+    GPUArray<char> edge_update_buf(gpu_update_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
+    m_edge_update_buf.swap(edge_update_buf);
+
+    maxxyz = m_pdata->getN()*m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z;
+    m_max_copy_ghosts_corner = maxxyz > 1 ? maxxyz : 1;
+
+    GPUArray<char> corner_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
+    m_corner_ghosts_buf.swap(corner_ghosts_buf);
+
+    GPUArray<char> corner_update_buf(gpu_update_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
+    m_corner_update_buf.swap(corner_update_buf);
+
+    GPUArray<char> ghost_recv_buf(gpu_ghost_element_size()*m_max_copy_ghosts_face, m_exec_conf);
+    m_ghosts_recv_buf.swap(ghost_recv_buf);
+
+    GPUArray<char> update_recv_buf(gpu_update_element_size()*m_max_copy_ghosts_face, m_exec_conf);
+    m_update_recv_buf.swap(update_recv_buf);
+
+    // reallocate ghost index lists
+    GPUArray<unsigned int> ghost_idx_face(m_max_copy_ghosts_face, 6, m_exec_conf);
+    m_ghost_idx_face.swap(ghost_idx_face);
+
+    GPUArray<unsigned int> ghost_idx_edge(m_max_copy_ghosts_edge, 12, m_exec_conf);
+    m_ghost_idx_edge.swap(ghost_idx_edge);
     
+    GPUArray<unsigned int> ghost_idx_corner(m_max_copy_ghosts_corner, 8, m_exec_conf);
+    m_ghost_idx_corner.swap(ghost_idx_corner);
+
     m_buffers_allocated = true;
     }
 
@@ -475,7 +562,11 @@ void CommunicatorGPU::migrateAtoms()
                 m_max_send_ptls_face = ceilf((float)m_max_send_ptls_face*m_resize_factor);
             }
 
-        assert((condition & 8) == 0);
+        if (condition & 8)
+            {
+            m_exec_conf->msg->error() << "Invalid particle plan." << std::endl;
+            throw std::runtime_error("Error during communication.");
+            }
         }
     while (condition);
 
@@ -485,15 +576,6 @@ void CommunicatorGPU::migrateAtoms()
         {
 
         if (! isCommunicating(dir) ) continue;
-
-        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
-
-        // we receive from the direction opposite to the one we send to
-        unsigned int recv_neighbor;
-        if (dir % 2 == 0)
-            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
-        else
-            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
         unsigned int n_recv_ptls_edge[12];
         unsigned int n_recv_ptls_face[6];
@@ -508,78 +590,13 @@ void CommunicatorGPU::migrateAtoms()
         unsigned int max_n_recv_face = 0;
 
         // communicate size of the messages that will contain the particle data
-        MPI_Request reqs[18];
-        MPI_Status status[18];
-        unsigned int nreq=0;
-
-        // Send message sizes
-        if (dir == 0)
-            {
-            MPI_Isend(&n_send_ptls_corner[corner_east_north_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_corner[corner_east_north_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_corner[corner_east_south_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_corner[corner_east_south_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
-
-            MPI_Isend(&n_send_ptls_edge[edge_east_north], sizeof(unsigned int), MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_edge[edge_east_south], sizeof(unsigned int), MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_edge[edge_east_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_edge[edge_east_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
-
-            MPI_Isend(&n_send_ptls_face[face_east], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-        else if (dir == 1)
-            {
-            MPI_Isend(&n_send_ptls_corner[corner_west_north_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_corner[corner_west_north_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_corner[corner_west_south_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_corner[corner_west_south_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
-
-            MPI_Isend(&n_send_ptls_edge[edge_west_north], sizeof(unsigned int), MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_edge[edge_west_south], sizeof(unsigned int), MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_edge[edge_west_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_edge[edge_west_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_face[face_west], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-        else if (dir == 2)
-            {
-            MPI_Isend(&n_send_ptls_edge[edge_north_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_edge[edge_north_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_face[face_north], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-        else if (dir == 3)
-            {
-            MPI_Isend(&n_send_ptls_edge[edge_south_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_edge[edge_south_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(&n_send_ptls_face[face_south], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            } 
-        else if (dir == 4)
-            {
-            MPI_Isend(&n_send_ptls_face[face_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-        else if (dir == 5)
-            {
-            MPI_Isend(&n_send_ptls_face[face_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-       
-       if (dir < 2)
-            {
-            MPI_Irecv(&n_recv_ptls_edge[edge_north_up], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, m_mpi_comm, &reqs[nreq++]);
-            MPI_Irecv(&n_recv_ptls_edge[edge_north_down], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
-            MPI_Irecv(&n_recv_ptls_edge[edge_south_up], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
-            MPI_Irecv(&n_recv_ptls_edge[edge_south_down], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
-            MPI_Irecv(&n_recv_ptls_face[face_north], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 4, m_mpi_comm, & reqs[nreq++]);
-            MPI_Irecv(&n_recv_ptls_face[face_south], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 5, m_mpi_comm, & reqs[nreq++]);
-            }
-
-        if (dir < 4)
-            {
-            MPI_Irecv(&n_recv_ptls_face[face_up], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 6, m_mpi_comm, & reqs[nreq++]);
-            MPI_Irecv(&n_recv_ptls_face[face_down], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 7, m_mpi_comm, & reqs[nreq++]);
-            }
-
-        MPI_Irecv(&n_recv_ptls, sizeof(unsigned int), MPI_BYTE, recv_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-
-        MPI_Waitall(nreq, reqs, status);
+        communicateStepOne(dir,
+                           n_send_ptls_corner,
+                           n_send_ptls_edge,
+                           n_send_ptls_face,
+                           n_recv_ptls_face,
+                           n_recv_ptls_edge,
+                           &n_recv_ptls);
 
         unsigned int max_n_send_edge = 0;
         unsigned int max_n_send_face = 0;
@@ -628,93 +645,38 @@ void CommunicatorGPU::migrateAtoms()
           
 
         // exchange particle data
-        nreq = 0;
-#ifdef ENABLE_MPI_CUDA
-        ArrayHandle<char> corner_send_buf(m_corner_send_buf, access_location::device, access_mode::read);
-        ArrayHandle<char> edge_send_buf(m_edge_send_buf, access_location::device, access_mode::readwrite);
-        ArrayHandle<char> face_send_buf(m_face_send_buf, access_location::device, access_mode::readwrite);
-        ArrayHandle<char> recv_buf(m_recv_buf, access_location::device, access_mode::readwrite);
-#else
-        ArrayHandle<char> corner_send_buf(m_corner_send_buf, access_location::host, access_mode::read);
-        ArrayHandle<char> edge_send_buf(m_edge_send_buf, access_location::host, access_mode::readwrite);
-        ArrayHandle<char> face_send_buf(m_face_send_buf, access_location::host, access_mode::readwrite);
-        ArrayHandle<char> recv_buf(m_recv_buf, access_location::host, access_mode::readwrite);
-#endif
+        #ifdef ENABLE_MPI_CUDAA
+        ArrayHandle<char> corner_send_buf_handle(m_corner_send_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> edge_send_buf_handle(m_edge_send_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> face_send_buf_handle(m_face_send_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> recv_buf_handle(m_recv_buf, access_location::device, access_mode::readwrite);
+        #else
+        ArrayHandle<char> corner_send_buf_handle(m_corner_send_buf, access_location::host, access_mode::read);
+        ArrayHandle<char> edge_send_buf_handle(m_edge_send_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> face_send_buf_handle(m_face_send_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> recv_buf_handle(m_recv_buf, access_location::host, access_mode::readwrite);
+        #endif
+
         unsigned int cpitch = m_corner_send_buf.getPitch();
         unsigned int epitch = m_edge_send_buf.getPitch();
         unsigned int fpitch = m_face_send_buf.getPitch();
 
-        if (dir == 0)
-            {
-            MPI_Isend(corner_send_buf.data+corner_east_north_up*cpitch, n_send_ptls_corner[corner_east_north_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(corner_send_buf.data+corner_east_north_down*cpitch, n_send_ptls_corner[corner_east_north_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(corner_send_buf.data+corner_east_south_up*cpitch, n_send_ptls_corner[corner_east_south_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(corner_send_buf.data+corner_east_south_down*cpitch, n_send_ptls_corner[corner_east_south_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
-
-            MPI_Isend(edge_send_buf.data+edge_east_north*epitch, n_send_ptls_edge[edge_east_north]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(edge_send_buf.data+edge_east_south*epitch, n_send_ptls_edge[edge_east_south]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(edge_send_buf.data+edge_east_up*epitch, n_send_ptls_edge[edge_east_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(edge_send_buf.data+edge_east_down*epitch, n_send_ptls_edge[edge_east_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
-
-            MPI_Isend(face_send_buf.data+face_east*fpitch, n_send_ptls_face[face_east]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-        else if (dir == 1)
-            {
-            MPI_Isend(corner_send_buf.data+corner_west_north_up*cpitch, n_send_ptls_corner[corner_west_north_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(corner_send_buf.data+corner_west_north_down*cpitch, n_send_ptls_corner[corner_west_north_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(corner_send_buf.data+corner_west_south_up*cpitch, n_send_ptls_corner[corner_west_south_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
-            MPI_Isend(corner_send_buf.data+corner_west_south_down*cpitch, n_send_ptls_corner[corner_west_south_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
-
-            MPI_Isend(edge_send_buf.data+edge_west_north*epitch, n_send_ptls_edge[edge_west_north]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(edge_send_buf.data+edge_west_south*epitch, n_send_ptls_edge[edge_west_south]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(edge_send_buf.data+edge_west_up*epitch, n_send_ptls_edge[edge_west_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(edge_send_buf.data+edge_west_down*epitch, n_send_ptls_edge[edge_west_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
-
-            MPI_Isend(face_send_buf.data+face_west*fpitch, n_send_ptls_face[face_west]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-        else if (dir == 2)
-            {
-            MPI_Isend(edge_send_buf.data+edge_north_up*epitch, n_send_ptls_edge[edge_north_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(edge_send_buf.data+edge_north_down*epitch, n_send_ptls_edge[edge_north_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
-
-            MPI_Isend(face_send_buf.data+face_north*fpitch, n_send_ptls_face[face_north]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-        else if (dir == 3)
-            {
-            MPI_Isend(edge_send_buf.data+edge_south_up*epitch, n_send_ptls_edge[edge_south_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
-            MPI_Isend(edge_send_buf.data+edge_south_down*epitch, n_send_ptls_edge[edge_south_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
-
-            MPI_Isend(face_send_buf.data+face_south*fpitch, n_send_ptls_face[face_south]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            } 
-        else if (dir == 4)
-            {
-            MPI_Isend(face_send_buf.data+face_up*fpitch, n_send_ptls_face[face_up]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-        else if (dir == 5)
-            {
-            MPI_Isend(face_send_buf.data+face_down*fpitch, n_send_ptls_face[face_down]*gpu_pdata_element_size(), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-            }
-
-        if (dir < 2)
-            {
-            MPI_Irecv(edge_send_buf.data+edge_north_up*epitch+n_send_ptls_edge[edge_north_up]*gpu_pdata_element_size(), n_recv_ptls_edge[edge_north_up]*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 0, m_mpi_comm, &reqs[nreq++]);
-            MPI_Irecv(edge_send_buf.data+edge_north_down*epitch+n_send_ptls_edge[edge_north_down]*gpu_pdata_element_size(), n_recv_ptls_edge[edge_north_down]*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[nreq++]);
-            MPI_Irecv(edge_send_buf.data+edge_south_up*epitch+n_send_ptls_edge[edge_south_up]*gpu_pdata_element_size(), n_recv_ptls_edge[edge_south_up]*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[nreq++]);
-            MPI_Irecv(edge_send_buf.data+edge_south_down*epitch+n_send_ptls_edge[edge_south_down]*gpu_pdata_element_size(), n_recv_ptls_edge[edge_south_down]*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[nreq++]);
-
-            MPI_Irecv(face_send_buf.data+face_north*fpitch+n_send_ptls_face[face_north]*gpu_pdata_element_size(), n_recv_ptls_face[face_north]*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 4, m_mpi_comm, & reqs[nreq++]);
-            MPI_Irecv(face_send_buf.data+face_south*fpitch+n_send_ptls_face[face_south]*gpu_pdata_element_size(), n_recv_ptls_face[face_south]*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 5, m_mpi_comm, & reqs[nreq++]);
-            }
-
-        if (dir < 4)
-            {
-            MPI_Irecv(face_send_buf.data+face_up*fpitch+n_send_ptls_face[face_up]*gpu_pdata_element_size(), n_recv_ptls_face[face_up]*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 6, m_mpi_comm, & reqs[nreq++]);
-            MPI_Irecv(face_send_buf.data+face_down*fpitch+n_send_ptls_face[face_down]*gpu_pdata_element_size(), n_recv_ptls_face[face_down]*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 7, m_mpi_comm, & reqs[nreq++]);
-            }
-
-        MPI_Irecv(recv_buf.data+n_tot_recv_ptls*gpu_pdata_element_size(), n_recv_ptls*gpu_pdata_element_size(), MPI_BYTE, recv_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
-
-        MPI_Waitall(nreq, reqs, status);
+        communicateStepTwo(dir,
+                           corner_send_buf_handle.data,
+                           edge_send_buf_handle.data,
+                           face_send_buf_handle.data,
+                           cpitch,
+                           epitch,
+                           fpitch,
+                           recv_buf_handle.data,
+                           n_send_ptls_corner,
+                           n_send_ptls_edge,
+                           n_send_ptls_face,
+                           n_recv_ptls_edge,
+                           n_recv_ptls_face,
+                           n_recv_ptls,
+                           n_tot_recv_ptls,
+                           gpu_pdata_element_size());
 
         // update buffer sizes
         for (unsigned int i = 0; i < 12; ++i)
@@ -845,79 +807,85 @@ void CommunicatorGPU::exchangeGhosts()
         m_exec_conf->releaseContext();
         }
 
-    /*
-     * Fill send buffers, exchange particles according to plans
-     */
+    // initialization of buffers
+    if (! m_buffers_allocated)
+        allocateBuffers();
 
-    MPI_Request reqs[14];
-    MPI_Status status[14];
-    unsigned int start_idx = 0;
-    unsigned int max_copy_ghosts = 0;
-    for (unsigned int dir = 0; dir < 6; dir ++)
-        {
-        if (! isCommunicating(dir) ) continue;
+    unsigned int condition;
+    do {
+        // resize buffers if necessary 
+        if (m_corner_ghosts_buf.getPitch() < m_max_copy_ghosts_corner*gpu_ghost_element_size())
+            m_corner_ghosts_buf.resize(m_max_copy_ghosts_corner*gpu_ghost_element_size(), 8);
 
-        if (dir % 2 == 0)
+        if (m_corner_update_buf.getPitch() < m_max_copy_ghosts_corner*gpu_update_element_size())
+            m_corner_update_buf.resize(m_max_copy_ghosts_corner*gpu_update_element_size(), 8);
+
+        if (m_edge_ghosts_buf.getPitch() < m_max_copy_ghosts_edge*gpu_ghost_element_size())
+            m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
+
+        if (m_edge_update_buf.getPitch() < m_max_copy_ghosts_edge*gpu_update_element_size())
+            m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
+
+        if (m_face_ghosts_buf.getPitch() < m_max_copy_ghosts_face*gpu_ghost_element_size())
+            m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
+
+        if (m_face_update_buf.getPitch() < m_max_copy_ghosts_face*gpu_update_element_size())
+            m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
+
+        if (m_ghost_idx_face.getPitch() < m_max_copy_ghosts_face)
+            m_ghost_idx_face.resize(m_max_copy_ghosts_face, 6);
+
+        if (m_ghost_idx_edge.getPitch() < m_max_copy_ghosts_edge)
+            m_ghost_idx_edge.resize(m_max_copy_ghosts_edge, 12);
+
+        if (m_ghost_idx_corner.getPitch() < m_max_copy_ghosts_corner)
+            m_ghost_idx_corner.resize(m_max_copy_ghosts_corner, 8);
+
+        m_condition.resetFlags(0);
+
             {
-            m_num_copy_ghosts[dir] = m_num_copy_ghosts[dir+1] = 0;
-
-            // resize array of ghost particle indices to copy 
-            max_copy_ghosts = m_pdata->getN() + m_pdata->getNGhosts();
-            if (m_copy_ghosts[dir].size() < max_copy_ghosts)
-                {
-                m_copy_ghosts[dir].resize(max_copy_ghosts);
-                m_copy_ghosts[dir+1].resize(max_copy_ghosts);
-                }
-            
-            // resize buffers
-            if (m_pos_copybuf.size() < 2*max_copy_ghosts)
-                {
-                m_pos_copybuf.resize(2*max_copy_ghosts);
-                m_charge_copybuf.resize(2*max_copy_ghosts);
-                m_diameter_copybuf.resize(2*max_copy_ghosts);
-                m_plan_copybuf.resize(2*max_copy_ghosts);
-                m_tag_copybuf.resize(2*max_copy_ghosts);
-                }
-
-            // Fill send buffer
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::read);
 
-            ArrayHandle<unsigned int> d_copy_ghosts(m_copy_ghosts[dir], access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_copy_ghosts_r(m_copy_ghosts[dir+1], access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar> d_charge_copybuf(m_charge_copybuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar> d_diameter_copybuf(m_diameter_copybuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned char> d_plan_copybuf(m_plan_copybuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_tag_copybuf(m_tag_copybuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<char> d_corner_ghosts_buf(m_corner_ghosts_buf, access_location::device, access_mode::overwrite);
+            ArrayHandle<char> d_edge_ghosts_buf(m_edge_ghosts_buf, access_location::device, access_mode::overwrite);
+            ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::overwrite);
+
+            ArrayHandle<unsigned int> d_ghost_idx_face(m_ghost_idx_face, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ghost_idx_edge(m_ghost_idx_edge, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ghost_idx_corner(m_ghost_idx_corner, access_location::device, access_mode::overwrite);
 
             m_exec_conf->useContext();
-            gpu_exchange_ghosts(m_pdata->getN()+m_pdata->getNGhosts() ,
+            gpu_exchange_ghosts(m_pdata->getN(),
                                 d_plan.data,
-                                d_copy_ghosts.data,
-                                d_copy_ghosts_r.data,
-                                d_pos.data,
-                                d_pos_copybuf.data,
-                                d_pos_copybuf.data + max_copy_ghosts,
-                                d_charge.data,
-                                d_charge_copybuf.data,
-                                d_charge_copybuf.data + max_copy_ghosts,
-                                d_diameter.data,
-                                d_diameter_copybuf.data,
-                                d_diameter_copybuf.data + max_copy_ghosts,
-                                d_plan_copybuf.data,
-                                d_plan_copybuf.data + max_copy_ghosts,
                                 d_tag.data,
-                                d_tag_copybuf.data,
-                                d_tag_copybuf.data + max_copy_ghosts,
-                                m_num_copy_ghosts[dir],
-                                m_num_copy_ghosts[dir+1],
-                                dir,
+                                d_ghost_idx_face.data,
+                                m_ghost_idx_face.getPitch(),
+                                d_ghost_idx_edge.data,
+                                m_ghost_idx_edge.getPitch(),
+                                d_ghost_idx_corner.data,
+                                m_ghost_idx_corner.getPitch(),
+                                d_pos.data,
+                                d_charge.data,
+                                d_diameter.data,
+                                d_corner_ghosts_buf.data,
+                                m_corner_ghosts_buf.getPitch(),
+                                d_edge_ghosts_buf.data,
+                                m_edge_ghosts_buf.getPitch(),
+                                d_face_ghosts_buf.data,
+                                m_face_ghosts_buf.getPitch(),
+                                m_n_copy_ghosts_corner,
+                                m_n_copy_ghosts_edge,
+                                m_n_copy_ghosts_face,
+                                m_max_copy_ghosts_corner,
+                                m_max_copy_ghosts_edge,
+                                m_max_copy_ghosts_face,
                                 m_is_at_boundary,
-                                m_pdata->getGlobalBox());
+                                m_pdata->getGlobalBox(),
+                                m_condition.getDeviceFlags());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -925,106 +893,224 @@ void CommunicatorGPU::exchangeGhosts()
             m_exec_conf->releaseContext();
             }
 
-        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
-
-        // we receive from the direction opposite to the one we send to
-        unsigned int recv_neighbor;
-        if (dir % 2 == 0)
-            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
-        else
-            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
-
-        unsigned int offset_in_pdata = (dir % 2) ? m_num_recv_ghosts[dir-1] : 0;
-        unsigned int offset_in_copybuf = (dir % 2) ? max_copy_ghosts : 0;
-
-        if (dir % 2 == 0 )
+        condition = m_condition.readFlags();
+        if (condition & 1)
             {
-            if (m_prof)
-                m_prof->push("MPI send/recv");
-
-
-            // communicate size of the message that will contain the particle data
-            MPI_Isend(&m_num_copy_ghosts[dir], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[0]);
-            MPI_Irecv(&m_num_recv_ghosts[dir], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
-            // reverse send & receive neighbor for opposite direction
-            MPI_Isend(&m_num_copy_ghosts[dir+1], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, m_mpi_comm, & reqs[2]);
-            MPI_Irecv(&m_num_recv_ghosts[dir+1], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[3]);
-            MPI_Waitall(4, reqs, status);
-
-            if (m_prof)
-                m_prof->pop();
-
-            // append ghosts at the end of particle data array
-            start_idx = m_pdata->getN() + m_pdata->getNGhosts();
-
-            // accommodate new ghost particles
-            m_pdata->addGhostParticles(m_num_recv_ghosts[dir]+m_num_recv_ghosts[dir+1]);
-
-            // resize plan array (and clear new plans)
-            m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
+            // overflow of corner copy buf
+            unsigned int new_size = 1;
+            for (unsigned int i = 0; i < 8; ++i)
+                if (m_n_copy_ghosts_corner[i] > new_size) new_size = m_n_copy_ghosts_corner[i];
+            while (m_max_copy_ghosts_corner < new_size)
+                m_max_copy_ghosts_corner = ceilf((float)m_max_copy_ghosts_corner * m_resize_factor);
+            }
+        if (condition & 2)
+            {
+            // overflow of edge copy buf
+            unsigned int new_size = 1;
+            for (unsigned int i = 0; i < 12; ++i)
+                if (m_n_copy_ghosts_edge[i] > new_size) new_size = m_n_copy_ghosts_edge[i];
+            while (m_max_copy_ghosts_edge < new_size)
+                m_max_copy_ghosts_edge = ceilf((float)m_max_copy_ghosts_edge*m_resize_factor);
+            }
+        if (condition & 4)
+            {
+            // overflow of face copy buf
+            unsigned int new_size = 1;
+            for (unsigned int i = 0; i < 6; ++i)
+                if (m_n_copy_ghosts_edge[i] > new_size) new_size = m_n_copy_ghosts_edge[i];
+            while (m_max_copy_ghosts_face < new_size)
+                m_max_copy_ghosts_face = ceilf((float)m_max_copy_ghosts_face*m_resize_factor);
             }
 
-        // exchange particle data, write directly to the particle data arrays
-        if (m_prof)
-            m_prof->push("MPI send/recv");
-
+        if (condition & 8)
             {
-#ifdef ENABLE_MPI_CUDA
-            ArrayHandle<Scalar4> pos_copybuf_handle(m_pos_copybuf, access_location::device, access_mode::read);
-            ArrayHandle<Scalar> charge_copybuf_handle(m_charge_copybuf, access_location::device, access_mode::read);
-            ArrayHandle<Scalar> diameter_copybuf_handle(m_diameter_copybuf, access_location::device, access_mode::read);
-            ArrayHandle<unsigned char> plan_copybuf_handle(m_plan_copybuf, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> tag_copybuf_handle(m_tag_copybuf, access_location::device, access_mode::read);
+            m_exec_conf->msg->error() << "Invalid particle plan." << std::endl;
+            throw std::runtime_error("Error during communication.");
+            }
+        } while (condition);
 
-            ArrayHandle<Scalar4> pos_handle(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> charge_handle(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar> diameter_handle(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned int> tag_handle(m_pdata->getTags(), access_location::device, access_mode::readwrite);
-            ArrayHandle<unsigned char> plan_handle(m_plan, access_location::device, access_mode::readwrite);
-#else
-            ArrayHandle<Scalar4> pos_copybuf_handle(m_pos_copybuf, access_location::host, access_mode::read);
-            ArrayHandle<Scalar> charge_copybuf_handle(m_charge_copybuf, access_location::host, access_mode::read);
-            ArrayHandle<Scalar> diameter_copybuf_handle(m_diameter_copybuf, access_location::host, access_mode::read);
-            ArrayHandle<unsigned char> plan_copybuf_handle(m_plan_copybuf, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> tag_copybuf_handle(m_tag_copybuf, access_location::host, access_mode::read);
 
-            ArrayHandle<Scalar4> pos_handle(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> charge_handle(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> diameter_handle(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> tag_handle(m_pdata->getTags(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned char> plan_handle(m_plan, access_location::host, access_mode::readwrite);
-#endif
-           
-            MPI_Isend(plan_copybuf_handle.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &reqs[4]);
-            MPI_Irecv(plan_handle.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(unsigned char), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[5]);
+    // store number of local particles we are sending as ghosts, for later counting purposes
+    unsigned int n_forward_ghosts_face[6];
+    unsigned int n_forward_ghosts_edge[12];
 
-            MPI_Isend(pos_copybuf_handle.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 3, m_mpi_comm, &reqs[6]);
-            MPI_Irecv(pos_handle.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[7]);
+    for (unsigned int i = 0; i < 6; ++i)
+        m_n_local_ghosts_face[i] = m_n_copy_ghosts_face[i];
 
-            MPI_Isend(tag_copybuf_handle.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[8]);
-            MPI_Irecv(tag_handle.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(unsigned int), MPI_BYTE, recv_neighbor, 4, m_mpi_comm, &reqs[9]);
+    for (unsigned int i = 0; i < 12; ++i)
+        m_n_local_ghosts_edge[i] = m_n_copy_ghosts_edge[i];
 
-            MPI_Isend(charge_copybuf_handle.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[10]);
-            MPI_Irecv(charge_handle.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 5, m_mpi_comm, &reqs[11]);
 
-            MPI_Isend(diameter_copybuf_handle.data + offset_in_copybuf, m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[12]);
-            MPI_Irecv(diameter_handle.data + start_idx + offset_in_pdata, m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 6, m_mpi_comm, &reqs[13]);
-            
-            MPI_Waitall(10, reqs+4, status+4);
+    /*
+     * Fill send buffers, exchange particles according to plans
+     */
+
+    // Number of ghosts we received that are not forwarded to other boxes
+    unsigned int n_tot_recv_ghosts_local = 0;
+
+    for (unsigned int dir = 0; dir < 6; ++dir)
+        {
+        if (! isCommunicating(dir) ) continue;
+
+        unsigned int max_n_recv_edge = 0;
+        unsigned int max_n_recv_face = 0;
+
+        // exchange message sizes
+        communicateStepOne(dir,
+                           m_n_copy_ghosts_corner,
+                           m_n_copy_ghosts_edge,
+                           m_n_copy_ghosts_face,
+                           m_n_recv_ghosts_face[dir],
+                           m_n_recv_ghosts_edge[dir],
+                           &m_n_recv_ghosts_local[dir]
+                           );
+
+        unsigned int max_n_copy_edge = 0;
+        unsigned int max_n_copy_face = 0;
+
+        // resize buffers as necessary
+        for (unsigned int i = 0; i < 12; ++i)
+            {
+            if (m_n_recv_ghosts_edge[dir][i] > max_n_recv_edge)
+                max_n_recv_edge = m_n_recv_ghosts_edge[dir][i];
+            if (m_n_copy_ghosts_edge[i] > max_n_copy_edge)
+                max_n_copy_edge = m_n_copy_ghosts_edge[i];
             }
 
-                
-        if (m_prof)
-            m_prof->pop();
 
+        if (max_n_recv_edge + max_n_copy_edge > m_max_copy_ghosts_edge)
+            {
+            unsigned int new_size = 1;
+            while (new_size < max_n_recv_edge + max_n_copy_edge) new_size = ceilf((float)new_size* m_resize_factor);
+            m_max_copy_ghosts_edge = new_size;
+
+            m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
+            m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
+            }
+
+        for (unsigned int i = 0; i < 6; ++i)
+            {
+            if (m_n_recv_ghosts_face[dir][i] > max_n_recv_face)
+                max_n_recv_face = m_n_recv_ghosts_face[dir][i];
+            if (m_n_copy_ghosts_face[i] > max_n_copy_face)
+                max_n_copy_face = m_n_copy_ghosts_face[i];
+            }
+
+        if (max_n_recv_face + max_n_copy_face > m_max_copy_ghosts_face)
+            {
+            unsigned int new_size = 1;
+            while (new_size < max_n_recv_face + max_n_copy_face) new_size = ceilf((float) new_size * m_resize_factor);
+            m_max_copy_ghosts_face = new_size;
+
+            m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
+            m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
+            }
+
+        if (m_ghosts_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + m_n_recv_ghosts_local[dir])*gpu_ghost_element_size())
+            {
+            unsigned int new_size =1;
+            while (new_size < n_tot_recv_ghosts_local + m_n_recv_ghosts_local[dir])
+                new_size = ceilf((float) new_size * m_resize_factor);
+            m_ghosts_recv_buf.resize(new_size*gpu_ghost_element_size());
+            }
+
+        if (m_update_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + m_n_recv_ghosts_local[dir])*gpu_update_element_size())
+            {
+            unsigned int new_size =1;
+            while (new_size < n_tot_recv_ghosts_local + m_n_recv_ghosts_local[dir])
+                new_size = ceilf((float) new_size * m_resize_factor);
+            m_update_recv_buf.resize(new_size*gpu_update_element_size());
+            }
+          
+        // exchange ghost particle data
+        #ifdef ENABLE_MPI_CUDAA
+        ArrayHandle<char> corner_ghosts_buf_handle(m_corner_ghosts_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> edge_ghosts_buf_handle(m_edge_ghosts_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> face_ghosts_buf_handle(m_face_ghosts_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> ghosts_recv_buf_handle(m_recv_buf, access_location::device, access_mode::readwrite);
+        #else
+        ArrayHandle<char> corner_ghosts_buf_handle(m_corner_ghosts_buf, access_location::host, access_mode::read);
+        ArrayHandle<char> edge_ghosts_buf_handle(m_edge_ghosts_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> face_ghosts_buf_handle(m_face_ghosts_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> ghosts_recv_buf_handle(m_ghosts_recv_buf, access_location::host, access_mode::readwrite);
+        #endif
+        unsigned int cpitch = m_corner_ghosts_buf.getPitch();
+        unsigned int epitch = m_edge_ghosts_buf.getPitch();
+        unsigned int fpitch = m_face_ghosts_buf.getPitch();
+
+        communicateStepTwo(dir,
+                           corner_ghosts_buf_handle.data,
+                           edge_ghosts_buf_handle.data,
+                           face_ghosts_buf_handle.data,
+                           cpitch,
+                           epitch,
+                           fpitch,
+                           ghosts_recv_buf_handle.data,
+                           m_n_copy_ghosts_corner,
+                           m_n_copy_ghosts_edge,
+                           m_n_copy_ghosts_face,
+                           m_n_recv_ghosts_edge[dir],
+                           m_n_recv_ghosts_face[dir],
+                           m_n_recv_ghosts_local[dir],
+                           n_tot_recv_ghosts_local, 
+                           gpu_ghost_element_size());
+
+        // update buffer sizes
+        for (unsigned int i = 0; i < 12; ++i)
+            m_n_copy_ghosts_edge[i] += m_n_recv_ghosts_edge[dir][i];
+
+        for (unsigned int i = 0; i < 6; ++i)
+            m_n_copy_ghosts_face[i] += m_n_recv_ghosts_face[dir][i];
+
+        n_tot_recv_ghosts_local += m_n_recv_ghosts_local[dir];
         }
 
+    // calculate number of forwarded particles for every face and edge
+    for (unsigned int i = 0; i < 6; ++i)
+        n_forward_ghosts_face[i] = m_n_copy_ghosts_face[i] - m_n_local_ghosts_face[i];
+
+    for (unsigned int i = 0; i < 12; ++i)
+        n_forward_ghosts_edge[i] = m_n_copy_ghosts_edge[i] - m_n_local_ghosts_edge[i];
+
+    // total up number of received ghosts
+    m_n_tot_recv_ghosts = n_tot_recv_ghosts_local;
+    for (unsigned int i = 0; i < 6; ++i)
+        m_n_tot_recv_ghosts += n_forward_ghosts_face[i];
+    for (unsigned int i = 0; i < 12; ++i)
+        m_n_tot_recv_ghosts += n_forward_ghosts_edge[i];
+
+    // update number of ghost particles
+    m_pdata->addGhostParticles(m_n_tot_recv_ghosts);
+
         {
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
 
+        ArrayHandle<char> d_face_ghosts(m_face_ghosts_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> d_edge_ghosts(m_edge_ghosts_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> d_recv_ghosts(m_ghosts_recv_buf, access_location::device, access_mode::read);
+
         m_exec_conf->useContext();
-        gpu_update_rtag(m_pdata->getNGhosts(), m_pdata->getN(), d_tag.data+ m_pdata->getN(), d_rtag.data);
+        gpu_exchange_ghosts_unpack(m_pdata->getN(),
+                                     m_n_tot_recv_ghosts,
+                                     m_n_local_ghosts_face,
+                                     m_n_local_ghosts_edge,
+                                     n_forward_ghosts_face,
+                                     n_forward_ghosts_edge,
+                                     n_tot_recv_ghosts_local,
+                                     d_face_ghosts.data,
+                                     m_face_ghosts_buf.getPitch(),
+                                     d_edge_ghosts.data,
+                                     m_edge_ghosts_buf.getPitch(),
+                                     d_recv_ghosts.data,
+                                     d_pos.data,
+                                     d_charge.data,
+                                     d_diameter.data,
+                                     d_tag.data,
+                                     d_rtag.data);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1039,119 +1125,248 @@ void CommunicatorGPU::exchangeGhosts()
         m_prof->pop();
     }
 
-//! Update ghost particle positions
-void CommunicatorGPU::copyGhosts()
+void CommunicatorGPU::communicateStepOne(unsigned int dir,
+                                        unsigned int *n_send_ptls_corner,
+                                        unsigned int *n_send_ptls_edge,
+                                        unsigned int *n_send_ptls_face,
+                                        unsigned int *n_recv_ptls_face,
+                                        unsigned int *n_recv_ptls_edge,
+                                        unsigned int *n_recv_ptls_local)
     {
-    // we have a current m_copy_ghosts list which contain the indices of particles
-    // to send to neighboring processors
-    if (m_prof)
-        m_prof->push("copy_ghosts");
+    // communicate size of the messages that will contain the particle data
+    MPI_Request reqs[18];
+    MPI_Status status[18];
+    unsigned int nreq=0;
 
-    unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
+    unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
+
+    // we receive from the direction opposite to the one we send to
+    unsigned int recv_neighbor;
+    if (dir % 2 == 0)
+        recv_neighbor = m_decomposition->getNeighborRank(dir+1);
+    else
+        recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
 
-    MPI_Request reqs[4];
-    MPI_Status status[4];
-    unsigned int max_copy_ghosts = 0;
-    for (unsigned int i = 0; i < 3; i++)
+    if (dir == face_east)
         {
-        unsigned int n = m_num_copy_ghosts[2*i]+m_num_copy_ghosts[2*i+1];
-        if (n > max_copy_ghosts)
-            max_copy_ghosts = n;
+        MPI_Isend(&n_send_ptls_corner[corner_east_north_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_corner[corner_east_north_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_corner[corner_east_south_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_corner[corner_east_south_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
+
+        MPI_Isend(&n_send_ptls_edge[edge_east_north], sizeof(unsigned int), MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_edge[edge_east_south], sizeof(unsigned int), MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_edge[edge_east_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_edge[edge_east_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
+
+        MPI_Isend(&n_send_ptls_face[face_east], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
         }
-    
-    if (max_copy_ghosts > m_pos_copybuf.size())
-        m_pos_copybuf.resize(max_copy_ghosts);
-
-    for (unsigned int dir = 0; dir < 6; dir ++)
+    else if (dir == face_west)
         {
+        MPI_Isend(&n_send_ptls_corner[corner_west_north_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_corner[corner_west_north_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_corner[corner_west_south_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_corner[corner_west_south_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
 
-        if (! isCommunicating(dir) ) continue;
+        MPI_Isend(&n_send_ptls_edge[edge_west_north], sizeof(unsigned int), MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_edge[edge_west_south], sizeof(unsigned int), MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_edge[edge_west_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_edge[edge_west_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_face[face_west], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
+        }
+    else if (dir == face_north)
+        {
+        MPI_Isend(&n_send_ptls_edge[edge_north_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_edge[edge_north_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_face[face_north], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
+        }
+    else if (dir == face_south)
+        {
+        MPI_Isend(&n_send_ptls_edge[edge_south_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_edge[edge_south_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(&n_send_ptls_face[face_south], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
+        } 
+    else if (dir == face_up)
+        {
+        MPI_Isend(&n_send_ptls_face[face_up], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
+        }
+    else if (dir == face_down)
+        {
+        MPI_Isend(&n_send_ptls_face[face_down], sizeof(unsigned int), MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
+        }
+  
+    // receive message sizes
+    if (dir == face_east || dir == face_west)
+        {
+        MPI_Irecv(&n_recv_ptls_edge[edge_north_up], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, m_mpi_comm, &reqs[nreq++]);
+        MPI_Irecv(&n_recv_ptls_edge[edge_north_down], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
+        MPI_Irecv(&n_recv_ptls_edge[edge_south_up], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
+        MPI_Irecv(&n_recv_ptls_edge[edge_south_down], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
+        MPI_Irecv(&n_recv_ptls_face[face_north], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 4, m_mpi_comm, & reqs[nreq++]);
+        MPI_Irecv(&n_recv_ptls_face[face_south], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 5, m_mpi_comm, & reqs[nreq++]);
+        }
 
-        unsigned int offset = (dir % 2) ? m_num_copy_ghosts[dir-1] : 0;
+    if (dir == face_east || dir == face_west || dir == face_north || dir == face_south)
+        {
+        MPI_Irecv(&n_recv_ptls_face[face_up], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 6, m_mpi_comm, & reqs[nreq++]);
+        MPI_Irecv(&n_recv_ptls_face[face_down], sizeof(unsigned int), MPI_BYTE, recv_neighbor, 7, m_mpi_comm, & reqs[nreq++]);
+        }
 
-        // Pack send data for direction dir and dir+1 (opposite) simultaneously.
-        // We assume that they are independent, i.e. a send in direction dir+1
-        // does not contain any ghosts received from that direction previously.
-        if ((dir % 2) == 0)
-            {
+    MPI_Irecv(n_recv_ptls_local, sizeof(unsigned int), MPI_BYTE, recv_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
 
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_copy_ghosts(m_copy_ghosts[dir], access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_copy_ghosts_r(m_copy_ghosts[dir+1], access_location::device, access_mode::read);
+    MPI_Waitall(nreq, reqs, status);
+    }
 
-            gpu_copy_ghosts(m_num_copy_ghosts[dir],
-                            m_num_copy_ghosts[dir+1],
-                            d_pos.data, 
-                            d_copy_ghosts.data,
-                            d_copy_ghosts_r.data,
-                            d_pos_copybuf.data,
-                            d_pos_copybuf.data + m_num_copy_ghosts[dir],
-                            dir,
-                            m_is_at_boundary,
-                            m_pdata->getGlobalBox(),
-                            0);
+void CommunicatorGPU::communicateStepTwo(unsigned int face,
+                                char *corner_send_buf,
+                                char *edge_send_buf,
+                                char *face_send_buf,
+                                const unsigned int cpitch,
+                                const unsigned int epitch,
+                                const unsigned int fpitch,
+                                char *local_recv_buf,
+                                const unsigned int *n_send_ptls_corner,
+                                const unsigned int *n_send_ptls_edge,
+                                const unsigned int *n_send_ptls_face,
+                                const unsigned int *n_recv_ptls_edge,
+                                const unsigned int *n_recv_ptls_face,
+                                const unsigned int n_recv_ptls_local,
+                                const unsigned int n_tot_recv_ptls_local,
+                                const unsigned int element_size)
+    {
+    MPI_Request reqs[18];
+    MPI_Status status[18];
+    unsigned int nreq=0;
 
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
+    unsigned int send_neighbor = m_decomposition->getNeighborRank(face);
 
-        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
+    // we receive from the direction opposite to the one we send to
+    unsigned int recv_neighbor;
+    if (face % 2 == 0)
+        recv_neighbor = m_decomposition->getNeighborRank(face+1);
+    else
+        recv_neighbor = m_decomposition->getNeighborRank(face-1);
 
-        // we receive from the direction opposite to the one we send to
-        unsigned int recv_neighbor;
-        if (dir % 2 == 0)
-            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
-        else
-            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+    if (face == face_east)
+        {
+        MPI_Isend(corner_send_buf+corner_east_north_up*cpitch,
+                  n_send_ptls_corner[corner_east_north_up]*element_size,
+                  MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(corner_send_buf+corner_east_north_down*cpitch,
+                  n_send_ptls_corner[corner_east_north_down]*element_size,
+                  MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(corner_send_buf+corner_east_south_up*cpitch,
+                  n_send_ptls_corner[corner_east_south_up]*element_size,
+                  MPI_BYTE, send_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(corner_send_buf+corner_east_south_down*cpitch,
+                  n_send_ptls_corner[corner_east_south_down]*element_size,
+                  MPI_BYTE, send_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
 
-        unsigned int start_idx;
+        MPI_Isend(edge_send_buf+edge_east_north*epitch,
+                  n_send_ptls_edge[edge_east_north]*element_size,
+                  MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(edge_send_buf+edge_east_south*epitch,
+                  n_send_ptls_edge[edge_east_south]*element_size,
+                  MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(edge_send_buf+edge_east_up*epitch,
+                  n_send_ptls_edge[edge_east_up]*element_size,
+                  MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(edge_send_buf+edge_east_down*epitch,
+                  n_send_ptls_edge[edge_east_down]*element_size,
+                  MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
 
-        if (m_prof && (dir%2 == 0))
-            m_prof->push("MPI send/recv");
+       }
+    else if (face == face_west)
+        {
+        MPI_Isend(corner_send_buf+corner_west_north_up*cpitch,
+                  n_send_ptls_corner[corner_west_north_up]*element_size,
+                  MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(corner_send_buf+corner_west_north_down*cpitch,
+                  n_send_ptls_corner[corner_west_north_down]*element_size,
+                  MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(corner_send_buf+corner_west_south_up*cpitch,
+                  n_send_ptls_corner[corner_west_south_up]*element_size,
+                  MPI_BYTE, send_neighbor, 2, m_mpi_comm, & reqs[nreq++]);
+        MPI_Isend(corner_send_buf+corner_west_south_down*cpitch,
+                  n_send_ptls_corner[corner_west_south_down]*element_size,
+                  MPI_BYTE, send_neighbor, 3, m_mpi_comm, & reqs[nreq++]);
 
+        MPI_Isend(edge_send_buf+edge_west_north*epitch,
+                  n_send_ptls_edge[edge_west_north]*element_size,
+                  MPI_BYTE, send_neighbor, 4, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(edge_send_buf+edge_west_south*epitch,
+                  n_send_ptls_edge[edge_west_south]*element_size,
+                  MPI_BYTE, send_neighbor, 5, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(edge_send_buf+edge_west_up*epitch,
+                  n_send_ptls_edge[edge_west_up]*element_size,
+                  MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(edge_send_buf+edge_west_down*epitch,
+                  n_send_ptls_edge[edge_west_down]*element_size,
+                  MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
+        }
+    else if (face == face_north)
+        {
+        MPI_Isend(edge_send_buf+edge_north_up*epitch,
+                  n_send_ptls_edge[edge_north_up]*element_size,
+                  MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(edge_send_buf+edge_north_down*epitch,
+                  n_send_ptls_edge[edge_north_down]*element_size,
+                  MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
+        }
+    else if (face == face_south)
+        {
+        MPI_Isend(edge_send_buf+edge_south_up*epitch,
+                  n_send_ptls_edge[edge_south_up]*element_size,
+                  MPI_BYTE, send_neighbor, 6, m_mpi_comm, &reqs[nreq++]);
+        MPI_Isend(edge_send_buf+edge_south_down*epitch,
+                  n_send_ptls_edge[edge_south_down]*element_size,
+                  MPI_BYTE, send_neighbor, 7, m_mpi_comm, &reqs[nreq++]);
+        } 
 
-        start_idx = m_pdata->getN() + num_tot_recv_ghosts;
+    MPI_Isend(face_send_buf+face*fpitch,
+              n_send_ptls_face[face]*element_size,
+              MPI_BYTE, send_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
+    
+    // receive particle data
+    if (face == face_east || face == face_west)
+        {
+        MPI_Irecv(edge_send_buf+edge_north_up*epitch+n_send_ptls_edge[edge_north_up]*element_size,
+                  n_recv_ptls_edge[edge_north_up]*element_size,
+                  MPI_BYTE, recv_neighbor, 0, m_mpi_comm, &reqs[nreq++]);
+        MPI_Irecv(edge_send_buf+edge_north_down*epitch+n_send_ptls_edge[edge_north_down]*element_size,
+                  n_recv_ptls_edge[edge_north_down]*element_size,
+                  MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[nreq++]);
+        MPI_Irecv(edge_send_buf+edge_south_up*epitch+n_send_ptls_edge[edge_south_up]*element_size,
+                  n_recv_ptls_edge[edge_south_up]*element_size,
+                  MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[nreq++]);
+        MPI_Irecv(edge_send_buf+edge_south_down*epitch+n_send_ptls_edge[edge_south_down]*element_size,
+                  n_recv_ptls_edge[edge_south_down]*element_size,
+                  MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[nreq++]);
 
-        num_tot_recv_ghosts += m_num_recv_ghosts[dir];
+        MPI_Irecv(face_send_buf+face_north*fpitch+n_send_ptls_face[face_north]*element_size,
+                  n_recv_ptls_face[face_north]*element_size,
+                  MPI_BYTE, recv_neighbor, 4, m_mpi_comm, & reqs[nreq++]);
+        MPI_Irecv(face_send_buf+face_south*fpitch+n_send_ptls_face[face_south]*element_size,
+                  n_recv_ptls_face[face_south]*element_size,
+                  MPI_BYTE, recv_neighbor, 5, m_mpi_comm, & reqs[nreq++]);
+        }
 
-        unsigned int shift = (dir % 2) ? 2 : 0;
-#ifdef ENABLE_MPI_CUDA
-            {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_pos_copybuf(m_pos_copybuf, access_location::device, access_mode::read);
+    if (face == face_east || face == face_west || face == face_north || face == face_south)
+        {
+        MPI_Irecv(face_send_buf+face_up*fpitch+n_send_ptls_face[face_up]*element_size,
+                  n_recv_ptls_face[face_up]*element_size,
+                  MPI_BYTE, recv_neighbor, 6, m_mpi_comm, & reqs[nreq++]);
+        MPI_Irecv(face_send_buf+face_down*fpitch+n_send_ptls_face[face_down]*element_size,
+                  n_recv_ptls_face[face_down]*element_size,
+                  MPI_BYTE, recv_neighbor, 7, m_mpi_comm, & reqs[nreq++]);
+        }
 
-            // exchange particle data, write directly to the particle data arrays
-            MPI_Isend(d_pos_copybuf.data + offset, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_mpi_comm, &reqs[0+shift]);
-            MPI_Irecv(d_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_mpi_comm, &reqs[1+shift]);
-            }
-#else
-            {
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
+    MPI_Irecv(local_recv_buf+n_tot_recv_ptls_local*element_size,
+              n_recv_ptls_local*element_size,
+              MPI_BYTE, recv_neighbor, 8, m_mpi_comm, &reqs[nreq++]);
 
-            // exchange particle data, write directly to the particle data arrays
-            MPI_Isend(h_pos_copybuf.data + offset, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, dir, m_mpi_comm, &reqs[0+shift]);
-            MPI_Irecv(h_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, dir, m_mpi_comm, &reqs[1+shift]);
-            }
-#endif
-
-        if (dir %2)
-            {
-            MPI_Waitall(4, reqs, status);
-
-            if (m_prof)
-                {
-                unsigned int n = m_num_recv_ghosts[dir-1]+m_num_copy_ghosts[dir-1]+m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir];
-                m_prof->pop(0, n*sizeof(Scalar4));
-                }
-            }
-
-        } // end dir loop
-
-        if (m_prof)
-            m_prof->pop();
+    MPI_Waitall(nreq, reqs, status);
     }
 
 //! Export CommunicatorGPU class to python

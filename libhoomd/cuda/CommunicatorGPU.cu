@@ -84,6 +84,16 @@ unsigned int gpu_pdata_element_size()
     return sizeof(pdata_element_gpu);
     }
 
+unsigned int gpu_ghost_element_size()
+    {
+    return sizeof(ghost_element_gpu);
+    }
+
+unsigned int gpu_update_element_size()
+    {
+    return sizeof(update_element_gpu);
+    }
+
 //! Select local particles that within a boundary layer of the neighboring domain in a given direction
 struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
     {
@@ -134,14 +144,56 @@ struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsign
      };
 
 unsigned int *d_boundary;                 //!< Flags indicating whether we share a boundary with the global boundary
-unsigned int *d_n_send_particles_corner;  //!< Number of particles sent via a corner
-unsigned int *d_n_send_particles_edge;    //!< Number of particles sent via an edge
-unsigned int *d_n_send_particles_face;    //!< Number of particles sent via a face
+unsigned int *d_n_send_particles_corner;  //!< Number of particles sent over a corner
+unsigned int *d_n_send_particles_edge;    //!< Number of particles sent over an edge
+unsigned int *d_n_send_particles_face;    //!< Number of particles sent over a face
 unsigned int *d_n_remove_ptls;            //!< Number of particles that will be removed
 unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
-unsigned int *d_n_copy_ghosts;            //! Counter for ghost list construction
-unsigned int *d_n_copy_ghosts_r;          //! Counter for ghost list construction (reverse direction)
+unsigned int *d_n_copy_ghosts;            //!< Number of ghosts that are sent in a specific direction
+unsigned int *d_n_copy_ghosts_corner;     //!< Number of ghosts sent over a corner
+unsigned int *d_n_copy_ghosts_edge;       //!< Number of ghosts sent over an edge
+unsigned int *d_n_copy_ghosts_face;       //!< Number of ghosts sent over a face
+
+unsigned int *d_n_local_ghosts_face;      //!< Number of local particles we have sent over a box face
+unsigned int *d_n_local_ghosts_edge;      //!< Number of local particles we have sent over a box edge
+unsigned int *d_n_forward_ghosts_face;    //!< Number of particles we have forwarded over a box face
+unsigned int *d_n_forward_ghosts_edge;    //!< Number of particles we have forwarded over a box edge
+  
+__constant__ unsigned int d_corner_plan_lookup[8];
+__constant__ unsigned int d_edge_plan_lookup[12];
+__constant__ unsigned int d_face_plan_lookup[6];
+
+// This is a lookup from corner to plan
+unsigned int corner_plan_lookup[] = { send_east | send_north | send_up,
+                                      send_east | send_north | send_down,
+                                      send_east | send_south | send_up,
+                                      send_east | send_south | send_down,
+                                      send_west | send_north | send_up,
+                                      send_west | send_north | send_down,
+                                      send_west | send_south | send_up,
+                                      send_west | send_south | send_down};
+
+unsigned int edge_plan_lookup[] = { send_east | send_north,
+                                    send_east | send_south,
+                                    send_east | send_up,
+                                    send_east | send_down,
+                                    send_west | send_north,
+                                    send_west | send_south,
+                                    send_west | send_up,
+                                    send_west | send_down,
+                                    send_north | send_up,
+                                    send_north | send_down,
+                                    send_south | send_up,
+                                    send_south | send_down };
+
+unsigned int face_plan_lookup[] = { send_east,
+                                    send_west,
+                                    send_north,
+                                    send_south,
+                                    send_up,
+                                    send_down };
+
 
 void gpu_allocate_tmp_storage()
     {
@@ -149,10 +201,20 @@ void gpu_allocate_tmp_storage()
     cudaMalloc(&d_n_send_particles_corner,8*sizeof(unsigned int));
     cudaMalloc(&d_n_send_particles_edge,12*sizeof(unsigned int));
     cudaMalloc(&d_n_send_particles_face,6*sizeof(unsigned int));
+    cudaMalloc(&d_n_copy_ghosts_corner,8*sizeof(unsigned int));
+    cudaMalloc(&d_n_copy_ghosts_edge,12*sizeof(unsigned int));
+    cudaMalloc(&d_n_copy_ghosts_face,6*sizeof(unsigned int));
+    cudaMalloc(&d_n_copy_ghosts,6*sizeof(unsigned int));
+    cudaMalloc(&d_n_local_ghosts_face,6*sizeof(unsigned int));
+    cudaMalloc(&d_n_local_ghosts_edge,12*sizeof(unsigned int));
+    cudaMalloc(&d_n_forward_ghosts_face,6*sizeof(unsigned int));
+    cudaMalloc(&d_n_forward_ghosts_edge,12*sizeof(unsigned int));
     cudaMalloc(&d_n_remove_ptls,sizeof(unsigned int));
     cudaMalloc(&d_n_fetch_ptl,sizeof(unsigned int));
-    cudaMalloc(&d_n_copy_ghosts, sizeof(unsigned int));
-    cudaMalloc(&d_n_copy_ghosts_r, sizeof(unsigned int));
+
+    cudaMemcpyToSymbol(d_corner_plan_lookup, corner_plan_lookup, sizeof(unsigned int)*8);
+    cudaMemcpyToSymbol(d_edge_plan_lookup, edge_plan_lookup, sizeof(unsigned int)*12);
+    cudaMemcpyToSymbol(d_face_plan_lookup, face_plan_lookup, sizeof(unsigned int)*6);
     }
 
 void gpu_deallocate_tmp_storage()
@@ -161,10 +223,16 @@ void gpu_deallocate_tmp_storage()
     cudaFree(d_n_send_particles_corner);
     cudaFree(d_n_send_particles_edge);
     cudaFree(d_n_send_particles_face);
+    cudaFree(d_n_copy_ghosts_corner);
+    cudaFree(d_n_copy_ghosts_edge);
+    cudaFree(d_n_copy_ghosts_face);
+    cudaFree(d_n_copy_ghosts);
+    cudaFree(d_n_local_ghosts_face);
+    cudaFree(d_n_local_ghosts_edge);
+    cudaFree(d_n_forward_ghosts_face);
+    cudaFree(d_n_forward_ghosts_edge);
     cudaFree(d_n_remove_ptls);
     cudaFree(d_n_fetch_ptl);
-    cudaFree(d_n_copy_ghosts);
-    cudaFree(d_n_copy_ghosts_r);
     }
 
 //! GPU Kernel to find incomplete bonds
@@ -393,13 +461,9 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
         if (count == 1)
             {
             // face ptl
-            unsigned int face;
-            if (plan & send_east) face = face_east;
-            else if (plan & send_west) face = face_west;
-            else if (plan & send_north) face = face_north;
-            else if (plan & send_south) face = face_south;
-            else if (plan & send_up) face = face_up;
-            else if (plan & send_down) face = face_down;
+            unsigned int face = 0;
+            for (unsigned int i = 0; i < 6; ++i)
+                if (d_face_plan_lookup[i] == plan) face = i;
 
             unsigned int n = atomicInc(&n_send_ptls_face[face],0xffffffff);
             if (n < max_send_ptls_face)
@@ -410,19 +474,9 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
         else if (count == 2)
             {
             // edge ptl
-            unsigned int edge;
-            if ((plan & send_east) && (plan & send_north)) edge = edge_east_north;
-            else if ((plan & send_east) && (plan & send_south)) edge = edge_east_south;
-            else if ((plan & send_east) && (plan & send_up)) edge = edge_east_up;
-            else if ((plan & send_east) && (plan & send_down)) edge = edge_east_down;
-            else if ((plan & send_west) && (plan & send_north)) edge = edge_west_north;
-            else if ((plan & send_west) && (plan & send_south)) edge = edge_west_south;
-            else if ((plan & send_west) && (plan & send_up)) edge = edge_west_up;
-            else if ((plan & send_west) && (plan & send_down)) edge = edge_west_down;
-            else if ((plan & send_north) && (plan & send_up)) edge = edge_north_up;
-            else if ((plan & send_north) && (plan & send_down)) edge = edge_north_down;
-            else if ((plan & send_south) && (plan & send_up)) edge = edge_south_up;
-            else if ((plan & send_south) && (plan & send_down)) edge = edge_south_down;
+            unsigned int edge = 0;
+            for (unsigned int i = 0; i < 12; ++i)
+                if (d_edge_plan_lookup[i] == plan) edge = i;
 
             unsigned int n = atomicInc(&n_send_ptls_edge[edge],0xffffffff);
             if (n < max_send_ptls_edge)
@@ -434,22 +488,8 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
             {
             // corner ptl
             unsigned int corner;
-            if ((plan & send_east) && (plan & send_north) && (plan & send_up))
-                corner = corner_east_north_up;
-            if ((plan & send_east) && (plan & send_north) && (plan & send_down))
-                corner = corner_east_north_down;
-            if ((plan & send_east) && (plan & send_south) && (plan & send_up))
-                corner = corner_east_south_up;
-            if ((plan & send_east) && (plan & send_south) && (plan & send_down))
-                corner = corner_east_south_down;
-            if ((plan & send_west) && (plan & send_north) && (plan & send_up))
-                corner = corner_west_north_up;
-            if ((plan & send_west) && (plan & send_north) && (plan & send_down))
-                corner = corner_west_north_down;
-            if ((plan & send_west) && (plan & send_south) && (plan & send_up))
-                corner = corner_west_south_up;
-            if ((plan & send_west) && (plan & send_south) && (plan & send_down))
-                corner = corner_west_south_down;
+            for (unsigned int i = 0; i < 8; ++i)
+                if (d_corner_plan_lookup[i] == plan) corner = i;
  
             unsigned int n = atomicInc(&n_send_ptls_corner[corner],0xffffffff);
             if (n < max_send_ptls_corner)
@@ -460,7 +500,7 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
         else
             {
             // invalid box
-            atomicOr(condition,8);
+            atomicOr(condition,16);
             }
         }
     else
@@ -473,19 +513,19 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
  *  specified direction
  *
  *  \param N Number of particles in local simulation box
- *  \param n_send_ptls_corner Number of particles that are sent via a corner (per corner)
- *  \param n_send_ptls_edge Number of particles that are sent via an edge (per edge)
- *  \param n_send_ptls_face Number of particles that are sent via a face (per face)
+ *  \param n_send_ptls_corner Number of particles that are sent over a corner (per corner)
+ *  \param n_send_ptls_edge Number of particles that are sent over an edge (per edge)
+ *  \param n_send_ptls_face Number of particles that are sent over a face (per face)
  *  \param n_remove_ptls Number of particles that will be removed
  *  \param n_max_send_ptls_corner Maximum size of corner send buf
  *  \param n_max_send_ptls_edge Maximum size of edge send buf
  *  \param n_max_send_ptls_face Maximum size of face send buf
  *  \param d_remove_mask Per-particle flag if particle has been sent
- *  \param d_corner_buf 2D Array of particle data elements that are sent via a corner
+ *  \param d_corner_buf 2D Array of particle data elements that are sent over a corner
  *  \param corner_buf_pitch Pitch of 2D corner send buf
- *  \param d_edge_buf 2D Array of particle data elements that are sent via an edge
+ *  \param d_edge_buf 2D Array of particle data elements that are sent over an edge
  *  \param edge_buf_pitch Pitch of 2D edge send buf
- *  \param d_face_buf 2D Array of particle data elements that are sent via a face
+ *  \param d_face_buf 2D Array of particle data elements that are sent over a face
  *  \param face_buf_pitch Pitch of 2D face send buf
  *  \param tag_pitch
  *  \param box Dimensions of local simulation box
@@ -747,97 +787,139 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
         make_nonbonded_plan(box, r_ghost));
     }
 
-//! Kernel to construct list of ghosts to send
-template<unsigned int boundary>
-__global__ void gpu_exchange_ghosts_kernel(const unsigned int n_total,
-                                         const unsigned int dir,
-                                         const unsigned char *plan,
-                                         const unsigned int *tag,
-                                         unsigned int *copy_ghosts,
-                                         unsigned int *copy_ghosts_r,
-                                         float4 *pos,
-                                         float4 *pos_copybuf,
-                                         float4 *pos_copybuf_r,
-                                         float *charge,
-                                         float *charge_copybuf,
-                                         float *charge_copybuf_r,
-                                         float *diameter,
-                                         float *diameter_copybuf,
-                                         float *diameter_copybuf_r,
-                                         unsigned char *plan_copybuf,
-                                         unsigned char *plan_copybuf_r,
-                                         unsigned int *tag_copybuf,
-                                         unsigned int *tag_copybuf_r,
-                                         unsigned int *n_copy_ghosts,
-                                         unsigned int *n_copy_ghosts_r,
-                                         const bool is_at_boundary,
-                                         const bool is_at_boundary_reverse,
-                                         Scalar3 L)
+//! Kernel to pack local particle data into ghost send buffers
+__global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
+                                         const unsigned char *d_plan,
+                                         const unsigned int *d_tag,
+                                         unsigned int *d_ghost_idx_face,
+                                         unsigned int ghost_idx_face_pitch,
+                                         unsigned int *d_ghost_idx_edge,
+                                         unsigned int ghost_idx_edge_pitch,
+                                         unsigned int *d_ghost_idx_corner,
+                                         unsigned int ghost_idx_corner_pitch,
+                                         float4 *d_pos,
+                                         float *d_charge,
+                                         float *d_diameter,
+                                         char *d_ghost_corner_buf,
+                                         unsigned int corner_buf_pitch,
+                                         char *d_ghost_edge_buf,
+                                         unsigned int edge_buf_pitch,
+                                         char *d_ghost_face_buf,
+                                         unsigned int face_buf_pitch,
+                                         unsigned int *n_copy_ghosts_corner,
+                                         unsigned int *n_copy_ghosts_edge,
+                                         unsigned int *n_copy_ghosts_face,
+                                         unsigned int max_copy_ghosts_corner,
+                                         unsigned int max_copy_ghosts_edge,
+                                         unsigned int max_copy_ghosts_face,
+                                         unsigned int *boundary,
+                                         Scalar3 L,
+                                         unsigned int *condition)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
     
-    if (idx >= n_total) return;
+    if (idx >= N) return;
 
-    unsigned char p = plan[idx];
-    bool do_send = (p & (1 << dir));
-    bool do_send_r = (p & (1 << (dir+1)));
+    unsigned char plan = d_plan[idx];
 
-    if (do_send)
+    if (plan)
         {
-        unsigned int n = atomicInc(n_copy_ghosts, 0xffffffff);
-        Scalar4 postype = pos[idx]; 
+        Scalar4 postype = d_pos[idx]; 
 
-        switch(boundary)
+        // apply global boundary conditions
+        if ((plan & send_east) && boundary[0])
+            postype.x -= L.x;
+        if ((plan & send_west) && boundary[1])
+            postype.x += L.x; 
+        if ((plan & send_north) && boundary[2])
+            postype.y -= L.y;
+        if ((plan & send_south) && boundary[3])
+            postype.y += L.y;
+        if ((plan & send_up) && boundary[4])
+            postype.z -= L.z;
+        if ((plan & send_down) && boundary[5])
+            postype.z += L.z; 
+
+        ghost_element_gpu el;
+        el.pos = postype;
+        el.charge = d_charge[idx];
+        el.diameter = d_diameter[idx];
+        el.tag = d_tag[idx];
+
+        unsigned int count = 0;
+        if (plan & send_east) count++;
+        if (plan & send_west) count++;
+        if (plan & send_north) count++;
+        if (plan & send_south) count++;
+        if (plan & send_up) count++;
+        if (plan & send_down) count++;
+
+        const unsigned int ghost_size = sizeof(ghost_element_gpu);
+
+        if (count == 1)
             {
-            case 0:
-                if (is_at_boundary) postype.x -= L.x;
-                break;
-            case 1:
-                if (is_at_boundary) postype.y -= L.y;
-                break;
-            case 2:
-                if (is_at_boundary) postype.z -= L.z;
-                break;
+            // face ptl
+            unsigned int face = 0;
+            for (unsigned int i = 0; i < 6; ++i)
+                if (d_face_plan_lookup[i] == plan) face = i;
+
+            unsigned int n = atomicInc(&n_copy_ghosts_face[face],0xffffffff);
+            if (n < max_copy_ghosts_face)
+                {
+                *((ghost_element_gpu *) &d_ghost_face_buf[n*ghost_size+face*face_buf_pitch]) = el;
+
+                // store particle index in ghost copying lists
+                d_ghost_idx_face[n+face*ghost_idx_face_pitch] = idx;
+                }
+            else
+                // overflow
+                atomicOr(condition,1);
+
             }
-
-        pos_copybuf[n] = postype;
-        tag_copybuf[n] = tag[idx];
-        plan_copybuf[n] = plan[idx];
-        charge_copybuf[n] = charge[idx];
-        diameter_copybuf[n] = diameter[idx];
-
-        copy_ghosts[n] = idx;
-        }
-
-    if (do_send_r)
-        {
-        unsigned int n = atomicInc(n_copy_ghosts_r, 0xffffffff);
-        Scalar4 postype = pos[idx]; 
-
-        switch(boundary)
+        else if (count == 2)
             {
-            case 0:
-                if (is_at_boundary_reverse) postype.x += L.x;
-                break;
-            case 1:
-                if (is_at_boundary_reverse) postype.y += L.y;
-                break;
-            case 2:
-                if (is_at_boundary_reverse) postype.z += L.z;
-                break;
-            }
+            // edge ptl
+            unsigned int edge = 0;
+            for (unsigned int i = 0; i < 12; ++i)
+                if (d_edge_plan_lookup[i] == plan) edge = i;
 
-        pos_copybuf_r[n] = postype;
-        tag_copybuf_r[n] = tag[idx];
-        plan_copybuf_r[n] = plan[idx];
-        charge_copybuf_r[n] = charge[idx];
-        diameter_copybuf_r[n] = diameter[idx];
-        copy_ghosts_r[n] = idx;
-        }
-       
+            unsigned int n = atomicInc(&n_copy_ghosts_edge[edge],0xffffffff);
+            if (n < max_copy_ghosts_edge)
+                {
+                *((ghost_element_gpu *) &d_ghost_edge_buf[n*ghost_size+edge*edge_buf_pitch]) = el;
+
+                // store particle index in ghost copying lists
+                d_ghost_idx_edge[n+edge*ghost_idx_face_pitch] = idx;
+                }
+            else
+                // overflow
+                atomicOr(condition,2);
+            }
+        else if (count == 3)
+            {
+            // corner ptl
+            unsigned int corner = 0;
+            for (unsigned int i = 0; i < 8; ++i)
+                if (d_corner_plan_lookup[i] == plan) corner = i;
+
+            unsigned int n = atomicInc(&n_copy_ghosts_corner[corner],0xffffffff);
+            if (n < max_copy_ghosts_corner)
+                {
+                *((ghost_element_gpu *) &d_ghost_corner_buf[n*ghost_size+corner*corner_buf_pitch]) = el;
+                d_ghost_idx_corner[n+corner*ghost_idx_corner_pitch] = idx;
+                }
+            else
+                // overflow
+                atomicOr(condition,4);
+            }
+        else
+            {
+            // invalid plan
+            atomicOr(condition,8);
+            }
+        } 
     }
 
-    
 //! Construct a list of particle tags to send as ghost particles
 /*! \param n_total Total number of particles to check
  * \param N number of local particles
@@ -848,220 +930,423 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int n_total,
  * \param d_ghost_tag Array of ghost particle tags to be sent
  * \param n_copy_ghosts Number of local particles that are sent in the given direction as ghosts (return value)
  */
-void gpu_exchange_ghosts(unsigned int n_total,
-                         unsigned char *d_plan,
-                         unsigned int *d_copy_ghosts,
-                         unsigned int *d_copy_ghosts_r,
+void gpu_exchange_ghosts(const unsigned int N,
+                         const unsigned char *d_plan,
+                         const unsigned int *d_tag,
+                         unsigned int *d_ghost_idx_face,
+                         unsigned int ghost_idx_face_pitch,
+                         unsigned int *d_ghost_idx_edge,
+                         unsigned int ghost_idx_edge_pitch,
+                         unsigned int *d_ghost_idx_corner,
+                         unsigned int ghost_idx_corner_pitch,
                          float4 *d_pos,
-                         float4 *d_pos_copybuf,
-                         float4 *d_pos_copybuf_r,
                          float *d_charge,
-                         float *d_charge_copybuf,
-                         float *d_charge_copybuf_r,
                          float *d_diameter,
-                         float *d_diameter_copybuf,
-                         float *d_diameter_copybuf_r,
-                         unsigned char *d_plan_copybuf,
-                         unsigned char *d_plan_copybuf_r,
-                         unsigned int *d_tag,
-                         unsigned int *d_tag_copybuf,
-                         unsigned int *d_tag_copybuf_r,
-                         unsigned int &n_copy_ghosts,
-                         unsigned int &n_copy_ghosts_r,
-                         unsigned int dir,
-                         const unsigned int *is_at_boundary,
-                         const BoxDim& global_box)
+                         char *d_ghost_corner_buf,
+                         unsigned int corner_buf_pitch,
+                         char *d_ghost_edge_buf,
+                         unsigned int edge_buf_pitch,
+                         char *d_ghost_face_buf,
+                         unsigned int face_buf_pitch,
+                         unsigned int *n_copy_ghosts_corner,
+                         unsigned int *n_copy_ghosts_edge,
+                         unsigned int *n_copy_ghosts_face,
+                         unsigned int max_copy_ghosts_corner,
+                         unsigned int max_copy_ghosts_edge,
+                         unsigned int max_copy_ghosts_face,
+                         unsigned int *is_at_boundary,
+                         const BoxDim& global_box,
+                         unsigned int *d_condition)
     {
-    n_copy_ghosts = 0;
-    cudaMemcpy(d_n_copy_ghosts, &n_copy_ghosts, sizeof(unsigned int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_n_copy_ghosts_r, &n_copy_ghosts, sizeof(unsigned int), cudaMemcpyHostToDevice);
+    cudaMemset(d_n_copy_ghosts_corner, 0, sizeof(unsigned int)*8);
+    cudaMemset(d_n_copy_ghosts_edge, 0, sizeof(unsigned int)*12);
+    cudaMemset(d_n_copy_ghosts_face, 0, sizeof(unsigned int)*6);
+    cudaMemcpy(d_boundary, is_at_boundary, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
+
 
     unsigned int block_size = 512;
-    if (dir == 0)
-        gpu_exchange_ghosts_kernel<0><<<n_total/block_size+1, block_size>>>(n_total,
-                                         dir,
-                                         d_plan,
-                                         d_tag,
-                                         d_copy_ghosts,
-                                         d_copy_ghosts_r,
-                                         d_pos,
-                                         d_pos_copybuf,
-                                         d_pos_copybuf_r,
-                                         d_charge,
-                                         d_charge_copybuf,
-                                         d_charge_copybuf_r,
-                                         d_diameter,
-                                         d_diameter_copybuf,
-                                         d_diameter_copybuf_r,
-                                         d_plan_copybuf,
-                                         d_plan_copybuf_r,
-                                         d_tag_copybuf,
-                                         d_tag_copybuf_r,
-                                         d_n_copy_ghosts,
-                                         d_n_copy_ghosts_r,
-                                         is_at_boundary[dir],
-                                         is_at_boundary[dir+1],
-                                         global_box.getL());
-    else if (dir == 2)
-        gpu_exchange_ghosts_kernel<1><<<n_total/block_size+1, block_size>>>(n_total,
-                                         dir,
-                                         d_plan,
-                                         d_tag,
-                                         d_copy_ghosts,
-                                         d_copy_ghosts_r,
-                                         d_pos,
-                                         d_pos_copybuf,
-                                         d_pos_copybuf_r,
-                                         d_charge,
-                                         d_charge_copybuf,
-                                         d_charge_copybuf_r,
-                                         d_diameter,
-                                         d_diameter_copybuf,
-                                         d_diameter_copybuf_r,
-                                         d_plan_copybuf,
-                                         d_plan_copybuf_r,
-                                         d_tag_copybuf,
-                                         d_tag_copybuf_r,
-                                         d_n_copy_ghosts,
-                                         d_n_copy_ghosts_r,
-                                         is_at_boundary[dir],
-                                         is_at_boundary[dir+1],
-                                         global_box.getL());
-     else if (dir == 4)
-        gpu_exchange_ghosts_kernel<2><<<n_total/block_size+1, block_size>>>(n_total,
-                                         dir,
-                                         d_plan,
-                                         d_tag,
-                                         d_copy_ghosts,
-                                         d_copy_ghosts_r,
-                                         d_pos,
-                                         d_pos_copybuf,
-                                         d_pos_copybuf_r,
-                                         d_charge,
-                                         d_charge_copybuf,
-                                         d_charge_copybuf_r,
-                                         d_diameter,
-                                         d_diameter_copybuf,
-                                         d_diameter_copybuf_r,
-                                         d_plan_copybuf,
-                                         d_plan_copybuf_r,
-                                         d_tag_copybuf,
-                                         d_tag_copybuf_r,
-                                         d_n_copy_ghosts,
-                                         d_n_copy_ghosts_r,
-                                         is_at_boundary[dir],
-                                         is_at_boundary[dir+1],
-                                         global_box.getL());
-
-    cudaMemcpy(&n_copy_ghosts, d_n_copy_ghosts, sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&n_copy_ghosts_r, d_n_copy_ghosts_r, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    gpu_exchange_ghosts_kernel<<<N/block_size+1, block_size>>>(N,
+                         d_plan,
+                         d_tag,
+                         d_ghost_idx_face,
+                         ghost_idx_face_pitch,
+                         d_ghost_idx_edge,
+                         ghost_idx_edge_pitch,
+                         d_ghost_idx_corner,
+                         ghost_idx_corner_pitch,
+                         d_pos,
+                         d_charge,
+                         d_diameter,
+                         d_ghost_corner_buf,
+                         corner_buf_pitch,
+                         d_ghost_edge_buf,
+                         edge_buf_pitch,
+                         d_ghost_face_buf,
+                         face_buf_pitch,
+                         n_copy_ghosts_corner,
+                         n_copy_ghosts_edge,
+                         n_copy_ghosts_face,
+                         max_copy_ghosts_corner,
+                         max_copy_ghosts_edge,
+                         max_copy_ghosts_face,
+                         d_boundary,
+                         global_box.getL(),
+                         d_condition);
+                         
+    cudaMemcpy(n_copy_ghosts_corner, d_n_copy_ghosts_corner, 8*sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(n_copy_ghosts_edge, d_n_copy_ghosts_edge, 12*sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(n_copy_ghosts_face, d_n_copy_ghosts_face, 6*sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
 
-//! Fill ghost copy buffer & apply periodic boundary conditions to a ghost particle before sending
-template<int boundary>
-__global__ void gpu_copy_ghost_particles_kernel(const float4 *pos,
-                                      const unsigned int *copy_ghosts,
-                                      const unsigned int *copy_ghosts_reverse,
-                                      float4 *pos_copybuf,
-                                      float4 *pos_copybuf_reverse,
-                                      const unsigned int nghost,
-                                      const unsigned int nghost_reverse,
-                                      const Scalar3 L,
-                                      const bool is_at_boundary,
-                                      const bool is_at_boundary_reverse)
+template<class element_type, bool update>
+__global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
+                                                  unsigned int n_tot_recv_ghosts,
+                                                  const unsigned int *n_local_ghosts_face,
+                                                  const unsigned int *n_local_ghosts_edge,
+                                                  const unsigned int *n_forward_ghosts_face,
+                                                  const unsigned int *n_forward_ghosts_edge,
+                                                  const unsigned int n_recv_ghosts_local,
+                                                  const char *d_face_ghosts,
+                                                  const unsigned int face_pitch,
+                                                  const char *d_edge_ghosts,
+                                                  const unsigned int edge_pitch,
+                                                  const char *d_recv_ghosts,
+                                                  Scalar4 *d_pos,
+                                                  Scalar *d_charge,
+                                                  Scalar *d_diameter,
+                                                  unsigned int *d_tag,
+                                                  unsigned int *d_rtag)
     {
-    unsigned int ghost_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
 
-    if (ghost_idx < nghost)
+    if (ghost_idx < n_tot_recv_ghosts) return;
+
+    element_type *el_ptr;
+    const unsigned int ghost_size = sizeof(element_type);
+
+    // decide for each ghost particle from which buffer we are fetching it from
+    unsigned int offset = 0;
+
+    // first ghosts that are received for the local box only
+    bool done = false;
+    unsigned int local_idx = ghost_idx;
+    if (local_idx < n_recv_ghosts_local)
         {
-        Scalar4 postype = pos[copy_ghosts[ghost_idx]];
-
-        switch(boundary)
+        el_ptr = (element_type *) &d_recv_ghosts[local_idx*ghost_size];
+        done = true;
+        }
+    else
+        offset += n_recv_ghosts_local;
+  
+    if (! done)
+        {
+        // ghosts we have forwarded over a face of our box
+        for (unsigned int i=0; i < 6; ++i)
             {
-            case 0:
-                if (is_at_boundary) postype.x -= L.x;
+            local_idx = ghost_idx - offset;
+
+            if (local_idx < n_forward_ghosts_face[i])
+                {
+                unsigned int n = n_local_ghosts_face[i]+local_idx;
+                el_ptr = (element_type *) &d_face_ghosts[n*ghost_size + i*face_pitch];
+                done = true;
                 break;
-            case 1: 
-                if (is_at_boundary) postype.y -= L.y;
-                break;
-            case 2:
-                if (is_at_boundary) postype.z -= L.z;
-                break;
+                }
+            else
+                offset += n_forward_ghosts_face[i];
             }
-        pos_copybuf[ghost_idx] = postype;
         }
 
-    if (ghost_idx < nghost_reverse)
+    if (! done)
         {
-        Scalar4 postype = pos[copy_ghosts_reverse[ghost_idx]];
-
-        switch(boundary)
+        // ghosts we have forwared over an edge of our box
+        for (unsigned int i=0; i < 12; ++i)
             {
-            case 0:
-                if (is_at_boundary_reverse) postype.x += L.x;
+            local_idx = ghost_idx - offset;
+
+            if (local_idx < n_forward_ghosts_edge[i])
+                {
+                unsigned int n = n_local_ghosts_edge[i]+local_idx;
+                el_ptr = (element_type *) &d_edge_ghosts[n*ghost_size + i*edge_pitch];
+                done = true;
                 break;
-            case 1:
-                if (is_at_boundary_reverse) postype.y += L.y;
-                break;
-            case 2:
-                if (is_at_boundary_reverse) postype.z += L.z;
-                break;
+                }
+            else
+                offset += n_forward_ghosts_edge[i];
             }
-        pos_copybuf_reverse[ghost_idx] = postype;
-        } 
-    } 
+        }
 
+    // we have a pointer to the data element to be unpacked, now unpack
+    if (update)
+        {
+        // only update position
+        update_element_gpu &el = *(update_element_gpu *) el_ptr;
+        d_pos[N+ghost_idx] = el.pos;
+        }
+    else
+        {
+        // unpack all data needed for force computation
+        ghost_element_gpu &el = *(ghost_element_gpu *) el_ptr;
+        d_pos[N+ghost_idx] = el.pos;
+        d_charge[N+ghost_idx] = el.charge;
+        d_diameter[N+ghost_idx] = el.diameter;
+        unsigned int tag = el.tag;
+        d_tag[N+ghost_idx] = tag;
+        d_rtag[tag] = N+ghost_idx;
+        }
+   }
 
-//! Copy ghost particle positions into send buffer
-/*! This method copies two send buffers at a time, in direction dir
- *  and in the opposite direction dir+1. The underlying assumption is that
- *  particles are never sent back in the opposite direction from which they
- *  were received from.
-
- * \param nghost Number of ghost particles to copy in direction dir
- * \param nghost_r Number of ghost particles to copy in direction dir+1
- * \param d_pos Array of particle positions
- * \param d_copy_ghosts Global particle tags of particles to copy
- * \param d_copy_ghosts Global particle tags of particles to copy in reverse direction
- * \param d_pos_copybuf Send buffer of ghost particle positions
- * \param d_pos_copybuf Send buffer of ghost particle positions in reverse direction
- * \param dir Current send direction (this method only called for even directions 0,2,4)
- * \param is_at_boundary Per-direction flags whether we share a boundary with the global box
- * \paramm global_box Global boundaries
- */
-void gpu_copy_ghosts(const unsigned int nghost,
-                     const unsigned int nghost_r,
-                     const float4 *d_pos,
-                     const unsigned int *d_copy_ghosts,
-                     const unsigned int *d_copy_ghosts_r,
-                     float4 *d_pos_copybuf,
-                     float4 *d_pos_copybuf_r,
-                     const unsigned int dir,
-                     const unsigned int *is_at_boundary,
-                     const BoxDim& global_box,
-                     const cudaStream_t stream)
+void gpu_exchange_ghosts_unpack(unsigned int N,
+                                unsigned int n_tot_recv_ghosts,
+                                const unsigned int *n_local_ghosts_face,
+                                const unsigned int *n_local_ghosts_edge,
+                                const unsigned int *n_forward_ghosts_face,
+                                const unsigned int *n_forward_ghosts_edge,
+                                const unsigned int n_recv_ghosts_local,
+                                const char *d_face_ghosts,
+                                const unsigned int face_pitch,
+                                const char *d_edge_ghosts,
+                                const unsigned int edge_pitch,
+                                const char *d_recv_ghosts,
+                                Scalar4 *d_pos,
+                                Scalar *d_charge,
+                                Scalar *d_diameter,
+                                unsigned int *d_tag,
+                                unsigned int *d_rtag)
     {
+    cudaMemcpy(d_n_local_ghosts_face, n_local_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_local_ghosts_edge, n_local_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_forward_ghosts_face, n_forward_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_forward_ghosts_edge, n_forward_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
 
-    unsigned int block_size = 192;
-    unsigned int n = (nghost > nghost_r) ? nghost : nghost_r;
-
-    if (dir == 0)
-        gpu_copy_ghost_particles_kernel<0><<<n/block_size+1, block_size,0,stream>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
-    else if (dir == 2)
-        gpu_copy_ghost_particles_kernel<1><<<n/block_size+1, block_size,0,stream>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
-    else if (dir == 4)
-        gpu_copy_ghost_particles_kernel<2><<<n/block_size+1, block_size,0,stream>>>(d_pos, d_copy_ghosts, d_copy_ghosts_r, d_pos_copybuf, d_pos_copybuf_r, nghost, nghost_r, global_box.getL(), is_at_boundary[dir], is_at_boundary[dir+1]);
- 
+    unsigned int block_size = 512;
+    gpu_exchange_ghosts_unpack_kernel<ghost_element_gpu, false><<<n_tot_recv_ghosts/block_size+1, block_size>>>(N,
+                                                                           n_tot_recv_ghosts,
+                                                                           d_n_local_ghosts_face,
+                                                                           d_n_local_ghosts_edge,
+                                                                           d_n_forward_ghosts_face,
+                                                                           d_n_forward_ghosts_edge,
+                                                                           n_recv_ghosts_local,
+                                                                           d_face_ghosts,
+                                                                           face_pitch,
+                                                                           d_edge_ghosts,
+                                                                           edge_pitch,
+                                                                           d_recv_ghosts,
+                                                                           d_pos,
+                                                                           d_charge,
+                                                                           d_diameter,
+                                                                           d_tag,
+                                                                           d_rtag);
     } 
 
-//! Reset reverse lookup tags of removed ghost particles to NOT_LOCAL
-/*! \param nghost Number of ghost particles for which the tags are to be reset
- * \param d_gloal_rtag Pointer to reverse-lookup tags to reset
- */
-void gpu_reset_ghost_rtag(unsigned int nghost,
-                          unsigned int *d_rtag)
-     {
-     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-     thrust::fill(rtag_ptr, rtag_ptr + nghost, NOT_LOCAL);
-     }
+//! Kernel to pack local particle data into ghost send buffers
+__global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
+                                         const unsigned int *d_ghost_idx_face,
+                                         const unsigned int ghost_idx_face_pitch,
+                                         const unsigned int *d_ghost_idx_edge,
+                                         const unsigned int ghost_idx_edge_pitch,
+                                         const unsigned int *d_ghost_idx_corner,
+                                         const unsigned int ghost_idx_corner_pitch,
+                                         const float4 *d_pos,
+                                         char *d_update_corner_buf,
+                                         unsigned int corner_buf_pitch,
+                                         char *d_update_edge_buf,
+                                         unsigned int edge_buf_pitch,
+                                         char *d_update_face_buf,
+                                         unsigned int face_buf_pitch,
+                                         const unsigned int *n_copy_ghosts_corner,
+                                         const unsigned int *n_copy_ghosts_edge,
+                                         const unsigned int *n_copy_ghosts_face,
+                                         unsigned int *boundary,
+                                         Scalar3 L)
+    {
+    unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
+
+    if (ghost_idx < n_copy_ghosts) return;
+
+    // this kernel traverses 26 index buffers at once by mapping
+    // a continuous local ghost particle index onto a single element in a single index buffer.
+    // Then it fetches the particle data for the particle index stored in that buffer
+    // and writes it to the send buffer
+
+    // order does matter, inside the individual buffers the particle order must be the same as the one
+    // in the ghost index buffer (created by exchange_ghosts kernel)
+    unsigned int offset = 0;
+
+    // the particle index we are going to fetch (initialized with a dummy value)
+    unsigned int idx = NOT_LOCAL;
+
+    bool done = false;
+
+    unsigned int plan = 0;
+
+    update_element_gpu *buf_ptr = NULL; 
+    const unsigned update_size = sizeof(update_element_gpu);
+
+    // first, ghosts that are sent over a corner
+    for (unsigned int corner=0; corner < 8; ++corner)
+        {
+        unsigned int local_idx = ghost_idx - offset;
+
+        if (local_idx < n_copy_ghosts_corner[corner])
+            {
+            idx = d_ghost_idx_face[local_idx + corner * ghost_idx_corner_pitch];
+            plan = d_corner_plan_lookup[corner];
+            buf_ptr = (update_element_gpu *) &d_update_corner_buf[local_idx*update_size + corner*corner_buf_pitch];
+            done = true;
+            break;
+            }
+        else
+            offset += n_copy_ghosts_corner[corner];
+        }
+  
+    if (! done)
+        {
+        // second, ghosts that are sent over an edge
+        for (unsigned int edge=0; edge < 12; ++edge)
+            {
+            unsigned int local_idx = ghost_idx - offset;
+
+            if (local_idx < n_copy_ghosts_edge[edge])
+                {
+                idx = d_ghost_idx_edge[local_idx + edge * ghost_idx_edge_pitch];
+                plan = d_edge_plan_lookup[edge];
+                buf_ptr = (update_element_gpu *) &d_update_edge_buf[local_idx*update_size + edge*edge_buf_pitch];
+                done = true;
+                break;
+                }
+            else
+                offset += n_copy_ghosts_edge[edge];
+            }
+        }
+
+    if (!done)
+        {
+        // third, ghosts that are sent through a face of the box
+        for (unsigned int face=0; face < 6; ++face)
+            {
+            unsigned int local_idx = ghost_idx - offset;
+
+            if (local_idx < n_copy_ghosts_face[face])
+                {
+                idx = d_ghost_idx_face[local_idx + face * ghost_idx_face_pitch];
+                plan = d_face_plan_lookup[face];
+                buf_ptr = (update_element_gpu *) &d_update_face_buf[local_idx*update_size + face*face_buf_pitch];
+                done = true;
+                break;
+                }
+            else
+                offset += n_copy_ghosts_face[face];
+            }
+        }
+
+    // we have found a ghost index to be updated
+    Scalar4 postype = d_pos[idx];
+ 
+    // apply global boundary conditions
+    if ((plan & send_east) && boundary[0])
+        postype.x -= L.x;
+    if ((plan & send_west) && boundary[1])
+        postype.x += L.x; 
+    if ((plan & send_north) && boundary[2])
+        postype.y -= L.y;
+    if ((plan & send_south) && boundary[3])
+        postype.y += L.y;
+    if ((plan & send_up) && boundary[4])
+        postype.z -= L.z;
+    if ((plan & send_down) && boundary[5])
+        postype.z += L.z; 
+
+    // store data in buffer element
+    update_element_gpu &el = *buf_ptr;
+    el.pos = postype;
+    }
+
+//! Pack local particle data into ghost send buffers
+void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
+                                     const unsigned int *d_ghost_idx_face,
+                                     const unsigned int ghost_idx_face_pitch,
+                                     const unsigned int *d_ghost_idx_edge,
+                                     const unsigned int ghost_idx_edge_pitch,
+                                     const unsigned int *d_ghost_idx_corner,
+                                     const unsigned int ghost_idx_corner_pitch,
+                                     const float4 *d_pos,
+                                     char *d_update_corner_buf,
+                                     unsigned int corner_buf_pitch,
+                                     char *d_update_edge_buf,
+                                     unsigned int edge_buf_pitch,
+                                     char *d_update_face_buf,
+                                     unsigned int face_buf_pitch,
+                                     const unsigned int *n_copy_ghosts_corner,
+                                     const unsigned int *n_copy_ghosts_edge,
+                                     const unsigned int *n_copy_ghosts_face,
+                                     const unsigned int *is_at_boundary,
+                                     const BoxDim& global_box,
+                                     cudaStream_t stream)
+    {
+    cudaMemcpy(d_boundary, is_at_boundary, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
+
+    unsigned int block_size = 512;
+    gpu_update_ghosts_pack_kernel<<<n_copy_ghosts/block_size+1,block_size,0,stream>>>(n_copy_ghosts,
+                                                                             d_ghost_idx_face,
+                                                                             ghost_idx_face_pitch,
+                                                                             d_ghost_idx_edge,
+                                                                             ghost_idx_edge_pitch,
+                                                                             d_ghost_idx_corner,
+                                                                             ghost_idx_corner_pitch,
+                                                                             d_pos,
+                                                                             d_update_corner_buf,
+                                                                             corner_buf_pitch,
+                                                                             d_update_edge_buf,
+                                                                             edge_buf_pitch,
+                                                                             d_update_face_buf,
+                                                                             face_buf_pitch,
+                                                                             n_copy_ghosts_corner,
+                                                                             n_copy_ghosts_edge,
+                                                                             n_copy_ghosts_face,
+                                                                             d_boundary,
+                                                                             global_box.getL());
+    }
+
+void gpu_update_ghosts_unpack(unsigned int N,
+                                unsigned int n_tot_recv_ghosts,
+                                const unsigned int *n_local_ghosts_face,
+                                const unsigned int *n_local_ghosts_edge,
+                                const unsigned int *n_forward_ghosts_face,
+                                const unsigned int *n_forward_ghosts_edge,
+                                const unsigned int n_recv_ghosts_local,
+                                const char *d_face_ghosts,
+                                const unsigned int face_pitch,
+                                const char *d_edge_ghosts,
+                                const unsigned int edge_pitch,
+                                const char *d_recv_ghosts,
+                                Scalar4 *d_pos,
+                                cudaStream_t stream)
+    {
+    cudaMemcpy(d_n_local_ghosts_face, n_local_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_local_ghosts_edge, n_local_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_forward_ghosts_face, n_forward_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_forward_ghosts_edge, n_forward_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
+
+    unsigned int block_size = 512;
+    gpu_exchange_ghosts_unpack_kernel<update_element_gpu, true><<<n_tot_recv_ghosts/block_size+1, block_size,0,stream>>>
+                                                                          (N,
+                                                                           n_tot_recv_ghosts,
+                                                                           d_n_local_ghosts_face,
+                                                                           d_n_local_ghosts_edge,
+                                                                           d_n_forward_ghosts_face,
+                                                                           d_n_forward_ghosts_edge,
+                                                                           n_recv_ghosts_local,
+                                                                           d_face_ghosts,
+                                                                           face_pitch,
+                                                                           d_edge_ghosts,
+                                                                           edge_pitch,
+                                                                           d_recv_ghosts,
+                                                                           d_pos,
+                                                                           NULL,
+                                                                           NULL,
+                                                                           NULL,
+                                                                           NULL);
+    } 
+
 #endif
