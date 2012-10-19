@@ -485,7 +485,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     pdata->setPosition(8, make_scalar3(-0.02,-0.5,-0.5));
     // place particle 9 in the same box as particle 0 and in the ghost layer of its +y neighbor
     pdata->setPosition(9, make_scalar3(-0.5,-0.05,-0.5));
-    // place particle 10 in the same box as particle 0 and in the ghost layer of its +z neighbor
+    // place particle 10 in the same box as particle 0 and in the ghost layer of its +y and +z neighbor
     pdata->setPosition(10, make_scalar3(-0.5, -0.01,-0.05));
     // place particle 11 in the same box as particle 0 and in the ghost layer of its +x and +y neighbor
     pdata->setPosition(11, make_scalar3(-0.05, -0.03,-0.5));
