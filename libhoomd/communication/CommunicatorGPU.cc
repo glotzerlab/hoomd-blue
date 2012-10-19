@@ -1018,6 +1018,7 @@ void CommunicatorGPU::exchangeGhosts()
                                 m_max_copy_ghosts_corner,
                                 m_max_copy_ghosts_edge,
                                 m_max_copy_ghosts_face,
+                                m_is_at_boundary,
                                 m_condition.getDeviceFlags());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())

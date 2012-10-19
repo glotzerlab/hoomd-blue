@@ -240,6 +240,7 @@ void gpu_exchange_ghosts(const unsigned int N,
                          unsigned int max_copy_ghosts_corner,
                          unsigned int max_copy_ghosts_edge,
                          unsigned int max_copy_ghosts_face,
+                         const unsigned int *is_at_boundary,
                          unsigned int *d_condition);
 
 void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,

@@ -793,6 +793,7 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
                                          unsigned int max_copy_ghosts_corner,
                                          unsigned int max_copy_ghosts_edge,
                                          unsigned int max_copy_ghosts_face,
+                                         const unsigned int *boundary,
                                          unsigned int *condition)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -808,7 +809,15 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
         el.charge = d_charge[idx];
         el.diameter = d_diameter[idx];
         el.tag = d_tag[idx];
-        el.plan = plan;
+
+        // the boundary plan indicates whether the particle will cross a particle
+        // in a specific direction
+        unsigned int boundary_plan = 0;
+        for (unsigned int face = 0; face < 6; ++face)
+            if (boundary[face] && (plan & d_face_plan_lookup[face]))
+                boundary_plan |= d_face_plan_lookup[face];
+
+        el.plan = boundary_plan;
 
         unsigned int count = 0;
         if (plan & send_east) count++;
@@ -946,11 +955,13 @@ void gpu_exchange_ghosts(const unsigned int N,
                          unsigned int max_copy_ghosts_corner,
                          unsigned int max_copy_ghosts_edge,
                          unsigned int max_copy_ghosts_face,
+                         const unsigned int *is_at_boundary,
                          unsigned int *d_condition)
     {
     cudaMemset(d_n_copy_ghosts_corner, 0, sizeof(unsigned int)*8);
     cudaMemset(d_n_copy_ghosts_edge, 0, sizeof(unsigned int)*12);
     cudaMemset(d_n_copy_ghosts_face, 0, sizeof(unsigned int)*6);
+    cudaMemcpy(d_boundary, is_at_boundary, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
 
 
     unsigned int block_size = 512;
@@ -978,6 +989,7 @@ void gpu_exchange_ghosts(const unsigned int N,
                          max_copy_ghosts_corner,
                          max_copy_ghosts_edge,
                          max_copy_ghosts_face,
+                         d_boundary,
                          d_condition);
                          
     cudaMemcpy(n_copy_ghosts_corner, d_n_copy_ghosts_corner, 8*sizeof(unsigned int), cudaMemcpyDeviceToHost);
@@ -1093,7 +1105,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
 
     // we have a pointer to the data element to be unpacked, now unpack
     Scalar4 postype;
-    unsigned int plan;
+    unsigned int boundary_plan;
     if (update)
         {
         // only update position
@@ -1101,7 +1113,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
         postype = el.pos;
 
         // fetch previously saved plan
-        plan = d_ghost_plan[ghost_idx];
+        boundary_plan = d_ghost_plan[ghost_idx];
         }
     else
         {
@@ -1116,8 +1128,8 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
         d_rtag[tag] = N+ghost_idx;
         
         // save plan
-        d_ghost_plan[ghost_idx] = el.plan;
-        plan = el.plan;
+        boundary_plan = el.plan;
+        d_ghost_plan[ghost_idx] = boundary_plan;
         }
 
     // apply global boundary conditions for received particle
@@ -1125,18 +1137,18 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
     // if the plan indicates the particle has crossed a boundary prior to arriving here,
     // apply appropriate boundary conditions
 
-    if ((plan & send_east) && (face_east <= recv_dir) && boundary[face_west])
+    if ((boundary_plan & send_east) && (face_east <= recv_dir) && boundary[face_west])
         postype.x -= L.x;
-    if ((plan & send_west) && (face_west <= recv_dir) && boundary[face_east])
+    if ((boundary_plan & send_west) && (face_west <= recv_dir) && boundary[face_east])
         postype.x += L.x;
-    if ((plan & send_north) && (face_north <= recv_dir) && boundary[face_south])
-        postype.x -= L.y;
-    if ((plan & send_south) && (face_south <= recv_dir) && boundary[face_north])
-        postype.x += L.y;
-    if ((plan & send_up) && (face_up <= recv_dir) && boundary[face_down])
-        postype.x -= L.z;
-    if ((plan & send_down) && (face_down <= recv_dir) && boundary[face_up])
-        postype.x += L.z;
+    if ((boundary_plan & send_north) && (face_north <= recv_dir) && boundary[face_south])
+        postype.y -= L.y;
+    if ((boundary_plan & send_south) && (face_south <= recv_dir) && boundary[face_north])
+        postype.y += L.y;
+    if ((boundary_plan & send_up) && (face_up <= recv_dir) && boundary[face_down])
+        postype.z -= L.z;
+    if ((boundary_plan & send_down) && (face_down <= recv_dir) && boundary[face_up])
+        postype.z += L.z;
 
     d_pos[N+ghost_idx] = postype;
     }
