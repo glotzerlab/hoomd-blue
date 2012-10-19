@@ -267,7 +267,10 @@ struct ExecutionConfiguration : boost::noncopyable
         }
 
     //! Return the rank of this processor in the partition
-    unsigned int getRank() const;
+    unsigned int getRank() const
+        {
+        return m_rank;
+        }
     
     //! Return the number of ranks in this partition
     unsigned int getNRanks() const;
@@ -331,6 +334,8 @@ private:
     MPI_Comm m_mpi_comm;                                    //!< The MPI communicator
     bool m_has_mpi_comm;                                    //!< True if we have a communicator
 #endif
+
+    unsigned int m_rank;                                    //!< Rank of this processor (0 if running in single-processor mode)
 
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();

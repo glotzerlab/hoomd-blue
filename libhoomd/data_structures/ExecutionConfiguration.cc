@@ -115,6 +115,8 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << min_cpu << " " << ignore_display << endl;
 
+    m_rank = guessRank();
+
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -175,6 +177,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
     
+    m_rank = guessRank();
+
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -291,6 +295,7 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
 
     int rank;
     MPI_Comm_rank(m_mpi_comm, &rank);
+    m_rank = rank;
 
     msg->setRank(rank, m_partition);
     msg->setMPICommunicator(m_mpi_comm);
@@ -449,10 +454,11 @@ void ExecutionConfiguration::printGPUStats()
     
     // start with the device ID and name
     int dev;
+    useContext();
     cudaGetDevice(&dev);
-    unsigned int rank = guessRank();
+    releaseContext();
 
-    s << " Rank " << rank;
+    s << " Rank " << getRank();
     s << " [" << dev << "]";
     s << setw(22) << dev_prop.name;
     
@@ -607,7 +613,8 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             }
             
         // count the number of compute-exclusive gpus
-        if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeExclusive)
+        if (m_gpu_available[dev] &&
+            (prop.computeMode == cudaComputeModeExclusive || prop.computeMode == cudaComputeModeExclusiveProcess))
             n_exclusive_gpus++;
         }
         
@@ -700,6 +707,7 @@ unsigned int ExecutionConfiguration::guessRank()
     env_vars.push_back("MV2_COMM_WORLD_RANK");
     env_vars.push_back("OMPI_COMM_WORLD_RANK");
     env_vars.push_back("PMI_ID");
+    env_vars.push_back("PMI_RANK");
 
     std::vector<std::string>::iterator it;
 
@@ -729,7 +737,6 @@ int ExecutionConfiguration::guessLocalRank()
         char *env;
         if ((env = getenv(it->c_str())) != NULL)
             return atoi(env);
-
         }
 
     return -1;
@@ -767,19 +774,12 @@ void ExecutionConfiguration::setupStats()
         {
         #ifdef ENABLE_OPENMP
         // We print this information in rank oder
-        msg->collectiveNotice() << "Rank " << guessRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        msg->collectiveNotice() << "Rank " << getRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
         msg->flushCollectiveNotice(1);
         #endif
         }
     }
 
-unsigned int ExecutionConfiguration::getRank() const
-    {
-    int rank;
-    MPI_Comm_rank(m_mpi_comm, &rank);
-    return rank;
-    }
-    
 unsigned int ExecutionConfiguration::getNRanks() const
     {
     int size;
