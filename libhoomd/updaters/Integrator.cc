@@ -342,10 +342,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_comm->startGhostsUpdate(timestep);
 #endif
 
-    if (m_prof)
-        m_prof->push("Forces");
-
-
     m_completed_tasks = 0;
 
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
@@ -362,9 +358,6 @@ void Integrator::computeNetForce(unsigned int timestep)
     // wait for threads to finish
     m_barrier.wait();
 
-    if (m_prof)
-        m_prof->pop();
-
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
@@ -372,9 +365,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_comm->finishGhostsUpdate(timestep);
 
         m_completed_tasks = 0;
-
-        if (m_prof)
-            m_prof->push("Forces");
 
         // compute additional forces due to ghost atoms
         std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
@@ -389,8 +379,6 @@ void Integrator::computeNetForce(unsigned int timestep)
                                                        m_barrier));
 
         m_barrier.wait();
-        if (m_prof)
-            m_prof->pop();
         }
 #endif
  
