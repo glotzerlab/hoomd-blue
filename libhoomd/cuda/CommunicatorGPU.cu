@@ -168,11 +168,13 @@ __constant__ unsigned int d_corner_plan_lookup[8];
 __constant__ unsigned int d_edge_plan_lookup[12];
 __constant__ unsigned int d_face_plan_lookup[6];
 
+__constant__ unsigned int d_is_communicating[6]; //!< Per-direction flag indicating whether we are communicating in that direction
+
 extern unsigned int *corner_plan_lookup[];
 extern unsigned int *edge_plan_lookup[];
 extern unsigned int *face_plan_lookup[];
 
-void gpu_allocate_tmp_storage()
+void gpu_allocate_tmp_storage(const unsigned int *is_communicating)
     {
     cudaMalloc(&d_boundary,6*sizeof(unsigned int));
     cudaMalloc(&d_n_send_particles_corner,8*sizeof(unsigned int));
@@ -194,6 +196,8 @@ void gpu_allocate_tmp_storage()
     cudaMemcpyToSymbol(d_corner_plan_lookup, corner_plan_lookup, sizeof(unsigned int)*8);
     cudaMemcpyToSymbol(d_edge_plan_lookup, edge_plan_lookup, sizeof(unsigned int)*12);
     cudaMemcpyToSymbol(d_face_plan_lookup, face_plan_lookup, sizeof(unsigned int)*6);
+
+    cudaMemcpyToSymbol(d_is_communicating, is_communicating, sizeof(unsigned int)*6);
     }
 
 void gpu_deallocate_tmp_storage()
@@ -346,34 +350,34 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
     unsigned int plan = 0;
     unsigned int count = 0;
 
-    if (pos.x >= hi.x)
+    if ((pos.x >= hi.x) && d_is_communicating[face_east])
         {
         plan |= send_east;
         count++;
         }
-    else if (pos.x < lo.x)
+    else if ((pos.x < lo.x) && d_is_communicating[face_west])
         {
         plan |= send_west;
         count++;
         }
 
-    if (pos.y >= hi.y)
+    if ((pos.y >= hi.y) && d_is_communicating[face_north])
         {
         plan |= send_north;
         count++;
         }
-    else if (pos.y < lo.y)
+    else if ((pos.y < lo.y) && d_is_communicating[face_south])
         {
         plan |= send_south;
         count++;
         }
 
-    if (pos.z >= hi.z)
+    if ((pos.z >= hi.z) && d_is_communicating[face_up])
         {
         plan |= send_up; 
         count++;
         }
-    else if (pos.z < lo.z)
+    else if ((pos.z < lo.z) && d_is_communicating[face_down])
         {
         plan |= send_down; 
         count++;
@@ -801,6 +805,10 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
     if (idx >= N) return;
 
     unsigned char plan = d_plan[idx];
+
+    // if we are not communicating in a direction, discard it from plan
+    for (unsigned int face = 0; face < 6; ++face)
+        plan &= (d_is_communicating[face]) ? ~0 : ~d_face_plan_lookup[face];
 
     if (plan)
         {

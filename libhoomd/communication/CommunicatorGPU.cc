@@ -340,9 +340,13 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_barrier(2)
     { 
     m_exec_conf->msg->notice(5) << "Constructing CommunicatorGPU" << std::endl;
-    // allocate temporary GPU buffers
+
+    // allocate temporary GPU buffers and set some global properties
+    unsigned int is_communicating[6];
+    for (unsigned int face=0; face<6; ++face)
+        is_communicating[face] = isCommunicating(face) ? 1 : 0;
     m_exec_conf->useContext();
-    gpu_allocate_tmp_storage();
+    gpu_allocate_tmp_storage(is_communicating);
     m_exec_conf->releaseContext();
 
     GPUFlags<unsigned int> condition(m_exec_conf);
@@ -1098,17 +1102,20 @@ void CommunicatorGPU::exchangeGhosts()
  
     for (unsigned int dir = 0; dir < 6; ++dir)
         {
-        if (! isCommunicating(dir) ) continue;
-
-        unsigned int max_n_recv_edge = 0;
-        unsigned int max_n_recv_face = 0;
-
         // reset all received ghost numbers
         for (unsigned int i = 0; i < 6; ++i)
             m_n_recv_ghosts_face[6*dir+i] = 0;
         for (unsigned int i = 0; i < 12; ++i)
             m_n_recv_ghosts_edge[12*dir+i] = 0;
 
+        m_n_recv_ghosts_local[dir] = 0;
+
+        if (! isCommunicating(dir) ) continue;
+
+        unsigned int max_n_recv_edge = 0;
+        unsigned int max_n_recv_face = 0;
+
+ 
         // exchange message sizes
         communicateStepOne(dir,
                            n_copy_ghosts_corner,

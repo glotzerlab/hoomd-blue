@@ -141,7 +141,7 @@ struct update_element_gpu
 unsigned int gpu_update_element_size();
 
 //! Allocate temporary device memory for reordering particles
-void gpu_allocate_tmp_storage();
+void gpu_allocate_tmp_storage(const unsigned int *is_communicating);
 
 //! Dellocate temporary memory
 void gpu_deallocate_tmp_storage();
