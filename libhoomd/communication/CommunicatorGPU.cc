@@ -456,6 +456,8 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
     m_ghost_idx_corner.release();
     m_corner_update_buf.release();
 
+    m_ghost_plan.release();
+
     m_update_recv_buf.release();
     m_pdata->getPositions().release();
     }
@@ -905,6 +907,9 @@ void CommunicatorGPU::exchangeGhosts()
      */
     boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
 
+    if (m_prof)
+        m_prof->push("GPU");
+
     if (bdata->getNumBonds())
         {
         // Send incomplete bond member to the nearest plane in all directions
@@ -947,6 +952,8 @@ void CommunicatorGPU::exchangeGhosts()
             CHECK_CUDA_ERROR();
         m_exec_conf->releaseContext();
         }
+
+    if (m_prof) m_prof->pop();
 
     // initialization of buffers
     if (! m_buffers_allocated)
@@ -997,6 +1004,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> d_ghost_idx_edge(m_ghost_idx_edge, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_ghost_idx_corner(m_ghost_idx_corner, access_location::device, access_mode::overwrite);
 
+            if (m_prof) m_prof->push("GPU");
             m_exec_conf->useContext();
             gpu_exchange_ghosts(m_pdata->getN(),
                                 d_plan.data,
@@ -1029,6 +1037,7 @@ void CommunicatorGPU::exchangeGhosts()
                 CHECK_CUDA_ERROR();
 
             m_exec_conf->releaseContext();
+            if (m_prof) m_prof->pop();
             }
 
         condition = m_condition.readFlags();
@@ -1099,7 +1108,7 @@ void CommunicatorGPU::exchangeGhosts()
 
     // Number of ghosts we received that are not forwarded to other boxes
     unsigned int n_tot_recv_ghosts_local = 0;
- 
+
     for (unsigned int dir = 0; dir < 6; ++dir)
         {
         // reset all received ghost numbers
@@ -1115,7 +1124,8 @@ void CommunicatorGPU::exchangeGhosts()
         unsigned int max_n_recv_edge = 0;
         unsigned int max_n_recv_face = 0;
 
- 
+        if (m_prof) m_prof->push("MPI");
+
         // exchange message sizes
         communicateStepOne(dir,
                            n_copy_ghosts_corner,
@@ -1126,6 +1136,8 @@ void CommunicatorGPU::exchangeGhosts()
                            &m_n_recv_ghosts_local[dir],
                            false
                            );
+        
+        if (m_prof) m_prof->pop();
 
         unsigned int max_n_copy_edge = 0;
         unsigned int max_n_copy_face = 0;
@@ -1200,6 +1212,8 @@ void CommunicatorGPU::exchangeGhosts()
         unsigned int epitch = m_edge_ghosts_buf.getPitch();
         unsigned int fpitch = m_face_ghosts_buf.getPitch();
 
+        if (m_prof) m_prof->push("MPI");
+
         communicateStepTwo(dir,
                            corner_ghosts_buf_handle.data,
                            edge_ghosts_buf_handle.data,
@@ -1215,6 +1229,8 @@ void CommunicatorGPU::exchangeGhosts()
                            n_tot_recv_ghosts_local, 
                            gpu_ghost_element_size(),
                            false);
+
+        if (m_prof) m_prof->pop();
 
         // update buffer sizes
         for (unsigned int i = 0; i < 12; ++i)
@@ -1264,6 +1280,7 @@ void CommunicatorGPU::exchangeGhosts()
 
         ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
+        if (m_prof) m_prof->push("GPU");
         m_exec_conf->useContext();
         gpu_exchange_ghosts_unpack(m_pdata->getN(),
                                      n_tot_recv_ghosts,
@@ -1292,6 +1309,7 @@ void CommunicatorGPU::exchangeGhosts()
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_exec_conf->releaseContext();
+        if (m_prof) m_prof->pop();
 
         }
 
