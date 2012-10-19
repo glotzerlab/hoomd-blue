@@ -88,6 +88,7 @@ struct ghost_gpu_thread_params
                             char *_face_update_buf_handle,             
                             const unsigned int _face_update_buf_pitch, 
                             char *_update_recv_buf_handle,             
+                            unsigned int *_d_ghost_plan,
                             const unsigned int *_is_at_boundary,
                             const unsigned int _N,                     
                             const unsigned int _recv_ghosts_local_size,
@@ -112,6 +113,7 @@ struct ghost_gpu_thread_params
           face_update_buf_handle(_face_update_buf_handle),
           face_update_buf_pitch(_face_update_buf_pitch),
           update_recv_buf_handle(_update_recv_buf_handle),
+          d_ghost_plan(_d_ghost_plan),
           is_at_boundary(_is_at_boundary),
           N(_N),
           recv_ghosts_local_size(_recv_ghosts_local_size),
@@ -138,6 +140,7 @@ struct ghost_gpu_thread_params
     char *face_update_buf_handle;             //!< Send/recv buffer for ghosts that are updated over a face
     const unsigned int face_update_buf_pitch; //!< Pitch of face ghost update buffer
     char *update_recv_buf_handle;             //!< Buffer for ghosts received for the local box
+    unsigned int *d_ghost_plan;               //!< Array of plans received ghosts
     const unsigned int *is_at_boundary;     //!< Per-direction, true if we are at a global boundary
     const unsigned int N;                     //!< Number of local particles
     const unsigned int recv_ghosts_local_size; //!< Size of receive buffer for ghosts addressed to the local domain
@@ -160,7 +163,7 @@ class ghost_gpu_thread
     public:
         //! Constructor
         ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
-                         boost::shared_ptr<CommunicatorGPU> communicator);
+                         CommunicatorGPU *communicator);
         virtual ~ghost_gpu_thread();
 
         //! The thread main routine
@@ -168,7 +171,7 @@ class ghost_gpu_thread
 
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< The execution configuration
-        boost::shared_ptr<CommunicatorGPU> m_communicator;            //!< The communciator from which the thread was called
+        CommunicatorGPU *m_communicator;                              //!< Pointer to the communciator that called the thread
 
         unsigned int m_thread_id;                                     //!< GPU thread id
 
@@ -269,6 +272,7 @@ class CommunicatorGPU : public Communicator
         GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
         GPUArray<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
         GPUArray<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
+        GPUArray<unsigned int> m_ghost_plan;        //!< Routing plans for received ghost particles
 
         GPUArray<unsigned int> m_ghost_idx_corner;  //!< Indices of particles copied as ghosts via corner
         GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge

@@ -128,6 +128,7 @@ struct ghost_element_gpu
     Scalar charge;             //!< Charge
     Scalar diameter;           //!< Diameter
     unsigned int tag;          //!< global tag
+    unsigned int plan;         //!< Ghost sending plan
     };
 
 unsigned int gpu_ghost_element_size();
@@ -239,8 +240,6 @@ void gpu_exchange_ghosts(const unsigned int N,
                          unsigned int max_copy_ghosts_corner,
                          unsigned int max_copy_ghosts_edge,
                          unsigned int max_copy_ghosts_face,
-                         unsigned int *is_at_boundary,
-                         const BoxDim& global_box,
                          unsigned int *d_condition);
 
 void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
@@ -260,17 +259,18 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      const unsigned int *n_copy_ghosts_corner,
                                      const unsigned int *n_copy_ghosts_edge,
                                      const unsigned int *n_copy_ghosts_face,
-                                     const unsigned int *is_at_boundary,
-                                     const BoxDim& global_box,
                                      cudaStream_t stream);
- 
+
 void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *n_local_ghosts_face,
                                 const unsigned int *n_local_ghosts_edge,
+                                const unsigned int *n_tot_forward_ghosts_face,
+                                const unsigned int *n_tot_forward_ghosts_edge,
+                                const unsigned int n_tot_recv_ghosts_local,
+                                const unsigned int *n_recv_ghosts_local,
                                 const unsigned int *n_forward_ghosts_face,
                                 const unsigned int *n_forward_ghosts_edge,
-                                const unsigned int n_recv_ghosts_local,
                                 const char *d_face_ghosts,
                                 const unsigned int face_pitch,
                                 const char *d_edge_ghosts,
@@ -280,21 +280,30 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 Scalar *d_charge,
                                 Scalar *d_diameter,
                                 unsigned int *d_tag,
-                                unsigned int *d_rtag);
- 
+                                unsigned int *d_rtag,
+                                unsigned int *d_ghost_plan,
+                                unsigned int *is_at_boundary,
+                                const BoxDim& global_box);
+
 void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *n_local_ghosts_face,
                                 const unsigned int *n_local_ghosts_edge,
+                                const unsigned int *n_tot_forward_ghosts_face,
+                                const unsigned int *n_tot_forward_ghosts_edge,
+                                const unsigned int n_tot_recv_ghosts_local,
+                                const unsigned int *n_recv_ghosts_local,
                                 const unsigned int *n_forward_ghosts_face,
                                 const unsigned int *n_forward_ghosts_edge,
-                                const unsigned int n_recv_ghosts_local,
                                 const char *d_face_ghosts,
                                 const unsigned int face_pitch,
                                 const char *d_edge_ghosts,
                                 const unsigned int edge_pitch,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
+                                unsigned int *d_ghost_plan,
+                                const unsigned int *is_at_boundary,
+                                const BoxDim& global_box,
                                 cudaStream_t stream);
  
 #endif // ENABLE_MPI

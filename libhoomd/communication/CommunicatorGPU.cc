@@ -101,7 +101,7 @@ unsigned int face_plan_lookup[] = { send_east,
 
 //! Constructor
 ghost_gpu_thread::ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
-                                   boost::shared_ptr<CommunicatorGPU> communicator)
+                                   CommunicatorGPU *communicator)
     : m_exec_conf(exec_conf),
       m_communicator(communicator),
       m_recv_buf_size(0),
@@ -177,8 +177,6 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
                         params.n_local_ghosts_corner,
                         params.n_local_ghosts_edge,
                         params.n_local_ghosts_face,
-                        params.is_at_boundary,
-                        params.global_box,
                         m_exec_conf->getThreadStream(m_thread_id));
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -312,12 +310,18 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
                              n_forward_ghosts_face,
                              n_forward_ghosts_edge,
                              n_tot_recv_ghosts_local,
+                             params.n_recv_ghosts_local,
+                             params.n_recv_ghosts_face,
+                             params.n_recv_ghosts_edge,
                              params.face_update_buf_handle,
                              params.face_update_buf_pitch,
                              params.edge_update_buf_handle,
                              params.edge_update_buf_pitch,
                              params.update_recv_buf_handle,
                              params.pos_handle,
+                             params.d_ghost_plan,
+                             params.is_at_boundary,
+                             params.global_box,
                              m_exec_conf->getThreadStream(m_thread_id));
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -388,7 +392,7 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     if (! m_thread_created)
         {
         m_worker_thread = boost::thread(ghost_gpu_thread(m_exec_conf,
-                                                         boost::shared_ptr<CommunicatorGPU>(this)),
+                                                         this),
                                         boost::ref(m_work_queue), boost::ref(m_barrier));
         m_thread_created = true;
         }
@@ -409,6 +413,7 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
         m_face_update_buf.acquire(access_location::device, access_mode::overwrite),
         m_face_update_buf.getPitch(),
         m_update_recv_buf.acquire(access_location::device, access_mode::overwrite),
+        m_ghost_plan.acquire(access_location::device, access_mode::read),
         m_is_at_boundary,
         m_pdata->getN(), 
         m_update_recv_buf.getNumElements(),
@@ -540,7 +545,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> update_recv_buf(gpu_update_element_size()*m_max_copy_ghosts_face, m_exec_conf);
     m_update_recv_buf.swap(update_recv_buf);
 
-    // reallocate ghost index lists
+    // allocate ghost index lists
     GPUArray<unsigned int> ghost_idx_face(m_max_copy_ghosts_face, 6, m_exec_conf);
     m_ghost_idx_face.swap(ghost_idx_face);
 
@@ -549,6 +554,10 @@ void CommunicatorGPU::allocateBuffers()
     
     GPUArray<unsigned int> ghost_idx_corner(m_max_copy_ghosts_corner, 8, m_exec_conf);
     m_ghost_idx_corner.swap(ghost_idx_corner);
+
+    // allocate ghost plan buffer
+    GPUArray<unsigned int> ghost_plan(m_max_copy_ghosts_face*6, m_exec_conf);
+    m_ghost_plan.swap(ghost_plan);
 
     m_buffers_allocated = true;
     }
@@ -1009,8 +1018,6 @@ void CommunicatorGPU::exchangeGhosts()
                                 m_max_copy_ghosts_corner,
                                 m_max_copy_ghosts_edge,
                                 m_max_copy_ghosts_face,
-                                m_is_at_boundary,
-                                m_pdata->getGlobalBox(),
                                 m_condition.getDeviceFlags());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1225,6 +1232,14 @@ void CommunicatorGPU::exchangeGhosts()
     for (unsigned int i = 0; i < 12; ++i)
         n_tot_recv_ghosts += n_forward_ghosts_edge[i];
 
+    // resize plan array if necessary
+    if (m_ghost_plan.getNumElements() < n_tot_recv_ghosts)
+        {
+        unsigned int new_size = m_ghost_plan.getNumElements();
+        while (new_size < n_tot_recv_ghosts) new_size = ceilf((float)new_size*m_resize_factor);
+        m_ghost_plan.resize(new_size);
+        }
+
     // update number of ghost particles
     m_pdata->addGhostParticles(n_tot_recv_ghosts);
 
@@ -1239,6 +1254,8 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<char> d_edge_ghosts(m_edge_ghosts_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_recv_ghosts(m_ghosts_recv_buf, access_location::device, access_mode::read);
 
+        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
+
         m_exec_conf->useContext();
         gpu_exchange_ghosts_unpack(m_pdata->getN(),
                                      n_tot_recv_ghosts,
@@ -1247,6 +1264,9 @@ void CommunicatorGPU::exchangeGhosts()
                                      n_forward_ghosts_face,
                                      n_forward_ghosts_edge,
                                      n_tot_recv_ghosts_local,
+                                     m_n_recv_ghosts_local,
+                                     m_n_recv_ghosts_face,
+                                     m_n_recv_ghosts_edge,
                                      d_face_ghosts.data,
                                      m_face_ghosts_buf.getPitch(),
                                      d_edge_ghosts.data,
@@ -1256,7 +1276,10 @@ void CommunicatorGPU::exchangeGhosts()
                                      d_charge.data,
                                      d_diameter.data,
                                      d_tag.data,
-                                     d_rtag.data);
+                                     d_rtag.data,
+                                     d_ghost_plan.data,
+                                     m_is_at_boundary,
+                                     m_pdata->getGlobalBox());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

@@ -158,8 +158,11 @@ unsigned int *d_n_copy_ghosts_face;       //!< Number of ghosts sent over a face
 
 unsigned int *d_n_local_ghosts_face;      //!< Number of local particles we have sent over a box face
 unsigned int *d_n_local_ghosts_edge;      //!< Number of local particles we have sent over a box edge
-unsigned int *d_n_forward_ghosts_face;    //!< Number of particles we have forwarded over a box face
-unsigned int *d_n_forward_ghosts_edge;    //!< Number of particles we have forwarded over a box edge
+unsigned int *d_n_tot_forward_ghosts_face;    //!< Number of particles we have forwarded over a box face
+unsigned int *d_n_tot_forward_ghosts_edge;    //!< Number of particles we have forwarded over a box edge
+unsigned int *d_n_recv_ghosts_local;      //!< Number of ghosts received for the local box, per receive direction
+unsigned int *d_n_forward_ghosts_face;    //!< Number of ghosts forwarded as face particle, per receive direction
+unsigned int *d_n_forward_ghosts_edge;    //!< Number of ghosts forwarded as edge particle, per receive direction
   
 __constant__ unsigned int d_corner_plan_lookup[8];
 __constant__ unsigned int d_edge_plan_lookup[12];
@@ -180,8 +183,11 @@ void gpu_allocate_tmp_storage()
     cudaMalloc(&d_n_copy_ghosts_face,6*sizeof(unsigned int));
     cudaMalloc(&d_n_local_ghosts_face,6*sizeof(unsigned int));
     cudaMalloc(&d_n_local_ghosts_edge,12*sizeof(unsigned int));
-    cudaMalloc(&d_n_forward_ghosts_face,6*sizeof(unsigned int));
-    cudaMalloc(&d_n_forward_ghosts_edge,12*sizeof(unsigned int));
+    cudaMalloc(&d_n_tot_forward_ghosts_face,6*sizeof(unsigned int));
+    cudaMalloc(&d_n_tot_forward_ghosts_edge,12*sizeof(unsigned int));
+    cudaMalloc(&d_n_forward_ghosts_face,6*6*sizeof(unsigned int));
+    cudaMalloc(&d_n_forward_ghosts_edge,6*12*sizeof(unsigned int));
+    cudaMalloc(&d_n_recv_ghosts_local,6*sizeof(unsigned int));
     cudaMalloc(&d_n_remove_ptls,sizeof(unsigned int));
     cudaMalloc(&d_n_fetch_ptl,sizeof(unsigned int));
 
@@ -201,6 +207,9 @@ void gpu_deallocate_tmp_storage()
     cudaFree(d_n_copy_ghosts_face);
     cudaFree(d_n_local_ghosts_face);
     cudaFree(d_n_local_ghosts_edge);
+    cudaFree(d_n_tot_forward_ghosts_face);
+    cudaFree(d_n_tot_forward_ghosts_edge);
+    cudaFree(d_n_recv_ghosts_local);
     cudaFree(d_n_forward_ghosts_face);
     cudaFree(d_n_forward_ghosts_edge);
     cudaFree(d_n_remove_ptls);
@@ -784,8 +793,6 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
                                          unsigned int max_copy_ghosts_corner,
                                          unsigned int max_copy_ghosts_edge,
                                          unsigned int max_copy_ghosts_face,
-                                         unsigned int *boundary,
-                                         Scalar3 L,
                                          unsigned int *condition)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -796,27 +803,12 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
 
     if (plan)
         {
-        Scalar4 postype = d_pos[idx]; 
-
-        // apply global boundary conditions
-        if ((plan & send_east) && boundary[0])
-            postype.x -= L.x;
-        if ((plan & send_west) && boundary[1])
-            postype.x += L.x; 
-        if ((plan & send_north) && boundary[2])
-            postype.y -= L.y;
-        if ((plan & send_south) && boundary[3])
-            postype.y += L.y;
-        if ((plan & send_up) && boundary[4])
-            postype.z -= L.z;
-        if ((plan & send_down) && boundary[5])
-            postype.z += L.z; 
-
         ghost_element_gpu el;
-        el.pos = postype;
+        el.pos = d_pos[idx];
         el.charge = d_charge[idx];
         el.diameter = d_diameter[idx];
         el.tag = d_tag[idx];
+        el.plan = plan;
 
         unsigned int count = 0;
         if (plan & send_east) count++;
@@ -954,14 +946,11 @@ void gpu_exchange_ghosts(const unsigned int N,
                          unsigned int max_copy_ghosts_corner,
                          unsigned int max_copy_ghosts_edge,
                          unsigned int max_copy_ghosts_face,
-                         unsigned int *is_at_boundary,
-                         const BoxDim& global_box,
                          unsigned int *d_condition)
     {
     cudaMemset(d_n_copy_ghosts_corner, 0, sizeof(unsigned int)*8);
     cudaMemset(d_n_copy_ghosts_edge, 0, sizeof(unsigned int)*12);
     cudaMemset(d_n_copy_ghosts_face, 0, sizeof(unsigned int)*6);
-    cudaMemcpy(d_boundary, is_at_boundary, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
 
 
     unsigned int block_size = 512;
@@ -989,8 +978,6 @@ void gpu_exchange_ghosts(const unsigned int N,
                          max_copy_ghosts_corner,
                          max_copy_ghosts_edge,
                          max_copy_ghosts_face,
-                         d_boundary,
-                         global_box.getL(),
                          d_condition);
                          
     cudaMemcpy(n_copy_ghosts_corner, d_n_copy_ghosts_corner, 8*sizeof(unsigned int), cudaMemcpyDeviceToHost);
@@ -1003,9 +990,12 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   unsigned int n_tot_recv_ghosts,
                                                   const unsigned int *n_local_ghosts_face,
                                                   const unsigned int *n_local_ghosts_edge,
+                                                  const unsigned int *n_tot_forward_ghosts_face,
+                                                  const unsigned int *n_tot_forward_ghosts_edge,
+                                                  const unsigned int n_tot_recv_ghosts_local,
+                                                  const unsigned int *n_recv_ghosts_local,
                                                   const unsigned int *n_forward_ghosts_face,
                                                   const unsigned int *n_forward_ghosts_edge,
-                                                  const unsigned int n_recv_ghosts_local,
                                                   const char *d_face_ghosts,
                                                   const unsigned int face_pitch,
                                                   const char *d_edge_ghosts,
@@ -1015,7 +1005,10 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   Scalar *d_charge,
                                                   Scalar *d_diameter,
                                                   unsigned int *d_tag,
-                                                  unsigned int *d_rtag)
+                                                  unsigned int *d_rtag,
+                                                  unsigned int *d_ghost_plan,
+                                                  const unsigned int *boundary,
+                                                  const Scalar3 L)
     {
     unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
 
@@ -1030,13 +1023,21 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
     // first ghosts that are received for the local box only
     bool done = false;
     unsigned int local_idx = ghost_idx;
-    if (local_idx < n_recv_ghosts_local)
+    int recv_dir = -1;
+    if (local_idx < n_tot_recv_ghosts_local)
         {
+        unsigned int local_offset = 0;
+        for (recv_dir = 0; recv_dir < 6; ++recv_dir)
+            {
+            local_offset +=n_recv_ghosts_local[recv_dir];
+            if (local_idx < local_offset) break;
+            }
+
         el_ptr = (element_type *) &d_recv_ghosts[local_idx*ghost_size];
         done = true;
         }
     else
-        offset += n_recv_ghosts_local;
+        offset += n_tot_recv_ghosts_local;
   
     if (! done)
         {
@@ -1045,15 +1046,22 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
             {
             local_idx = ghost_idx - offset;
 
-            if (local_idx < n_forward_ghosts_face[i])
+            if (local_idx < n_tot_forward_ghosts_face[i])
                 {
+                unsigned int local_offset = 0;
+                for (recv_dir = 0; recv_dir < 6; ++recv_dir)
+                    {
+                    local_offset += n_forward_ghosts_face[6*recv_dir+i];
+                    if (local_idx < local_offset) break;
+                    }
+
                 unsigned int n = n_local_ghosts_face[i]+local_idx;
                 el_ptr = (element_type *) &d_face_ghosts[n*ghost_size + i*face_pitch];
                 done = true;
                 break;
                 }
             else
-                offset += n_forward_ghosts_face[i];
+                offset += n_tot_forward_ghosts_face[i];
             }
         }
 
@@ -1064,45 +1072,85 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
             {
             local_idx = ghost_idx - offset;
 
-            if (local_idx < n_forward_ghosts_edge[i])
+            if (local_idx < n_tot_forward_ghosts_edge[i])
                 {
+                unsigned int local_offset = 0;
+                for (recv_dir = 0; recv_dir < 6; ++recv_dir)
+                    {
+                    local_offset += n_forward_ghosts_edge[12*recv_dir+i];
+                    if (local_idx < local_offset) break;
+                    }
+
                 unsigned int n = n_local_ghosts_edge[i]+local_idx;
                 el_ptr = (element_type *) &d_edge_ghosts[n*ghost_size + i*edge_pitch];
                 done = true;
                 break;
                 }
             else
-                offset += n_forward_ghosts_edge[i];
+                offset += n_tot_forward_ghosts_edge[i];
             }
         }
 
     // we have a pointer to the data element to be unpacked, now unpack
+    Scalar4 postype;
+    unsigned int plan;
     if (update)
         {
         // only update position
         update_element_gpu &el = *(update_element_gpu *) el_ptr;
-        d_pos[N+ghost_idx] = el.pos;
+        postype = el.pos;
+
+        // fetch previously saved plan
+        plan = d_ghost_plan[ghost_idx];
         }
     else
         {
         // unpack all data needed for force computation
         ghost_element_gpu &el = *(ghost_element_gpu *) el_ptr;
-        d_pos[N+ghost_idx] = el.pos;
+        postype = el.pos;
+
         d_charge[N+ghost_idx] = el.charge;
         d_diameter[N+ghost_idx] = el.diameter;
         unsigned int tag = el.tag;
         d_tag[N+ghost_idx] = tag;
         d_rtag[tag] = N+ghost_idx;
+        
+        // save plan
+        d_ghost_plan[ghost_idx] = el.plan;
+        plan = el.plan;
         }
-   }
+
+    // apply global boundary conditions for received particle
+
+    // if the plan indicates the particle has crossed a boundary prior to arriving here,
+    // apply appropriate boundary conditions
+
+    if ((plan & send_east) && (face_east <= recv_dir) && boundary[face_west])
+        postype.x -= L.x;
+    if ((plan & send_west) && (face_west <= recv_dir) && boundary[face_east])
+        postype.x += L.x;
+    if ((plan & send_north) && (face_north <= recv_dir) && boundary[face_south])
+        postype.x -= L.y;
+    if ((plan & send_south) && (face_south <= recv_dir) && boundary[face_north])
+        postype.x += L.y;
+    if ((plan & send_up) && (face_up <= recv_dir) && boundary[face_down])
+        postype.x -= L.z;
+    if ((plan & send_down) && (face_down <= recv_dir) && boundary[face_up])
+        postype.x += L.z;
+
+    d_pos[N+ghost_idx] = postype;
+    }
 
 void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *n_local_ghosts_face,
                                 const unsigned int *n_local_ghosts_edge,
+                                const unsigned int *n_tot_forward_ghosts_face,
+                                const unsigned int *n_tot_forward_ghosts_edge,
+                                const unsigned int n_tot_recv_ghosts_local,
+                                const unsigned int *n_recv_ghosts_local,
                                 const unsigned int *n_forward_ghosts_face,
                                 const unsigned int *n_forward_ghosts_edge,
-                                const unsigned int n_recv_ghosts_local,
                                 const char *d_face_ghosts,
                                 const unsigned int face_pitch,
                                 const char *d_edge_ghosts,
@@ -1112,21 +1160,31 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 Scalar *d_charge,
                                 Scalar *d_diameter,
                                 unsigned int *d_tag,
-                                unsigned int *d_rtag)
+                                unsigned int *d_rtag,
+                                unsigned int *d_ghost_plan,
+                                unsigned int *is_at_boundary,
+                                const BoxDim& global_box)
     {
     cudaMemcpy(d_n_local_ghosts_face, n_local_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
     cudaMemcpy(d_n_local_ghosts_edge, n_local_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_n_forward_ghosts_face, n_forward_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_n_forward_ghosts_edge, n_forward_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_tot_forward_ghosts_face, n_tot_forward_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_tot_forward_ghosts_edge, n_tot_forward_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_recv_ghosts_local, n_recv_ghosts_local, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_forward_ghosts_face, n_forward_ghosts_face, sizeof(unsigned int)*6*6, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_n_forward_ghosts_edge, n_forward_ghosts_edge, sizeof(unsigned int)*6*12, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_boundary, is_at_boundary, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
 
     unsigned int block_size = 512;
     gpu_exchange_ghosts_unpack_kernel<ghost_element_gpu, false><<<n_tot_recv_ghosts/block_size+1, block_size>>>(N,
                                                                            n_tot_recv_ghosts,
                                                                            d_n_local_ghosts_face,
                                                                            d_n_local_ghosts_edge,
+                                                                           d_n_tot_forward_ghosts_face,
+                                                                           d_n_tot_forward_ghosts_edge,
+                                                                           n_tot_recv_ghosts_local,
+                                                                           d_n_recv_ghosts_local,
                                                                            d_n_forward_ghosts_face,
                                                                            d_n_forward_ghosts_edge,
-                                                                           n_recv_ghosts_local,
                                                                            d_face_ghosts,
                                                                            face_pitch,
                                                                            d_edge_ghosts,
@@ -1136,7 +1194,10 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                                                            d_charge,
                                                                            d_diameter,
                                                                            d_tag,
-                                                                           d_rtag);
+                                                                           d_rtag,
+                                                                           d_ghost_plan,
+                                                                           d_boundary,
+                                                                           global_box.getL());
     } 
 
 //! Kernel to pack local particle data into ghost send buffers
@@ -1156,9 +1217,7 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
                                          unsigned int face_buf_pitch,
                                          const unsigned int *n_copy_ghosts_corner,
                                          const unsigned int *n_copy_ghosts_edge,
-                                         const unsigned int *n_copy_ghosts_face,
-                                         unsigned int *boundary,
-                                         Scalar3 L)
+                                         const unsigned int *n_copy_ghosts_face)
     {
     unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
 
@@ -1178,8 +1237,6 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
 
     bool done = false;
 
-    unsigned int plan = 0;
-
     update_element_gpu *buf_ptr = NULL; 
     const unsigned int update_size = sizeof(update_element_gpu);
 
@@ -1191,7 +1248,6 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
         if (local_idx < n_copy_ghosts_corner[corner])
             {
             idx = d_ghost_idx_corner[local_idx + corner * ghost_idx_corner_pitch];
-            plan = d_corner_plan_lookup[corner];
             buf_ptr = (update_element_gpu *) &d_update_corner_buf[local_idx*update_size + corner*corner_buf_pitch];
             done = true;
             break;
@@ -1210,7 +1266,6 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
             if (local_idx < n_copy_ghosts_edge[edge])
                 {
                 idx = d_ghost_idx_edge[local_idx + edge * ghost_idx_edge_pitch];
-                plan = d_edge_plan_lookup[edge];
                 buf_ptr = (update_element_gpu *) &d_update_edge_buf[local_idx*update_size + edge*edge_buf_pitch];
                 done = true;
                 break;
@@ -1230,7 +1285,6 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
             if (local_idx < n_copy_ghosts_face[face])
                 {
                 idx = d_ghost_idx_face[local_idx + face * ghost_idx_face_pitch];
-                plan = d_face_plan_lookup[face];
                 buf_ptr = (update_element_gpu *) &d_update_face_buf[local_idx*update_size + face*face_buf_pitch];
                 done = true;
                 break;
@@ -1241,25 +1295,9 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
         }
 
     // we have found a ghost index to be updated
-    Scalar4 postype = d_pos[idx];
- 
-    // apply global boundary conditions
-    if ((plan & send_east) && boundary[0])
-        postype.x -= L.x;
-    if ((plan & send_west) && boundary[1])
-        postype.x += L.x; 
-    if ((plan & send_north) && boundary[2])
-        postype.y -= L.y;
-    if ((plan & send_south) && boundary[3])
-        postype.y += L.y;
-    if ((plan & send_up) && boundary[4])
-        postype.z -= L.z;
-    if ((plan & send_down) && boundary[5])
-        postype.z += L.z; 
-
     // store data in buffer element
     update_element_gpu &el = *buf_ptr;
-    el.pos = postype;
+    el.pos = d_pos[idx];
     }
 
 //! Pack local particle data into ghost send buffers
@@ -1280,12 +1318,8 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      const unsigned int *n_copy_ghosts_corner,
                                      const unsigned int *n_copy_ghosts_edge,
                                      const unsigned int *n_copy_ghosts_face,
-                                     const unsigned int *is_at_boundary,
-                                     const BoxDim& global_box,
                                      cudaStream_t stream)
     {
-    cudaMemcpyAsync(d_boundary, is_at_boundary, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
-
     cudaMemcpyAsync(d_n_copy_ghosts_face, n_copy_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
     cudaMemcpyAsync(d_n_copy_ghosts_edge, n_copy_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice,stream);
     cudaMemcpyAsync(d_n_copy_ghosts_corner, n_copy_ghosts_corner, sizeof(unsigned int)*8, cudaMemcpyHostToDevice,stream);
@@ -1307,30 +1341,39 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                                                              face_buf_pitch,
                                                                              d_n_copy_ghosts_corner,
                                                                              d_n_copy_ghosts_edge,
-                                                                             d_n_copy_ghosts_face,
-                                                                             d_boundary,
-                                                                             global_box.getL());
+                                                                             d_n_copy_ghosts_face);
     }
 
 void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *n_local_ghosts_face,
                                 const unsigned int *n_local_ghosts_edge,
+                                const unsigned int *n_tot_forward_ghosts_face,
+                                const unsigned int *n_tot_forward_ghosts_edge,
+                                const unsigned int n_tot_recv_ghosts_local,
+                                const unsigned int *n_recv_ghosts_local,
                                 const unsigned int *n_forward_ghosts_face,
                                 const unsigned int *n_forward_ghosts_edge,
-                                const unsigned int n_recv_ghosts_local,
                                 const char *d_face_ghosts,
                                 const unsigned int face_pitch,
                                 const char *d_edge_ghosts,
                                 const unsigned int edge_pitch,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
+                                unsigned int *d_ghost_plan,
+                                const unsigned int *is_at_boundary,
+                                const BoxDim& global_box,
                                 cudaStream_t stream)
     {
     cudaMemcpyAsync(d_n_local_ghosts_face, n_local_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
     cudaMemcpyAsync(d_n_local_ghosts_edge, n_local_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice,stream);
-    cudaMemcpyAsync(d_n_forward_ghosts_face, n_forward_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
-    cudaMemcpyAsync(d_n_forward_ghosts_edge, n_forward_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice,stream);
+    cudaMemcpyAsync(d_n_forward_ghosts_face, n_tot_forward_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
+    cudaMemcpyAsync(d_n_forward_ghosts_edge, n_tot_forward_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice,stream);
+    cudaMemcpyAsync(d_n_recv_ghosts_local, n_recv_ghosts_local, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
+    cudaMemcpyAsync(d_n_forward_ghosts_face, n_forward_ghosts_face, sizeof(unsigned int)*6*6, cudaMemcpyHostToDevice,stream);
+    cudaMemcpyAsync(d_n_forward_ghosts_edge, n_forward_ghosts_edge, sizeof(unsigned int)*6*12, cudaMemcpyHostToDevice,stream);
+    cudaMemcpyAsync(d_boundary, is_at_boundary, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
+
 
     unsigned int block_size = 512;
     gpu_exchange_ghosts_unpack_kernel<update_element_gpu, true><<<n_tot_recv_ghosts/block_size+1, block_size,0,stream>>>
@@ -1338,9 +1381,12 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                                                            n_tot_recv_ghosts,
                                                                            d_n_local_ghosts_face,
                                                                            d_n_local_ghosts_edge,
+                                                                           d_n_tot_forward_ghosts_face,
+                                                                           d_n_tot_forward_ghosts_edge,
+                                                                           n_tot_recv_ghosts_local,
+                                                                           d_n_recv_ghosts_local,
                                                                            d_n_forward_ghosts_face,
                                                                            d_n_forward_ghosts_edge,
-                                                                           n_recv_ghosts_local,
                                                                            d_face_ghosts,
                                                                            face_pitch,
                                                                            d_edge_ghosts,
@@ -1350,7 +1396,10 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                                                            NULL,
                                                                            NULL,
                                                                            NULL,
-                                                                           NULL);
+                                                                           NULL,
+                                                                           d_ghost_plan,
+                                                                           d_boundary,
+                                                                           global_box.getL());
     } 
 
 #endif
