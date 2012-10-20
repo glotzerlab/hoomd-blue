@@ -172,13 +172,31 @@ template<class T> class ArrayHandle
         inline ArrayHandle(const GPUArray<T>& gpu_array, const access_location::Enum location = access_location::host,
                            const access_mode::Enum mode = access_mode::readwrite);
         //! Notifies the containing GPUArray that the handle has been released
-        inline ~ArrayHandle();
+        virtual inline ~ArrayHandle();
         
         T* const data;          //!< Pointer to data
         
     private:
         const GPUArray<T>& m_gpu_array; //!< Reference to the GPUArray that owns \a data
     };
+
+#ifdef ENABLE_CUDA
+template<class T> class ArrayHandleAsync 
+    {
+    public:
+        //! Aquires the data and sets \a m_data using asynchronous copies
+        inline ArrayHandleAsync(const GPUArray<T>& gpu_array, const access_location::Enum location = access_location::host,
+                           const access_mode::Enum mode = access_mode::readwrite, cudaStream_t stream=0);
+
+        //! Notifies the containing GPUArray that the handle has been released
+        virtual inline ~ArrayHandleAsync();
+        
+        T* const data;          //!< Pointer to data
+        
+    private:
+        const GPUArray<T>& m_gpu_array; //!< Reference to the GPUArray that owns \a data
+    };
+#endif 
 
 //! Class for managing an array of elements on the GPU mirrored to the CPU
 /*!
@@ -307,7 +325,11 @@ template<class T> class GPUArray
         virtual void resize(unsigned int width, unsigned int height);
 
         //! Acquires the data pointer for use
-        inline T* acquire(const access_location::Enum location, const access_mode::Enum mode) const;
+        inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
+        #ifdef ENABLE_CUDA
+                          , bool async=false, const cudaStream_t stream = 0
+        #endif
+                         ) const;
 
         // Releases the data pointer
         inline void release() const;
@@ -344,10 +366,12 @@ template<class T> class GPUArray
         //! Helper function to free memory
         inline void deallocate();
 
+#ifdef ENABLE_CUDA
         //! Helper function to copy memory from the device to host
-        inline void memcpyDeviceToHost() const;
+        inline void memcpyDeviceToHost(bool async, cudaStream_t stream) const;
         //! Helper function to copy memory from the host to device
-        inline void memcpyHostToDevice() const;
+        inline void memcpyHostToDevice(bool async, cudaStream_t stream) const;
+#endif
 
         //! Helper function to resize host array
         inline T* resizeHostArray(unsigned int num_elements);
@@ -383,6 +407,19 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
     {
     m_gpu_array.release();
     }
+
+#ifdef ENABLE_CUDA
+template<class T> ArrayHandleAsync<T>::ArrayHandleAsync(const GPUArray<T>& gpu_array, const access_location::Enum location,
+                                              const access_mode::Enum mode, cudaStream_t stream) :
+        data(gpu_array.acquire(location, mode, true, stream)), m_gpu_array(gpu_array)
+    {
+    }
+
+template<class T> ArrayHandleAsync<T>::~ArrayHandleAsync()
+    {
+    m_gpu_array.release();
+    }
+#endif
 
 //******************************************
 // GPUArray implementation
@@ -660,9 +697,10 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
 
 
 
-/*! \post The non-locked part of the memory on the device is copied to the host array
+#ifdef ENABLE_CUDA
+/*! \post Memory on the device is copied to the host array
 */
-template<class T> void GPUArray<T>::memcpyDeviceToHost() const
+template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async, cudaStream_t stream) const
     {
     // don't do anything if there are no elements
     if (m_num_elements == 0)
@@ -671,16 +709,19 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost() const
     unsigned int size = m_num_elements;
 
     m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(size*sizeof(T))/1024.0f/1024.0f << " MB device->host" <<  std::endl;
-#ifdef ENABLE_CUDA
     m_exec_conf->useContext();
-    cudaMemcpy(h_data, d_data, sizeof(T)*size, cudaMemcpyDeviceToHost);
+
+    if (async)
+        cudaMemcpyAsync(h_data, d_data, sizeof(T)*size, cudaMemcpyDeviceToHost, stream);
+    else
+        cudaMemcpy(h_data, d_data, sizeof(T)*size, cudaMemcpyDeviceToHost);
+
     m_exec_conf->releaseContext();
-#endif
     }
 
-/*! \post The non-locked part of the memory on the host is copied to the device array
+/*! \post Memory on the host is copied to the device array
 */
-template<class T> void GPUArray<T>::memcpyHostToDevice() const
+template<class T> void GPUArray<T>::memcpyHostToDevice(bool async, cudaStream_t stream) const
     {
     // don't do anything if there are no elements
     if (m_num_elements == 0)
@@ -689,12 +730,15 @@ template<class T> void GPUArray<T>::memcpyHostToDevice() const
     unsigned int size = m_num_elements;
 
     m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(size*sizeof(T))/1024.0f/1024.0f << " MB host->device" <<  std::endl;
-#ifdef ENABLE_CUDA
+
     m_exec_conf->useContext();
-    cudaMemcpy(d_data, h_data, sizeof(T)*size, cudaMemcpyHostToDevice);
+    if (async)
+        cudaMemcpyAsync(d_data, h_data, sizeof(T)*size, cudaMemcpyHostToDevice,stream);
+    else
+        cudaMemcpy(d_data, h_data, sizeof(T)*size, cudaMemcpyHostToDevice);
     m_exec_conf->releaseContext();
-#endif
     }
+#endif
 
 /*! \param location Desired location to access the data
     \param mode Mode to access the data with
@@ -706,7 +750,12 @@ template<class T> void GPUArray<T>::memcpyHostToDevice() const
 
     acquire() cannot be directly called by the user class. Data must be accessed through ArrayHandle.
 */
-template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, const access_mode::Enum mode) const
+template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, const access_mode::Enum mode
+#ifdef ENABLE_CUDA
+                                          , bool async,
+                                          cudaStream_t stream
+#endif
+                                         ) const
     {
     if (mode == access_mode::readwrite_shared || mode == access_mode::overwrite_shared)
         {
@@ -775,14 +824,14 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
             if (mode == access_mode::read)
                 {
                 // need to copy data from the device to the host
-                memcpyDeviceToHost();
+                memcpyDeviceToHost(async, stream);
                 // state goes to hostdevice
                 m_data_location = data_location::hostdevice;
                 }
             else if (mode == access_mode::readwrite || mode == access_mode::readwrite_shared)
                 {
                 // need to copy data from the device to the host
-                memcpyDeviceToHost();
+                memcpyDeviceToHost(async, stream);
                 // state goes to host
                 m_data_location = data_location::host;
                 }
@@ -826,14 +875,14 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
             if (mode == access_mode::read)
                 {
                 // need to copy data to the device
-                memcpyHostToDevice();
+                memcpyHostToDevice(async,stream);
                 // state goes to hostdevice
                 m_data_location = data_location::hostdevice;
                 }
             else if (mode == access_mode::readwrite || mode == access_mode::readwrite_shared)
                 {
                 // need to copy data to the device
-                memcpyHostToDevice();
+                memcpyHostToDevice(async, stream);
                 // state goes to device
                 m_data_location = data_location::device;
                 }

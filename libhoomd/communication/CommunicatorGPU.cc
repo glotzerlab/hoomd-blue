@@ -296,8 +296,11 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
 
     for (unsigned int face = 0; face < 6; ++face)
         {
-
         if (! m_communicator->isCommunicating(face)) continue;
+
+        ArrayHandle<unsigned int> h_n_recv_ghosts_face(params.n_recv_ghosts_face, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_n_recv_ghosts_edge(params.n_recv_ghosts_edge, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_n_recv_ghosts_local(params.n_recv_ghosts_local, access_location::host, access_mode::read);
 
         m_communicator->communicateStepTwo(face,
                                            h_corner_update_buf,
@@ -316,11 +319,11 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
                                            false);
         // update send buffer sizes
         for (unsigned int i = 0; i < 12; ++i)
-            n_copy_ghosts_edge[i] += params.n_recv_ghosts_edge[face*12+i];
+            n_copy_ghosts_edge[i] += h_n_recv_ghosts_edge.data[face*12+i];
         for (unsigned int i = 0; i < 6; ++i)
-            n_copy_ghosts_face[i] += params.n_recv_ghosts_face[face*6+i];
+            n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[face*6+i];
 
-        n_tot_recv_ghosts_local += params.n_recv_ghosts_local[face];
+        n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[face];
         } // end dir loop
 
     unsigned int n_forward_ghosts_face[6];
@@ -385,18 +388,20 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         ArrayHandle<unsigned int> d_n_local_ghosts_face(params.n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(params.n_local_ghosts_edge, access_location::device, access_mode::read);
 
+        ArrayHandle<unsigned int> d_n_recv_ghosts_face(params.n_recv_ghosts_face, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_recv_ghosts_edge(params.n_recv_ghosts_edge, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_recv_ghosts_local(params.n_recv_ghosts_local, access_location::device, access_mode::read);
+
         // unpack particles
         m_exec_conf->useContext();
         gpu_update_ghosts_unpack(params.N,
                                  n_tot_recv_ghosts,
                                  d_n_local_ghosts_face.data,
                                  d_n_local_ghosts_edge.data,
-                                 n_forward_ghosts_face,
-                                 n_forward_ghosts_edge,
                                  n_tot_recv_ghosts_local,
-                                 params.n_recv_ghosts_local,
-                                 params.n_recv_ghosts_face,
-                                 params.n_recv_ghosts_edge,
+                                 d_n_recv_ghosts_local.data,
+                                 d_n_recv_ghosts_face.data,
+                                 d_n_recv_ghosts_edge.data,
                                  params.face_update_buf_handle,
                                  params.face_update_buf_pitch,
                                  params.edge_update_buf_handle,
@@ -432,6 +437,8 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_exec_conf->useContext();
     gpu_allocate_tmp_storage(is_communicating,m_is_at_boundary);
+
+    cudaEventCreate(&m_event);
     m_exec_conf->releaseContext();
 
     GPUFlags<unsigned int> condition(m_exec_conf);
@@ -460,6 +467,8 @@ CommunicatorGPU::~CommunicatorGPU()
 
     m_exec_conf->useContext();
     gpu_deallocate_tmp_storage();
+    
+    cudaEventDestroy(m_event);
     m_exec_conf->releaseContext();
 
     // finish worker thread
@@ -665,6 +674,13 @@ void CommunicatorGPU::allocateBuffers()
     m_n_local_ghosts_edge.swap(n_local_ghosts_edge);
     GPUArray<unsigned int> n_local_ghosts_corner(8, m_exec_conf);
     m_n_local_ghosts_corner.swap(n_local_ghosts_corner);
+
+    GPUArray<unsigned int> n_recv_ghosts_local(6, m_exec_conf);
+    m_n_recv_ghosts_local.swap(n_recv_ghosts_local);
+    GPUArray<unsigned int> n_recv_ghosts_edge(6*12, m_exec_conf);
+    m_n_recv_ghosts_edge.swap(n_recv_ghosts_edge);
+    GPUArray<unsigned int> n_recv_ghosts_face(6*6, m_exec_conf);
+    m_n_recv_ghosts_face.swap(n_recv_ghosts_face);
 
     m_buffers_allocated = true;
     }
@@ -1194,9 +1210,14 @@ void CommunicatorGPU::exchangeGhosts()
             }
 
             {
-            ArrayHandle<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::host, access_mode::read);
+
+            m_exec_conf->useContext();
+            cudaEventRecord(m_event, 0);
+            cudaEventSynchronize(m_event);
+            m_exec_conf->releaseContext();
 
             for (unsigned int i = 0; i < 6; ++i)
                 n_copy_ghosts_face[i] = h_n_local_ghosts_face.data[i];
@@ -1264,6 +1285,7 @@ void CommunicatorGPU::exchangeGhosts()
      */
 
         {
+        if (m_prof) m_prof->push("D->H");
         // copy send buffer data to host buffers only as needed
         ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_edge_ghosts_buf(m_edge_ghosts_buf, access_location::device, access_mode::read);
@@ -1274,8 +1296,6 @@ void CommunicatorGPU::exchangeGhosts()
         unsigned int cpitch = m_corner_ghosts_buf.getPitch();
 
         m_exec_conf->useContext();
-        cudaEvent_t ev;
-        cudaEventCreate(&ev);
  
         for (unsigned int i = 0; i < 6; ++i)
             if (n_copy_ghosts_face[i])
@@ -1292,202 +1312,179 @@ void CommunicatorGPU::exchangeGhosts()
                 cudaMemcpyAsync(h_corner_ghosts_buf+i*cpitch, d_corner_ghosts_buf.data + i*cpitch,
                     n_copy_ghosts_corner[i]*gpu_ghost_element_size(), cudaMemcpyDeviceToHost,0);
 
-        cudaEventRecord(ev, 0);
-        cudaEventSynchronize(ev);
-        cudaEventDestroy(ev);
+        cudaEventRecord(m_event, 0);
+        cudaEventSynchronize(m_event);
 
         m_exec_conf->releaseContext();
+        if (m_prof) m_prof->pop();
         }
 
     // Number of ghosts we received that are not forwarded to other boxes
     unsigned int n_tot_recv_ghosts_local = 0;
 
-    for (unsigned int dir = 0; dir < 6; ++dir)
         {
-        // reset all received ghost numbers
-        for (unsigned int i = 0; i < 6; ++i)
-            m_n_recv_ghosts_face[6*dir+i] = 0;
-        for (unsigned int i = 0; i < 12; ++i)
-            m_n_recv_ghosts_edge[12*dir+i] = 0;
+        ArrayHandle<unsigned int> h_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::host, access_mode::overwrite);
 
-        m_n_recv_ghosts_local[dir] = 0;
-
-        if (! isCommunicating(dir) ) continue;
-
-        unsigned int max_n_recv_edge = 0;
-        unsigned int max_n_recv_face = 0;
-
-        if (m_prof) m_prof->push("MPI");
-
-        // exchange message sizes
-        communicateStepOne(dir,
-                           n_copy_ghosts_corner,
-                           n_copy_ghosts_edge,
-                           n_copy_ghosts_face,
-                           &m_n_recv_ghosts_face[6*dir],
-                           &m_n_recv_ghosts_edge[12*dir],
-                           &m_n_recv_ghosts_local[dir],
-                           false
-                           );
-        
-        if (m_prof) m_prof->pop();
-
-        unsigned int max_n_copy_edge = 0;
-        unsigned int max_n_copy_face = 0;
-
-        // resize buffers as necessary
-        for (unsigned int i = 0; i < 12; ++i)
+        /*
+         * begin communication loop
+         */
+        for (unsigned int dir = 0; dir < 6; ++dir)
             {
-            if (m_n_recv_ghosts_edge[12*dir+i] > max_n_recv_edge)
-                max_n_recv_edge = m_n_recv_ghosts_edge[12*dir+i];
-            if (n_copy_ghosts_edge[i] > max_n_copy_edge)
-                max_n_copy_edge = n_copy_ghosts_edge[i];
-            }
-
-
-        if (max_n_recv_edge + max_n_copy_edge > m_max_copy_ghosts_edge)
-            {
-            unsigned int new_size = 1;
-            while (new_size < max_n_recv_edge + max_n_copy_edge) new_size = ceilf((float)new_size* m_resize_factor);
-            m_max_copy_ghosts_edge = new_size;
-
-            unsigned int old_pitch = m_edge_ghosts_buf.getPitch();
-
-            m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
-            m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
-
-
-            char *h_tmp;
-            m_exec_conf->useContext();
-            cudaHostAlloc(&h_tmp, m_edge_ghosts_buf.getNumElements(), cudaHostAllocDefault);
-            for (unsigned int i = 0; i < 12; ++i)
-                memcpy(h_tmp+i*m_edge_ghosts_buf.getPitch(), h_edge_ghosts_buf+i*old_pitch,  old_pitch);
-            cudaFreeHost(h_edge_ghosts_buf);
-            h_edge_ghosts_buf = h_tmp;
-            m_exec_conf->releaseContext();
-            }
-
-        for (unsigned int i = 0; i < 6; ++i)
-            {
-            if (m_n_recv_ghosts_face[6*dir+i] > max_n_recv_face)
-                max_n_recv_face = m_n_recv_ghosts_face[6*dir+i];
-            if (n_copy_ghosts_face[i] > max_n_copy_face)
-                max_n_copy_face = n_copy_ghosts_face[i];
-            }
-
-        if (max_n_recv_face + max_n_copy_face > m_max_copy_ghosts_face)
-            {
-            unsigned int new_size = 1;
-            while (new_size < max_n_recv_face + max_n_copy_face) new_size = ceilf((float) new_size * m_resize_factor);
-            m_max_copy_ghosts_face = new_size;
-
-            unsigned int old_pitch = m_face_ghosts_buf.getPitch();
-
-            m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
-            m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
-
-            char *h_tmp;
-            m_exec_conf->useContext();
-            cudaHostAlloc(&h_tmp, m_face_ghosts_buf.getNumElements(), cudaHostAllocDefault);
+            // reset all received ghost counters
             for (unsigned int i = 0; i < 6; ++i)
-                memcpy(h_tmp+i*m_face_ghosts_buf.getPitch(), h_face_ghosts_buf+i*old_pitch,  old_pitch);
-            cudaFreeHost(h_face_ghosts_buf);
-            h_face_ghosts_buf = h_tmp;
-            m_exec_conf->releaseContext();
-            }
+                h_n_recv_ghosts_face.data[6*dir+i] = 0;
+            for (unsigned int i = 0; i < 12; ++i)
+                h_n_recv_ghosts_edge.data[12*dir+i] = 0;
+            h_n_recv_ghosts_local.data[dir] = 0;
 
-        if (m_ghosts_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + m_n_recv_ghosts_local[dir])*gpu_ghost_element_size())
-            {
-            unsigned int old_size = m_ghosts_recv_buf.getNumElements();
-            unsigned int new_size =1;
-            while (new_size < n_tot_recv_ghosts_local + m_n_recv_ghosts_local[dir])
-                new_size = ceilf((float) new_size * m_resize_factor);
-            m_ghosts_recv_buf.resize(new_size*gpu_ghost_element_size());
+            if (! isCommunicating(dir) ) continue;
 
-            char *h_tmp;
-            m_exec_conf->useContext();
-            cudaHostAlloc(&h_tmp, new_size*gpu_ghost_element_size(), cudaHostAllocDefault);
-            memcpy(h_tmp, h_ghosts_recv_buf, old_size);
-            cudaFreeHost(h_ghosts_recv_buf);
-            h_ghosts_recv_buf = h_tmp;
-            m_exec_conf->releaseContext();
-            }
+            unsigned int max_n_recv_edge = 0;
+            unsigned int max_n_recv_face = 0;
 
-        if (m_update_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + m_n_recv_ghosts_local[dir])*gpu_update_element_size())
-            {
-            unsigned int new_size =1;
-            while (new_size < n_tot_recv_ghosts_local + m_n_recv_ghosts_local[dir])
-                new_size = ceilf((float) new_size * m_resize_factor);
-            m_update_recv_buf.resize(new_size*gpu_update_element_size());
-            }
+            if (m_prof) m_prof->push("MPI");
 
-#if 0
-        // exchange ghost particle data
-        #ifdef ENABLE_MPI_CUDA
-        ArrayHandle<char> corner_ghosts_buf_handle(m_corner_ghosts_buf, access_location::device, access_mode::read);
-        ArrayHandle<char> edge_ghosts_buf_handle(m_edge_ghosts_buf, access_location::device, access_mode::readwrite);
-        ArrayHandle<char> face_ghosts_buf_handle(m_face_ghosts_buf, access_location::device, access_mode::readwrite);
-        ArrayHandle<char> ghosts_recv_buf_handle(m_recv_buf, access_location::device, access_mode::readwrite);
-        #else
-        ArrayHandle<char> corner_ghosts_buf_handle(m_corner_ghosts_buf, access_location::host, access_mode::read);
-        ArrayHandle<char> edge_ghosts_buf_handle(m_edge_ghosts_buf, access_location::host, access_mode::readwrite);
-        ArrayHandle<char> face_ghosts_buf_handle(m_face_ghosts_buf, access_location::host, access_mode::readwrite);
-        ArrayHandle<char> ghosts_recv_buf_handle(m_ghosts_recv_buf, access_location::host, access_mode::readwrite);
-        #endif
-#endif
-        unsigned int cpitch = m_corner_ghosts_buf.getPitch();
-        unsigned int epitch = m_edge_ghosts_buf.getPitch();
-        unsigned int fpitch = m_face_ghosts_buf.getPitch();
- 
-        if (m_prof) m_prof->push("MPI");
+            // exchange message sizes
+            communicateStepOne(dir,
+                               n_copy_ghosts_corner,
+                               n_copy_ghosts_edge,
+                               n_copy_ghosts_face,
+                               &h_n_recv_ghosts_face.data[6*dir],
+                               &h_n_recv_ghosts_edge.data[12*dir],
+                               &h_n_recv_ghosts_local.data[dir],
+                               false
+                               );
+            
+            if (m_prof) m_prof->pop();
 
-        communicateStepTwo(dir,
-                           h_corner_ghosts_buf,
-                           h_edge_ghosts_buf,
-                           h_face_ghosts_buf,
-                           cpitch,
-                           epitch,
-                           fpitch,
-                           h_ghosts_recv_buf,
-                           n_copy_ghosts_corner,
-                           n_copy_ghosts_edge,
-                           n_copy_ghosts_face,
-                           m_ghosts_recv_buf.getNumElements(),
-                           n_tot_recv_ghosts_local, 
-                           gpu_ghost_element_size(),
-                           false);
+            unsigned int max_n_copy_edge = 0;
+            unsigned int max_n_copy_face = 0;
 
-#if 0
-        communicateStepTwo(dir,
-                           corner_ghosts_buf_handle.data,
-                           edge_ghosts_buf_handle.data,
-                           face_ghosts_buf_handle.data,
-                           cpitch,
-                           epitch,
-                           fpitch,
-                           ghosts_recv_buf_handle.data,
-                           n_copy_ghosts_corner,
-                           n_copy_ghosts_edge,
-                           n_copy_ghosts_face,
-                           m_ghosts_recv_buf.getNumElements(),
-                           n_tot_recv_ghosts_local, 
-                           gpu_ghost_element_size(),
-                           false);
-#endif
-        if (m_prof) m_prof->pop();
+            // resize buffers as necessary
+            for (unsigned int i = 0; i < 12; ++i)
+                {
+                if (h_n_recv_ghosts_edge.data[12*dir+i] > max_n_recv_edge)
+                    max_n_recv_edge = h_n_recv_ghosts_edge.data[12*dir+i];
+                if (n_copy_ghosts_edge[i] > max_n_copy_edge)
+                    max_n_copy_edge = n_copy_ghosts_edge[i];
+                }
 
-        // update buffer sizes
-        for (unsigned int i = 0; i < 12; ++i)
-            n_copy_ghosts_edge[i] += m_n_recv_ghosts_edge[12*dir+i];
 
-        for (unsigned int i = 0; i < 6; ++i)
-            n_copy_ghosts_face[i] += m_n_recv_ghosts_face[6*dir+i];
+            if (max_n_recv_edge + max_n_copy_edge > m_max_copy_ghosts_edge)
+                {
+                unsigned int new_size = 1;
+                while (new_size < max_n_recv_edge + max_n_copy_edge) new_size = ceilf((float)new_size* m_resize_factor);
+                m_max_copy_ghosts_edge = new_size;
 
-        n_tot_recv_ghosts_local += m_n_recv_ghosts_local[dir];
+                unsigned int old_pitch = m_edge_ghosts_buf.getPitch();
+
+                m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
+                m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
+
+
+                char *h_tmp;
+                m_exec_conf->useContext();
+                cudaHostAlloc(&h_tmp, m_edge_ghosts_buf.getNumElements(), cudaHostAllocDefault);
+                for (unsigned int i = 0; i < 12; ++i)
+                    memcpy(h_tmp+i*m_edge_ghosts_buf.getPitch(), h_edge_ghosts_buf+i*old_pitch,  old_pitch);
+                cudaFreeHost(h_edge_ghosts_buf);
+                h_edge_ghosts_buf = h_tmp;
+                m_exec_conf->releaseContext();
+                }
+
+            for (unsigned int i = 0; i < 6; ++i)
+                {
+                if (h_n_recv_ghosts_face.data[6*dir+i] > max_n_recv_face)
+                    max_n_recv_face = h_n_recv_ghosts_face.data[6*dir+i];
+                if (n_copy_ghosts_face[i] > max_n_copy_face)
+                    max_n_copy_face = n_copy_ghosts_face[i];
+                }
+
+            if (max_n_recv_face + max_n_copy_face > m_max_copy_ghosts_face)
+                {
+                unsigned int new_size = 1;
+                while (new_size < max_n_recv_face + max_n_copy_face) new_size = ceilf((float) new_size * m_resize_factor);
+                m_max_copy_ghosts_face = new_size;
+
+                unsigned int old_pitch = m_face_ghosts_buf.getPitch();
+
+                m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
+                m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
+
+                char *h_tmp;
+                m_exec_conf->useContext();
+                cudaHostAlloc(&h_tmp, m_face_ghosts_buf.getNumElements(), cudaHostAllocDefault);
+                for (unsigned int i = 0; i < 6; ++i)
+                    memcpy(h_tmp+i*m_face_ghosts_buf.getPitch(), h_face_ghosts_buf+i*old_pitch,  old_pitch);
+                cudaFreeHost(h_face_ghosts_buf);
+                h_face_ghosts_buf = h_tmp;
+                m_exec_conf->releaseContext();
+                }
+
+            if (m_ghosts_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_ghost_element_size())
+                {
+                unsigned int old_size = m_ghosts_recv_buf.getNumElements();
+                unsigned int new_size =1;
+                while (new_size < n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
+                    new_size = ceilf((float) new_size * m_resize_factor);
+                m_ghosts_recv_buf.resize(new_size*gpu_ghost_element_size());
+
+                char *h_tmp;
+                m_exec_conf->useContext();
+                cudaHostAlloc(&h_tmp, new_size*gpu_ghost_element_size(), cudaHostAllocDefault);
+                memcpy(h_tmp, h_ghosts_recv_buf, old_size);
+                cudaFreeHost(h_ghosts_recv_buf);
+                h_ghosts_recv_buf = h_tmp;
+                m_exec_conf->releaseContext();
+                }
+
+            if (m_update_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_update_element_size())
+                {
+                unsigned int new_size =1;
+                while (new_size < n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
+                    new_size = ceilf((float) new_size * m_resize_factor);
+                m_update_recv_buf.resize(new_size*gpu_update_element_size());
+                }
+
+            unsigned int cpitch = m_corner_ghosts_buf.getPitch();
+            unsigned int epitch = m_edge_ghosts_buf.getPitch();
+            unsigned int fpitch = m_face_ghosts_buf.getPitch();
+     
+            if (m_prof) m_prof->push("MPI");
+
+            communicateStepTwo(dir,
+                               h_corner_ghosts_buf,
+                               h_edge_ghosts_buf,
+                               h_face_ghosts_buf,
+                               cpitch,
+                               epitch,
+                               fpitch,
+                               h_ghosts_recv_buf,
+                               n_copy_ghosts_corner,
+                               n_copy_ghosts_edge,
+                               n_copy_ghosts_face,
+                               m_ghosts_recv_buf.getNumElements(),
+                               n_tot_recv_ghosts_local, 
+                               gpu_ghost_element_size(),
+                               false);
+
+            if (m_prof) m_prof->pop();
+
+            // update buffer sizes
+            for (unsigned int i = 0; i < 12; ++i)
+                n_copy_ghosts_edge[i] += h_n_recv_ghosts_edge.data[12*dir+i];
+
+            for (unsigned int i = 0; i < 6; ++i)
+                n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[6*dir+i];
+
+            n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[dir];
+            } // end communication loop
         }
 
-   // calculate number of forwarded particles for every face and edge
         {
+        // calculate number of forwarded particles for every face and edge
         ArrayHandle<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
 
@@ -1519,6 +1516,7 @@ void CommunicatorGPU::exchangeGhosts()
 
 
         {
+        if (m_prof) m_prof->push("H->D");
         // copy received ghost data back to device as necessary
         ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::readwrite);
         ArrayHandle<char> d_edge_ghosts_buf(m_edge_ghosts_buf, access_location::device, access_mode::readwrite);
@@ -1553,6 +1551,7 @@ void CommunicatorGPU::exchangeGhosts()
                        cudaMemcpyHostToDevice,0);
 
         m_exec_conf->releaseContext();
+        if (m_prof) m_prof->pop();
         }
 
         {
@@ -1571,18 +1570,20 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
 
+        ArrayHandleAsync<unsigned int> d_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::device, access_mode::read);
+        ArrayHandleAsync<unsigned int> d_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::device, access_mode::read);
+        ArrayHandleAsync<unsigned int> d_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::device, access_mode::read);
+
         if (m_prof) m_prof->push("GPU unpack");
         m_exec_conf->useContext();
         gpu_exchange_ghosts_unpack(m_pdata->getN(),
                                      n_tot_recv_ghosts,
                                      d_n_local_ghosts_face.data,
                                      d_n_local_ghosts_edge.data,
-                                     n_forward_ghosts_face,
-                                     n_forward_ghosts_edge,
                                      n_tot_recv_ghosts_local,
-                                     m_n_recv_ghosts_local,
-                                     m_n_recv_ghosts_face,
-                                     m_n_recv_ghosts_edge,
+                                     d_n_recv_ghosts_local.data,
+                                     d_n_recv_ghosts_face.data,
+                                     d_n_recv_ghosts_edge.data,
                                      d_face_ghosts.data,
                                      m_face_ghosts_buf.getPitch(),
                                      d_edge_ghosts.data,

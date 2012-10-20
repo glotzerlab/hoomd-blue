@@ -91,9 +91,9 @@ struct ghost_gpu_thread_params
                             unsigned int *_d_ghost_plan,
                             const unsigned int _N,                     
                             const unsigned int _recv_ghosts_local_size,
-                            const unsigned int *_n_recv_ghosts_edge,
-                            const unsigned int *_n_recv_ghosts_face,
-                            const unsigned int *_n_recv_ghosts_local,
+                            const GPUArray<unsigned int>& _n_recv_ghosts_edge,
+                            const GPUArray<unsigned int>& _n_recv_ghosts_face,
+                            const GPUArray<unsigned int>& _n_recv_ghosts_local,
                             const GPUArray<unsigned int>& _n_local_ghosts_corner,  
                             const GPUArray<unsigned int>& _n_local_ghosts_edge,  
                             const GPUArray<unsigned int>& _n_local_ghosts_face,  
@@ -141,9 +141,9 @@ struct ghost_gpu_thread_params
     unsigned int *d_ghost_plan;               //!< Array of plans received ghosts
     const unsigned int N;                     //!< Number of local particles
     const unsigned int recv_ghosts_local_size; //!< Size of receive buffer for ghosts addressed to the local domain
-    const unsigned int *n_recv_ghosts_edge;   //!< Number of ghosts received for updating over an edge
-    const unsigned int *n_recv_ghosts_face;   //!< Number of ghosts received for updating over a face
-    const unsigned int *n_recv_ghosts_local;  //!< Number of ghosts received for the local box
+    const GPUArray<unsigned int> &n_recv_ghosts_edge;   //!< Number of ghosts received for updating over an edge
+    const GPUArray<unsigned int> &n_recv_ghosts_face;   //!< Number of ghosts received for updating over a face
+    const GPUArray<unsigned int> &n_recv_ghosts_local;  //!< Number of ghosts received for the local box
     const GPUArray<unsigned int>& n_local_ghosts_corner;//!< Number of local ghosts sent over a corner
     const GPUArray<unsigned int>& n_local_ghosts_edge;  //!< Number of local ghosts sent over an edge
     const GPUArray<unsigned int>& n_local_ghosts_face;  //!< Number of local ghosts sent over a face
@@ -294,10 +294,9 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_n_local_ghosts_edge;  //!< Local ghosts sent over an edge
         GPUArray<unsigned int> m_n_local_ghosts_corner;//!< Local ghosts sent over a corner
 
-        unsigned int m_n_recv_ghosts_face[6*6];     //!< Number of received ghosts for sending over a face, per direction
-        unsigned int m_n_recv_ghosts_edge[12*6];    //!< Number of received ghosts for sending over an edge, per direction
-        unsigned int m_n_recv_ghosts_local[6];      //!< Number of received ghosts that stay in the local box, per direction
-
+        GPUArray<unsigned int> m_n_recv_ghosts_face; //!< Number of received ghosts for sending over a face, per direction
+        GPUArray<unsigned int> m_n_recv_ghosts_edge; //!< Number of received ghosts for sending over an edge, per direction
+        GPUArray<unsigned int> m_n_recv_ghosts_local;//!< Number of received ghosts that stay in the local box, per direction
 
         bool m_buffers_allocated;                   //!< True if buffers have been allocated
 
@@ -308,6 +307,8 @@ class CommunicatorGPU : public Communicator
         bool m_thread_created;                      //!< True if the worker thread has been created
         WorkQueue<ghost_gpu_thread_params> m_work_queue; //!< The queue of parameters processed by the worker thread
         boost::barrier m_barrier;                   //!< Barrier to synchronize with worker thread
+
+        cudaEvent_t m_event;                        //!< A CUDA event
 
         MPI_Group m_comm_group;                     //!< Group corresponding to MPI communicator
         MPI_Win m_win_edge[12];                     //!< Shared memory windows for every of the 12 edges

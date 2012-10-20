@@ -151,12 +151,6 @@ unsigned int *d_n_send_particles_face;    //!< Number of particles sent over a f
 unsigned int *d_n_remove_ptls;            //!< Number of particles that will be removed
 unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
-unsigned int *d_n_tot_forward_ghosts_face;    //!< Number of particles we have forwarded over a box face
-unsigned int *d_n_tot_forward_ghosts_edge;    //!< Number of particles we have forwarded over a box edge
-unsigned int *d_n_recv_ghosts_local;      //!< Number of ghosts received for the local box, per receive direction
-unsigned int *d_n_forward_ghosts_face;    //!< Number of ghosts forwarded as face particle, per receive direction
-unsigned int *d_n_forward_ghosts_edge;    //!< Number of ghosts forwarded as edge particle, per receive direction
-  
 __constant__ unsigned int d_corner_plan_lookup[8];
 __constant__ unsigned int d_edge_plan_lookup[12];
 __constant__ unsigned int d_face_plan_lookup[6];
@@ -174,11 +168,6 @@ void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
     cudaMalloc(&d_n_send_particles_corner,8*sizeof(unsigned int));
     cudaMalloc(&d_n_send_particles_edge,12*sizeof(unsigned int));
     cudaMalloc(&d_n_send_particles_face,6*sizeof(unsigned int));
-    cudaMalloc(&d_n_tot_forward_ghosts_face,6*sizeof(unsigned int));
-    cudaMalloc(&d_n_tot_forward_ghosts_edge,12*sizeof(unsigned int));
-    cudaMalloc(&d_n_forward_ghosts_face,6*6*sizeof(unsigned int));
-    cudaMalloc(&d_n_forward_ghosts_edge,6*12*sizeof(unsigned int));
-    cudaMalloc(&d_n_recv_ghosts_local,6*sizeof(unsigned int));
     cudaMalloc(&d_n_remove_ptls,sizeof(unsigned int));
     cudaMalloc(&d_n_fetch_ptl,sizeof(unsigned int));
 
@@ -195,11 +184,6 @@ void gpu_deallocate_tmp_storage()
     cudaFree(d_n_send_particles_corner);
     cudaFree(d_n_send_particles_edge);
     cudaFree(d_n_send_particles_face);
-    cudaFree(d_n_tot_forward_ghosts_face);
-    cudaFree(d_n_tot_forward_ghosts_edge);
-    cudaFree(d_n_recv_ghosts_local);
-    cudaFree(d_n_forward_ghosts_face);
-    cudaFree(d_n_forward_ghosts_edge);
     cudaFree(d_n_remove_ptls);
     cudaFree(d_n_fetch_ptl);
     }
@@ -1152,12 +1136,10 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *d_n_local_ghosts_face,
                                 const unsigned int *d_n_local_ghosts_edge,
-                                const unsigned int *n_tot_forward_ghosts_face,
-                                const unsigned int *n_tot_forward_ghosts_edge,
                                 const unsigned int n_tot_recv_ghosts_local,
-                                const unsigned int *n_recv_ghosts_local,
-                                const unsigned int *n_forward_ghosts_face,
-                                const unsigned int *n_forward_ghosts_edge,
+                                const unsigned int *d_n_recv_ghosts_local,
+                                const unsigned int *d_n_recv_ghosts_face,
+                                const unsigned int *d_n_recv_ghosts_edge,
                                 const char *d_face_ghosts,
                                 const unsigned int face_pitch,
                                 const char *d_edge_ghosts,
@@ -1171,14 +1153,6 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int *d_ghost_plan,
                                 const BoxDim& global_box)
     {
-//    cudaMemcpy(d_n_local_ghosts_face, n_local_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
-//    cudaMemcpy(d_n_local_ghosts_edge, n_local_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
-//    cudaMemcpy(d_n_tot_forward_ghosts_face, n_tot_forward_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice);
-//    cudaMemcpy(d_n_tot_forward_ghosts_edge, n_tot_forward_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice);
-    cudaMemcpyAsync(d_n_recv_ghosts_local, n_recv_ghosts_local, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,0);
-    cudaMemcpyAsync(d_n_forward_ghosts_face, n_forward_ghosts_face, sizeof(unsigned int)*6*6, cudaMemcpyHostToDevice,0);
-    cudaMemcpyAsync(d_n_forward_ghosts_edge, n_forward_ghosts_edge, sizeof(unsigned int)*6*12, cudaMemcpyHostToDevice,0);
-
     unsigned int block_size = 512;
     gpu_exchange_ghosts_unpack_kernel<ghost_element_gpu, false><<<n_tot_recv_ghosts/block_size+1, block_size>>>(N,
                                                                            n_tot_recv_ghosts,
@@ -1186,8 +1160,8 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                                                            d_n_local_ghosts_edge,
                                                                            n_tot_recv_ghosts_local,
                                                                            d_n_recv_ghosts_local,
-                                                                           d_n_forward_ghosts_face,
-                                                                           d_n_forward_ghosts_edge,
+                                                                           d_n_recv_ghosts_face,
+                                                                           d_n_recv_ghosts_edge,
                                                                            d_face_ghosts,
                                                                            face_pitch,
                                                                            d_edge_ghosts,
@@ -1346,12 +1320,10 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *d_n_local_ghosts_face,
                                 const unsigned int *d_n_local_ghosts_edge,
-                                const unsigned int *n_tot_forward_ghosts_face,
-                                const unsigned int *n_tot_forward_ghosts_edge,
                                 const unsigned int n_tot_recv_ghosts_local,
-                                const unsigned int *n_recv_ghosts_local,
-                                const unsigned int *n_forward_ghosts_face,
-                                const unsigned int *n_forward_ghosts_edge,
+                                const unsigned int *d_n_recv_ghosts_local,
+                                const unsigned int *d_n_recv_ghosts_face,
+                                const unsigned int *d_n_recv_ghosts_edge,
                                 const char *d_face_ghosts,
                                 const unsigned int face_pitch,
                                 const char *d_edge_ghosts,
@@ -1362,13 +1334,6 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const BoxDim& global_box,
                                 cudaStream_t stream)
     {
-//    cudaMemcpyAsync(d_n_local_ghosts_face, n_local_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
-//    cudaMemcpyAsync(d_n_local_ghosts_edge, n_local_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice,stream);
-//    cudaMemcpyAsync(d_n_forward_ghosts_face, n_tot_forward_ghosts_face, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
-//    cudaMemcpyAsync(d_n_forward_ghosts_edge, n_tot_forward_ghosts_edge, sizeof(unsigned int)*12, cudaMemcpyHostToDevice,stream);
-//    cudaMemcpyAsync(d_n_recv_ghosts_local, n_recv_ghosts_local, sizeof(unsigned int)*6, cudaMemcpyHostToDevice,stream);
-
-
     unsigned int block_size = 512;
     gpu_exchange_ghosts_unpack_kernel<update_element_gpu, true><<<n_tot_recv_ghosts/block_size+1, block_size,0,stream>>>
                                                                           (N,
@@ -1377,8 +1342,8 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                                                            d_n_local_ghosts_edge,
                                                                            n_tot_recv_ghosts_local,
                                                                            d_n_recv_ghosts_local,
-                                                                           d_n_forward_ghosts_face,
-                                                                           d_n_forward_ghosts_edge,
+                                                                           d_n_recv_ghosts_face,
+                                                                           d_n_recv_ghosts_edge,
                                                                            d_face_ghosts,
                                                                            face_pitch,
                                                                            d_edge_ghosts,
