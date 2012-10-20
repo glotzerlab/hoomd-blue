@@ -141,7 +141,8 @@ struct update_element_gpu
 unsigned int gpu_update_element_size();
 
 //! Allocate temporary device memory for reordering particles
-void gpu_allocate_tmp_storage(const unsigned int *is_communicating);
+void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
+                              const unsigned int *is_at_boundary);
 
 //! Dellocate temporary memory
 void gpu_deallocate_tmp_storage();
@@ -183,7 +184,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                   unsigned int face_buf_pitch,
                                   const BoxDim& box,
                                   const BoxDim& global_box,
-                                  const unsigned int *is_at_boundary,
                                   unsigned int *d_condition);
  
 void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
@@ -234,13 +234,12 @@ void gpu_exchange_ghosts(const unsigned int N,
                          unsigned int edge_buf_pitch,
                          char *d_ghost_face_buf,
                          unsigned int face_buf_pitch,
-                         unsigned int *n_copy_ghosts_corner,
-                         unsigned int *n_copy_ghosts_edge,
-                         unsigned int *n_copy_ghosts_face,
+                         unsigned int *d_n_copy_ghosts_corner,
+                         unsigned int *d_n_copy_ghosts_edge,
+                         unsigned int *d_n_copy_ghosts_face,
                          unsigned int max_copy_ghosts_corner,
                          unsigned int max_copy_ghosts_edge,
                          unsigned int max_copy_ghosts_face,
-                         const unsigned int *is_at_boundary,
                          unsigned int *d_condition);
 
 void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
@@ -257,15 +256,15 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      unsigned int edge_buf_pitch,
                                      char *d_update_face_buf,
                                      unsigned int face_buf_pitch,
-                                     const unsigned int *n_copy_ghosts_corner,
-                                     const unsigned int *n_copy_ghosts_edge,
-                                     const unsigned int *n_copy_ghosts_face,
+                                     const unsigned int *d_n_local_ghosts_corner,
+                                     const unsigned int *d_n_local_ghosts_edge,
+                                     const unsigned int *d_n_local_ghosts_face,
                                      cudaStream_t stream);
 
 void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
-                                const unsigned int *n_local_ghosts_face,
-                                const unsigned int *n_local_ghosts_edge,
+                                const unsigned int *d_n_local_ghosts_face,
+                                const unsigned int *d_n_local_ghosts_edge,
                                 const unsigned int *n_tot_forward_ghosts_face,
                                 const unsigned int *n_tot_forward_ghosts_edge,
                                 const unsigned int n_tot_recv_ghosts_local,
@@ -283,13 +282,12 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int *d_tag,
                                 unsigned int *d_rtag,
                                 unsigned int *d_ghost_plan,
-                                unsigned int *is_at_boundary,
                                 const BoxDim& global_box);
 
 void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
-                                const unsigned int *n_local_ghosts_face,
-                                const unsigned int *n_local_ghosts_edge,
+                                const unsigned int *d_n_local_ghosts_face,
+                                const unsigned int *d_n_local_ghosts_edge,
                                 const unsigned int *n_tot_forward_ghosts_face,
                                 const unsigned int *n_tot_forward_ghosts_edge,
                                 const unsigned int n_tot_recv_ghosts_local,
@@ -303,7 +301,6 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
                                 unsigned int *d_ghost_plan,
-                                const unsigned int *is_at_boundary,
                                 const BoxDim& global_box,
                                 cudaStream_t stream);
  

@@ -780,12 +780,14 @@ void ExecutionConfiguration::setupStats()
         }
     }
 
+#ifdef ENABLE_MPI
 unsigned int ExecutionConfiguration::getNRanks() const
     {
     int size;
     MPI_Comm_size(m_mpi_comm, &size);
     return size;
     }
+#endif 
 
 #ifdef ENABLE_CUDA
 /*! For cudaEventCreate to work correctly, this routine has to be called from within a thread

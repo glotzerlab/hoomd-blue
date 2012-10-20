@@ -89,15 +89,14 @@ struct ghost_gpu_thread_params
                             const unsigned int _face_update_buf_pitch, 
                             char *_update_recv_buf_handle,             
                             unsigned int *_d_ghost_plan,
-                            const unsigned int *_is_at_boundary,
                             const unsigned int _N,                     
                             const unsigned int _recv_ghosts_local_size,
                             const unsigned int *_n_recv_ghosts_edge,
                             const unsigned int *_n_recv_ghosts_face,
                             const unsigned int *_n_recv_ghosts_local,
-                            const unsigned int *_n_local_ghosts_corner,  
-                            const unsigned int *_n_local_ghosts_edge,  
-                            const unsigned int *_n_local_ghosts_face,  
+                            const GPUArray<unsigned int>& _n_local_ghosts_corner,  
+                            const GPUArray<unsigned int>& _n_local_ghosts_edge,  
+                            const GPUArray<unsigned int>& _n_local_ghosts_face,  
                             Scalar4 *_pos_handle,                      
                             const BoxDim& _global_box)
         : ghost_idx_face_handle(_ghost_idx_face_handle),
@@ -114,7 +113,6 @@ struct ghost_gpu_thread_params
           face_update_buf_pitch(_face_update_buf_pitch),
           update_recv_buf_handle(_update_recv_buf_handle),
           d_ghost_plan(_d_ghost_plan),
-          is_at_boundary(_is_at_boundary),
           N(_N),
           recv_ghosts_local_size(_recv_ghosts_local_size),
           n_recv_ghosts_edge(_n_recv_ghosts_edge),
@@ -141,15 +139,14 @@ struct ghost_gpu_thread_params
     const unsigned int face_update_buf_pitch; //!< Pitch of face ghost update buffer
     char *update_recv_buf_handle;             //!< Buffer for ghosts received for the local box
     unsigned int *d_ghost_plan;               //!< Array of plans received ghosts
-    const unsigned int *is_at_boundary;     //!< Per-direction, true if we are at a global boundary
     const unsigned int N;                     //!< Number of local particles
     const unsigned int recv_ghosts_local_size; //!< Size of receive buffer for ghosts addressed to the local domain
     const unsigned int *n_recv_ghosts_edge;   //!< Number of ghosts received for updating over an edge
     const unsigned int *n_recv_ghosts_face;   //!< Number of ghosts received for updating over a face
     const unsigned int *n_recv_ghosts_local;  //!< Number of ghosts received for the local box
-    const unsigned int *n_local_ghosts_corner;//!< Number of local ghosts sent over a corner
-    const unsigned int *n_local_ghosts_edge;  //!< Number of local ghosts sent over an edge
-    const unsigned int *n_local_ghosts_face;  //!< Number of local ghosts sent over a face
+    const GPUArray<unsigned int>& n_local_ghosts_corner;//!< Number of local ghosts sent over a corner
+    const GPUArray<unsigned int>& n_local_ghosts_edge;  //!< Number of local ghosts sent over an edge
+    const GPUArray<unsigned int>& n_local_ghosts_face;  //!< Number of local ghosts sent over a face
     Scalar4 *pos_handle;                      //!< Device pointer to ghost positions array
     const BoxDim& global_box;                 //!< Dimensions of global box
     };
@@ -283,13 +280,19 @@ class CommunicatorGPU : public Communicator
         GPUArray<char> m_face_update_buf;           //!< Copy buffer for 'corner' ghost positions 
         GPUArray<char> m_update_recv_buf;           //!< Receive buffer for ghost positions 
 
+        char *h_ghosts_recv_buf;                    //!< Host receive buffer
+        char *h_face_ghosts_buf;                    //!< Host buffer of particles that are sent through a face
+        char *h_edge_ghosts_buf;                    //!< Host buffer of particles that are sent over an edge
+        char *h_corner_ghosts_buf;                  //!< Host buffer of particles that are sent over a corner
+
         unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
         unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
         unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
+        unsigned int m_max_recv_ghosts;             //!< Maximum number of ghosts received for the local box
 
-        unsigned int m_n_local_ghosts_face[6];      //!< Local ghosts sent over a face
-        unsigned int m_n_local_ghosts_edge[12];     //!< Local ghosts sent over an edge
-        unsigned int m_n_local_ghosts_corner[8];    //!< Local ghosts sent over a corner
+        GPUArray<unsigned int> m_n_local_ghosts_face;  //!< Number of local ghosts sent over a face
+        GPUArray<unsigned int> m_n_local_ghosts_edge;  //!< Local ghosts sent over an edge
+        GPUArray<unsigned int> m_n_local_ghosts_corner;//!< Local ghosts sent over a corner
 
         unsigned int m_n_recv_ghosts_face[6*6];     //!< Number of received ghosts for sending over a face, per direction
         unsigned int m_n_recv_ghosts_edge[12*6];    //!< Number of received ghosts for sending over an edge, per direction
@@ -305,7 +308,6 @@ class CommunicatorGPU : public Communicator
         bool m_thread_created;                      //!< True if the worker thread has been created
         WorkQueue<ghost_gpu_thread_params> m_work_queue; //!< The queue of parameters processed by the worker thread
         boost::barrier m_barrier;                   //!< Barrier to synchronize with worker thread
-        bool m_communication_dir[6];                //!< Per-direction flag, true if we are communicating in this direction
 
         MPI_Group m_comm_group;                     //!< Group corresponding to MPI communicator
         MPI_Win m_win_edge[12];                     //!< Shared memory windows for every of the 12 edges
@@ -314,6 +316,12 @@ class CommunicatorGPU : public Communicator
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
+
+        //! Check and resize ghost buffers if necessary
+        void checkReallocateGhostBuffers();
+
+        //!< De-allocate host buffers
+        void deallocateBuffers();
 
         friend class ghost_gpu_thread;
     };

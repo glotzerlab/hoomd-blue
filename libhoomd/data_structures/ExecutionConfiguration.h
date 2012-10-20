@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include <cuda.h>
+#include <cuda_runtime.h>
 #endif
 
 #ifdef ENABLE_MPI
@@ -259,19 +260,19 @@ struct ExecutionConfiguration : boost::noncopyable
     void checkCUDAError(const char *file, unsigned int line) const;
 #endif
 
+    //! Return the rank of this processor in the partition
+    unsigned int getRank() const
+        {
+        return m_rank;
+        }
+ 
 #ifdef ENABLE_MPI
     //! Returns the partition number of this processor
     unsigned int getPartition() const
         {
         return m_partition;
         }
-
-    //! Return the rank of this processor in the partition
-    unsigned int getRank() const
-        {
-        return m_rank;
-        }
-    
+   
     //! Return the number of ranks in this partition
     unsigned int getNRanks() const;
 
