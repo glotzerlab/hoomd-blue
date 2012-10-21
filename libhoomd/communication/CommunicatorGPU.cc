@@ -687,6 +687,13 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<unsigned int> n_recv_ghosts_face(6*6, m_exec_conf);
     m_n_recv_ghosts_face.swap(n_recv_ghosts_face);
 
+    GPUArray<unsigned int> n_send_ptls_face(6, m_exec_conf);
+    m_n_send_ptls_face.swap(n_send_ptls_face);
+    GPUArray<unsigned int> n_send_ptls_edge(12, m_exec_conf);
+    m_n_send_ptls_edge.swap(n_send_ptls_edge);
+    GPUArray<unsigned int> n_send_ptls_corner(8, m_exec_conf);
+    m_n_send_ptls_corner.swap(n_send_ptls_corner);
+
     m_buffers_allocated = true;
     }
 
@@ -733,13 +740,19 @@ void CommunicatorGPU::migrateAtoms()
     if (! m_buffers_allocated)
         allocateBuffers();
 
+    if (m_remove_mask.getNumElements() < m_pdata->getN())
+        {
+        unsigned int new_size = 1;
+        while (new_size < m_pdata->getN())
+                new_size = ceilf((float)new_size*m_resize_factor);
+ 
+        m_remove_mask.resize(new_size);
+        }
+
     unsigned int n_send_ptls_face[6];
     unsigned int n_send_ptls_edge[12];
     unsigned int n_send_ptls_corner[8];
-    unsigned int n_remove_ptls;
 
-    if (m_remove_mask.getNumElements() < m_pdata->getN())
-        m_remove_mask.resize(m_pdata->getN());
 
     unsigned int condition;
     do
@@ -811,6 +824,9 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
 
+            ArrayHandle<unsigned int> d_n_send_ptls_corner(m_n_send_ptls_corner, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_n_send_ptls_edge(m_n_send_ptls_edge, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_n_send_ptls_face(m_n_send_ptls_face, access_location::device, access_mode::overwrite);
 
             // Stage particle data for sending, wrap particles
             m_exec_conf->useContext();
@@ -825,10 +841,9 @@ void CommunicatorGPU::migrateAtoms()
                                    d_orientation.data,
                                    d_tag.data,
                                    d_rtag.data,
-                                   n_send_ptls_corner,
-                                   n_send_ptls_edge,
-                                   n_send_ptls_face,
-                                   n_remove_ptls,
+                                   d_n_send_ptls_corner.data,
+                                   d_n_send_ptls_edge.data,
+                                   d_n_send_ptls_face.data,
                                    m_max_send_ptls_corner,
                                    m_max_send_ptls_edge,
                                    m_max_send_ptls_face,
@@ -847,6 +862,28 @@ void CommunicatorGPU::migrateAtoms()
                         CHECK_CUDA_ERROR();
             m_exec_conf->releaseContext();
             }
+
+            {
+            // read back numbers of sent particles
+            ArrayHandleAsync<unsigned int> h_n_send_ptls_face(m_n_send_ptls_face, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_send_ptls_edge(m_n_send_ptls_edge, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_send_ptls_corner(m_n_send_ptls_corner, access_location::host, access_mode::read);
+
+            m_exec_conf->useContext();
+            cudaEventRecord(m_event, 0);
+            cudaEventSynchronize(m_event);
+            m_exec_conf->releaseContext();
+
+            for (unsigned int i = 0; i < 6; ++i)
+                n_send_ptls_face[i] = h_n_send_ptls_face.data[i];
+
+            for (unsigned int i = 0; i < 12; ++i)
+                n_send_ptls_edge[i] = h_n_send_ptls_edge.data[i];
+
+            for (unsigned int i = 0; i < 8; ++i)
+                n_send_ptls_corner[i] = h_n_send_ptls_corner.data[i];
+            }
+
 
         condition = m_condition.readFlags();
         if (condition & 1)
@@ -884,6 +921,16 @@ void CommunicatorGPU::migrateAtoms()
             }
         }
     while (condition);
+
+
+    // total up number of sent particles
+    unsigned int n_remove_ptls = 0;
+    for (unsigned int i = 0; i < 6; ++i)
+        n_remove_ptls += n_send_ptls_face[i];
+    for (unsigned int i = 0; i < 12; ++i)
+        n_remove_ptls += n_send_ptls_edge[i];
+    for (unsigned int i = 0; i < 8; ++i)
+        n_remove_ptls += n_send_ptls_corner[i];
 
         {
         if (m_prof) m_prof->push("D->H");

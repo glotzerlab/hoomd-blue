@@ -266,6 +266,10 @@ class CommunicatorGPU : public Communicator
         char *h_face_send_buf;                      //!< Send buffer (host) for face ptls
         char *h_recv_buf;                           //!< Receive buffer (host)
 
+        GPUArray<unsigned int> m_n_send_ptls_corner; //!< Number of particles sent over a corner
+        GPUArray<unsigned int> m_n_send_ptls_edge;  //!< Number of particles sent over an edge
+        GPUArray<unsigned int> m_n_send_ptls_face;  //!< Number of particles sent through a face
+
         unsigned int m_max_send_ptls_corner;        //!< Size of corner ptl send buffer
         unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
         unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer

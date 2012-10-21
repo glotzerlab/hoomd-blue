@@ -145,10 +145,6 @@ struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsign
         }
      };
 
-unsigned int *d_n_send_particles_corner;  //!< Number of particles sent over a corner
-unsigned int *d_n_send_particles_edge;    //!< Number of particles sent over an edge
-unsigned int *d_n_send_particles_face;    //!< Number of particles sent over a face
-unsigned int *d_n_remove_ptls;            //!< Number of particles that will be removed
 unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
 __constant__ unsigned int d_corner_plan_lookup[8];
@@ -165,10 +161,6 @@ extern unsigned int *face_plan_lookup[];
 void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
                               const unsigned int *is_at_boundary)
     {
-    cudaMalloc(&d_n_send_particles_corner,8*sizeof(unsigned int));
-    cudaMalloc(&d_n_send_particles_edge,12*sizeof(unsigned int));
-    cudaMalloc(&d_n_send_particles_face,6*sizeof(unsigned int));
-    cudaMalloc(&d_n_remove_ptls,sizeof(unsigned int));
     cudaMalloc(&d_n_fetch_ptl,sizeof(unsigned int));
 
     cudaMemcpyToSymbol(d_corner_plan_lookup, corner_plan_lookup, sizeof(unsigned int)*8);
@@ -181,10 +173,6 @@ void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
 
 void gpu_deallocate_tmp_storage()
     {
-    cudaFree(d_n_send_particles_corner);
-    cudaFree(d_n_send_particles_edge);
-    cudaFree(d_n_send_particles_face);
-    cudaFree(d_n_remove_ptls);
     cudaFree(d_n_fetch_ptl);
     }
 
@@ -297,7 +285,6 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
                                                  unsigned int *n_send_ptls_corner,
                                                  unsigned int *n_send_ptls_edge,
                                                  unsigned int *n_send_ptls_face,
-                                                 unsigned int *n_remove_ptls,
                                                  unsigned int max_send_ptls_corner,
                                                  unsigned int max_send_ptls_edge,
                                                  unsigned int max_send_ptls_face,
@@ -408,8 +395,6 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
         // reset rtag
         d_rtag[tag] = NOT_LOCAL;
 
-        atomicInc(n_remove_ptls, 0xffffffff);
-
         if (count == 1)
             {
             // face ptl
@@ -468,7 +453,6 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
  *  \param n_send_ptls_corner Number of particles that are sent over a corner (per corner)
  *  \param n_send_ptls_edge Number of particles that are sent over an edge (per edge)
  *  \param n_send_ptls_face Number of particles that are sent over a face (per face)
- *  \param n_remove_ptls Number of particles that will be removed
  *  \param n_max_send_ptls_corner Maximum size of corner send buf
  *  \param n_max_send_ptls_edge Maximum size of edge send buf
  *  \param n_max_send_ptls_face Maximum size of face send buf
@@ -494,10 +478,9 @@ void gpu_migrate_select_particles(unsigned int N,
                                   const Scalar4 *d_orientation,
                                   const unsigned int *d_tag,
                                   unsigned int *d_rtag,
-                                  unsigned int *n_send_ptls_corner,
-                                  unsigned int *n_send_ptls_edge,
-                                  unsigned int *n_send_ptls_face,
-                                  unsigned int &n_remove_ptls,
+                                  unsigned int *d_n_send_ptls_corner,
+                                  unsigned int *d_n_send_ptls_edge,
+                                  unsigned int *d_n_send_ptls_face,
                                   unsigned n_max_send_ptls_corner,
                                   unsigned n_max_send_ptls_edge,
                                   unsigned n_max_send_ptls_face,
@@ -512,10 +495,9 @@ void gpu_migrate_select_particles(unsigned int N,
                                   const BoxDim& global_box,
                                   unsigned int *d_condition)
     {
-    cudaMemset(d_n_send_particles_corner, 0, sizeof(unsigned int)*8);
-    cudaMemset(d_n_send_particles_edge, 0, sizeof(unsigned int)*12);
-    cudaMemset(d_n_send_particles_face, 0, sizeof(unsigned int)*6);
-    cudaMemset(d_n_remove_ptls, 0, sizeof(unsigned int));
+    cudaMemsetAsync(d_n_send_ptls_corner, 0, sizeof(unsigned int)*8,0);
+    cudaMemsetAsync(d_n_send_ptls_edge, 0, sizeof(unsigned int)*12,0);
+    cudaMemsetAsync(d_n_send_ptls_face, 0, sizeof(unsigned int)*6,0);
 
     unsigned int block_size = 512;
 
@@ -536,10 +518,9 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_face_buf,
                                                                     face_buf_pitch,
                                                                     d_remove_mask,
-                                                                    d_n_send_particles_corner,
-                                                                    d_n_send_particles_edge,
-                                                                    d_n_send_particles_face,
-                                                                    d_n_remove_ptls,
+                                                                    d_n_send_ptls_corner,
+                                                                    d_n_send_ptls_edge,
+                                                                    d_n_send_ptls_face,
                                                                     n_max_send_ptls_corner,
                                                                     n_max_send_ptls_edge,
                                                                     n_max_send_ptls_face,
@@ -548,11 +529,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     box.getLo(), 
                                                                     box.getHi(),
                                                                     global_box.getL());
-
-    cudaMemcpy(n_send_ptls_corner, d_n_send_particles_corner, 8*sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(n_send_ptls_edge, d_n_send_particles_edge, 12*sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(n_send_ptls_face, d_n_send_particles_face, 6*sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&n_remove_ptls, d_n_remove_ptls, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
 
 __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_nparticles,
@@ -650,7 +626,7 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int *d_tag,
                         unsigned int *d_rtag)
     {
-    cudaMemset(d_n_fetch_ptl, 0, sizeof(unsigned int));
+    cudaMemsetAsync(d_n_fetch_ptl, 0, sizeof(unsigned int),0);
 
     unsigned int block_size = 512;
     unsigned int new_end = old_nparticles + n_recv_ptls - n_remove_ptls;
