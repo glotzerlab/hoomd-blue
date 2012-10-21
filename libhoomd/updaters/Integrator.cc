@@ -93,11 +93,16 @@ void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& 
             {
             integrator_thread_params params = queue.wait_and_pop();
 
+            #ifdef ENABLE_MPI
             //! Call the force compute 
             if (! params.compute_ghost_forces)
                 params.fc->computeThread(params.timestep, m_thread_id);
             else
                 params.fc->computeGhostForcesThread(params.timestep, m_thread_id);
+            #else
+            params.fc->computeThread(params.timestep, m_thread_id);
+            #endif
+
 
             // increment counter
             boost::unique_lock<boost::mutex> lock(params.mutex);
@@ -543,9 +548,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_comm->startGhostsUpdate(timestep);
 #endif
 
-    if (m_prof)
-        m_prof->push("Forces");
-
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     m_completed_tasks = 0;
@@ -559,20 +561,13 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                                    m_completed_tasks,
                                                    m_mutex,
                                                    m_barrier));
-
     m_barrier.wait();
-
-    if (m_prof)
-        m_prof->pop();
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         // wait for ghost communication to finish
         m_comm->finishGhostsUpdate(timestep);
-
-        if (m_prof)
-            m_prof->push("Forces");
 
         m_completed_tasks = 0;
 
@@ -587,11 +582,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                                        m_completed_tasks,
                                                        m_mutex,
                                                        m_barrier));
-
         m_barrier.wait();
-
-        if (m_prof)
-            m_prof->pop();
         }
 #endif
 
