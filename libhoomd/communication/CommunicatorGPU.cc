@@ -166,12 +166,12 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         for (unsigned int i = 0; i < 12; ++i)
             {
             n_copy_ghosts_edge[i] = h_n_local_ghosts_edge.data[i];
-            n_tot_local_ghosts += h_n_local_ghosts_face.data[i];
+            n_tot_local_ghosts += h_n_local_ghosts_edge.data[i];
             }
         for (unsigned int i = 0; i < 6; ++i)
             {
             n_copy_ghosts_face[i] = h_n_local_ghosts_face.data[i];
-            n_tot_local_ghosts += h_n_local_ghosts_edge.data[i];
+            n_tot_local_ghosts += h_n_local_ghosts_face.data[i];
             }
         for (unsigned int i = 0; i < 8; ++i)
             {
@@ -324,7 +324,7 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
             n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[face*6+i];
 
         n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[face];
-        } // end dir loop
+        } // end communication loop
 
     unsigned int n_forward_ghosts_face[6];
     unsigned int n_forward_ghosts_edge[12];
@@ -1262,7 +1262,7 @@ void CommunicatorGPU::exchangeGhosts()
 
         if (m_edge_ghosts_buf.getPitch() < m_max_copy_ghosts_edge*gpu_ghost_element_size())
             {
-            unsigned int old_pitch = m_corner_ghosts_buf.getPitch();
+            unsigned int old_pitch = m_edge_ghosts_buf.getPitch();
             m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
 
             m_exec_conf->useContext();

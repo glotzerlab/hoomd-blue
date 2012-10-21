@@ -944,8 +944,8 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   const unsigned int *n_local_ghosts_edge,
                                                   const unsigned int n_tot_recv_ghosts_local,
                                                   const unsigned int *n_recv_ghosts_local,
-                                                  const unsigned int *n_forward_ghosts_face,
-                                                  const unsigned int *n_forward_ghosts_edge,
+                                                  const unsigned int *n_recv_ghosts_face,
+                                                  const unsigned int *n_recv_ghosts_edge,
                                                   const char *d_face_ghosts,
                                                   const unsigned int face_pitch,
                                                   const char *d_edge_ghosts,
@@ -990,13 +990,13 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
     
     if (! done)
         {
-        unsigned int n_tot_forward_ghosts_face[6];
+        unsigned int n_tot_recv_ghosts_face[6];
 
         for (unsigned int i = 0; i < 6; ++i)
             {
-            n_tot_forward_ghosts_face[i] = 0;
+            n_tot_recv_ghosts_face[i] = 0;
             for (unsigned int j = 0; j < 6; ++j)
-                n_tot_forward_ghosts_face[i] += n_forward_ghosts_face[6*i+j];
+                n_tot_recv_ghosts_face[i] += n_recv_ghosts_face[6*j+i];
             }
 
         // ghosts we have forwarded over a face of our box
@@ -1004,12 +1004,12 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
             {
             local_idx = ghost_idx - offset;
 
-            if (local_idx < n_tot_forward_ghosts_face[i])
+            if (local_idx < n_tot_recv_ghosts_face[i])
                 {
                 unsigned int local_offset = 0;
                 for (recv_dir = 0; recv_dir < 6; ++recv_dir)
                     {
-                    local_offset += n_forward_ghosts_face[6*recv_dir+i];
+                    local_offset += n_recv_ghosts_face[6*recv_dir+i];
                     if (local_idx < local_offset) break;
                     }
 
@@ -1019,19 +1019,19 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                 break;
                 }
             else
-                offset += n_tot_forward_ghosts_face[i];
+                offset += n_tot_recv_ghosts_face[i];
             }
         }
 
     if (! done)
         {
-        unsigned int n_tot_forward_ghosts_edge[6];
+        unsigned int n_tot_recv_ghosts_edge[12];
 
-        for (unsigned int i = 0; i < 6; ++i)
+        for (unsigned int i = 0; i < 12; ++i)
             {
-            n_tot_forward_ghosts_edge[i] = 0;
-            for (unsigned int j = 0; j < 12; ++j)
-                n_tot_forward_ghosts_edge[i] += n_forward_ghosts_edge[12*i+j];
+            n_tot_recv_ghosts_edge[i] = 0;
+            for (unsigned int j = 0; j < 6; ++j)
+                n_tot_recv_ghosts_edge[i] += n_recv_ghosts_edge[12*j+i];
             }
 
         // ghosts we have forwared over an edge of our box
@@ -1039,12 +1039,12 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
             {
             local_idx = ghost_idx - offset;
 
-            if (local_idx < n_tot_forward_ghosts_edge[i])
+            if (local_idx < n_tot_recv_ghosts_edge[i])
                 {
                 unsigned int local_offset = 0;
                 for (recv_dir = 0; recv_dir < 6; ++recv_dir)
                     {
-                    local_offset += n_forward_ghosts_edge[12*recv_dir+i];
+                    local_offset += n_recv_ghosts_edge[12*recv_dir+i];
                     if (local_idx < local_offset) break;
                     }
 
@@ -1054,7 +1054,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                 break;
                 }
             else
-                offset += n_tot_forward_ghosts_edge[i];
+                offset += n_tot_recv_ghosts_edge[i];
             }
         }
 
