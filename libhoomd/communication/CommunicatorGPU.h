@@ -319,10 +319,12 @@ class CommunicatorGPU : public Communicator
 
         cudaEvent_t m_event;                        //!< A CUDA event
 
+#ifdef MPI3
         MPI_Group m_comm_group;                     //!< Group corresponding to MPI communicator
         MPI_Win m_win_edge[12];                     //!< Shared memory windows for every of the 12 edges
         MPI_Win m_win_face[6];                      //!< Shared memory windows for every of the 6 edges
         MPI_Win m_win_local;                        //!< Shared memory window for locally received particles
+#endif
 
         //! Helper function to allocate various buffers
         void allocateBuffers();

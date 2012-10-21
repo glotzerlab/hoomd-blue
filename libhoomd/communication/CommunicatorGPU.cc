@@ -444,6 +444,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     GPUFlags<unsigned int> condition(m_exec_conf);
     m_condition.swap(condition);
 
+#ifdef MPI3
     // create group corresponding to communicator
     MPI_Comm_group(m_mpi_comm, &m_comm_group);
 
@@ -455,6 +456,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
         MPIX_Win_create_dynamic(MPI_INFO_NULL, m_mpi_comm, &m_win_edge[i]);
 
     MPIX_Win_create_dynamic(MPI_INFO_NULL, m_mpi_comm, &m_win_local);
+#endif
     }
 
 //! Destructor
@@ -1904,6 +1906,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     else
         recv_neighbor = m_decomposition->getNeighborRank(cur_face-1);
 
+#ifdef MPI3
     // create groups for sending and receiving data
     MPI_Group send_group, recv_group;
     MPI_Group_incl(m_comm_group, 1, &send_neighbor, &send_group);
@@ -1964,21 +1967,37 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     for (unsigned int i = 0; i < 12; ++i)
         MPI_Win_start(send_group, 0, m_win_edge[i]);
     MPI_Win_start(send_group, 0, m_win_local);
+#else
+    MPI_Request send_req, recv_req;
+    MPI_Status send_status, recv_status;
+    unsigned int recv_nptl;
+    unsigned int offset;
+#endif
 
+    unsigned int nptl;
+    void *data;
+
+#ifdef MPI3
     unsigned int foffset[6];
     unsigned int eoffset[12];
     unsigned int loffset;
 
     for (unsigned int i = 0; i < 12; ++i)
         eoffset[i] = 0;
-
     for (unsigned int i = 0; i < 6; ++i)
         foffset[i] = 0;
-
     loffset = 0;
+#else
+    unsigned int recv_eoffset[12];
+    unsigned int recv_foffset[6];
+    unsigned int recv_loffset;
 
-    unsigned int nptl;
-    void *data;
+    for (unsigned int i = 0; i < 12; ++i)
+        recv_eoffset[i] = 0;
+    for (unsigned int i = 0; i < 6; ++i)
+        recv_foffset[i] = 0;
+    recv_loffset = 0;
+#endif
 
     for (unsigned int corner_i = 0; corner_i < 8; ++corner_i)
         {
@@ -1991,6 +2010,13 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
         nptl = n_send_ptls_corner[corner_i];
         data = corner_send_buf+corner_i*cpitch;
 
+#ifndef MPI3
+        MPI_Isend(&nptl, 1, MPI_INT, send_neighbor, 0, m_mpi_comm, &send_req);
+        MPI_Irecv(&recv_nptl, 1, MPI_INT, recv_neighbor, 0, m_mpi_comm, &recv_req);
+        MPI_Wait(&send_req,&send_status);
+        MPI_Wait(&recv_req,&recv_status);
+#endif
+
         for (unsigned int edge_j = 0; edge_j < 12; ++edge_j)
             if ((edge_plan_lookup[edge_j] & plan) == edge_plan_lookup[edge_j])
                 {
@@ -2000,6 +2026,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                     if (face_k <= cur_face && (edge_plan_lookup[edge_j] & face_plan_lookup[face_k])) active = false;
                 if (! active) continue;
 
+#ifdef MPI3
                 // send a corner particle to an edge send buffer in the neighboring box
                 MPI_Put(data,
                         nptl*element_size,
@@ -2010,7 +2037,26 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                         MPI_BYTE,
                         m_win_edge[edge_j]);
                 eoffset[edge_j] += nptl;
-
+#else
+                offset = (n_send_ptls_edge[edge_j] + recv_eoffset[edge_j])*element_size;
+                MPI_Isend(data,
+                          nptl*element_size,
+                          MPI_BYTE,
+                          send_neighbor,
+                          0,
+                          m_mpi_comm,
+                          &send_req);
+                MPI_Irecv(edge_send_buf + edge_j * epitch + offset,
+                          recv_nptl*element_size,
+                          MPI_BYTE,
+                          recv_neighbor,
+                          0,
+                          m_mpi_comm,
+                          &recv_req);
+                MPI_Wait(&send_req,&send_status);
+                MPI_Wait(&recv_req,&recv_status);
+                recv_eoffset[edge_j] += recv_nptl;
+#endif
                 sent = true;
                 break;
                 }
@@ -2026,6 +2072,8 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
             if ((face_plan_lookup[face_j] & plan) == face_plan_lookup[face_j])
                 {
                 // send a corner particle to a face send buffer in the neighboring box
+
+#ifdef MPI3
                 MPI_Put(data,
                         nptl*element_size,
                         MPI_BYTE,
@@ -2035,6 +2083,26 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                         MPI_BYTE,
                         m_win_face[face_j]);
                 foffset[face_j] += nptl;
+#else
+                offset = (n_send_ptls_face[face_j] + recv_foffset[face_j])*element_size;
+                MPI_Isend(data,
+                          nptl*element_size,
+                          MPI_BYTE,
+                          send_neighbor,
+                          0,
+                          m_mpi_comm,
+                          &send_req);
+                MPI_Irecv(face_send_buf + face_j * fpitch + offset,
+                          recv_nptl*element_size,
+                          MPI_BYTE,
+                          recv_neighbor,
+                          0,
+                          m_mpi_comm,
+                          &recv_req);
+                MPI_Wait(&send_req,&send_status);
+                MPI_Wait(&recv_req,&recv_status);
+                recv_foffset[face_j] += recv_nptl;
+#endif
                 sent = true;
                 break;
                 }
@@ -2044,6 +2112,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
         if (plan & face_plan_lookup[cur_face])
             {
             // send a corner particle directly to the neighboring bo
+#ifdef MPI3
             MPI_Put(data,
                     nptl*element_size,
                     MPI_BYTE,
@@ -2053,6 +2122,26 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                     MPI_BYTE,
                     m_win_local);
             loffset += nptl;
+#else
+            offset = (n_tot_recv_ptls_local + recv_loffset)*element_size;
+            MPI_Isend(data,
+                      nptl*element_size,
+                      MPI_BYTE,
+                      send_neighbor,
+                      0,
+                      m_mpi_comm,
+                      &send_req);
+            MPI_Irecv(local_recv_buf + offset,
+                      recv_nptl*element_size,
+                      MPI_BYTE,
+                      recv_neighbor,
+                      0,
+                      m_mpi_comm,
+                      &recv_req);
+            MPI_Wait(&send_req,&send_status);
+            MPI_Wait(&recv_req,&recv_status);
+            recv_loffset += recv_nptl;
+#endif
             }
         }
             
@@ -2066,7 +2155,14 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
 
         nptl = n_send_ptls_edge[edge_i];
         data = edge_send_buf+edge_i*epitch;
- 
+
+#ifndef MPI3
+        MPI_Isend(&nptl, 1, MPI_INT, send_neighbor, 0, m_mpi_comm, &send_req);
+        MPI_Irecv(&recv_nptl, 1, MPI_INT, recv_neighbor, 0, m_mpi_comm, &recv_req);
+        MPI_Wait(&send_req,&send_status);
+        MPI_Wait(&recv_req,&recv_status);
+#endif
+
         // do not place particle in a buffer where it would be sent back to ourselves
         unsigned int next_face = cur_face + ((cur_face % 2) ? 1 : 2);
 
@@ -2074,6 +2170,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
             if ((face_plan_lookup[face_j] & plan) == face_plan_lookup[face_j])
                 {
                 // send a corner particle to a face send buffer in the neighboring box
+#ifdef MPI3
                 MPI_Put(data,
                         nptl*element_size,
                         MPI_BYTE,
@@ -2083,7 +2180,26 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                         MPI_BYTE,
                         m_win_face[face_j]);
                 foffset[face_j] += nptl;
-
+#else
+                offset = (n_send_ptls_face[face_j] + recv_foffset[face_j])*element_size;
+                MPI_Isend(data,
+                          nptl*element_size,
+                          MPI_BYTE,
+                          send_neighbor,
+                          0,
+                          m_mpi_comm,
+                          &send_req);
+                MPI_Irecv(face_send_buf + face_j * fpitch + offset,
+                          recv_nptl*element_size,
+                          MPI_BYTE,
+                          recv_neighbor,
+                          0,
+                          m_mpi_comm,
+                          &recv_req);
+                MPI_Wait(&send_req,&send_status);
+                MPI_Wait(&recv_req,&recv_status);
+                recv_foffset[face_j] += recv_nptl;
+#endif
                 sent = true;
                 break;
                 }
@@ -2093,6 +2209,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
         if (plan & face_plan_lookup[cur_face])
             {
             // send directly to neighboring box
+#ifdef MPI3
             MPI_Put(data,
                     nptl*element_size,
                     MPI_BYTE,
@@ -2102,6 +2219,26 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                     MPI_BYTE,
                     m_win_local);
             loffset += nptl;
+#else
+            offset = (n_tot_recv_ptls_local + recv_loffset)*element_size;
+            MPI_Isend(data,
+                      nptl*element_size,
+                      MPI_BYTE,
+                      send_neighbor,
+                      0,
+                      m_mpi_comm,
+                      &send_req);
+            MPI_Irecv(local_recv_buf + offset,
+                      recv_nptl*element_size,
+                      MPI_BYTE,
+                      recv_neighbor,
+                      0,
+                      m_mpi_comm,
+                      &recv_req);
+            MPI_Wait(&send_req,&send_status);
+            MPI_Wait(&recv_req,&recv_status);
+            recv_loffset += recv_nptl;
+#endif
             }
         } 
 
@@ -2115,6 +2252,15 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
         nptl = n_send_ptls_face[face_i];
         data = face_send_buf+face_i*fpitch;
 
+#ifndef MPI3
+        MPI_Isend(&nptl, 1, MPI_INT, send_neighbor, 0, m_mpi_comm, &send_req);
+        MPI_Irecv(&recv_nptl, 1, MPI_INT, recv_neighbor, 0, m_mpi_comm, &recv_req);
+        MPI_Wait(&send_req,&send_status);
+        MPI_Wait(&recv_req,&recv_status);
+#endif
+
+ 
+#ifdef MPI3
         MPI_Put(data,
                 nptl*element_size,
                 MPI_BYTE,
@@ -2124,8 +2270,29 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                 MPI_BYTE,
                 m_win_local);
         loffset += nptl;
+#else
+        offset = (n_tot_recv_ptls_local + recv_loffset)*element_size;
+        MPI_Isend(data,
+                  nptl*element_size,
+                  MPI_BYTE,
+                  send_neighbor,
+                  0,
+                  m_mpi_comm,
+                  &send_req);
+        MPI_Irecv(local_recv_buf + offset,
+                  recv_nptl*element_size,
+                  MPI_BYTE,
+                  recv_neighbor,
+                  0,
+                  m_mpi_comm,
+                  &recv_req);
+        MPI_Wait(&send_req,&send_status);
+        MPI_Wait(&recv_req,&recv_status);
+        recv_loffset += recv_nptl;
+#endif
         }
 
+#ifdef MPI3
     // synchronize
     for (unsigned int i = 0; i < 12; ++i)
         MPI_Win_complete(m_win_edge[i]);
@@ -2147,6 +2314,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
         MPIX_Win_detach(m_win_face[i], face_send_buf+i*fpitch+n_send_ptls_face[i]*element_size);
 
     MPIX_Win_detach(m_win_local, local_recv_buf+n_tot_recv_ptls_local*element_size);
+#endif
     }
 
 //! Export CommunicatorGPU class to python
