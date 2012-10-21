@@ -65,6 +65,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+//#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
+//#define MPI_CUDA_UPDATE // define if the ghosts update should be carried out using the MPI-CUDA implementation
+
 //! This is a lookup from corner to plan
 unsigned int corner_plan_lookup[] = { send_east | send_north | send_up,
                                       send_east | send_north | send_down,
@@ -114,6 +117,7 @@ ghost_gpu_thread::ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguratio
 //! Destructor
 ghost_gpu_thread::~ghost_gpu_thread()
     {
+#if ! (defined(ENABLE_MPI_CUDA) && defined(MPI_CUDA_UPDATE))
     if (m_buffers_allocated)
         {
         m_exec_conf->useContext();
@@ -123,6 +127,7 @@ ghost_gpu_thread::~ghost_gpu_thread()
         cudaFreeHost(h_recv_buf);
         m_exec_conf->releaseContext();
         }
+#endif
     }
 
 //! Main routine of ghost update worker thread
@@ -214,6 +219,7 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
 
     unsigned int n_tot_recv_ghosts_local = 0;
 
+#if ! (defined(ENABLE_MPI_CUDA) && defined(MPI_CUDA_UPDATE))
     // allocate or resize host buffers if necessary
     unsigned int new_size;
     new_size = 6*params.face_update_buf_pitch;
@@ -293,6 +299,7 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         cudaEventSynchronize(ev);
         m_exec_conf->releaseContext();
         }
+#endif
 
     for (unsigned int face = 0; face < 6; ++face)
         {
@@ -302,14 +309,26 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         ArrayHandle<unsigned int> h_n_recv_ghosts_edge(params.n_recv_ghosts_edge, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_recv_ghosts_local(params.n_recv_ghosts_local, access_location::host, access_mode::read);
 
+#if defined(ENABLE_MPI_CUDA) and defined(MPI_CUDA_UPDATE)
+        char *corner_update_buf_handle = params.corner_update_buf_handle;
+        char *edge_update_buf_handle = params.edge_update_buf_handle;
+        char *face_update_buf_handle = params.face_update_buf_handle;
+        char *update_recv_buf_handle = params.update_recv_buf_handle;
+#else
+        char *corner_update_buf_handle = h_corner_update_buf;
+        char *edge_update_buf_handle = h_edge_update_buf;
+        char *face_update_buf_handle = h_face_update_buf;
+        char *update_recv_buf_handle = h_recv_buf;
+#endif
+
         m_communicator->communicateStepTwo(face,
-                                           h_corner_update_buf,
-                                           h_edge_update_buf,
-                                           h_face_update_buf,
+                                           corner_update_buf_handle,
+                                           edge_update_buf_handle,
+                                           face_update_buf_handle,
                                            params.corner_update_buf_pitch,
                                            params.edge_update_buf_pitch,
                                            params.face_update_buf_pitch,
-                                           h_recv_buf,
+                                           update_recv_buf_handle,
                                            n_copy_ghosts_corner,
                                            n_copy_ghosts_edge,
                                            n_copy_ghosts_face,
@@ -346,6 +365,7 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
     for (unsigned int i = 0; i < 12; ++i)
         n_tot_recv_ghosts += n_forward_ghosts_edge[i];
 
+#if ! (defined(ENABLE_MPI_CUDA) && defined(MPI_CUDA_UPDATE))
         {
         ArrayHandle<unsigned int> h_n_local_ghosts_face(params.n_local_ghosts_face, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_local_ghosts_edge(params.n_local_ghosts_edge, access_location::host, access_mode::read);
@@ -383,6 +403,7 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
 
         m_exec_conf->releaseContext(); 
         }
+#endif
 
         {
         ArrayHandle<unsigned int> d_n_local_ghosts_face(params.n_local_ghosts_face, access_location::device, access_mode::read);
@@ -596,7 +617,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> send_buf_corner(gpu_pdata_element_size()*m_max_send_ptls_corner, 8, m_exec_conf);
     m_corner_send_buf.swap(send_buf_corner);
 
-    GPUArray<char> recv_buf(gpu_pdata_element_size()*m_max_send_ptls_face, m_exec_conf);
+    GPUArray<char> recv_buf(gpu_pdata_element_size()*m_max_send_ptls_face*6, m_exec_conf);
     m_recv_buf.swap(recv_buf);
    
     /*
@@ -641,7 +662,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> corner_update_buf(gpu_update_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
     m_corner_update_buf.swap(corner_update_buf);
 
-    m_max_recv_ghosts = m_max_copy_ghosts_face;
+    m_max_recv_ghosts = m_max_copy_ghosts_face*6;
     GPUArray<char> ghost_recv_buf(gpu_ghost_element_size()*m_max_recv_ghosts, m_exec_conf);
     m_ghosts_recv_buf.swap(ghost_recv_buf);
 
@@ -662,6 +683,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<unsigned int> ghost_plan(m_max_copy_ghosts_face*6, m_exec_conf);
     m_ghost_plan.swap(ghost_plan);
 
+    #ifndef ENABLE_MPI_CUDA
     // allocate mirror host buffers
     m_exec_conf->useContext();
     cudaHostAlloc(&h_face_ghosts_buf, m_face_ghosts_buf.getNumElements(), cudaHostAllocDefault);
@@ -674,6 +696,7 @@ void CommunicatorGPU::allocateBuffers()
     cudaHostAlloc(&h_face_send_buf, m_face_send_buf.getNumElements(), cudaHostAllocDefault);
     cudaHostAlloc(&h_recv_buf, m_recv_buf.getNumElements(), cudaHostAllocDefault);
     m_exec_conf->releaseContext();
+    #endif
 
     GPUArray<unsigned int> n_local_ghosts_face(6, m_exec_conf);
     m_n_local_ghosts_face.swap(n_local_ghosts_face);
@@ -701,6 +724,7 @@ void CommunicatorGPU::allocateBuffers()
 
 void CommunicatorGPU::deallocateBuffers()
     {
+    #ifndef ENABLE_MPI_CUDA
     m_exec_conf->useContext();
     cudaFreeHost(h_ghosts_recv_buf);
     cudaFreeHost(h_corner_ghosts_buf);
@@ -712,6 +736,7 @@ void CommunicatorGPU::deallocateBuffers()
     cudaFreeHost(h_edge_send_buf);
     cudaFreeHost(h_face_send_buf);
     m_exec_conf->releaseContext();
+    #endif
     } 
 
 //! Transfer particles between neighboring domains
@@ -761,9 +786,12 @@ void CommunicatorGPU::migrateAtoms()
         {
         if (m_corner_send_buf.getPitch() < m_max_send_ptls_corner*gpu_pdata_element_size())
             {
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_pitch = m_corner_send_buf.getPitch();
+            #endif
             m_corner_send_buf.resize(m_max_send_ptls_corner*gpu_pdata_element_size(), 8);
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_corner_send_buf.getNumElements(), cudaHostAllocDefault);
@@ -772,13 +800,17 @@ void CommunicatorGPU::migrateAtoms()
             cudaFreeHost(h_corner_send_buf);
             h_corner_send_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             }
 
         if (m_edge_send_buf.getPitch() < m_max_send_ptls_edge*gpu_pdata_element_size())
             {
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_pitch = m_edge_send_buf.getPitch();
+            #endif
             m_edge_send_buf.resize(m_max_send_ptls_edge*gpu_pdata_element_size(), 12);
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_edge_send_buf.getNumElements(), cudaHostAllocDefault);
@@ -787,13 +819,17 @@ void CommunicatorGPU::migrateAtoms()
             cudaFreeHost(h_edge_send_buf);
             h_edge_send_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             } 
 
         if (m_face_send_buf.getPitch() < m_max_send_ptls_face*gpu_pdata_element_size())
             {
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_pitch = m_face_send_buf.getPitch();
+            #endif
             m_face_send_buf.resize(m_max_send_ptls_face*gpu_pdata_element_size(), 6);
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_face_send_buf.getNumElements(), cudaHostAllocDefault);
@@ -802,6 +838,7 @@ void CommunicatorGPU::migrateAtoms()
             cudaFreeHost(h_face_send_buf);
             h_face_send_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             } 
 
         m_condition.resetFlags(0);
@@ -934,6 +971,7 @@ void CommunicatorGPU::migrateAtoms()
     for (unsigned int i = 0; i < 8; ++i)
         n_remove_ptls += n_send_ptls_corner[i];
 
+#ifndef ENABLE_MPI_CUDA
         {
         // copy send buffer data to host buffers only as needed
         ArrayHandle<char> d_face_send_buf(m_face_send_buf, access_location::device, access_mode::read);
@@ -966,7 +1004,7 @@ void CommunicatorGPU::migrateAtoms()
 
         m_exec_conf->releaseContext();
         }
-
+#endif
 
     unsigned int n_tot_recv_ptls = 0;
 
@@ -1015,9 +1053,12 @@ void CommunicatorGPU::migrateAtoms()
             while (new_size < max_n_recv_edge + max_n_send_edge) new_size = ceilf((float)new_size* m_resize_factor);
             m_max_send_ptls_edge = new_size;
 
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_pitch = m_edge_send_buf.getPitch();
+            #endif
             m_edge_send_buf.resize(m_max_send_ptls_edge*gpu_pdata_element_size(), 12);
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_edge_send_buf.getNumElements(), cudaHostAllocDefault);
@@ -1026,6 +1067,7 @@ void CommunicatorGPU::migrateAtoms()
             cudaFreeHost(h_edge_send_buf);
             h_edge_send_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             }
 
         for (unsigned int i = 0; i < 6; ++i)
@@ -1042,9 +1084,12 @@ void CommunicatorGPU::migrateAtoms()
             while (new_size < max_n_recv_face + max_n_send_face) new_size = ceilf((float) new_size * m_resize_factor);
             m_max_send_ptls_face = new_size;
 
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_pitch = m_face_send_buf.getPitch();
+            #endif
             m_face_send_buf.resize(m_max_send_ptls_face*gpu_pdata_element_size(), 6);
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_face_send_buf.getNumElements(), cudaHostAllocDefault);
@@ -1053,6 +1098,7 @@ void CommunicatorGPU::migrateAtoms()
             cudaFreeHost(h_face_send_buf);
             h_face_send_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             }
 
         if (m_recv_buf.getNumElements() < (n_tot_recv_ptls + n_recv_ptls)*gpu_pdata_element_size())
@@ -1060,9 +1106,12 @@ void CommunicatorGPU::migrateAtoms()
             unsigned int new_size =1;
             while (new_size < n_tot_recv_ptls + n_recv_ptls) new_size = ceilf((float) new_size * m_resize_factor);
 
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_size = m_recv_buf.getNumElements();
+            #endif
             m_recv_buf.resize(new_size*gpu_pdata_element_size());
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_recv_buf.getNumElements(), cudaHostAllocDefault);
@@ -1070,6 +1119,7 @@ void CommunicatorGPU::migrateAtoms()
             cudaFreeHost(h_recv_buf);
             h_recv_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             }
           
 
@@ -1077,14 +1127,31 @@ void CommunicatorGPU::migrateAtoms()
         unsigned int epitch = m_edge_send_buf.getPitch();
         unsigned int fpitch = m_face_send_buf.getPitch();
 
+        #ifdef ENABLE_MPI_CUDA
+        ArrayHandle<char> d_corner_send_buf(m_corner_send_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> d_edge_send_buf(m_edge_send_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> d_face_send_buf(m_face_send_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> d_recv_buf(m_recv_buf, access_location::device, access_mode::readwrite);
+       
+        char *corner_send_buf_handle = d_corner_send_buf.data;
+        char *edge_send_buf_handle = d_edge_send_buf.data;
+        char *face_send_buf_handle = d_face_send_buf.data;
+        char *recv_buf_handle = d_recv_buf.data;
+        #else
+        char *corner_send_buf_handle = h_corner_send_buf;
+        char *edge_send_buf_handle = h_edge_send_buf;
+        char *face_send_buf_handle = h_face_send_buf;
+        char *recv_buf_handle = h_recv_buf;
+        #endif
+
         communicateStepTwo(dir,
-                           h_corner_send_buf,
-                           h_edge_send_buf,
-                           h_face_send_buf,
+                           corner_send_buf_handle,
+                           edge_send_buf_handle,
+                           face_send_buf_handle,
                            cpitch,
                            epitch,
                            fpitch,
-                           h_recv_buf,
+                           recv_buf_handle,
                            n_send_ptls_corner,
                            n_send_ptls_edge,
                            n_send_ptls_face,
@@ -1109,6 +1176,7 @@ void CommunicatorGPU::migrateAtoms()
     // allocate memory for particles that will be received
     m_pdata->addParticles(n_tot_recv_ptls);
 
+#ifndef ENABLE_MPI_CUDA
         {
         // copy back received particle data to device as necessary
         ArrayHandle<char> d_recv_buf(m_recv_buf, access_location::device, access_mode::overwrite);
@@ -1122,7 +1190,7 @@ void CommunicatorGPU::migrateAtoms()
 
         m_exec_conf->releaseContext();
         }
-
+#endif
         {
         // Finally insert new particles into array and remove the ones that are to be deleted
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -1249,9 +1317,12 @@ void CommunicatorGPU::exchangeGhosts()
         // resize buffers if necessary 
         if (m_corner_ghosts_buf.getPitch() < m_max_copy_ghosts_corner*gpu_ghost_element_size())
             {
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_pitch = m_corner_ghosts_buf.getPitch();
+            #endif
             m_corner_ghosts_buf.resize(m_max_copy_ghosts_corner*gpu_ghost_element_size(), 8);
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_corner_ghosts_buf.getNumElements(), cudaHostAllocDefault);
@@ -1260,13 +1331,17 @@ void CommunicatorGPU::exchangeGhosts()
             cudaFreeHost(h_corner_ghosts_buf);
             h_corner_ghosts_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             }
 
         if (m_edge_ghosts_buf.getPitch() < m_max_copy_ghosts_edge*gpu_ghost_element_size())
             {
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_pitch = m_edge_ghosts_buf.getPitch();
+            #endif
             m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_edge_ghosts_buf.getNumElements(), cudaHostAllocDefault);
@@ -1275,14 +1350,17 @@ void CommunicatorGPU::exchangeGhosts()
             cudaFreeHost(h_edge_ghosts_buf);
             h_edge_ghosts_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             } 
 
         if (m_face_ghosts_buf.getPitch() < m_max_copy_ghosts_face*gpu_ghost_element_size())
             {
+            #ifndef ENABLE_MPI_CUDA
             unsigned int old_pitch = m_face_ghosts_buf.getPitch();
-
+            #endif
             m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
 
+            #ifndef ENABLE_MPI_CUDA
             m_exec_conf->useContext();
             char *h_tmp;
             cudaHostAlloc(&h_tmp, m_face_ghosts_buf.getNumElements(), cudaHostAllocDefault);
@@ -1291,6 +1369,7 @@ void CommunicatorGPU::exchangeGhosts()
             cudaFreeHost(h_face_ghosts_buf);
             h_face_ghosts_buf = h_tmp;
             m_exec_conf->releaseContext();
+            #endif
             }
             
 
@@ -1437,6 +1516,7 @@ void CommunicatorGPU::exchangeGhosts()
      * Fill send buffers, exchange particles according to plans
      */
 
+#ifndef ENABLE_MPI_CUDA
         {
         // copy send buffer data to host buffers only as needed
         ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::read);
@@ -1469,6 +1549,7 @@ void CommunicatorGPU::exchangeGhosts()
 
         m_exec_conf->releaseContext();
         }
+#endif
 
     // Number of ghosts we received that are not forwarded to other boxes
     unsigned int n_tot_recv_ghosts_local = 0;
@@ -1524,13 +1605,15 @@ void CommunicatorGPU::exchangeGhosts()
                 unsigned int new_size = 1;
                 while (new_size < max_n_recv_edge + max_n_copy_edge) new_size = ceilf((float)new_size* m_resize_factor);
                 m_max_copy_ghosts_edge = new_size;
-
+                
+                #ifndef ENABLE_MPI_CUDA
                 unsigned int old_pitch = m_edge_ghosts_buf.getPitch();
+                #endif
 
                 m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
                 m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
 
-
+                #ifndef ENABLE_MPI_CUDA
                 char *h_tmp;
                 m_exec_conf->useContext();
                 cudaHostAlloc(&h_tmp, m_edge_ghosts_buf.getNumElements(), cudaHostAllocDefault);
@@ -1539,6 +1622,7 @@ void CommunicatorGPU::exchangeGhosts()
                 cudaFreeHost(h_edge_ghosts_buf);
                 h_edge_ghosts_buf = h_tmp;
                 m_exec_conf->releaseContext();
+                #endif
                 }
 
             for (unsigned int i = 0; i < 6; ++i)
@@ -1555,11 +1639,14 @@ void CommunicatorGPU::exchangeGhosts()
                 while (new_size < max_n_recv_face + max_n_copy_face) new_size = ceilf((float) new_size * m_resize_factor);
                 m_max_copy_ghosts_face = new_size;
 
+                #ifndef ENABLE_MPI_CUDA
                 unsigned int old_pitch = m_face_ghosts_buf.getPitch();
+                #endif
 
                 m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
                 m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
 
+                #ifndef ENABLE_MPI_CUDA
                 char *h_tmp;
                 m_exec_conf->useContext();
                 cudaHostAlloc(&h_tmp, m_face_ghosts_buf.getNumElements(), cudaHostAllocDefault);
@@ -1568,16 +1655,20 @@ void CommunicatorGPU::exchangeGhosts()
                 cudaFreeHost(h_face_ghosts_buf);
                 h_face_ghosts_buf = h_tmp;
                 m_exec_conf->releaseContext();
+                #endif
                 }
 
             if (m_ghosts_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_ghost_element_size())
                 {
+                #ifndef ENABLE_MPI_CUDA
                 unsigned int old_size = m_ghosts_recv_buf.getNumElements();
+                #endif
                 unsigned int new_size =1;
                 while (new_size < n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
                     new_size = ceilf((float) new_size * m_resize_factor);
                 m_ghosts_recv_buf.resize(new_size*gpu_ghost_element_size());
 
+                #ifndef ENABLE_MPI_CUDA
                 char *h_tmp;
                 m_exec_conf->useContext();
                 cudaHostAlloc(&h_tmp, new_size*gpu_ghost_element_size(), cudaHostAllocDefault);
@@ -1585,6 +1676,7 @@ void CommunicatorGPU::exchangeGhosts()
                 cudaFreeHost(h_ghosts_recv_buf);
                 h_ghosts_recv_buf = h_tmp;
                 m_exec_conf->releaseContext();
+                #endif
                 }
 
             if (m_update_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_update_element_size())
@@ -1598,15 +1690,32 @@ void CommunicatorGPU::exchangeGhosts()
             unsigned int cpitch = m_corner_ghosts_buf.getPitch();
             unsigned int epitch = m_edge_ghosts_buf.getPitch();
             unsigned int fpitch = m_face_ghosts_buf.getPitch();
-     
+
+            #ifdef ENABLE_MPI_CUDA
+            ArrayHandle<char> d_corner_ghosts_buf(m_corner_ghosts_buf, access_location::device, access_mode::read);
+            ArrayHandle<char> d_edge_ghosts_buf(m_edge_ghosts_buf, access_location::device, access_mode::readwrite);
+            ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::readwrite);
+            ArrayHandle<char> d_ghosts_recv_buf(m_ghosts_recv_buf, access_location::device, access_mode::readwrite);
+            
+            char *corner_ghosts_buf_handle = d_corner_ghosts_buf.data;
+            char *edge_ghosts_buf_handle = d_edge_ghosts_buf.data;
+            char *face_ghosts_buf_handle = d_face_ghosts_buf.data;
+            char *ghosts_recv_buf_handle = d_ghosts_recv_buf.data;
+            #else
+            char *corner_ghosts_buf_handle = h_corner_ghosts_buf;
+            char *edge_ghosts_buf_handle = h_edge_ghosts_buf;
+            char *face_ghosts_buf_handle = h_face_ghosts_buf;
+            char *ghosts_recv_buf_handle = h_ghosts_recv_buf;
+            #endif
+
             communicateStepTwo(dir,
-                               h_corner_ghosts_buf,
-                               h_edge_ghosts_buf,
-                               h_face_ghosts_buf,
+                               corner_ghosts_buf_handle,
+                               edge_ghosts_buf_handle,
+                               face_ghosts_buf_handle,
                                cpitch,
                                epitch,
                                fpitch,
-                               h_ghosts_recv_buf,
+                               ghosts_recv_buf_handle,
                                n_copy_ghosts_corner,
                                n_copy_ghosts_edge,
                                n_copy_ghosts_face,
@@ -1657,7 +1766,7 @@ void CommunicatorGPU::exchangeGhosts()
     // update number of ghost particles
     m_pdata->addGhostParticles(n_tot_recv_ghosts);
 
-
+#ifndef ENABLE_MPI_CUDA
         {
         // copy back received ghost data to device as necessary
         ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::readwrite);
@@ -1694,6 +1803,7 @@ void CommunicatorGPU::exchangeGhosts()
 
         m_exec_conf->releaseContext();
         }
+#endif
 
         {
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
