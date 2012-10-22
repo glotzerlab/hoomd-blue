@@ -152,57 +152,7 @@ struct ExecutionConfiguration : boost::noncopyable
         assert(thread_id < m_thread_events.size());
         return m_thread_events[thread_id];
         }
-
-    //! Release the current CUDA context
-    inline void releaseContext() const
-        {
-        CUresult res = cuCtxPopCurrent(&m_cuda_context);
-
-        if (m_cuda_error_checking && res != CUDA_SUCCESS)
-            {
-            msg->error() << "Release of CUDA context failed.";
-            throw std::runtime_error("CUDA driver error.");
-            }
-        }
-
-    //! Use the previously released CUDA context
-    inline void useContext() const
-        {
-        CUresult res = cuCtxPushCurrent(m_cuda_context);
-        if (m_cuda_error_checking && res != CUDA_SUCCESS)
-            {
-            msg->error() << "Use of CUDA context failed.";
-            throw std::runtime_error("CUDA driver error.");
-            } 
-        }
 #endif
-
-    //! Wait inside a thread until another thread signals release
-    void waitRelease() const
-        {
-        boost::unique_lock<boost::mutex> lock(m_condition_mutex);
-        while (! m_release_threads)
-            {
-            m_condition.wait(lock);
-            }
-        }
-
-    //! Block waiting threads
-    void blockThreads() const
-        {
-        boost::lock_guard<boost::mutex> lock_guard(m_condition_mutex);
-        m_release_threads = false;
-        }
-
-    //! Release waiting thrads
-    void releaseThreads() const
-        {
-            {
-            boost::lock_guard<boost::mutex> lock_guard(m_condition_mutex);
-            m_release_threads = true;
-            }
-        m_condition.notify_all();
-        }
 
     //! Guess rank of this processor
     /*! \returns Rank guessed from common environment variables, 0 is default
@@ -323,10 +273,6 @@ private:
     mutable CUcontext m_cuda_context;               //!< The CUDA context
 #endif
   
-    mutable boost::mutex m_condition_mutex;         //!< Mutex to enable subscribing to the condition variable
-    mutable boost::condition_variable m_condition;  //!< Boost condition variable
-    mutable bool m_release_threads;                 //!< True if threads may continue 
-
 #ifdef ENABLE_MPI
     void initializeMPI(unsigned int n_ranks);               //!< Initialize MPI environment
 

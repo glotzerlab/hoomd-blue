@@ -267,7 +267,6 @@ template<class T> void GPUFlags<T>::allocate()
     assert(d_data == NULL);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->useContext();
         if (m_mapped)
             {
             cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocMapped);
@@ -280,7 +279,6 @@ template<class T> void GPUFlags<T>::allocate()
             cudaMalloc(&d_data, sizeof(T));
             CHECK_CUDA_ERROR();
             }
-        m_exec_conf->releaseContext();
         }
     else
         {
@@ -304,12 +302,10 @@ template<class T> void GPUFlags<T>::deallocate()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
-        m_exec_conf->useContext();
         cudaFreeHost(h_data);
         if (!m_mapped)
             cudaFree(d_data);
         CHECK_CUDA_ERROR();
-        m_exec_conf->releaseContext();
         }
     else
         {
@@ -341,9 +337,7 @@ template<class T> void GPUFlags<T>::memclear()
     // wait for the device to catch up
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_mapped)
         {
-        m_exec_conf->useContext();
         cudaThreadSynchronize();
-        m_exec_conf->releaseContext();
         }
 #endif
 
@@ -353,9 +347,7 @@ template<class T> void GPUFlags<T>::memclear()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && !m_mapped)
         {
         assert(d_data);
-        m_exec_conf->useContext();
         cudaMemset(d_data, 0, sizeof(T));
-        m_exec_conf->releaseContext();
         }
 #endif
     }
@@ -371,16 +363,12 @@ template<class T> const T GPUFlags<T>::readFlags()
     if (m_mapped)
         {
         // synch to wait for kernels
-        m_exec_conf->useContext();
         cudaThreadSynchronize();
-        m_exec_conf->releaseContext();
         }
     else
         {
         // memcpy the results to the host
-        m_exec_conf->useContext();
         cudaMemcpy(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost);
-        m_exec_conf->releaseContext();
         }
 #endif    
 
@@ -394,7 +382,6 @@ template<class T> inline const T GPUFlags<T>::readFlagsThread(unsigned int threa
     cudaEvent_t ev = m_exec_conf->getThreadEvent(thread_id);
     cudaStream_t stream = m_exec_conf->getThreadStream(thread_id);
 
-    m_exec_conf->useContext();
     if (m_mapped)
         {
         // synch to wait for kernels
@@ -407,7 +394,6 @@ template<class T> inline const T GPUFlags<T>::readFlagsThread(unsigned int threa
         cudaEventRecord(ev,stream);
         }
     cudaEventSynchronize(ev);
-    m_exec_conf->releaseContext();
 #endif    
 
     // return value of flags
@@ -425,9 +411,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         { 
 #ifdef ENABLE_CUDA
         // synch to wait for kernels
-        m_exec_conf->useContext();
         cudaThreadSynchronize();
-        m_exec_conf->releaseContext();
 #endif
         // set the flags
         *h_data = flags;
@@ -438,9 +422,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         *h_data = flags;
 #ifdef ENABLE_CUDA
         // copy to the device
-        m_exec_conf->useContext();
         cudaMemcpy(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice);
-        m_exec_conf->releaseContext();
 #endif
         }
     }
@@ -459,9 +441,7 @@ template<class T> inline void GPUFlags<T>::resetFlagsThread(const T flags, unsig
 #ifdef ENABLE_CUDA
         cudaStream_t stream = m_exec_conf->getThreadStream(thread_id);
         // copy to the device
-        m_exec_conf->useContext();
         cudaMemcpyAsync(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice,stream);
-        m_exec_conf->releaseContext();
 #endif
         }
     } 

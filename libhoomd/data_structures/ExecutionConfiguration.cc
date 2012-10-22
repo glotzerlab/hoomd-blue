@@ -108,7 +108,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
                                                bool init_mpi
 #endif
                                                )
-    : m_cuda_error_checking(false), msg(_msg), m_release_threads(true)
+    : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
@@ -169,7 +169,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool init_mpi
 #endif
                                                )
-    : m_cuda_error_checking(false), msg(_msg), m_release_threads(true)
+    : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
@@ -438,9 +438,6 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         cudaFree(0);
         }
     checkCUDAError(__FILE__, __LINE__);
-
-    // make context floating
-    releaseContext();
     }
 
 /*! Prints out a status line for the selected GPU
@@ -454,9 +451,7 @@ void ExecutionConfiguration::printGPUStats()
     
     // start with the device ID and name
     int dev;
-    useContext();
     cudaGetDevice(&dev);
-    releaseContext();
 
     s << " Rank " << getRank();
     s << " [" << dev << "]";
@@ -803,9 +798,6 @@ unsigned int ExecutionConfiguration::requestGPUThreadId() const
 
         msg->notice(6) << "Creating CUDA stream and event (" << m_thread_streams.size() << ")" << std::endl;
 
-        // use a previously released CUDA context
-        useContext();
-
         // create CUDA stream
         cudaStream_t stream;
         cudaStreamCreate(&stream);
@@ -815,9 +807,6 @@ unsigned int ExecutionConfiguration::requestGPUThreadId() const
 
         cudaEvent_t ev;
         cudaEventCreate(&ev);
-
-        // release CUDA context
-        releaseContext();
 
         m_thread_events.push_back(ev);
 

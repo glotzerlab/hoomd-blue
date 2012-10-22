@@ -137,9 +137,7 @@ PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::PotentialBondGPU(boost::share
     m_flags.swap(flags);
 
     // set cache config
-    this->m_exec_conf->useContext();
     gpu_igbf();
-    this->m_exec_conf->releaseContext();
     }
 
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
@@ -178,7 +176,6 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeForces(unsigned i
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
 
-        this->m_exec_conf->useContext();
         gpu_cgbf(bond_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
@@ -196,14 +193,11 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeForces(unsigned i
                              stream),
                  d_params.data,
                  d_flags.data);
-        this->m_exec_conf->releaseContext();
         }
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         {
-        this->m_exec_conf->useContext();
         CHECK_CUDA_ERROR();
-        this->m_exec_conf->releaseContext();
 
         // check the flags for any errors
         ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
@@ -252,7 +246,6 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeGhostForcesThread
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
 
-        this->m_exec_conf->useContext();
         gpu_cgbf(bond_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
@@ -270,7 +263,6 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeGhostForcesThread
                              this->m_exec_conf->getThreadStream(thread_id)),
                  d_params.data,
                  d_flags.data);
-        this->m_exec_conf->releaseContext();
         }
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

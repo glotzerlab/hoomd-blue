@@ -196,8 +196,6 @@ bool NeighborListGPU::distanceCheck()
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
     Scalar maxshiftsq = delta_max*delta_max;
    
-    m_exec_conf->useContext();
-
     gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
                                      d_last_pos.data,
                                      d_pos.data,
@@ -210,8 +208,6 @@ bool NeighborListGPU::distanceCheck()
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    m_exec_conf->releaseContext();
 
     bool result;
     if (m_inside_thread)
@@ -251,8 +247,6 @@ void NeighborListGPU::filterNlist()
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
    
-    m_exec_conf->useContext();
-
     gpu_nlist_filter(d_n_neigh.data,
                      d_nlist.data,
                      m_nlist_indexer,
@@ -263,16 +257,12 @@ void NeighborListGPU::filterNlist()
                      m_block_size_filter,
                      m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
   
-    m_exec_conf->releaseContext();
-
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         // filter ghost neighbors
         ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_ghost_neigh, access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_ghost_nlist(m_ghost_nlist, access_location::device, access_mode::readwrite);
-
-        m_exec_conf->useContext();
 
         gpu_nlist_filter(d_n_ghost_neigh.data,
                      d_ghost_nlist.data,
@@ -283,8 +273,6 @@ void NeighborListGPU::filterNlist()
                      m_pdata->getN(),
                      m_block_size_filter,
                      m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
-
-        m_exec_conf->releaseContext();
         }
 #endif
 
@@ -306,8 +294,6 @@ void NeighborListGPU::updateExListIdx()
     ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::overwrite);
   
-    m_exec_conf->useContext();
-
     gpu_update_exclusion_list(d_tag.data,
                               d_rtag.data,
                               d_n_ex_tag.data,
@@ -318,8 +304,6 @@ void NeighborListGPU::updateExListIdx()
                               m_ex_list_indexer,
                               m_pdata->getN(),
                               m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
-
-    m_exec_conf->releaseContext();
 
     if (m_prof)
         m_prof->pop();

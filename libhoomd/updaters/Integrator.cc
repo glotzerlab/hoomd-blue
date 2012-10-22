@@ -717,7 +717,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             // access flags
             PDataFlags flags = this->m_pdata->getFlags();
 
-            m_exec_conf->useContext();
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
                                          net_virial_pitch,
@@ -729,7 +728,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
-            m_exec_conf->releaseContext();
             }
         }
    

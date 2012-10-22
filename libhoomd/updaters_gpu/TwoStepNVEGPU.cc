@@ -107,7 +107,6 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
-    m_exec_conf->useContext();
     gpu_nve_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
@@ -122,7 +121,6 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    m_exec_conf->releaseContext(); 
 
     // done profiling
     if (m_prof)
@@ -152,7 +150,6 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
-    m_exec_conf->useContext();
     gpu_nve_step_two(d_vel.data,
                      d_accel.data,
                      d_index_array.data,
@@ -162,7 +159,6 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
                      m_limit,
                      m_limit_val,
                      m_zero_force);
-    m_exec_conf->releaseContext();
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

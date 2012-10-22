@@ -96,7 +96,6 @@ void CellListGPU::computeCellList()
     // take optimized code paths for different GPU generations
     if (exec_conf->getComputeCapability() >= 200)
         {
-        m_exec_conf->useContext();
         gpu_compute_cell_list(d_cell_size.data,
                               d_xyzf.data,
                               d_tdb.data,
@@ -114,7 +113,6 @@ void CellListGPU::computeCellList()
                               m_cell_list_indexer,
                               ghost_width,
                               m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
-        m_exec_conf->releaseContext();
         }
     else
         {
