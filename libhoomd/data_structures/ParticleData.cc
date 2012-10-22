@@ -924,6 +924,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
                 // rank contains the processor rank on which the particle was found
                 unsigned int idx = it->second;
+
                 snapshot.pos[tag] = pos_proc[rank][idx];
                 snapshot.vel[tag] = vel_proc[rank][idx];
                 snapshot.accel[tag] = accel_proc[rank][idx];
@@ -933,6 +934,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 snapshot.diameter[tag] = diameter_proc[rank][idx];
                 snapshot.image[tag] = image_proc[rank][idx];
                 snapshot.body[tag] = body_proc[rank][idx];
+
+                // make sure the position stored in the snapshot is within the boundaries
+                m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
                 }
             } 
         }
