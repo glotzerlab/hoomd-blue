@@ -499,7 +499,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_orientation)
         {
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_pdata->getDomainDecomposition())
             {
             m_exec_conf->msg->error() << "dump.xml: Saving orientations in MPI simulations is currently not supported." << endl;
             throw runtime_error("Error writing HOOMD dump file");
@@ -531,9 +531,9 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_moment_inertia)
         {
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_pdata->getDomainDecomposition())
             {
-            m_exec_conf->msg->error() << "dump.xml: Saving moments of intertia in MPI simulations is currently not supported." << endl;
+            m_exec_conf->msg->error() << "dump.xml: Saving moments of inertia in MPI simulations is currently not supported." << endl;
             throw runtime_error("Error writing HOOMD dump file");
             }
 #endif
