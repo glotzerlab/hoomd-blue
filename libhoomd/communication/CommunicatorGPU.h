@@ -272,6 +272,10 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_n_send_ptls_edge;  //!< Number of particles sent over an edge
         GPUArray<unsigned int> m_n_send_ptls_face;  //!< Number of particles sent through a face
 
+        unsigned int m_remote_send_corner[8*6];     //!< Remote corner particles, per direction
+        unsigned int m_remote_send_edge[12*6];       //!< Remote edge particles, per direction
+        unsigned int m_remote_send_face[6*6];       //!< Remote face particles, per direction
+
         unsigned int m_max_send_ptls_corner;        //!< Size of corner ptl send buffer
         unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
         unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer
