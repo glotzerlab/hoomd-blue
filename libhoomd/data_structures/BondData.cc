@@ -381,6 +381,9 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
                                      m_max_ghost_bond_num,
                                      m_condition.getDeviceFlags(),
                                      stream);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
 
         need_reallocate = m_condition.readFlags();
@@ -420,6 +423,9 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
                              m_pdata->getN(),
                              compute_ghost_bonds,
                              stream);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
     }
