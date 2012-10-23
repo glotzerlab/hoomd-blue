@@ -438,6 +438,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         cudaFree(0);
         }
     checkCUDAError(__FILE__, __LINE__);
+    
+    m_gpu_id = gpu_id;
     }
 
 /*! Prints out a status line for the selected GPU
@@ -795,6 +797,17 @@ unsigned int ExecutionConfiguration::requestGPUThreadId() const
         // make this routine thread-safe
         boost::mutex::scoped_lock l(m_mutex);
 
+        // Set the device for this thread
+        if (m_gpu_id != -1)
+            {
+            cudaSetDevice(m_gpu_id);
+            }
+        else
+            {
+            // initialize the default CUDA context
+            cudaFree(0);
+            }
+        checkCUDAError(__FILE__, __LINE__);
 
         msg->notice(6) << "Creating CUDA stream and event (" << m_thread_streams.size() << ")" << std::endl;
 
