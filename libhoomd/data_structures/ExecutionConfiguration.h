@@ -271,7 +271,7 @@ private:
     mutable std::vector<cudaEvent_t> m_thread_events;       //!< Reusable events for every thread
     mutable boost::mutex m_mutex;                   //!< Lock for thread-safe requesting of streams
 
-    unsigned int m_gpu_id;                          //!< The device hoomd is running on
+    int m_gpu_id;                          //!< The device hoomd is running on
 #endif
   
 #ifdef ENABLE_MPI
