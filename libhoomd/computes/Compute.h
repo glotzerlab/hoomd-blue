@@ -115,12 +115,6 @@ class Compute : boost::noncopyable
         */
         virtual void compute(unsigned int timestep) = 0;
 
-        //! Method for computation that is called from within a thread
-        /*! \param timestep Current timestep
-            \param thread_id Identifier for this thread
-         */ 
-        void computeThread(unsigned int timestep, unsigned int thread_id);
-
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
         

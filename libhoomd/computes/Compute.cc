@@ -148,27 +148,6 @@ bool Compute::shouldCompute(unsigned int timestep)
     return false;
     }
 
-/*! Performs the computation from within a thread.
-    \param timestep Current timestep
-    \param thread_id Identifier for this thread
-    
-    This variant takes a thread id as a second argument, and is supposed to be called
-    from within a thread. The id can be used to couple to GPU hardware streams.
- */
-void Compute::computeThread(unsigned int timestep, unsigned int thread_id)
-    {
-    // make this thread-safe
-    boost::mutex::scoped_lock(m_mutex);
-
-    m_thread_id = thread_id;
-    m_inside_thread = true;
-
-    compute(timestep);
-
-    m_inside_thread = false;
-    }
-
-
 void Compute::forceCompute(unsigned int timestep)
     {
     m_force_compute = true;

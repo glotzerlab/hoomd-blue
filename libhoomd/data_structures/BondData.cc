@@ -311,7 +311,7 @@ std::string BondData::getNameByType(unsigned int type)
          the GPU implementation of updateBondTableGPU() and the CPU implementation updateBondTable().
          It is therefore unspecified (but in, in any case, deterministic).
 */
-void BondData::checkUpdateBondList(bool inside_thread, unsigned int thread_id)
+void BondData::checkUpdateBondList()
     {
 #ifdef ENABLE_MPI
     // late initialization of ghost bond table
@@ -327,7 +327,7 @@ void BondData::checkUpdateBondList(bool inside_thread, unsigned int thread_id)
 #ifdef ENABLE_CUDA
         // update bond table
         if (exec_conf->isCUDAEnabled())
-            updateBondTableGPU(inside_thread, thread_id);
+            updateBondTableGPU();
         else
             updateBondTable();
 #else
@@ -348,7 +348,7 @@ void BondData::checkUpdateBondList(bool inside_thread, unsigned int thread_id)
     on particle index for use in the GPU kernel. This new bond table is then uploaded
     to the device.
 */
-void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
+void BondData::updateBondTableGPU()
     {
     bool compute_ghost_bonds = false;
 #ifdef ENABLE_MPI
@@ -356,9 +356,6 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
         compute_ghost_bonds = true;
 #endif
     unsigned int need_reallocate = 0;
-
-    // use CUDA stream associated with thread
-    cudaStream_t stream = inside_thread ? m_exec_conf->getThreadStream(thread_id) : 0;
 
     do
         {
@@ -380,13 +377,13 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
                                      m_max_bond_num,
                                      m_max_ghost_bond_num,
                                      m_condition.getDeviceFlags(),
-                                     stream);
+                                     m_exec_conf->getDefaultStream());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
 
-        need_reallocate = m_condition.readFlags();
+        need_reallocate = m_condition.readFlagsStream(m_exec_conf->getDefaultStream());
 
         if (need_reallocate & 1)
             {
@@ -422,12 +419,11 @@ void BondData::updateBondTableGPU(bool inside_thread, unsigned int thread_id)
                              m_gpu_ghost_bondlist.getPitch(),
                              m_pdata->getN(),
                              compute_ghost_bonds,
-                             stream);
+                             m_exec_conf->getDefaultStream());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-
     }
 #endif
 

@@ -96,7 +96,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
                          boost::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialPairGPU() { };
+        virtual ~PotentialPairGPU() {}
         
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
@@ -115,7 +115,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 
 #ifdef ENABLE_MPI
         //! Compute forces on ghost atoms
-        virtual void computeGhostForcesThread(unsigned int timestep, unsigned int thread_id);
+        virtual void computeGhostForces(unsigned int timestep);
 #endif
     };
 
@@ -143,14 +143,8 @@ template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                            cudaError_t gpu_igpf()>
 void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned int timestep)
     {
-    // get the CUDA stream associated with this thread
-    cudaStream_t stream = this->m_inside_thread ? this->m_exec_conf->getThreadStream(this->m_thread_id) : 0;
-
     // start by updating the neighborlist
-    if (this->m_inside_thread)
-        this->m_nlist->computeThread(timestep,this->m_thread_id);
-    else
-        this->m_nlist->compute(timestep);
+    this->m_nlist->compute(timestep);
     
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
@@ -206,7 +200,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                          false,
-                         stream),
+                         this->m_exec_conf->getDefaultStream()),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
@@ -219,7 +213,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params),
                            cudaError_t gpu_igpf() >
-void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForcesThread(unsigned int timestep, unsigned int thread_id)
+void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForces(unsigned int timestep)
     {
     assert(this->m_pdata->getDomainDecomposition());
 
@@ -245,7 +239,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForcesThread
     
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
-    
+   
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
@@ -268,7 +262,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForcesThread
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                          true,
-                         this->m_exec_conf->getThreadStream(thread_id)),
+                         this->m_exec_conf->getDefaultStream()),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

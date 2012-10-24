@@ -123,7 +123,13 @@ class NeighborListGPU : public NeighborList
         
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
-    
+
+        //! Read back the conditions 
+        virtual unsigned int readConditions();
+
+        //! Resets the condition status
+        virtual void resetConditions();
+
     private:
         unsigned int m_block_size_filter;   //!< Block size for the filter kernel
         unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update

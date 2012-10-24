@@ -131,8 +131,8 @@ ghost_gpu_thread::~ghost_gpu_thread()
 //! Main routine of ghost update worker thread
 void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
     {
-    // request GPU thread id
-    m_thread_id = m_exec_conf->requestGPUThreadId();
+    // initialize the GPU in this thread
+    m_exec_conf->initializeGPUThread();
 
     bool done = false;
     while (! done)
@@ -150,16 +150,15 @@ void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boo
             done = true;
             }
         }
-
     }
 
 void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
     {
-    unsigned int n_tot_local_ghosts = 0;
-
     unsigned int n_copy_ghosts_face[6];
     unsigned int n_copy_ghosts_edge[12];
     unsigned int n_copy_ghosts_corner[8];
+
+    cudaStream_t stream = m_exec_conf->getStream(params.stream);
 
         {
         ArrayHandle<unsigned int> h_n_local_ghosts_face(params.n_local_ghosts_face, access_location::host, access_mode::read);
@@ -167,48 +166,11 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         ArrayHandle<unsigned int> h_n_local_ghosts_corner(params.n_local_ghosts_corner, access_location::host, access_mode::read);
 
         for (unsigned int i = 0; i < 12; ++i)
-            {
             n_copy_ghosts_edge[i] = h_n_local_ghosts_edge.data[i];
-            n_tot_local_ghosts += h_n_local_ghosts_edge.data[i];
-            }
         for (unsigned int i = 0; i < 6; ++i)
-            {
             n_copy_ghosts_face[i] = h_n_local_ghosts_face.data[i];
-            n_tot_local_ghosts += h_n_local_ghosts_face.data[i];
-            }
         for (unsigned int i = 0; i < 8; ++i)
-            {
             n_copy_ghosts_corner[i] = h_n_local_ghosts_corner.data[i];
-            n_tot_local_ghosts += h_n_local_ghosts_corner.data[i];
-            }
-        }
-
-        {
-        ArrayHandle<unsigned int> d_n_local_ghosts_face(params.n_local_ghosts_face, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_n_local_ghosts_edge(params.n_local_ghosts_edge, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_n_local_ghosts_corner(params.n_local_ghosts_corner, access_location::device, access_mode::read);
-
-        gpu_update_ghosts_pack(n_tot_local_ghosts,
-                            params.ghost_idx_face_handle,
-                            params.ghost_idx_face_pitch,
-                            params.ghost_idx_edge_handle, 
-                            params.ghost_idx_edge_pitch,
-                            params.ghost_idx_corner_handle,
-                            params.ghost_idx_corner_pitch,
-                            params.pos_handle,
-                            params.corner_update_buf_handle,
-                            params.corner_update_buf_pitch, 
-                            params.edge_update_buf_handle,
-                            params.edge_update_buf_pitch,
-                            params.face_update_buf_handle,
-                            params.face_update_buf_pitch,
-                            d_n_local_ghosts_corner.data,
-                            d_n_local_ghosts_edge.data,
-                            d_n_local_ghosts_face.data,
-                            m_exec_conf->getThreadStream(m_thread_id));
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
         }
 
     unsigned int n_tot_recv_ghosts_local = 0;
@@ -252,8 +214,7 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
 
         {
         // copy data from device to host
-        cudaStream_t stream = m_exec_conf->getThreadStream(m_thread_id);
-        cudaEvent_t ev = m_exec_conf->getThreadEvent(m_thread_id);
+        GPUEventHandle ev(m_exec_conf);
 
         ArrayHandle<unsigned int> h_n_local_ghosts_face(params.n_local_ghosts_face, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_local_ghosts_edge(params.n_local_ghosts_edge, access_location::host, access_mode::read);
@@ -353,7 +314,6 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         ArrayHandle<unsigned int> h_n_local_ghosts_face(params.n_local_ghosts_face, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_local_ghosts_edge(params.n_local_ghosts_edge, access_location::host, access_mode::read);
 
-        cudaStream_t stream = m_exec_conf->getThreadStream(m_thread_id);
         unsigned int fpitch = params.face_update_buf_pitch;
         unsigned int epitch = params.edge_update_buf_pitch;
 
@@ -384,6 +344,7 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
         }
 #endif
 
+#if 0
         {
         ArrayHandle<unsigned int> d_n_local_ghosts_face(params.n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(params.n_local_ghosts_edge, access_location::device, access_mode::read);
@@ -409,12 +370,12 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
                                  params.pos_handle,
                                  params.d_ghost_plan,
                                  params.global_box,
-                                 m_exec_conf->getThreadStream(m_thread_id));
+                                 stream);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-     
+#endif 
     } 
 
 //! Constructor
@@ -434,8 +395,6 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
         is_communicating[face] = isCommunicating(face) ? 1 : 0;
 
     gpu_allocate_tmp_storage(is_communicating,m_is_at_boundary);
-
-    cudaEventCreate(&m_event);
 
     GPUFlags<unsigned int> condition(m_exec_conf);
     m_condition.swap(condition);
@@ -465,11 +424,14 @@ CommunicatorGPU::~CommunicatorGPU()
 
     gpu_deallocate_tmp_storage();
     
-    cudaEventDestroy(m_event);
+    if (m_thread_created)
+        {
+        // finish worker thread
+        m_worker_thread.interrupt();
+        m_worker_thread.join();
 
-    // finish worker thread
-    m_worker_thread.interrupt();
-    m_worker_thread.join();
+        m_exec_conf->releaseStream(m_stream);
+        }
 
     }
 
@@ -491,16 +453,66 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
                                                          this),
                                         boost::ref(m_work_queue), boost::ref(m_barrier));
         m_thread_created = true;
+
+        m_stream = m_exec_conf->acquireStream();
         }
 
+        unsigned int n_tot_local_ghosts = 0;
+        {
+        ArrayHandle<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::host, access_mode::read);
+
+        for (unsigned int i = 0; i < 12; ++i)
+            n_tot_local_ghosts += h_n_local_ghosts_edge.data[i];
+        for (unsigned int i = 0; i < 6; ++i)
+            n_tot_local_ghosts += h_n_local_ghosts_face.data[i];
+        for (unsigned int i = 0; i < 8; ++i)
+            n_tot_local_ghosts += h_n_local_ghosts_corner.data[i];
+        }
+
+
+        {
+        // call update ghosts kernel 
+        ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_ghost_idx_face(m_ghost_idx_face, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_ghost_idx_edge(m_ghost_idx_edge, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_ghost_idx_corner(m_ghost_idx_corner, access_location::device, access_mode::read);
+
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+
+        ArrayHandle<char> d_corner_update_buf(m_corner_update_buf, access_location::device, access_mode::overwrite);
+        ArrayHandle<char> d_edge_update_buf(m_edge_update_buf, access_location::device, access_mode::overwrite);
+        ArrayHandle<char> d_face_update_buf(m_face_update_buf, access_location::device, access_mode::overwrite);
+
+        gpu_update_ghosts_pack(n_tot_local_ghosts,
+                            d_ghost_idx_face.data,
+                            m_ghost_idx_face.getPitch(),
+                            d_ghost_idx_edge.data,
+                            m_ghost_idx_edge.getPitch(),
+                            d_ghost_idx_corner.data,
+                            m_ghost_idx_corner.getPitch(),
+                            d_pos.data,
+                            d_corner_update_buf.data,
+                            m_corner_update_buf.getPitch(),
+                            d_edge_update_buf.data,
+                            m_edge_update_buf.getPitch(),
+                            d_face_update_buf.data,
+                            m_face_update_buf.getPitch(),
+                            d_n_local_ghosts_corner.data,
+                            d_n_local_ghosts_edge.data,
+                            d_n_local_ghosts_face.data,
+                            m_exec_conf->getStream(m_stream));
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+ 
     // fill thread parameters
     ghost_gpu_thread_params params(
-        m_ghost_idx_face.acquire(access_location::device, access_mode::read),
-        m_ghost_idx_face.getPitch(),
-        m_ghost_idx_edge.acquire(access_location::device, access_mode::read),
-        m_ghost_idx_edge.getPitch(),
-        m_ghost_idx_corner.acquire(access_location::device, access_mode::read),
-        m_ghost_idx_corner.getPitch(),
         m_corner_update_buf.acquire(access_location::device, access_mode::overwrite),
         m_corner_update_buf.getPitch(),
         m_edge_update_buf.acquire(access_location::device, access_mode::overwrite),
@@ -518,7 +530,8 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
         m_n_local_ghosts_edge,
         m_n_local_ghosts_face,
         m_pdata->getPositions().acquire(access_location::device, access_mode::readwrite_shared),
-        m_pdata->getGlobalBox());
+        m_pdata->getGlobalBox(),
+        m_stream);
 
     // post the parameters to the worker thread
     m_work_queue.push(ghost_gpu_thread_params(params));
@@ -539,17 +552,53 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
     if (m_prof) m_prof->pop();
 
     // release locked arrays
-    m_ghost_idx_face.release();
     m_face_update_buf.release();
-    m_ghost_idx_edge.release();
     m_edge_update_buf.release();
-    m_ghost_idx_corner.release();
     m_corner_update_buf.release();
 
     m_ghost_plan.release();
 
     m_update_recv_buf.release();
     m_pdata->getPositions().release();
+
+        {
+        // unpack ghost data
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+
+        ArrayHandle<char> d_edge_update_buf(m_edge_update_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> d_face_update_buf(m_face_update_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> d_update_recv_buf(m_update_recv_buf, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::read);
+
+        ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
+
+        ArrayHandle<unsigned int> d_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::device, access_mode::read);
+
+        // unpack particles
+        gpu_update_ghosts_unpack(m_pdata->getN(),
+                                 m_n_tot_recv_ghosts,
+                                 d_n_local_ghosts_face.data,
+                                 d_n_local_ghosts_edge.data,
+                                 m_n_tot_recv_ghosts_local,
+                                 d_n_recv_ghosts_local.data,
+                                 d_n_recv_ghosts_face.data,
+                                 d_n_recv_ghosts_edge.data,
+                                 d_face_update_buf.data,
+                                 m_face_update_buf.getPitch(),
+                                 d_edge_update_buf.data,
+                                 m_edge_update_buf.getPitch(),
+                                 d_update_recv_buf.data,
+                                 d_pos.data,
+                                 d_ghost_plan.data,
+                                 m_pdata->getGlobalBox(),
+                                 m_exec_conf->getStream(m_stream));
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
     }
 
 void CommunicatorGPU::allocateBuffers()
@@ -867,8 +916,9 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandleAsync<unsigned int> h_n_send_ptls_edge(m_n_send_ptls_edge, access_location::host, access_mode::read);
             ArrayHandleAsync<unsigned int> h_n_send_ptls_corner(m_n_send_ptls_corner, access_location::host, access_mode::read);
 
-            cudaEventRecord(m_event, 0);
-            cudaEventSynchronize(m_event);
+            GPUEventHandle event(m_exec_conf);
+            cudaEventRecord(event, 0);
+            cudaEventSynchronize(event);
 
             for (unsigned int i = 0; i < 6; ++i)
                 n_send_ptls_face[i] = h_n_send_ptls_face.data[i];
@@ -954,8 +1004,9 @@ void CommunicatorGPU::migrateAtoms()
                 cudaMemcpyAsync(h_corner_send_buf+i*cpitch, d_corner_send_buf.data + i*cpitch,
                     n_send_ptls_corner[i]*gpu_pdata_element_size(), cudaMemcpyDeviceToHost,0);
 
-        cudaEventRecord(m_event, 0);
-        cudaEventSynchronize(m_event);
+        GPUEventHandle event(m_exec_conf);
+        cudaEventRecord(event, 0);
+        cudaEventSynchronize(event);
         }
 #endif
 
@@ -1375,8 +1426,9 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandleAsync<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
             ArrayHandleAsync<unsigned int> h_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::host, access_mode::read);
 
-            cudaEventRecord(m_event, 0);
-            cudaEventSynchronize(m_event);
+            GPUEventHandle event(m_exec_conf);
+            cudaEventRecord(event, 0);
+            cudaEventSynchronize(event);
 
             for (unsigned int i = 0; i < 6; ++i)
                 n_copy_ghosts_face[i] = h_n_local_ghosts_face.data[i];
@@ -1469,13 +1521,14 @@ void CommunicatorGPU::exchangeGhosts()
                 cudaMemcpyAsync(h_corner_ghosts_buf+i*cpitch, d_corner_ghosts_buf.data + i*cpitch,
                     n_copy_ghosts_corner[i]*gpu_ghost_element_size(), cudaMemcpyDeviceToHost,0);
 
-        cudaEventRecord(m_event, 0);
-        cudaEventSynchronize(m_event);
+        GPUEventHandle event(m_exec_conf);
+        cudaEventRecord(event, 0);
+        cudaEventSynchronize(event);
         }
 #endif
 
     // Number of ghosts we received that are not forwarded to other boxes
-    unsigned int n_tot_recv_ghosts_local = 0;
+    m_n_tot_recv_ghosts_local = 0;
 
         {
         ArrayHandle<unsigned int> h_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::host, access_mode::overwrite);
@@ -1577,13 +1630,13 @@ void CommunicatorGPU::exchangeGhosts()
                 #endif
                 }
 
-            if (m_ghosts_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_ghost_element_size())
+            if (m_ghosts_recv_buf.getNumElements() < (m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_ghost_element_size())
                 {
                 #ifndef ENABLE_MPI_CUDA
                 unsigned int old_size = m_ghosts_recv_buf.getNumElements();
                 #endif
                 unsigned int new_size =1;
-                while (new_size < n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
+                while (new_size < m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
                     new_size = ceilf((float) new_size * m_resize_factor);
                 m_ghosts_recv_buf.resize(new_size*gpu_ghost_element_size());
 
@@ -1596,10 +1649,10 @@ void CommunicatorGPU::exchangeGhosts()
                 #endif
                 }
 
-            if (m_update_recv_buf.getNumElements() < (n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_update_element_size())
+            if (m_update_recv_buf.getNumElements() < (m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_update_element_size())
                 {
                 unsigned int new_size =1;
-                while (new_size < n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
+                while (new_size < m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
                     new_size = ceilf((float) new_size * m_resize_factor);
                 m_update_recv_buf.resize(new_size*gpu_update_element_size());
                 }
@@ -1637,7 +1690,7 @@ void CommunicatorGPU::exchangeGhosts()
                                n_copy_ghosts_edge,
                                n_copy_ghosts_face,
                                m_ghosts_recv_buf.getNumElements(),
-                               n_tot_recv_ghosts_local, 
+                               m_n_tot_recv_ghosts_local, 
                                gpu_ghost_element_size(),
                                false);
 
@@ -1648,7 +1701,7 @@ void CommunicatorGPU::exchangeGhosts()
             for (unsigned int i = 0; i < 6; ++i)
                 n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[6*dir+i];
 
-            n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[dir];
+            m_n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[dir];
             } // end communication loop
         }
 
@@ -1666,22 +1719,22 @@ void CommunicatorGPU::exchangeGhosts()
 
 
     // total up number of received ghosts
-    unsigned int n_tot_recv_ghosts = n_tot_recv_ghosts_local;
+    m_n_tot_recv_ghosts = m_n_tot_recv_ghosts_local;
     for (unsigned int i = 0; i < 6; ++i)
-        n_tot_recv_ghosts += n_forward_ghosts_face[i];
+        m_n_tot_recv_ghosts += n_forward_ghosts_face[i];
     for (unsigned int i = 0; i < 12; ++i)
-        n_tot_recv_ghosts += n_forward_ghosts_edge[i];
+        m_n_tot_recv_ghosts += n_forward_ghosts_edge[i];
 
     // resize plan array if necessary
-    if (m_ghost_plan.getNumElements() < n_tot_recv_ghosts)
+    if (m_ghost_plan.getNumElements() < m_n_tot_recv_ghosts)
         {
         unsigned int new_size = m_ghost_plan.getNumElements();
-        while (new_size < n_tot_recv_ghosts) new_size = ceilf((float)new_size*m_resize_factor);
+        while (new_size < m_n_tot_recv_ghosts) new_size = ceilf((float)new_size*m_resize_factor);
         m_ghost_plan.resize(new_size);
         }
 
     // update number of ghost particles
-    m_pdata->addGhostParticles(n_tot_recv_ghosts);
+    m_pdata->addGhostParticles(m_n_tot_recv_ghosts);
 
 #ifndef ENABLE_MPI_CUDA
         {
@@ -1710,10 +1763,10 @@ void CommunicatorGPU::exchangeGhosts()
                            n_forward_ghosts_edge[i]*gpu_ghost_element_size(),
                            cudaMemcpyHostToDevice,0);
 
-        if (n_tot_recv_ghosts_local)
+        if (m_n_tot_recv_ghosts_local)
             cudaMemcpyAsync(d_ghosts_recv_buf.data,
                        h_ghosts_recv_buf,
-                       n_tot_recv_ghosts_local*gpu_ghost_element_size(),
+                       m_n_tot_recv_ghosts_local*gpu_ghost_element_size(),
                        cudaMemcpyHostToDevice,0);
         }
 #endif
@@ -1739,10 +1792,10 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandleAsync<unsigned int> d_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::device, access_mode::read);
 
         gpu_exchange_ghosts_unpack(m_pdata->getN(),
-                                     n_tot_recv_ghosts,
+                                     m_n_tot_recv_ghosts,
                                      d_n_local_ghosts_face.data,
                                      d_n_local_ghosts_edge.data,
-                                     n_tot_recv_ghosts_local,
+                                     m_n_tot_recv_ghosts_local,
                                      d_n_recv_ghosts_local.data,
                                      d_n_recv_ghosts_face.data,
                                      d_n_recv_ghosts_edge.data,

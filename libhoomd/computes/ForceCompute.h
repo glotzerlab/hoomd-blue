@@ -116,7 +116,7 @@ class ForceCompute : public Compute
             \param timestep Current time step
             \param thread_id The thread from which this routine is called
          */
-        virtual void computeGhostForcesThread(unsigned int timestep, unsigned int thread_id) { }
+        virtual void computeGhostForces(unsigned int timestep) { }
 #endif
        
         //! Benchmark the force compute

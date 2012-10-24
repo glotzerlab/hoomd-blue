@@ -508,10 +508,7 @@ bool CellList::checkConditions()
     bool result = false;
 
     uint3 conditions;
-    if (m_inside_thread)
-        conditions = m_conditions.readFlagsThread(m_thread_id);
-    else
-        conditions = m_conditions.readFlags();
+    conditions = readConditions();
 
     // up m_Nmax to the overflow value, reallocate memory and set the overflow condition
     if (conditions.x > m_Nmax)
@@ -550,13 +547,13 @@ bool CellList::checkConditions()
 
 void CellList::resetConditions()
     {
-    if (m_inside_thread)
-        m_conditions.resetFlagsThread(make_uint3(0,0,0),m_thread_id);
-    else
-        m_conditions.resetFlags(make_uint3(0,0,0));
+    m_conditions.resetFlags(make_uint3(0,0,0));
     }
 
-
+uint3 CellList::readConditions()
+    {
+    return m_conditions.readFlags();
+    }
 
 void export_CellList()
     {

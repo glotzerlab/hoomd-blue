@@ -76,53 +76,10 @@ using namespace boost;
 
 using namespace std;
 
-//! The worker thread main routine
-void integrator_worker_thread::operator() (WorkQueue<integrator_thread_params>& queue)
-    {
-#ifdef ENABLE_CUDA
-    // for execution on the GPU, we need to a unique thread identifer
-    if (m_exec_conf->isCUDAEnabled())
-        // couple thread to CUDA stream
-        m_thread_id = m_exec_conf->requestGPUThreadId();
-#endif
-
-    bool done = false;
-    while (! done)
-        {
-        try
-            {
-            integrator_thread_params params = queue.wait_and_pop();
-
-            #ifdef ENABLE_MPI
-            //! Call the force compute 
-            if (! params.compute_ghost_forces)
-                params.fc->computeThread(params.timestep, m_thread_id);
-            else
-                params.fc->computeGhostForcesThread(params.timestep, m_thread_id);
-            #else
-            params.fc->computeThread(params.timestep, m_thread_id);
-            #endif
-
-
-            // increment counter
-            boost::unique_lock<boost::mutex> lock(params.mutex);
-            params.counter++;
-            if (params.counter == params.num_tasks)
-                // if we are the thread that finished the last task, signal host thread
-                params.barrier.wait();
-            }
-        catch(boost::thread_interrupted const)
-            {
-            done = true;
-            }
-        }
-
-    } 
-
 /*! \param sysdef System to update
     \param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT), m_num_worker_threads(1), m_threads_initialized(false), m_barrier(2)
+Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
     {
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
@@ -130,8 +87,6 @@ Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT
 
 Integrator::~Integrator()
     {
-    if (m_threads_initialized)
-        terminateWorkerThreads();
     }
 
 /*! \param fc ForceCompute to add
@@ -337,31 +292,15 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 */
 void Integrator::computeNetForce(unsigned int timestep)
     {
-    // compute all the forces first
-    if (! m_threads_initialized)
-        createWorkerThreads();
-
 #ifdef ENABLE_MPI
     // begin with concurrent communication of ghost positions
     if (m_pdata->getDomainDecomposition())
         m_comm->startGhostsUpdate(timestep);
 #endif
 
-    m_completed_tasks = 0;
-
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-//        (*force_compute)->compute(timestep);
-        m_work_queue.push(integrator_thread_params(*force_compute,
-                                                   timestep,
-                                                   false,
-                                                   m_forces.size(),
-                                                   m_completed_tasks,
-                                                   m_mutex,
-                                                   m_barrier));
-
-    // wait for threads to finish
-    m_barrier.wait();
+        (*force_compute)->compute(timestep);
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -369,21 +308,11 @@ void Integrator::computeNetForce(unsigned int timestep)
         // wait for ghost communication to finish
         m_comm->finishGhostsUpdate(timestep);
 
-        m_completed_tasks = 0;
-
         // compute additional forces due to ghost atoms
         std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-//            (*force_compute)->computeGhostForces(timestep);
-            m_work_queue.push(integrator_thread_params(*force_compute,
-                                                       timestep,
-                                                       true,
-                                                       m_forces.size(),
-                                                       m_completed_tasks,
-                                                       m_mutex,
-                                                       m_barrier));
+            (*force_compute)->computeGhostForces(timestep);
 
-        m_barrier.wait();
         }
 #endif
  
@@ -538,9 +467,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_exec_conf->msg->error() << "Cannot compute net force on the GPU if CUDA is disabled" << endl;
         throw runtime_error("Error computing accelerations");
         }
-
-    if (! m_threads_initialized)
-        createWorkerThreads();
  
 #ifdef ENABLE_MPI
     // begin with concurrent communication of ghost positions
@@ -550,18 +476,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
-    m_completed_tasks = 0;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        //(*force_compute)->compute(timestep);
-        m_work_queue.push(integrator_thread_params(*force_compute,
-                                                   timestep,
-                                                   false,
-                                                   m_forces.size(),
-                                                   m_completed_tasks,
-                                                   m_mutex,
-                                                   m_barrier));
-    m_barrier.wait();
+        (*force_compute)->compute(timestep);
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -569,20 +486,10 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         // wait for ghost communication to finish
         m_comm->finishGhostsUpdate(timestep);
 
-        m_completed_tasks = 0;
-
         // compute additional forces due to ghost atoms
         std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-//            (*force_compute)->computeGhostForces(timestep);
-            m_work_queue.push(integrator_thread_params(*force_compute,
-                                                       timestep,
-                                                       true,
-                                                       m_forces.size(),
-                                                       m_completed_tasks,
-                                                       m_mutex,
-                                                       m_barrier));
-        m_barrier.wait();
+            (*force_compute)->computeGhostForces(timestep);
         }
 #endif
 
@@ -915,52 +822,6 @@ void Integrator::prepRun(unsigned int timestep)
     {
     }
 
-void Integrator::createWorkerThreads()
-    {
-    assert(! m_threads_initialized);
-
-    for (unsigned int i = 0; i < m_num_worker_threads; ++i)
-        {
-        m_worker_threads.push_back(boost::shared_ptr<boost::thread>(
-            new boost::thread(integrator_worker_thread(m_exec_conf), boost::ref(m_work_queue))));
-        }
-
-    m_threads_initialized = true;
-    }
-
-void Integrator::terminateWorkerThreads()
-    {
-    assert(m_threads_initialized);
-
-    assert(m_worker_threads.size() == m_num_worker_threads);
-
-    while (!m_worker_threads.empty())
-        {
-        boost::shared_ptr<boost::thread> t = m_worker_threads.back();
-        t->interrupt();
-        t->join();
-        m_worker_threads.pop_back();
-        }
-    }
-
-//! Set number of worker threads
-void Integrator::setNumWorkerThreads(unsigned int num_threads)
-    {
-    if (m_threads_initialized)
-        {
-        m_exec_conf->msg->error() << "integrate.*: Cannot set number of worker threads after first run." << endl;
-        throw runtime_error("Error setting number of worker threads");
-        }
-    if (num_threads == 0)
-        {
-        m_exec_conf->msg->error() << "integrate.*: Invalid number of threads requested." << endl;
-        throw runtime_error("Error initializing Integrator");
-        }
-
-    m_num_worker_threads = num_threads;
-    }
-
-
 void export_Integrator()
     {
     class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
@@ -970,7 +831,6 @@ void export_Integrator()
     .def("removeForceComputes", &Integrator::removeForceComputes)
     .def("setDeltaT", &Integrator::setDeltaT)
     .def("getNDOF", &Integrator::getNDOF)
-    .def("setNumWorkerThreads", &Integrator::setNumWorkerThreads)
     ;
     }
 

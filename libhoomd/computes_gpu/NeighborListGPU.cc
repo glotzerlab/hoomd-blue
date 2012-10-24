@@ -169,6 +169,17 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
 
+unsigned int NeighborListGPU::readConditions()
+    {
+    return m_conditions.readFlagsStream(m_exec_conf->getDefaultStream());
+    }
+
+void NeighborListGPU::resetConditions()
+    {
+    m_conditions.resetFlagsStream(0,m_exec_conf->getDefaultStream());
+    }
+
+
 bool NeighborListGPU::distanceCheck()
     {
     // scan through the particle data arrays and calculate distances
@@ -204,16 +215,13 @@ bool NeighborListGPU::distanceCheck()
                                      maxshiftsq,
                                      lambda,
                                      m_checkn,
-                                     m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
+                                     m_exec_conf->getDefaultStream());
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     bool result;
-    if (m_inside_thread)
-        result = (m_flags.readFlagsThread(m_thread_id) == m_checkn);
-    else
-        result = (m_flags.readFlags() == m_checkn);
+    result = (m_flags.readFlagsStream(m_exec_conf->getDefaultStream()) == m_checkn);
 
     m_checkn++;
 
@@ -255,7 +263,7 @@ void NeighborListGPU::filterNlist()
                      m_ex_list_indexer,
                      m_pdata->getN(),
                      m_block_size_filter,
-                     m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
+                     m_exec_conf->getDefaultStream());
   
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -272,7 +280,7 @@ void NeighborListGPU::filterNlist()
                      m_ex_list_indexer,
                      m_pdata->getN(),
                      m_block_size_filter,
-                     m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
+                     m_exec_conf->getDefaultStream());
         }
 #endif
 
@@ -303,7 +311,7 @@ void NeighborListGPU::updateExListIdx()
                               d_ex_list_idx.data,
                               m_ex_list_indexer,
                               m_pdata->getN(),
-                              m_inside_thread ? m_exec_conf->getThreadStream(m_thread_id) : 0);
+                              m_exec_conf->getDefaultStream());
 
     if (m_prof)
         m_prof->pop();

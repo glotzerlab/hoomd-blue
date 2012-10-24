@@ -279,7 +279,7 @@ class CellList : public Compute
         double benchmark(unsigned int num_iters);
         
         // @}
-        
+
     protected:
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
@@ -306,7 +306,6 @@ class CellList : public Compute
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
         GPUArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
         GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
-        
         boost::signals::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
         
@@ -331,8 +330,11 @@ class CellList : public Compute
         //! Check the status of the conditions
         bool checkConditions();
 
+        //! Reads back the conditions
+        virtual uint3 readConditions();
+
         //! Resets the condition status
-        void resetConditions();
+        virtual void resetConditions();
     };
 
 //! Export the CellList class to python

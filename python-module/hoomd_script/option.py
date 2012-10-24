@@ -83,7 +83,6 @@ class options:
         self.msg_file = None;
         self.shared_msg_file = None;
         self.nrank = None;
-        self.num_worker_threads = 1;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -96,8 +95,7 @@ class options:
                    notice_level=self.notice_level,
                    msg_file=self.msg_file,
                    shared_msg_file=self.shared_msg_file,
-                   nrank=self.nrank,
-                   num_worker_threads=self.num_worker_threads)
+                   nrank=self.nrank)
         return str(tmp);
 
 ## Parses command line options
@@ -116,7 +114,6 @@ def _parse_command_line():
     parser.add_option("--msg-file", dest="msg_file", help="Name of file to write messages to");
     parser.add_option("--shared-msg-file", dest="shared_msg_file", help="(MPI only) Name of shared file to write message to (append partition #)");
     parser.add_option("--nrank", dest="nrank", help="(MPI only) Number of ranks to include in a partition");
-    parser.add_option("--num-threads", dest="num_worker_threads", help="Number of worker threads used for force calculation");
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();
@@ -190,9 +187,6 @@ def _parse_command_line():
             globals.msg.error("The --nrank option is only avaible in MPI builds.\n");
             raise RuntimeError('Error setting option');
         globals.options.nrank = int(cmd_options.nrank);
-
-    if cmd_options.num_worker_threads is not None:
-        globals.options.num_worker_threads = int(cmd_options.num_worker_threads);
 
     if cmd_options.user is not None:
         globals.options.user = shlex.split(cmd_options.user);

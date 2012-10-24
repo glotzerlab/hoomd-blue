@@ -79,6 +79,12 @@ class CellListGPU : public CellList
     protected:
         //! Compute the cell list
         virtual void computeCellList();
+
+        //! Reads back the conditions
+        virtual uint3 readConditions();
+
+        //! Resets the condition status
+        virtual void resetConditions();
     };
 
 //! Exports CellListGPU to python

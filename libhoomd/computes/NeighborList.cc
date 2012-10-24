@@ -1199,15 +1199,17 @@ void NeighborList::allocateNlist()
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
     }
 
+unsigned int NeighborList::readConditions()
+    {
+    return m_conditions.readFlags();
+    }
+
 bool NeighborList::checkConditions()
     {
     bool result = false;
 
     unsigned int conditions;
-    if (m_inside_thread)
-        conditions = m_conditions.readFlags();
-    else
-        conditions = m_conditions.readFlagsThread(m_thread_id);
+    conditions = readConditions();
 
     // up m_Nmax to the overflow value, reallocate memory and set the overflow condition
     if (conditions > m_Nmax)
@@ -1221,10 +1223,7 @@ bool NeighborList::checkConditions()
 
 void NeighborList::resetConditions()
     {
-    if (m_inside_thread)
-        m_conditions.resetFlagsThread(0, m_thread_id);
-    else
-        m_conditions.resetFlags(0);
+    m_conditions.resetFlags(0);
     }
 
 void NeighborList::growExclusionList()

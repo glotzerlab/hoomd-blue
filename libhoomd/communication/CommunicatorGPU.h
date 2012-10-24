@@ -75,13 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct ghost_gpu_thread_params
     {
     //! Constructor
-    ghost_gpu_thread_params(const unsigned int *_ghost_idx_face_handle, 
-                            const unsigned int _ghost_idx_face_pitch,   
-                            const unsigned int *_ghost_idx_edge_handle, 
-                            const unsigned int _ghost_idx_edge_pitch,   
-                            const unsigned int *_ghost_idx_corner_handle, 
-                            const unsigned int _ghost_idx_corner_pitch, 
-                            char *_corner_update_buf_handle,            
+    ghost_gpu_thread_params(char *_corner_update_buf_handle,            
                             const unsigned int _corner_update_buf_pitch, 
                             char *_edge_update_buf_handle,             
                             const unsigned int _edge_update_buf_pitch, 
@@ -98,14 +92,9 @@ struct ghost_gpu_thread_params
                             const GPUArray<unsigned int>& _n_local_ghosts_edge,  
                             const GPUArray<unsigned int>& _n_local_ghosts_face,  
                             Scalar4 *_pos_handle,                      
-                            const BoxDim& _global_box)
-        : ghost_idx_face_handle(_ghost_idx_face_handle),
-          ghost_idx_face_pitch(_ghost_idx_face_pitch),
-          ghost_idx_edge_handle(_ghost_idx_edge_handle),
-          ghost_idx_edge_pitch(_ghost_idx_edge_pitch),
-          ghost_idx_corner_handle(_ghost_idx_corner_handle),
-          ghost_idx_corner_pitch(_ghost_idx_corner_pitch),
-          corner_update_buf_handle(_corner_update_buf_handle),
+                            const BoxDim& _global_box,
+                            const unsigned int _stream)
+        : corner_update_buf_handle(_corner_update_buf_handle),
           corner_update_buf_pitch(_corner_update_buf_pitch),
           edge_update_buf_handle(_edge_update_buf_handle),
           edge_update_buf_pitch(_edge_update_buf_pitch),
@@ -122,15 +111,10 @@ struct ghost_gpu_thread_params
           n_local_ghosts_edge(_n_local_ghosts_edge),
           n_local_ghosts_face(_n_local_ghosts_face),
           pos_handle(_pos_handle),
-          global_box(_global_box)
+          global_box(_global_box),
+          stream(_stream)
         { }
 
-    const unsigned int *ghost_idx_face_handle; //!< Device pointer to 'face' ghost particle indices array
-    const unsigned int ghost_idx_face_pitch;   //!< Pitch of 'face' ghost particle indices array
-    const unsigned int *ghost_idx_edge_handle; //!< Device pointer to 'edge' ghost particle indices array
-    const unsigned int ghost_idx_edge_pitch;   //!< Pitch of 'edge' ghost particle indices array
-    const unsigned int *ghost_idx_corner_handle; //!< Device pointer to 'corner' ghost particle indices array
-    const unsigned int ghost_idx_corner_pitch; //!< Pitch of 'corner' ghost particle indices array
     char *corner_update_buf_handle;            //!< Send/recv buffer for ghosts that are updated over a corner
     const unsigned int corner_update_buf_pitch; //!< Pitch of corner ghost update buffer
     char *edge_update_buf_handle;             //!< Send/recv buffer for ghosts that are updated over a edge
@@ -149,6 +133,7 @@ struct ghost_gpu_thread_params
     const GPUArray<unsigned int>& n_local_ghosts_face;  //!< Number of local ghosts sent over a face
     Scalar4 *pos_handle;                      //!< Device pointer to ghost positions array
     const BoxDim& global_box;                 //!< Dimensions of global box
+    const unsigned int stream;                //!< Stream id to use for kernel execution
     };
 
 //! Forward declaration
@@ -169,8 +154,6 @@ class ghost_gpu_thread
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< The execution configuration
         CommunicatorGPU *m_communicator;                              //!< Pointer to the communciator that called the thread
-
-        unsigned int m_thread_id;                                     //!< GPU thread id
 
         char *h_recv_buf;                                             //!< Host receive buffer
         char *h_face_update_buf;                                      //!< Host buffer of particles that are sent through a face
@@ -315,6 +298,9 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_n_recv_ghosts_edge; //!< Number of received ghosts for sending over an edge, per direction
         GPUArray<unsigned int> m_n_recv_ghosts_local;//!< Number of received ghosts that stay in the local box, per direction
 
+        unsigned int m_n_tot_recv_ghosts;           //!< Total number of received ghots
+        unsigned int m_n_tot_recv_ghosts_local;     //!< Total number of received ghosts for local box
+
         bool m_buffers_allocated;                   //!< True if buffers have been allocated
 
         const float m_resize_factor;                //!< Factor used for amortized array resizing
@@ -326,6 +312,7 @@ class CommunicatorGPU : public Communicator
         boost::barrier m_barrier;                   //!< Barrier to synchronize with worker thread
 
         cudaEvent_t m_event;                        //!< A CUDA event
+        unsigned int m_stream;                      //!< CUDA stream id
 
 #ifdef MPI3
         MPI_Group m_comm_group;                     //!< Group corresponding to MPI communicator

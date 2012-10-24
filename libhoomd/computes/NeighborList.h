@@ -421,7 +421,6 @@ class NeighborList : public Compute
         boost::signals::connection m_migrate_request_connection; //! Connection to trigger particle migration
 #endif
 
-
         //! Performs the distance check
         virtual bool distanceCheck();
         
@@ -462,8 +461,11 @@ class NeighborList : public Compute
         //! Check the status of the conditions
         bool checkConditions();
 
+        //! Read back the conditions 
+        virtual unsigned int readConditions();
+
         //! Resets the condition status
-        void resetConditions();
+        virtual void resetConditions();
 
         //! Grow the exclusions list memory capacity by one row
         void growExclusionList();

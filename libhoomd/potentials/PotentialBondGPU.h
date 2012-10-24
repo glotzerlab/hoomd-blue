@@ -88,7 +88,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         PotentialBondGPU(boost::shared_ptr<SystemDefinition> sysdef,
                          const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialBondGPU() { };
+        virtual ~PotentialBondGPU() {}
 
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
@@ -109,7 +109,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
 
 #ifdef ENABLE_MPI
         //! Compute forces due to ghost particles
-        virtual void computeGhostForcesThread(unsigned int timestep, unsigned int thread_id);
+        virtual void computeGhostForces(unsigned int timestep);
 #endif
     };
 
@@ -149,9 +149,6 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeForces(unsigned i
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
 
-    // get the CUDA stream associated with this thread
-    cudaStream_t stream = this->m_inside_thread ? this->m_exec_conf->getThreadStream(this->m_thread_id) : 0;
-
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
@@ -166,10 +163,6 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeForces(unsigned i
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
         {
-        // Access the bond table for reading
-        if (this->m_inside_thread)
-            this->m_bond_data->computeGPUBondListThread(this->m_thread_id);
-
         ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getGPUBondList(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(), access_location::device, access_mode::read);
 
@@ -190,7 +183,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeForces(unsigned i
                              this->m_bond_data->getNBondTypes(),
                              m_block_size,
                              false,
-                             stream),
+                             this->m_exec_conf->getDefaultStream()),
                  d_params.data,
                  d_flags.data);
         }
@@ -218,7 +211,7 @@ template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags),
                            cudaError_t gpu_igbf() >
-void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeGhostForcesThread(unsigned int timestep, unsigned int thread_id)
+void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeGhostForces(unsigned int timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
@@ -237,9 +230,6 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeGhostForcesThread
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
         {
-        // Access the bond table for reading
-        this->m_bond_data->computeGPUBondListThread(thread_id);
-
         ArrayHandle<uint2> d_gpu_ghost_bondlist(this->m_bond_data->getGPUGhostBondList(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int > d_gpu_n_ghost_bonds(this->m_bond_data->getNGhostBondsArray(), access_location::device, access_mode::read);
 
@@ -260,7 +250,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeGhostForcesThread
                              this->m_bond_data->getNBondTypes(),
                              m_block_size,
                              true,
-                             this->m_exec_conf->getThreadStream(thread_id)),
+                             this->m_exec_conf->getDefaultStream()),
                  d_params.data,
                  d_flags.data);
         }

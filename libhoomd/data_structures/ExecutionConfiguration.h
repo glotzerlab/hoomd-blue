@@ -78,6 +78,33 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#ifdef ENABLE_CUDA
+
+class ExecutionConfiguration;
+
+//! A wrapper class for reusable CUDA events
+class GPUEventHandle
+    {
+    public:
+        //! Constructor
+        GPUEventHandle(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+
+        //! Destructor
+        ~GPUEventHandle();
+
+        //! Returns the CUDA event
+        inline operator cudaEvent_t () const
+            {
+            return m_event;
+            }
+
+    private:
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        unsigned int m_event_id;                                     //!< Our event id 
+        cudaEvent_t m_event;                                        //!< The actual CUDA event
+    };
+#endif
+
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU
@@ -136,21 +163,26 @@ struct ExecutionConfiguration : boost::noncopyable
 #endif
 
 #ifdef ENABLE_CUDA
-    //! Requests an ID for a thread running on a GPU
-    unsigned int requestGPUThreadId() const;
+    //! Initialize the GPU at thread startup
+    void initializeGPUThread() const;
 
-    //! Get the stream for concurrent kernel execution
-    cudaStream_t getThreadStream(unsigned int thread_id) const
+    //! Reserve a reusable stream
+    unsigned int acquireStream() const;
+
+    //! Release a previously reserved stream
+    void releaseStream(unsigned int stream_id) const;
+
+    //! Get a reusable stream for concurrent kernel execution
+    inline cudaStream_t getStream(unsigned int stream_id) const
         {
-        assert(thread_id < m_thread_streams.size());
-        return m_thread_streams[thread_id];
+        assert(stream_id < m_streams.size());
+        return m_streams[stream_id];
         }
 
-    //! Get a reusable event for this thread
-    cudaEvent_t getThreadEvent(unsigned int thread_id) const
+    //! Get the default stream
+    inline cudaStream_t getDefaultStream() const
         {
-        assert(thread_id < m_thread_events.size());
-        return m_thread_events[thread_id];
+        return m_default_stream;
         }
 #endif
 
@@ -262,16 +294,35 @@ private:
         {
         return (unsigned int)m_gpu_available.size();
         }
-        
+
+    //! Reserve a reusable event
+    unsigned int acquireEvent() const;
+
+    //! Release a previously reserved event
+    void releaseEvent(unsigned int event_id) const;
+ 
+    //! Get a reusable event for concurrent kernel execution
+    cudaEvent_t getEvent(unsigned int event_id) const
+        {
+        assert(event_id < m_events.size());
+        return m_events[event_id];
+        }
+
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
 
-    mutable std::vector<cudaStream_t> m_thread_streams;     //!< CUDA Streams for kernel execution
-    mutable std::vector<cudaEvent_t> m_thread_events;       //!< Reusable events for every thread
+    mutable std::vector<cudaStream_t> m_streams;     //!< CUDA Streams for kernel execution
+    mutable std::vector<bool> m_stream_in_use;       //!< List of flags that indicate if a stream is in use
+    cudaStream_t m_default_stream;                   //!< The default stream for kernel execution
+
+    mutable std::vector<cudaEvent_t> m_events;       //!< Reusable events for every thread
+    mutable std::vector<bool> m_event_in_use;        //!< List of flags that indicate if a stream is in use
     mutable boost::mutex m_mutex;                   //!< Lock for thread-safe requesting of streams
 
     int m_gpu_id;                          //!< The device hoomd is running on
+
+    friend class GPUEventHandle;
 #endif
   
 #ifdef ENABLE_MPI
