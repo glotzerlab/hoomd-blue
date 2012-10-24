@@ -117,9 +117,6 @@ ghost_gpu_thread::~ghost_gpu_thread()
 //! Main routine of ghost update worker thread
 void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
     {
-    // initialize the GPU in this thread
-    m_exec_conf->initializeGPUThread();
-
     bool done = false;
     while (! done)
         {
@@ -244,8 +241,6 @@ CommunicatorGPU::~CommunicatorGPU()
         // finish worker thread
         m_worker_thread.interrupt();
         m_worker_thread.join();
-
-        m_exec_conf->releaseStream(m_stream);
         }
 
     }
@@ -268,8 +263,6 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
                                                          this),
                                         boost::ref(m_work_queue), boost::ref(m_barrier));
         m_thread_created = true;
-
-        m_stream = m_exec_conf->acquireStream();
         }
 
         unsigned int n_tot_local_ghosts = 0;
@@ -319,7 +312,7 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
                             d_n_local_ghosts_corner.data,
                             d_n_local_ghosts_edge.data,
                             d_n_local_ghosts_face.data,
-                            m_exec_conf->getStream(m_stream));
+                            m_exec_conf->getDefaultStream());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -328,7 +321,7 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
         {
         // copy data from device to host
         GPUEventHandle ev(m_exec_conf);
-        cudaStream_t stream = m_exec_conf->getStream(m_stream);
+        cudaStream_t stream = m_exec_conf->getDefaultStream();
 
         ArrayHandle<char> d_corner_update_buf(m_corner_update_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_edge_update_buf(m_edge_update_buf, access_location::device, access_mode::read);
@@ -417,7 +410,7 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
         unsigned int fpitch = m_face_update_buf.getPitch();
         unsigned int epitch = m_edge_update_buf.getPitch();
 
-        cudaStream_t stream = m_exec_conf->getStream(m_stream);
+        cudaStream_t stream = m_exec_conf->getDefaultStream();
 
         // copy data back host->device as needed
         unsigned int element_size = gpu_update_element_size();
@@ -478,7 +471,7 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
                                  d_pos.data,
                                  d_ghost_plan.data,
                                  m_pdata->getGlobalBox(),
-                                 m_exec_conf->getStream(m_stream));
+                                 m_exec_conf->getDefaultStream());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

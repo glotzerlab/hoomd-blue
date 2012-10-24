@@ -224,14 +224,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
-        // destroy streams
-        while (! m_streams.empty())
-            {
-            cudaStream_t s = m_streams.back();
-            cudaStreamDestroy(s);
-            m_streams.pop_back();
-            }
-
+        // destroy stream
         cudaStreamDestroy(m_default_stream);
 
         // destroy events
@@ -478,8 +471,6 @@ void ExecutionConfiguration::printGPUStats()
     // start with the device ID and name
     int dev;
     cudaGetDevice(&dev);
-
-    m_gpu_id = dev;
 
     s << " Rank " << getRank();
     s << " [" << dev << "]";
@@ -813,54 +804,12 @@ unsigned int ExecutionConfiguration::getNRanks() const
 #endif 
 
 #ifdef ENABLE_CUDA
-/*! Returns a unique, reusable stream id
- */
-unsigned int ExecutionConfiguration::acquireStream() const
-{
-    assert(exec_mode == GPU);
-   
-    // make this routine thread-safe
-    boost::mutex::scoped_lock l(m_mutex);
-
-    for (unsigned int stream_id = 0; stream_id < m_stream_in_use.size(); ++stream_id)
-        if (m_stream_in_use[stream_id] == false)
-            {
-            // reuse that stream
-            m_stream_in_use[stream_id] = true;
-            return stream_id;
-            break;
-            }
-
-    // there was no free stream, add a new one to the pool
-    msg->notice(6) << "Creating CUDA stream (" << m_streams.size() << ")" << std::endl;
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
-    checkCUDAError(__FILE__, __LINE__);
-
-    unsigned int stream_id = m_streams.size();
-    m_streams.push_back(stream);
-    m_stream_in_use.push_back(true);
-    
-    return stream_id;
-    }
-
-//! Release a previously reserved stream
-void ExecutionConfiguration::releaseStream(unsigned int stream_id) const
-    {
-    assert(m_streams.size() > stream_id);
-    assert(m_stream_in_use[stream_id]);
-    m_stream_in_use[stream_id] = false;
-    }
-
 /*! Returns a unique, reusable event id
  */
 unsigned int ExecutionConfiguration::acquireEvent() const
     {
     assert(exec_mode == GPU);
    
-    // make this routine thread-safe
-    boost::mutex::scoped_lock l(m_mutex);
-
     for (unsigned int event_id = 0; event_id < m_event_in_use.size(); ++event_id)
         if (m_event_in_use[event_id] == false)
             {
@@ -889,13 +838,6 @@ void ExecutionConfiguration::releaseEvent(unsigned int event_id) const
     assert(m_events.size() > event_id);
     assert(m_event_in_use[event_id]);
     m_event_in_use[event_id] = false;
-    }
-
-//! Initialize the GPU at thread startup
-void ExecutionConfiguration::initializeGPUThread() const
-    {
-    cudaSetDevice(m_gpu_id);
-    checkCUDAError(__FILE__, __LINE__);
     }
 #endif
 

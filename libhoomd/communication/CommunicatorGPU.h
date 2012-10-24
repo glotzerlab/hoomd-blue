@@ -298,9 +298,6 @@ class CommunicatorGPU : public Communicator
         WorkQueue<ghost_gpu_thread_params> m_work_queue; //!< The queue of parameters processed by the worker thread
         boost::barrier m_barrier;                   //!< Barrier to synchronize with worker thread
 
-        cudaEvent_t m_event;                        //!< A CUDA event
-        unsigned int m_stream;                      //!< CUDA stream id
-
 #ifdef MPI3
         MPI_Group m_comm_group;                     //!< Group corresponding to MPI communicator
         MPI_Win m_win_edge[12];                     //!< Shared memory windows for every of the 12 edges

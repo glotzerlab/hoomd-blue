@@ -56,8 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/locks.hpp>
 
 #ifdef ENABLE_CUDA
 #include <cuda.h>
@@ -163,22 +161,6 @@ struct ExecutionConfiguration : boost::noncopyable
 #endif
 
 #ifdef ENABLE_CUDA
-    //! Initialize the GPU at thread startup
-    void initializeGPUThread() const;
-
-    //! Reserve a reusable stream
-    unsigned int acquireStream() const;
-
-    //! Release a previously reserved stream
-    void releaseStream(unsigned int stream_id) const;
-
-    //! Get a reusable stream for concurrent kernel execution
-    inline cudaStream_t getStream(unsigned int stream_id) const
-        {
-        assert(stream_id < m_streams.size());
-        return m_streams[stream_id];
-        }
-
     //! Get the default stream
     inline cudaStream_t getDefaultStream() const
         {
@@ -312,15 +294,10 @@ private:
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
 
-    mutable std::vector<cudaStream_t> m_streams;     //!< CUDA Streams for kernel execution
-    mutable std::vector<bool> m_stream_in_use;       //!< List of flags that indicate if a stream is in use
     cudaStream_t m_default_stream;                   //!< The default stream for kernel execution
 
     mutable std::vector<cudaEvent_t> m_events;       //!< Reusable events for every thread
     mutable std::vector<bool> m_event_in_use;        //!< List of flags that indicate if a stream is in use
-    mutable boost::mutex m_mutex;                   //!< Lock for thread-safe requesting of streams
-
-    int m_gpu_id;                          //!< The device hoomd is running on
 
     friend class GPUEventHandle;
 #endif
