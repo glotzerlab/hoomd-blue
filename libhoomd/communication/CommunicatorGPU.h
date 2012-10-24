@@ -82,18 +82,13 @@ struct ghost_gpu_thread_params
                             char *_face_update_buf_handle,             
                             const unsigned int _face_update_buf_pitch, 
                             char *_update_recv_buf_handle,             
-                            unsigned int *_d_ghost_plan,
-                            const unsigned int _N,                     
                             const unsigned int _recv_ghosts_local_size,
                             const GPUArray<unsigned int>& _n_recv_ghosts_edge,
                             const GPUArray<unsigned int>& _n_recv_ghosts_face,
                             const GPUArray<unsigned int>& _n_recv_ghosts_local,
                             const GPUArray<unsigned int>& _n_local_ghosts_corner,  
                             const GPUArray<unsigned int>& _n_local_ghosts_edge,  
-                            const GPUArray<unsigned int>& _n_local_ghosts_face,  
-                            Scalar4 *_pos_handle,                      
-                            const BoxDim& _global_box,
-                            const unsigned int _stream)
+                            const GPUArray<unsigned int>& _n_local_ghosts_face)
         : corner_update_buf_handle(_corner_update_buf_handle),
           corner_update_buf_pitch(_corner_update_buf_pitch),
           edge_update_buf_handle(_edge_update_buf_handle),
@@ -101,18 +96,13 @@ struct ghost_gpu_thread_params
           face_update_buf_handle(_face_update_buf_handle),
           face_update_buf_pitch(_face_update_buf_pitch),
           update_recv_buf_handle(_update_recv_buf_handle),
-          d_ghost_plan(_d_ghost_plan),
-          N(_N),
           recv_ghosts_local_size(_recv_ghosts_local_size),
           n_recv_ghosts_edge(_n_recv_ghosts_edge),
           n_recv_ghosts_face(_n_recv_ghosts_face),
           n_recv_ghosts_local(_n_recv_ghosts_local),
           n_local_ghosts_corner(_n_local_ghosts_corner),
           n_local_ghosts_edge(_n_local_ghosts_edge),
-          n_local_ghosts_face(_n_local_ghosts_face),
-          pos_handle(_pos_handle),
-          global_box(_global_box),
-          stream(_stream)
+          n_local_ghosts_face(_n_local_ghosts_face)
         { }
 
     char *corner_update_buf_handle;            //!< Send/recv buffer for ghosts that are updated over a corner
@@ -122,8 +112,6 @@ struct ghost_gpu_thread_params
     char *face_update_buf_handle;             //!< Send/recv buffer for ghosts that are updated over a face
     const unsigned int face_update_buf_pitch; //!< Pitch of face ghost update buffer
     char *update_recv_buf_handle;             //!< Buffer for ghosts received for the local box
-    unsigned int *d_ghost_plan;               //!< Array of plans received ghosts
-    const unsigned int N;                     //!< Number of local particles
     const unsigned int recv_ghosts_local_size; //!< Size of receive buffer for ghosts addressed to the local domain
     const GPUArray<unsigned int> &n_recv_ghosts_edge;   //!< Number of ghosts received for updating over an edge
     const GPUArray<unsigned int> &n_recv_ghosts_face;   //!< Number of ghosts received for updating over a face
@@ -131,9 +119,6 @@ struct ghost_gpu_thread_params
     const GPUArray<unsigned int>& n_local_ghosts_corner;//!< Number of local ghosts sent over a corner
     const GPUArray<unsigned int>& n_local_ghosts_edge;  //!< Number of local ghosts sent over an edge
     const GPUArray<unsigned int>& n_local_ghosts_face;  //!< Number of local ghosts sent over a face
-    Scalar4 *pos_handle;                      //!< Device pointer to ghost positions array
-    const BoxDim& global_box;                 //!< Dimensions of global box
-    const unsigned int stream;                //!< Stream id to use for kernel execution
     };
 
 //! Forward declaration
@@ -154,11 +139,6 @@ class ghost_gpu_thread
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< The execution configuration
         CommunicatorGPU *m_communicator;                              //!< Pointer to the communciator that called the thread
-
-        char *h_recv_buf;                                             //!< Host receive buffer
-        char *h_face_update_buf;                                      //!< Host buffer of particles that are sent through a face
-        char *h_edge_update_buf;                                      //!< Host buffer of particles that are sent over an edge
-        char *h_corner_update_buf;                                    //!< Host buffer of particles that are sent over a corner
 
         unsigned int m_recv_buf_size;                                 //!< Size of host receive buffer
         unsigned int m_face_update_buf_size;                          //!< Size of host send buffer for 'face' ptls
@@ -251,6 +231,11 @@ class CommunicatorGPU : public Communicator
         char *h_recv_buf;                           //!< Receive buffer (host)
         #endif
 
+        char *h_update_recv_buf;                    //!< Host receive buffer
+        char *h_face_update_buf;                    //!< Host buffer of particles that are sent through a face
+        char *h_edge_update_buf;                    //!< Host buffer of particles that are sent over an edge
+        char *h_corner_update_buf;                  //!< Host buffer of particles that are sent over a corner
+
         GPUArray<unsigned int> m_n_send_ptls_corner; //!< Number of particles sent over a corner
         GPUArray<unsigned int> m_n_send_ptls_edge;  //!< Number of particles sent over an edge
         GPUArray<unsigned int> m_n_send_ptls_face;  //!< Number of particles sent through a face
@@ -300,6 +285,8 @@ class CommunicatorGPU : public Communicator
 
         unsigned int m_n_tot_recv_ghosts;           //!< Total number of received ghots
         unsigned int m_n_tot_recv_ghosts_local;     //!< Total number of received ghosts for local box
+        unsigned int m_n_forward_ghosts_face[6];    //!< Total number of received ghosts for the face send buffer
+        unsigned int m_n_forward_ghosts_edge[12];   //!< Total number of received ghosts for the edge send buffer
 
         bool m_buffers_allocated;                   //!< True if buffers have been allocated
 
