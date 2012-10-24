@@ -164,7 +164,7 @@ struct ExecutionConfiguration : boost::noncopyable
     //! Get the default stream
     inline cudaStream_t getDefaultStream() const
         {
-        return m_default_stream;
+        return 0;
         }
 #endif
 
@@ -293,8 +293,6 @@ private:
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
-
-    cudaStream_t m_default_stream;                   //!< The default stream for kernel execution
 
     mutable std::vector<cudaEvent_t> m_events;       //!< Reusable events for every thread
     mutable std::vector<bool> m_event_in_use;        //!< List of flags that indicate if a stream is in use
