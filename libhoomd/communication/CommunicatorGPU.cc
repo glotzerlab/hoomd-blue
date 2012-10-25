@@ -390,16 +390,6 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
 
-    // release locked arrays
-    m_face_update_buf.release();
-    m_edge_update_buf.release();
-    m_corner_update_buf.release();
-
-    m_ghost_plan.release();
-
-    m_update_recv_buf.release();
-    m_pdata->getPositions().release();
-
         {
         ArrayHandle<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
