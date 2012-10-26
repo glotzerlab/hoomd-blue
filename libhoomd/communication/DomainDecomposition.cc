@@ -84,9 +84,9 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         bool found_decomposition = findDecomposition(L, nx, ny, nz);
         if (! found_decomposition)
             {
-            m_exec_conf->msg->error() << "***Warning! Unable to find a decomposition of total number of domains == "
-                 << m_exec_conf->getNRanks()
-                 << endl << "with requested dimensions. Choosing default decomposition.";
+            m_exec_conf->msg->error() << "***Warning! Unable to find a decomposition "
+                 << endl << "with requested dimensions. Choosing default decomposition."
+                 << endl;
 
             nx = ny = nz = 0;
             findDecomposition(L, nx,ny,nz);

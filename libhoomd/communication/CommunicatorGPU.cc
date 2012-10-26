@@ -388,7 +388,6 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
     if (m_prof) m_prof->push("copy_ghosts");
     m_barrier.wait();
 
-    if (m_prof) m_prof->pop();
 
         {
         ArrayHandle<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
@@ -467,6 +466,7 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
             CHECK_CUDA_ERROR();
         }
 
+    if (m_prof) m_prof->pop();
     }
 
 void CommunicatorGPU::allocateBuffers()
