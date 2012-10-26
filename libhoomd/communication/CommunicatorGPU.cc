@@ -632,7 +632,7 @@ void CommunicatorGPU::deallocateBuffers()
     cudaFreeHost(h_face_update_buf);
     cudaFreeHost(h_edge_update_buf);
     cudaFreeHost(h_corner_update_buf);
-    cudaFreeHost(h_recv_buf);
+    cudaFreeHost(h_update_recv_buf);
     } 
 
 //! Transfer particles between neighboring domains
