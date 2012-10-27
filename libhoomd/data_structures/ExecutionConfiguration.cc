@@ -155,7 +155,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
 
 #ifdef ENABLE_MPI
     m_partition = 0;
-    m_has_mpi_comm = false;
+    m_has_initialized_mpi = false;
     if (init_mpi)
         initializeMPI(n_ranks);
 #endif
@@ -209,7 +209,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
 #ifdef ENABLE_MPI
     m_partition = 0;
-    m_has_mpi_comm = false;
+    m_has_initialized_mpi = false;
     if (init_mpi)
         initializeMPI(n_ranks);
 #endif
@@ -242,7 +242,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #endif
  
     #ifdef ENABLE_MPI
-    if (m_has_mpi_comm) MPI_Finalize();
+    if (m_has_initialized_mpi) MPI_Finalize();
     #endif
 
     #if defined(ENABLE_CUDA) && defined(ENABLE_MPI_CUDA)
@@ -312,7 +312,7 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     msg->setRank(rank, m_partition);
     msg->setMPICommunicator(m_mpi_comm);
 
-    m_has_mpi_comm = true;
+    m_has_initialized_mpi = true;
     }
 #endif
 

@@ -250,7 +250,6 @@ struct ExecutionConfiguration : boost::noncopyable
     void setMPICommunicator(const MPI_Comm mpi_comm)
         {
         m_mpi_comm = mpi_comm;
-        m_has_mpi_comm = true;
         } 
 #endif
 
@@ -306,7 +305,7 @@ private:
     unsigned int m_partition;                               //!< The partition number
 
     MPI_Comm m_mpi_comm;                                    //!< The MPI communicator
-    bool m_has_mpi_comm;                                    //!< True if we have a communicator
+    bool m_has_initialized_mpi;                             //!< True if we have initialized MPI ourselves
 #endif
 
     unsigned int m_rank;                                    //!< Rank of this processor (0 if running in single-processor mode)
