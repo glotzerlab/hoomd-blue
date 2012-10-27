@@ -106,7 +106,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -237,7 +237,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
 
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
@@ -492,7 +492,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
@@ -1305,7 +1305,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // width of ghost layer
@@ -1403,7 +1403,6 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     if (exec_conf_1->getRank() == 0)
         std::cout << "Begin random communication test" << std::endl;
 
-    // this test needs to be run on eight processors
     unsigned int n = 1000;
     // create a system with eight particles
     shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
@@ -1441,8 +1440,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         }
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1, pdata_1->getBox().getL(), 0));
-    boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2, pdata_2->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1, pdata_1->getBox().getL()));
+    boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2, pdata_2->getBox().getL()));
 
     boost::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
     boost::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
