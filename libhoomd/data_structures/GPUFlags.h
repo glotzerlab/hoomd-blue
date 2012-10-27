@@ -365,8 +365,11 @@ template<class T> const T GPUFlags<T>::readFlags()
         }
     else
         {
-        // memcpy the results to the host
-        cudaMemcpy(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost);
+        if (m_exec_conf->isCUDAEnabled())
+            {
+            // memcpy the results to the host
+            cudaMemcpy(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost);
+            }
         }
 #endif    
 
@@ -419,8 +422,11 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         // set the flags
         *h_data = flags;
 #ifdef ENABLE_CUDA
-        // copy to the device
-        cudaMemcpy(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice);
+        if (m_exec_conf->isCUDAEnabled())
+            {
+            // copy to the device
+            cudaMemcpy(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice);
+            }
 #endif
         }
     }

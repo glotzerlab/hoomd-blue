@@ -610,6 +610,8 @@ def _perform_common_init_tasks(mpi_options=None):
 # \internal
 # Given an initializer, create a particle data with a properly configured ExecutionConfiguration
 def _create_exec_conf():
+    mpi_available = hoomd.is_MPI_available();
+    
     # set the openmp thread limits
     if globals.options.ncpu is not None:
         if globals.options.ncpu > hoomd.get_num_procs():
@@ -618,8 +620,11 @@ def _create_exec_conf():
 
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:
-        if globals.options.nrank is not None:
-            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
+        if mpi_available:
+            if globals.options.nrank is not None:
+                exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank);
+            else:
+                exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg,True);
         else:
             exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
     else:
@@ -631,13 +636,19 @@ def _create_exec_conf():
         
         # create the specified configuration
         if globals.options.mode == "cpu":
-            if globals.options.nrank is not None:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank); 
+            if mpi_available:
+                if globals.options.nrank is not None:
+                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank); 
+                else:
+                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True);
             else:
                 exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
         elif globals.options.mode == "gpu":
-            if globals.options.nrank is not None:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg,globals.options.nrank);
+            if mpi_available:
+                if globals.options.nrank is not None:
+                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank);
+                else:
+                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True);
             else:
                 exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
         else:

@@ -133,8 +133,8 @@ struct ExecutionConfiguration : boost::noncopyable
                            bool ignore_display=false,
                            boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
 #ifdef ENABLE_MPI
-                           , unsigned int n_ranks = 0,
-                           bool init_mpi = true
+                           , bool init_mpi = false,
+                           unsigned int n_ranks = 0
 #endif
                            );
     
@@ -145,8 +145,8 @@ struct ExecutionConfiguration : boost::noncopyable
                            bool ignore_display=false,
                            boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
 #ifdef ENABLE_MPI
-                           , unsigned int n_ranks = 0,
-                           bool init_mpi = true
+                           , bool init_mpi = false,
+                           unsigned int n_ranks = 0
 #endif
                            );
     

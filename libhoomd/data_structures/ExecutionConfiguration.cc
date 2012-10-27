@@ -117,8 +117,8 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
                                                bool ignore_display,
                                                boost::shared_ptr<Messenger> _msg
 #ifdef ENABLE_MPI
-                                               , unsigned int n_ranks,
-                                               bool init_mpi
+                                               , bool init_mpi,
+                                               unsigned int n_ranks
 #endif
                                                )
     : m_cuda_error_checking(false), msg(_msg)
@@ -178,8 +178,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool ignore_display,
                                                boost::shared_ptr<Messenger> _msg
 #ifdef ENABLE_MPI
-                                               , unsigned int n_ranks,
-                                               bool init_mpi
+                                               , bool init_mpi,
+                                               unsigned int n_ranks
 #endif
                                                )
     : m_cuda_error_checking(false), msg(_msg)
@@ -843,7 +843,8 @@ void export_ExecutionConfiguration()
 #endif 
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
 #ifdef ENABLE_MPI
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, bool >())
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, bool, unsigned int >())
 #endif
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
