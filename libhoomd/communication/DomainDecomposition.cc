@@ -232,7 +232,7 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     uchar3 periodic = make_uchar3(m_nx == 1 ? 1 : 0,
                                   m_ny == 1 ? 1 : 0,
                                   m_nz == 1 ? 1 : 0);
- 
+
     return BoxDim(lo, hi, periodic);
     }
 

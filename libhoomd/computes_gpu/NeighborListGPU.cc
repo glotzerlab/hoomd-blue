@@ -205,8 +205,8 @@ bool NeighborListGPU::distanceCheck()
 
     // maximum displacement for each particle (after subtraction of homogeneous dilations)
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
-    Scalar maxshiftsq = delta_max*delta_max;
-   
+    Scalar maxshiftsq = delta_max > 0  ? delta_max*delta_max : 0;
+ 
     gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
                                      d_last_pos.data,
                                      d_pos.data,

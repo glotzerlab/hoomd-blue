@@ -309,8 +309,8 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         m_prepared = true;
         
 #ifdef ENABLE_MPI
-    if (m_comm)
-        m_comm->communicate(timestep);
+        if (m_comm)
+            m_comm->communicate(timestep);
 #endif
 
         // net force is always needed (ticket #393)

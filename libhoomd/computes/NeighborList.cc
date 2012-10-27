@@ -733,7 +733,7 @@ bool NeighborList::distanceCheck()
 
     // maximum displacement for each particle (after subtraction of homogeneous dilations)
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
-    Scalar maxsq = delta_max*delta_max;
+    Scalar maxsq = delta_max > 0  ? delta_max*delta_max : 0;
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
