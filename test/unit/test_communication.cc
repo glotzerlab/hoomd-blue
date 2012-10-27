@@ -20,6 +20,8 @@
 
 using namespace boost;
 
+char env_str[] = "MV2_USE_CUDA=1";
+
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef boost::function<shared_ptr<Communicator> (shared_ptr<SystemDefinition> sysdef,
                                                   shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
@@ -48,11 +50,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    if (size != 8)
-        {
-        std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
-        throw std::runtime_error("Error setting up unit test");
-        }
+    BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
@@ -180,12 +178,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
- 
-    if (size != 8)
-        {
-        std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
-        throw std::runtime_error("Error setting up unit test");
-        }
+    BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
@@ -450,11 +443,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    if (size != 8)
-        {
-        std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
-        throw std::runtime_error("Error setting up unit test");
-        }
+    BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
@@ -1267,12 +1256,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    if (size != 8)
-        {
-        std::cerr << "***Error! This test needs to be run on 8 processors.\n" << endl << endl;
-        throw std::runtime_error("Error setting up unit test");
-        }
+    BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
@@ -1410,6 +1394,183 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
         }
     }
 
+void test_communicator_compare(communicator_creator comm_creator_1,
+                                 communicator_creator comm_creator_2,
+                                 shared_ptr<ExecutionConfiguration> exec_conf_1,
+                                 shared_ptr<ExecutionConfiguration> exec_conf_2)
+
+    {
+    if (exec_conf_1->getRank() == 0)
+        std::cout << "Begin random communication test" << std::endl;
+
+    // this test needs to be run on eight processors
+    unsigned int n = 1000;
+    // create a system with eight particles
+    shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
+                                                             BoxDim(2.0), // box dimensions
+                                                             1,           // number of particle types
+                                                             1,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf_1));
+    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,           // number of particles
+                                                             BoxDim(2.0), // box dimensions
+                                                             1,           // number of particle types
+                                                             1,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf_2));
+
+    shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
+    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+
+    Scalar3 lo = pdata_1->getBox().getLo();
+    Scalar3 hi = pdata_1->getBox().getHi();
+    Scalar3 L = pdata_1->getBox().getL();
+
+    SnapshotParticleData snap(n);
+    snap.num_particle_types = 1;
+    snap.type_mapping.push_back("A");
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        snap.pos[i] = make_scalar3(lo.x + (Scalar)rand()/(Scalar)RAND_MAX*L.x,
+                                   lo.y + (Scalar)rand()/(Scalar)RAND_MAX*L.y,
+                                   lo.z + (Scalar)rand()/(Scalar)RAND_MAX*L.z);
+        }
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1, pdata_1->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2, pdata_2->getBox().getL(), 0));
+
+    boost::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
+    boost::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
+
+    // width of ghost layer
+    Scalar ghost_layer_width = Scalar(0.2);
+    comm_1->setGhostLayerWidth(ghost_layer_width);
+    comm_2->setGhostLayerWidth(ghost_layer_width);
+
+    pdata_1->setDomainDecomposition(decomposition_1);
+    pdata_2->setDomainDecomposition(decomposition_2);
+
+    // distribute particle data on processors
+    pdata_1->initializeFromSnapshot(snap);
+    pdata_2->initializeFromSnapshot(snap);
+
+    comm_1->migrateAtoms();
+    comm_1->exchangeGhosts();
+    comm_2->migrateAtoms();
+    comm_2->exchangeGhosts();
+
+    // both communicators should replicate the same number of ghosts
+    BOOST_CHECK_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
+
+    double tol_small = 0.0001;
+    {
+    ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos_1(pdata_1->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag_2(pdata_2->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos_2(pdata_2->getPositions(), access_location::host, access_mode::read);
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        bool has_ghost_1 = false, has_ghost_2 = false; 
+
+        if (h_rtag_1.data[i] >= pdata_1->getN() && h_rtag_1.data[i] < pdata_1->getN() + pdata_1->getNGhosts())
+            has_ghost_1 = true;
+
+        if (h_rtag_2.data[i] >= pdata_2->getN() && h_rtag_2.data[i] < pdata_2->getN() + pdata_2->getNGhosts())
+            has_ghost_2 = true;
+
+        // ghost has to either be present in both systems or not present
+        BOOST_CHECK((! has_ghost_1 && !has_ghost_2) || (has_ghost_1 && has_ghost_2));
+
+        if (has_ghost_1 && has_ghost_2)
+            {
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_small);
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_small);
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_small);
+            }
+        }
+    }
+    // wiggle every particle around
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        Scalar3 pos = make_scalar3(snap.pos[i].x + (2.0*(Scalar)rand()/(Scalar)RAND_MAX-1.0)*0.1,
+                                   snap.pos[i].y + (2.0*(Scalar)rand()/(Scalar)RAND_MAX-1.0)*0.1,
+                                   snap.pos[i].z + (2.0*(Scalar)rand()/(Scalar)RAND_MAX-1.0)*0.1);
+        pdata_1->setPosition(i, pos);
+        pdata_2->setPosition(i, pos);
+        }
+
+    // udpate ghosts
+    comm_1->startGhostsUpdate(0);
+    comm_1->finishGhostsUpdate(0);
+    comm_2->startGhostsUpdate(0);
+    comm_2->finishGhostsUpdate(0);
+
+    {
+    ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos_1(pdata_1->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag_2(pdata_2->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos_2(pdata_2->getPositions(), access_location::host, access_mode::read);
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        bool has_ghost_1 = false, has_ghost_2 = false; 
+
+        if (h_rtag_1.data[i] >= pdata_1->getN() && h_rtag_1.data[i] < pdata_1->getN() + pdata_1->getNGhosts())
+            has_ghost_1 = true;
+
+        if (h_rtag_2.data[i] >= pdata_2->getN() && h_rtag_2.data[i] < pdata_2->getN() + pdata_2->getNGhosts())
+            has_ghost_2 = true;
+
+        // ghost has to either be present in both systems or not present
+        BOOST_CHECK((! has_ghost_1 && !has_ghost_2) || (has_ghost_1 && has_ghost_2));
+
+        if (has_ghost_1 && has_ghost_2)
+            {
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_small);
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_small);
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_small);
+            }
+        }
+    }
+
+    // test if particle migrate gives consistent results
+    comm_1->migrateAtoms();
+    comm_2->migrateAtoms();
+
+    BOOST_CHECK_EQUAL(pdata_1->getN(), pdata_2->getN());
+
+    {
+    ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos_1(pdata_1->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag_2(pdata_2->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_pos_2(pdata_2->getPositions(), access_location::host, access_mode::read);
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        bool has_ptl_1 = false, has_ptl_2 = false; 
+
+        if (h_rtag_1.data[i] < pdata_1->getN()) has_ptl_1 = true;
+        if (h_rtag_2.data[i] < pdata_2->getN()) has_ptl_2 = true;
+
+        // ptl has to either be present in both systems or not present
+        BOOST_CHECK((! has_ptl_1 && !has_ptl_2) || (has_ptl_1 && has_ptl_2));
+
+        if (has_ptl_1 && has_ptl_2)
+            {
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_small);
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_small);
+            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_small);
+            }
+        }
+    }
+
+    if (exec_conf_1->getRank() == 0)
+        std::cout << "Finish random communication test" << std::endl;
+    }
+
 //! Communicator creator for unit tests
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                          shared_ptr<DomainDecomposition> decomposition)
@@ -1440,6 +1601,9 @@ struct MPISetup
         exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>(), 0, false));
 
         int provided;
+        #ifdef ENABLE_MPI_CUDA
+        putenv(env_str);
+        #endif
         MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
 #ifdef ENABLE_CUDA
@@ -1508,6 +1672,13 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
+    }
+
+BOOST_AUTO_TEST_CASE (communicator_compare_test )
+    {
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
+    communicator_creator communicator_creator_cpu = bind(base_class_communicator_creator, _1, _2);
+    test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_cpu, exec_conf_gpu);
     }
 #endif
 

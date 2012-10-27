@@ -776,8 +776,8 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
 
         const unsigned int ghost_size = sizeof(ghost_element_gpu);
 
-       // determine corner to send ptl to
-       if (count == 3)
+        // determine corner to send ptl to
+        if (count == 3)
             {
             // corner ptl
             unsigned int corner = 0;
