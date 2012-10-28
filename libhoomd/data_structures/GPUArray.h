@@ -1218,6 +1218,8 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
         return;
         };
 
+    m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
+
     resize2DHostArray(m_pitch, new_pitch, m_height, height);
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())

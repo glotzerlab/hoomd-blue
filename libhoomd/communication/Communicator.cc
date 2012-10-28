@@ -202,6 +202,8 @@ void Communicator::migrateAtoms()
     if (m_prof)
         m_prof->push("migrate_particles");
 
+    m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
+
     // wipe out reverse-lookup tag -> idx for old ghost atoms
         {
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -509,6 +511,8 @@ void Communicator::exchangeGhosts()
     if (m_prof)
         m_prof->push("exchange_ghosts");
 
+    m_exec_conf->msg->notice(7) << "Communicator: exchange ghosts" << std::endl;
+
     const BoxDim& box = m_pdata->getBox();
 
     // Sending ghosts proceeds in two stages:
@@ -778,6 +782,8 @@ void Communicator::copyGhosts()
     // to send to neighboring processors
     if (m_prof)
         m_prof->push("copy_ghosts");
+
+    m_exec_conf->msg->notice(7) << "Communicator: update ghosts" << std::endl;
 
     // update data in these arrays
 

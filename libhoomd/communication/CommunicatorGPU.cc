@@ -253,6 +253,8 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
     if (timestep < m_next_ghost_update)
         return;
 
+    m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost update" << std::endl;
+
     if (m_prof)
         m_prof->push("copy_ghosts");
 
@@ -640,6 +642,8 @@ void CommunicatorGPU::migrateAtoms()
     {
     if (m_prof)
         m_prof->push("migrate_particles");
+
+    m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
 
         {
         // Reset reverse lookup tags of old ghost atoms
@@ -1116,6 +1120,7 @@ void CommunicatorGPU::exchangeGhosts()
     if (m_prof)
         m_prof->push("exchange_ghosts");
 
+    m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
     assert(m_r_ghost < (m_pdata->getBox().getL().x));
     assert(m_r_ghost < (m_pdata->getBox().getL().y));
     assert(m_r_ghost < (m_pdata->getBox().getL().z));
