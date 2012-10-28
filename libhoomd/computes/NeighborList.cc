@@ -802,11 +802,12 @@ void NeighborList::setLastUpdatedPos()
 bool NeighborList::needsUpdating(unsigned int timestep)
     {
     if (m_last_checked_tstep == timestep)
-        {
-        // reset just in case the update has been forced after the last check has returned true
-        m_force_update = false;
-        return m_last_check_result;
-        }
+        if (!m_force_update || m_last_check_result)
+            {
+            // reset just in case the update has been forced after the last check has returned true
+            m_force_update = false;
+            return m_last_check_result;
+            }
 
     m_last_checked_tstep = timestep;
 
