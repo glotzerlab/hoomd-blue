@@ -50,7 +50,7 @@ boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
 //! Execution configuration on the CPU
 boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
 
-//! Test ghost particle communication
+//! Test that ghost particles are correctly included in the neighborlist
 void test_neighborlist_ghosts(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on two processors
@@ -186,6 +186,213 @@ void test_neighborlist_ghosts(communicator_creator comm_creator, shared_ptr<Exec
         }
     }
 
+void test_neighborlist_compare(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    unsigned int n = 1000;
+
+    // create two identical systems
+    shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,          // number of particles
+                                                             BoxDim(2.0), // box dimensions
+                                                             1,           // number of particle types
+                                                             0,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf));
+
+    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,          // number of particles
+                                                             BoxDim(2.0), // box dimensions
+                                                             1,           // number of particle types
+                                                             0,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf));
+
+
+    boost::shared_ptr<ParticleData> pdata_1(sysdef_1->getParticleData());
+    boost::shared_ptr<ParticleData> pdata_2(sysdef_2->getParticleData());
+
+    // initialize domain decomposition on system 1, but not on the other
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata_1->getBox().getL()));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef_1, decomposition);
+
+    pdata_1->setDomainDecomposition(decomposition);
+
+    // initialize both system with same random configuration
+    Scalar3 L = pdata_1->getGlobalBox().getL();
+    Scalar3 lo = pdata_1->getGlobalBox().getLo();
+
+    SnapshotParticleData snap(n);
+    snap.num_particle_types = 1;
+    snap.type_mapping.push_back("A");
+    for (unsigned int i = 0; i < n; ++i)
+        {
+        snap.pos[i] = make_scalar3(lo.x + (Scalar)rand()/(Scalar)RAND_MAX*L.x,
+                                   lo.y + (Scalar)rand()/(Scalar)RAND_MAX*L.y,
+                                   lo.z + (Scalar)rand()/(Scalar)RAND_MAX*L.z);
+        }
+
+
+    pdata_1->initializeFromSnapshot(snap);
+    pdata_2->initializeFromSnapshot(snap);
+
+    // Check that numbers of particles are identical
+    BOOST_CHECK_EQUAL(pdata_1->getNGlobal(),pdata_2->getN());
+
+    // width of ghost layer
+    Scalar ghost_layer_width = Scalar(0.25);
+    comm->setGhostLayerWidth(ghost_layer_width);
+
+    // set up ghost particles in system1
+    comm->migrateAtoms();
+    comm->exchangeGhosts();
+
+    // Set up cell & neighbor lists for both systems
+    shared_ptr<CellList> cell_list_1, cell_list_2;
+    if (exec_conf->isCUDAEnabled())
+        { 
+        cell_list_1 = shared_ptr<CellList>(new CellListGPU(sysdef_1));
+        cell_list_2 = shared_ptr<CellList>(new CellListGPU(sysdef_2));
+        }
+    else
+        {
+        cell_list_1 = shared_ptr<CellList>(new CellList(sysdef_1));
+        cell_list_2 = shared_ptr<CellList>(new CellList(sysdef_2));
+        }
+
+    Scalar r_cut=Scalar(0.2);
+    Scalar r_buff=Scalar(0.05);
+
+    shared_ptr<NeighborList> nlist_1, nlist_2;
+    if (exec_conf->isCUDAEnabled())
+        {
+        nlist_1 = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef_1,r_cut,r_buff,cell_list_1));
+        nlist_2 = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef_2,r_cut,r_buff,cell_list_2));
+        } 
+    else
+        {
+        nlist_1 = shared_ptr<NeighborList>(new NeighborListBinned(sysdef_1,r_cut,r_buff,cell_list_1));
+        nlist_2 = shared_ptr<NeighborList>(new NeighborListBinned(sysdef_2,r_cut,r_buff,cell_list_2));
+        }
+
+    // compute neighbor lists
+    nlist_1->compute(0);
+    nlist_2->compute(0);
+
+    ArrayHandle<unsigned int> nlist_array_1(nlist_1->getNListArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> nneigh_array_1(nlist_1->getNNeighArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> ghost_nlist_array_1(nlist_1->getGhostNListArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> ghost_nneigh_array_1(nlist_1->getNGhostNeighArray(), access_location::host, access_mode::read);
+
+    ArrayHandle<unsigned int> nlist_array_2(nlist_2->getNListArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> nneigh_array_2(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
+
+    ArrayHandle<unsigned int> h_tag_1(pdata_1->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag_2(pdata_2->getTags(), access_location::host, access_mode::read);
+
+    const Index2D& nli_1 = nlist_1->getNListIndexer();
+    const Index2D& nli_2 = nlist_2->getNListIndexer();
+
+    // compare neighbor lists
+    for (unsigned int tag = 0; tag < n; ++tag)
+        {
+        if (pdata_1->getOwnerRank(tag) == exec_conf->getRank())
+            {
+            // we own that particle
+            unsigned int idx_1 = pdata_1->getRTag(tag);
+            unsigned idx_2 = pdata_2->getRTag(tag);
+
+            // check that this particle has the same number of neighbors (ghost + regular) in both systems
+            unsigned int nneigh_1 = nneigh_array_1.data[idx_1] + ghost_nneigh_array_1.data[idx_1];
+            unsigned int nneigh_2 = nneigh_array_2.data[idx_2];
+            BOOST_CHECK_EQUAL(nneigh_1, nneigh_2);
+
+            // for all neighbors of particle idx_2 in system 2
+            for (unsigned int j = 0; j < nneigh_2; ++j)
+                {
+                unsigned int neigh_idx_2 = nlist_array_2.data[nli_2(idx_2,j)];
+                unsigned int neigh_tag = h_tag_2.data[neigh_idx_2];
+                unsigned int neigh_idx_1 = pdata_1->getRTag(neigh_tag);
+
+                // check that it occurs either as a ghost or regular neighbor of idx_1 in system 1
+                BOOST_CHECK(neigh_idx_1 < pdata_1->getN() + pdata_1->getNGhosts());
+
+                bool found = false;
+                for (unsigned int k = 0; k < nneigh_array_1.data[idx_1]; ++k)
+                    if (nlist_array_1.data[nli_1(idx_1, k)] == neigh_idx_1)
+                        {
+                        found = true;
+                        break;
+                        }
+
+                for (unsigned int k = 0; k < ghost_nneigh_array_1.data[idx_1]; ++k)
+                    if (ghost_nlist_array_1.data[nli_1(idx_1, k)] == neigh_idx_1)
+                        {
+                        found = true;
+                        break;
+                        }
+
+                BOOST_CHECK(found);
+                if (! found)
+                    {
+                    Scalar3 dr = pdata_2->getBox().minImage(pdata_2->getPosition(neigh_tag) - pdata_2->getPosition(tag));
+                    exec_conf->msg->warning() << "dr = " << sqrt(dot(dr,dr)) << std::endl;
+                    }
+                }
+
+            // for all neighbors of particle idx_1 in system 1
+            for (unsigned int j = 0; j < nneigh_array_1.data[idx_1]; ++j)
+                {
+                unsigned int neigh_idx_1 = nlist_array_1.data[nli_1(idx_1, j)];
+                unsigned int neigh_tag = h_tag_1.data[neigh_idx_1];
+                unsigned int neigh_idx_2 = pdata_2->getRTag(neigh_tag);
+
+                bool found = false;
+                //check that it is also a neighbor of ptl idx_2 in system 2
+                for (unsigned int k = 0; k < nneigh_array_2.data[idx_2]; ++k)
+                    if (nlist_array_2.data[nli_2(idx_2, k)] == neigh_idx_2)
+                        {
+                        found = true;
+                        break;
+                        }
+
+                BOOST_CHECK(found);
+                if (! found)
+                    {
+                    Scalar3 dr = pdata_2->getBox().minImage(pdata_2->getPosition(neigh_tag) - pdata_2->getPosition(tag));
+                    exec_conf->msg->warning() << "dr = " << sqrt(dot(dr,dr)) << std::endl;
+                    }
+ 
+                }
+
+            // for all ghost neighbors of particle idx_1 in system 1
+            for (unsigned int j = 0; j < ghost_nneigh_array_1.data[idx_1]; ++j)
+                {
+                unsigned int neigh_idx_1 = ghost_nlist_array_1.data[nli_1(idx_1, j)];
+                unsigned int neigh_tag = h_tag_1.data[neigh_idx_1];
+                unsigned int neigh_idx_2 = pdata_2->getRTag(neigh_tag);
+
+                bool found = false;
+                //check that it is also a neighbor of ptl idx_2 in system 2
+                for (unsigned int k = 0; k < nneigh_array_2.data[idx_2]; ++k)
+                    if (nlist_array_2.data[nli_2(idx_2, k)] == neigh_idx_2)
+                        {
+                        found = true;
+                        break;
+                        }
+
+                BOOST_CHECK(found);
+                if (! found)
+                    {
+                    Scalar3 dr = pdata_2->getBox().minImage(pdata_2->getPosition(neigh_tag) - pdata_2->getPosition(tag));
+                    exec_conf->msg->warning() << "dr = " << sqrt(dot(dr,dr)) << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
 //! Communicator creator for unit tests
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                          shared_ptr<DomainDecomposition> decomposition)
@@ -223,6 +430,7 @@ struct MPISetup
 
 #ifdef ENABLE_CUDA
         exec_conf_gpu->setMPICommunicator(MPI_COMM_WORLD);
+        exec_conf_gpu->setCUDAErrorChecking(true);
 #endif
         exec_conf_cpu->setMPICommunicator(MPI_COMM_WORLD);
         }
@@ -248,11 +456,17 @@ BOOST_AUTO_TEST_CASE( neighborlist_ghosts_test )
 
 #ifdef ENABLE_CUDA
 //! Tests particle distribution on GPU
-BOOST_AUTO_TEST_CASE( neighborlist_hosts_test_GPU )
+BOOST_AUTO_TEST_CASE( neighborlist_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_neighborlist_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
+
+BOOST_AUTO_TEST_CASE( neighborlist_compare_test_GPU )
+    {
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
+    test_neighborlist_compare(communicator_creator_gpu, exec_conf_gpu);
+    } 
 #endif
 
 #endif //ENABLE_MPI
