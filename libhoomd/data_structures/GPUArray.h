@@ -1167,6 +1167,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
         {
         m_num_elements = num_elements;
         allocate();
+        memclear();
         UNLOCK(m_mutex);
         return;
         };
@@ -1212,6 +1213,7 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
         {
         m_num_elements = num_elements;
         allocate();
+        memclear();
         m_pitch = new_pitch;
         m_height = height;
         UNLOCK(m_mutex);
