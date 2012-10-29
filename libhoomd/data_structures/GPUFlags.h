@@ -307,10 +307,10 @@ template<class T> void GPUFlags<T>::deallocate()
         }
     else
         {
-        delete[] h_data;
+        delete h_data;
         }
 #else
-    delete[] h_data;
+    delete h_data;
 #endif
         
     // set pointers to NULL
