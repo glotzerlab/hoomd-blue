@@ -711,7 +711,12 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                  we will reallocate with the current number of particles.
         */
         if (m_max_nparticles != m_nparticles)
-            reallocate(m_nparticles);
+            {
+            if (m_nparticles > 0)
+                reallocate(m_nparticles);
+            else
+                reallocate(1);
+            }
 
         // Load particle data
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);

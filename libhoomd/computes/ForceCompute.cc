@@ -83,7 +83,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     m_index_thread_partial(0)
     {
     assert(m_pdata);
-    assert(m_pdata->getN() > 0);
+    assert(m_pdata->getMaxN() > 0);
     
     // allocate data on the host
     unsigned int max_num_particles = m_pdata->getMaxN();
