@@ -738,13 +738,13 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_pos.data[idx] = make_scalar4(pos[idx].x,pos[idx].y, pos[idx].z, __int_as_scalar(type[idx]));
             h_vel.data[idx] = make_scalar4(vel[idx].x, vel[idx].y, vel[idx].z, mass[idx]);
             h_accel.data[idx] = accel[idx];
-            h_charge.data[idx] = snapshot.charge[idx];
-            h_diameter.data[idx] = snapshot.diameter[idx];
-            h_image.data[idx] = snapshot.image[idx];
+            h_charge.data[idx] = charge[idx];
+            h_diameter.data[idx] = diameter[idx];
+            h_image.data[idx] = image[idx];
             h_tag.data[idx] = tag[idx];
             h_rtag.data[tag[idx]] = idx;
-            h_body.data[idx] = snapshot.body[idx];
-            h_orientation.data[idx] = snapshot.orientation[idx];
+            h_body.data[idx] = body[idx];
+            h_orientation.data[idx] = orientation[idx];
             }
 
         // reset ghost particle number
