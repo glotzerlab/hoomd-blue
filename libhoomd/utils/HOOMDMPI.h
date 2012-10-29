@@ -182,7 +182,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
     MPI_Comm_rank(mpi_comm, &rank);
     MPI_Comm_size(mpi_comm, &size);
 
-    assert(in_values.size() == size);
+    assert(in_values.size() == (unsigned int) size);
 
     unsigned int recv_count;
     int *send_counts = NULL;

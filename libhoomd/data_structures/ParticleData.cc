@@ -584,7 +584,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector< std::vector<Scalar > > diameter_proc;         // Particle diameters array of every processor
         std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
-        std::vector< std::vector<unsigned int > > tag_proc; // Global tags of every processor
+        std::vector< std::vector<Scalar4> > orientation_proc;      // Orientations of every processor
+        std::vector< std::vector<unsigned int > > tag_proc;         // Global tags of every processor
         std::vector< unsigned int > N_proc;                        // Number of particles on every processor
  
         // resize to number of ranks in communicator
@@ -601,6 +602,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         diameter_proc.resize(size);
         image_proc.resize(size);
         body_proc.resize(size);
+        orientation_proc.resize(size);
         tag_proc.resize(size);
         N_proc.resize(size);
 
@@ -642,6 +644,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 diameter_proc[rank].push_back(snapshot.diameter[tag]);
                 image_proc[rank].push_back(snapshot.image[tag]);
                 body_proc[rank].push_back(snapshot.body[tag]);
+                orientation_proc[rank].push_back(snapshot.orientation[tag]);
                 tag_proc[rank].push_back(tag);
                 N_proc[rank]++;
                 }
@@ -676,6 +679,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector<Scalar> diameter;
         std::vector<int3> image;
         std::vector<unsigned int> body;
+        std::vector<Scalar4> orientation;
         std::vector<unsigned int> tag;
  
         // distribute particle data
@@ -688,8 +692,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         scatter_v(diameter_proc, diameter, root, mpi_comm);
         scatter_v(image_proc, image, root, mpi_comm);
         scatter_v(body_proc, body, root, mpi_comm);
-        scatter_v(image_proc, image, root, mpi_comm);
-        scatter_v(body_proc, body, root, mpi_comm);
+        scatter_v(orientation_proc, orientation, root, mpi_comm);
         scatter_v(tag_proc, tag, root, mpi_comm);
 
         // distribute number of particles
@@ -726,6 +729,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
 
@@ -740,6 +744,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_tag.data[idx] = tag[idx];
             h_rtag.data[tag[idx]] = idx;
             h_body.data[idx] = snapshot.body[idx];
+            h_orientation.data[idx] = snapshot.orientation[idx];
             }
 
         // reset ghost particle number
@@ -765,6 +770,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
 
@@ -785,6 +791,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_tag.data[tag] = tag;
             h_rtag.data[tag] = tag;
             h_body.data[tag] = snapshot.body[tag];
+            h_orientation.data[tag] = snapshot.orientation[tag];
             }
 
         // initialize number of particle types
@@ -826,6 +833,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     ArrayHandle< Scalar > h_charge(m_charge, access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
+    ArrayHandle< Scalar4 >  h_orientation(m_orientation, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::read);
 
 #ifdef ENABLE_MPI
@@ -841,6 +849,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         std::vector<Scalar> diameter(m_nparticles);
         std::vector<int3> image(m_nparticles);
         std::vector<unsigned int> body(m_nparticles);
+        std::vector<Scalar4> orientation(m_nparticles);
         std::vector<unsigned int> tag(m_nparticles);
         std::map<unsigned int, unsigned int> rtag_map;
 
@@ -855,6 +864,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             diameter[idx] = h_diameter.data[idx];
             image[idx] = h_image.data[idx];
             body[idx] = h_body.data[idx];
+            orientation[idx] = h_orientation.data[idx];
 
             // insert reverse lookup global tag -> idx
             rtag_map.insert(std::pair<unsigned int, unsigned int>(h_tag.data[idx], idx));
@@ -869,6 +879,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         std::vector< std::vector<Scalar > > diameter_proc;         // Particle diameters array of every processor
         std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
+        std::vector< std::vector<Scalar4 > > orientation_proc;     // Orientations of every processor
 
         std::vector< std::map<unsigned int, unsigned int> > rtag_map_proc; // List of reverse-lookup maps
 
@@ -886,6 +897,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         diameter_proc.resize(size);
         image_proc.resize(size);
         body_proc.resize(size);
+        orientation_proc.resize(size);
         rtag_map_proc.resize(size);
 
         unsigned int root = 0;
@@ -900,6 +912,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         gather_v(diameter, diameter_proc, root, mpi_comm);
         gather_v(image, image_proc, root, mpi_comm);
         gather_v(body, body_proc, root, mpi_comm);
+        gather_v(orientation, orientation_proc, root, mpi_comm);
 
         // gather the reverse-lookup maps
         gather_v(rtag_map, rtag_map_proc, root, mpi_comm);
@@ -939,6 +952,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 snapshot.diameter[tag] = diameter_proc[rank][idx];
                 snapshot.image[tag] = image_proc[rank][idx];
                 snapshot.body[tag] = body_proc[rank][idx];
+                snapshot.orientation[tag] = orientation_proc[rank][idx];
 
                 // make sure the position stored in the snapshot is within the boundaries
                 m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
@@ -961,6 +975,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.diameter[tag] = h_diameter.data[idx];
             snapshot.image[tag] = h_image.data[idx];
             snapshot.body[tag] = h_body.data[idx];
+            snapshot.orientation[tag] = h_orientation.data[idx];
             }
         }
 
@@ -1066,7 +1081,7 @@ unsigned int ParticleData::getOwnerRank(unsigned int tag) const
     MPI_Allreduce(&flag, &owner_rank, 1, MPI_INT, MPI_MAX, mpi_comm);
 
     assert (owner_rank >= 0);
-    assert (owner_rank < m_exec_conf->getNRanks());
+    assert ((unsigned int) owner_rank < m_exec_conf->getNRanks());
 
     return (unsigned int) owner_rank;
     }
@@ -1629,6 +1644,41 @@ void export_ParticleData()
     ;
     }
 
+//! Constructor for SnapshotParticleData
+SnapshotParticleData::SnapshotParticleData(unsigned int N)
+       : size(N), num_particle_types(0)
+    {
+    pos.resize(N);
+    vel.resize(N);
+    accel.resize(N);
+    type.resize(N);
+    mass.resize(N);
+    charge.resize(N);
+    diameter.resize(N);
+    image.resize(N);
+    body.resize(N);
+    orientation.resize(N);
+    size = N;
+
+    num_particle_types = 1;
+    type_mapping.push_back("A");
+    
+    // initialize with sensible default values
+    for (unsigned int i = 0; i < N; ++i)
+        { 
+        pos[i] = make_scalar3(0.0,0.0,0.0);
+        vel[i] = make_scalar3(0.0,0.0,0.0);
+        accel[i] = make_scalar3(0.0,0.0,0.0);
+        mass[i] = Scalar(1.0);
+        image[i] = make_int3(0,0,0);
+        type[i] = 0;
+        diameter[i] = Scalar(1.0);
+        charge[i] = Scalar(0.0);
+        body[i] = NO_BODY;
+        orientation[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
+        }
+    }
+ 
 void export_SnapshotParticleData()
     {
     class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData>, boost::noncopyable>("SnapshotParticleData", init<unsigned int>())

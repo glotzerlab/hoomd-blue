@@ -219,20 +219,7 @@ struct SnapshotParticleData {
     //! constructor
     /*! \param N number of particles to allocate memory for
      */
-    SnapshotParticleData(unsigned int N)
-       : size(N), num_particle_types(0)
-       {
-       pos.resize(N);
-       vel.resize(N);
-       accel.resize(N);
-       type.resize(N);
-       mass.resize(N);
-       charge.resize(N);
-       diameter.resize(N);
-       image.resize(N);
-       body.resize(N);
-       size = N;
-       }
+    SnapshotParticleData(unsigned int N);
 
     std::vector<Scalar3> pos;       //!< positions
     std::vector<Scalar3> vel;       //!< velocities
@@ -243,6 +230,7 @@ struct SnapshotParticleData {
     std::vector<Scalar> diameter;   //!< diameters
     std::vector<int3> image;        //!< images
     std::vector<unsigned int> body; //!< body ids
+    std::vector<Scalar4> orientation; //!< orientations
     unsigned int size;              //!< number of particles in this snapshot
     unsigned int num_particle_types;//!< Number of particle types defined
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
