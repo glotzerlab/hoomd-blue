@@ -8,9 +8,14 @@
 #include "System.h"
 
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 
 #include "Communicator.h"
 #include "DomainDecomposition.h"
+
+#include "ConstForceCompute.h"
+#include "TwoStepNVE.h"
+#include "IntegratorTwoStep.h"
 
 #ifdef ENABLE_CUDA
 #include "CommunicatorGPU.h"
@@ -1394,6 +1399,13 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
         }
     }
 
+bool migrate_request(unsigned int timestep)
+    {
+    // every third step migrate particles etc. (we do not have a neighbor list in place,
+    // so we have to 'simulate' the particle displacement check)
+    return (timestep %3 == 0);
+    }
+
 void test_communicator_compare(communicator_creator comm_creator_1,
                                  communicator_creator comm_creator_2,
                                  shared_ptr<ExecutionConfiguration> exec_conf_1,
@@ -1401,9 +1413,9 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     {
     if (exec_conf_1->getRank() == 0)
-        std::cout << "Begin random communication test" << std::endl;
+        std::cout << "Begin random ghosts test" << std::endl;
 
-    unsigned int n = 1000;
+    unsigned int n = 100000;
     // create a system with eight particles
     shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
                                                              BoxDim(2.0), // box dimensions
@@ -1430,8 +1442,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     Scalar3 L = pdata_1->getBox().getL();
 
     SnapshotParticleData snap(n);
-    snap.num_particle_types = 1;
-    snap.type_mapping.push_back("A");
+
+    srand(12345);
     for (unsigned int i = 0; i < n; ++i)
         {
         snap.pos[i] = make_scalar3(lo.x + (Scalar)rand()/(Scalar)RAND_MAX*L.x,
@@ -1439,7 +1451,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                    lo.z + (Scalar)rand()/(Scalar)RAND_MAX*L.z);
         }
 
-    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    // initialize dommain decomposition on processor with rank 0
     boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1, pdata_1->getBox().getL()));
     boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2, pdata_2->getBox().getL()));
 
@@ -1458,116 +1470,85 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     pdata_1->initializeFromSnapshot(snap);
     pdata_2->initializeFromSnapshot(snap);
 
-    comm_1->migrateAtoms();
-    comm_1->exchangeGhosts();
-    comm_2->migrateAtoms();
-    comm_2->exchangeGhosts();
+    // Create ConstForceComputes
+    boost::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
+    boost::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 
-    // both communicators should replicate the same number of ghosts
-    BOOST_CHECK_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
+    shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
-    double tol_small = 0.0001;
-    {
-    ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_pos_1(pdata_1->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag_2(pdata_2->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_pos_2(pdata_2->getPositions(), access_location::host, access_mode::read);
-    for (unsigned int i = 0; i < n; ++i)
+    shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
+    shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
+
+    shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));
+    shared_ptr<TwoStepNVE> two_step_nve_2(new TwoStepNVE(sysdef_2, group_all_2));
+
+    Scalar deltaT=0.001;
+    shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT));
+    shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT));
+    nve_up_1->addIntegrationMethod(two_step_nve_1);
+    nve_up_2->addIntegrationMethod(two_step_nve_2);
+
+    nve_up_1->addForceCompute(fc_1);
+    nve_up_2->addForceCompute(fc_2);
+
+    comm_1->addMigrateRequest(bind(&migrate_request,_1));
+    comm_2->addMigrateRequest(bind(&migrate_request,_1));
+
+    nve_up_1->setCommunicator(comm_1);
+    nve_up_2->setCommunicator(comm_2);
+
+    nve_up_1->prepRun(0);
+    nve_up_2->prepRun(0);
+    exec_conf_1->msg->notice(1) << "Running 1000 steps..." << std::endl;
+    for (unsigned int step = 0; step < 1000; ++step)
         {
-        bool has_ghost_1 = false, has_ghost_2 = false; 
+        if (step % 50 == 0)
+            exec_conf_1->msg->notice(1) << "Step " << step << std::endl;
 
-        if (h_rtag_1.data[i] >= pdata_1->getN() && h_rtag_1.data[i] < pdata_1->getN() + pdata_1->getNGhosts())
-            has_ghost_1 = true;
+        // both communicators should replicate the same number of ghosts
+        BOOST_CHECK_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
 
-        if (h_rtag_2.data[i] >= pdata_2->getN() && h_rtag_2.data[i] < pdata_2->getN() + pdata_2->getNGhosts())
-            has_ghost_2 = true;
-
-        // ghost has to either be present in both systems or not present
-        BOOST_CHECK((! has_ghost_1 && !has_ghost_2) || (has_ghost_1 && has_ghost_2));
-
-        if (has_ghost_1 && has_ghost_2)
+        double tol_small = 0.00001;
             {
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_small);
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_small);
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_small);
+            ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_pos_1(pdata_1->getPositions(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag_2(pdata_2->getRTags(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_pos_2(pdata_2->getPositions(), access_location::host, access_mode::read);
+            for (unsigned int i = 0; i < n; ++i)
+                {
+                bool has_ghost_1 = false, has_ghost_2 = false; 
+
+                if (h_rtag_1.data[i] >= pdata_1->getN() && (h_rtag_1.data[i] < (pdata_1->getN() + pdata_1->getNGhosts())))
+                    has_ghost_1 = true;
+
+                if (h_rtag_2.data[i] >= pdata_2->getN() && (h_rtag_2.data[i] < (pdata_2->getN() + pdata_2->getNGhosts())))
+                    has_ghost_2 = true;
+
+                // ghost has to either be present in both systems or not present
+                BOOST_CHECK((! has_ghost_1 && !has_ghost_2) || (has_ghost_1 && has_ghost_2));
+               
+                if (has_ghost_1 && has_ghost_2)
+                    {
+                    #if 0
+                    exec_conf_1->msg->notice(1) << "Tag " << i << " x1: " << h_pos_1.data[h_rtag_1.data[i]].x << " x2: " << h_pos_2.data[h_rtag_2.data[i]].x << std::endl;
+                    exec_conf_1->msg->notice(1) << "Tag " << i << " y1: " << h_pos_1.data[h_rtag_1.data[i]].y << " y2: " << h_pos_2.data[h_rtag_2.data[i]].y << std::endl;
+                    exec_conf_1->msg->notice(1) << "Tag " << i << " z1: " << h_pos_1.data[h_rtag_1.data[i]].z << " z2: " << h_pos_2.data[h_rtag_2.data[i]].z << std::endl;
+                    #endif
+
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_small);
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_small);
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_small);
+                    }
+                }
             }
-        }
-    }
-    // wiggle every particle around
-    for (unsigned int i = 0; i < n; ++i)
-        {
-        Scalar3 pos = make_scalar3(snap.pos[i].x + (2.0*(Scalar)rand()/(Scalar)RAND_MAX-1.0)*0.1,
-                                   snap.pos[i].y + (2.0*(Scalar)rand()/(Scalar)RAND_MAX-1.0)*0.1,
-                                   snap.pos[i].z + (2.0*(Scalar)rand()/(Scalar)RAND_MAX-1.0)*0.1);
-        pdata_1->setPosition(i, pos);
-        pdata_2->setPosition(i, pos);
-        }
 
-    // udpate ghosts
-    comm_1->startGhostsUpdate(0);
-    comm_1->finishGhostsUpdate(0);
-    comm_2->startGhostsUpdate(0);
-    comm_2->finishGhostsUpdate(0);
-
-    {
-    ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_pos_1(pdata_1->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag_2(pdata_2->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_pos_2(pdata_2->getPositions(), access_location::host, access_mode::read);
-    for (unsigned int i = 0; i < n; ++i)
-        {
-        bool has_ghost_1 = false, has_ghost_2 = false; 
-
-        if (h_rtag_1.data[i] >= pdata_1->getN() && h_rtag_1.data[i] < pdata_1->getN() + pdata_1->getNGhosts())
-            has_ghost_1 = true;
-
-        if (h_rtag_2.data[i] >= pdata_2->getN() && h_rtag_2.data[i] < pdata_2->getN() + pdata_2->getNGhosts())
-            has_ghost_2 = true;
-
-        // ghost has to either be present in both systems or not present
-        BOOST_CHECK((! has_ghost_1 && !has_ghost_2) || (has_ghost_1 && has_ghost_2));
-
-        if (has_ghost_1 && has_ghost_2)
-            {
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_small);
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_small);
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_small);
-            }
-        }
-    }
-
-    // test if particle migrate gives consistent results
-    comm_1->migrateAtoms();
-    comm_2->migrateAtoms();
-
-    BOOST_CHECK_EQUAL(pdata_1->getN(), pdata_2->getN());
-
-    {
-    ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_pos_1(pdata_1->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag_2(pdata_2->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_pos_2(pdata_2->getPositions(), access_location::host, access_mode::read);
-    for (unsigned int i = 0; i < n; ++i)
-        {
-        bool has_ptl_1 = false, has_ptl_2 = false; 
-
-        if (h_rtag_1.data[i] < pdata_1->getN()) has_ptl_1 = true;
-        if (h_rtag_2.data[i] < pdata_2->getN()) has_ptl_2 = true;
-
-        // ptl has to either be present in both systems or not present
-        BOOST_CHECK((! has_ptl_1 && !has_ptl_2) || (has_ptl_1 && has_ptl_2));
-
-        if (has_ptl_1 && has_ptl_2)
-            {
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_small);
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_small);
-            BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_small);
-            }
-        }
-    }
+       nve_up_1->update(step);
+       nve_up_2->update(step);
+       }
 
     if (exec_conf_1->getRank() == 0)
-        std::cout << "Finish random communication test" << std::endl;
+        std::cout << "Finish random ghosts test" << std::endl;
     }
 
 //! Communicator creator for unit tests
@@ -1621,6 +1602,7 @@ struct MPISetup
 
 BOOST_GLOBAL_FIXTURE( MPISetup )
 
+#if 0
 //! Tests particle distribution
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
     {
@@ -1646,9 +1628,11 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     test_communicator_bonded_ghosts(communicator_creator_base, exec_conf_cpu);
     }
 #endif
-
+#endif
 
 #ifdef ENABLE_CUDA
+
+#if 0
 //! Tests particle distribution on GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
     {
@@ -1672,6 +1656,8 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
+
+#endif
 
 BOOST_AUTO_TEST_CASE (communicator_compare_test )
     {
