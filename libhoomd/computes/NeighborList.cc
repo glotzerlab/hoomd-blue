@@ -1171,6 +1171,7 @@ void export_NeighborList()
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)
                      .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
+                     .def("getNumUpdates", &NeighborList::getNumUpdates)
                      ;
                      
     enum_<NeighborList::storageMode>("storageMode")

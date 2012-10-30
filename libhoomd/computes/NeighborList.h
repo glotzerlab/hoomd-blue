@@ -337,6 +337,12 @@ class NeighborList : public Compute
             {
             m_force_update = true;
             }
+        
+        //! Get the number of updates
+        virtual unsigned int getNumUpdates()
+            {
+            return m_updates + m_forced_updates;
+            }
             
     protected:
         Scalar m_r_cut;             //!< The cuttoff radius
@@ -377,7 +383,8 @@ class NeighborList : public Compute
         
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
-        
+       
+
     private:
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
         int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated
