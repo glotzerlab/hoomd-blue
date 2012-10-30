@@ -268,9 +268,9 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     Scalar current_temp;
     
     unsigned int start_step = 0;
-    unsigned int steps = 5000;
+    unsigned int steps = 6000;
     unsigned int sampling = 100;
-    unsigned int averaging_delay = 1000;
+    unsigned int averaging_delay = 2000;
     
 
     // CALLING SET RV
@@ -308,7 +308,7 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
     AvgT /= Scalar((steps-averaging_delay)/sampling);    
     //Test to see if the temperature has equilibrated to where its been set. Use a wide window because the test simulation is short.
-    MY_BOOST_CHECK_CLOSE(AvgT, 1.4, 2);
+    MY_BOOST_CHECK_CLOSE(AvgT, 1.4, 5);
     }
 
 #ifdef ENABLE_CUDA

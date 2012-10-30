@@ -352,7 +352,7 @@ class imd(_analyzer):
 #   an integrate command 
 # - Specify a compute.thermo directly to enable additional quantities for user-specified groups.
 #
-# The following quantities are only available only if the command is parentheses has been specified and is active
+# The following quantities are only available if the command is parentheses has been specified and is active
 # for logging. 
 # - Pair potentials
 #   - **pair_dpd_energy** (pair.dpd) - Total DPD conservative potential energy (in energy units)
@@ -371,6 +371,8 @@ class imd(_analyzer):
 #   - **bond_fene_energy** (bond.fene) - Total fene bond potential energy (in energy units)
 #   - **bond_harmonic_energy** (bond.harmonic) - Total harmonic bond potential energy (in energy units)
 #   - **bond_table_energy** (bond.table) - Total table bond potential energy (in energy units)
+# - External potentials
+#   - **external_periodic_energy** (external.periodic) - Total DPD conservative potential energy (in energy units)
 # - Wall potentials
 #   - **wall_lj_energy** (wall.lj) - Total Lennard-Jones wall energy (in energy units)
 # - Integrators
