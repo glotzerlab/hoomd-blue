@@ -1471,8 +1471,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     pdata_2->initializeFromSnapshot(snap);
 
     // Create ConstForceComputes
-    boost::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
-    boost::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
+//    boost::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
+//    boost::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 
     shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
     shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
@@ -1489,8 +1489,15 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     nve_up_1->addIntegrationMethod(two_step_nve_1);
     nve_up_2->addIntegrationMethod(two_step_nve_2);
 
-    nve_up_1->addForceCompute(fc_1);
-    nve_up_2->addForceCompute(fc_2);
+//    nve_up_1->addForceCompute(fc_1);
+//    nve_up_2->addForceCompute(fc_2);
+
+    // set constant velocities
+    for (unsigned int tag= 0; tag < n; ++tag)
+        {
+        pdata_1->setVelocity(tag, make_scalar3(0.1,0.2,0.3));
+        pdata_2->setVelocity(tag, make_scalar3(0.1,0.2,0.3));
+        }
 
     comm_1->addMigrateRequest(bind(&migrate_request,_1));
     comm_2->addMigrateRequest(bind(&migrate_request,_1));
