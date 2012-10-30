@@ -28,7 +28,11 @@ endif (SINGLE_PRECISION)
 if (ENABLE_CUDA)
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
     if (CUDA_VERSION VERSION_GREATER 2.99) 
-        set(CUDA_ARCH_LIST 12 13 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        if (CUDA_VERSION VERSION_GREATER 4.1) 
+            set(CUDA_ARCH_LIST 12 13 20 30 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        else()
+            set(CUDA_ARCH_LIST 12 13 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        endif()
     else (CUDA_VERSION VERSION_GREATER 2.99)
         set(CUDA_ARCH_LIST 12 13 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     endif (CUDA_VERSION VERSION_GREATER 2.99)
@@ -64,3 +68,31 @@ if (ENABLE_EMBED_CUDA)
 
 endif (ENABLE_EMBED_CUDA)
 
+# automatically handle setting ccbin to /usr when needed
+if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_VERSION VERSION_GREATER 2.8.7)
+    # CMAKE_CXX_COMPILER_VERSION is only available on 2.8.8 and newer
+    
+    # need to set ccbin to  when gcc is unsupported
+    # this assumes that the user is on a system where CUDA is supported and /usr/bin/gcc will work - if they aren't, then it is their problem
+    
+    if (CUDA_VERSION VERSION_EQUAL 4.1)
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.5.99)
+            message(STATUS "CUDA 4.1 doesn't support gcc >= 4.6, falling back on /usr/bin/gcc")
+            list(APPEND CUDA_NVCC_FLAGS "-ccbin;/usr/bin/gcc")
+        endif()
+    endif()
+    
+    if (CUDA_VERSION VERSION_EQUAL 4.2)
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.6.99)
+            message(STATUS "CUDA 4.2 doesn't support gcc >= 4.7, falling back on /usr/bin/gcc")
+            list(APPEND CUDA_NVCC_FLAGS "-ccbin;/usr/bin/gcc")
+        endif()
+    endif()
+
+    if (CUDA_VERSION VERSION_EQUAL 5.0)
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.6.99)
+            message(STATUS "CUDA 5.0 doesn't support gcc >= 4.7, falling back on /usr/bin/gcc")
+            list(APPEND CUDA_NVCC_FLAGS "-ccbin;/usr/bin/gcc")
+        endif()
+    endif()
+endif()

@@ -51,10 +51,10 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 import hoomd;
-import globals;
+from hoomd_script import globals;
 import sys;
-import util;
-import init;
+from hoomd_script import util;
+from hoomd_script import init;
 
 ## \package hoomd_script.analyze
 # \brief Commands that %analyze the system and provide some output
@@ -341,45 +341,51 @@ class imd(_analyzer):
 # Thermodynamic properties
 # - The following quantities are always available and computed over all particles in the system
 #   (see compute.thermo for detailed definitions):
-#   - \b num_particles
-#   - \b ndof
-#   - \b potential_energy (in energy units)
-#   - \b kinetic_energy (in energy units)
-#   - \b temperature (in thermal energy units)
-#   - \b pressure (in pressure units)
+#   - **num_particles**
+#   - **ndof**
+#   - **potential_energy** (in energy units)
+#   - **kinetic_energy** (in energy units)
+#   - **temperature** (in thermal energy units)
+#   - **pressure** (in pressure units)
+#   - **pressure_xx**, **pressure_xy**, **pressure_xz**, **pressure_yy**, **pressure_yz**, **pressure_zz** (in pressure units)
 # - The above quantities, tagged with a <i>_groupname</i> suffix are automatically available for any group passed to
 #   an integrate command 
 # - Specify a compute.thermo directly to enable additional quantities for user-specified groups.
 #
-# The following quantities are only available only if the command is parentheses has been specified and is active
+# The following quantities are only available if the command is parentheses has been specified and is active
 # for logging. 
-# - \b pair_gauss_energy (pair.gauss) - Total Gaussian potential energy (in energy units)
-# - \b pair_lj_energy (pair.lj) - Total Lennard-Jones potential energy (in energy units)
-# - \b pair_morse_energy (pair.yukawa) - Total Morse potential energy (in energy units)
-# - \b pair_table_energy (pair.table) - Total potential energy from Tabulated potentials (in energy units)
-# - \b pair_slj_energy (pair.slj) - Total Shifted Lennard-Jones potential energy (in energy units)
-# - \b pair_yukawa_energy (pair.yukawa) - Total Yukawa potential energy (in energy units)
-# - \b pair_ewald_energy (pair.ewald) - Short ranged part of the electrostatic energy (in energy units)
-# - \b pppm_energy (charge.pppm) -  Long ranged part of the electrostatic energy (in energy units)
-#
-# - \b bond_fene_energy (bond.fene) - Total fene bond potential energy (in energy units)
-# - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy (in energy units)
-# - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy (in energy units)
-#
-# - <b>bdnvt_reservoir_energy<i>_groupname</i></b> (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
-# - <b>nvt_reservoir_energy<i>_groupname</i></b> (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
+# - Pair potentials
+#   - **pair_dpd_energy** (pair.dpd) - Total DPD conservative potential energy (in energy units)
+#   - **pair_dpdlj_energy** (pair.dpdlj) - Total DPDLJ conservative potential energy (in energy units)
+#   - **pair_eam_energy** (pair.eam) - Total EAM potential energy (in energy units)
+#   - **pair_ewald_energy** (pair.ewald) - Short ranged part of the electrostatic energy (in energy units)
+#   - **pair_gauss_energy** (pair.gauss) - Total Gaussian potential energy (in energy units)
+#   - **pair_lj_energy** (pair.lj) - Total Lennard-Jones potential energy (in energy units)
+#   - **pair_morse_energy** (pair.yukawa) - Total Morse potential energy (in energy units)
+#   - **pair_table_energy** (pair.table) - Total potential energy from Tabulated potentials (in energy units)
+#   - **pair_slj_energy** (pair.slj) - Total Shifted Lennard-Jones potential energy (in energy units)
+#   - **pair_yukawa_energy** (pair.yukawa) - Total Yukawa potential energy (in energy units)
+#   - **pair_force_shifted_lj_energy** (pair.force_shifted_lj) - Total Force-shifted Lennard-Jones potential energy (in energy units)
+#   - **pppm_energy** (charge.pppm) -  Long ranged part of the electrostatic energy (in energy units)
+# - Bond potentials
+#   - **bond_fene_energy** (bond.fene) - Total fene bond potential energy (in energy units)
+#   - **bond_harmonic_energy** (bond.harmonic) - Total harmonic bond potential energy (in energy units)
+#   - **bond_table_energy** (bond.table) - Total table bond potential energy (in energy units)
+# - External potentials
+#   - **external_periodic_energy** (external.periodic) - Total DPD conservative potential energy (in energy units)
+# - Wall potentials
+#   - **wall_lj_energy** (wall.lj) - Total Lennard-Jones wall energy (in energy units)
+# - Integrators
+#   - **bdnvt_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
+#   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
+#   - **nph_barostat_energy**_groupname (integrate.nph) - Energy reservoir for the NPH barostat
+#   - **npt_mtk_thermostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT thermostat
+#   - **npt_mtk_barostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT barostat
 # 
 # Additionally, the following commands can be provided user-defined names that are appended as suffixes to the 
 # logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).
-# - pair.gauss
-# - pair.lj
-# - pair.morse
-# - pair.table
-# - pair.slj
-# - pair.yukawa
-#
-# - bond.fene
-# - bond.harmonic
+# - All pair potentials
+# - All bond potentials
 #
 # By specifying a force, disabling it with the \a log=True option, and then logging it, different energy terms can
 # be computed while only a subset of them actually drive the simulation. Common use-cases of this capability

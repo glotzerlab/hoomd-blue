@@ -102,6 +102,9 @@ class IMDInterface : public Analyzer
         bool m_paused;          //!< True if we are paused
         unsigned int m_trate;   //!< Transmission rate
         unsigned int m_count;   //!< Count the number of times analyze() is called (used with trate)
+
+        bool m_is_initialized;  //!< True if the interface has been initialized
+        int m_port;             //!< Port to listen on
         
         boost::shared_ptr<ConstForceCompute> m_force;   //!< Force for applying IMD forces
         float m_force_scale;                            //!< Factor by which to scale all IMD forces
@@ -131,6 +134,9 @@ class IMDInterface : public Analyzer
         void establishConnectionAttempt();
         //! Helper function to send current data to VMD
         void sendCoords(unsigned int timestep);
+
+        //! Initialize socket and internal state variables for communication
+        void initConnection();
     };
 
 //! Exports the IMDInterface class to python

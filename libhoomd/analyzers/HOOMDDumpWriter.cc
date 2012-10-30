@@ -74,6 +74,10 @@ using namespace boost::python;
 #include "DihedralData.h"
 #include "WallData.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif 
+
 using namespace std;
 using namespace boost;
 
@@ -207,6 +211,17 @@ void HOOMDDumpWriter::setOutputMomentInertia(bool enable)
 */
 void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     {
+    // acquire the particle data
+    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+
+    m_pdata->takeSnapshot(snapshot);
+
+#ifdef ENABLE_MPI
+    // only the root processor writes the output file
+    if (m_comm)
+        if (! m_comm->isRoot()) return;
+#endif
+
     // open the file for writing
     ofstream f(fname.c_str());
     
@@ -215,19 +230,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         m_exec_conf->msg->error() << "dump.xml: Unable to open dump file for writing: " << fname << endl;
         throw runtime_error("Error writting hoomd_xml dump file");
         }
-        
-    // acquire the particle data
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-
-    BoxDim box = m_pdata->getBox();
+ 
+    BoxDim box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
     
     f.precision(13);
@@ -235,7 +239,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f << "<hoomd_xml version=\"1.4\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
-      << "natoms=\"" << m_pdata->getN() << "\" ";
+      << "natoms=\"" << m_pdata->getNGlobal() << "\" ";
     if (m_vizsigma_set)
         f << "vizsigma=\"" << m_vizsigma << "\" ";
     f << ">" << "\n";
@@ -246,18 +250,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the position flag is true output the position of all particles to the file
     if (m_output_position)
         {
-        f << "<position num=\"" << m_pdata->getN() << "\">" << "\n";
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        f << "<position num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= h_rtag.data[j];
+            Scalar3 pos = snapshot.pos[j];
             
-            Scalar x = (h_pos.data[i].x);
-            Scalar y = (h_pos.data[i].y);
-            Scalar z = (h_pos.data[i].z);
-            
-            f << x << " " << y << " "<< z << "\n";
+            f << pos.x << " " << pos.y << " "<< pos.z << "\n";
             
             if (!f.good())
                 {
@@ -271,18 +269,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the image flag is true, output the image of each particle to the file
     if (m_output_image)
         {
-        f << "<image num=\"" << m_pdata->getN() << "\">" << "\n";
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        f << "<image num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= h_rtag.data[j];
-            
-            int x = (h_image.data[i].x);
-            int y = (h_image.data[i].y);
-            int z = (h_image.data[i].z);
-            
-            f << x << " " << y << " "<< z << "\n";
+            int3 image = snapshot.image[j]; 
+           
+            f << image.x << " " << image.y << " "<< image.z << "\n";
             
             if (!f.good())
                 {
@@ -296,18 +288,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_velocity)
         {
-        f <<"<velocity num=\"" << m_pdata->getN() << "\">" << "\n";
+        f <<"<velocity num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= h_rtag.data[j];
-            
-            Scalar vx = h_vel.data[i].x;
-            Scalar vy = h_vel.data[i].y;
-            Scalar vz = h_vel.data[i].z;
-            f << vx << " " << vy << " " << vz << "\n";
+            Scalar3 vel = snapshot.vel[j];
+            f << vel.x << " " << vel.y << " " << vel.z << "\n";
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
@@ -321,18 +307,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_accel)
         {
-        f <<"<acceleration num=\"" << m_pdata->getN() << "\">" << "\n";
+        f <<"<acceleration num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= h_rtag.data[j];
-            
-            Scalar ax = h_accel.data[i].x;
-            Scalar ay = h_accel.data[i].y;
-            Scalar az = h_accel.data[i].z;
-            f << ax << " " << ay << " " << az << "\n";
+            Scalar3 accel = snapshot.accel[j];
+
+            f << accel.x << " " << accel.y << " " << accel.z << "\n";
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
@@ -346,15 +327,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the mass flag is true output the mass of all particles to the file
     if (m_output_mass)
         {
-        f <<"<mass num=\"" << m_pdata->getN() << "\">" << "\n";
+        f <<"<mass num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= h_rtag.data[j];
-            
-            Scalar mass = h_vel.data[i].w;
+            Scalar mass = snapshot.mass[j];
+
             f << mass << "\n";
             if (!f.good())
                 {
@@ -369,15 +347,11 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the diameter flag is true output the mass of all particles to the file
     if (m_output_diameter)
         {
-        f <<"<diameter num=\"" << m_pdata->getN() << "\">" << "\n";
+        f <<"<diameter num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= h_rtag.data[j];
-            
-            Scalar diameter = h_diameter.data[i];
+            Scalar diameter = snapshot.diameter[j];
             f << diameter << "\n";
             if (!f.good())
                 {
@@ -392,12 +366,11 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the Type flag is true output the types of all particles to an xml file
     if  (m_output_type)
         {
-        f <<"<type num=\"" << m_pdata->getN() << "\">" << "\n";
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        f <<"<type num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            int i;
-            i= h_rtag.data[j];
-            f << m_pdata->getNameByType(__scalar_as_int(h_pos.data[i].w)) << "\n";
+            unsigned int type = snapshot.type[j];
+            f << m_pdata->getNameByType(type) << "\n";
             }
         f <<"</type>" << "\n";
         }
@@ -405,15 +378,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the body flag is true output the bodies of all particles to an xml file
     if  (m_output_body)
         {
-        f <<"<body num=\"" << m_pdata->getN() << "\">" << "\n";
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        f <<"<body num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            unsigned int i;
-            i = h_rtag.data[j];
-            
             unsigned int body;
             int out;
-            body = h_body.data[i];
+            body = snapshot.body[j];
             if (body == NO_BODY)
                 out = -1;
             else
@@ -509,15 +479,11 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // If the charge flag is true output the mass of all particles to the file
     if (m_output_charge)
         {
-        f <<"<charge num=\"" << m_pdata->getN() << "\">" << "\n";
+        f <<"<charge num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= h_rtag.data[j];
-            
-            Scalar charge = h_charge.data[i];
+            Scalar charge = snapshot.charge[j];
             f << charge << "\n";
             if (!f.good())
                 {
@@ -532,9 +498,17 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the orientation flag is set, write out the orientation quaternion to the XML file
     if (m_output_orientation)
         {
+#ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            m_exec_conf->msg->error() << "dump.xml: Saving orientations in MPI simulations is currently not supported." << endl;
+            throw runtime_error("Error writing HOOMD dump file");
+            }
+#endif
         f << "<orientation num=\"" << m_pdata->getN() << "\">" << "\n";
         
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
         
         for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
@@ -556,6 +530,14 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the moment_inertia flag is set, write out the orientation quaternion to the XML file
     if (m_output_moment_inertia)
         {
+#ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            m_exec_conf->msg->error() << "dump.xml: Saving moments of intertia in MPI simulations is currently not supported." << endl;
+            throw runtime_error("Error writing HOOMD dump file");
+            }
+#endif
+ 
         f << "<moment_inertia num=\"" << m_pdata->getN() << "\">" << "\n";
         
         for (unsigned int i = 0; i < m_pdata->getN(); i++)

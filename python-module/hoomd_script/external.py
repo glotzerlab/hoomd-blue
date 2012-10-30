@@ -57,13 +57,13 @@
 # As an example, a force derived from a %periodic potential can be used to induce a concentration modulation
 # in the system.
 
-import globals;
-import force;
+from hoomd_script import globals;
+from hoomd_script import force;
 import hoomd;
-import util;
-import init;
-import data;
-import tune;
+from hoomd_script import util;
+from hoomd_script import init;
+from hoomd_script import data;
+from hoomd_script import tune;
 
 import sys;
 
@@ -189,12 +189,12 @@ class coeff:
         # get a list of types from the particle data
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type = type_list[i];
 
             # verify that all required values are set by counting the matches
@@ -265,10 +265,10 @@ class _external_force(force._force):
         # set all the params
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             # build a dict of the coeffs to pass to proces_coeff
             coeff_dict = {};
             for name in coeff_list:
@@ -301,18 +301,17 @@ class periodic(_external_force):
     # periodic.coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
     # \endcode
 
-    def __init__(self):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # initialize the base class
-        _external_force.__init__(self);
+        _external_force.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialExternalLamellar(globals.system_definition);
+            self.cpp_force = hoomd.PotentialExternalPeriodic(globals.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialExternalLamellarGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('external.periodic'));
+            self.cpp_force = hoomd.PotentialExternalPeriodicGPU(globals.system_definition,self.name);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

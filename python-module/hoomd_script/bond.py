@@ -50,13 +50,14 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-import force;
-import globals;
+from hoomd_script import force;
+from hoomd_script import globals;
 import hoomd;
-import util;
-import tune;
-import data;
-import init;
+from hoomd_script import util;
+from hoomd_script import tune;
+from hoomd_script import data;
+from hoomd_script import init;
+from hoomd_script import pair;
 
 import math;
 import sys;
@@ -194,12 +195,12 @@ class coeff:
         # get a list of types from the particle data
         ntypes = globals.system_definition.getBondData().getNBondTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type = type_list[i];
 
             if type not in self.values.keys():
@@ -262,9 +263,6 @@ class _bond(force._force):
 
         self.enabled = True;
 
-        # create force data iterator
-        self.forces = data.force_data(self);
-
     def update_coeffs(self):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
@@ -275,10 +273,10 @@ class _bond(force._force):
         # set all the params
         ntypes = globals.system_definition.getBondData().getNBondTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
 
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             # build a dict of the coeffs to pass to proces_coeff
             coeff_dict = {};
             for name in coeff_list:
@@ -290,10 +288,10 @@ class _bond(force._force):
 
 ## Harmonic %bond force
 #
-# The command bond.harmonic specifies a %harmonic potential energy between every bonded %pair of particles
+# The command bond.harmonic specifies a %harmonic potential energy between every bonded %bond of particles
 # in the simulation. 
 # \f[ V(r) = \frac{1}{2} k \left( r - r_0 \right)^2 \f]
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.
 #
 # Coeffients:
 # - \f$ k \f$ - %force constant (in units of energy/distance^2)
@@ -349,14 +347,14 @@ class harmonic(_bond):
 
         # set the parameters for the appropriate type
         return hoomd.make_scalar2(k, r0);
-        
+
 
 ## FENE %bond force
 #
-# The command bond.fene specifies a %fene potential energy between every bonded %pair of particles
+# The command bond.fene specifies a %fene potential energy between every bonded %bond of particles
 # in the simulation. 
 # \f[ V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r - \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)\f]
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair,
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond,
 # \f$ \Delta = (d_i + d_j)/2 - 1 \f$, \f$ d_i \f$ is the diameter of particle \f$ i \f$, and
 # \f{eqnarray*}
 #   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]  + \varepsilon & r-\Delta < 2^{\frac{1}{6}}\sigma\\
@@ -421,3 +419,237 @@ class fene(_bond):
         lj2 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 6.0);
         return hoomd.make_scalar4(k, r0, lj1, lj2);
 
+
+
+
+def _table_eval(r, rmin, rmax, V, F, width):
+      dr = (rmax - rmin) / float(width-1);
+      i = int(round((r - rmin)/dr))
+      return (V[i], F[i])
+
+
+## Tabulated %bond %force
+#
+# The command bond.table specifies that a tabulated  %bond %force should be added to everybonded %bond of particles 
+# in the simulation.
+#
+# The %force \f$ \vec{F}\f$ is (in force units)
+# \f{eqnarray*}
+#  \vec{F}(\vec{r})     = & F_{\mathrm{user}}(r)\hat{r} & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
+# \f}
+# and the potential \f$ V(r) \f$ is (in energy units)
+# \f{eqnarray*}
+#            = & V_{\mathrm{user}}(r) & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
+# \f}
+# ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.  Care should be taken to 
+# define the range of the bond so that it is not possible for the distance between two bonded particles to be outside the
+# specified range.  On the CPU, this will throw an error.  On the GPU, this will throw an error if error checking is enabled.
+#
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between 
+# \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
+# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
+#
+# The following coefficients must be set per unique %pair of particle types.
+# - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by `func` (see example)
+# - coefficients passed to `func` - `coeff` (see example)
+# - \f$ r_{\mathrm{min}} \f$ - `rmin` (in distance units)
+# - \f$ r_{\mathrm{max}} \f$ - `rmax` (in distance units)
+#
+# The table *width* is set once when bond.table is specified (see table.__init__())
+# There are two ways to specify the other parameters. 
+# 
+# \par Example: Set table from a given function
+# When you have a functional form for V and F, you can enter that
+# directly into python. bond.table will evaluate the given function over \a width points between \a rmin and \a rmax
+# and use the resulting values in the table.
+# ~~~~~~~~~~~~~
+#def harmonic(r, rmin, rmax, kappa, r0):
+#    V = 0.5 * kappa * (r-r0)**2;
+#    F = -kappa*(r-r0);
+#    return (V, F)
+#
+# btable = bond.table(width=1000)
+# btable.bond_coeff.set('bond1', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
+# btable.bond_coeff.set('bond2', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=30, r0=1.0))
+# ~~~~~~~~~~~~~
+#
+# \par Example: Set a table from a file
+# When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, bond.table can use the given
+# values direcly. You must first specify the number of rows in your tables when initializing bond.table. Then use
+# table.set_from_file() to read the file.
+# ~~~~~~~~~~~~~
+# btable = bond.table(width=1000)
+# btable.set_from_file('polymer', 'btable.file')
+# ~~~~~~~~~~~~~
+#
+# \par Example: Mix functions and files
+# ~~~~~~~~~~~~~
+# btable.bond_coeff.set('bond1', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
+# btable.set_from_file('bond2', 'btable.file')
+# ~~~~~~~~~~~~~
+#
+#
+# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+# not diverge near r=0, then a setting of \c rmin=0 is valid.
+#
+# \note Coefficients for all bond types in the simulation must be
+# set before it can be started with run().
+class table(force._force):
+    ## Specify the Tabulated %bond %force
+    #
+    # \param width Number of points to use to interpolate V and F (see documentation above)
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # def har(r, rmin, rmax, kappa, r0):
+    #   V = 0.5 * kappa * (r-r0)**2;
+    #   F = -kappa*(r-r0);
+    #   return (V, F)
+    #
+    # btable = bond.table(width=1000)
+    # btable.bond_coeff.set('polymer', func=har, rmin=0.1, rmax=10.0, coeff=dict(kappa=330, r0=0.84))
+    # \endcode
+    #
+    # \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
+    # not diverge near r=0, then a setting of \c rmin=0 is valid.
+    #
+    # \note Be sure that \c rmin and \c rmax cover the range of bond values.  If gpu eror checking is on, a error will
+    # be thrown if a bond distance is outside than this range.
+    def __init__(self, width, name=None):
+        util.print_status_line();
+
+        # initialize the base class
+        force._force.__init__(self, name);
+
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
+        else:
+            self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.table')); 
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent matrix
+        self.bond_coeff = coeff();
+
+        # stash the width for later use
+        self.width = width;
+
+    def update_bond_table(self, btype, func, rmin, rmax, coeff):
+        # allocate arrays to store V and F
+        Vtable = hoomd.std_vector_float();
+        Ftable = hoomd.std_vector_float();
+
+        # calculate dr
+        dr = (rmax - rmin) / float(self.width-1);
+
+        # evaluate each point of the function
+        for i in range(0, self.width):
+            r = rmin + dr * i;
+            (V,F) = func(r, rmin, rmax, **coeff);
+
+            # fill out the tables
+            Vtable.append(V);
+            Ftable.append(F);
+
+        # pass the tables on to the underlying cpp compute
+        self.cpp_force.setTable(btype, Vtable, Ftable, rmin, rmax);
+
+
+    def update_coeffs(self):
+        # check that the bond coefficents are valid
+        if not self.bond_coeff.verify(["func", "rmin", "rmax", "coeff"]):
+            globals.msg.error("Not all bond coefficients are set for bond.table\n");
+            raise RuntimeError("Error updating bond coefficients");
+
+        # set all the params
+        ntypes = globals.system_definition.getBondData().getNBondTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getBondData().getNameByType(i));
+
+
+        # loop through all of the unique type bonds and evaluate the table
+        for i in range(0,ntypes):
+            func = self.bond_coeff.get(type_list[i], "func");
+            rmin = self.bond_coeff.get(type_list[i], "rmin");
+            rmax = self.bond_coeff.get(type_list[i], "rmax");
+            coeff = self.bond_coeff.get(type_list[i], "coeff");
+
+            self.update_bond_table(i, func, rmin, rmax, coeff);
+
+    ## Set a bond pair interaction from a file
+    # \param bondname Name of bond 
+    # \param filename Name of the file to read
+    #
+    # The provided file specifies V and F at equally spaced r values.
+    # Example:
+    # \code
+    # #r  V    F
+    # 1.0 2.0 -3.0
+    # 1.1 3.0 -4.0
+    # 1.2 2.0 -3.0
+    # 1.3 1.0 -2.0
+    # 1.4 0.0 -1.0
+    # 1.5 -1.0 0.0
+    #\endcode
+    #
+    # The first r value sets \a rmin, the last sets \a rmax. Any line with \# as the first non-whitespace character is
+    # is treated as a comment. The \a r values must monotonically increase and be equally spaced. The table is read
+    # directly into the grid points used to evaluate \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$.
+    #
+    def set_from_file(self, bondname, filename):
+          util.print_status_line();
+
+          # open the file
+          f = open(filename);
+
+          r_table = [];
+          V_table = [];
+          F_table = [];
+
+          # read in lines from the file
+          for line in f.readlines():
+              line = line.strip();
+
+              # skip comment lines
+              if line[0] == '#':
+                  continue;
+
+              # split out the columns
+              cols = line.split();
+              values = [float(f) for f in cols];
+
+              # validate the input
+              if len(values) != 3:
+                  globals.msg.error("bond.table: file must have exactly 3 columns\n");
+                  raise RuntimeError("Error reading table file");
+
+              # append to the tables
+              r_table.append(values[0]);
+              V_table.append(values[1]);
+              F_table.append(values[2]);
+
+          # validate input
+          if self.width != len(r_table):
+              globals.msg.error("bond.table: file must have exactly " + str(self.width) + " rows\n");
+              raise RuntimeError("Error reading table file");
+
+          # extract rmin and rmax
+          rmin_table = r_table[0];
+          rmax_table = r_table[-1];
+
+          # check for even spacing
+          dr = (rmax_table - rmin_table) / float(self.width-1);
+          for i in range(0,self.width):
+              r = rmin_table + dr * i;
+              if math.fabs(r - r_table[i]) > 1e-3:
+                  globals.msg.error("bond.table: r must be monotonically increasing and evenly spaced\n");
+                  raise RuntimeError("Error reading table file");
+
+          util._disable_status_lines = True;
+          self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
+          util._disable_status_lines = True;

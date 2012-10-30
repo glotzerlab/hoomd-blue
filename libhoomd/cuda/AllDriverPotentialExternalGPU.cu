@@ -54,13 +54,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the driver functions for computing all types of external forces on the GPU
 */
 
-#include "EvaluatorExternalLamellar.h"
+#include "EvaluatorExternalPeriodic.h"
 #include "AllDriverPotentialExternalGPU.cuh"
 
-cudaError_t gpu_compute_lamellar_forces(const external_potential_args_t& potential_args,
+cudaError_t gpu_compute_periodic_forces(const external_potential_args_t& potential_args,
                                       const float4 *d_params)
     {
-    return gpu_compute_external_forces<EvaluatorExternalLamellar>(potential_args, d_params);
+    return gpu_compute_external_forces<EvaluatorExternalPeriodic>(potential_args, d_params);
     }
 
 

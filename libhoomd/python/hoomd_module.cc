@@ -86,6 +86,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMAngleForceCompute.h"
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
+#include "BondTablePotential.h"
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
@@ -110,6 +111,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVT.h"
 #include "TwoStepBDNVT.h"
 #include "TwoStepNPT.h"
+#include "TwoStepNPTMTK.h"
 #include "TwoStepNPH.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepNVERigid.h" 
@@ -141,6 +143,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTGPU.h"
+#include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNPHGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h" 
@@ -151,6 +154,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPUBinned.h"
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
+#include "BondTablePotentialGPU.h"
 #include "TablePotentialGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
 #include "TableAngleForceComputeGPU.h"
@@ -392,6 +396,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicImproperForceCompute();
     export_CGCMMAngleForceCompute();
     export_TablePotential();
+    export_BondTablePotential();
     export_CGCMMForceCompute();
     export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
     export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
@@ -413,7 +418,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListBinned();
     export_ConstraintSphere();
     export_PPPMForceCompute();
-    export_PotentialExternal<PotentialExternalLamellar>("PotentialExternalLamellar");
+    export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
 #ifdef ENABLE_CUDA
     export_CellListGPU();
     export_NeighborListGPU();
@@ -432,6 +437,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>("PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>("PotentialBondFENEGPU");
+    export_BondTablePotentialGPU();
     export_TablePotentialGPU();
     export_EAMForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
@@ -444,7 +450,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstraintSphereGPU();
 //    export_ConstExternalFieldDipoleForceComputeGPU();
     export_PPPMForceComputeGPU();
-    export_PotentialExternalGPU<PotentialExternalLamellarGPU, PotentialExternalLamellar>("PotentialExternalLamellarGPU");
+    export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
 #endif
     
     // analyzers
@@ -472,6 +478,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVT();
     export_TwoStepBDNVT();
     export_TwoStepNPT();
+    export_TwoStepNPTMTK();
     export_TwoStepNPH();
     export_Berendsen();
     export_TwoStepNVERigid();
@@ -486,6 +493,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();
     export_TwoStepNPTGPU();
+    export_TwoStepNPTMTKGPU();
     export_TwoStepNPHGPU();
     export_BerendsenGPU();
     export_TwoStepNVERigidGPU();

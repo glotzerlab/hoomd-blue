@@ -337,6 +337,12 @@ class NeighborList : public Compute
             {
             m_force_update = true;
             }
+        
+        //! Get the number of updates
+        virtual unsigned int getNumUpdates()
+            {
+            return m_updates + m_forced_updates;
+            }
             
     protected:
         Scalar m_r_cut;             //!< The cuttoff radius
@@ -350,6 +356,7 @@ class NeighborList : public Compute
         GPUArray<unsigned int> m_nlist;      //!< Neighbor list data
         GPUArray<unsigned int> m_n_neigh;    //!< Number of neighbors for each particle
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
+        Scalar3 m_last_L;                    //!< Box lengths at last update
         unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
         GPUArray<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
         
@@ -376,7 +383,8 @@ class NeighborList : public Compute
         
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
-        
+       
+
     private:
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
         int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated

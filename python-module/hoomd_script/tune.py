@@ -49,16 +49,11 @@
 # -- end license --
 # Maintainer: joaander
 
-import globals
-import pair
-import bond
-import angle
-import dihedral
-import improper
-import init
-import hoomd_script
+from hoomd_script import globals
+from hoomd_script import init
 import hoomd
-import util
+from hoomd_script import util
+import hoomd_script
 
 import math
 import os
@@ -77,19 +72,18 @@ import sys
 #
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
-_default_block_size_db['1.1'] = {'pair.ewald': 224, 'improper.harmonic': 64, 'pair.dpd_conservative': 320, 'dihedral.harmonic': 128, 'pair.dpd': 192, 'pair.dpdlj': 192, 'angle.cgcmm': 128, 'nlist.filter': 192, 'pair.lj': 320, 'pair.force_shifted_lj': 320, 'pair.table': 320, 'pair.cgcmm': 320, 'pair.slj': 256, 'pair.morse': 320, 'nlist': 288, 'bond.harmonic': 64, 'pair.yukawa': 320, 'bond.fene': 128, 'angle.harmonic': 192, 'angle.table': 192, 'pair.gauss': 320, 'external.periodic':256}
 
-# no longer independently tuning 1.0 devices, they are very old
-_default_block_size_db['1.0'] = _default_block_size_db['1.1'];
-
-_default_block_size_db['1.3'] = {'pair.ewald': 160, 'improper.harmonic': 320, 'pair.dpd_conservative': 352, 'dihedral.harmonic': 256, 'pair.dpd': 320, 'angle.cgcmm': 64, 'nlist.filter': 160, 'pair.lj': 352, 'pair.force_shifted_lj': 352, 'pair.table': 96, 'pair.cgcmm': 352, 'pair.dpdlj': 320, 'pair.slj': 352, 'pair.morse': 352, 'nlist': 416, 'bond.harmonic': 416, 'pair.yukawa': 352, 'bond.fene': 160, 'angle.harmonic': 192,'angle.table': 192, 'pair.gauss': 352}
+_default_block_size_db['1.3'] = {'pair.ewald': 96, 'improper.harmonic': 128, 'pair.dpd_conservative': 352, 'bond.harmonic': 160, 'dihedral.harmonic': 64, 'pair.dpd': 160, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 352, 'nlist.filter': 160, 'pair.lj': 416, 'pair.table': 96, 'pair.cgcmm': 96, 'pair.dpdlj': 160, 'pair.slj': 416, 'pair.morse': 416, 'nlist': 416, 'bond.table': 160, 'pair.yukawa': 352, 'bond.fene': 96, 'angle.harmonic': 96, 'pair.gauss': 416}
 
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
 
-_default_block_size_db['2.0'] = {'pair.ewald': 320, 'improper.harmonic': 96, 'pair.dpd_conservative': 224, 'dihedral.harmonic': 64, 'pair.dpd': 160, 'angle.cgcmm': 96, 'nlist.filter': 320, 'pair.lj': 320, 'pair.force_shifted_lj': 320, 'pair.table': 128, 'pair.cgcmm': 128, 'pair.dpdlj': 160, 'pair.slj': 160, 'pair.morse': 256, 'nlist': 768, 'bond.harmonic': 352, 'pair.yukawa': 320, 'bond.fene': 96, 'angle.harmonic': 128, 'angle.table': 128, 'pair.gauss': 320, 'external.periodic': 512}
+_default_block_size_db['2.0'] = {'pair.ewald': 480, 'improper.harmonic': 256, 'pair.dpd_conservative': 256, 'bond.harmonic': 448, 'dihedral.harmonic': 160, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 192, 'nlist.filter': 256, 'pair.lj': 288, 'pair.table': 128, 'pair.cgcmm': 96, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 416, 'nlist': 512, 'bond.table': 288, 'pair.yukawa': 352, 'bond.fene': 224, 'angle.harmonic': 224, 'pair.gauss': 288}
 
-_default_block_size_db['2.1'] = {'pair.ewald': 224, 'improper.harmonic': 96, 'pair.dpd_conservative': 224, 'dihedral.harmonic': 64, 'pair.dpd': 128, 'angle.cgcmm': 96, 'nlist.filter': 256, 'pair.lj': 160, 'pair.force_shifted_lj': 160, 'pair.table': 160, 'pair.cgcmm': 128, 'pair.dpdlj': 128, 'pair.slj': 128, 'pair.morse': 256, 'nlist': 576, 'bond.harmonic': 160, 'pair.yukawa': 192, 'bond.fene': 96, 'angle.harmonic': 96, 'angle.table': 96, 'pair.gauss': 160, 'external.periodic': 512}
+# it is no longer convenient to tune on 2.1, just set values to 2.0
+_default_block_size_db['2.1'] = _default_block_size_db['2.0'];
+
+_default_block_size_db['3.0'] = {'pair.ewald': 128, 'improper.harmonic': 64, 'pair.dpd_conservative': 160, 'bond.harmonic': 320, 'dihedral.harmonic': 64, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 128, 'nlist.filter': 128, 'pair.lj': 160, 'pair.table': 128, 'pair.cgcmm': 128, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 160, 'nlist': 448, 'bond.table': 96, 'pair.yukawa': 160, 'bond.fene': 128, 'angle.harmonic': 96, 'pair.gauss': 160}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -109,7 +103,7 @@ def _save_override_file(common_optimal_db):
         globals.msg.warning(fname + " exists. This file is being overwritten with new settings\n");
 
     # save the file
-    f = file(fname, 'w');
+    f = open(fname, 'wb');
     globals.msg.notice(2, 'Writing optimal block sizes to ' + str(fname) + '\n');
     
     # write the version of the file
@@ -138,7 +132,7 @@ def _load_override_file():
         return
 
     # save the file
-    f = file(fname, 'r');
+    f = open(fname, 'rb');
     globals.msg.notice(2, 'Reading optimal block sizes from ' + str(fname) + '\n');
     
     # read the version of the file
@@ -231,14 +225,14 @@ def _find_optimal_block_size_fc(fc, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             fc.cpp_force.setBlockSize(block_size);
             t = fc.benchmark(n);
-            globals.msg.notice(2, str(block_size) + str(t) + '\n');
+            globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
             timings.append( (t, block_size) );
     except RuntimeError:
         globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
-    
+
     fastest = min(timings);
     globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
     globals.msg.notice(2, '---------------\n');
@@ -259,7 +253,7 @@ def _find_optimal_block_size_nl(nl, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             nl.cpp_nlist.setBlockSize(block_size);
             t = nl.benchmark(n);
             globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
@@ -289,7 +283,7 @@ def _find_optimal_block_size_nl_filter(nl, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,1024+32,32):
+        for block_size in range(64,1024+32,32):
             nl.cpp_nlist.setBlockSizeFilter(block_size);
             t = nl.cpp_nlist.benchmarkFilter(n);
             globals.msg.notice(2, str(block_size) + ' ' + str(t) + '\n');
@@ -365,6 +359,10 @@ def _choose_optimal_block_sizes(optimal_dbs):
 # \note HOOMD ignores .hoomd_block_tuning files from older versions. You must rerun the tuning
 # script after upgrading HOOMD. 
 def find_optimal_block_sizes(save = True, only=None):
+    from hoomd_script import bond
+    from hoomd_script import angle
+    from hoomd_script import improper
+    from hoomd_script import dihedral
     util._disable_status_lines = True;
 
     # we cannot save if only is set
@@ -373,6 +371,7 @@ def find_optimal_block_sizes(save = True, only=None):
     
     # list of force computes to tune
     fc_list = [ ('pair.table', 'pair_table_setup', 500),
+                ('bond.table', 'bond_table_setup', 2000),
                 ('pair.lj', 'pair_lj_setup', 500),
                 ('pair.force_shifted_lj', 'pair_force_shifted_lj_setup', 500),
                 ('pair.slj', 'pair_slj_setup', 500),
@@ -407,13 +406,13 @@ def find_optimal_block_sizes(save = True, only=None):
     improper_data = sysdef.sysdef.getImproperData();
     num_particles = len(polymer['type']) * polymer['count'];
     
-    for i in xrange(1,num_particles-3):
+    for i in range(1,num_particles-3):
         angle_data.addAngle(hoomd.Angle(0, i, i+1, i+2));
     
-    for i in xrange(1,num_particles-4):
+    for i in range(1,num_particles-4):
         dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
         improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
-    
+   
     del angle_data
     del dihedral_data
     del improper_data
@@ -425,7 +424,7 @@ def find_optimal_block_sizes(save = True, only=None):
     # list of optimal databases
     optimal_dbs = [];
     num_repeats = 3;
-    for i in xrange(0,num_repeats):
+    for i in range(0,num_repeats):
         
         # initialize an empty database of optimal sizes
         optimal_db = {};
@@ -490,19 +489,36 @@ def lj_table(r, rmin, rmax, epsilon, sigma):
     F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
     return (V, F)
 
+def bond_table(r, rmin, rmax, kappa, r0):
+    V = 0.5 * kappa * (r-r0)**2;
+    F = -kappa*(r-r0);
+    return (V, F)    
+
 ## \internal
 # \brief Setup pair.table for benchmarking
 def pair_table_setup():
+    from hoomd_script import pair
     table = pair.table(width=1000);
     table.pair_coeff.set('A', 'A', func=lj_table, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.0, sigma=1.0));
     
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return table;
+    
+## \internal
+# \brief Setup pair.table for benchmarking
+def bond_table_setup():
+    from hoomd_script import bond
+    btable = bond.table(width=1000)
+    btable.bond_coeff.set('polymer', func=bond_table, rmin=0.1, rmax=10.0, coeff=dict(kappa=330, r0=0.84))
+
+    btable.update_coeffs();  
+    return btable;    
 
 ## \internal
 # \brief Setup pair.lj for benchmarking
 def pair_lj_setup():
+    from hoomd_script import pair
     fc = pair.lj(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -513,6 +529,7 @@ def pair_lj_setup():
 ## \internal
 # \brief Setup pair.force_shifted_lj for benchmarking
 def pair_force_shifted_lj_setup():
+    from hoomd_script import pair
     fc = pair.force_shifted_lj(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
 
@@ -523,6 +540,7 @@ def pair_force_shifted_lj_setup():
 ## \internal
 # \brief Setup pair.slj for benchmarking
 def pair_slj_setup():
+    from hoomd_script import pair
     fc = pair.slj(r_cut=3.0, d_max=1.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -533,6 +551,7 @@ def pair_slj_setup():
 ## \internal
 # \brief Setup pair.yukawa for benchmarking
 def pair_yukawa_setup():
+    from hoomd_script import pair
     fc = pair.yukawa(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0);
     
@@ -543,6 +562,7 @@ def pair_yukawa_setup():
 ## \internal
 # \brief Setup pair.ewald for benchmarking
 def pair_ewald_setup():
+    from hoomd_script import pair
     fc = pair.ewald(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', kappa=1.0, grid=16, order=4);
     
@@ -553,6 +573,7 @@ def pair_ewald_setup():
 ## \internal
 # \brief Setup pair.cgcmm for benchmarking
 def pair_cgcmm_setup():
+    from hoomd_script import pair
     fc = pair.cgcmm(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6');
     
@@ -563,6 +584,7 @@ def pair_cgcmm_setup():
 ## \internal
 # \brief Setup pair.cgcmm for benchmarking
 def pair_gauss_setup():
+    from hoomd_script import pair
     fc = pair.gauss(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
     
@@ -573,6 +595,7 @@ def pair_gauss_setup():
 ## \internal
 # \brief Setup pair.morse for benchmarking
 def pair_morse_setup():
+    from hoomd_script import pair
     fc = pair.morse(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0);
     
@@ -583,6 +606,7 @@ def pair_morse_setup():
 ## \internal
 # \brief Setup pair.dpd for benchmarking
 def pair_dpd_setup():
+    from hoomd_script import pair
     fc = pair.dpd(r_cut=3.0, T=1.0);
     fc.pair_coeff.set('A', 'A', A=40.0, gamma=4.5); 
     
@@ -593,6 +617,7 @@ def pair_dpd_setup():
 ## \internal
 # \brief Setup pair.dpdlj for benchmarking
 def pair_dpdlj_setup():
+    from hoomd_script import pair
     fc = pair.dpd(r_cut=3.0, T=1.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, gamma=4.5); 
     
@@ -603,6 +628,7 @@ def pair_dpdlj_setup():
 ## \internal
 # \brief Setup pair.dpd_conservative for benchmarking
 def pair_dpd_conservative_setup():
+    from hoomd_script import pair
     fc = pair.dpd_conservative(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', A=40);
     
@@ -613,6 +639,7 @@ def pair_dpd_conservative_setup():
 ## \internal
 # \brief Setup bond.fene for benchmarking
 def bond_fene_setup():
+    from hoomd_script import bond
     fc = bond.fene();
     fc.set_coeff('polymer', k=30.0, r0=3.0, sigma=1.0, epsilon=2.0);
     
@@ -621,9 +648,8 @@ def bond_fene_setup():
     return fc;
 
 import hoomd;
-import hoomd_script;
-import init;
-import globals;
+from hoomd_script import init;
+from hoomd_script import globals;
 
 ## Make a series of short runs to determine the fastest performing r_buff setting
 # \param warmup Number of time steps to run() to warm up the benchmark
@@ -668,7 +694,7 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     tps_list = [];
 
     # loop over all desired r_buff points
-    for i in xrange(0,jumps):
+    for i in range(0,jumps):
         # set the current r_buff
         r_buff = r_min + i * dr;
         globals.neighbor_list.set_params(r_buff=r_buff);

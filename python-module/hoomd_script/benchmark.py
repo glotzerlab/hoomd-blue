@@ -50,8 +50,8 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-import globals
-import init
+from hoomd_script import globals
+from hoomd_script import init
 import hoomd_script
 import hoomd
 
@@ -82,7 +82,7 @@ def series(warmup=100000, repeat=20, steps=10000):
     tps_list = [];
     
     hoomd_script.run(warmup);
-    for i in xrange(0,repeat):
+    for i in range(0,repeat):
         hoomd_script.run(steps);
         tps_list.append(globals.system.getLastTPS());
     

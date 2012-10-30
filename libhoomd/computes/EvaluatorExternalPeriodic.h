@@ -41,14 +41,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifndef __EVALUATOR_EXTERNAL_LAMELLAR_H__
-#define __EVALUATOR_EXTERNAL_LAMELLAR_H__
+#ifndef __EVALUATOR_EXTERNAL_PERIODIC_H__
+#define __EVALUATOR_EXTERNAL_PERIODIC_H__
+
+#ifndef NVCC
+#include <string>
+#endif
 
 #include <math.h>
 #include "HOOMDMath.h"
 
-/*! \file EvaluatorExternalLamellar.h
-    \brief Defines the external potential evaluator to induce a lamellar ordered phase
+/*! \file EvaluatorExternalPeriodic.h
+    \brief Defines the external potential evaluator to induce a periodic ordered phase
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -68,8 +72,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
-    EvaluatorExternalLamellar is an evaluator to induce a periodic modulation on the concentration profile
-    in the system, e.g. to generate a lamellar phase in a system of diblock copolymers.
+    EvaluatorExternalPeriodic is an evaluator to induce a periodic modulation on the concentration profile
+    in the system, e.g. to generate a periodic phase in a system of diblock copolymers.
 
     The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
 
@@ -81,7 +85,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     (relative to the box length \f$L_i\f$ in the \f$i\f$-direction). The modulation is one-dimensional,
     i.e. it extends along the cartesian coordinate \f$i\f$.
 */
-class EvaluatorExternalLamellar
+class EvaluatorExternalPeriodic
     {
     public:
 
@@ -95,7 +99,7 @@ class EvaluatorExternalLamellar
             \param Lz length of simulation box in z direction
             \param params per-type parameters of external potential
         */
-        DEVICE EvaluatorExternalLamellar(Scalar3 X, const Scalar Lx, const Scalar Ly, const Scalar Lz, const param_type& params)
+        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const Scalar Lx, const Scalar Ly, const Scalar Lz, const param_type& params)
             : m_pos(X),
               m_Lx(Lx),
               m_Ly(Ly),
@@ -165,6 +169,17 @@ class EvaluatorExternalLamellar
 
             }
 
+        #ifndef NVCC
+        //! Get the name of this potential
+        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
+            via analyze.log.
+        */
+        static std::string getName()
+            {
+            return std::string("periodic");
+            }
+        #endif
+
     protected:
         Scalar3 m_pos;                //!< particle position
         Scalar m_Lx;                  //!< box length in x direction
@@ -178,4 +193,3 @@ class EvaluatorExternalLamellar
 
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__
-

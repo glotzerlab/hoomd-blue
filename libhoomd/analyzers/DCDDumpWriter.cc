@@ -64,6 +64,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DCDDumpWriter.h"
 #include "time.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <boost/python.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -115,15 +119,20 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
                              bool overwrite)
     : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
-    m_rigid_data(sysdef->getRigidData()), m_num_frames_written(0), m_last_written_step(0), m_appending(false), 
-      m_unwrap_full(false), m_unwrap_rigid(false)
+    m_rigid_data(sysdef->getRigidData()), m_num_frames_written(0), m_last_written_step(0), m_appending(false),
+      m_unwrap_full(false), m_unwrap_rigid(false),
+      m_overwrite(overwrite), m_is_initialized(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing DCDDumpWriter: " << fname << " " << period << " " << overwrite << endl;
+    }
 
+//! Initializes the output file for writing
+void DCDDumpWriter::initFileIO()
+    {
     // handle appending to an existing file if it is requested
-    if (!overwrite && exists(fname))
+    if (!m_overwrite && exists(m_fname))
         {
-        m_exec_conf->msg->notice(3) << "dump.dcd: Appending to existing DCD file \"" << fname << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "dump.dcd: Appending to existing DCD file \"" << m_fname << "\"" << endl;
         
         // open the file and get data from the header
         fstream file;
@@ -150,13 +159,16 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
         m_appending = true;
         }
        
-    m_staging_buffer = new float[m_pdata->getN()];
+    m_staging_buffer = new float[m_pdata->getNGlobal()];
+    m_is_initialized = true;
     }
 
 DCDDumpWriter::~DCDDumpWriter()
     {
     m_exec_conf->msg->notice(5) << "Destroying DCDDumpWriter" << endl;
-    delete[] m_staging_buffer;
+
+    if (m_is_initialized)
+        delete[] m_staging_buffer;
     }
 
 /*! \param timestep Current time step of the simulation
@@ -168,7 +180,24 @@ void DCDDumpWriter::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Dump DCD");
-    
+   
+    // take particle data snapshot
+    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+
+    m_pdata->takeSnapshot(snapshot);
+
+#ifdef ENABLE_MPI
+    // if we are not the root processor, do not perform file I/O
+    if (m_comm && !m_comm->isRoot())
+        {
+        if (m_prof) m_prof->pop(); 
+        return;
+        }
+#endif
+
+    if (! m_is_initialized)
+        initFileIO();
+
     // the file object
     fstream file;
     
@@ -203,7 +232,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         
     // write the data for the current time step
     write_frame_header(file);
-    write_frame_data(file);
+    write_frame_data(file, snapshot);
     
     // update the header with the number of frames written
     m_num_frames_written++;
@@ -309,17 +338,22 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     }
 
 /*! \param file File to write to
+    \param snapshot Snapshot to write
     Writes the actual particle positions for all particles at the current time step
 */
-void DCDDumpWriter::write_frame_data(std::fstream &file)
+void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleData& snapshot)
     {
     // we need to unsort the positions and write in tag order
     assert(m_staging_buffer);
-    
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+
+#ifdef ENABLE_MPI
+    if (m_comm && m_unwrap_rigid)
+        {
+        m_exec_conf->msg->error() << "dump.dcd: Unwrap of rigid bodies in DCD files is currently not supported in MPI simulations" << endl;
+        throw runtime_error("Error writing DCD file");
+        }
+#endif        
+  
     ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
     BoxDim box = m_pdata->getBox();
     Scalar3 L = box.getL();
@@ -330,17 +364,17 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(h_pos.data[h_rtag.data[i]].x);
+        m_staging_buffer[group_idx] = float(snapshot.pos[i].x);
 
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].x) * L.x;
+            m_staging_buffer[group_idx] += float(snapshot.image[i].x) * L.x;
         else if (m_unwrap_rigid)
             {
-            if (h_body.data[h_rtag.data[i]] != NO_BODY)
+            if (snapshot.body[i] != NO_BODY)
                 {
-                int body_ix = body_image_handle.data[h_body.data[h_rtag.data[i]]].x;
-                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].x - body_ix) * L.x;
+                int body_ix = body_image_handle.data[snapshot.body[i]].x;
+                m_staging_buffer[group_idx] += float(snapshot.image[i].x - body_ix) * L.x;
                 }
             }
         }
@@ -353,17 +387,17 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(h_pos.data[h_rtag.data[i]].y);
+        m_staging_buffer[group_idx] = float(snapshot.pos[i].y);
         
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].y) * L.y;
+            m_staging_buffer[group_idx] += float(snapshot.image[i].y) * L.y;
         else if (m_unwrap_rigid)
             {
-            if (h_body.data[h_rtag.data[i]] != NO_BODY)
+            if (snapshot.body[i] != NO_BODY)
                 {
-                int body_iy = body_image_handle.data[h_body.data[h_rtag.data[i]]].y;
-                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].y - body_iy) * L.y;
+                int body_iy = body_image_handle.data[snapshot.body[i]].y;
+                m_staging_buffer[group_idx] += float(snapshot.image[i].y - body_iy) * L.y;
                 }
             }
         }
@@ -376,17 +410,17 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(h_pos.data[h_rtag.data[i]].z);
+        m_staging_buffer[group_idx] = float(snapshot.pos[i].z);
         
         // handle the unwrap options
         if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].z) * L.z;
+            m_staging_buffer[group_idx] += float(snapshot.image[i].z) * L.z;
         else if (m_unwrap_rigid)
             {
-            if (h_body.data[h_rtag.data[i]] != NO_BODY)
+            if (snapshot.body[i] != NO_BODY)
                 {
-                int body_iz = body_image_handle.data[h_body.data[h_rtag.data[i]]].z;
-                m_staging_buffer[group_idx] += float(h_image.data[h_rtag.data[i]].z - body_iz) * L.z;
+                int body_iz = body_image_handle.data[snapshot.body[i]].z;
+                m_staging_buffer[group_idx] += float(snapshot.image[i].z - body_iz) * L.z;
                 }
             }
          }

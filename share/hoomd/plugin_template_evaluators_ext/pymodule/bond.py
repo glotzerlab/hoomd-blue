@@ -48,13 +48,13 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -- end license --
 
-import _evaluators_ext_template
+from hoomd_plugins.evaluators_ext_template import _evaluators_ext_template
 
 # Next, since we are extending a bond potential, we need to bring in the base class and some other parts from
 # hoomd_script
 from hoomd_script import util
 from hoomd_script import globals
-from hoomd_script import force
+from hoomd_script.bond import _bond
 import hoomd
 import math
 
@@ -85,7 +85,7 @@ import math
 # set_coeff().
 #
 # \note Specifying the bond.harmonic_dpd command when no bonds are defined in the simulation results in an error.
-class harmonic_dpd(force._force):
+class harmonic_dpd(_bond):
     ## Specify the %harmonic_dpd %bond %force
     #
     # \param name Name of the bond instance
@@ -103,7 +103,7 @@ class harmonic_dpd(force._force):
             raise RuntimeError("Error creating bond forces");
 
         # initialize the base class
-        force._force.__init__(self,name);
+        _bond.__init__(self,name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -116,48 +116,12 @@ class harmonic_dpd(force._force):
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
-        # variable for tracking which bond type coefficients have been set
-        self.bond_types_set = [];
+        self.required_coeffs = ['k','r0','r_cut', 'A'];
 
-    ## Sets the %harmonic_dpd %bond coefficients for a particular %bond type
-    #
-    # \param bond_type Bond type to set coefficients for
-    # \param k Coefficient \f$ k \f$ (in units of energy/distance^2)
-    # \param r0 Coefficient \f$ r_0 \f$ (in distance units)
-    # \param r_cut Coefficient \f$ r_{\mathrm{cut}} \f$ (in distance units)
-    # \param A Coefficient \f$ A \f$ (in force units)
-    #
-    # Using set_coeff() requires that the specified %bond %force has been saved in a variable. i.e.
-    # \code
-    # harmonic_dpd = bond.harmonic_dpd()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # harmonic_dpd.set_coeff('polymer', k=330.0, r0=0.84, A=1.0, r_cut=1.0)
-    # \endcode
-    #
-    # The coefficients for every %bond type in the simulation must be set
-    # before the run() can be started.
-    def set_coeff(self, bond_type, k, r0, r_cut, A):
-        util.print_status_line();
+    def process_coeff(self, coeff):
+        k = coeff['k'];
+        r0 = coeff['r0'];
+        A = coeff['A'];
+        r_cut = coeff['r_cut'];
 
-        # set the parameters for the appropriate type
-        self.cpp_force.setParams(globals.system_definition.getBondData().getTypeByName(bond_type), hoomd.make_scalar4(k, r0, r_cut, A));
-
-        # track which particle types we have set
-        if not bond_type in self.bond_types_set:
-            self.bond_types_set.append(bond_type);
-
-    def update_coeffs(self):
-        # get a list of all bond types in the simulation
-        ntypes = globals.system_definition.getBondData().getNBondTypes();
-        type_list = [];
-        for i in xrange(0,ntypes):
-            type_list.append(globals.system_definition.getBondData().getNameByType(i));
-
-        # check to see if all particle types have been set
-        for cur_type in type_list:
-            if not cur_type in self.bond_types_set:
-                print >> sys.stderr, "\n***Error:", cur_type, "coefficients missing in bond.harmonic_dpd\n";
-                raise RuntimeError("Error updating coefficients");
+        return hoomd.make_scalar4(k, r0, r_cut, A);

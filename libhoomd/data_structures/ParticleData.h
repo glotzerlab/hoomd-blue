@@ -203,7 +203,6 @@ struct SnapshotParticleData {
        charge.resize(N);
        diameter.resize(N);
        image.resize(N);
-       rtag.resize(N);
        body.resize(N);
        size = N;
        }
@@ -216,7 +215,6 @@ struct SnapshotParticleData {
     std::vector<Scalar> charge;     //!< charges
     std::vector<Scalar> diameter;   //!< diameters
     std::vector<int3> image;        //!< images
-    std::vector<unsigned int> rtag; //!< reverse-lookup tags
     std::vector<unsigned int> body; //!< body ids
     unsigned int size;              //!< number of particles in this snapshot
     };
@@ -435,6 +433,16 @@ class ParticleData : boost::noncopyable
         
         //! Get the simulation box
         const BoxDim& getBox() const;
+        //! Get the simulation box
+        /*! \returns the simulation box
+            \note This is for source compatibility with mpi branch commits cherry picked into master
+            Disregard it when merging into the mpi branch.
+        */
+        const BoxDim& getGlobalBox() const
+            {
+            return getBox();
+            }
+        
         //! Set the simulation box Lengths
         void setGlobalBoxL(const Scalar3 &L);
 
@@ -451,7 +459,17 @@ class ParticleData : boost::noncopyable
             {
             return m_nparticles;
             }
-            
+
+        //! Get the number of particles
+        /*! \return Number of particles in the box
+            \note This is for source compatibility with mpi branch commits cherry picked into master
+            Disregard it when merging into the mpi branch.
+        */
+        inline unsigned int getNGlobal() const
+            {
+            return m_nparticles;
+            }
+
         //! Get the number of particle types
         /*! \return Number of particle types
             \note Particle types are indexed from 0 to NTypes-1
@@ -495,6 +513,13 @@ class ParticleData : boost::noncopyable
 
         //! return reverse-lookup tags
         const GPUArray< unsigned int >& getRTags() const { return m_rtag; }
+
+        //! return reverse-lookup tags
+        /*! \return Global reverse-lookup tags
+            \note This is for source compatibility with mpi branch commits cherry picked into master
+            Disregard it when merging into the mpi branch.
+        */
+        const GPUArray< unsigned int >& getGlobalRTags() const { return m_rtag; }
 
         //! return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }

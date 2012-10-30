@@ -82,6 +82,12 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("potential_energy") + suffix);
     m_logname_list.push_back(string("ndof") + suffix);
     m_logname_list.push_back(string("num_particles") + suffix);
+    m_logname_list.push_back(string("pressure_xx") + suffix);
+    m_logname_list.push_back(string("pressure_xy") + suffix);
+    m_logname_list.push_back(string("pressure_xz") + suffix);
+    m_logname_list.push_back(string("pressure_yy") + suffix);
+    m_logname_list.push_back(string("pressure_yz") + suffix);
+    m_logname_list.push_back(string("pressure_zz") + suffix);
     }
 
 ComputeThermo::~ComputeThermo()
@@ -145,6 +151,30 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
     else if (quantity == m_logname_list[5])
         {
         return Scalar(m_group->getNumMembers());
+        }
+    else if (quantity == m_logname_list[6])
+        {
+        return Scalar(getPressureTensor().xx);
+        }
+    else if (quantity == m_logname_list[7])
+        {
+        return Scalar(getPressureTensor().xy);
+        }
+    else if (quantity == m_logname_list[8])
+        {
+        return Scalar(getPressureTensor().xz);
+        }
+    else if (quantity == m_logname_list[9])
+        {
+        return Scalar(getPressureTensor().yy);
+        }
+    else if (quantity == m_logname_list[10])
+        {
+        return Scalar(getPressureTensor().yz);
+        }
+    else if (quantity == m_logname_list[11])
+        {
+        return Scalar(getPressureTensor().zz);
         }
     else
         {

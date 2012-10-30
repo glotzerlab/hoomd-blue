@@ -4,11 +4,6 @@
 ## find the threads library
 find_package(Threads)
 
-#################################
-## setup python library and executable
-# find the python libraries to link to
-include(HOOMDPythonSetup)
-
 include_directories(${PYTHON_INCLUDE_DIR})
 
 # find ZLIB
@@ -37,11 +32,14 @@ if (WIN32)
 else (WIN32)
     set(BOOST_LIBS ${Boost_THREAD_LIBRARY}
             ${Boost_FILESYSTEM_LIBRARY}
-            ${Boost_PYTHON_LIBRARY}
             ${Boost_PROGRAM_OPTIONS_LIBRARY}
             ${Boost_SIGNALS_LIBRARY}
             ${Boost_IOSTREAMS_LIBRARY}
             )
+
+    string(TOUPPER ${BOOST_PYTHON_COMPONENT} UPPER_BOOST_PYTHON_COMPONENT )
+    set(BOOST_LIBS ${BOOST_LIBS} ${Boost_${UPPER_BOOST_PYTHON_COMPONENT}_LIBRARY})
+
     if (Boost_SYSTEM_LIBRARY)
         set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
     endif (Boost_SYSTEM_LIBRARY)
@@ -59,9 +57,9 @@ else (WIN32)
     endif (UNIX AND NOT APPLE)
 
     set(HOOMD_COMMON_LIBS
+            ${PYTHON_LIBRARIES}
             ${BOOST_LIBS}
             ${CMAKE_THREAD_LIBS_INIT}
-            ${PYTHON_LIBRARIES}
             ${ZLIB_LIBRARIES}
             ${ADDITIONAL_LIBS}
             )

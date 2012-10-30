@@ -60,10 +60,11 @@ set(TEST_LIST
     test_cgcmm_angle_force
     test_fenebond_force
     test_lj_wall_force
-    test_external_lamellar
+    test_external_periodic
     test_neighborlist
     test_lj_force
     test_table_potential
+    test_bondtable_bond_force    
     test_slj_force
     test_gaussian_force
     test_yukawa_force
@@ -84,6 +85,7 @@ set(TEST_LIST
     test_ewald_force
     test_pppm_force
     test_nph_integrator
+    test_npt_mtk_integrator
     )
 
     # put the longest tests last

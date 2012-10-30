@@ -51,5 +51,8 @@
 # this file exists to mark this directory as a python module
 
 # need to import all submodules defined in this directory
-import update
+
+# NOTE: adjust the import statement to match the name of the template
+# (here: plugin_template)
+from hoomd_plugins.plugin_template import update
 

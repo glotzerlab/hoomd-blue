@@ -76,14 +76,14 @@ using namespace boost;
 */
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE PotentialExternalLamellarTests
+#define BOOST_TEST_MODULE PotentialExternalPeriodicTests
 #include "boost_utf_configure.h"
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<shared_ptr<PotentialExternalLamellar> (shared_ptr<SystemDefinition> sysdef)> lamellarforce_creator;
+typedef boost::function<shared_ptr<PotentialExternalPeriodic> (shared_ptr<SystemDefinition> sysdef)> periodicforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
-void lamellar_force_particle_test(lamellarforce_creator lamellar_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void periodic_force_particle_test(periodicforce_creator periodic_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
@@ -97,7 +97,7 @@ void lamellar_force_particle_test(lamellarforce_creator lamellar_creator, boost:
     pdata_3->setPosition(1,make_scalar3(2.0,0.0,0.0));
     pdata_3->setPosition(2,make_scalar3(3.5,0.0,0.0));
     pdata_3->setType(1,1);
-    shared_ptr<PotentialExternalLamellar> fc_3 = lamellar_creator(sysdef_3);
+    shared_ptr<PotentialExternalPeriodic> fc_3 = periodic_creator(sysdef_3);
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
     unsigned int index = 0;
@@ -144,8 +144,8 @@ void lamellar_force_particle_test(lamellarforce_creator lamellar_creator, boost:
     }
 
 #if 0
-//! Unit test a comparison between 2 LamellarForceComputes on a "real" system
-void lamellar_force_comparison_test(lamellarforce_creator lamellar_creator1, lamellarforce_creator lamellar_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+//! Unit test a comparison between 2 PeriodicForceComputes on a "real" system
+void periodic_force_comparison_test(periodicforce_creator periodic_creator1, periodicforce_creator periodic_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
 
@@ -154,8 +154,8 @@ void lamellar_force_comparison_test(lamellarforce_creator lamellar_creator1, lam
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    shared_ptr<PotentialExternalLamellar> fc1 = lamellar_creator1(sysdef);
-    shared_ptr<PotentialExternalLamellar> fc2 = lamellar_creator2(sysdef);
+    shared_ptr<PotentialExternalPeriodic> fc1 = periodic_creator1(sysdef);
+    shared_ptr<PotentialExternalPeriodic> fc2 = periodic_creator2(sysdef);
 
     unsigned int index = 0;
     Scalar orderParameter = 0.5;
@@ -215,35 +215,35 @@ void lamellar_force_comparison_test(lamellarforce_creator lamellar_creator1, lam
 #endif
 
 //! LJForceCompute creator for unit tests
-shared_ptr<PotentialExternalLamellar> base_class_lamellar_creator(shared_ptr<SystemDefinition> sysdef)
+shared_ptr<PotentialExternalPeriodic> base_class_periodic_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<PotentialExternalLamellar>(new PotentialExternalLamellar(sysdef));
+    return shared_ptr<PotentialExternalPeriodic>(new PotentialExternalPeriodic(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
-shared_ptr<PotentialExternalLamellar> gpu_lamellar_creator(shared_ptr<SystemDefinition> sysdef)
+shared_ptr<PotentialExternalPeriodic> gpu_periodic_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    shared_ptr<PotentialExternalLamellarGPU> lamellar(new PotentialExternalLamellarGPU(sysdef));
+    shared_ptr<PotentialExternalPeriodicGPU> periodic(new PotentialExternalPeriodicGPU(sysdef));
     // the default block size kills valgrind :) reduce it
 //    lj->setBlockSize(64);
-    return lamellar;
+    return periodic;
     }
 #endif
 
 //! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( PotentialExternalLamellar_particle )
+BOOST_AUTO_TEST_CASE( PotentialExternalPeriodic_particle )
     {
-    lamellarforce_creator lamellar_creator_base = bind(base_class_lamellar_creator, _1);
-    lamellar_force_particle_test(lamellar_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    periodicforce_creator periodic_creator_base = bind(base_class_periodic_creator, _1);
+    periodic_force_particle_test(periodic_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
 //! boost test case for particle test on GPU
 BOOST_AUTO_TEST_CASE( PotentialExternalLamellaGPU_particle )
     {
-    lamellarforce_creator lamellar_creator_gpu = bind(gpu_lamellar_creator, _1);
-    lamellar_force_particle_test(lamellar_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    periodicforce_creator periodic_creator_gpu = bind(gpu_periodic_creator, _1);
+    periodic_force_particle_test(periodic_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 /*
@@ -260,4 +260,3 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_compare )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

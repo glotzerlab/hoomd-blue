@@ -77,14 +77,14 @@
 #
 # \sa \ref page_quick_start
 
-import globals;
-import force;
+from hoomd_script import globals;
+from hoomd_script import force;
 import hoomd;
-import util;
-import tune;
-import init;
-import data;
-import variant;
+from hoomd_script import util;
+from hoomd_script import tune;
+from hoomd_script import init;
+from hoomd_script import data;
+from hoomd_script import variant;
 
 import math;
 import sys;
@@ -253,13 +253,13 @@ class coeff:
         # get a list of types from the particle data
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
         valid = True;
         # loop over all possible pairs and verify that all required variables are set
-        for i in xrange(0,ntypes):
-            for j in xrange(i,ntypes):
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
                 a = type_list[i];
                 b = type_list[j];
                 
@@ -775,11 +775,11 @@ class pair(force._force):
         # set all the params
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
-        for i in xrange(0,ntypes):
-            for j in xrange(i,ntypes):
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
                 # build a dict of the coeffs to pass to process_coeff
                 coeff_dict = {};
                 for name in coeff_list:
@@ -797,14 +797,14 @@ class pair(force._force):
         # go through the list of only the active particle types in the sim
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
         # find the maximum r_cut
         max_rcut = 0.0;
         
-        for i in xrange(0,ntypes):
-            for j in xrange(i,ntypes):
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
                 # get the r_cut value
                 r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
                 max_rcut = max(max_rcut, r_cut);
@@ -1402,11 +1402,11 @@ class cgcmm(force._force):
         # set all the params
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
-        for i in xrange(0,ntypes):
-            for j in xrange(i,ntypes):
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
                 epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
                 sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
                 alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
@@ -1552,7 +1552,7 @@ class table(force._force):
         dr = (rmax - rmin) / float(self.width-1);
         
         # evaluate each point of the function
-        for i in xrange(0, self.width):
+        for i in range(0, self.width):
             r = rmin + dr * i;
             (V,F) = func(r, rmin, rmax, **coeff);
                 
@@ -1567,15 +1567,15 @@ class table(force._force):
         # loop only over current particle types
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
         # find the maximum rmax to update the neighbor list with
         maxrmax = 0.0;
         
         # loop through all of the unique type pairs and find the maximum rmax
-        for i in xrange(0,ntypes):
-            for j in xrange(i,ntypes):
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
                 rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax");
                 maxrmax = max(maxrmax, rmax);
 
@@ -1590,12 +1590,12 @@ class table(force._force):
         # set all the params
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
         # loop through all of the unique type pairs and evaluate the table
-        for i in xrange(0,ntypes):
-            for j in xrange(i,ntypes):
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
                 func = self.pair_coeff.get(type_list[i], type_list[j], "func");
                 rmin = self.pair_coeff.get(type_list[i], type_list[j], "rmin");
                 rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax");
@@ -1667,7 +1667,7 @@ class table(force._force):
 
         # check for even spacing
         dr = (rmax_table - rmin_table) / float(self.width-1);
-        for i in xrange(0,self.width):
+        for i in range(0,self.width):
             r = rmin_table + dr * i;
             if math.fabs(r - r_table[i]) > 1e-3:
                 globals.msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
