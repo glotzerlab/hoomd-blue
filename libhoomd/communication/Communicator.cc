@@ -128,7 +128,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_r_ghost(Scalar(0.0)),
             m_r_buff(Scalar(0.0)),
             m_plan(m_exec_conf),
-            m_next_ghost_update(0)
+            m_next_ghost_update(0),
+            m_is_first_step(true)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -179,9 +180,10 @@ void Communicator::communicate(unsigned int timestep)
     m_is_communicating = true;
 
     // Check if migration of particles is requested
-    if (m_force_migrate || m_migrate_requests(timestep))
+    if (m_force_migrate || m_migrate_requests(timestep) || m_is_first_step)
         {
         m_force_migrate = false;
+        m_is_first_step = false;
 
         // If so, migrate atoms
         migrateAtoms();

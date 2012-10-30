@@ -376,6 +376,7 @@ class Communicator
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
 
         unsigned int m_next_ghost_update;        //!< Timestep in which the ghosts are next updated
+        bool m_is_first_step;                    //!< True if no communication has yet occured
     };
 
 //! Declaration of python export function
