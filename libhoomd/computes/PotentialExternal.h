@@ -64,7 +64,8 @@ class PotentialExternal: public ForceCompute
     {
     public:
         //! Constructs the compute
-        PotentialExternal<evaluator>(boost::shared_ptr<SystemDefinition> sysdef);
+        PotentialExternal<evaluator>(boost::shared_ptr<SystemDefinition> sysdef,
+                                     const std::string& log_suffix="");
 
         //! type of external potential parameters
         typedef typename evaluator::param_type param_type;
@@ -72,24 +73,63 @@ class PotentialExternal: public ForceCompute
         //! Sets parameters of the evaluator
         void setParams(unsigned int type, param_type params);
 
+        //! Returns a list of log quantities this compute calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+
+        //! Calculates the requested log value and returns it
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+
     protected:
 
         GPUArray<param_type> m_params;        //!< Array of per-type parameters
+        std::string m_log_name;               //!< Cached log name
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
-
     };
 
 /*! Constructor
     \param sysdef system definition
- */
+    \param log_suffix Name given to this instance of the force
+*/
 template<class evaluator>
-PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefinition> sysdef)
+PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefinition> sysdef,
+                         const std::string& log_suffix)
     : ForceCompute(sysdef)
     {
+    m_log_name = std::string("external_") + evaluator::getName() + std::string("_energy") + log_suffix;
+
     GPUArray<param_type> params(m_pdata->getNTypes(), exec_conf);
     m_params.swap(params);
+    }
+
+/*! PotentialExternal provides
+    - \c external_"name"_energy
+*/
+template<class evaluator>
+std::vector< std::string > PotentialExternal<evaluator>::getProvidedLogQuantities()
+    {
+    vector<string> list;
+    list.push_back(m_log_name);
+    return list;
+    }
+
+/*! \param quantity Name of the log value to get
+    \param timestep Current timestep of the simulation
+*/
+template<class evaluator>
+Scalar PotentialExternal<evaluator>::getLogValue(const std::string& quantity, unsigned int timestep)
+    {
+    if (quantity == m_log_name)
+        {
+        compute(timestep);
+        return calcEnergySum();
+        }
+    else
+        {
+        this->m_exec_conf->msg->error() << "external." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
+        throw std::runtime_error("Error getting log value");
+        }
     }
 
 /*! Computes the specified constraint forces
@@ -160,7 +200,7 @@ void PotentialExternal<evaluator>::setParams(unsigned int type, param_type param
     {
     if (type >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "external.lamellar: Trying to set external potential params for a non existant type! "
+        this->m_exec_conf->msg->error() << "external.periodic: Trying to set external potential params for a non existant type! "
                                         << type << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialExternal");
         }
@@ -177,7 +217,7 @@ template < class T >
 void export_PotentialExternal(const std::string& name)
     {
     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition> >())
+                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string& >())
                   .def("setParams", &T::setParams)
                   ;
     }

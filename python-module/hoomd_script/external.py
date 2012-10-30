@@ -301,17 +301,17 @@ class periodic(_external_force):
     # periodic.coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
     # \endcode
 
-    def __init__(self):
+    def __init__(self, name=""):
         util.print_status_line();
 
         # initialize the base class
-        _external_force.__init__(self);
+        _external_force.__init__(self, name);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_force = hoomd.PotentialExternalLamellar(globals.system_definition);
+            self.cpp_force = hoomd.PotentialExternalPeriodic(globals.system_definition,self.name);
         else:
-            self.cpp_force = hoomd.PotentialExternalLamellarGPU(globals.system_definition);
+            self.cpp_force = hoomd.PotentialExternalPeriodicGPU(globals.system_definition,self.name);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
