@@ -111,8 +111,7 @@ void CellListGPU::computeCellList()
                               box,
                               m_cell_indexer,
                               m_cell_list_indexer,
-                              ghost_width,
-                              m_exec_conf->getDefaultStream());
+                              ghost_width);
         }
     else
         {
@@ -140,17 +139,6 @@ void CellListGPU::computeCellList()
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-
-void CellListGPU::resetConditions()
-    {
-    m_conditions.resetFlagsStream(make_uint3(0,0,0),m_exec_conf->getDefaultStream());
-    }
-
-uint3 CellListGPU::readConditions()
-    {
-    return m_conditions.readFlagsStream(m_exec_conf->getDefaultStream());
-    }
-
 
 void export_CellListGPU()
     {

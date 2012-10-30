@@ -182,8 +182,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeForces(unsigned i
                              d_gpu_n_bonds.data,
                              this->m_bond_data->getNBondTypes(),
                              m_block_size,
-                             false,
-                             this->m_exec_conf->getDefaultStream()),
+                             false),
                  d_params.data,
                  d_flags.data);
         }
@@ -249,8 +248,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeGhostForces(unsig
                              d_gpu_n_ghost_bonds.data,
                              this->m_bond_data->getNBondTypes(),
                              m_block_size,
-                             true,
-                             this->m_exec_conf->getDefaultStream()),
+                             true),
                  d_params.data,
                  d_flags.data);
         }

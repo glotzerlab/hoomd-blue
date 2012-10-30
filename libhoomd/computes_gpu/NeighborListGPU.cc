@@ -169,17 +169,6 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
 
-unsigned int NeighborListGPU::readConditions()
-    {
-    return m_conditions.readFlagsStream(m_exec_conf->getDefaultStream());
-    }
-
-void NeighborListGPU::resetConditions()
-    {
-    m_conditions.resetFlagsStream(0,m_exec_conf->getDefaultStream());
-    }
-
-
 bool NeighborListGPU::distanceCheck()
     {
     // scan through the particle data arrays and calculate distances
@@ -214,21 +203,20 @@ bool NeighborListGPU::distanceCheck()
                                      box,
                                      maxshiftsq,
                                      lambda,
-                                     m_checkn,
-                                     m_exec_conf->getDefaultStream());
+                                     m_checkn);
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     bool result;
-    result = (m_flags.readFlagsStream(m_exec_conf->getDefaultStream()) == m_checkn);
+    result = (m_flags.readFlags() == m_checkn);
 
     m_checkn++;
 
     if (m_prof) m_prof->pop(exec_conf);
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_pdata->getDomainDecomposition())
         {
         // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
         int local_result = result ? 1 : 0;
@@ -237,7 +225,6 @@ bool NeighborListGPU::distanceCheck()
         result = (global_result > 0);
         }
 #endif
-
     return result;
     }
 
@@ -262,8 +249,7 @@ void NeighborListGPU::filterNlist()
                      d_ex_list_idx.data,
                      m_ex_list_indexer,
                      m_pdata->getN(),
-                     m_block_size_filter,
-                     m_exec_conf->getDefaultStream());
+                     m_block_size_filter);
   
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -279,8 +265,7 @@ void NeighborListGPU::filterNlist()
                      d_ex_list_idx.data,
                      m_ex_list_indexer,
                      m_pdata->getN(),
-                     m_block_size_filter,
-                     m_exec_conf->getDefaultStream());
+                     m_block_size_filter);
         }
 #endif
 
@@ -310,8 +295,7 @@ void NeighborListGPU::updateExListIdx()
                               d_n_ex_idx.data,
                               d_ex_list_idx.data,
                               m_ex_list_indexer,
-                              m_pdata->getN(),
-                              m_exec_conf->getDefaultStream());
+                              m_pdata->getN());
 
     if (m_prof)
         m_prof->pop();

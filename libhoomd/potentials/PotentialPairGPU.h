@@ -198,8 +198,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
                          m_block_size,
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         false,
-                         this->m_exec_conf->getDefaultStream()),
+                         false),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
@@ -259,8 +258,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForces(unsig
                          m_block_size,
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         true,
-                         this->m_exec_conf->getDefaultStream()),
+                         true),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

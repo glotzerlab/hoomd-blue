@@ -232,8 +232,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_body,
                                  m_filter_diameter,
                                  ghost_width,
-                                 compute_ghost_nlist,
-                                 m_exec_conf->getDefaultStream());
+                                 compute_ghost_nlist);
         }
     else
         {

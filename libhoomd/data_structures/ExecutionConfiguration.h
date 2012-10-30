@@ -160,14 +160,6 @@ struct ExecutionConfiguration : boost::noncopyable
         }
 #endif
 
-#ifdef ENABLE_CUDA
-    //! Get the default stream
-    inline cudaStream_t getDefaultStream() const
-        {
-        return 0;
-        }
-#endif
-
     //! Guess rank of this processor
     /*! \returns Rank guessed from common environment variables, 0 is default
      */

@@ -79,8 +79,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const BoxDim& box,
                                   const Index3D& ci,
                                   const Index2D& cli,
-                                  const Scalar3& ghost_width,
-                                  cudaStream_t stream);
+                                  const Scalar3& ghost_width);
 
 //! Kernel driver for gpu_compute_cell_list_1x_kernel()
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,

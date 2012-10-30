@@ -376,14 +376,13 @@ void BondData::updateBondTableGPU()
                                      compute_ghost_bonds,
                                      m_max_bond_num,
                                      m_max_ghost_bond_num,
-                                     m_condition.getDeviceFlags(),
-                                     m_exec_conf->getDefaultStream());
+                                     m_condition.getDeviceFlags());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
 
-        need_reallocate = m_condition.readFlagsStream(m_exec_conf->getDefaultStream());
+        need_reallocate = m_condition.readFlags();
 
         if (need_reallocate & 1)
             {
@@ -418,8 +417,7 @@ void BondData::updateBondTableGPU()
                              m_gpu_bondlist.getPitch(),
                              m_gpu_ghost_bondlist.getPitch(),
                              m_pdata->getN(),
-                             compute_ghost_bonds,
-                             m_exec_conf->getDefaultStream());
+                             compute_ghost_bonds);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

@@ -533,7 +533,8 @@ bool CellList::checkConditions()
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-        m_exec_conf->msg->error() << "Particle " << h_tag.data[n] << " is no longer in the simulation box."
+        m_exec_conf->msg->error() << (n >= m_pdata->getN() ? "Ghost" : "")
+                                  <<"Particle " << h_tag.data[n] << " is no longer in the simulation box."
                                   << endl << endl;
 
         m_exec_conf->msg->notice(2) << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;

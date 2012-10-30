@@ -71,14 +71,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/partition.h>
 #include <thrust/count.h>
 
-#include <stdio.h>
-
-#ifdef WIN32
-#include <cassert>
-#else
-#include <assert.h>
-#endif
-
 using namespace thrust;
 
 unsigned int gpu_pdata_element_size()
@@ -247,10 +239,6 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           const unsigned int n_bonds,
                                           const BoxDim box)
     {
-    assert(d_btable);
-    assert(d_plan);
-    assert(N>0);
-
     unsigned int block_size = 512;
     Scalar3 lo = box.getLo();
     Scalar3 L2 = box.getL()/2.0f;
@@ -495,9 +483,9 @@ void gpu_migrate_select_particles(unsigned int N,
                                   const BoxDim& global_box,
                                   unsigned int *d_condition)
     {
-    cudaMemsetAsync(d_n_send_ptls_corner, 0, sizeof(unsigned int)*8,0);
-    cudaMemsetAsync(d_n_send_ptls_edge, 0, sizeof(unsigned int)*12,0);
-    cudaMemsetAsync(d_n_send_ptls_face, 0, sizeof(unsigned int)*6,0);
+    cudaMemset(d_n_send_ptls_corner, 0, sizeof(unsigned int)*8);
+    cudaMemset(d_n_send_ptls_edge, 0, sizeof(unsigned int)*12);
+    cudaMemset(d_n_send_ptls_face, 0, sizeof(unsigned int)*6);
 
     unsigned int block_size = 512;
 
@@ -626,7 +614,7 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int *d_tag,
                         unsigned int *d_rtag)
     {
-    cudaMemsetAsync(d_n_fetch_ptl, 0, sizeof(unsigned int),0);
+    cudaMemset(d_n_fetch_ptl, 0, sizeof(unsigned int));
 
     unsigned int block_size = 512;
     unsigned int new_end = old_nparticles + n_recv_ptls - n_remove_ptls;
@@ -791,7 +779,10 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
                     }
                 }
             if (!has_corner)
+                {
                 atomicOr(condition, 8); // invalid plan
+                return;
+                }
 
             unsigned int n = atomicInc(&n_copy_ghosts_corner[corner],0xffffffff);
             if (n < max_copy_ghosts_corner)
@@ -808,7 +799,7 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
         if (count == 2)
             {
             bool has_edge = false;
-            unsigned edge = 0;
+            unsigned int edge = 0;
             for (unsigned int i = 0; i < 12; ++i)
                 if ((plan & d_edge_plan_lookup[i]) == d_edge_plan_lookup[i])
                     {
@@ -818,7 +809,10 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
                     }
 
             if (!has_edge)
+                {
                 atomicOr(condition,8); // invalid plan
+                return;
+                }
 
             unsigned int n = atomicInc(&n_copy_ghosts_edge[edge],0xffffffff);
             if (n < max_copy_ghosts_edge)
@@ -847,7 +841,10 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
                     }
 
             if (!has_face)
+                {
                 atomicOr(condition,8); // invalid plan
+                return;
+                }
             
             unsigned int n = atomicInc(&n_copy_ghosts_face[face],0xffffffff);
             if (n < max_copy_ghosts_face)
@@ -904,9 +901,9 @@ void gpu_exchange_ghosts(const unsigned int N,
                          unsigned int max_copy_ghosts_face,
                          unsigned int *d_condition)
     {
-    cudaMemsetAsync(d_n_copy_ghosts_corner, 0, sizeof(unsigned int)*8,0);
-    cudaMemsetAsync(d_n_copy_ghosts_edge, 0, sizeof(unsigned int)*12,0);
-    cudaMemsetAsync(d_n_copy_ghosts_face, 0, sizeof(unsigned int)*6,0);
+    cudaMemset(d_n_copy_ghosts_corner, 0, sizeof(unsigned int)*8);
+    cudaMemset(d_n_copy_ghosts_edge, 0, sizeof(unsigned int)*12);
+    cudaMemset(d_n_copy_ghosts_face, 0, sizeof(unsigned int)*6);
 
 
     unsigned int block_size = 512;
@@ -1269,11 +1266,10 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      unsigned int face_buf_pitch,
                                      const unsigned int *d_n_local_ghosts_corner,
                                      const unsigned int *d_n_local_ghosts_edge,
-                                     const unsigned int *d_n_local_ghosts_face,
-                                     cudaStream_t stream)
+                                     const unsigned int *d_n_local_ghosts_face)
     {
     unsigned int block_size = 512;
-    gpu_update_ghosts_pack_kernel<<<n_copy_ghosts/block_size+1,block_size,0,stream>>>(n_copy_ghosts,
+    gpu_update_ghosts_pack_kernel<<<n_copy_ghosts/block_size+1,block_size>>>(n_copy_ghosts,
                                                                              d_ghost_idx_face,
                                                                              ghost_idx_face_pitch,
                                                                              d_ghost_idx_edge,
@@ -1307,11 +1303,10 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
                                 unsigned int *d_ghost_plan,
-                                const BoxDim& global_box,
-                                cudaStream_t stream)
+                                const BoxDim& global_box)
     {
     unsigned int block_size = 512;
-    gpu_exchange_ghosts_unpack_kernel<update_element_gpu, true><<<n_tot_recv_ghosts/block_size+1, block_size,0,stream>>>
+    gpu_exchange_ghosts_unpack_kernel<update_element_gpu, true><<<n_tot_recv_ghosts/block_size+1, block_size>>>
                                                                           (N,
                                                                            n_tot_recv_ghosts,
                                                                            d_n_local_ghosts_face,

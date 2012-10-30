@@ -84,8 +84,7 @@ struct bond_args_t
               const unsigned int *_d_gpu_n_bonds,
               const unsigned int _n_bond_types,
               const unsigned int _block_size,
-              const bool _add_force,
-              const cudaStream_t _stream)
+              const bool _add_force)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
@@ -99,8 +98,7 @@ struct bond_args_t
                   d_gpu_n_bonds(_d_gpu_n_bonds),
                   n_bond_types(_n_bond_types),
                   block_size(_block_size),
-                  add_force(_add_force),
-                  stream(_stream)
+                  add_force(_add_force)
         {
         };
 
@@ -118,7 +116,6 @@ struct bond_args_t
     const unsigned int n_bond_types;   //!< Number of bond types in the simulation
     const unsigned int block_size;     //!< Block size to execute
     const bool add_force;              //!< True if we are adding to the force array (instead of overwriting)
-    const cudaStream_t stream;         //!< Cuda stream for concurrent kernel execution
     };
 
 #ifdef NVCC
@@ -326,7 +323,7 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
                                 bond_args.n_bond_types;
 
     // run the kernel
-    gpu_compute_bond_forces_kernel<evaluator><<<grid, threads, shared_bytes, bond_args.stream>>>(
+    gpu_compute_bond_forces_kernel<evaluator><<<grid, threads, shared_bytes>>>(
         bond_args.d_force, bond_args.d_virial, bond_args.virial_pitch, bond_args.N,
         bond_args.d_pos, bond_args.d_charge, bond_args.d_diameter, bond_args.box, bond_args.d_gpu_bondlist,
         bond_args.pitch, bond_args.d_gpu_n_bonds, bond_args.n_bond_types, d_params, d_flags, bond_args.add_force);

@@ -257,8 +257,7 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      unsigned int face_buf_pitch,
                                      const unsigned int *d_n_local_ghosts_corner,
                                      const unsigned int *d_n_local_ghosts_edge,
-                                     const unsigned int *d_n_local_ghosts_face,
-                                     cudaStream_t stream);
+                                     const unsigned int *d_n_local_ghosts_face);
 
 void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
@@ -296,7 +295,6 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
                                 unsigned int *d_ghost_plan,
-                                const BoxDim& global_box,
-                                cudaStream_t stream);
+                                const BoxDim& global_box);
  
 #endif // ENABLE_MPI

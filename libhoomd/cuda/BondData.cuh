@@ -69,8 +69,7 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                      bool find_ghost_bonds,
                                      const unsigned int cur_max,
                                      const unsigned int cur_ghost_max,
-                                     unsigned int *d_condition,
-                                     cudaStream_t stream);
+                                     unsigned int *d_condition);
 
 //! Construct the GPU bond table
 cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
@@ -84,8 +83,7 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
                                  unsigned int pitch,
                                  unsigned int ghost_pitch,
                                  unsigned int N,
-                                 bool use_ghost_bonds,
-                                 cudaStream_t stream);
+                                 bool use_ghost_bonds);
 
 
 #endif

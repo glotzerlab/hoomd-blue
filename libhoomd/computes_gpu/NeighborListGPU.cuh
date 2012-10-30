@@ -69,8 +69,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int * d_result,
                                              const BoxDim& box,
                                              const float maxshiftsq,
                                              const float3 lambda,
-                                             const unsigned int checkn,
-                                             cudaStream_t stream);
+                                             const unsigned int checkn);
 
 //! Kernel driver for gpu_nlist_filter_kernel()
 cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
@@ -80,8 +79,7 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                              const unsigned int *d_ex_list,
                              const Index2D& exli,
                              const unsigned int N,
-                             const unsigned int block_size,
-                             cudaStream_t stream);
+                             const unsigned int block_size);
 
 //! Kernel driver for gpu_compute_nlist_nsq_kernel()
 cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
@@ -104,8 +102,7 @@ cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
                                 unsigned int *d_n_ex_idx,
                                 unsigned int *d_ex_list_idx,
                                 const Index2D& ex_list_indexer,
-                                const unsigned int N,
-                                cudaStream_t stream);
+                                const unsigned int N);
  
 #endif
 

@@ -129,9 +129,9 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
 
     // find the bin each particle belongs in
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
-    unsigned int ib = (unsigned int)(f.x * ci.getW());
-    unsigned int jb = (unsigned int)(f.y * ci.getH());
-    unsigned int kb = (unsigned int)(f.z * ci.getD());
+    int ib = (int)(f.x * ci.getW());
+    int jb = (int)(f.y * ci.getH());
+    int kb = (int)(f.z * ci.getD());
 
     // need to handle the case where the particle is exactly at the box hi
     if (ib == ci.getW())
@@ -179,7 +179,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
             float drsq = dot(dx,dx);
 
             bool excluded = (my_pidx == cur_neigh);
-
+ 
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
 
@@ -229,7 +229,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     if (n_neigh_needed > 0)
         atomicMax(&d_conditions[0], n_neigh_needed);
 
-    if (n_ghost_neigh_needed > 0 && compute_ghost_nlist)
+    if ((n_ghost_neigh_needed > 0) && compute_ghost_nlist)
         atomicMax(&d_conditions[0], n_ghost_neigh_needed);
     }
 
@@ -257,14 +257,13 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      bool filter_body,
                                      bool filter_diameter,
                                      const Scalar3& ghost_width,
-                                     bool compute_ghost_neighbors,
-                                     cudaStream_t stream)
+                                     bool compute_ghost_neighbors)
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
 
     if (!filter_diameter && !filter_body && !compute_ghost_neighbors)
         {
-        gpu_compute_nlist_binned_new_kernel<0><<<n_blocks, block_size,0,stream>>>(d_nlist,
+        gpu_compute_nlist_binned_new_kernel<0><<<n_blocks, block_size>>>(d_nlist,
                                                                          d_ghost_nlist,
                                                                          d_n_neigh,
                                                                          d_n_ghost_neigh,
@@ -289,7 +288,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
         }
     if (!filter_diameter && filter_body &&!compute_ghost_neighbors)
         {
-        gpu_compute_nlist_binned_new_kernel<1><<<n_blocks, block_size,0,stream>>>(d_nlist,
+        gpu_compute_nlist_binned_new_kernel<1><<<n_blocks, block_size>>>(d_nlist,
                                                                          d_ghost_nlist,
                                                                          d_n_neigh,
                                                                          d_n_ghost_neigh,
@@ -314,7 +313,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
         }
     if (filter_diameter && !filter_body && !compute_ghost_neighbors)
         {
-        gpu_compute_nlist_binned_new_kernel<2><<<n_blocks, block_size,0,stream>>>(d_nlist,
+        gpu_compute_nlist_binned_new_kernel<2><<<n_blocks, block_size>>>(d_nlist,
                                                                          d_ghost_nlist,
                                                                          d_n_neigh,
                                                                          d_n_ghost_neigh,
@@ -339,7 +338,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
         }
     if (filter_diameter && filter_body && !compute_ghost_neighbors)
         {
-        gpu_compute_nlist_binned_new_kernel<3><<<n_blocks, block_size,0,stream>>>(d_nlist,
+        gpu_compute_nlist_binned_new_kernel<3><<<n_blocks, block_size>>>(d_nlist,
                                                                          d_ghost_nlist,
                                                                          d_n_neigh,
                                                                          d_n_ghost_neigh,
@@ -364,7 +363,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
         }
     if (!filter_diameter && !filter_body && compute_ghost_neighbors)
         {
-        gpu_compute_nlist_binned_new_kernel<4><<<n_blocks, block_size,0,stream>>>(d_nlist,
+        gpu_compute_nlist_binned_new_kernel<4><<<n_blocks, block_size>>>(d_nlist,
                                                                          d_ghost_nlist,
                                                                          d_n_neigh,
                                                                          d_n_ghost_neigh,
@@ -389,7 +388,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
         }
     if (!filter_diameter && filter_body && compute_ghost_neighbors)
         {
-        gpu_compute_nlist_binned_new_kernel<5><<<n_blocks, block_size,0,stream>>>(d_nlist,
+        gpu_compute_nlist_binned_new_kernel<5><<<n_blocks, block_size>>>(d_nlist,
                                                                          d_ghost_nlist,
                                                                          d_n_neigh,
                                                                          d_n_ghost_neigh,
@@ -414,7 +413,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
         }
     if (filter_diameter && !filter_body && compute_ghost_neighbors)
         {
-        gpu_compute_nlist_binned_new_kernel<6><<<n_blocks, block_size,0,stream>>>(d_nlist,
+        gpu_compute_nlist_binned_new_kernel<6><<<n_blocks, block_size>>>(d_nlist,
                                                                          d_ghost_nlist,
                                                                          d_n_neigh,
                                                                          d_n_ghost_neigh,
@@ -439,7 +438,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
         }
     if (filter_diameter && filter_body && compute_ghost_neighbors)
         {
-        gpu_compute_nlist_binned_new_kernel<7><<<n_blocks, block_size,0,stream>>>(d_nlist,
+        gpu_compute_nlist_binned_new_kernel<7><<<n_blocks, block_size>>>(d_nlist,
                                                                          d_ghost_nlist,
                                                                          d_n_neigh,
                                                                          d_n_ghost_neigh,

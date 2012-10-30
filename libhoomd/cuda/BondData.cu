@@ -183,7 +183,6 @@ __global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
     \param cur_max Current maximum bonded particle number
     \param cur_ghost_max Current maximum bonded ghost particle number
     \param condition Condition variable, set to unequal zero if we exceed the maximum numbers
-    \param stream Cuda stream to use for concurrent kernel execution
  */
 cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                      unsigned int *d_n_ghost_bonds,
@@ -194,8 +193,7 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                      bool compute_ghost_bonds,
                                      const unsigned int cur_max,
                                      const unsigned int cur_ghost_max,
-                                     unsigned int *d_condition,
-                                     cudaStream_t stream)
+                                     unsigned int *d_condition)
     {
     assert(d_bonds);
     assert(d_rtag);
@@ -204,11 +202,11 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
     unsigned int block_size = 512;
 
     // clear n_bonds array
-    cudaMemsetAsync(d_n_bonds, 0, sizeof(unsigned int) * N,stream);
+    cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
     if (compute_ghost_bonds)
-        cudaMemsetAsync(d_n_ghost_bonds, 0, sizeof(unsigned int) * N,stream);
+        cudaMemset(d_n_ghost_bonds, 0, sizeof(unsigned int) * N);
 
-    gpu_find_max_bond_number_kernel<<<num_bonds/block_size + 1, block_size,0,stream>>>(d_bonds,
+    gpu_find_max_bond_number_kernel<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
                                                                               d_rtag,
                                                                               d_n_bonds,
                                                                               d_n_ghost_bonds,
@@ -233,7 +231,6 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
     \param ghost_pitch Pitch of 2D ghost bondtable array
     \param N Number of particles
     \param use_ghost_bonds True if we are only considering bonds with ghost particles
-    \param stream Cuda stream to use for concurrent kernel execution
  */
 cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
                                  uint2 *d_gpu_ghost_bondtable,
@@ -246,18 +243,17 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
                                  unsigned int pitch,
                                  unsigned int ghost_pitch,
                                  unsigned int N,
-                                 bool compute_ghost_bonds,
-                                 cudaStream_t stream)
+                                 bool compute_ghost_bonds)
     {
     unsigned int block_size = 512;
 
     // clear n_bonds array
-    cudaMemsetAsync(d_n_bonds, 0, sizeof(unsigned int) * N,stream);
+    cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
 
     if (compute_ghost_bonds)
-        cudaMemsetAsync(d_n_ghost_bonds, 0, sizeof(unsigned int) * N,stream);
+        cudaMemset(d_n_ghost_bonds, 0, sizeof(unsigned int) * N);
 
-    gpu_fill_gpu_bond_table<<<num_bonds/block_size + 1, block_size,0,stream>>>(d_bonds,
+    gpu_fill_gpu_bond_table<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
                                                                       d_bond_type,
                                                                       d_gpu_bondtable,
                                                                       d_gpu_ghost_bondtable,

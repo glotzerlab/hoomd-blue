@@ -247,7 +247,7 @@ class ParticleGroup
             }
             
         //! Get a member index from the group
-        /*! \param j Value from 0 to getNumMembers()-1 of the group member to get
+        /*! \param j Value from 0 to getNumLocalMembers()-1 of the group member to get
             \returns Index of the member at position \a j
             \note getMemberTag(j) \b does \b NOT get the tag of the particle with index getMemberIndex(j). These two
                   lists are stored in different orders. Access the ParticleData to convert between tags and indices.
