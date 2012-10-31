@@ -126,7 +126,7 @@ bool DomainDecomposition::findDecomposition(const Scalar3 L, unsigned int& nx, u
 
     // Calulate the number of sub-domains in every direction
     // by minimizing the surface area between domains at constant number of domains
-    double min_surface_area = L.x*L.y*m_exec_conf->getNRanks()+L.x*L.z+L.y*L.z;
+    double min_surface_area = L.x*L.y*(double)(m_exec_conf->getNRanks()-1);
 
     unsigned int nx_in = nx;
     unsigned int ny_in = ny;
@@ -153,7 +153,7 @@ bool DomainDecomposition::findDecomposition(const Scalar3 L, unsigned int& nx, u
                 if (nz_in != 0 && nz_try != nz_in)
                     continue;
                 if (nx_try*ny_try*nz_try != nranks) continue;
-                double surface_area = L.x*L.y*nz_try + L.x*L.z*ny_try + L.y*L.z*nx_try;
+                double surface_area = L.x*L.y*(double)(nz_try-1) + L.x*L.z*(double)(ny_try-1) + L.y*L.z*(double)(nx_try-1);
                 if (surface_area < min_surface_area || !found_decomposition)
                     {
                     nx = nx_try;
