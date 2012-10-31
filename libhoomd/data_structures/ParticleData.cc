@@ -614,9 +614,14 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             // loop over particles in snapshot, place them into domains
             for (std::vector<Scalar3>::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
+                // first move possible outliers into the box
+                Scalar3 pos = *it;
+                int3 image = snapshot.image[it-snapshot.pos.begin()];
+
+                m_global_box.wrap(pos,image);
 
                 // determine domain the particle is placed into
-                Scalar3 f = m_global_box.makeFraction(*it,make_scalar3(0.0,0.0,0.0));
+                Scalar3 f = m_global_box.makeFraction(pos,make_scalar3(0.0,0.0,0.0));
                 int i= (unsigned int) (f.x * scale.x);
                 int j= (unsigned int) (f.y * scale.y);
                 int k= (unsigned int) (f.z * scale.z);
@@ -633,16 +638,18 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             
                 unsigned int rank = di(i,j,k);
 
+                assert(rank <= m_exec_conf->getNRanks());
+
                 unsigned int tag = it - snapshot.pos.begin() ;
                 // fill up per-processor data structures
-                pos_proc[rank].push_back(snapshot.pos[tag]);
+                pos_proc[rank].push_back(pos);
+                image_proc[rank].push_back(image);
                 vel_proc[rank].push_back(snapshot.vel[tag]);
                 accel_proc[rank].push_back(snapshot.accel[tag]);
                 type_proc[rank].push_back(snapshot.type[tag]);
                 mass_proc[rank].push_back(snapshot.mass[tag]);
                 charge_proc[rank].push_back(snapshot.charge[tag]);
                 diameter_proc[rank].push_back(snapshot.diameter[tag]);
-                image_proc[rank].push_back(snapshot.image[tag]);
                 body_proc[rank].push_back(snapshot.body[tag]);
                 orientation_proc[rank].push_back(snapshot.orientation[tag]);
                 tag_proc[rank].push_back(tag);
