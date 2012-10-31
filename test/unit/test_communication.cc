@@ -1516,7 +1516,6 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         // both communicators should replicate the same number of ghosts
         BOOST_CHECK_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
 
-        double tol_small = 0.00001;
             {
             ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_pos_1(pdata_1->getPositions(), access_location::host, access_mode::read);
@@ -1543,9 +1542,9 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                     exec_conf_1->msg->notice(1) << "Tag " << i << " z1: " << h_pos_1.data[h_rtag_1.data[i]].z << " z2: " << h_pos_2.data[h_rtag_2.data[i]].z << std::endl;
                     #endif
 
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_small);
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_small);
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_small);
+                    BOOST_CHECK_EQUAL(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x);
+                    BOOST_CHECK_EQUAL(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y);
+                    BOOST_CHECK_EQUAL(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z);
                     }
                 }
             }
@@ -1639,7 +1638,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
 
 #ifdef ENABLE_CUDA
 
-#if 0
 //! Tests particle distribution on GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
     {
@@ -1663,8 +1661,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
-
-#endif
 
 BOOST_AUTO_TEST_CASE (communicator_compare_test )
     {
