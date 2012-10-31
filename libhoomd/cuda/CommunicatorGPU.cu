@@ -483,9 +483,9 @@ void gpu_migrate_select_particles(unsigned int N,
                                   const BoxDim& global_box,
                                   unsigned int *d_condition)
     {
-    cudaMemset(d_n_send_ptls_corner, 0, sizeof(unsigned int)*8);
-    cudaMemset(d_n_send_ptls_edge, 0, sizeof(unsigned int)*12);
-    cudaMemset(d_n_send_ptls_face, 0, sizeof(unsigned int)*6);
+    cudaMemsetAsync(d_n_send_ptls_corner, 0, sizeof(unsigned int)*8);
+    cudaMemsetAsync(d_n_send_ptls_edge, 0, sizeof(unsigned int)*12);
+    cudaMemsetAsync(d_n_send_ptls_face, 0, sizeof(unsigned int)*6);
 
     unsigned int block_size = 512;
 

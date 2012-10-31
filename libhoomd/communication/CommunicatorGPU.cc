@@ -335,18 +335,23 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
 
         for (unsigned int i = 0; i < 6; ++i)
             if (h_n_local_ghosts_face.data[i])
-                cudaMemcpy(h_face_update_buf+i*fpitch, d_face_update_buf.data + i*fpitch,
+                cudaMemcpyAsync(h_face_update_buf+i*fpitch, d_face_update_buf.data + i*fpitch,
                     h_n_local_ghosts_face.data[i]*gpu_update_element_size(), cudaMemcpyDeviceToHost);
 
         for (unsigned int i = 0; i < 12; ++i)
             if (h_n_local_ghosts_edge.data[i])
-                cudaMemcpy(h_edge_update_buf+i*epitch, d_edge_update_buf.data + i*epitch,
+                cudaMemcpyAsync(h_edge_update_buf+i*epitch, d_edge_update_buf.data + i*epitch,
                     h_n_local_ghosts_edge.data[i]*gpu_update_element_size(), cudaMemcpyDeviceToHost);
 
         for (unsigned int i = 0; i < 8; ++i)
             if (h_n_local_ghosts_corner.data[i])
-                cudaMemcpy(h_corner_update_buf+i*cpitch, d_corner_update_buf.data + i*cpitch,
+                cudaMemcpyAsync(h_corner_update_buf+i*cpitch, d_corner_update_buf.data + i*cpitch,
                     h_n_local_ghosts_corner.data[i]*gpu_update_element_size(), cudaMemcpyDeviceToHost);
+
+        // synchronize with GPU
+        GPUEventHandle ev(m_exec_conf);
+        cudaEventRecord(ev);
+        cudaEventSynchronize(ev);
         }
 
     // fill thread parameters
@@ -397,25 +402,25 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
         unsigned int element_size = gpu_update_element_size();
         for (unsigned int i = 0; i < 6; ++i)
             if (m_n_forward_ghosts_face[i])
-                cudaMemcpy(d_face_update_buf.data + h_n_local_ghosts_face.data[i]*element_size + i * fpitch,
+                cudaMemcpyAsync(d_face_update_buf.data + h_n_local_ghosts_face.data[i]*element_size + i * fpitch,
                            h_face_update_buf + h_n_local_ghosts_face.data[i]*element_size + i*fpitch,
                            m_n_forward_ghosts_face[i]*element_size,
                            cudaMemcpyHostToDevice);
 
         for (unsigned int i = 0; i < 12; ++i)
             if (m_n_forward_ghosts_edge[i])
-                cudaMemcpy(d_edge_update_buf.data + h_n_local_ghosts_edge.data[i]*element_size + i * epitch,
+                cudaMemcpyAsync(d_edge_update_buf.data + h_n_local_ghosts_edge.data[i]*element_size + i * epitch,
                            h_edge_update_buf + h_n_local_ghosts_edge.data[i]*element_size + i*epitch,
                            m_n_forward_ghosts_edge[i]*element_size,
                            cudaMemcpyHostToDevice);
 
         if (m_n_tot_recv_ghosts_local)
-            cudaMemcpy(d_update_recv_buf.data,
+            cudaMemcpyAsync(d_update_recv_buf.data,
                        h_update_recv_buf,
                        m_n_tot_recv_ghosts_local*element_size,
                        cudaMemcpyHostToDevice);
         }
-
+    
         {
         // unpack ghost data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -780,10 +785,15 @@ void CommunicatorGPU::migrateAtoms()
 
             {
             // read back numbers of sent particles
-            ArrayHandle<unsigned int> h_n_send_ptls_face(m_n_send_ptls_face, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_n_send_ptls_edge(m_n_send_ptls_edge, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_n_send_ptls_corner(m_n_send_ptls_corner, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_send_ptls_face(m_n_send_ptls_face, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_send_ptls_edge(m_n_send_ptls_edge, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_send_ptls_corner(m_n_send_ptls_corner, access_location::host, access_mode::read);
 
+            // synchronize with GPU
+            GPUEventHandle ev(m_exec_conf);
+            cudaEventRecord(ev);
+            cudaEventSynchronize(ev);
+ 
             for (unsigned int i = 0; i < 6; ++i)
                 n_send_ptls_face[i] = h_n_send_ptls_face.data[i];
 
@@ -855,18 +865,23 @@ void CommunicatorGPU::migrateAtoms()
 
         for (unsigned int i = 0; i < 6; ++i)
             if (n_send_ptls_face[i])
-                cudaMemcpy(h_face_send_buf+i*fpitch, d_face_send_buf.data + i*fpitch,
+                cudaMemcpyAsync(h_face_send_buf+i*fpitch, d_face_send_buf.data + i*fpitch,
                     n_send_ptls_face[i]*gpu_pdata_element_size(), cudaMemcpyDeviceToHost);
 
          for (unsigned int i = 0; i < 12; ++i)
             if (n_send_ptls_edge[i])
-                cudaMemcpy(h_edge_send_buf+i*epitch, d_edge_send_buf.data + i*epitch,
+                cudaMemcpyAsync(h_edge_send_buf+i*epitch, d_edge_send_buf.data + i*epitch,
                     n_send_ptls_edge[i]*gpu_pdata_element_size(), cudaMemcpyDeviceToHost);
 
          for (unsigned int i = 0; i < 8; ++i)
             if (n_send_ptls_corner[i])
-                cudaMemcpyc(h_corner_send_buf+i*cpitch, d_corner_send_buf.data + i*cpitch,
+                cudaMemcpycAsync(h_corner_send_buf+i*cpitch, d_corner_send_buf.data + i*cpitch,
                     n_send_ptls_corner[i]*gpu_pdata_element_size(), cudaMemcpyDeviceToHost);
+
+        // synchronize
+        GPUEventHandle ev(m_exec_conf);
+        cudaEventRecord(ev);
+        cudaEventSynchronize(ev);
         }
 #endif
 
@@ -1040,7 +1055,7 @@ void CommunicatorGPU::migrateAtoms()
         ArrayHandle<char> d_recv_buf(m_recv_buf, access_location::device, access_mode::overwrite);
 
         if (n_tot_recv_ptls)
-            cudaMemcpy(d_recv_buf.data,
+            cudaMemcpyAsync(d_recv_buf.data,
                        h_recv_buf,
                        n_tot_recv_ptls*gpu_pdata_element_size(),
                        cudaMemcpyHostToDevice);
@@ -1279,10 +1294,15 @@ void CommunicatorGPU::exchangeGhosts()
             }
 
             {
-            ArrayHandle<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
+            ArrayHandleAsync<unsigned int> h_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::host, access_mode::read);
 
+            // synchronize with GPU
+            GPUEventHandle ev(m_exec_conf);
+            cudaEventRecord(ev);
+            cudaEventSynchronize(ev);
+     
             for (unsigned int i = 0; i < 6; ++i)
                 n_copy_ghosts_face[i] = h_n_local_ghosts_face.data[i];
             for (unsigned int i = 0; i < 12; ++i)
@@ -1358,18 +1378,23 @@ void CommunicatorGPU::exchangeGhosts()
 
         for (unsigned int i = 0; i < 6; ++i)
             if (n_copy_ghosts_face[i])
-                cudaMemcpy(h_face_ghosts_buf+i*fpitch, d_face_ghosts_buf.data + i*fpitch,
+                cudaMemcpyAsync(h_face_ghosts_buf+i*fpitch, d_face_ghosts_buf.data + i*fpitch,
                     n_copy_ghosts_face[i]*gpu_ghost_element_size(), cudaMemcpyDeviceToHost);
 
          for (unsigned int i = 0; i < 12; ++i)
             if (n_copy_ghosts_edge[i])
-                cudaMemcpyh_edge_ghosts_buf+i*epitch, d_edge_ghosts_buf.data + i*epitch,
+                cudaMemcpyAsync(h_edge_ghosts_buf+i*epitch, d_edge_ghosts_buf.data + i*epitch,
                     n_copy_ghosts_edge[i]*gpu_ghost_element_size(), cudaMemcpyDeviceToHost);
 
          for (unsigned int i = 0; i < 8; ++i)
             if (n_copy_ghosts_corner[i])
-                cudaMemcpy(h_corner_ghosts_buf+i*cpitch, d_corner_ghosts_buf.data + i*cpitch,
+                cudaMemcpyAsync(h_corner_ghosts_buf+i*cpitch, d_corner_ghosts_buf.data + i*cpitch,
                     n_copy_ghosts_corner[i]*gpu_ghost_element_size(), cudaMemcpyDeviceToHost);
+
+        // synchronize
+        GPUEventHandle ev(m_exec_conf);
+        cudaEventRecord(ev);
+        cudaEventSynchronize(ev);
         }
 #endif
 
@@ -1606,20 +1631,20 @@ void CommunicatorGPU::exchangeGhosts()
 
         for (unsigned int i = 0; i < 6; ++i)
             if (m_n_forward_ghosts_face[i])
-                cudaMemcpy(d_face_ghosts_buf.data + h_n_local_ghosts_face.data[i]*gpu_ghost_element_size() + i * fpitch,
+                cudaMemcpyAsync(d_face_ghosts_buf.data + h_n_local_ghosts_face.data[i]*gpu_ghost_element_size() + i * fpitch,
                            h_face_ghosts_buf + h_n_local_ghosts_face.data[i]*gpu_ghost_element_size() + i*fpitch,
                            m_n_forward_ghosts_face[i]*gpu_ghost_element_size(),
                            cudaMemcpyHostToDevice);
 
         for (unsigned int i = 0; i < 12; ++i)
             if (m_n_forward_ghosts_edge[i])
-                cudaMemcpy(d_edge_ghosts_buf.data + h_n_local_ghosts_edge.data[i]*gpu_ghost_element_size() + i * epitch,
+                cudaMemcpyAsync(d_edge_ghosts_buf.data + h_n_local_ghosts_edge.data[i]*gpu_ghost_element_size() + i * epitch,
                            h_edge_ghosts_buf + h_n_local_ghosts_edge.data[i]*gpu_ghost_element_size() + i * epitch,
                            m_n_forward_ghosts_edge[i]*gpu_ghost_element_size(),
                            cudaMemcpyHostToDevice);
 
         if (m_n_tot_recv_ghosts_local)
-            cudaMemcpy(d_ghosts_recv_buf.data,
+            cudaMemcpyAsync(d_ghosts_recv_buf.data,
                        h_ghosts_recv_buf,
                        m_n_tot_recv_ghosts_local*gpu_ghost_element_size(),
                        cudaMemcpyHostToDevice);
