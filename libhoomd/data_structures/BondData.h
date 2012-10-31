@@ -303,7 +303,6 @@ class BondData : boost::noncopyable
         unsigned int m_max_ghost_bond_num;      //!< Maximum ghost bond number
         GPUFlags<unsigned int> m_condition;     //!< Condition variable for bond counting
 #endif
-        boost::mutex m_mutex;                   //!< Mutex to protect against simultaneous updates of the bond table
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
