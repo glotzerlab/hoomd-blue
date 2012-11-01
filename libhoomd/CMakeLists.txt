@@ -58,7 +58,7 @@ if (NOT ENABLE_STATIC)
 
     # set the rpath so that the lib can find other libs stashed in lib/hoomd
     if (ENABLE_EMBED_CUDA)
-        set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\\$ORIGIN/../../hoomd;\\\$ORIGIN/../hoomd")
+        set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "\\$ORIGIN/../../hoomd;\\$ORIGIN/../hoomd")
     endif (ENABLE_EMBED_CUDA)
 
     # for non-app-bundle relocatable installs, set the install name of the lib for linking relative to bin/
