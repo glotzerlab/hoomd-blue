@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  - \ref sec_install_hoomd_linux
    - \ref sec_install_hoomd_linux_gentoo
    - \ref sec_install_hoomd_linux_redhat
+   - \ref sec_install_hoomd_linux_suse
    - \ref sec_install_hoomd_linux_ubuntu
    - \ref sec_install_hoomd_linux_homedir
  - \ref sec_install_hoomd_mac
@@ -133,10 +134,39 @@ sudo bash NVIDIA-Linux-*.run
     open a terminal, cd to the directory where you downloaded the
     file and run
  	\code
-sudo yum localinstall hoomd-blue*.rpm
+sudo yum localinstall hoomd-*.rpm
     \endcode
     
 If sudo is not configured on your system, su to root and execute the above commands without sudo.
+
+\subsection sec_install_hoomd_linux_suse OpenSUSE
+
+ -# (if you have a NVIDIA GPU) <b>Download</b> the latest drivers for your GPU from http://www.nvidia.com . 
+    <br><b>To install</b>, open a terminal, cd to the directory where you downloaded the file and then run
+    \code
+sudo bash NVIDIA-Linux-*.run
+    \endcode
+    Follow the on screen prompts to complete the installation.
+    <br><br>
+ -# <b>Download</b> and <b>import</b> the GPG public key to validate HOOMD-blue RPMs with the following
+    terminal commands.
+    \code
+ wget http://codeblue.umich.edu/hoomd-blue/downloads/RPM-GPG-KEY-joaander
+ sudo rpm --import RPM-GPG-KEY-joaander
+    \endcode
+    This step only needs to be performed once.
+    <br><br>
+ -# <b>Download</b> the HOOMD-blue RPM package matching your linux distribution from http://codeblue.umich.edu/hoomd-blue/download.html
+ <br><br>
+ -# To <b>install</b> or <b>upgrade</b> double click on the downloaded file, or
+    open a terminal, cd to the directory where you downloaded the
+    file and run
+    \code
+sudo zypper install hoomd*.rpm
+    \endcode
+    
+If sudo is not configured on your system, su to root and execute the above commands without sudo.
+
 
  \subsection sec_install_hoomd_linux_ubuntu Ubuntu
 
