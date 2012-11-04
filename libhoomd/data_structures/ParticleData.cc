@@ -604,7 +604,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         body_proc.resize(size);
         orientation_proc.resize(size);
         tag_proc.resize(size);
-        N_proc.resize(size);
+        N_proc.resize(size,0);
 
         if (my_rank == 0)
             {
