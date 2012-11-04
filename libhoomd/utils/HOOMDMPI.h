@@ -223,7 +223,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
     MPI_Scatter(send_counts, 1, MPI_INT, &recv_count, 1, MPI_INT, root, mpi_comm);
 
     // allocate receive buffer
-    char rbuf[recv_count]; 
+    char *rbuf = new char[recv_count]; 
 
     // scatter actual data
     MPI_Scatterv(sbuf, send_counts, displs, MPI_BYTE, rbuf, recv_count, MPI_BYTE, root, mpi_comm);
@@ -242,6 +242,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
         delete[] displs;
         delete[] sbuf;
         }
+    delete[] rbuf;
     } 
 
 //! Wrapper around MPI_Gatherv
@@ -264,7 +265,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
 
     // copy into send buffer
     unsigned int send_count = str.length();
-    char sbuf[send_count];
+    char *sbuf = new char[send_count];
     str.copy(sbuf, send_count);
 
     int *recv_counts = NULL;
@@ -311,6 +312,8 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
         delete[] recv_counts;
         delete[] rbuf;
         }
+
+    delete[] sbuf;
     } 
 
 #endif // ENABLE_MPI
