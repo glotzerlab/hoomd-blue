@@ -100,6 +100,8 @@ GPUEventHandle::~GPUEventHandle()
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 //! Enable multi-threading
 char env_enable_threads[] = "MV2_ENABLE_AFFINITY=0";
+//! Disable the leave pinned option in OpenMPI
+char env_disable_leave_pinned[] = "OMPI_MCA_mpi_leave_pinned=0";
 
 /*! \file ExecutionConfiguration.cc
     \brief Defines ExecutionConfiguration and related classes
@@ -257,8 +259,11 @@ ExecutionConfiguration::~ExecutionConfiguration()
 void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     {
 
-    // enable multi-threading
+    // enable multi-threading (mvapich2)
     putenv(env_enable_threads);
+
+    // disable leave pinned memory (openmpi)
+    putenv(env_disable_leave_pinned);
 
 #ifdef ENABLE_MPI_CUDA
     // if we are using an MPI-CUDA implementation, enable this feature
@@ -273,12 +278,13 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     int provided;
     MPI_Init_thread(0, (char ***) NULL, MPI_THREAD_SERIALIZED, &provided);
 
+#if 0
     if (provided != MPI_THREAD_SERIALIZED)
         {
         msg->error() << "Unable to initialize with MPI_THREAD_SERIALIZED." << std::endl;
         throw(runtime_error("Error setting up MPI."));
         }
-     
+#endif     
     m_mpi_comm = MPI_COMM_WORLD;
 
     int num_total_ranks;
