@@ -1608,7 +1608,6 @@ struct MPISetup
 
 BOOST_GLOBAL_FIXTURE( MPISetup )
 
-#if 0
 //! Tests particle distribution
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
     {
@@ -1633,7 +1632,6 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_bonded_ghosts(communicator_creator_base, exec_conf_cpu);
     }
-#endif
 #endif
 
 #ifdef ENABLE_CUDA
