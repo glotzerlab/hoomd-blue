@@ -764,6 +764,7 @@ void Communicator::exchangeGhosts()
 
 
                 // set reverse-lookup tag -> idx
+                assert(h_tag.data[idx] <= m_pdata->getNGlobal());
                 assert(h_rtag.data[h_tag.data[idx]] == NOT_LOCAL);
                 h_rtag.data[h_tag.data[idx]] = idx;
                 }
