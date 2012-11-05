@@ -455,7 +455,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             {
             if (m_cur_tstep % limit_multiple == 0)
                 {
-                unsigned char end_run = 0;
+                unsigned int end_run = 0;
                 int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
                 if (int64_t(cur_time) - initial_time > time_limit)
                     end_run = 1;
@@ -463,7 +463,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 #ifdef ENABLE_MPI
                 // if any processor wants to end the run, end it on all processors
                 if (m_comm)
-                    MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_CHAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+                    MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
 #endif
 
                 if (end_run)
