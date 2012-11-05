@@ -845,7 +845,8 @@ void export_ExecutionConfiguration()
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
                          ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger> >())
 #ifdef ENABLE_MPI
-                         .def(init< bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
+                         .def(init< bool, bool, boost::shared_ptr<Messenger>, bool>())
+                         .def(init< bool, bool, boost::shared_ptr<Messenger>, bool, unsigned int >())
 #endif 
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
 #ifdef ENABLE_MPI
