@@ -470,9 +470,9 @@ void CommunicatorGPU::allocateBuffers()
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getL();
 
-    unsigned int maxx = m_pdata->getN()*m_r_buff/L.x;
-    unsigned int maxy = m_pdata->getN()*m_r_buff/L.y;
-    unsigned int maxz = m_pdata->getN()*m_r_buff/L.z;
+    unsigned int maxx = m_pdata->getN()*(unsigned int) (m_r_buff/L.x);
+    unsigned int maxy = m_pdata->getN()*(unsigned int) (m_r_buff/L.y);
+    unsigned int maxz = m_pdata->getN()*(unsigned int) (m_r_buff/L.z);
 
     m_max_send_ptls_face = 1;
     m_max_send_ptls_face = m_max_send_ptls_face > maxx ? m_max_send_ptls_face : maxx;
@@ -482,10 +482,10 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> face_send_buf(gpu_pdata_element_size()*m_max_send_ptls_face, 6, m_exec_conf);
     m_face_send_buf.swap(face_send_buf);
 
-    unsigned int maxxy = m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.y;
-    unsigned int maxxz = m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.z;
-    unsigned int maxyz = m_pdata->getN()*m_r_buff*m_r_buff/L.y/L.z;
-
+    unsigned int maxxy = m_pdata->getN()*(unsigned int)(m_r_buff*m_r_buff/L.x/L.y);
+    unsigned int maxxz = m_pdata->getN()*(unsigned int)(m_r_buff*m_r_buff/L.x/L.z);
+    unsigned int maxyz = m_pdata->getN()*(unsigned int)(m_r_buff*m_r_buff/L.y/L.z);
+    
     m_max_send_ptls_edge = 1;
     m_max_send_ptls_edge = m_max_send_ptls_edge > maxxy ? m_max_send_ptls_edge : maxxy;
     m_max_send_ptls_edge = m_max_send_ptls_edge > maxxz ? m_max_send_ptls_edge : maxxz;
@@ -494,7 +494,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> edge_send_buf(gpu_pdata_element_size()*m_max_send_ptls_edge, 12, m_exec_conf);
     m_edge_send_buf.swap(edge_send_buf);
 
-    unsigned maxxyz = m_pdata->getN()*m_r_buff*m_r_buff*m_r_buff/L.x/L.y/L.z;
+    unsigned maxxyz = m_pdata->getN()*(unsigned int)(m_r_buff*m_r_buff*m_r_buff/L.x/L.y/L.z);
     m_max_send_ptls_corner = maxxyz > 1 ? maxxyz : 1;
 
     GPUArray<char> send_buf_corner(gpu_pdata_element_size()*m_max_send_ptls_corner, 8, m_exec_conf);
@@ -506,9 +506,9 @@ void CommunicatorGPU::allocateBuffers()
     /*
      * initial size of ghost send buffers = max of avg number of ptls in ghost layer in every direction
      */ 
-    maxx = m_pdata->getN()*m_r_ghost/L.x;
-    maxy = m_pdata->getN()*m_r_ghost/L.y;
-    maxz = m_pdata->getN()*m_r_ghost/L.z;
+    maxx = m_pdata->getN()*(unsigned int)(m_r_ghost/L.x);
+    maxy = m_pdata->getN()*(unsigned int)(m_r_ghost/L.y);
+    maxz = m_pdata->getN()*(unsigned int)(m_r_ghost/L.z);
 
     m_max_copy_ghosts_face = 1;
     m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxx ? m_max_copy_ghosts_face : maxx;
@@ -521,9 +521,9 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> face_update_buf(gpu_update_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
     m_face_update_buf.swap(face_update_buf);
 
-    maxxy = m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.y;
-    maxxz = m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.z;
-    maxyz = m_pdata->getN()*m_r_ghost*m_r_ghost/L.y/L.z;
+    maxxy = m_pdata->getN()*(unsigned int)(m_r_ghost*m_r_ghost/L.x/L.y);
+    maxxz = m_pdata->getN()*(unsigned int)(m_r_ghost*m_r_ghost/L.x/L.z);
+    maxyz = m_pdata->getN()*(unsigned int)(m_r_ghost*m_r_ghost/L.y/L.z);
 
     m_max_copy_ghosts_edge = 1;
     m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxxy ? m_max_copy_ghosts_edge : maxxy;
@@ -536,7 +536,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> edge_update_buf(gpu_update_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
     m_edge_update_buf.swap(edge_update_buf);
 
-    maxxyz = m_pdata->getN()*m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z;
+    maxxyz = m_pdata->getN()*(unsigned int)(m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z);
     m_max_copy_ghosts_corner = maxxyz > 1 ? maxxyz : 1;
 
     GPUArray<char> corner_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
@@ -660,7 +660,7 @@ void CommunicatorGPU::migrateAtoms()
         {
         unsigned int new_size = 1;
         while (new_size < m_pdata->getN())
-                new_size = ceilf((float)new_size*m_resize_factor);
+                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
  
         m_remove_mask.resize(new_size);
         }
@@ -813,7 +813,7 @@ void CommunicatorGPU::migrateAtoms()
             for (unsigned int i = 0; i < 6; ++i)
                 if (n_send_ptls_face[i] > new_size) new_size = n_send_ptls_face[i];
             while (m_max_send_ptls_face < new_size)
-                m_max_send_ptls_face = ceilf((float)m_max_send_ptls_face*m_resize_factor);
+                m_max_send_ptls_face = ((unsigned int)(((float)m_max_send_ptls_face)*m_resize_factor))+1;
             }
         if (condition & 2)
             {
@@ -822,7 +822,7 @@ void CommunicatorGPU::migrateAtoms()
             for (unsigned int i = 0; i < 12; ++i)
                 if (n_send_ptls_edge[i] > new_size) new_size = n_send_ptls_edge[i];
             while (m_max_send_ptls_edge < new_size)
-                m_max_send_ptls_edge = ceilf((float)m_max_send_ptls_edge*m_resize_factor);
+                m_max_send_ptls_edge = ((unsigned int)(((float)m_max_send_ptls_edge)*m_resize_factor))+1;
             }
         if (condition & 4)
             {
@@ -831,7 +831,7 @@ void CommunicatorGPU::migrateAtoms()
             for (unsigned int i = 0; i < 8; ++i)
                 if (n_send_ptls_corner[i] > new_size) new_size = n_send_ptls_corner[i];
             while (m_max_send_ptls_corner < new_size)
-                m_max_send_ptls_corner = ceilf((float)m_max_send_ptls_corner * m_resize_factor);
+                m_max_send_ptls_corner = ((unsigned int)(((float)m_max_send_ptls_corner)*m_resize_factor))+1;
             }
 
         if (condition & 8)
@@ -929,7 +929,8 @@ void CommunicatorGPU::migrateAtoms()
         if (max_n_recv_edge + max_n_send_edge > m_max_send_ptls_edge)
             {
             unsigned int new_size = 1;
-            while (new_size < max_n_recv_edge + max_n_send_edge) new_size = ceilf((float)new_size* m_resize_factor);
+            while (new_size < max_n_recv_edge + max_n_send_edge)
+                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
             m_max_send_ptls_edge = new_size;
 
             #ifndef ENABLE_MPI_CUDA
@@ -958,7 +959,8 @@ void CommunicatorGPU::migrateAtoms()
         if (max_n_recv_face + max_n_send_face > m_max_send_ptls_face)
             {
             unsigned int new_size = 1;
-            while (new_size < max_n_recv_face + max_n_send_face) new_size = ceilf((float) new_size * m_resize_factor);
+            while (new_size < max_n_recv_face + max_n_send_face)
+                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
             m_max_send_ptls_face = new_size;
 
             #ifndef ENABLE_MPI_CUDA
@@ -979,7 +981,8 @@ void CommunicatorGPU::migrateAtoms()
         if (m_recv_buf.getNumElements() < (n_tot_recv_ptls + n_recv_ptls)*gpu_pdata_element_size())
             {
             unsigned int new_size =1;
-            while (new_size < n_tot_recv_ptls + n_recv_ptls) new_size = ceilf((float) new_size * m_resize_factor);
+            while (new_size < n_tot_recv_ptls + n_recv_ptls)
+                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
 
             #ifndef ENABLE_MPI_CUDA
             unsigned int old_size = m_recv_buf.getNumElements();
@@ -1319,7 +1322,7 @@ void CommunicatorGPU::exchangeGhosts()
             for (unsigned int i = 0; i < 6; ++i)
                 if (n_copy_ghosts_face[i] > new_size) new_size = n_copy_ghosts_face[i];
             while (m_max_copy_ghosts_face < new_size)
-                m_max_copy_ghosts_face = ceilf((float)m_max_copy_ghosts_face*m_resize_factor);
+                m_max_copy_ghosts_face = ((unsigned int)(((float)m_max_copy_ghosts_face)*m_resize_factor))+1;
             }
         if (condition & 2)
             {
@@ -1328,7 +1331,7 @@ void CommunicatorGPU::exchangeGhosts()
             for (unsigned int i = 0; i < 12; ++i)
                 if (n_copy_ghosts_edge[i] > new_size) new_size = n_copy_ghosts_edge[i];
             while (m_max_copy_ghosts_edge < new_size)
-                m_max_copy_ghosts_edge = ceilf((float)m_max_copy_ghosts_edge*m_resize_factor);
+                m_max_copy_ghosts_edge = ((unsigned int)(((float)m_max_copy_ghosts_edge)*m_resize_factor))+1;
             }
         if (condition & 4)
             {
@@ -1337,7 +1340,7 @@ void CommunicatorGPU::exchangeGhosts()
             for (unsigned int i = 0; i < 8; ++i)
                 if (n_copy_ghosts_corner[i] > new_size) new_size = n_copy_ghosts_corner[i];
             while (m_max_copy_ghosts_corner < new_size)
-                m_max_copy_ghosts_corner = ceilf((float)m_max_copy_ghosts_corner * m_resize_factor);
+                m_max_copy_ghosts_corner = ((unsigned int)(((float)m_max_copy_ghosts_corner)*m_resize_factor))+1;
 
             }
 
@@ -1450,7 +1453,8 @@ void CommunicatorGPU::exchangeGhosts()
             if (max_n_recv_edge + max_n_copy_edge > m_max_copy_ghosts_edge)
                 {
                 unsigned int new_size = 1;
-                while (new_size < max_n_recv_edge + max_n_copy_edge) new_size = ceilf((float)new_size* m_resize_factor);
+                while (new_size < max_n_recv_edge + max_n_copy_edge)
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_max_copy_ghosts_edge = new_size;
                 
                 #ifndef ENABLE_MPI_CUDA
@@ -1484,7 +1488,8 @@ void CommunicatorGPU::exchangeGhosts()
             if (max_n_recv_face + max_n_copy_face > m_max_copy_ghosts_face)
                 {
                 unsigned int new_size = 1;
-                while (new_size < max_n_recv_face + max_n_copy_face) new_size = ceilf((float) new_size * m_resize_factor);
+                while (new_size < max_n_recv_face + max_n_copy_face)
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_max_copy_ghosts_face = new_size;
 
                 #ifndef ENABLE_MPI_CUDA
@@ -1514,7 +1519,7 @@ void CommunicatorGPU::exchangeGhosts()
                 #endif
                 unsigned int new_size =1;
                 while (new_size < m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
-                    new_size = ceilf((float) new_size * m_resize_factor);
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_ghosts_recv_buf.resize(new_size*gpu_ghost_element_size());
 
                 #ifndef ENABLE_MPI_CUDA
@@ -1530,7 +1535,7 @@ void CommunicatorGPU::exchangeGhosts()
                 {
                 unsigned int new_size =1;
                 while (new_size < m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
-                    new_size = ceilf((float) new_size * m_resize_factor);
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_update_recv_buf.resize(new_size*gpu_update_element_size());
 
                 cudaFreeHost(h_update_recv_buf);
@@ -1609,7 +1614,8 @@ void CommunicatorGPU::exchangeGhosts()
     if (m_ghost_plan.getNumElements() < m_n_tot_recv_ghosts)
         {
         unsigned int new_size = m_ghost_plan.getNumElements();
-        while (new_size < m_n_tot_recv_ghosts) new_size = ceilf((float)new_size*m_resize_factor);
+        while (new_size < m_n_tot_recv_ghosts)
+            new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
         m_ghost_plan.resize(new_size);
         }
 
