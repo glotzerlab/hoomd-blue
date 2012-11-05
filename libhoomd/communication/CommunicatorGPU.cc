@@ -470,9 +470,9 @@ void CommunicatorGPU::allocateBuffers()
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getL();
 
-    unsigned int maxx = m_pdata->getN()*(unsigned int) (m_r_buff/L.x);
-    unsigned int maxy = m_pdata->getN()*(unsigned int) (m_r_buff/L.y);
-    unsigned int maxz = m_pdata->getN()*(unsigned int) (m_r_buff/L.z);
+    unsigned int maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.x);
+    unsigned int maxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.y);
+    unsigned int maxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.z);
 
     m_max_send_ptls_face = 1;
     m_max_send_ptls_face = m_max_send_ptls_face > maxx ? m_max_send_ptls_face : maxx;
@@ -482,9 +482,9 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> face_send_buf(gpu_pdata_element_size()*m_max_send_ptls_face, 6, m_exec_conf);
     m_face_send_buf.swap(face_send_buf);
 
-    unsigned int maxxy = m_pdata->getN()*(unsigned int)(m_r_buff*m_r_buff/L.x/L.y);
-    unsigned int maxxz = m_pdata->getN()*(unsigned int)(m_r_buff*m_r_buff/L.x/L.z);
-    unsigned int maxyz = m_pdata->getN()*(unsigned int)(m_r_buff*m_r_buff/L.y/L.z);
+    unsigned int maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.y);
+    unsigned int maxxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.z);
+    unsigned int maxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.y/L.z);
     
     m_max_send_ptls_edge = 1;
     m_max_send_ptls_edge = m_max_send_ptls_edge > maxxy ? m_max_send_ptls_edge : maxxy;
@@ -494,7 +494,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> edge_send_buf(gpu_pdata_element_size()*m_max_send_ptls_edge, 12, m_exec_conf);
     m_edge_send_buf.swap(edge_send_buf);
 
-    unsigned maxxyz = m_pdata->getN()*(unsigned int)(m_r_buff*m_r_buff*m_r_buff/L.x/L.y/L.z);
+    unsigned maxxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff*m_r_buff/L.x/L.y/L.z);
     m_max_send_ptls_corner = maxxyz > 1 ? maxxyz : 1;
 
     GPUArray<char> send_buf_corner(gpu_pdata_element_size()*m_max_send_ptls_corner, 8, m_exec_conf);
@@ -506,9 +506,9 @@ void CommunicatorGPU::allocateBuffers()
     /*
      * initial size of ghost send buffers = max of avg number of ptls in ghost layer in every direction
      */ 
-    maxx = m_pdata->getN()*(unsigned int)(m_r_ghost/L.x);
-    maxy = m_pdata->getN()*(unsigned int)(m_r_ghost/L.y);
-    maxz = m_pdata->getN()*(unsigned int)(m_r_ghost/L.z);
+    maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.x);
+    maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.y);
+    maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.z);
 
     m_max_copy_ghosts_face = 1;
     m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxx ? m_max_copy_ghosts_face : maxx;
@@ -521,9 +521,9 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> face_update_buf(gpu_update_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
     m_face_update_buf.swap(face_update_buf);
 
-    maxxy = m_pdata->getN()*(unsigned int)(m_r_ghost*m_r_ghost/L.x/L.y);
-    maxxz = m_pdata->getN()*(unsigned int)(m_r_ghost*m_r_ghost/L.x/L.z);
-    maxyz = m_pdata->getN()*(unsigned int)(m_r_ghost*m_r_ghost/L.y/L.z);
+    maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.y);
+    maxxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.z);
+    maxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.y/L.z);
 
     m_max_copy_ghosts_edge = 1;
     m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxxy ? m_max_copy_ghosts_edge : maxxy;
@@ -536,7 +536,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<char> edge_update_buf(gpu_update_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
     m_edge_update_buf.swap(edge_update_buf);
 
-    maxxyz = m_pdata->getN()*(unsigned int)(m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z);
+    maxxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z);
     m_max_copy_ghosts_corner = maxxyz > 1 ? maxxyz : 1;
 
     GPUArray<char> corner_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
