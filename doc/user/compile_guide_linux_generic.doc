@@ -164,7 +164,18 @@ HOOMD-blue.
 If your distribution doesn't have a new enough version of boost, or if it is not provided on your cluster,
 you can build it by hand. Building boost is a time consuming process, but not complicated if you follow these instructions.
 
-Start by downloading \b boost_1_52_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
+In order to build boost, you need the development package for bzip. If your
+distribution provides the pacakge \b bzip2-devel, install it.
+If not, or if your cluster installation does not have provide the bzip2 header
+files, you need to install the bzip2 sources.
+\code
+ $ wget http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz
+ $ tar xvfz bzip2-1.0.6.tar.bz
+ $ cd bzip2-1.0.6
+ $ make install PREFIX=$HOME/local
+\endcode
+
+Proceed by downloading \b boost_1_52_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
 configure boost for building with the following commands.
 \code
  $ tar -xjf boost_1_52_0.tar.bz2 
@@ -189,13 +200,19 @@ Detecting Python version... 2.4
 ...
 \endcode
 
-If it reports a different python version than the one you have requested in your \b user-config.jam file,
-fear not! The build engine should find it nevertheless.
+If it reports a different Python version than the one you have requested in
+your \b user-config.jam file, just ignore that message.
+The build engine should find the correct Python version nevertheless.
 Now, run the command
 \code
  $ ./b2 install -j 10
 \endcode
-and wait some time for everything to compile. At the end, you should see a message saying
+or, if you have previosly installed the bzip2 sources,
+\code
+$ ./b2 install -j 10 -s BZIP2_SOURCE=/path/to/bzip2-1.0.6
+\endcode
+and wait some time for everything to compile. At the end, you should see a
+message saying
 \code
 ...updated 963 targets...
 \endcode
