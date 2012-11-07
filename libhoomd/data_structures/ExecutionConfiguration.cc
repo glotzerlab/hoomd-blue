@@ -100,8 +100,6 @@ GPUEventHandle::~GPUEventHandle()
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 //! Enable multi-threading
 char env_enable_threads[] = "MV2_ENABLE_AFFINITY=0";
-//! Disable the leave pinned option in OpenMPI
-char env_disable_leave_pinned[] = "OMPI_MCA_mpi_leave_pinned=0";
 
 /*! \file ExecutionConfiguration.cc
     \brief Defines ExecutionConfiguration and related classes
@@ -261,9 +259,6 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
 
     // enable multi-threading (mvapich2)
     putenv(env_enable_threads);
-
-    // disable leave pinned memory (openmpi)
-    putenv(env_disable_leave_pinned);
 
 #ifdef ENABLE_MPI_CUDA
     // if we are using an MPI-CUDA implementation, enable this feature

@@ -72,6 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include <algorithm>
 #include <boost/bind.hpp>
+#include <stdlib.h>
 
 //! Specifies where to acquire the data
 struct access_location
@@ -559,7 +560,10 @@ template<class T> void GPUArray<T>::allocate()
     assert(d_data == NULL);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        cudaHostAlloc(&h_data, m_num_elements*sizeof(T), cudaHostAllocDefault);
+        void *ptr = NULL;
+        posix_memalign(&ptr, getpagesize(), m_num_elements*sizeof(T));
+        cudaHostRegister(ptr,m_num_elements*sizeof(T), cudaHostRegisterDefault);
+        h_data = (T *) ptr;
         cudaMalloc(&d_data, m_num_elements*sizeof(T));
         CHECK_CUDA_ERROR();
         }
@@ -590,7 +594,8 @@ template<class T> void GPUArray<T>::deallocate()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
-        cudaFreeHost(h_data);
+        cudaHostUnregister(h_data);
+        free(h_data);
         cudaFree(d_data);
         CHECK_CUDA_ERROR();
         }
@@ -850,11 +855,14 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     if (isNull()) return NULL;
 
     // allocate resized array
-    T *h_tmp;
+    T *h_tmp = NULL;
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        cudaHostAlloc(&h_tmp, num_elements*sizeof(T), cudaHostAllocDefault);
+        void *ptr = NULL;
+        posix_memalign(&ptr, getpagesize(), num_elements*sizeof(T));
+        cudaHostRegister(ptr, num_elements*sizeof(T), cudaHostRegisterDefault);
+        h_tmp = (T *) ptr;
         }
     else
         {
@@ -875,7 +883,8 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        cudaFreeHost(h_data);
+        cudaHostUnregister(h_data);
+        free(h_data);
         }
     else
         {
@@ -896,11 +905,15 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned int new_pitch, unsigned int height, unsigned int new_height )
     {
     // allocate resized array
-    T *h_tmp;
+    T *h_tmp = NULL;
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        cudaHostAlloc(&h_tmp, new_pitch*new_height*sizeof(T), cudaHostAllocDefault);
+        unsigned int size = new_pitch*new_height*sizeof(T);
+        void *ptr = NULL;
+        posix_memalign(&ptr, getpagesize(), size);
+        cudaHostRegister(ptr, size, cudaHostRegisterDefault);
+        h_tmp = (T *) ptr;
         }
     else
         {
@@ -924,7 +937,8 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        cudaFreeHost(h_data);
+        cudaHostUnregister(h_data);
+        free(h_data);
         }
     else
         {

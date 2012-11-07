@@ -566,23 +566,57 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<unsigned int> ghost_plan(m_max_copy_ghosts_face*6, m_exec_conf);
     m_ghost_plan.swap(ghost_plan);
 
+    void *ptr = NULL;
     #ifndef ENABLE_MPI_CUDA
     // allocate mirror host buffers
-    cudaHostAlloc(&h_face_ghosts_buf, m_face_ghosts_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_edge_ghosts_buf, m_edge_ghosts_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_corner_ghosts_buf, m_corner_ghosts_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_ghosts_recv_buf, m_ghosts_recv_buf.getNumElements(), cudaHostAllocDefault);
+    posix_memalign(&ptr, getpagesize(), m_face_ghosts_buf.getNumElements());
+    h_face_ghosts_buf = (char *) ptr;
+    cudaHostRegister(h_face_ghosts_buf, m_face_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
 
-    cudaHostAlloc(&h_corner_send_buf, m_corner_send_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_edge_send_buf, m_edge_send_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_face_send_buf, m_face_send_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_recv_buf, m_recv_buf.getNumElements(), cudaHostAllocDefault);
+    posix_memalign(&ptr, getpagesize(), m_edge_ghosts_buf.getNumElements());
+    h_edge_ghosts_buf = (char *) ptr;
+    cudaHostRegister(h_edge_ghosts_buf, m_edge_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
+
+    posix_memalign(&ptr, getpagesize(), m_corner_ghosts_buf.getNumElements());
+    h_corner_ghosts_buf = (char *) ptr;
+    cudaHostRegister(h_corner_ghosts_buf, m_corner_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
+
+    posix_memalign(&ptr, getpagesize(), m_ghost_recv_buf.getNumElements());
+    h_ghosts_recv_buf = (char *) ptr;
+    cudaHostRegister(h_ghosts_recv_buf, m_ghosts_recv_buf.getNumElements(), cudaHostRegisterDefault);
+
+    posix_memalign(&ptr, getpagesize(), m_corner_send_buf.getNumElements());
+    h_corner_send_buf = (char *) ptr;
+    cudaHostRegister(h_corner_send_buf, m_corner_send_buf.getNumElements(), cudaHostRegisterDefault);
+   
+    posix_memalign(&ptr, getpagesize(), m_edge_send_buf.getNumElements());
+    h_edge_send_buf = (char *) ptr;
+    cudaHostRegister(h_edge_send_buf, m_edge_send_buf.getNumElements(), cudaHostRegisterDefault);
+
+    posix_memalign(&ptr, getpagesize(), m_face_send_buf.getNumElements());
+    h_face_send_buf = (char *) ptr;
+    cudaHostRegister(h_face_send_buf, m_face_send_buf.getNumElements(), cudaHostRegisterDefault);
+
+    posix_memalign(&ptr, getpagesize(), m_recv_buf.getNumElements());
+    h_recv_buf = (char *) ptr;
+    cudaHostRegister(h_recv_buf, m_recv_buf.getNumElements(), cudaHostRegisterDefault);
     #endif
 
-    cudaHostAlloc(&h_face_update_buf, m_face_update_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_edge_update_buf, m_edge_update_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_corner_update_buf, m_corner_update_buf.getNumElements(), cudaHostAllocDefault);
-    cudaHostAlloc(&h_update_recv_buf, m_update_recv_buf.getNumElements(), cudaHostAllocDefault);
+    posix_memalign(&ptr, getpagesize(), m_face_update_buf.getNumElements());
+    h_face_update_buf = (char *) ptr;
+    cudaHostRegister(h_face_update_buf, m_face_update_buf.getNumElements(), cudaHostRegisterDefault);
+
+    posix_memalign(&ptr, getpagesize(), m_edge_update_buf.getNumElements());
+    h_edge_update_buf = (char *) ptr;
+    cudaHostRegister(h_edge_update_buf, m_edge_update_buf.getNumElements(), cudaHostRegisterDefault);
+
+    posix_memalign(&ptr, getpagesize(), m_corner_update_buf.getNumElements());
+    h_corner_update_buf = (char *) ptr;
+    cudaHostRegister(h_corner_update_buf, m_corner_update_buf.getNumElements(), cudaHostRegisterDefault);
+
+    posix_memalign(&ptr, getpagesize(), m_update_recv_buf.getNumElements());
+    h_update_recv_buf = (char *) ptr;
+    cudaHostRegister(h_update_recv_buf, m_update_recv_buf.getNumElements(), cudaHostRegisterDefault);
 
     GPUArray<unsigned int> n_local_ghosts_face(6, m_exec_conf);
     m_n_local_ghosts_face.swap(n_local_ghosts_face);
@@ -611,21 +645,42 @@ void CommunicatorGPU::allocateBuffers()
 void CommunicatorGPU::deallocateBuffers()
     {
     #ifndef ENABLE_MPI_CUDA
-    cudaFreeHost(h_ghosts_recv_buf);
-    cudaFreeHost(h_corner_ghosts_buf);
-    cudaFreeHost(h_edge_ghosts_buf);
-    cudaFreeHost(h_face_ghosts_buf);
+    cudaHostUnregister(h_ghosts_recv_buf);
+    free(h_ghosts_recv_buf);
 
-    cudaFreeHost(h_recv_buf);
-    cudaFreeHost(h_corner_send_buf);
-    cudaFreeHost(h_edge_send_buf);
-    cudaFreeHost(h_face_send_buf);
+    cudaHostUnregister(h_corner_ghosts_buf);
+    free(h_corner_ghosts_buf);
+
+    cudaHostUnregister(h_edge_ghosts_buf);
+    free(h_edge_ghosts_buf);
+
+    cudaHostUnregister(h_face_ghosts_buf);
+    free(h_face_ghosts_buf);
+
+    cudaHostUnregister(h_recv_buf);
+    free(h_recv_buf);
+
+    cudaHostUnregister(h_corner_send_buf);
+    free(h_corner_send_buf);
+
+    cudaHostUnregister(h_edge_send_buf);
+    free(h_edge_send_buf);
+
+    cudaHostUnregister(h_face_send_buf);
+    free(h_face_send_buf);
     #endif
 
-    cudaFreeHost(h_face_update_buf);
-    cudaFreeHost(h_edge_update_buf);
-    cudaFreeHost(h_corner_update_buf);
-    cudaFreeHost(h_update_recv_buf);
+    cudaHostUnregister(h_face_update_buf);
+    free(h_face_update_buf);
+
+    cudaHostUnregister(h_edge_update_buf);
+    free(h_edge_update_buf);
+
+    cudaHostUnregister(h_corner_update_buf);
+    free(h_corner_update_buf);
+
+    cudaHostUnregister(h_update_recv_buf);
+    free(h_update_recv_buf);
     } 
 
 //! Transfer particles between neighboring domains
@@ -681,11 +736,14 @@ void CommunicatorGPU::migrateAtoms()
             m_corner_send_buf.resize(m_max_send_ptls_corner*gpu_pdata_element_size(), 8);
 
             #ifndef ENABLE_MPI_CUDA
-            char *h_tmp;
-            cudaHostAlloc(&h_tmp, m_corner_send_buf.getNumElements(), cudaHostAllocDefault);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_corner_send_buf.getNumElements());
+            char *h_tmp = (char *) ptr;
+            cudaHostRegister(h_tmp, m_corner_send_buf.getNumElements(), cudaHostRegisterDefault);
             for (unsigned int i = 0; i < 8; ++i)
                 memcpy(h_tmp+i*m_corner_send_buf.getPitch(), h_corner_send_buf+i*old_pitch,  old_pitch);
-            cudaFreeHost(h_corner_send_buf);
+            cudaHostUnregister(h_corner_send_buf);
+            free(h_corner_send_buf);
             h_corner_send_buf = h_tmp;
             #endif
             }
@@ -698,11 +756,14 @@ void CommunicatorGPU::migrateAtoms()
             m_edge_send_buf.resize(m_max_send_ptls_edge*gpu_pdata_element_size(), 12);
 
             #ifndef ENABLE_MPI_CUDA
-            char *h_tmp;
-            cudaHostAlloc(&h_tmp, m_edge_send_buf.getNumElements(), cudaHostAllocDefault);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_edge_send_buf.getNumElements());
+            char *h_tmp = (char *) ptr;
+            cudaHostRegister(h_tmp, m_edge_send_buf.getNumElements(), cudaHostRegisterDefault);
             for (unsigned int i = 0; i < 12; ++i)
                 memcpy(h_tmp+i*m_edge_send_buf.getPitch(), h_edge_send_buf+i*old_pitch,  old_pitch);
-            cudaFreeHost(h_edge_send_buf);
+            cudaHostUnregister(h_edge_send_buf);
+            free(h_edge_send_buf);
             h_edge_send_buf = h_tmp;
             #endif
             } 
@@ -715,11 +776,14 @@ void CommunicatorGPU::migrateAtoms()
             m_face_send_buf.resize(m_max_send_ptls_face*gpu_pdata_element_size(), 6);
 
             #ifndef ENABLE_MPI_CUDA
-            char *h_tmp;
-            cudaHostAlloc(&h_tmp, m_face_send_buf.getNumElements(), cudaHostAllocDefault);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_face_send_buf.getNumElements());
+            char *h_tmp = (char *) ptr;
+            cudaHostRegister(h_tmp, m_face_send_buf.getNumElements(), cudaHostRegisterDefault);
             for (unsigned int i = 0; i < 6; ++i)
                 memcpy(h_tmp+i*m_face_send_buf.getPitch(), h_face_send_buf+i*old_pitch,  old_pitch);
-            cudaFreeHost(h_face_send_buf);
+            cudaHostUnregister(h_face_send_buf);
+            free(h_face_send_buf);
             h_face_send_buf = h_tmp;
             #endif
             } 
@@ -939,11 +1003,14 @@ void CommunicatorGPU::migrateAtoms()
             m_edge_send_buf.resize(m_max_send_ptls_edge*gpu_pdata_element_size(), 12);
 
             #ifndef ENABLE_MPI_CUDA
-            char *h_tmp;
-            cudaHostAlloc(&h_tmp, m_edge_send_buf.getNumElements(), cudaHostAllocDefault);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_edge_send_buf.getNumElements());
+            char *h_tmp = (char *) ptr;
+            cudaHostRegister(h_tmp, m_edge_send_buf.getNumElements(), cudaHostRegisterDefault);
             for (unsigned int i = 0; i < 12; ++i)
                 memcpy(h_tmp+i*m_edge_send_buf.getPitch(), h_edge_send_buf+i*old_pitch,  old_pitch);
-            cudaFreeHost(h_edge_send_buf);
+            cudaHostUnregister(h_edge_send_buf);
+            free(h_edge_send_buf);
             h_edge_send_buf = h_tmp;
             #endif
             }
@@ -969,11 +1036,14 @@ void CommunicatorGPU::migrateAtoms()
             m_face_send_buf.resize(m_max_send_ptls_face*gpu_pdata_element_size(), 6);
 
             #ifndef ENABLE_MPI_CUDA
-            char *h_tmp;
-            cudaHostAlloc(&h_tmp, m_face_send_buf.getNumElements(), cudaHostAllocDefault);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_face_send_buf.getNumElements());
+            char *h_tmp = (char *) ptr;
+            cudaHostRegister(h_tmp, m_face_send_buf.getNumElements(), cudaHostRegisterDefault);
             for (unsigned int i = 0; i < 6; ++i)
                 memcpy(h_tmp+i*m_face_send_buf.getPitch(), h_face_send_buf+i*old_pitch,  old_pitch);
-            cudaFreeHost(h_face_send_buf);
+            cudaHostUnregister(h_face_send_buf);
+            free(h_face_send_buf);
             h_face_send_buf = h_tmp;
             #endif
             }
@@ -990,10 +1060,13 @@ void CommunicatorGPU::migrateAtoms()
             m_recv_buf.resize(new_size*gpu_pdata_element_size());
 
             #ifndef ENABLE_MPI_CUDA
-            char *h_tmp;
-            cudaHostAlloc(&h_tmp, m_recv_buf.getNumElements(), cudaHostAllocDefault);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_recv_buf.getNumElements());
+            char *h_tmp = (char *) ptr;
+            cudaHostRegister(h_tmp, m_recv_buf.getNumElements(), cudaHostRegisterDefault);
             memcpy(h_tmp, h_recv_buf, old_size);
-            cudaFreeHost(h_recv_buf);
+            cudaHostUnregister(h_recv_buf);
+            free(h_recv_buf);
             h_recv_buf = h_tmp;
             #endif
             }
@@ -1188,8 +1261,12 @@ void CommunicatorGPU::exchangeGhosts()
             m_corner_ghosts_buf.resize(m_max_copy_ghosts_corner*gpu_ghost_element_size(), 8);
 
             #ifndef ENABLE_MPI_CUDA
-            cudaFreeHost(h_corner_ghosts_buf);
-            cudaHostAlloc(&h_corner_ghosts_buf, m_corner_ghosts_buf.getNumElements(), cudaHostAllocDefault);
+            cudaHostUnregister(h_corner_ghosts_buf);
+            free(h_corner_ghosts_buf);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_corner_ghosts_buf.getNumElements());
+            h_corner_ghosts_buf = (char *) ptr;
+            cudaHostRegister(h_corner_ghosts_buf, m_corner_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
             #endif
             }
 
@@ -1198,8 +1275,12 @@ void CommunicatorGPU::exchangeGhosts()
             m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
 
             #ifndef ENABLE_MPI_CUDA
-            cudaFreeHost(h_edge_ghosts_buf);
-            cudaHostAlloc(&h_edge_ghosts_buf, m_edge_ghosts_buf.getNumElements(), cudaHostAllocDefault);
+            cudaHostUnregister(h_edge_ghosts_buf);
+            free(h_edge_ghosts_buf);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_edge_ghosts_buf.getNumElements());
+            h_edge_ghosts_buf = (char *) ptr;
+            cudaHostRegister(h_edge_ghosts_buf, m_edge_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
             #endif
             } 
 
@@ -1208,8 +1289,12 @@ void CommunicatorGPU::exchangeGhosts()
             m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
 
             #ifndef ENABLE_MPI_CUDA
-            cudaFreeHost(h_face_ghosts_buf);
-            cudaHostAlloc(&h_face_ghosts_buf, m_face_ghosts_buf.getNumElements(), cudaHostAllocDefault);
+            cudaHostUnregister(h_face_ghosts_buf);
+            free(h_face_ghosts_buf);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_face_ghosts_buf.getNumElements());
+            h_face_ghots_buf = (char *) ptr;
+            cudaHostRegister(h_face_ghosts_buf, m_face_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
             #endif
             }
             
@@ -1218,24 +1303,36 @@ void CommunicatorGPU::exchangeGhosts()
             {
             m_corner_update_buf.resize(m_max_copy_ghosts_corner*gpu_update_element_size(), 8);
 
-            cudaFreeHost(h_corner_update_buf);
-            cudaHostAlloc(&h_corner_update_buf, m_corner_update_buf.getNumElements(),cudaHostAllocDefault);
+            cudaHostUnregister(h_corner_update_buf);
+            free(h_corner_update_buf);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_corner_update_buf.getNumElements());
+            h_corner_update_buf = (char *) ptr;
+            cudaHostRegister(h_corner_update_buf, m_corner_update_buf.getNumElements(), cudaHostRegisterDefault);
             }
 
         if (m_edge_update_buf.getPitch() < m_max_copy_ghosts_edge*gpu_update_element_size())
             {
             m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
 
-            cudaFreeHost(h_edge_update_buf);
-            cudaHostAlloc(&h_edge_update_buf, m_edge_update_buf.getNumElements(),cudaHostAllocDefault);
+            cudaHostUnregister(h_edge_update_buf);
+            free(h_edge_update_buf);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_edge_update_buf.getNumElements());
+            h_edge_update_buf = (char *) ptr;
+            cudaHostRegister(h_edge_update_buf, m_edge_update_buf.getNumElements(), cudaHostRegisterDefault);
             }
 
         if (m_face_update_buf.getPitch() < m_max_copy_ghosts_face*gpu_update_element_size())
             {
             m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
 
-            cudaFreeHost(h_face_update_buf);
-            cudaHostAlloc(&h_face_update_buf, m_face_update_buf.getNumElements(),cudaHostAllocDefault);
+            cudaHostUnregister(h_face_update_buf);
+            free(h_face_update_buf);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), m_face_update_buf.getNumElements());
+            h_face_update_buf = (char *) ptr;
+            cudaHostRegister(h_face_update_buf, m_face_update_buf.getNumElements(), cudaHostRegisterDefault);
             }
 
         if (m_ghost_idx_face.getPitch() < m_max_copy_ghosts_face)
@@ -1464,17 +1561,23 @@ void CommunicatorGPU::exchangeGhosts()
                 m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
                 m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
 
+                void *ptr = NULL;
                 #ifndef ENABLE_MPI_CUDA
-                char *h_tmp;
-                cudaHostAlloc(&h_tmp, m_edge_ghosts_buf.getNumElements(), cudaHostAllocDefault);
+                posix_memalign(&ptr, getpagesize(), m_edge_ghosts_buf.getNumElements());
+                char *h_tmp = (char *) ptr;
+                cudaHostRegister(h_tmp, m_edge_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
                 for (unsigned int i = 0; i < 12; ++i)
                     memcpy(h_tmp+i*m_edge_ghosts_buf.getPitch(), h_edge_ghosts_buf+i*old_pitch,  old_pitch);
-                cudaFreeHost(h_edge_ghosts_buf);
+                cudaHostUnregister(h_edge_ghosts_buf);
+                free(h_edge_ghosts_buf);
                 h_edge_ghosts_buf = h_tmp;
                 #endif
 
-                cudaFreeHost(h_edge_update_buf);
-                cudaHostAlloc(&h_edge_update_buf, m_edge_update_buf.getNumElements(),cudaHostAllocDefault);
+                cudaHostUnregister(h_edge_update_buf);
+                free(h_edge_update_buf);
+                posix_memalign(&ptr, getpagesize(), m_edge_update_buf.getNumElements());
+                h_edge_update_buf = (char *) ptr;
+                cudaHostRegister(h_edge_update_buf, m_edge_update_buf.getNumElements(), cudaHostRegisterDefault);
                 }
 
             for (unsigned int i = 0; i < 6; ++i)
@@ -1499,17 +1602,23 @@ void CommunicatorGPU::exchangeGhosts()
                 m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
                 m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
 
+                void *ptr = NULL;
                 #ifndef ENABLE_MPI_CUDA
-                char *h_tmp;
-                cudaHostAlloc(&h_tmp, m_face_ghosts_buf.getNumElements(), cudaHostAllocDefault);
+                posix_memalign(&ptr, getpagesize(), m_face_ghosts_buf.getNumElements());
+                char *h_tmp = (char *) ptr;
+                cudaHostRegister(h_tmp, m_face_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
                 for (unsigned int i = 0; i < 6; ++i)
                     memcpy(h_tmp+i*m_face_ghosts_buf.getPitch(), h_face_ghosts_buf+i*old_pitch,  old_pitch);
-                cudaFreeHost(h_face_ghosts_buf);
+                cudaHostUnregister(h_face_ghosts_buf);
+                free(h_face_ghosts_buf);
                 h_face_ghosts_buf = h_tmp;
                 #endif
 
-                cudaFreeHost(h_face_update_buf);
-                cudaHostAlloc(&h_face_update_buf, m_face_update_buf.getNumElements(),cudaHostAllocDefault);
+                cudaHostUnregister(h_face_update_buf);
+                free(h_face_update_buf);
+                posix_memalign(&ptr, getpagesize(), m_face_update_buf.getNumElements());
+                h_face_update_buf = (char *) ptr;
+                cudaHostRegister(h_face_update_buf, m_face_update_buf.getNumElements(), cudaHostRegisterDefault);
                 }
 
             if (m_ghosts_recv_buf.getNumElements() < (m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_ghost_element_size())
@@ -1521,12 +1630,15 @@ void CommunicatorGPU::exchangeGhosts()
                 while (new_size < m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_ghosts_recv_buf.resize(new_size*gpu_ghost_element_size());
-
+                
                 #ifndef ENABLE_MPI_CUDA
-                char *h_tmp;
-                cudaHostAlloc(&h_tmp, new_size*gpu_ghost_element_size(), cudaHostAllocDefault);
+                void *ptr = NULL;
+                posix_memalign(&ptr, getpagesize(), new_size*gpu_ghost_element_size());
+                char *h_tmp = (char *) ptr;
+                cudaHostRegister(h_tmp, new_size*gpu_ghost_element_size(), cudaHostRegisterDefault);
                 memcpy(h_tmp, h_ghosts_recv_buf, old_size);
-                cudaFreeHost(h_ghosts_recv_buf);
+                cudaHostUnregister(h_ghosts_recv_buf);
+                free(h_ghosts_recv_buf);
                 h_ghosts_recv_buf = h_tmp;
                 #endif
                 }
@@ -1538,8 +1650,12 @@ void CommunicatorGPU::exchangeGhosts()
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_update_recv_buf.resize(new_size*gpu_update_element_size());
 
-                cudaFreeHost(h_update_recv_buf);
-                cudaHostAlloc(&h_update_recv_buf, m_update_recv_buf.getNumElements(),cudaHostAllocDefault);
+                cudaHostUnregister(h_update_recv_buf);
+                free(h_update_recv_buf);
+                void *ptr = NULL;
+                posix_memalign(&ptr, getpagesize(), m_update_recv_buf.getNumElements());
+                char *h_update_recv_buf = (char *) ptr;
+                cudaHostRegister(h_update_recv_buf, m_update_recv_buf.getNumElements(), cudaHostRegisterDefault);
                 }
 
             unsigned int cpitch = m_corner_ghosts_buf.getPitch();
