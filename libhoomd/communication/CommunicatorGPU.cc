@@ -581,7 +581,7 @@ void CommunicatorGPU::allocateBuffers()
     h_corner_ghosts_buf = (char *) ptr;
     cudaHostRegister(h_corner_ghosts_buf, m_corner_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
 
-    posix_memalign(&ptr, getpagesize(), m_ghost_recv_buf.getNumElements());
+    posix_memalign(&ptr, getpagesize(), m_ghosts_recv_buf.getNumElements());
     h_ghosts_recv_buf = (char *) ptr;
     cudaHostRegister(h_ghosts_recv_buf, m_ghosts_recv_buf.getNumElements(), cudaHostRegisterDefault);
 
@@ -1293,7 +1293,7 @@ void CommunicatorGPU::exchangeGhosts()
             free(h_face_ghosts_buf);
             void *ptr = NULL;
             posix_memalign(&ptr, getpagesize(), m_face_ghosts_buf.getNumElements());
-            h_face_ghots_buf = (char *) ptr;
+            h_face_ghosts_buf = (char *) ptr;
             cudaHostRegister(h_face_ghosts_buf, m_face_ghosts_buf.getNumElements(), cudaHostRegisterDefault);
             #endif
             }
