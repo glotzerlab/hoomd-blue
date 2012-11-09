@@ -595,6 +595,7 @@ template<class T> void GPUArray<T>::deallocate()
         {
         assert(d_data);
         cudaHostUnregister(h_data);
+        CHECK_CUDA_ERROR();
         free(h_data);
         cudaFree(d_data);
         CHECK_CUDA_ERROR();
@@ -884,6 +885,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         cudaHostUnregister(h_data);
+        CHECK_CUDA_ERROR();
         free(h_data);
         }
     else
@@ -938,6 +940,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         cudaHostUnregister(h_data);
+        CHECK_CUDA_ERROR();
         free(h_data);
         }
     else
