@@ -1765,7 +1765,7 @@ void CommunicatorGPU::exchangeGhosts()
                 free(h_update_recv_buf);
                 void *ptr = NULL;
                 posix_memalign(&ptr, getpagesize(), m_update_recv_buf.getNumElements());
-                char *h_update_recv_buf = (char *) ptr;
+                h_update_recv_buf = (char *) ptr;
                 cudaHostRegister(h_update_recv_buf, m_update_recv_buf.getNumElements(), cudaHostRegisterDefault);
                 CHECK_CUDA_ERROR();
                 }

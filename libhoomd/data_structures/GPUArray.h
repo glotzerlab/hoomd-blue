@@ -658,6 +658,9 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
         cudaMemcpyAsync(h_data, d_data, sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost);
     else
         cudaMemcpy(h_data, d_data, sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     }
 
 /*! \post All memory on the host is copied to the device array
@@ -673,6 +676,9 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
         cudaMemcpyAsync(d_data, h_data, sizeof(T)*m_num_elements, cudaMemcpyHostToDevice);
     else
         cudaMemcpy(d_data, h_data, sizeof(T)*m_num_elements, cudaMemcpyHostToDevice);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     }
 #endif
 
