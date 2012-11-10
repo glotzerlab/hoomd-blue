@@ -308,18 +308,23 @@ class ParticleGroup
     private:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
-        GPUArray<unsigned char> m_is_member;            //!< One byte per particle, == 1 if index is a member of the group
+        GPUArray<unsigned char> m_is_member;            //!< One byte per particle, == 1 if index is a local member of the group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
         unsigned int m_num_local_members;               //!< Number of members on the local processor
 
+        GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
+
         //! Helper function to resize array of member tags
         void reallocate();
 
         //! Helper function to rebuild the index lists afer the particles have been sorted
         void rebuildIndexList();
+
+        //! Helper function to build the 1:1 hash for tag membership
+        void buildTagHash();
 
 #ifdef ENABLE_CUDA
         //! Helper function to rebuild the index lists afer the particles have been sorted

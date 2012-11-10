@@ -69,11 +69,11 @@ cudaError_t gpu_clear_membership_flags(unsigned int N,
 
 //! GPU method for rebuilding the index list of a ParticleGroup
 cudaError_t gpu_rebuild_index_list(unsigned int N,
-                                   unsigned int num_members,
-                                   unsigned int *d_member_tag,
+                                   unsigned int n_global,
+                                   unsigned char *d_is_member_tag,
                                    unsigned char *d_is_member,
                                    unsigned int *d_member_idx,
-                                   unsigned int *d_rtag,
+                                   unsigned int *d_tag,
                                    unsigned int &num_local_members);
 
 

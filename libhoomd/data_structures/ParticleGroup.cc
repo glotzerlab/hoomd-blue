@@ -265,6 +265,12 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
     GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
+    GPUArray<unsigned char> is_member_tag(m_pdata->getNGlobal(), m_pdata->getExecConf());
+    m_is_member_tag.swap(is_member_tag);
+
+    // build the reverse lookup table for tags
+    buildTagHash();
+
     GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
 
@@ -304,6 +310,12 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
     GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
+
+    GPUArray<unsigned char> is_member_tag(m_pdata->getNGlobal(), m_pdata->getExecConf());
+    m_is_member_tag.swap(is_member_tag);
+
+    // build the reverse lookup table for tags
+    buildTagHash();
 
     GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
@@ -516,6 +528,21 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
     return new_group;
     }
 
+/*! Builds the by-tag-lookup table for group membership
+ */
+void ParticleGroup::buildTagHash()
+    {
+    ArrayHandle<unsigned char> h_is_member_tag(m_is_member_tag, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
+
+    // reset member ship flags
+    memset(h_is_member_tag.data, 0, sizeof(unsigned char)*m_pdata->getNGlobal());
+
+    unsigned int num_members = m_member_tags.getNumElements();
+    for (unsigned int member = 0; member < num_members; member++)
+        h_is_member_tag.data[member] = 1;
+    }
+
 /*! \pre m_member_tags has been filled out, listing all particle tags in the group
     \pre memory has been allocated for m_is_member and m_member_idx
     \post m_is_member is updated so that it reflects the current indices of the particles in the group
@@ -577,9 +604,9 @@ void ParticleGroup::rebuildIndexList()
 void ParticleGroup::rebuildIndexListGPU()
     {
     ArrayHandle<unsigned char> d_is_member(m_is_member, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_member_tags(m_member_tags, access_location::device, access_mode::read);
+    ArrayHandle<unsigned char> d_is_member_tag(m_is_member_tag, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_member_idx(m_member_idx, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     // reset membership properties
     gpu_clear_membership_flags(m_pdata->getN(), d_is_member.data);
@@ -587,11 +614,11 @@ void ParticleGroup::rebuildIndexListGPU()
     if (m_member_tags.getNumElements() > 0)
         {
         gpu_rebuild_index_list(m_pdata->getN(),
-                           m_member_tags.getNumElements(),
-                           d_member_tags.data,
+                           m_pdata->getNGlobal(),
+                           d_is_member_tag.data,
                            d_is_member.data,
                            d_member_idx.data,
-                           d_rtag.data,
+                           d_tag.data,
                            m_num_local_members);
         }
     else
