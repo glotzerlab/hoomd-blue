@@ -540,7 +540,7 @@ void ParticleGroup::buildTagHash()
 
     unsigned int num_members = m_member_tags.getNumElements();
     for (unsigned int member = 0; member < num_members; member++)
-        h_is_member_tag.data[member] = 1;
+        h_is_member_tag.data[h_member_tags.data[member]] = 1;
     }
 
 /*! \pre m_member_tags has been filled out, listing all particle tags in the group
