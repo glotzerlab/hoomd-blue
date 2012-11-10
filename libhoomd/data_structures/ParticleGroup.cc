@@ -609,8 +609,6 @@ void ParticleGroup::rebuildIndexListGPU()
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     // reset membership properties
-    gpu_clear_membership_flags(m_pdata->getN(), d_is_member.data);
-
     if (m_member_tags.getNumElements() > 0)
         {
         gpu_rebuild_index_list(m_pdata->getN(),

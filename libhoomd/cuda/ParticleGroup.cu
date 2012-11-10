@@ -68,15 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Contains GPU kernel code used by ParticleGroup
 */
 
-//! GPU method to clear the membership flags
-cudaError_t gpu_clear_membership_flags(unsigned int N,
-                                       unsigned char *d_is_member)
-    {
-    thrust::device_ptr<unsigned char> is_member_ptr(d_is_member);
-    thrust::fill(is_member_ptr, is_member_ptr + N, 0);
-    return cudaSuccess;
-    }
-
 __global__ void gpu_rebuild_index_list_kernel(unsigned int N,
                                               unsigned int *d_tag,
                                               unsigned char *d_is_member_tag,

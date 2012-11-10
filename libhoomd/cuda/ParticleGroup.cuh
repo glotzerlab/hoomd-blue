@@ -63,10 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __PARTICLE_GROUP_CUH__
 #define __PARTICLE_GROUP_CUH__
 
-//! GPU method to clear the membership flags
-cudaError_t gpu_clear_membership_flags(unsigned int N,
-                                       unsigned char *d_is_member);
-
 //! GPU method for rebuilding the index list of a ParticleGroup
 cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int n_global,
