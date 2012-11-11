@@ -482,10 +482,11 @@ unsigned int RandomGenerator::getNumParticles() const
     return (unsigned int)m_data.m_particles.size();
     }
 
-unsigned int RandomGenerator::getNumGlobalParticles() const
+unsigned int RandomGenerator::getNumBonds() const
     {
-    return getNumParticles();
+    return (unsigned int)m_data.m_bonds.size();
     }
+
 
 BoxDim RandomGenerator::getBox() const
     {
@@ -517,16 +518,21 @@ unsigned int RandomGenerator::getNumBondTypes() const
     return m_bond_type_mapping.size();
     }
 
-/*! \param bond_data Shared pointer to the BondData to be initialized
+/*! \param snapshot The bond data snapshot to be initialized
     Adds all generated bonds to the BondData
 */
-void RandomGenerator::initBondData(boost::shared_ptr<BondData> bond_data) const
+void RandomGenerator::initBondDataSnapshot(SnapshotBondData& snapshot) const
     {
+    assert(snapshot.bonds.size() == m_data.m_bonds.size());
+
     // loop through all the bonds and add a bond for each
     for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)
-        bond_data->addBond(Bond(m_data.m_bonds[i].type_id, m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b));
+        {
+        snapshot.bonds[i] = make_uint2(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
+        snapshot.type_id[i] = m_data.m_bonds[i].type_id;
+        }
         
-    bond_data->setBondTypeMapping(m_bond_type_mapping);
+    snapshot.type_mapping = m_bond_type_mapping;
     }
 
 /*! \param type Name of the particle type to set the radius for

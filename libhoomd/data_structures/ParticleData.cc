@@ -1566,7 +1566,7 @@ class ParticleDataInitializerWrap : public ParticleDataInitializer, public wrapp
             {
             return this->get_override("getNumParticles")();
             }
-            
+
         //! Calls the overidden ParticleDataInitializer::getBox()
         BoxDim getBox() const
             {

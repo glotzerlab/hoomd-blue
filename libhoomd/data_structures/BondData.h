@@ -162,6 +162,14 @@ class BondData : boost::noncopyable
             {
             return (unsigned int)m_bonds.size();
             }
+
+        //! Get the global number of bonds
+        /*! \return Global number of bonds
+        */
+        unsigned int getNumBondsGlobal() const
+            {
+            return m_num_bonds_global;
+            }
             
         //! Get a given bond
         /*! \param i Bond to access
@@ -303,6 +311,7 @@ class BondData : boost::noncopyable
         unsigned int m_max_ghost_bond_num;      //!< Maximum ghost bond number
         GPUFlags<unsigned int> m_condition;     //!< Condition variable for bond counting
 #endif
+        unsigned int m_num_bonds_global;        //!< Total number of bonds on all processors
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA

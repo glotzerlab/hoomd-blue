@@ -125,7 +125,9 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, boost::s
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(init, exec_conf));
     
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, init.getNumBondTypes()));
-    init.initBondData(m_bond_data);
+    SnapshotBondData snapshot(init.getNumBonds());
+    init.initBondDataSnapshot(snapshot);
+    m_bond_data->initializeFromSnapshot(snapshot);
     
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
     init.initWallData(m_wall_data);

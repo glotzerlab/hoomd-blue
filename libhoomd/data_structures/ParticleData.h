@@ -116,7 +116,7 @@ using namespace std;
 // Forward declaration of Profiler
 class Profiler;
 
-class BondData;
+class SnapshotBondData;
 
 class WallData;
 
@@ -255,9 +255,15 @@ class ParticleDataInitializer
         //! Empty Destructor
         virtual ~ParticleDataInitializer() { }
         
-        //! Returns the number of local particles to be initialized
+        //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const = 0;
-        
+       
+        //! Returns the number of bonds to be initialized
+        virtual unsigned int getNumBonds() const 
+            {
+            return 0;
+            }
+
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const = 0;
         
@@ -311,11 +317,11 @@ class ParticleDataInitializer
             return 1;
             }
             
-        //! Initialize the bond data
-        /*! \param bond_data Shared pointer to the BondData to be initialized
+        //! Initialize the bond data snpashot
+        /*! \param snapshot Snapshot to be initialized
             Bonds are optional: the base class does nothing
         */
-        virtual void initBondData(boost::shared_ptr<BondData> bond_data) const {}
+        virtual void initBondDataSnapshot(SnapshotBondData& snapshot) const {}
         
         //! Initialize the angle data
         /*! \param angle_data Shared pointer to the AngleData to be initialized

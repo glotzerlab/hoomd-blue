@@ -116,6 +116,14 @@ namespace boost
             ar & i.z;
             }
 
+        //! serialization of uint2
+        template<class Archive>
+        void serialize(Archive & ar, uint2 & u, const unsigned int version)
+            {
+            ar & u.x;
+            ar & u.y;
+            }
+ 
         //! serialization of uint3
         template<class Archive>
         void serialize(Archive & ar, uint3 & u, const unsigned int version)

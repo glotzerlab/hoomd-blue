@@ -267,8 +267,8 @@ class RandomGenerator : public ParticleDataInitializer
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
         
-        //! Returns the total number of particles in the simulation
-        virtual unsigned int getNumGlobalParticles() const;
+        //! Returns the number of bonds to be initialized
+        virtual unsigned int getNumBonds() const;
 
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
@@ -280,7 +280,7 @@ class RandomGenerator : public ParticleDataInitializer
         virtual unsigned int getNumBondTypes() const;
         
         //! Initialize the bond data
-        virtual void initBondData(boost::shared_ptr<BondData> bond_data) const;
+        virtual void initBondDataSnapshot(SnapshotBondData& snapshot) const;
         
         //! Sets the separation radius for a particle
         void setSeparationRadius(string type, Scalar radius);

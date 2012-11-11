@@ -105,6 +105,9 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
+
+        //! Returns the number of bonds to be initialized
+        virtual unsigned int getNumBonds() const;
         
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
@@ -133,8 +136,8 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         //! Returns the number of improper types to be created
         virtual unsigned int getNumImproperTypes() const;
         
-        //! Initialize the bond data
-        virtual void initBondData(boost::shared_ptr<BondData> bond_data) const;
+        //! Initialize the bond data snapshot
+        virtual void initBondDataSnapshot(SnapshotBondData& snapshot) const;
         
         //! Initialize the angle data
         virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const;

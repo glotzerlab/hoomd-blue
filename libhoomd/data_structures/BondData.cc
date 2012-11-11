@@ -69,6 +69,11 @@ using namespace boost;
 #include <stdexcept>
 using namespace std;
 
+#ifdef ENABLE_MPI
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/vector.hpp>
+#endif
+
 /*! \file BondData.cc
     \brief Defines BondData.
  */
@@ -79,7 +84,7 @@ using namespace std;
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
     : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf),
-      m_max_bond_num(0), m_max_ghost_bond_num(0)
+      m_max_bond_num(0), m_max_ghost_bond_num(0), m_num_bonds_global(0)
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
@@ -138,6 +143,13 @@ BondData::~BondData()
  */
 unsigned int BondData::addBond(const Bond& bond)
     {
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_exec_conf->msg->error() << "Dynamically adding bonds in simulations with domain decomposition is not currently supported." << std::endl;
+        throw runtime_error("Error adding bond");
+        }
+#endif
     // check for some silly errors a user could make
     if (bond.a >= m_pdata->getNGlobal() || bond.b >= m_pdata->getNGlobal())
         {
@@ -184,8 +196,11 @@ unsigned int BondData::addBond(const Bond& bond)
     m_bond_type.push_back(bond.type);
 
     m_tags.push_back(tag);
+    m_num_bonds_global++;
 
     m_bonds_dirty = true;
+
+
     return tag;
     }
 
@@ -225,6 +240,14 @@ unsigned int BondData::getBondTag(unsigned int id) const
  */
 void BondData::removeBond(unsigned int tag)
     {
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_exec_conf->msg->error() << "Removing bonds in simulations with domain decomposition is not currently supported." << std::endl;
+        throw runtime_error("Error removing bond");
+        }
+#endif
+
     // Find position of bond in bonds list
     unsigned int id = m_bond_rtag[tag];
     if (id == NO_BOND)
@@ -254,6 +277,7 @@ void BondData::removeBond(unsigned int tag)
 
     // maintain a stack of deleted bond tags for future recycling
     m_deleted_tags.push(tag);
+    m_num_bonds_global--;
 
     m_bonds_dirty = true;
     }
@@ -563,20 +587,82 @@ void BondData::allocateGhostBondTable(int height)
 void BondData::takeSnapshot(SnapshotBondData& snapshot)
     {
     // check for an invalid request
-    if (snapshot.bonds.size() != getNumBonds())
+    if (snapshot.bonds.size() != getNumBondsGlobal())
         {
         m_exec_conf->msg->error() << "BondData is being asked to initizalize a snapshot of the wrong size."
              << endl;
         throw runtime_error("Error taking snapshot.");
         }
 
-    assert(snapshot.type_id.size() == getNumBonds());
+    assert(snapshot.type_id.size() == getNumBondsGlobal());
     assert(snapshot.type_mapping.size() == 0);
 
-    for (unsigned int bond_idx = 0; bond_idx < getNumBonds(); bond_idx++)
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        snapshot.bonds[bond_idx] = m_bonds[bond_idx];
-        snapshot.type_id[bond_idx] = m_bond_type[bond_idx];
+        std::vector<uint2> local_bonds;
+        std::vector<unsigned int> local_typeid;
+        std::map<unsigned int, unsigned int> bond_rtag_map;
+
+        // construct a local list of bonds
+        for (unsigned int bond_idx = 0; bond_idx < m_bonds.size(); ++bond_idx)
+            {
+            local_bonds.push_back(m_bonds[bond_idx]);
+            local_typeid.push_back(m_bond_type[bond_idx]);
+            
+            bond_rtag_map.insert(std::pair<unsigned int, unsigned int>(m_tags[bond_idx], bond_idx));
+            }
+
+        // gather lists from all processors
+        unsigned int root = 0;
+
+        std::vector< std::vector<uint2> > bond_proc;
+        std::vector< std::vector<unsigned int> > typeid_proc;
+        std::vector< std::map<unsigned int, unsigned int> > rtag_map_proc;
+
+        gather_v(local_bonds, bond_proc, root, m_exec_conf->getMPICommunicator());
+        gather_v(local_typeid, typeid_proc, root, m_exec_conf->getMPICommunicator());
+        gather_v(bond_rtag_map, rtag_map_proc, root, m_exec_conf->getMPICommunicator());
+
+        if (m_exec_conf->getRank() == root)
+            {
+            std::map<unsigned int, unsigned int>::iterator it;
+
+            for (unsigned int bond_tag = 0; bond_tag <= getNumBondsGlobal(); ++bond_tag)
+                {
+                bool found = false;
+                unsigned int rank;
+                for (rank = 0; rank < m_exec_conf->getNRanks(); ++rank)
+                    {
+                    it = rtag_map_proc[rank].find(bond_tag);
+                    if (it != rtag_map_proc[rank].end())
+                        {
+                        found = true;
+                        break;
+                        }
+                    }    
+                if (! found)
+                    {
+                    cerr << endl << "***Error! Could not find bond " << bond_tag << " on any processor. " << endl << endl;
+                    throw std::runtime_error("Error gathering BondData");
+                    }
+                
+                // store bond in snapshot
+                unsigned int bond_idx = it->second;
+
+                snapshot.bonds[bond_tag] = bond_proc[rank][bond_idx];
+                snapshot.type_id[bond_tag] = typeid_proc[rank][bond_idx];
+                }
+            }
+        }
+    else
+#endif
+        {
+        for (unsigned int bond_idx = 0; bond_idx < getNumBonds(); bond_idx++)
+            {
+            snapshot.bonds[bond_idx] = m_bonds[bond_idx];
+            snapshot.type_id[bond_idx] = m_bond_type[bond_idx];
+            }
         }
 
     for (unsigned int i = 0; i < m_n_bond_types; i++)
@@ -587,6 +673,8 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
 //! Initialize the bond data from a snapshot
 /*! \param snapshot The snapshot to initialize the bonds from
     Before initialization, the current bond data is cleared.
+
+    \pre Particle data must have been initialized on all processors using ParticleData::initializeFromSnapshot()
  */
 void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
     {
@@ -597,13 +685,59 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
         m_deleted_tags.pop();
     m_bond_rtag.clear();
 
-    for (unsigned int bond_idx = 0; bond_idx < snapshot.bonds.size(); bond_idx++)
+    std::vector<std::string> type_mapping;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        Bond bond(snapshot.type_id[bond_idx], snapshot.bonds[bond_idx].x, snapshot.bonds[bond_idx].y);
-        addBond(bond);
+        // first, broadcast bonds to all processors
+        std::vector<uint2> all_bonds;
+        std::vector<unsigned int> all_typeid;
+
+        unsigned int root = 0;
+        if (m_exec_conf->getRank() == root)
+            {
+            all_bonds = snapshot.bonds;
+            all_typeid = snapshot.type_id;
+            type_mapping = snapshot.type_mapping;
+            }
+
+        bcast(all_bonds, root, m_exec_conf->getMPICommunicator());
+        bcast(all_typeid, root, m_exec_conf->getMPICommunicator());
+        bcast(type_mapping, root, m_exec_conf->getMPICommunicator());
+
+        // set global number of bonds
+        m_num_bonds_global = all_bonds.size();
+        m_bond_rtag.resize(m_num_bonds_global);
+
+        // now iterate over bonds and retain only bonds with local members
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+        std::vector<uint2>::iterator it;
+        unsigned int nparticles = m_pdata->getN();
+        unsigned int bond_idx = 0;
+        for (unsigned int bond_tag = 0; bond_tag < m_num_bonds_global; ++bond_tag)
+            if (h_rtag.data[all_bonds[bond_tag].x] < nparticles || h_rtag.data[all_bonds[bond_tag].y] < nparticles)
+                {
+                m_bonds.push_back(all_bonds[bond_tag]);
+                m_bond_type.push_back(all_typeid[bond_tag]);
+                m_tags.push_back(bond_tag);
+                m_bond_rtag[bond_tag] = bond_idx++;
+                }
+        }
+    else
+#endif
+        {
+        for (unsigned int bond_idx = 0; bond_idx < snapshot.bonds.size(); bond_idx++)
+            {
+            Bond bond(snapshot.type_id[bond_idx], snapshot.bonds[bond_idx].x, snapshot.bonds[bond_idx].y);
+            addBond(bond);
+            }
+
+        type_mapping = snapshot.type_mapping;
         }
 
-    setBondTypeMapping(snapshot.type_mapping);
+    setBondTypeMapping(type_mapping);
     }
 
 void export_BondData()
