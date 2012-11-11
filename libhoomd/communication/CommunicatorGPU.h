@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "WorkQueue.h"
 #include "GPUFlags.h"
+#include "GPUBuffer.h"
 
 /*! \ingroup communication
 */
@@ -219,22 +220,10 @@ class CommunicatorGPU : public Communicator
     private:
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
 
-        GPUArray<char> m_corner_send_buf;          //!< Send buffer for corner ptls
-        GPUArray<char> m_edge_send_buf;            //!< Send buffer for edge ptls
-        GPUArray<char> m_face_send_buf;            //!< Send buffer for edge ptls
-        GPUArray<char> m_recv_buf;                 //!< Receive buffer for particle data
-
-        #ifndef ENABLE_MPI_CUDA
-        char *h_corner_send_buf;                    //!< Send buffer (host) for corner ptls
-        char *h_edge_send_buf;                      //!< Send buffer (host) for edge ptls
-        char *h_face_send_buf;                      //!< Send buffer (host) for face ptls
-        char *h_recv_buf;                           //!< Receive buffer (host)
-        #endif
-
-        char *h_update_recv_buf;                    //!< Host receive buffer
-        char *h_face_update_buf;                    //!< Host buffer of particles that are sent through a face
-        char *h_edge_update_buf;                    //!< Host buffer of particles that are sent over an edge
-        char *h_corner_update_buf;                  //!< Host buffer of particles that are sent over a corner
+        GPUBuffer<char> m_corner_send_buf;          //!< Send buffer for corner ptls
+        GPUBuffer<char> m_edge_send_buf;            //!< Send buffer for edge ptls
+        GPUBuffer<char> m_face_send_buf;            //!< Send buffer for edge ptls
+        GPUBuffer<char> m_recv_buf;                 //!< Receive buffer for particle data
 
         GPUArray<unsigned int> m_n_send_ptls_corner; //!< Number of particles sent over a corner
         GPUArray<unsigned int> m_n_send_ptls_edge;  //!< Number of particles sent over an edge
@@ -248,20 +237,20 @@ class CommunicatorGPU : public Communicator
         unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
         unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer
 
-        GPUArray<char> m_corner_ghosts_buf;         //!< Copy buffer for ghosts lying at the edge
-        GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
-        GPUArray<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
-        GPUArray<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
-        GPUArray<unsigned int> m_ghost_plan;        //!< Routing plans for received ghost particles
+        GPUBuffer<char> m_corner_ghosts_buf;         //!< Copy buffer for ghosts lying at the edge
+        GPUBuffer<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
+        GPUBuffer<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
+        GPUBuffer<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
+        GPUArray<unsigned int> m_ghost_plan;         //!< Routing plans for received ghost particles
 
         GPUArray<unsigned int> m_ghost_idx_corner;  //!< Indices of particles copied as ghosts via corner
         GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge
         GPUArray<unsigned int> m_ghost_idx_face;    //!< Indices of particles copied as ghosts via a face
 
-        GPUArray<char> m_corner_update_buf;         //!< Copy buffer for 'corner' ghost positions 
-        GPUArray<char> m_edge_update_buf;           //!< Copy buffer for 'corner' ghost positions 
-        GPUArray<char> m_face_update_buf;           //!< Copy buffer for 'corner' ghost positions 
-        GPUArray<char> m_update_recv_buf;           //!< Receive buffer for ghost positions 
+        GPUBuffer<char> m_corner_update_buf;         //!< Copy buffer for 'corner' ghost positions 
+        GPUBuffer<char> m_edge_update_buf;           //!< Copy buffer for 'corner' ghost positions 
+        GPUBuffer<char> m_face_update_buf;           //!< Copy buffer for 'corner' ghost positions 
+        GPUBuffer<char> m_update_recv_buf;           //!< Receive buffer for ghost positions 
 
         #ifndef ENABLE_MPI_CUDA
         char *h_ghosts_recv_buf;                    //!< Host receive buffer
@@ -310,9 +299,6 @@ class CommunicatorGPU : public Communicator
 
         //! Check and resize ghost buffers if necessary
         void checkReallocateGhostBuffers();
-
-        //!< De-allocate host buffers
-        void deallocateBuffers();
 
         friend class ghost_gpu_thread;
     };

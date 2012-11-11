@@ -115,18 +115,10 @@ template<class T> class GPUFlags
         //! Read the flags on the host
         inline const T readFlags();
 
-#ifdef ENABLE_CUDA
-        //! Read the flags on the host, synchronizing with a specific execution stream
-        inline const T readFlagsStream(cudaStream_t stream);
-#endif
-
         //! Reset the flags on the host
         inline void resetFlags(const T flags);
 
 #ifdef ENABLE_CUDA
-        //! Reset the flags on the host, synchronizing with a specific execution stream
-        inline void resetFlagsStream(const T flags, cudaStream_t stream);
-
         //! Get the flags on the device
         T* getDeviceFlags()
             {
@@ -377,30 +369,6 @@ template<class T> const T GPUFlags<T>::readFlags()
     return *h_data;
     }
 
-#ifdef ENABLE_CUDA
-/*! \returns Current value of the flags
-    \note readFlags synchronizes with an explicitly given GPU execution stream
-
-    \param stream The stream to synchronize with
-*/
-template<class T> const T GPUFlags<T>::readFlagsStream(cudaStream_t stream)
-    {
-    if (!m_mapped)
-        {
-        // memcpy the results to the host
-        cudaMemcpyAsync(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost, stream);
-        }
-
-    // sync with the stream
-    GPUEventHandle ev(m_exec_conf);
-    cudaEventRecord(ev, stream);
-    cudaEventSynchronize(ev);
-
-    // return value of flags
-    return *h_data;
-    }
-#endif
-
 /*! \param flags Value of flags to set
     \note resetFlags synchronizes with the GPU execution stream. It waits for all prior kernel launches to complete
     before actually resetting the flags so that a possibly executing kernel doesn't unintentionally overwrite the
@@ -430,33 +398,6 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
 #endif
         }
     }
-
-#ifdef ENABLE_CUDA
-/*! \param flags Value of flags to set
-    \param stream Stream to synchronize with
-    \note resetFlags synchronizes with the explicitly given GPU execution stream
-*/
-template<class T> void GPUFlags<T>::resetFlagsStream(const T flags, cudaStream_t stream)
-    {
-    if (m_mapped)
-        { 
-        // synchronize with stream
-        GPUEventHandle ev(m_exec_conf);
-        cudaEventRecord(ev, stream);
-        cudaEventSynchronize(ev);
-
-        // set the flags
-        *h_data = flags;
-        }
-    else
-        {
-        // set the flags
-        *h_data = flags;
-        // copy to the device
-        cudaMemcpyAsync(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice, stream);
-        }
-    }
-#endif
 
 #endif
 
