@@ -78,8 +78,6 @@ using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/vector.hpp>
 #endif
 
 #include <boost/bind.hpp>

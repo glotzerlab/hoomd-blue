@@ -522,12 +522,16 @@ void Communicator::exchangeGhosts()
     //          construct plans (= itineraries for ghost particles)
     // Stage 2: fill send buffers, exchange ghosts according to plans (sending the plan along with the particle)
 
-    // resize plans
+    // resize and reset plans
     m_plan.resize(m_pdata->getN());
 
-    // reset plans
-    m_plan.clear();
+        {
+        ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
 
+        for (unsigned int i = 0; i < m_pdata->getN(); ++i)
+            h_plan.data[i] = 0;
+        }
+        
     /*
      * Mark particles that are part of incomplete bonds for sending
      */

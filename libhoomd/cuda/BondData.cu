@@ -342,7 +342,10 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
         while (!active)
             {
             n = atomicInc(n_fetch_bond, 0xffffffff);
-            active = recv_bond_active[n];
+            if (n < n_recv_bonds)
+                active = recv_bond_active[n];
+            else
+                active = true;
             }
 
         if (n < n_recv_bonds) 
@@ -389,11 +392,11 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
                              unsigned int *d_bond_type,
                              unsigned int *d_bond_tag,
                              unsigned int *d_bond_rtag,
-                             unsigned int *d_n_fetch_ptl)
+                             unsigned int *d_n_fetch_bond)
     {
     unsigned int block_size = 512;
     
-    cudaMemsetAsync(d_n_fetch_ptl, 0, sizeof(unsigned int));
+    cudaMemsetAsync(d_n_fetch_bond, 0, sizeof(unsigned int));
 
     unsigned int new_end = old_n_bonds + n_unique_recv_bonds - n_remove_bonds;
     gpu_fill_bondtable_kernel<<<new_end/block_size+1,block_size>>>(old_n_bonds,
@@ -407,7 +410,7 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
                                                                    d_bond_type,
                                                                    d_bond_tag,
                                                                    d_bond_rtag,
-                                                                   d_n_fetch_ptl);
+                                                                   d_n_fetch_bond);
     }
 
 

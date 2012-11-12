@@ -305,7 +305,6 @@ template<class T> void GPUVector<T>::pop_back()
 template<class T> void GPUVector<T>::clear()
     {
     m_size = 0;
-    GPUArray<T>::memclear();
     }
 
 /*! \param mode Access mode for the GPUArray

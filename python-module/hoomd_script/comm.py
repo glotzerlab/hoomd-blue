@@ -103,6 +103,12 @@ def init_domain_decomposition(mpi_options):
         snap = hoomd.SnapshotParticleData(nglobal)
         pdata.takeSnapshot(snap)
 
+        bdata = globals.system_definition.getBondData()
+        n_bonds_global = bdata.getNumBondsGlobal();
+        if n_bonds_global:
+            snap_bdata = hoomd.SnapshotBondData(n_bonds_global)
+            bdata.takeSnapshot(snap_bdata)
+             
         # initialize domain decomposition
         cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, pdata.getGlobalBox().getL(), nx, ny, nz);
 
@@ -120,3 +126,6 @@ def init_domain_decomposition(mpi_options):
 
         # initialize domains from global snapshot
         pdata.initializeFromSnapshot(snap)
+
+        if n_bonds_global:
+            bdata.initializeFromSnapshot(snap_bdata)

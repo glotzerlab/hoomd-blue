@@ -1661,7 +1661,66 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     // check that old state has been restored
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
     BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3); 
-    
+   
+    // switch ptl 0 and 1
+    pdata->setPosition(0, make_scalar3(.4, -0.4, -0.4));
+    pdata->setPosition(1, make_scalar3(-.4, -0.4, -0.4));
+
+    comm->migrateAtoms();
+
+    switch(exec_conf->getRank())
+        {
+        case 0:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own three bonds
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                }
+ 
+            break;
+        case 1:
+            // box 1 should own three bonds
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own bonds 0-2
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+
+                }
+            break;
+
+        default:
+            break;
+        }
     }
 
 //! Test particle communication for covalently bonded ghosts
@@ -1718,6 +1777,9 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     SnapshotParticleData snap(8);
     pdata->takeSnapshot(snap);
 
+    SnapshotBondData snap_bdata(12);
+    bdata->takeSnapshot(snap_bdata);
+
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
@@ -1730,6 +1792,8 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
 
     // distribute particle data on processors
     pdata->initializeFromSnapshot(snap);
+
+    bdata->initializeFromSnapshot(snap_bdata);
 
     // we should have zero ghost particles
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
@@ -2063,13 +2127,11 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     test_communicator_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
 
-#if 0
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
-#endif
 
 BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     {

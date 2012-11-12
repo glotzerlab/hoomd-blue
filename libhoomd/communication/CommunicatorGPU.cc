@@ -1222,19 +1222,21 @@ void CommunicatorGPU::exchangeGhosts()
     assert(m_r_ghost < (m_pdata->getBox().getL().y));
     assert(m_r_ghost < (m_pdata->getBox().getL().z));
 
-    // resize plans
-    if (m_plan.size() < m_pdata->getN())
-        m_plan.resize(m_pdata->getN());
+        {
+        // resize and reset plans
+        if (m_plan.size() < m_pdata->getN())
+            m_plan.resize(m_pdata->getN());
 
-    // reset plans
-    m_plan.clear();
+        ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::overwrite);
+        cudaMemsetAsync(d_plan.data, 0, sizeof(unsigned char)*m_pdata->getN());
+        }
 
     /*
      * Mark particles that are part of incomplete bonds for sending
      */
     boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
 
-    if (bdata->getNumBonds())
+    if (bdata->getNumBondsGlobal())
         {
         // Send incomplete bond member to the nearest plane in all directions
         const GPUVector<uint2>& btable = bdata->getBondTable();

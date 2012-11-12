@@ -76,6 +76,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/vector.hpp>
+
 #ifdef SINGLE_PRECISION
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
 #else

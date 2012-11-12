@@ -69,11 +69,6 @@ using namespace boost;
 #include <stdexcept>
 using namespace std;
 
-#ifdef ENABLE_MPI
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/vector.hpp>
-#endif
-
 /*! \file BondData.cc
     \brief Defines BondData.
  */
@@ -628,7 +623,7 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
             {
             std::map<unsigned int, unsigned int>::iterator it;
 
-            for (unsigned int bond_tag = 0; bond_tag <= getNumBondsGlobal(); ++bond_tag)
+            for (unsigned int bond_tag = 0; bond_tag < getNumBondsGlobal(); ++bond_tag)
                 {
                 bool found = false;
                 unsigned int rank;
@@ -725,7 +720,7 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
         unsigned int nparticles = m_pdata->getN();
         unsigned int bond_idx = 0;
         for (unsigned int bond_tag = 0; bond_tag < m_num_bonds_global; ++bond_tag)
-            if (h_rtag.data[all_bonds[bond_tag].x] < nparticles || h_rtag.data[all_bonds[bond_tag].y] < nparticles)
+            if ((h_rtag.data[all_bonds[bond_tag].x] < nparticles) || (h_rtag.data[all_bonds[bond_tag].y] < nparticles))
                 {
                 m_bonds.push_back(all_bonds[bond_tag]);
                 m_bond_type.push_back(all_typeid[bond_tag]);
@@ -819,7 +814,7 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
 
     assert(num_duplicates <= num_add_bonds);
 
-    // Resize internal data structures to fit the added particles
+    // Resize internal data structures to fit the added bonds
     unsigned int old_n_bonds = m_bonds.size();
     unsigned int new_size = old_n_bonds + num_add_bonds - num_duplicates;
     m_bonds.resize(new_size);
@@ -850,7 +845,7 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    // Update size of data structures to reflect removal of particles
+    // Update size of data structures to reflect removal of bonds
     new_size = m_bonds.size() - num_remove_bonds;
     m_bonds.resize(new_size);
     m_bond_type.resize(new_size);
@@ -868,6 +863,7 @@ void export_BondData()
     
     class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<shared_ptr<ParticleData>, unsigned int>())
     .def("getNumBonds", &BondData::getNumBonds)
+    .def("getNumBondsGlobal", &BondData::getNumBondsGlobal)
     .def("getNBondTypes", &BondData::getNBondTypes)
     .def("getTypeByName", &BondData::getTypeByName)
     .def("getNameByType", &BondData::getNameByType)
@@ -880,7 +876,14 @@ void export_BondData()
     .def("initializeFromSnapshot", &BondData::initializeFromSnapshot)
     ;
     
+    class_<SnapshotBondData, boost::shared_ptr<SnapshotBondData>,
+        boost::noncopyable>("SnapshotBondData", init<unsigned int>())
+    .def_readwrite("bonds", &SnapshotBondData::bonds)
+    .def_readwrite("type_id", &SnapshotBondData::type_id)
+    .def_readwrite("type_mapping", &SnapshotBondData::type_mapping)
+    ;
     }
+
 
 #ifdef WIN32
 #pragma warning( pop )
