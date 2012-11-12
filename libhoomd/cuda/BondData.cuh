@@ -59,6 +59,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief GPU helper functions used in BondData
 */
 
+#ifdef NVCC
+//! Structure to keep a bond, used for bond buffers
+struct bond_element
+    {
+    uint2 bond;                //!< Member tags of the bond
+    unsigned int type;         //!< Type of the bond
+    unsigned int tag;          //!< Unique bond identifier
+    };
+
+//! Sentinal value in \a bond_r_tag to signify that this bond is not currently present on the local processor
+const unsigned int BOND_NOT_LOCAL = 0xffffffff;
+#else
+//! Forward declaration
+class bond_element;
+#endif
+
 //! Find the maximum number of bonds per particle
 cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                      unsigned int *d_n_ghost_bonds,
@@ -85,6 +101,23 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
                                  unsigned int N,
                                  bool use_ghost_bonds);
 
+void gpu_mark_recv_bond_duplicates(const bond_element *d_recv_bonds,
+                                   const unsigned int n_recv_bonds,
+                                   unsigned int *d_bond_rtag,
+                                   unsigned char *d_recv_bond_active,
+                                   unsigned int *d_n_duplicate_recv_bonds);
 
+void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
+                             const unsigned int n_recv_bonds,
+                             const unsigned int n_unique_recv_bonds,
+                             const unsigned int n_remove_bonds,
+                             const unsigned char *d_remove_mask,
+                             const unsigned char *d_recv_bond_active,
+                             const bond_element *d_recv_buf,
+                             uint2 *d_bonds,
+                             unsigned int *d_bond_type,
+                             unsigned int *d_bond_tag,
+                             unsigned int *d_bond_rtag,
+                             unsigned int *d_n_fetch_ptl);
 #endif
 

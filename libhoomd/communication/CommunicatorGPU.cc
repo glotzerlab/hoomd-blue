@@ -194,6 +194,16 @@ void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
     : Communicator(sysdef, decomposition), m_remove_mask(m_exec_conf),
+      m_max_send_ptls_face(0),
+      m_max_send_ptls_edge(0),
+      m_max_send_ptls_corner(0),
+      m_max_send_bonds_face(0),
+      m_max_send_bonds_edge(0),
+      m_max_send_bonds_corner(0),
+      m_max_copy_ghosts_face(0),
+      m_max_copy_ghosts_edge(0),
+      m_max_copy_ghosts_corner(0),
+      m_max_recv_ghosts(0),
       m_buffers_allocated(false),
       m_resize_factor(9.f/8.f),
       m_thread_created(false),
@@ -472,6 +482,10 @@ void CommunicatorGPU::allocateBuffers()
     GPUBuffer<char> update_recv_buf(gpu_update_element_size()*m_max_recv_ghosts,m_exec_conf);
     m_update_recv_buf.swap(update_recv_buf);
 
+    // buffer for particle plans
+    GPUArray<unsigned int> ptl_plan(m_pdata->getN(), m_exec_conf);
+    m_ptl_plan.swap(ptl_plan);
+
     // allocate ghost index lists
     GPUArray<unsigned int> ghost_idx_face(m_max_copy_ghosts_face, 6, m_exec_conf);
     m_ghost_idx_face.swap(ghost_idx_face);
@@ -506,6 +520,43 @@ void CommunicatorGPU::allocateBuffers()
     m_n_send_ptls_edge.swap(n_send_ptls_edge);
     GPUArray<unsigned int> n_send_ptls_corner(8, m_exec_conf);
     m_n_send_ptls_corner.swap(n_send_ptls_corner);
+
+    /*
+     * Initialize send buffers for bonds only if needed
+     */
+    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
+
+    if (bdata->getNumBondsGlobal())
+        {
+        // estimate initial numbers of bonds from numbers of particles
+        m_max_send_bonds_corner = m_max_send_ptls_corner;
+        m_max_send_bonds_edge = m_max_send_ptls_edge;
+        m_max_send_bonds_face = m_max_send_ptls_face;
+
+        GPUBuffer<bond_element> bond_corner_send_buf(m_max_send_bonds_corner,8, m_exec_conf);
+        m_bond_corner_send_buf.swap(bond_corner_send_buf);
+
+        GPUBuffer<bond_element> bond_edge_send_buf(m_max_send_bonds_edge,12, m_exec_conf);
+        m_bond_edge_send_buf.swap(bond_edge_send_buf);
+
+        GPUBuffer<bond_element> bond_face_send_buf(m_max_send_bonds_face,6, m_exec_conf);
+        m_bond_face_send_buf.swap(bond_face_send_buf);
+
+        GPUBuffer<bond_element> bond_recv_buf(m_max_send_ptls_face*6, m_exec_conf);
+        m_bond_recv_buf.swap(bond_recv_buf);
+
+        // mask for bonds, indicating if they will be removed
+        GPUArray<unsigned char> bond_remove_mask(bdata->getNumBonds(), m_exec_conf);
+        m_bond_remove_mask.swap(bond_remove_mask);
+
+        // counters for number of sent bonds
+        GPUArray<unsigned int> n_send_bonds_face(6, m_exec_conf);
+        m_n_send_bonds_face.swap(n_send_bonds_face);
+        GPUArray<unsigned int> n_send_bonds_edge(12, m_exec_conf);
+        m_n_send_bonds_edge.swap(n_send_bonds_edge);
+        GPUArray<unsigned int> n_send_bonds_corner(8, m_exec_conf);
+        m_n_send_bonds_corner.swap(n_send_bonds_corner);
+        }
 
     m_buffers_allocated = true;
     }
@@ -547,11 +598,23 @@ void CommunicatorGPU::migrateAtoms()
         m_remove_mask.resize(new_size);
         }
 
+    if (m_ptl_plan.getNumElements() < m_pdata->getN())
+        {
+        unsigned int new_size = 1;
+        while (new_size < m_pdata->getN())
+                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+ 
+        m_ptl_plan.resize(new_size);
+        }
+
+
     unsigned int n_send_ptls_face[6];
     unsigned int n_send_ptls_edge[12];
     unsigned int n_send_ptls_corner[8];
 
-
+    /*
+     * Select particles for sending
+     */
     unsigned int condition;
     do
         {
@@ -569,7 +632,8 @@ void CommunicatorGPU::migrateAtoms()
             {
             // remove all particles from our domain that are going to be sent in the current direction
 
-            ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ptl_plan(m_ptl_plan, access_location::device, access_mode::overwrite);
 
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
@@ -605,6 +669,7 @@ void CommunicatorGPU::migrateAtoms()
                                    m_max_send_ptls_edge,
                                    m_max_send_ptls_face,
                                    d_remove_mask.data,
+                                   d_ptl_plan.data,
                                    m_corner_send_buf.getDevicePointer(),
                                    m_corner_send_buf.getPitch(),
                                    m_edge_send_buf.getDevicePointer(),
@@ -678,6 +743,147 @@ void CommunicatorGPU::migrateAtoms()
         }
     while (condition);
 
+    /*
+     * Select bonds for sending
+     */
+    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
+
+    unsigned int n_send_bonds_face[6];
+    unsigned int n_send_bonds_edge[12];
+    unsigned int n_send_bonds_corner[8];
+
+    for (unsigned int i = 0; i < 6; ++i)
+        n_send_bonds_face[i] = 0;
+    for (unsigned int i = 0; i < 12; ++i)
+        n_send_bonds_edge[i] = 0;
+    for (unsigned int i = 0; i < 8; ++i)
+        n_send_bonds_corner[i] = 0;
+
+    if (bdata->getNumBondsGlobal())
+        {
+        // resize mask for bonds to be removed, if necessary
+        if (m_bond_remove_mask.getNumElements() < bdata->getNumBonds())
+            {
+            unsigned int new_size = 1;
+            while (new_size < bdata->getNumBonds())
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+     
+            m_bond_remove_mask.resize(new_size);
+            }
+
+        do
+            {
+            if (m_bond_corner_send_buf.getPitch() < m_max_send_bonds_corner)
+                m_bond_corner_send_buf.resize(m_max_send_bonds_corner, 8);
+
+            if (m_bond_edge_send_buf.getPitch() < m_max_send_bonds_edge)
+                m_bond_edge_send_buf.resize(m_max_send_bonds_edge, 12);
+
+            if (m_bond_face_send_buf.getPitch() < m_max_send_bonds_face)
+                m_bond_face_send_buf.resize(m_max_send_bonds_face, 6);
+
+            
+                {
+                ArrayHandle<uint2> d_bonds(bdata->getBondTable(), access_location::device, access_mode::read);
+                ArrayHandle<unsigned int> d_bond_type(bdata->getBondTypes(), access_location::device, access_mode::read);
+                ArrayHandle<unsigned int> d_bond_tag(bdata->getBondTags(), access_location::device, access_mode::read);
+                ArrayHandle<unsigned int> d_bond_rtag(bdata->getBondRTags(), access_location::device, access_mode::readwrite);
+
+                ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+                ArrayHandle<unsigned int> d_ptl_plan(m_ptl_plan, access_location::device, access_mode::read);
+                ArrayHandle<unsigned char> d_bond_remove_mask(m_bond_remove_mask, access_location::device, access_mode::overwrite);
+                ArrayHandle<unsigned int> d_n_send_bonds_face(m_n_send_bonds_face, access_location::device, access_mode::overwrite);
+                ArrayHandle<unsigned int> d_n_send_bonds_edge(m_n_send_bonds_edge, access_location::device, access_mode::overwrite);
+                ArrayHandle<unsigned int> d_n_send_bonds_corner(m_n_send_bonds_corner, access_location::device, access_mode::overwrite);
+                gpu_send_bonds(bdata->getNumBonds(),
+                               m_pdata->getN(),
+                               d_bonds.data,
+                               d_bond_type.data,
+                               d_bond_tag.data,
+                               d_bond_rtag.data,
+                               d_rtag.data,
+                               d_ptl_plan.data,
+                               d_bond_remove_mask.data, 
+                               m_bond_face_send_buf.getDevicePointer(),
+                               m_bond_face_send_buf.getPitch(),
+                               m_bond_edge_send_buf.getDevicePointer(),
+                               m_bond_edge_send_buf.getPitch(),
+                               m_bond_corner_send_buf.getDevicePointer(),
+                               m_bond_edge_send_buf.getPitch(),
+                               d_n_send_bonds_face.data,   
+                               d_n_send_bonds_edge.data,   
+                               d_n_send_bonds_corner.data,   
+                               m_max_send_bonds_face,
+                               m_max_send_bonds_edge,
+                               m_max_send_bonds_corner,
+                               m_condition.getDeviceFlags());
+
+                if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                    CHECK_CUDA_ERROR();
+                }
+
+                {
+                // read back numbers of sent bonds
+                ArrayHandleAsync<unsigned int> h_n_send_bonds_face(m_n_send_bonds_face, access_location::host, access_mode::read);
+                ArrayHandleAsync<unsigned int> h_n_send_bonds_edge(m_n_send_bonds_edge, access_location::host, access_mode::read);
+                ArrayHandleAsync<unsigned int> h_n_send_bonds_corner(m_n_send_bonds_corner, access_location::host, access_mode::read);
+
+                // synchronize with GPU
+                GPUEventHandle ev(m_exec_conf);
+                cudaEventRecord(ev);
+                cudaEventSynchronize(ev);
+     
+                for (unsigned int i = 0; i < 6; ++i)
+                    n_send_bonds_face[i] = h_n_send_bonds_face.data[i];
+
+                for (unsigned int i = 0; i < 12; ++i)
+                    n_send_bonds_edge[i] = h_n_send_bonds_edge.data[i];
+
+                for (unsigned int i = 0; i < 8; ++i)
+                    n_send_bonds_corner[i] = h_n_send_bonds_corner.data[i];
+                }
+
+            condition = m_condition.readFlags();
+            if (condition & 1)
+                {
+                // set new maximum size for face send buffers
+                unsigned int new_size = 1;
+                for (unsigned int i = 0; i < 6; ++i)
+                    if (n_send_bonds_face[i] > new_size) new_size = n_send_bonds_face[i];
+                while (m_max_send_bonds_face < new_size)
+                    m_max_send_bonds_face = ((unsigned int)(((float)m_max_send_bonds_face)*m_resize_factor))+1;
+                }
+            if (condition & 2)
+                {
+                // set new maximum size for edge send buffers
+                unsigned int new_size = 1;
+                for (unsigned int i = 0; i < 12; ++i)
+                    if (n_send_bonds_edge[i] > new_size) new_size = n_send_bonds_edge[i];
+                while (m_max_send_bonds_edge < new_size)
+                    m_max_send_bonds_edge = ((unsigned int)(((float)m_max_send_bonds_edge)*m_resize_factor))+1;
+                }
+            if (condition & 4)
+                {
+                // set new maximum size for corner send buffers
+                unsigned int new_size = 1;
+                for (unsigned int i = 0; i < 8; ++i)
+                    if (n_send_bonds_corner[i] > new_size) new_size = n_send_bonds_corner[i];
+                while (m_max_send_bonds_corner < new_size)
+                    m_max_send_bonds_corner = ((unsigned int)(((float)m_max_send_bonds_corner)*m_resize_factor))+1;
+                }
+
+            if (condition & 8)
+                {
+                m_exec_conf->msg->error() << "Invalid particle plan." << std::endl;
+                throw std::runtime_error("Error during bond communication.");
+                }
+            } // end do
+        while (condition);
+        }
+
+    /*
+     * Communicate particles
+     */
 
     // total up number of sent particles
     unsigned int n_remove_ptls = 0;
@@ -850,6 +1056,148 @@ void CommunicatorGPU::migrateAtoms()
    
     m_pdata->removeParticles(n_remove_ptls);
 
+    /*
+     * Communicate bonds
+     */
+
+    if (bdata->getNumBondsGlobal())
+        {
+        // total up number of sent bonds
+        unsigned int n_remove_bonds = 0;
+        for (unsigned int i = 0; i < 6; ++i)
+            n_remove_bonds += n_send_bonds_face[i];
+        for (unsigned int i = 0; i < 12; ++i)
+            n_remove_bonds += n_send_bonds_edge[i];
+        for (unsigned int i = 0; i < 8; ++i)
+            n_remove_bonds += n_send_bonds_corner[i];
+
+        unsigned int n_tot_recv_bonds = 0;
+
+        for (unsigned int dir=0; dir < 6; dir++)
+            {
+
+            if (! isCommunicating(dir) ) continue;
+
+            unsigned int n_recv_bonds_edge[12];
+            unsigned int n_recv_bonds_face[6];
+            unsigned int n_recv_bonds = 0;
+            for (unsigned int i = 0; i < 12; ++i)
+                n_recv_bonds_edge[i] = 0;
+
+            for (unsigned int i = 0; i < 6; ++i)
+                n_recv_bonds_face[i] = 0;
+
+            unsigned int max_n_recv_edge = 0;
+            unsigned int max_n_recv_face = 0;
+
+            // communicate size of the messages that will contain the particle data
+            communicateStepOne(dir,
+                               n_send_bonds_corner,
+                               n_send_bonds_edge,
+                               n_send_bonds_face,
+                               n_recv_bonds_face,
+                               n_recv_bonds_edge,
+                               &n_recv_bonds,
+                               true);
+
+            unsigned int max_n_send_edge = 0;
+            unsigned int max_n_send_face = 0;
+            // resize buffers as necessary
+            for (unsigned int i = 0; i < 12; ++i)
+                {
+                if (n_recv_bonds_edge[i] > max_n_recv_edge)
+                    max_n_recv_edge = n_recv_bonds_edge[i];
+                if (n_send_bonds_edge[i] > max_n_send_edge)
+                    max_n_send_edge = n_send_bonds_edge[i];
+                }
+
+
+            if (max_n_recv_edge + max_n_send_edge > m_max_send_bonds_edge)
+                {
+                unsigned int new_size = 1;
+                while (new_size < max_n_recv_edge + max_n_send_edge)
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+                m_max_send_bonds_edge = new_size;
+
+                m_bond_edge_send_buf.resize(m_max_send_bonds_edge, 12);
+                }
+
+            for (unsigned int i = 0; i < 6; ++i)
+                {
+                if (n_recv_bonds_face[i] > max_n_recv_face)
+                    max_n_recv_face = n_recv_bonds_face[i];
+                if (n_send_bonds_face[i] > max_n_send_face)
+                    max_n_send_face = n_send_bonds_face[i];
+                }
+
+            if (max_n_recv_face + max_n_send_face > m_max_send_bonds_face)
+                {
+                unsigned int new_size = 1;
+                while (new_size < max_n_recv_face + max_n_send_face)
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+                m_max_send_bonds_face = new_size;
+                m_bond_face_send_buf.resize(m_max_send_bonds_face*gpu_pdata_element_size(), 6);
+                }
+
+            if (m_recv_buf.getNumElements() < (n_tot_recv_bonds + n_recv_bonds))
+                {
+                unsigned int new_size =1;
+                while (new_size < n_tot_recv_bonds + n_recv_bonds)
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+                m_recv_buf.resize(new_size);
+                }
+              
+
+            unsigned int cpitch = m_bond_corner_send_buf.getPitch();
+            unsigned int epitch = m_bond_edge_send_buf.getPitch();
+            unsigned int fpitch = m_bond_face_send_buf.getPitch();
+
+            #ifdef ENABLE_MPI_CUDA
+            char *corner_send_buf_handle = (char *) m_bond_corner_send_buf.getDevicePointer();
+            char *edge_send_buf_handle = (char *) m_bond_edge_send_buf.getDevicePointer();
+            char *face_send_buf_handle = (char *) m_bond_face_send_buf.getDevicePointer();
+            char *recv_buf_handle = (char *) m_bond_recv_buf.getDevicePointer();
+            #else
+            char *corner_send_buf_handle = (char *) m_bond_corner_send_buf.getHostPointer();
+            char *edge_send_buf_handle = (char *) m_bond_edge_send_buf.getHostPointer();
+            char *face_send_buf_handle = (char *) m_bond_face_send_buf.getHostPointer();
+            char *recv_buf_handle = (char *) m_bond_recv_buf.getHostPointer();
+            #endif
+
+            communicateStepTwo(dir,
+                               corner_send_buf_handle,
+                               edge_send_buf_handle,
+                               face_send_buf_handle,
+                               cpitch,
+                               epitch,
+                               fpitch,
+                               recv_buf_handle,
+                               n_send_bonds_corner,
+                               n_send_bonds_edge,
+                               n_send_bonds_face,
+                               m_bond_recv_buf.getNumElements(),
+                               n_tot_recv_bonds,
+                               sizeof(bond_element),
+                               true);
+
+            // update buffer sizes
+            for (unsigned int i = 0; i < 12; ++i)
+                n_send_bonds_edge[i] += n_recv_bonds_edge[i];
+
+            for (unsigned int i = 0; i < 6; ++i)
+                n_send_bonds_face[i] += n_recv_bonds_face[i];
+
+            n_tot_recv_bonds += n_recv_bonds;
+
+            } // end dir loop
+
+        bdata->unpackRemoveBonds(n_tot_recv_bonds,
+                                 n_remove_bonds,
+                                 m_bond_recv_buf,
+                                 m_bond_remove_mask);
+        } 
+
+ 
     if (m_prof)
         m_prof->pop();
 

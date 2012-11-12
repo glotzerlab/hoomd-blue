@@ -84,7 +84,7 @@ using namespace std;
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
     : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf),
-      m_max_bond_num(0), m_max_ghost_bond_num(0), m_num_bonds_global(0)
+      m_max_bond_num(0), m_max_ghost_bond_num(0), m_num_bonds_global(0), m_buffers_initialized(false)
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
@@ -210,7 +210,7 @@ const Bond BondData::getBondByTag(unsigned int tag) const
     {
     // Find position of bond in bonds list
     unsigned int bond_idx = m_bond_rtag[tag];
-    if (bond_idx == NO_BOND)
+    if (bond_idx == BOND_NOT_LOCAL)
         {
         m_exec_conf->msg->error() << "Trying to get bond tag " << tag << " which does not exist!" << endl;
         throw runtime_error("Error getting bond");
@@ -250,14 +250,14 @@ void BondData::removeBond(unsigned int tag)
 
     // Find position of bond in bonds list
     unsigned int id = m_bond_rtag[tag];
-    if (id == NO_BOND)
+    if (id == BOND_NOT_LOCAL)
         {
         m_exec_conf->msg->error() << "Trying to remove bond tag " << tag << " which does not exist!" << endl;
         throw runtime_error("Error removing bond");
         }
 
     // delete from map
-    m_bond_rtag[tag] = NO_BOND;
+    m_bond_rtag[tag] = BOND_NOT_LOCAL;
 
     unsigned int size = m_bonds.size();
     // If the bond is in the middle of the list, move the last element to
@@ -710,6 +710,14 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
         m_num_bonds_global = all_bonds.size();
         m_bond_rtag.resize(m_num_bonds_global);
 
+            {
+            // reset reverse lookup tags
+            ArrayHandle<unsigned int> h_bond_rtag(m_bond_rtag, access_location::host, access_mode::overwrite);
+            
+            for (unsigned int tag = 0; tag < m_num_bonds_global; ++tag)
+                h_bond_rtag.data[tag] = BOND_NOT_LOCAL;
+            }
+
         // now iterate over bonds and retain only bonds with local members
         ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
@@ -740,6 +748,116 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
     setBondTypeMapping(type_mapping);
     }
 
+//! Unpack a buffer with new bonds to be added, and removes bonds according to a mask
+/*! \post The bond data is initialized with the new buffer content, and the requested particles are removed
+ 
+    unpackRemoveBonds() detects duplicate bond tags in the buffer and discards them.
+ */
+void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
+                       unsigned int num_remove_bonds,
+                       const GPUBuffer<bond_element>& buf,
+                       const GPUArray<unsigned char>& remove_mask)
+    {
+    assert(m_bonds.size() == m_bond_type.size());
+    assert(m_bonds.size() == m_tags.size());
+
+#ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        unpackRemoveBondsGPU(num_add_bonds, num_remove_bonds, buf, remove_mask);
+    else
+#endif
+        {
+        throw::runtime_error("not implemented");
+        }
+    }
+
+#ifdef ENABLE_CUDA
+//! Unpack a buffer with new bonds to be added, and remove particles according to a mask, GPU version
+void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
+                       unsigned int num_remove_bonds,
+                       const GPUBuffer<bond_element>& buf,
+                       const GPUArray<unsigned char>& remove_mask)
+    {
+    if (! m_buffers_initialized)
+        {
+        // allocate some buffers
+        
+        // flags for every received bond to indicate if it is not a duplicate
+        GPUVector<unsigned char> recv_bond_active(m_exec_conf);
+        m_recv_bond_active.swap(recv_bond_active);
+
+        // counter for duplicate bonds
+        GPUFlags<unsigned int> duplicate_recv_bonds(m_exec_conf);
+        m_duplicate_recv_bonds.swap(duplicate_recv_bonds);
+
+        // temporary counter
+        GPUArray<unsigned int> n_fetch_bond(1,m_exec_conf);
+        m_n_fetch_bond.swap(n_fetch_bond);
+        m_buffers_initialized = true;
+        }
+
+    // We proceed in two stages
+    // 1. count duplicates
+    // 2. add and remove particles, by backfilling the bond data with elements from the end of the arrays
+
+    // resize active bonds vector
+    m_recv_bond_active.resize(num_add_bonds);
+
+    // compute number of duplicate bonds
+    ArrayHandle<unsigned int> d_bond_rtag(m_bond_rtag, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned char> d_recv_bond_active(m_recv_bond_active, access_location::device, access_mode::readwrite);
+
+    gpu_mark_recv_bond_duplicates(buf.getDevicePointer(),
+                                  num_add_bonds,
+                                  d_bond_rtag.data,
+                                  d_recv_bond_active.data,
+                                  m_duplicate_recv_bonds.getDeviceFlags());
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    unsigned int num_duplicates = m_duplicate_recv_bonds.readFlags();
+
+    assert(num_duplicates < num_add_bonds);
+
+    // Resize internal data structures to fit the added particles
+    unsigned int old_n_bonds = m_bonds.size();
+    unsigned int new_size = old_n_bonds + num_add_bonds - num_duplicates;
+    m_bonds.resize(new_size);
+    m_bond_type.resize(new_size);
+    m_tags.resize(new_size);
+
+    ArrayHandle<unsigned char> d_remove_mask(remove_mask, access_location::device, access_mode::read);
+    ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_bond_type(m_bond_type, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_bond_tag(m_tags, access_location::device, access_mode::readwrite);
+
+    ArrayHandle<unsigned int> d_n_fetch_bond(m_n_fetch_bond, access_location::device, access_mode::overwrite);
+
+    // fill bond table with new bonds and remove bonds according to mask
+    gpu_fill_bond_bondtable(old_n_bonds,
+                            num_add_bonds,
+                            num_add_bonds - num_duplicates,
+                            num_remove_bonds,
+                            d_remove_mask.data,
+                            d_recv_bond_active.data,
+                            buf.getDevicePointer(),
+                            d_bonds.data,
+                            d_bond_type.data,
+                            d_bond_tag.data,
+                            d_bond_rtag.data,
+                            d_n_fetch_bond.data);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    // Update size of data structures to reflect removal of particles
+    new_size = m_bonds.size() - num_remove_bonds;
+    m_bonds.resize(new_size);
+    m_bond_type.resize(new_size);
+    m_tags.resize(new_size);
+    }
+
+#endif
 void export_BondData()
     {
     class_<Bond>("Bond", init<unsigned int, unsigned int, unsigned int>())

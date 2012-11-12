@@ -270,17 +270,14 @@ template<class T> void GPUVector<T>::reallocate(unsigned int size)
     }
 
 /*! \param new_size New size of vector
+ \post The GPUVector will be re-allocated if necessary to hold the new elements.
+       The newly allocated memory is \b not initialized. It is responsbility of the caller to ensure correct initialiation,
+       e.g. using clear()
 */
 template<class T> void GPUVector<T>::resize(unsigned int new_size)
     {
     // allocate memory only if necessary
     reallocate(new_size);
-
-    if (new_size > m_size)
-        {
-        // clear newly added elements
-        GPUArray<T>::memclear(m_size);
-        }
 
     // set new size
     m_size = new_size;

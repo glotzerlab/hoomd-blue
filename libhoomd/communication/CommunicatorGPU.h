@@ -190,7 +190,7 @@ class CommunicatorGPU : public Communicator
         //@}
 
     protected:
-        //! Helper function to perform the first part of the communication (exchange of message sizes)
+        //! Perform the first part of the communication (exchange of message sizes)
         void communicateStepOne(unsigned int dir,
                                 unsigned int *n_send_ptls_corner,
                                 unsigned int *n_send_ptls_edge,
@@ -200,7 +200,7 @@ class CommunicatorGPU : public Communicator
                                 unsigned int *n_recv_ptls_local,
                                 bool unique_destination);
 
-        //! Helper function to perform the first part of the communication (exchange of particle data)
+        //! Perform the first part of the communication (exchange of particle data)
         void communicateStepTwo(unsigned int face,
                                 char *corner_send_buf,
                                 char *edge_send_buf,
@@ -219,11 +219,28 @@ class CommunicatorGPU : public Communicator
 
     private:
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
+        GPUArray<unsigned int> m_ptl_plan;          //!< Particle sending plans
+
+        unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer
+        unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
+        unsigned int m_max_send_ptls_corner;        //!< Size of corner ptl send buffer
 
         GPUBuffer<char> m_corner_send_buf;          //!< Send buffer for corner ptls
         GPUBuffer<char> m_edge_send_buf;            //!< Send buffer for edge ptls
         GPUBuffer<char> m_face_send_buf;            //!< Send buffer for edge ptls
         GPUBuffer<char> m_recv_buf;                 //!< Receive buffer for particle data
+
+        GPUBuffer<bond_element> m_bond_corner_send_buf;  //!< Send buffer for bonds sent via a corner
+        GPUBuffer<bond_element> m_bond_edge_send_buf;    //!< Send buffer for bonds sent via an edge
+        GPUBuffer<bond_element> m_bond_face_send_buf;    //!< Send buffer for bonds sent via a face
+        GPUBuffer<bond_element> m_bond_recv_buf;         //!< Receive buffer for particle data
+        GPUArray<unsigned char> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
+        unsigned int m_max_send_bonds_face;         //!< Maximum number of bonds sent across any face
+        unsigned int m_max_send_bonds_edge;         //!< Maximum number of bonds sent over any edge
+        unsigned int m_max_send_bonds_corner;       //!< Maximum number of bonds sent via any corner
+        GPUArray<unsigned int> m_n_send_bonds_corner; //!< Number of bonds sent via a corner
+        GPUArray<unsigned int> m_n_send_bonds_edge;  //!< Number of bonds sent over an edge
+        GPUArray<unsigned int> m_n_send_bonds_face;  //!< Number of bonds sent across a face
 
         GPUArray<unsigned int> m_n_send_ptls_corner; //!< Number of particles sent over a corner
         GPUArray<unsigned int> m_n_send_ptls_edge;  //!< Number of particles sent over an edge
@@ -232,10 +249,6 @@ class CommunicatorGPU : public Communicator
         unsigned int m_remote_send_corner[8*6];     //!< Remote corner particles, per direction
         unsigned int m_remote_send_edge[12*6];       //!< Remote edge particles, per direction
         unsigned int m_remote_send_face[6*6];       //!< Remote face particles, per direction
-
-        unsigned int m_max_send_ptls_corner;        //!< Size of corner ptl send buffer
-        unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
-        unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer
 
         GPUBuffer<char> m_corner_ghosts_buf;         //!< Copy buffer for ghosts lying at the edge
         GPUBuffer<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
@@ -259,9 +272,9 @@ class CommunicatorGPU : public Communicator
         char *h_corner_ghosts_buf;                  //!< Host buffer of particles that are sent over a corner
         #endif
 
-        unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
-        unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
         unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
+        unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
+        unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
         unsigned int m_max_recv_ghosts;             //!< Maximum number of ghosts received for the local box
 
         GPUArray<unsigned int> m_n_local_ghosts_face;  //!< Number of local ghosts sent over a face

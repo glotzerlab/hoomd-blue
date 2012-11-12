@@ -57,19 +57,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
+#include "BondData.cuh"
 
-#include <thrust/device_vector.h>
-#include <thrust/binary_search.h>
 #include <thrust/iterator/permutation_iterator.h>
-#include <thrust/gather.h>
 #include <thrust/scatter.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
-#include <thrust/iterator/transform_iterator.h>
-#include <thrust/copy.h>
-#include <thrust/partition.h>
-#include <thrust/count.h>
 
 using namespace thrust;
 
@@ -270,6 +264,7 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
                                                  char *face_buf,
                                                  const unsigned int face_buf_pitch,
                                                  unsigned char *remove_mask,
+                                                 unsigned int *ptl_plan,
                                                  unsigned int *n_send_ptls_corner,
                                                  unsigned int *n_send_ptls_edge,
                                                  unsigned int *n_send_ptls_face,
@@ -324,6 +319,9 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
         plan |= send_down; 
         count++;
         }
+
+    // save plan
+    ptl_plan[idx] = plan;
 
     if (count)
         {
@@ -473,6 +471,7 @@ void gpu_migrate_select_particles(unsigned int N,
                                   unsigned n_max_send_ptls_edge,
                                   unsigned n_max_send_ptls_face,
                                   unsigned char *d_remove_mask,
+                                  unsigned int *d_ptl_plan,
                                   char *d_corner_buf,
                                   unsigned int corner_buf_pitch,
                                   char *d_edge_buf,
@@ -506,6 +505,7 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_face_buf,
                                                                     face_buf_pitch,
                                                                     d_remove_mask,
+                                                                    d_ptl_plan,
                                                                     d_n_send_ptls_corner,
                                                                     d_n_send_ptls_edge,
                                                                     d_n_send_ptls_face,
@@ -517,6 +517,222 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     box.getLo(), 
                                                                     box.getHi(),
                                                                     global_box.getL());
+    }
+
+__device__ void gpu_send_bond_with_ptl(const uint2 bond,
+                              const unsigned int type,
+                              const unsigned int tag,
+                              const unsigned int idx,
+                              const unsigned int *ptl_plan,
+                              bond_element *face_send_buf,
+                              const unsigned int face_send_buf_pitch,
+                              bond_element *edge_send_buf,
+                              const unsigned int edge_send_buf_pitch,
+                              bond_element *corner_send_buf,
+                              const unsigned int corner_send_buf_pitch,
+                              unsigned int *n_send_bonds_face,
+                              unsigned int *n_send_bonds_edge,
+                              unsigned int *n_send_bonds_corner,
+                              const unsigned int max_send_bonds_face,
+                              const unsigned int max_send_bonds_edge,
+                              const unsigned int max_send_bonds_corner,
+                              unsigned int *condition)
+    {
+    unsigned int plan = ptl_plan[idx];
+
+    // fill up buffer element
+    bond_element el;
+    el.bond = bond;
+    el.type = type;
+    el.tag = tag;
+
+    unsigned int count = 0;
+    if (plan & send_east) count++;
+    if (plan & send_west) count++;
+    if (plan & send_north) count++;
+    if (plan & send_south) count++;
+    if (plan & send_up) count++;
+    if (plan & send_down) count++;
+
+    if (count == 1)
+        {
+        // face ptl
+        unsigned int face = 0;
+        for (unsigned int i = 0; i < 6; ++i)
+            if (d_face_plan_lookup[i] == plan) face = i;
+
+        unsigned int n = atomicInc(&n_send_bonds_face[face],0xffffffff);
+        if (n < max_send_bonds_face)
+            face_send_buf[n+face*face_send_buf_pitch] = el;
+        else
+            atomicOr(condition,1);
+        }
+    else if (count == 2)
+        {
+        // edge ptl
+        unsigned int edge = 0;
+        for (unsigned int i = 0; i < 12; ++i)
+            if (d_edge_plan_lookup[i] == plan) edge = i;
+
+        unsigned int n = atomicInc(&n_send_bonds_edge[edge],0xffffffff);
+        if (n < max_send_bonds_edge)
+            edge_send_buf[n+edge*edge_send_buf_pitch] = el;
+        else
+            atomicOr(condition,2);
+        }
+    else if (count == 3)
+        {
+        // corner ptl
+        unsigned int corner;
+        for (unsigned int i = 0; i < 8; ++i)
+            if (d_corner_plan_lookup[i] == plan) corner = i;
+
+        unsigned int n = atomicInc(&n_send_bonds_corner[corner],0xffffffff);
+        if (n < max_send_bonds_corner)
+            corner_send_buf[n+corner*corner_send_buf_pitch] = el;
+        else
+            atomicOr(condition,4);
+        }
+    else
+        {
+        // invalid plan
+        atomicOr(condition,8);
+        }
+    }
+
+__global__ void gpu_send_bonds_kernel(const unsigned int n_bonds,
+                                      const unsigned int n_particles,
+                                      const uint2 *bonds,
+                                      const unsigned int *bond_type,
+                                      const unsigned int *bond_tag,
+                                      unsigned int *bond_rtag,
+                                      const unsigned int *rtag,
+                                      const unsigned int *ptl_plan,
+                                      unsigned char *bond_remove_mask,
+                                      bond_element *face_send_buf,
+                                      unsigned int face_send_buf_pitch,
+                                      bond_element *edge_send_buf,
+                                      unsigned int edge_send_buf_pitch,
+                                      bond_element *corner_send_buf,
+                                      unsigned int corner_send_buf_pitch,
+                                      unsigned int *n_send_bonds_face,
+                                      unsigned int *n_send_bonds_edge,
+                                      unsigned int *n_send_bonds_corner,
+                                      const unsigned int max_send_bonds_face,
+                                      const unsigned int max_send_bonds_edge,
+                                      const unsigned int max_send_bonds_corner,
+                                      unsigned int *condition)
+    {
+    unsigned int bond_idx = blockIdx.x*blockDim.x + threadIdx.x;
+
+    if (bond_idx >= n_bonds) return;
+
+    uint2 bond = bonds[bond_idx];
+    unsigned int type = bond_type[bond_idx];
+    unsigned int tag = bond_tag[bond_idx];
+
+    bool remove = false;
+   
+    unsigned int idx_a = rtag[bond.x];
+    unsigned int idx_b = rtag[bond.y];
+   
+    bool remove_ptl_a = true;
+    bool remove_ptl_b = true;
+
+    // check if both members of the bond remain local after exchanging particles
+    bool ptl_a_local = (idx_a < n_particles);
+    if (ptl_a_local)
+        remove_ptl_a = (ptl_plan[idx_a] != 0);
+
+    bool ptl_b_local = (idx_b < n_particles);
+    if (ptl_b_local)
+        remove_ptl_b = (ptl_plan[idx_b] != 0);
+
+    // if no member is local, remove bond
+    if (remove_ptl_a && remove_ptl_b) remove = true;
+
+    // if any member leaves the domain, send bond with it
+    if (ptl_a_local && remove_ptl_a)
+        {
+        gpu_send_bond_with_ptl(bond, type, tag, idx_a, ptl_plan, face_send_buf,
+                               face_send_buf_pitch, edge_send_buf, edge_send_buf_pitch, corner_send_buf,
+                               corner_send_buf_pitch, n_send_bonds_face, n_send_bonds_edge,
+                               n_send_bonds_corner, max_send_bonds_face, max_send_bonds_edge,
+                               max_send_bonds_corner, condition);
+        } 
+
+    if (ptl_b_local && remove_ptl_b)
+        {
+        gpu_send_bond_with_ptl(bond, type, tag, idx_b, ptl_plan, face_send_buf,
+                               face_send_buf_pitch, edge_send_buf, edge_send_buf_pitch, corner_send_buf,
+                               corner_send_buf_pitch, n_send_bonds_face, n_send_bonds_edge,
+                               n_send_bonds_corner, max_send_bonds_face, max_send_bonds_edge,
+                               max_send_bonds_corner, condition);
+        } 
+   
+    if (remove)
+        {
+        // reset rtag
+        bond_rtag[tag] = BOND_NOT_LOCAL;
+
+        bond_remove_mask[bond_idx] = 1;
+        }
+    else
+        bond_remove_mask[bond_idx] = 0;
+    }
+
+void gpu_send_bonds(const unsigned int n_bonds,
+                    const unsigned int n_particles,
+                    const uint2 *d_bonds,
+                    const unsigned int *d_bond_type,
+                    const unsigned int *d_bond_tag,
+                    unsigned int *d_bond_rtag,
+                    const unsigned int *d_rtag,
+                    const unsigned int *d_ptl_plan,
+                     unsigned char *d_bond_remove_mask,
+                    bond_element *d_face_send_buf,
+                    unsigned int face_send_buf_pitch,
+                    bond_element *d_edge_send_buf,
+                    unsigned int edge_send_buf_pitch,
+                    bond_element *d_corner_send_buf,
+                    unsigned int corner_send_buf_pitch,
+                    unsigned int *d_n_send_bonds_face,
+                    unsigned int *d_n_send_bonds_edge,
+                    unsigned int *d_n_send_bonds_corner,
+                    const unsigned int max_send_bonds_face,
+                    const unsigned int max_send_bonds_edge,
+                    const unsigned int max_send_bonds_corner,
+                    unsigned int *d_condition)
+    {
+    cudaMemsetAsync(d_condition, 0, sizeof(unsigned int));
+    cudaMemsetAsync(d_n_send_bonds_face, 0, sizeof(unsigned int)*6);
+    cudaMemsetAsync(d_n_send_bonds_edge, 0, sizeof(unsigned int)*12);
+    cudaMemsetAsync(d_n_send_bonds_corner, 0, sizeof(unsigned int)*8);
+
+    unsigned int block_size = 512;
+    
+    gpu_send_bonds_kernel<<<block_size/n_particles+1,block_size>>>(n_bonds,
+                          n_particles,
+                          d_bonds,
+                          d_bond_type,
+                          d_bond_tag,
+                          d_bond_rtag,
+                          d_rtag,
+                          d_ptl_plan,
+                          d_bond_remove_mask,
+                          d_face_send_buf,
+                          face_send_buf_pitch,
+                          d_edge_send_buf,
+                          edge_send_buf_pitch,
+                          d_corner_send_buf,
+                          corner_send_buf_pitch,
+                          d_n_send_bonds_face,
+                          d_n_send_bonds_edge,
+                          d_n_send_bonds_corner,
+                          max_send_bonds_face,
+                          max_send_bonds_edge,
+                          max_send_bonds_corner,
+                          d_condition);
     }
 
 __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_nparticles,

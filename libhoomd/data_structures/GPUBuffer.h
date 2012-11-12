@@ -119,6 +119,12 @@ template<class T> class GPUBuffer
             {
             return d_data;
             }
+
+        //! Get a pointer to the data on the device (const version)
+        const T* getDevicePointer() const
+            {
+            return d_data;
+            }
 #endif
 
         //! Get the number of elements

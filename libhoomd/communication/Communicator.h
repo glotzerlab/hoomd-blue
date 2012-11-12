@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 #include "GPUVector.h"
 #include "ParticleData.h"
+#include "BondData.h"
 #include "DomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>

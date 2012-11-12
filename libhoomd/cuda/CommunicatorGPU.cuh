@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "ParticleData.cuh"
+#include "BondData.cuh"
 
 //! The flags used for indicating the itinerary of a ghost particle
 enum gpu_send_flags
@@ -156,6 +157,29 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           const unsigned int n_bonds,
                                           const BoxDim box);
 
+void gpu_send_bonds(const unsigned int n_bonds,
+                    const unsigned int n_particles,
+                    const uint2 *d_bonds,
+                    const unsigned int *d_bond_type,
+                    const unsigned int *d_bond_tag,
+                    unsigned int *d_bond_rtag,
+                    const unsigned int *d_rtag,
+                    const unsigned int *d_ptl_plan,
+                    unsigned char *d_bond_remove_mask,
+                    bond_element *d_face_send_buf,
+                    unsigned int face_send_buf_pitch,
+                    bond_element *d_edge_send_buf,
+                    unsigned int edge_send_buf_pitch,
+                    bond_element *d_corner_send_buf,
+                    unsigned int corner_send_buf_pitch,
+                    unsigned int *d_n_send_bonds_face,
+                    unsigned int *d_n_send_bonds_edge,
+                    unsigned int *d_n_send_bonds_corner,
+                    const unsigned int max_send_bonds_face,
+                    const unsigned int max_send_bonds_edge,
+                    const unsigned int max_send_bonds_corner,
+                    unsigned int *d_condition);
+
 //! Reorder the particle data
 void gpu_migrate_select_particles(unsigned int N,
                                   const Scalar4 *d_pos,
@@ -175,6 +199,7 @@ void gpu_migrate_select_particles(unsigned int N,
                                   unsigned n_max_send_ptls_edge,
                                   unsigned n_max_send_ptls_face,
                                   unsigned char *d_remove_mask,
+                                  unsigned int *d_ptl_plan,
                                   char *d_corner_buf,
                                   unsigned int corner_buf_pitch,
                                   char *d_edge_buf,
