@@ -693,9 +693,7 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandleAsync<unsigned int> h_n_send_ptls_corner(m_n_send_ptls_corner, access_location::host, access_mode::read);
 
             // synchronize with GPU
-            GPUEventHandle ev(m_exec_conf);
-            cudaEventRecord(ev);
-            cudaEventSynchronize(ev);
+            cudaDeviceSynchronize();
  
             for (unsigned int i = 0; i < 6; ++i)
                 n_send_ptls_face[i] = h_n_send_ptls_face.data[i];
@@ -832,9 +830,7 @@ void CommunicatorGPU::migrateAtoms()
                 ArrayHandleAsync<unsigned int> h_n_send_bonds_corner(m_n_send_bonds_corner, access_location::host, access_mode::read);
 
                 // synchronize with GPU
-                GPUEventHandle ev(m_exec_conf);
-                cudaEventRecord(ev);
-                cudaEventSynchronize(ev);
+                cudaDeviceSynchronize();
      
                 for (unsigned int i = 0; i < 6; ++i)
                     n_send_bonds_face[i] = h_n_send_bonds_face.data[i];
@@ -1364,9 +1360,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandleAsync<unsigned int> h_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::host, access_mode::read);
 
             // synchronize with GPU
-            GPUEventHandle ev(m_exec_conf);
-            cudaEventRecord(ev);
-            cudaEventSynchronize(ev);
+            cudaDeviceSynchronize();
      
             for (unsigned int i = 0; i < 6; ++i)
                 n_copy_ghosts_face[i] = h_n_local_ghosts_face.data[i];
