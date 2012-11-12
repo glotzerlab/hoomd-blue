@@ -216,6 +216,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     m_pdata->takeSnapshot(snapshot);
 
+    SnapshotBondData bdata_snapshot(m_sysdef->getBondData()->getNumBondsGlobal());
+
+    if (m_output_bond)
+        {
+        // take a bond data snapshot
+        shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+
+        bond_data->takeSnapshot(bdata_snapshot);
+        }
+
 #ifdef ENABLE_MPI
     // only the root processor writes the output file
     if (m_pdata->getDomainDecomposition() && ! m_exec_conf->isRoot())
@@ -397,14 +407,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the bond flag is true, output the bonds to the xml file
     if (m_output_bond)
         {
-        f << "<bond num=\"" << m_sysdef->getBondData()->getNumBonds() << "\">" << "\n";
+        f << "<bond num=\"" << bdata_snapshot.bonds.size() << "\">" << "\n";
         shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-        
+
         // loop over all bonds and write them out
-        for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
+        for (unsigned int i = 0; i < bdata_snapshot.bonds.size(); i++)
             {
-            Bond bond = bond_data->getBond(i);
-            f << bond_data->getNameByType(bond.type) << " " << bond.a << " " << bond.b << "\n";
+            uint2 bond = bdata_snapshot.bonds[i];
+            unsigned int bond_type = bdata_snapshot.type_id[i];
+            f << bond_data->getNameByType(bond_type) << " " << bond.x << " " << bond.y << "\n";
             }
             
         f << "</bond>" << "\n";
