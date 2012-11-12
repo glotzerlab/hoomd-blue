@@ -805,7 +805,7 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
 
     // compute number of duplicate bonds
     ArrayHandle<unsigned int> d_bond_rtag(m_bond_rtag, access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned char> d_recv_bond_active(m_recv_bond_active, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned char> d_recv_bond_active(m_recv_bond_active, access_location::device, access_mode::overwrite);
 
     gpu_mark_recv_bond_duplicates(buf.getDevicePointer(),
                                   num_add_bonds,
@@ -817,7 +817,7 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
 
     unsigned int num_duplicates = m_duplicate_recv_bonds.readFlags();
 
-    assert(num_duplicates < num_add_bonds);
+    assert(num_duplicates <= num_add_bonds);
 
     // Resize internal data structures to fit the added particles
     unsigned int old_n_bonds = m_bonds.size();

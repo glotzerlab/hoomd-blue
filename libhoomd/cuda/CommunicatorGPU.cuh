@@ -178,7 +178,9 @@ void gpu_send_bonds(const unsigned int n_bonds,
                     const unsigned int max_send_bonds_face,
                     const unsigned int max_send_bonds_edge,
                     const unsigned int max_send_bonds_corner,
+                    unsigned int *d_n_remove_bonds,
                     unsigned int *d_condition);
+
 
 //! Reorder the particle data
 void gpu_migrate_select_particles(unsigned int N,
@@ -191,7 +193,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                   const unsigned int *d_body,
                                   const Scalar4 *d_orientation,
                                   const unsigned int *d_tag,
-                                  unsigned int *d_rtag,
                                   unsigned int *d_n_send_ptls_corner,
                                   unsigned int *d_n_send_ptls_edge,
                                   unsigned int *d_n_send_ptls_face,
@@ -210,6 +211,11 @@ void gpu_migrate_select_particles(unsigned int N,
                                   const BoxDim& global_box,
                                   unsigned int *d_condition);
  
+void gpu_reset_rtag_by_mask(const unsigned int N,
+                            unsigned int *d_rtag,
+                            const unsigned int *d_tag,
+                            const unsigned char *d_remove_mask);
+
 void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int n_recv_ptls,
                         unsigned int n_remove_ptls,

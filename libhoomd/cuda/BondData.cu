@@ -280,9 +280,9 @@ __global__ void gpu_mark_recv_bond_duplicates_kernel(const bond_element *recv_bo
 
     const bond_element& el = recv_bonds[recv_idx];
     unsigned int tag = el.tag;
-    
+   
     // stage the particle 
-    unsigned int rtag = atomicMin(&bond_rtag[tag], BOND_NOT_LOCAL-1);
+    unsigned int rtag = atomicMin(&bond_rtag[tag], (unsigned int) BOND_NOT_LOCAL-1);
 
     if (rtag != BOND_NOT_LOCAL)
         {

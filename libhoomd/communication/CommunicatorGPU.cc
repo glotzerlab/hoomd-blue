@@ -556,6 +556,10 @@ void CommunicatorGPU::allocateBuffers()
         m_n_send_bonds_edge.swap(n_send_bonds_edge);
         GPUArray<unsigned int> n_send_bonds_corner(8, m_exec_conf);
         m_n_send_bonds_corner.swap(n_send_bonds_corner);
+
+        // number of removed bonds
+        GPUFlags<unsigned int> n_remove_bonds(m_exec_conf);
+        m_n_remove_bonds.swap(n_remove_bonds);
         }
 
     m_buffers_allocated = true;
@@ -644,7 +648,6 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
 
             ArrayHandle<unsigned int> d_n_send_ptls_corner(m_n_send_ptls_corner, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_n_send_ptls_edge(m_n_send_ptls_edge, access_location::device, access_mode::overwrite);
@@ -661,7 +664,6 @@ void CommunicatorGPU::migrateAtoms()
                                    d_body.data,
                                    d_orientation.data,
                                    d_tag.data,
-                                   d_rtag.data,
                                    d_n_send_ptls_corner.data,
                                    d_n_send_ptls_edge.data,
                                    d_n_send_ptls_face.data,
@@ -789,7 +791,7 @@ void CommunicatorGPU::migrateAtoms()
                 ArrayHandle<unsigned int> d_bond_tag(bdata->getBondTags(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_bond_rtag(bdata->getBondRTags(), access_location::device, access_mode::readwrite);
 
-                ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+                ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_ptl_plan(m_ptl_plan, access_location::device, access_mode::read);
                 ArrayHandle<unsigned char> d_bond_remove_mask(m_bond_remove_mask, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_n_send_bonds_face(m_n_send_bonds_face, access_location::device, access_mode::overwrite);
@@ -816,6 +818,7 @@ void CommunicatorGPU::migrateAtoms()
                                m_max_send_bonds_face,
                                m_max_send_bonds_edge,
                                m_max_send_bonds_corner,
+                               m_n_remove_bonds.getDeviceFlags(),
                                m_condition.getDeviceFlags());
 
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -879,6 +882,18 @@ void CommunicatorGPU::migrateAtoms()
                 }
             } // end do
         while (condition);
+        }
+
+        {
+        // reset reverse-lookup tag of sent particles
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::read);
+
+        gpu_reset_rtag_by_mask(m_pdata->getN(),
+                               d_rtag.data,
+                               d_tag.data,
+                               d_remove_mask.data);
         }
 
     /*
@@ -1062,15 +1077,6 @@ void CommunicatorGPU::migrateAtoms()
 
     if (bdata->getNumBondsGlobal())
         {
-        // total up number of sent bonds
-        unsigned int n_remove_bonds = 0;
-        for (unsigned int i = 0; i < 6; ++i)
-            n_remove_bonds += n_send_bonds_face[i];
-        for (unsigned int i = 0; i < 12; ++i)
-            n_remove_bonds += n_send_bonds_edge[i];
-        for (unsigned int i = 0; i < 8; ++i)
-            n_remove_bonds += n_send_bonds_corner[i];
-
         unsigned int n_tot_recv_bonds = 0;
 
         for (unsigned int dir=0; dir < 6; dir++)
@@ -1168,9 +1174,9 @@ void CommunicatorGPU::migrateAtoms()
                                corner_send_buf_handle,
                                edge_send_buf_handle,
                                face_send_buf_handle,
-                               cpitch,
-                               epitch,
-                               fpitch,
+                               cpitch*sizeof(bond_element),
+                               epitch*sizeof(bond_element),
+                               fpitch*sizeof(bond_element),
                                recv_buf_handle,
                                n_send_bonds_corner,
                                n_send_bonds_edge,
@@ -1192,7 +1198,7 @@ void CommunicatorGPU::migrateAtoms()
             } // end dir loop
 
         bdata->unpackRemoveBonds(n_tot_recv_bonds,
-                                 n_remove_bonds,
+                                 m_n_remove_bonds.readFlags(),
                                  m_bond_recv_buf,
                                  m_bond_remove_mask);
         } 
@@ -1216,12 +1222,12 @@ void CommunicatorGPU::exchangeGhosts()
     assert(m_r_ghost < (m_pdata->getBox().getL().y));
     assert(m_r_ghost < (m_pdata->getBox().getL().z));
 
-    // reset plans
-    m_plan.clear();
-
     // resize plans
     if (m_plan.size() < m_pdata->getN())
         m_plan.resize(m_pdata->getN());
+
+    // reset plans
+    m_plan.clear();
 
     /*
      * Mark particles that are part of incomplete bonds for sending

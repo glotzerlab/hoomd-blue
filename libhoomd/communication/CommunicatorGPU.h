@@ -241,6 +241,7 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_n_send_bonds_corner; //!< Number of bonds sent via a corner
         GPUArray<unsigned int> m_n_send_bonds_edge;  //!< Number of bonds sent over an edge
         GPUArray<unsigned int> m_n_send_bonds_face;  //!< Number of bonds sent across a face
+        GPUFlags<unsigned int> m_n_remove_bonds;     //!< Number of bonds to be removed
 
         GPUArray<unsigned int> m_n_send_ptls_corner; //!< Number of particles sent over a corner
         GPUArray<unsigned int> m_n_send_ptls_edge;  //!< Number of particles sent over an edge

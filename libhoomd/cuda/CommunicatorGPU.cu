@@ -256,7 +256,6 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
                                                  const unsigned int *d_body,
                                                  const Scalar4 *d_orientation,
                                                  const unsigned int *d_tag,
-                                                 unsigned int *d_rtag,
                                                  char *corner_buf,
                                                  const unsigned int corner_buf_pitch,
                                                  char *edge_buf,
@@ -371,15 +370,10 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
         el.diameter = d_diameter[idx];
         el.body = d_body[idx];
         el.orientation = d_orientation[idx];
-
-        unsigned int tag = d_tag[idx];
-        el.tag = tag;
+        el.tag =  d_tag[idx];
 
         // mark particle for removal
         remove_mask[idx] = 1;
-
-        // reset rtag
-        d_rtag[tag] = NOT_LOCAL;
 
         if (count == 1)
             {
@@ -463,7 +457,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                   const unsigned int *d_body,
                                   const Scalar4 *d_orientation,
                                   const unsigned int *d_tag,
-                                  unsigned int *d_rtag,
                                   unsigned int *d_n_send_ptls_corner,
                                   unsigned int *d_n_send_ptls_edge,
                                   unsigned int *d_n_send_ptls_face,
@@ -497,7 +490,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     d_body,
                                                                     d_orientation,
                                                                     d_tag,
-                                                                    d_rtag,
                                                                     d_corner_buf,
                                                                     corner_buf_pitch,
                                                                     d_edge_buf,
@@ -517,6 +509,31 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     box.getLo(), 
                                                                     box.getHi(),
                                                                     global_box.getL());
+    }
+
+__global__ void gpu_reset_rtag_by_mask_kernel(const unsigned int N,
+                                       unsigned int *rtag,
+                                       const unsigned int *tag,
+                                       const unsigned char *remove_mask)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N) return;
+
+    if (remove_mask[idx]) rtag[tag[idx]] = NOT_LOCAL;
+    }
+
+void gpu_reset_rtag_by_mask(const unsigned int N,
+                            unsigned int *d_rtag,
+                            const unsigned int *d_tag,
+                            const unsigned char *d_remove_mask)
+    {
+    unsigned int block_size = 512;
+
+    gpu_reset_rtag_by_mask_kernel<<<N/block_size+1,block_size>>>(N, 
+        d_rtag,
+        d_tag,
+        d_remove_mask);
     }
 
 __device__ void gpu_send_bond_with_ptl(const uint2 bond,
@@ -621,6 +638,7 @@ __global__ void gpu_send_bonds_kernel(const unsigned int n_bonds,
                                       const unsigned int max_send_bonds_face,
                                       const unsigned int max_send_bonds_edge,
                                       const unsigned int max_send_bonds_corner,
+                                      unsigned int *n_remove_bonds,
                                       unsigned int *condition)
     {
     unsigned int bond_idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -674,7 +692,7 @@ __global__ void gpu_send_bonds_kernel(const unsigned int n_bonds,
         {
         // reset rtag
         bond_rtag[tag] = BOND_NOT_LOCAL;
-
+        atomicInc(n_remove_bonds, 0xffffffff);
         bond_remove_mask[bond_idx] = 1;
         }
     else
@@ -702,8 +720,10 @@ void gpu_send_bonds(const unsigned int n_bonds,
                     const unsigned int max_send_bonds_face,
                     const unsigned int max_send_bonds_edge,
                     const unsigned int max_send_bonds_corner,
+                    unsigned int *d_n_remove_bonds,
                     unsigned int *d_condition)
     {
+    cudaMemsetAsync(d_n_remove_bonds, 0, sizeof(unsigned int));
     cudaMemsetAsync(d_condition, 0, sizeof(unsigned int));
     cudaMemsetAsync(d_n_send_bonds_face, 0, sizeof(unsigned int)*6);
     cudaMemsetAsync(d_n_send_bonds_edge, 0, sizeof(unsigned int)*12);
@@ -711,7 +731,7 @@ void gpu_send_bonds(const unsigned int n_bonds,
 
     unsigned int block_size = 512;
     
-    gpu_send_bonds_kernel<<<block_size/n_particles+1,block_size>>>(n_bonds,
+    gpu_send_bonds_kernel<<<n_particles/block_size+1,block_size>>>(n_bonds,
                           n_particles,
                           d_bonds,
                           d_bond_type,
@@ -732,6 +752,7 @@ void gpu_send_bonds(const unsigned int n_bonds,
                           max_send_bonds_face,
                           max_send_bonds_edge,
                           max_send_bonds_corner,
+                          d_n_remove_bonds,
                           d_condition);
     }
 
