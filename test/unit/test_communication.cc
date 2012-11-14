@@ -1662,7 +1662,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
     BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3); 
    
-    // switch ptl 0 and 1
+    // swap ptl 0 and 1
     pdata->setPosition(0, make_scalar3(.4, -0.4, -0.4));
     pdata->setPosition(1, make_scalar3(-.4, -0.4, -0.4));
 
@@ -1721,6 +1721,203 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
         default:
             break;
         }
+
+    // swap ptl 0 and 6
+    pdata->setPosition(0, make_scalar3(-.4, 0.4, 0.4));
+    pdata->setPosition(6, make_scalar3(.4, -0.4, -0.4));
+
+    comm->migrateAtoms();
+
+    switch(exec_conf->getRank())
+        {
+        case 0:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should have three bonds
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                }
+            break;
+
+        case 1:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own bonds 6,9,11
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] < bdata->getNumBonds());
+                }
+            break;
+        case 2:
+            // box 2 should have three bonds
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own bonds 1,5,6
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[6] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                }
+            break;
+        case 3:
+            // box 3 should have three bonds
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own bonds 3,5,7
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                }
+            break;
+         case 4:
+            // box 4 should have three bonds
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own bonds 2,8,9
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[9] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                }
+            break;
+         case 5:
+            // box 5 should have three bonds
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own bonds 4,8,10
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                }
+            break;
+        case 6:
+            // box 6 should own three bonds
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own bonds 0-2
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+
+                }
+            break;
+
+        case 7:
+            // box 7 should have three bonds
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
+                {
+                // we should own bonds 7,10,11
+                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+
+                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[11] < bdata->getNumBonds());
+
+                }
+            break;
+        }
+
 
     }
 
