@@ -224,7 +224,7 @@ class BondData : boost::noncopyable
         void unpackRemoveBonds(unsigned int num_add_bonds,
                                unsigned int num_remove_bonds,
                                const GPUBuffer<bond_element>& buf,
-                               const GPUArray<unsigned char>& remove_mask);
+                               const GPUArray<unsigned int>& remove_mask);
 
         //! Requests bonds to be removed from the bond table
         /*! \param num_bonds The number of empty bonds to be removed
@@ -383,7 +383,7 @@ class BondData : boost::noncopyable
         void unpackRemoveBondsGPU(unsigned int num_add_bonds,
                                unsigned int num_remove_bonds,
                                const GPUBuffer<bond_element>& buf,
-                               const GPUArray<unsigned char>& remove_mask);
+                               const GPUArray<unsigned int>& remove_mask);
 #endif
     };
 

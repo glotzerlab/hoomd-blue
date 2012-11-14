@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 //! Select a particle for migration
-struct select_particle_migrate : public std::unary_function<const unsigned int&, bool>
+struct select_particle_migrate : public std::unary_function<const unsigned int, bool>
     {
     Scalar3 lo;             //!< Lower local box boundary
     Scalar3 hi;             //!< Upper local box boundary
@@ -91,7 +91,7 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
     /*! t particle data to consider for sending
      * \return true if particle stays in the box
      */
-    __host__ __device__ bool operator()(const unsigned int& idx)
+    __host__ __device__ bool operator()(const unsigned int idx)
         {
         const Scalar4& pos = h_pos[idx];
         // we return true if the particle stays in our box,
@@ -106,6 +106,89 @@ struct select_particle_migrate : public std::unary_function<const unsigned int&,
 
      };
 
+//! Select a bond for migration
+struct select_bond_migrate : public std::unary_function<const uint2, bool>
+    {
+    const unsigned int *h_rtag;       //!< Array of particle reverse lookup tags
+    const unsigned int max_ptl_local; //!< Maximum number of particles that stay in the local domain
+
+    //! Constructor
+    /*!
+     */
+    select_bond_migrate(const unsigned int *_h_rtag,
+                        const unsigned int _max_ptl_local)
+        : h_rtag(_h_rtag), max_ptl_local(_max_ptl_local)
+        {
+        }
+
+    //! Select a bond
+    /*! t particle data to consider for sending
+     * \return true if particle stays in the box
+     */
+    __host__ __device__ bool operator()(const uint2 bond)
+        {
+        unsigned int idx_a = h_rtag[bond.x];
+        unsigned int idx_b = h_rtag[bond.y];
+
+        bool remove_ptl_a = true;
+        bool remove_ptl_b = true;
+
+        bool ptl_a_local = (idx_a != NOT_LOCAL);
+        bool ptl_b_local = (idx_b != NOT_LOCAL);
+
+        if (ptl_a_local)
+            remove_ptl_a = (idx_a >= max_ptl_local);
+
+        if (ptl_b_local)
+            remove_ptl_b = (idx_b >= max_ptl_local);
+
+        // if one of the particles leaves the domain, send bond with it
+        return ((ptl_a_local && remove_ptl_a) || (ptl_b_local && remove_ptl_b));
+        }
+
+     };
+
+//! Select a bond for removal
+struct select_bond_remove : public std::unary_function<const uint2, bool>
+    {
+    const unsigned int *h_rtag;       //!< Array of particle reverse lookup tags
+    const unsigned int max_ptl_local; //!< Maximum number of particles that stay in the local domain
+
+    //! Constructor
+    /*!
+     */
+    select_bond_remove(const unsigned int *_h_rtag,
+                        const unsigned int _max_ptl_local)
+        : h_rtag(_h_rtag), max_ptl_local(_max_ptl_local)
+        {
+        }
+
+    //! Select a bond
+    /*! t particle data to consider for sending
+     * \return true if particle stays in the box
+     */
+    __host__ __device__ bool operator()(const uint2 bond)
+        {
+        unsigned int idx_a = h_rtag[bond.x];
+        unsigned int idx_b = h_rtag[bond.y];
+
+        bool remove_ptl_a = true;
+        bool remove_ptl_b = true;
+
+        bool ptl_a_local = (idx_a != NOT_LOCAL);
+        bool ptl_b_local = (idx_b != NOT_LOCAL);
+
+        if (ptl_a_local)
+            remove_ptl_a = (idx_a >= max_ptl_local);
+
+        if (ptl_b_local)
+            remove_ptl_b = (idx_b >= max_ptl_local);
+
+        // if no particle is local anymore, remove bond
+        return (remove_ptl_a && remove_ptl_b);
+        }
+
+     };
 
 
 //! Constructor
@@ -127,6 +210,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_tag_copybuf(m_exec_conf),
             m_r_ghost(Scalar(0.0)),
             m_r_buff(Scalar(0.0)),
+            m_resize_factor(9.f/8.f),
             m_plan(m_exec_conf),
             m_next_ghost_update(0),
             m_is_first_step(true)
@@ -150,6 +234,20 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_copy_ghosts[dir].swap(copy_ghosts);
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
+        }
+
+    if (m_sysdef->getBondData()->getNumBondsGlobal())
+        {
+        // mask for bonds, indicating if they will be removed
+        GPUArray<unsigned int> bond_remove_mask(m_sysdef->getBondData()->getNumBonds(), m_exec_conf);
+        m_bond_remove_mask.swap(bond_remove_mask);
+
+        // start with send and receive buffer sizes of one
+        GPUBuffer<bond_element> bond_recv_buf(1, m_exec_conf);
+        m_bond_recv_buf.swap(bond_recv_buf);
+        
+        GPUBuffer<bond_element> bond_send_buf(1, m_exec_conf);
+        m_bond_send_buf.swap(bond_send_buf);
         }
     }
 
@@ -232,7 +330,10 @@ void Communicator::migrateAtoms()
         if (m_prof)
             m_prof->push("remove ptls");
 
-        unsigned int n_send_ptls;
+        unsigned int n_send_ptls = 0;
+        unsigned int n_send_bonds = 0;
+        unsigned int n_remove_bonds = 0;
+
             {
             // first remove all particles from our domain that are going to be sent in the current direction
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -244,6 +345,7 @@ void Communicator::migrateAtoms()
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
 
             /* Reorder particles.
                Particles that stay in our domain come first, followed by the particles that are sent to a
@@ -265,13 +367,19 @@ void Communicator::migrateAtoms()
 
             // reorder the particle data
             if (scal4_tmp.size() < m_pdata->getN())
-                {
                 scal4_tmp.resize(m_pdata->getN());
+
+            if (scal3_tmp.size() < m_pdata->getN()) 
                 scal3_tmp.resize(m_pdata->getN());
+
+            if (scal_tmp.size() < m_pdata->getN()) 
                 scal_tmp.resize(m_pdata->getN());
+
+            if (uint_tmp.size() < m_pdata->getN()) 
                 uint_tmp.resize(m_pdata->getN());
+
+            if (int3_tmp.size() < m_pdata->getN()) 
                 int3_tmp.resize(m_pdata->getN());
-                }
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 scal4_tmp[i] = h_pos.data[sort_keys[i]];
@@ -317,20 +425,76 @@ void Communicator::migrateAtoms()
                 uint_tmp[i] = h_tag.data[sort_keys[i]];
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 h_tag.data[i] = uint_tmp[i];
+
+            // update reverse lookup tags
+            for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                h_rtag.data[h_tag.data[i]] = i;
             }
 
-        // remove particles from local data that are being sent
-        m_pdata->removeParticles(n_send_ptls);
-
+        boost::shared_ptr<BondData> bdata(m_sysdef->getBondData());
+            
+        if (bdata->getNumBondsGlobal())
             {
-            // update reverse lookup tags
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
-            for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+            /*
+             * Select bonds for sending.
+             */
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags());
+
+            ArrayHandle<uint2> h_bonds(bdata->getBondTable());
+            ArrayHandle<unsigned int> h_bond_type(bdata->getBondTypes());
+            ArrayHandle<unsigned int> h_bond_tag(bdata->getBondTags());
+            ArrayHandle<unsigned int> h_bond_rtag(bdata->getBondRTags());
+
+            select_bond_migrate migrate_pred(h_rtag.data, m_pdata->getN()-n_send_ptls);
+            n_send_bonds = std::count_if(h_bonds.data,
+                                         h_bonds.data+bdata->getNumBonds(),
+                                         migrate_pred);
+
+            // resize send buffer
+            if (m_bond_send_buf.getNumElements() < n_send_bonds)
                 {
-                h_rtag.data[h_tag.data[idx]] = idx;
+                unsigned int new_size = 1;
+                while (new_size < n_send_bonds)
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+
+                m_bond_send_buf.resize(new_size);
+                }
+
+            if (m_bond_remove_mask.getNumElements() < bdata->getNumBonds())
+                {
+                unsigned int new_size = 1;
+                while (new_size < bdata->getNumBonds())
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+
+                m_bond_remove_mask.resize(new_size);
+                }
+
+            unsigned add_idx = 0;
+            bond_element *buf = m_bond_send_buf.getHostPointer();
+            ArrayHandle<unsigned int> h_bond_remove_mask(m_bond_remove_mask, access_location::host, access_mode::readwrite);
+
+            select_bond_remove remove_pred(h_rtag.data, m_pdata->getN() - n_send_ptls);
+            for (unsigned int bond_idx = 0; bond_idx < bdata->getNumBonds(); ++bond_idx)
+                {
+                uint2 bond = h_bonds.data[bond_idx];
+                bool remove = remove_pred(bond);
+                if (remove)
+                    n_remove_bonds++;
+                h_bond_remove_mask.data[bond_idx] = remove ? 1 : 0;
+
+                if (migrate_pred(bond))
+                    {
+                    // pack bond data
+                    bond_element el;
+                    el.bond = bond;
+                    el.type = h_bond_type.data[bond_idx];
+                    el.tag = h_bond_tag.data[bond_idx];
+                    buf[add_idx++] = el;
+                    }
                 }
             }
+        // remove particles from local data that are being sent
+        m_pdata->removeParticles(n_send_ptls);
 
 
         // resize send buffer
@@ -498,6 +662,54 @@ void Communicator::migrateAtoms()
                 add_idx++;
                 }
             }
+
+        /*
+         *  Bond communication
+         */
+        if (bdata->getNumBondsGlobal())
+            {
+            unsigned int n_recv_bonds;
+
+            // exchange size of messages
+            MPI_Isend(&n_send_bonds, sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[0]);
+            MPI_Irecv(&n_recv_bonds, sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
+            MPI_Waitall(2, reqs, status);
+
+            // resize recv buffer
+            if (m_bond_recv_buf.getNumElements() < n_recv_bonds)
+                {
+                unsigned int new_size = 1;
+                while (new_size < n_recv_bonds)
+                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+
+                m_bond_recv_buf.resize(new_size);
+                }
+
+            // exchange actual particle data
+            MPI_Isend(m_bond_send_buf.getHostPointer(),
+                      n_send_bonds*sizeof(bond_element),
+                      MPI_BYTE,
+                      send_neighbor,
+                      1,
+                      m_mpi_comm,
+                      & reqs[0]);
+            MPI_Irecv(m_bond_recv_buf.getHostPointer(),
+                      n_recv_bonds*sizeof(bond_element),
+                      MPI_BYTE,
+                      recv_neighbor,
+                      1,
+                      m_mpi_comm,
+                      & reqs[1]);
+            MPI_Waitall(2, reqs, status);
+
+            // unpack data
+            bdata->unpackRemoveBonds(n_recv_bonds,
+                                     n_remove_bonds,
+                                     m_bond_recv_buf,
+                                     m_bond_remove_mask);
+                                     
+            } // end bond communication
+
         } // end dir loop
 
     // notify ParticleData that addition / removal of particles is complete
@@ -537,7 +749,7 @@ void Communicator::exchangeGhosts()
      */
     boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
 
-    if (bdata->getNumBonds())
+    if (bdata->getNumBondsGlobal())
         {
         // Send incomplete bond member to the nearest plane in all directions
         const GPUVector<uint2>& btable = bdata->getBondTable();

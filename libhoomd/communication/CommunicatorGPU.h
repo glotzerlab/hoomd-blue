@@ -233,8 +233,6 @@ class CommunicatorGPU : public Communicator
         GPUBuffer<bond_element> m_bond_corner_send_buf;  //!< Send buffer for bonds sent via a corner
         GPUBuffer<bond_element> m_bond_edge_send_buf;    //!< Send buffer for bonds sent via an edge
         GPUBuffer<bond_element> m_bond_face_send_buf;    //!< Send buffer for bonds sent via a face
-        GPUBuffer<bond_element> m_bond_recv_buf;         //!< Receive buffer for particle data
-        GPUArray<unsigned char> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
         unsigned int m_max_send_bonds_face;         //!< Maximum number of bonds sent across any face
         unsigned int m_max_send_bonds_edge;         //!< Maximum number of bonds sent over any edge
         unsigned int m_max_send_bonds_corner;       //!< Maximum number of bonds sent via any corner
@@ -293,7 +291,6 @@ class CommunicatorGPU : public Communicator
 
         bool m_buffers_allocated;                   //!< True if buffers have been allocated
 
-        const float m_resize_factor;                //!< Factor used for amortized array resizing
         GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
 
         boost::thread m_worker_thread;              //!< The worker thread for updating ghost positions

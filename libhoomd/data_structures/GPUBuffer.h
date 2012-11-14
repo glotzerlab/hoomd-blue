@@ -113,6 +113,9 @@ template<class T> class GPUBuffer
         //! Get a pointer to the data on the host
         inline T* getHostPointer();
 
+        //! Get a pointer to the data on the host (const version)
+        inline const T* getHostPointer() const;
+
 #ifdef ENABLE_CUDA
         //! Get a pointer to the data on the device
         T* getDevicePointer()
@@ -447,6 +450,23 @@ template<class T> T* GPUBuffer<T>::getHostPointer()
     return h_data;
     }
 
+/*! \returns Pointer to the host buffer (const version)
+ */
+template<class T> const T* GPUBuffer<T>::getHostPointer() const
+    {
+#ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // synch to wait for kernels
+        cudaDeviceSynchronize();
+        }
+#endif    
+
+    // return pointer to data
+    return h_data;
+    }
+
+
 /*! \post Memory is resized, the newly allocated part of the array is reset to zero
  *! \returns a pointer to the newly allocated memory area
 */
@@ -499,7 +519,8 @@ template<class T> T* GPUBuffer<T>::resizeBuffer(unsigned int num_elements)
 
     h_data = h_tmp;
 
-    cudaHostGetDevicePointer(&d_data, h_data, 0);
+    if (m_exec_conf->isCUDAEnabled())
+        cudaHostGetDevicePointer(&d_data, h_data, 0);
 
     return h_data;
     }
@@ -557,7 +578,8 @@ template<class T> T* GPUBuffer<T>::resize2DBuffer(unsigned int pitch, unsigned i
 
     h_data = h_tmp;
 
-    cudaHostGetDevicePointer(&d_data, h_data, 0);
+    if (m_exec_conf->isCUDAEnabled())
+        cudaHostGetDevicePointer(&d_data, h_data, 0);
 
     return h_data;
     }

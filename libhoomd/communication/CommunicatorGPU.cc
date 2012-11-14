@@ -205,7 +205,6 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_max_copy_ghosts_corner(0),
       m_max_recv_ghosts(0),
       m_buffers_allocated(false),
-      m_resize_factor(9.f/8.f),
       m_thread_created(false),
       m_barrier(2)
     { 
@@ -545,10 +544,6 @@ void CommunicatorGPU::allocateBuffers()
         GPUBuffer<bond_element> bond_recv_buf(m_max_send_ptls_face*6, m_exec_conf);
         m_bond_recv_buf.swap(bond_recv_buf);
 
-        // mask for bonds, indicating if they will be removed
-        GPUArray<unsigned char> bond_remove_mask(bdata->getNumBonds(), m_exec_conf);
-        m_bond_remove_mask.swap(bond_remove_mask);
-
         // counters for number of sent bonds
         GPUArray<unsigned int> n_send_bonds_face(6, m_exec_conf);
         m_n_send_bonds_face.swap(n_send_bonds_face);
@@ -787,11 +782,10 @@ void CommunicatorGPU::migrateAtoms()
                 ArrayHandle<uint2> d_bonds(bdata->getBondTable(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_bond_type(bdata->getBondTypes(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_bond_tag(bdata->getBondTags(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_bond_rtag(bdata->getBondRTags(), access_location::device, access_mode::readwrite);
 
                 ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_ptl_plan(m_ptl_plan, access_location::device, access_mode::read);
-                ArrayHandle<unsigned char> d_bond_remove_mask(m_bond_remove_mask, access_location::device, access_mode::overwrite);
+                ArrayHandle<unsigned int> d_bond_remove_mask(m_bond_remove_mask, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_n_send_bonds_face(m_n_send_bonds_face, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_n_send_bonds_edge(m_n_send_bonds_edge, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_n_send_bonds_corner(m_n_send_bonds_corner, access_location::device, access_mode::overwrite);
@@ -800,7 +794,6 @@ void CommunicatorGPU::migrateAtoms()
                                d_bonds.data,
                                d_bond_type.data,
                                d_bond_tag.data,
-                               d_bond_rtag.data,
                                d_rtag.data,
                                d_ptl_plan.data,
                                d_bond_remove_mask.data, 

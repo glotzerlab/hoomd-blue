@@ -1721,6 +1721,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
         default:
             break;
         }
+
     }
 
 //! Test particle communication for covalently bonded ghosts
@@ -2107,6 +2108,12 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     }
 #endif
 
+BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_communicator_bond_exchange(communicator_creator_base, exec_conf_cpu);
+    }
+
 #ifdef ENABLE_CUDA
 
 //! Tests particle distribution on GPU
@@ -2138,6 +2145,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_bond_exchange(communicator_creator_gpu, exec_conf_gpu);
     }
+
 #if 0
 BOOST_AUTO_TEST_CASE (communicator_compare_test )
     {

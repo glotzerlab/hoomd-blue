@@ -350,6 +350,9 @@ class Communicator
 
         GPUVector<char> m_sendbuf;             //!< Buffer for particles that are sent
         GPUVector<char> m_recvbuf;             //!< Buffer for particles that are received
+        GPUBuffer<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
+        GPUBuffer<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
+        GPUArray<unsigned int> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
@@ -364,6 +367,7 @@ class Communicator
         unsigned int m_packed_size;              //!< Size of packed particle data element in bytes
         Scalar m_r_ghost;                        //!< Width of ghost layer
         Scalar m_r_buff;                         //!< Width of skin layer
+        const float m_resize_factor;                //!< Factor used for amortized array resizing
 
         GPUVector<unsigned char> m_plan;         //!< Array of per-direction flags that determine the sending route
 

@@ -268,7 +268,9 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
     return cudaSuccess;
     }
 
-__global__ void gpu_mark_recv_bond_duplicates_kernel(const bond_element *recv_bonds,
+__global__ void gpu_mark_recv_bond_duplicates_kernel(const unsigned int n_bonds,
+                                         const bond_element *recv_bonds,
+                                         unsigned int *bond_remove_mask,
                                          const unsigned int n_recv_bonds,
                                          unsigned int *bond_rtag,
                                          unsigned char *recv_bond_active,
@@ -286,14 +288,25 @@ __global__ void gpu_mark_recv_bond_duplicates_kernel(const bond_element *recv_bo
 
     if (rtag != BOND_NOT_LOCAL)
         {
-        atomicInc(n_duplicate_recv_bonds, 0xffffffff);
         recv_bond_active[recv_idx] = 0;
+        bool keep = false;
+        if (rtag < n_bonds)
+            {
+            // if this is a duplicate of a local bond that is to be removed, keep the local bond
+            if (atomicExch(&bond_remove_mask[rtag],0))
+                keep = true;
+            }
+
+        // only count as duplicate if it was received more than once
+        if (!keep) atomicInc(n_duplicate_recv_bonds, 0xffffffff);
         }
     else
         recv_bond_active[recv_idx] = 1;
     }
 
-void gpu_mark_recv_bond_duplicates(const bond_element *d_recv_bonds,
+void gpu_mark_recv_bond_duplicates(const unsigned int n_bonds,
+                                   const bond_element *d_recv_bonds,
+                                   unsigned int *d_bond_remove_mask,
                                    const unsigned int n_recv_bonds,
                                    unsigned int *d_bond_rtag,
                                    unsigned char *d_recv_bond_active,
@@ -303,18 +316,21 @@ void gpu_mark_recv_bond_duplicates(const bond_element *d_recv_bonds,
 
     unsigned int block_size = 512;
 
-    gpu_mark_recv_bond_duplicates_kernel<<<n_recv_bonds/block_size+1,block_size>>>(d_recv_bonds,
-                                                                                   n_recv_bonds,
-                                                                                   d_bond_rtag,
-                                                                                   d_recv_bond_active,
-                                                                                   d_n_duplicate_recv_bonds);
+    gpu_mark_recv_bond_duplicates_kernel<<<n_recv_bonds/block_size+1,block_size>>>(
+        n_bonds,
+        d_recv_bonds,
+        d_bond_remove_mask,
+        n_recv_bonds,
+        d_bond_rtag,
+        d_recv_bond_active,
+        d_n_duplicate_recv_bonds);
     }
 
 __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
                                                const unsigned int n_recv_bonds,
                                                const unsigned int n_unique_recv_bonds,
                                                const unsigned int n_remove_bonds,
-                                               const unsigned char *remove_mask,
+                                               const unsigned int *remove_mask,
                                                const unsigned char *recv_bond_active,
                                                const bond_element *recv_buf,
                                                uint2 *bonds,
@@ -326,15 +342,24 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
     unsigned int bond_idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     unsigned int new_nbonds = old_n_bonds - n_remove_bonds + n_unique_recv_bonds;
+    
+    if (bond_idx >= old_n_bonds + n_unique_recv_bonds) return;
 
-    if (bond_idx >= new_nbonds) return;
-
-    unsigned char replace = 1;
+    bool replace = true;
 
     if (bond_idx < old_n_bonds)
+        {
         replace = remove_mask[bond_idx];
+
+        // if this bond is to be removed, reset its reverse-lookup tag
+
+        // there is a potential race condition, if a tag is first removed and then received
+        // again in the same step. To cope with this situation, duplicates of local bonds
+        // must be properly marked
+        if (replace) bond_rtag[bond_tag[bond_idx]] = BOND_NOT_LOCAL;
+        }
     
-    if (replace)
+    if (replace && bond_idx < new_nbonds)
         {
         // try to atomically fetch a bond from the received list, ignore duplicates
         bool active = false;
@@ -362,8 +387,10 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
         else
             {
             unsigned int fetch_idx = new_nbonds + (n - n_recv_bonds);
-            unsigned char remove = remove_mask[fetch_idx];
+            bool remove = remove_mask[fetch_idx];
 
+            // we should not normally read past the end of the array, if the number
+            // of removed particles correctly reflects the number of remove flags set
             while (remove)  {
                 n = atomicInc(n_fetch_bond, 0xffffffff);
                 fetch_idx = new_nbonds + (n - n_recv_bonds);
@@ -385,7 +412,7 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
                              const unsigned int n_recv_bonds,
                              const unsigned int n_unique_recv_bonds,
                              const unsigned int n_remove_bonds,
-                             const unsigned char *d_remove_mask,
+                             const unsigned int *d_remove_mask,
                              const unsigned char *d_recv_bond_active,
                              const bond_element *d_recv_buf,
                              uint2 *d_bonds,
@@ -398,19 +425,19 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
     
     cudaMemsetAsync(d_n_fetch_bond, 0, sizeof(unsigned int));
 
-    unsigned int new_end = old_n_bonds + n_unique_recv_bonds - n_remove_bonds;
-    gpu_fill_bondtable_kernel<<<new_end/block_size+1,block_size>>>(old_n_bonds,
-                                                                   n_recv_bonds,
-                                                                   n_unique_recv_bonds,
-                                                                   n_remove_bonds,
-                                                                   d_remove_mask,
-                                                                   d_recv_bond_active,
-                                                                   d_recv_buf,
-                                                                   d_bonds,
-                                                                   d_bond_type,
-                                                                   d_bond_tag,
-                                                                   d_bond_rtag,
-                                                                   d_n_fetch_bond);
+    gpu_fill_bondtable_kernel<<<(old_n_bonds+n_unique_recv_bonds)/block_size+1,block_size>>>(
+        old_n_bonds,
+        n_recv_bonds,
+        n_unique_recv_bonds,
+        n_remove_bonds,
+        d_remove_mask,
+        d_recv_bond_active,
+        d_recv_buf,
+        d_bonds,
+        d_bond_type,
+        d_bond_tag,
+        d_bond_rtag,
+        d_n_fetch_bond);
     }
 
 
