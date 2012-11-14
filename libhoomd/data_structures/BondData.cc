@@ -452,17 +452,27 @@ void BondData::updateBondTableGPU()
 */
 void BondData::updateBondTable()
     {
-
+    bool compute_ghost_bonds = false;
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        compute_ghost_bonds = true;
+#endif
+ 
     ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     unsigned int num_bonds_max = 0;
+    unsigned int num_ghost_bonds_max = 0;
         {
         ArrayHandle<unsigned int> h_n_bonds(m_n_bonds, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_n_ghost_bonds(m_n_ghost_bonds, access_location::host, access_mode::overwrite);
 
         // count the number of bonds per particle
         // start by initializing the n_bonds values to 0
         memset(h_n_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
+        if (compute_ghost_bonds)
+            memset(h_n_ghost_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
 
+        unsigned int N = m_pdata->getN();
         // loop through the particles and count the number of bonds based on each particle index
         for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
             {
@@ -471,19 +481,28 @@ void BondData::updateBondTable()
             unsigned int idx1 = h_rtag.data[tag1];
             unsigned int idx2 = h_rtag.data[tag2];
 
-            // only local particles are considered
-            if (idx1 < m_pdata->getN())
+            // first count only local bond members
+            if (idx1 < N && (idx2 < N || !compute_ghost_bonds))
                 h_n_bonds.data[idx1]++;
-            if (idx2 < m_pdata->getN())
+            if (idx2 < N && (idx1 < N || !compute_ghost_bonds))
                 h_n_bonds.data[idx2]++;
+
+            // then local particles bonded to ghost particles
+            if (idx1 < N && idx2 >= N && compute_ghost_bonds)
+                h_n_ghost_bonds.data[idx1]++;
+            if (idx2 < N && idx1 >= N && compute_ghost_bonds)
+                h_n_ghost_bonds.data[idx2]++;
             }
 
         // find the maximum number of bonds
-        unsigned int nparticles = m_pdata->getN();
-        for (unsigned int i = 0; i < nparticles; i++)
+        for (unsigned int i = 0; i < N; i++)
             {
             if (h_n_bonds.data[i] > num_bonds_max)
                 num_bonds_max = h_n_bonds.data[i];
+            if (compute_ghost_bonds)
+                if (h_n_ghost_bonds.data[i] > num_ghost_bonds_max)
+                num_ghost_bonds_max = h_n_ghost_bonds.data[i];
+ 
             }
         }
 
@@ -493,16 +512,28 @@ void BondData::updateBondTable()
         m_gpu_bondlist.resize(m_pdata->getMaxN(), num_bonds_max);
         }
 
+    if (compute_ghost_bonds && num_ghost_bonds_max > m_gpu_ghost_bondlist.getHeight())
+        {
+        m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), num_ghost_bonds_max);
+        }
+
+
         {
         ArrayHandle<unsigned int> h_n_bonds(m_n_bonds, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_n_ghost_bonds(m_n_ghost_bonds, access_location::host, access_mode::overwrite);
         ArrayHandle<uint2> h_gpu_bondlist(m_gpu_bondlist, access_location::host, access_mode::overwrite);
+        ArrayHandle<uint2> h_gpu_ghost_bondlist(m_gpu_ghost_bondlist, access_location::host, access_mode::overwrite);
 
         // now, update the actual table
         // zero the number of bonds counter (again)
         memset(h_n_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
+        if (compute_ghost_bonds)
+            memset(h_n_ghost_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
 
         // loop through all bonds and add them to each column in the list
-        int pitch = m_gpu_bondlist.getPitch();
+        unsigned int pitch = m_gpu_bondlist.getPitch();
+        unsigned int ghost_pitch = m_gpu_ghost_bondlist.getPitch();
+
         for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
             {
             unsigned int tag1 = ((uint2)m_bonds[cur_bond]).x;
@@ -514,18 +545,32 @@ void BondData::updateBondTable()
             // get the number of bonds for each particle
             // add the new bonds to the table
             // increment the number of bonds
-            if (idx1 < m_pdata->getN())
+            unsigned int N = m_pdata->getN();
+            if (idx1 < N && (idx2 < N || !compute_ghost_bonds))
                 {
                 unsigned int num1 = h_n_bonds.data[idx1];
                 h_gpu_bondlist.data[num1*pitch + idx1] = make_uint2(idx2, type);
                 h_n_bonds.data[idx1]++;
                 }
-            if (idx2 < m_pdata->getN())
+            if (idx2 < N && (idx1 < N || !compute_ghost_bonds))
                 {
                 unsigned int num2 = h_n_bonds.data[idx2];
                 h_gpu_bondlist.data[num2*pitch + idx2] = make_uint2(idx1, type);
                 h_n_bonds.data[idx2]++;
                 }
+            if (idx1 < N && idx2 >= N && compute_ghost_bonds)
+                {
+                unsigned int num1 = h_n_ghost_bonds.data[idx1];
+                h_gpu_ghost_bondlist.data[num1*ghost_pitch + idx1] = make_uint2(idx2, type);
+                h_n_ghost_bonds.data[idx1]++;
+                }
+            if (idx2 < N && idx1 >= N && compute_ghost_bonds)
+                {
+                unsigned int num2 = h_n_ghost_bonds.data[idx2];
+                h_gpu_ghost_bondlist.data[num2*ghost_pitch + idx2] = make_uint2(idx1, type);
+                h_n_ghost_bonds.data[idx2]++;
+                }
+ 
             }
         }
     }
