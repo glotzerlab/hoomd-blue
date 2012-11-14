@@ -178,7 +178,7 @@ class PotentialPair : public ForceCompute
         std::string m_log_name;                     //!< Cached log name
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 /*! \param sysdef System to compute forces on
@@ -315,9 +315,10 @@ Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, unsi
     that it is up to date before proceeding.
 
     \param timestep specifies the current time step of the simulation
+    \param ghost True if we are calculating forces due to ghost particles
 */
 template< class evaluator >
-void PotentialPair< evaluator >::computeForces(unsigned int timestep)
+void PotentialPair< evaluator >::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

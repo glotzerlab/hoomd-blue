@@ -139,10 +139,11 @@ void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar ka
   \post The force data on the GPU is written with the calculated forces
 
   \param timestep Current time step of the simulation
+  \param ghost True if we are calculating forces due to ghost particles
 
   Calls gpu_compute_harmonic_bond_forces to do the dirty work.
 */
-void PPPMForceComputeGPU::computeForces(unsigned int timestep)
+void PPPMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
     {
     if (!m_params_set)
         {

@@ -161,8 +161,9 @@ Scalar HarmonicAngleForceCompute::getLogValue(const std::string& quantity, unsig
 
 /*! Actually perform the force computation
     \param timestep Current time step
+    \param ghost True if we compute forces due to ghost particles
  */
-void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
+void HarmonicAngleForceCompute::computeForces(unsigned int timestep, bool ghost)
     {
     if (m_prof) m_prof->push("Harmonic Angle");
     

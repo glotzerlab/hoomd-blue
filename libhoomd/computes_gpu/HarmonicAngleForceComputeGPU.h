@@ -108,7 +108,7 @@ class HarmonicAngleForceComputeGPU : public HarmonicAngleForceCompute
         GPUArray<float2>  m_params;  //!< Parameters stored on the GPU
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Export the AngleForceComputeGPU class to python

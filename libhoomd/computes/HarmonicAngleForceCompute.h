@@ -99,7 +99,7 @@ class HarmonicAngleForceCompute : public ForceCompute
         boost::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Exports the AngleForceCompute class to python

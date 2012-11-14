@@ -112,7 +112,7 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
         GPUArray<float4>  m_CGCMMepow;  //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Export the CGCMMAngleForceComputeGPU class to python

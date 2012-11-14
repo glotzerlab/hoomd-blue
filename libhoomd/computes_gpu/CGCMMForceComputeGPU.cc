@@ -163,10 +163,11 @@ void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scala
     The neighborlist's compute method is called to ensure that it is up to date
     before forces are computed.
     \param timestep Current time step of the simulation
+    \param ghost True if we are calculating forces due to ghost particles
 
     Calls gpu_compute_cgcmm_forces to do the dirty work.
 */
-void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
+void CGCMMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

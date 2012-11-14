@@ -111,7 +111,7 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
         unsigned int m_block_size;  //!< Block size to execute on the GPU
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
@@ -136,7 +136,7 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf, gpu_ipdf >::PotentialPairDPDTher
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params),
                            cudaError_t gpu_ipdf()>
-void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf, gpu_ipdf >::computeForces(unsigned int timestep)
+void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf, gpu_ipdf >::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);

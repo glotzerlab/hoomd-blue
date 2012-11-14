@@ -99,10 +99,11 @@ void TablePotentialGPU::setBlockSize(int block_size)
 compute method is called to ensure that it is up to date.
 
 \param timestep specifies the current time step of the simulation
+\param True if we are calculating forces due to ghost particles
 
 Calls gpu_compute_table_forces to do the leg work
 */
-void TablePotentialGPU::computeForces(unsigned int timestep)
+void TablePotentialGPU::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

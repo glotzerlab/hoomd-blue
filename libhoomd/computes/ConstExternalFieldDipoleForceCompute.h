@@ -79,7 +79,7 @@ class ConstExternalFieldDipoleForceCompute : public ForceCompute
         
     protected:
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
 
     private:
     Scalar4 field;  //!< Electric field

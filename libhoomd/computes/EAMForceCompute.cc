@@ -310,8 +310,9 @@ Scalar EAMForceCompute::getLogValue(const std::string& quantity, unsigned int ti
      compute method is called to ensure that it is up to date.
 
     \param timestep specifies the current time step of the simulation
+    \param ghost True if we compute forces due to ghost particles
 */
-void EAMForceCompute::computeForces(unsigned int timestep)
+void EAMForceCompute::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

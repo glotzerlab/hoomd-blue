@@ -93,7 +93,7 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
         int m_block_size;               //!< The block size to run on the GPU
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Exports the CGCMMForceComputeGPU class to python

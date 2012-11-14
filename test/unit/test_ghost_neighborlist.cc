@@ -112,18 +112,22 @@ void test_neighborlist_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     BOOST_CHECK_EQUAL(pdata->getNGhosts(), 2);
 
     shared_ptr<CellList> cell_list;
+#ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         cell_list = shared_ptr<CellList>(new CellListGPU(sysdef));
     else
+#endif
         cell_list = shared_ptr<CellList>(new CellList(sysdef));
 
     Scalar r_cut=Scalar(0.25);
     Scalar r_buff=Scalar(0.05);
 
     shared_ptr<NeighborList> nlist;
+#ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         nlist = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef,r_cut,r_buff,cell_list));
     else
+#endif
         nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef,r_cut,r_buff,cell_list));
 
     // compute neighbor list
@@ -224,8 +228,6 @@ void test_neighborlist_compare(communicator_creator comm_creator, shared_ptr<Exe
     Scalar3 lo = pdata_1->getGlobalBox().getLo();
 
     SnapshotParticleData snap(n);
-    snap.num_particle_types = 1;
-    snap.type_mapping.push_back("A");
     for (unsigned int i = 0; i < n; ++i)
         {
         snap.pos[i] = make_scalar3(lo.x + (Scalar)rand()/(Scalar)RAND_MAX*L.x,
@@ -250,30 +252,28 @@ void test_neighborlist_compare(communicator_creator comm_creator, shared_ptr<Exe
 
     // Set up cell & neighbor lists for both systems
     shared_ptr<CellList> cell_list_1, cell_list_2;
-    if (exec_conf->isCUDAEnabled())
-        { 
-        cell_list_1 = shared_ptr<CellList>(new CellListGPU(sysdef_1));
-        cell_list_2 = shared_ptr<CellList>(new CellListGPU(sysdef_2));
-        }
-    else
-        {
-        cell_list_1 = shared_ptr<CellList>(new CellList(sysdef_1));
-        cell_list_2 = shared_ptr<CellList>(new CellList(sysdef_2));
-        }
+    cell_list_1 = shared_ptr<CellList>(new CellList(sysdef_1));
+    cell_list_2 = shared_ptr<CellList>(new CellList(sysdef_2));
 
     Scalar r_cut=Scalar(0.2);
     Scalar r_buff=Scalar(0.05);
 
     shared_ptr<NeighborList> nlist_1, nlist_2;
+#ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
         nlist_1 = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef_1,r_cut,r_buff,cell_list_1));
         nlist_2 = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef_2,r_cut,r_buff,cell_list_2));
         } 
     else
+#endif
         {
         nlist_1 = shared_ptr<NeighborList>(new NeighborListBinned(sysdef_1,r_cut,r_buff,cell_list_1));
         nlist_2 = shared_ptr<NeighborList>(new NeighborListBinned(sysdef_2,r_cut,r_buff,cell_list_2));
+
+        // for this test we need NeighborList::StorageMode full
+        nlist_1->setStorageMode(NeighborList::full);
+        nlist_2->setStorageMode(NeighborList::full);
         }
 
     // compute neighbor lists
@@ -334,11 +334,6 @@ void test_neighborlist_compare(communicator_creator comm_creator, shared_ptr<Exe
                         }
 
                 BOOST_CHECK(found);
-                if (! found)
-                    {
-                    Scalar3 dr = pdata_2->getBox().minImage(pdata_2->getPosition(neigh_tag) - pdata_2->getPosition(tag));
-                    exec_conf->msg->warning() << "dr = " << sqrt(dot(dr,dr)) << std::endl;
-                    }
                 }
 
             // for all neighbors of particle idx_1 in system 1
@@ -358,12 +353,6 @@ void test_neighborlist_compare(communicator_creator comm_creator, shared_ptr<Exe
                         }
 
                 BOOST_CHECK(found);
-                if (! found)
-                    {
-                    Scalar3 dr = pdata_2->getBox().minImage(pdata_2->getPosition(neigh_tag) - pdata_2->getPosition(tag));
-                    exec_conf->msg->warning() << "dr = " << sqrt(dot(dr,dr)) << std::endl;
-                    }
- 
                 }
 
             // for all ghost neighbors of particle idx_1 in system 1
@@ -383,11 +372,6 @@ void test_neighborlist_compare(communicator_creator comm_creator, shared_ptr<Exe
                         }
 
                 BOOST_CHECK(found);
-                if (! found)
-                    {
-                    Scalar3 dr = pdata_2->getBox().minImage(pdata_2->getPosition(neigh_tag) - pdata_2->getPosition(tag));
-                    exec_conf->msg->warning() << "dr = " << sqrt(dot(dr,dr)) << std::endl;
-                    }
                 }
             }
         }
@@ -444,28 +428,31 @@ struct MPISetup
     };
 
 BOOST_GLOBAL_FIXTURE( MPISetup )
-
-#if 0
 //! Tests particle distribution
 BOOST_AUTO_TEST_CASE( neighborlist_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_neighborlist_ghosts(communicator_creator_base, exec_conf_cpu);
     }
-#endif
+
+BOOST_AUTO_TEST_CASE( neighborlist_compare_test )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_neighborlist_compare(communicator_creator_base, exec_conf_cpu);
+    } 
 
 #ifdef ENABLE_CUDA
 //! Tests particle distribution on GPU
 BOOST_AUTO_TEST_CASE( neighborlist_ghosts_test_GPU )
     {
-    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_neighborlist_ghosts(communicator_creator_gpu, exec_conf_gpu);
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_neighborlist_ghosts(communicator_creator_base, exec_conf_gpu);
     }
 
 BOOST_AUTO_TEST_CASE( neighborlist_compare_test_GPU )
     {
-    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_neighborlist_compare(communicator_creator_gpu, exec_conf_gpu);
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_neighborlist_compare(communicator_creator_base, exec_conf_gpu);
     } 
 #endif
 

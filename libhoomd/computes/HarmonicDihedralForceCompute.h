@@ -100,7 +100,7 @@ class HarmonicDihedralForceCompute : public ForceCompute
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Exports the DihedralForceCompute class to python

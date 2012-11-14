@@ -111,12 +111,8 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         unsigned int m_block_size;  //!< Block size to execute on the GPU
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
 
-#ifdef ENABLE_MPI
-        //! Compute forces on ghost atoms
-        virtual void computeGhostForces(unsigned int timestep);
-#endif
     };
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
@@ -141,7 +137,7 @@ PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::PotentialPairGPU(boost::share
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params),
                            cudaError_t gpu_igpf()>
-void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned int timestep)
+void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -159,8 +155,12 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
         }
         
     // access the neighbor list
-    ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_n_neigh(ghost ? this->m_nlist->getNGhostNeighArray() :
+                                                this->m_nlist->getNNeighArray(),
+                                        access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_nlist(ghost ? this->m_nlist->getGhostNListArray() :
+                                              this->m_nlist->getNListArray(),
+                                      access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
@@ -198,7 +198,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
                          m_block_size,
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         false),
+                         ghost),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
@@ -206,67 +206,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
    
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
-
-#ifdef ENABLE_MPI
-template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params),
-                           cudaError_t gpu_igpf() >
-void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeGhostForces(unsigned int timestep)
-    {
-    assert(this->m_pdata->getDomainDecomposition());
-
-    // start the profile
-    if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
-        
-    // access the ghost neighbor list
-    ArrayHandle<unsigned int> d_n_ghost_neigh(this->m_nlist->getNGhostNeighArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_ghost_nlist(this->m_nlist->getGhostNListArray(), access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNListIndexer();
-    
-    // access the particle data
-    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
-
-    BoxDim box = this->m_pdata->getBox();
-    
-    // access parameters
-    ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
-    ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
-    
-    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
-   
-    // access flags
-    PDataFlags flags = this->m_pdata->getFlags();
-
-    gpu_cgpf(pair_args_t(d_force.data,
-                         d_virial.data,
-                         this->m_virial.getPitch(),
-                         this->m_pdata->getN(),
-                         d_pos.data,
-                         d_diameter.data,
-                         d_charge.data,
-                         box,
-                         d_n_ghost_neigh.data,
-                         d_ghost_nlist.data,
-                         nli,
-                         d_rcutsq.data,
-                         d_ronsq.data,
-                         this->m_pdata->getNTypes(),
-                         m_block_size,
-                         this->m_shift_mode,
-                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         true),
-             d_params.data);
-    
-    if (this->exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    if (this->m_prof) this->m_prof->pop(this->exec_conf);
-    }
-#endif
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module

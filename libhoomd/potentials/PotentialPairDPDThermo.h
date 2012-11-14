@@ -120,7 +120,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
         boost::shared_ptr<Variant> m_T;     //!< Temperature for the DPD thermostat
 
         //! Actually compute the forces (overwrites PotentialPair::computeForces())
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 /*! \param sysdef System to compute forces on
@@ -159,9 +159,10 @@ void PotentialPairDPDThermo< evaluator >::setT(boost::shared_ptr<Variant> T)
     that it is up to date before proceeding.
 
     \param timestep specifies the current time step of the simulation
+    \param ghost True if we are calculating forces due to ghost particles
 */
 template< class evaluator >
-void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
+void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);

@@ -201,8 +201,9 @@ Scalar TablePotential::getLogValue(const std::string& quantity, unsigned int tim
 compute method is called to ensure that it is up to date.
 
 \param timestep specifies the current time step of the simulation
+\param ghost True if we calculate forces due to ghost particles
 */
-void TablePotential::computeForces(unsigned int timestep)
+void TablePotential::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

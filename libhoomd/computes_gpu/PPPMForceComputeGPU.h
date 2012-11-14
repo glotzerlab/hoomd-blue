@@ -109,7 +109,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Export the BondForceComputeGPU class to python

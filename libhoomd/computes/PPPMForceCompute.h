@@ -181,7 +181,7 @@ class PPPMForceCompute : public ForceCompute
         int first_run;                           //!< flag for allocating arrays
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 

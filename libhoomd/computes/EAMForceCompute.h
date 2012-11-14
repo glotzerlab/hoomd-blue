@@ -131,7 +131,7 @@ class EAMForceCompute : public ForceCompute
         vector<Scalar> derivativeEmbeddingFunction;    //!< array F'(rho)
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Exports the EAMForceCompute class to python

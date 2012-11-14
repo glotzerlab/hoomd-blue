@@ -79,7 +79,7 @@ class ConstraintSphereGPU : public ConstraintSphere
         unsigned int m_block_size;  //!< block size to execute on the GPU
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Exports the ConstraintSphereGPU class to python

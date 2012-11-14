@@ -108,17 +108,6 @@ class ForceCompute : public Compute
         //! Computes the forces
         virtual void compute(unsigned int timestep);
 
-#ifdef ENABLE_MPI
-        //! Perform computation of forces due to ghost particles
-        /*! This function may be implemented in forces which depend on ghost particles.
-            It is supposed to be called AFTER a call to compute().
-
-            \param timestep Current time step
-            \param thread_id The thread from which this routine is called
-         */
-        virtual void computeGhostForces(unsigned int timestep) { }
-#endif
-       
         //! Benchmark the force compute
         virtual double benchmark(unsigned int num_iters);
         
@@ -162,9 +151,23 @@ class ForceCompute : public Compute
             return m_external_virial[dir];
             }
 
+#ifdef ENABLE_MPI
+        //! Perform computation of forces due to ghost particles
+        /*! This function may be implemented in forces which depend on ghost particles.
+            It is supposed to be called AFTER a call to compute().
+
+            \param timestep Current time step
+            \param thread_id The thread from which this routine is called
+         */
+        virtual void computeGhostForces(unsigned int timestep)
+            {
+            computeForces(timestep, true);
+            }
+#endif
+
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory
-        
+ 
         //! Helper function called when particles are sorted
         /*! setParticlesSorted() is passed as a slot to the particle sort signal.
             It is used to flag \c m_particles_sorted so that a second call to compute
@@ -213,14 +216,15 @@ class ForceCompute : public Compute
 
         //! Connection to the signal notifying when maximum number of particles changes
         boost::signals::connection m_max_particle_num_change_connection;
-        
+
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.
             \param timestep Current time step
+            \param ghost True = calculate forces due to ghost particles
+                         False = calculate forces due to local particles
         */
-        virtual void computeForces(unsigned int timestep)=0;
-
+        virtual void computeForces(unsigned int timestep, bool ghost)=0;
     };
 
 //! Exports the ForceCompute class to python

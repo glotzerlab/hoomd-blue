@@ -86,7 +86,7 @@ class ForceConstraint : public ForceCompute
     protected:
     
         //! Compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 //! Exports the ForceConstraint to python

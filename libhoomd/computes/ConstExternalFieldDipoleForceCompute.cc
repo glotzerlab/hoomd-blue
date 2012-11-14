@@ -95,8 +95,9 @@ void ConstExternalFieldDipoleForceCompute::setParams(Scalar field_x,Scalar field
 
 /*! \brief Compute the torque applied = Cross[p,Field]
     \param timestep Current timestep
+    \param ghost True if we compute forces due to ghost particles
 */
-void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
+void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep, bool ghost)
     {
     // array handles
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),access_location::host,access_mode::read);

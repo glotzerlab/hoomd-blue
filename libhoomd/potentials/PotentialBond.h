@@ -108,7 +108,7 @@ class PotentialBond : public ForceCompute
         std::string m_prof_name;                    //!< Cached profiler name
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
     };
 
 /*! \param sysdef System to compute forces on
@@ -188,9 +188,10 @@ Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsi
 
 /*! Actually perform the force computation
     \param timestep Current time step
+    \param True if we are calculating forces due to ghost particles
  */
 template< class evaluator >
-void PotentialBond< evaluator >::computeForces(unsigned int timestep)
+void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost)
     {
     if (m_prof) m_prof->push(m_prof_name);
 

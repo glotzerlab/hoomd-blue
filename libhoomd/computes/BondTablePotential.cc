@@ -191,8 +191,9 @@ Scalar BondTablePotential::getLogValue(const std::string& quantity, unsigned int
 
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
+\param ghost True if we are calculating forces due to ghost particles
 */
-void BondTablePotential::computeForces(unsigned int timestep)
+void BondTablePotential::computeForces(unsigned int timestep, bool ghost)
     {
 
     // start the profile for this compute

@@ -77,7 +77,7 @@ class PotentialExternal: public ForceCompute
         GPUArray<param_type> m_params;        //!< Array of per-type parameters
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(unsigned int timestep, bool ghost);
 
     };
 
@@ -94,9 +94,10 @@ PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefiniti
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
+    \param ghost True if we are calculating forces due to ghost particles
 */
 template<class evaluator>
-void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
+void PotentialExternal<evaluator>::computeForces(unsigned int timestep, bool ghost)
     {
 
     if (m_prof) m_prof->push("PotentialExternal");
