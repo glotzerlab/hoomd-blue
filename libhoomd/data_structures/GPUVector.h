@@ -311,7 +311,11 @@ template<class T> void GPUVector<T>::clear()
  */
 template<class T> T * GPUVector<T>::acquireHost(const access_mode::Enum mode) const
     {
+    #ifdef ENABLE_CUDA
     return GPUArray<T>::aquire(access_location::host, access_mode::readwrite,0, false);
+    #else
+    return GPUArray<T>::aquire(access_location::host, access_mode::readwrite,0);
+    #endif
     }
 
 #endif

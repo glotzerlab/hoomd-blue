@@ -294,7 +294,7 @@ template<class T> class GPUArray
         //! Acquires the data pointer for use
         inline T* aquire(const access_location::Enum location, const access_mode::Enum mode, unsigned int gpu
         #ifdef ENABLE_CUDA
-                         , bool async
+                         , bool async = false
         #endif
                         ) const;
 
@@ -362,7 +362,7 @@ template<class T> class GPUArray
 */
 template<class T> ArrayHandle<T>::ArrayHandle(const GPUArray<T>& gpu_array, const access_location::Enum location,
                                               const access_mode::Enum mode) :
-        data(gpu_array.aquire(location, mode, 0,false)), m_gpu_array(gpu_array)
+        data(gpu_array.aquire(location, mode, 0)), m_gpu_array(gpu_array)
     {
     }
 
