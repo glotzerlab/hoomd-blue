@@ -154,8 +154,8 @@ void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeForces(unsigned i
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
     // access net force & virial
-    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
         {
         const GPUArray<uint2>& gpu_bond_list = ghost ? this->m_bond_data->getGPUGhostBondList() :

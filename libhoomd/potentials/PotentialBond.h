@@ -188,7 +188,7 @@ Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsi
 
 /*! Actually perform the force computation
     \param timestep Current time step
-    \param True if we are calculating forces due to ghost particles
+    \param ghost True if we are calculating forces due to ghost particles
  */
 template< class evaluator >
 void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost)
@@ -203,8 +203,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
 
     // access the parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
@@ -217,9 +217,12 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
     assert(h_diameter.data);
     assert(h_charge.data);
 
-    // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+    if (!ghost)
+        {
+        // Zero data for force calculation
+        memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+        memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+        }
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -236,6 +239,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
 
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
+    unsigned int nparticles = m_pdata->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
@@ -249,16 +253,20 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
         unsigned int idx_b = h_rtag.data[bond.y];
 
 #ifdef ENABLE_MPI
-        // ignore bonds that do not have at least one local member
-        if (idx_a >= m_pdata->getN() && idx_b >= m_pdata->getN())
+        if (ghost && (idx_a < nparticles && idx_b < nparticles))
             continue;
 
-        if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
+        if (!ghost && (idx_a >= nparticles || idx_b >= nparticles))
+            continue;
+
+        if (ghost && (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL))
             {
+            assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
             this->m_exec_conf->msg->error() << "Found incomplete bond. Try increasing the bond stiffness or reduce number of domains."  << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
 #endif
+
         // calculate d\vec{r}
         // (MEM TRANSFER: 6 Scalars / FLOPS: 3)
         Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);

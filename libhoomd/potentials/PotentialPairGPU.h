@@ -175,8 +175,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
     
-    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
     
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();

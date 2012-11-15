@@ -331,8 +331,12 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep, bool ghost
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     
     // access the neighbor list, particle data, and system box
-    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_n_neigh(ghost ? m_nlist->getNGhostNeighArray()
+                                              : m_nlist->getNNeighArray(),
+                                        access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(ghost ? m_nlist->getGhostNListArray()
+                                            : m_nlist->getNListArray(),
+                                      access_location::host, access_mode::read);
     Index2D nli = m_nlist->getNListIndexer();
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -542,12 +546,28 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep, bool ghost
     for (int i = 0; i < (int) m_pdata->getN(); i++)
         {
         // assign result from thread 0
-        h_force.data[i].x  = m_fdata_partial[i].x;
-        h_force.data[i].y = m_fdata_partial[i].y;
-        h_force.data[i].z = m_fdata_partial[i].z;
-        h_force.data[i].w = m_fdata_partial[i].w;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*m_virial_pitch+i] = m_virial_partial[j+6*i];
+        if (ghost)
+            {
+            // add to already calculated forces and virial
+            h_force.data[i].x += m_fdata_partial[i].x;
+            h_force.data[i].y += m_fdata_partial[i].y;
+            h_force.data[i].z += m_fdata_partial[i].z;
+            h_force.data[i].w += m_fdata_partial[i].w;
+
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*m_virial_pitch+i] += m_virial_partial[j+6*i];
+            }
+        else
+            {
+            // overwrite forces and virial
+            h_force.data[i].x = m_fdata_partial[i].x;
+            h_force.data[i].y = m_fdata_partial[i].y;
+            h_force.data[i].z = m_fdata_partial[i].z;
+            h_force.data[i].w = m_fdata_partial[i].w;
+
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*m_virial_pitch+i] = m_virial_partial[j+6*i];
+            }
 
         #ifdef ENABLE_OPENMP
         // add results from other threads
