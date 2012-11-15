@@ -123,6 +123,9 @@ struct SnapshotBondData
         {
         type_id.resize(n_bonds);
         bonds.resize(n_bonds);
+
+        // provide default type mapping
+        type_mapping.push_back("polymer");
         }
 
     std::vector<unsigned int> type_id;             //!< Stores type for each bond
