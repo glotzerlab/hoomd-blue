@@ -1106,8 +1106,6 @@ void NeighborList::updateExListIdx()
             unsigned int ex_tag = h_ex_list_tag.data[m_ex_list_indexer_tag(tag,offset)];
             unsigned int ex_idx = h_rtag.data[ex_tag];
 
-            assert (ex_idx < m_pdata->getN() + m_pdata->getNGhosts());
-
             // store excluded particle idx
             h_ex_list_idx.data[m_ex_list_indexer(idx, offset)] = ex_idx;
             }
