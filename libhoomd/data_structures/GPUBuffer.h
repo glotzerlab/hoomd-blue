@@ -309,8 +309,10 @@ template<class T> GPUBuffer<T>& GPUBuffer<T>::operator=(const GPUBuffer& rhs)
 
 #ifdef ENABLE_CUDA
         if (m_exec_conf->isCUDAEnabled())
+            {
             // synchronize
             cudaDeviceSynchronize();
+            }
 #endif
 
         // copy over the data to the new GPUBuffer
@@ -519,8 +521,10 @@ template<class T> T* GPUBuffer<T>::resizeBuffer(unsigned int num_elements)
 
     h_data = h_tmp;
 
+#ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         cudaHostGetDevicePointer(&d_data, h_data, 0);
+#endif
 
     return h_data;
     }
@@ -578,9 +582,10 @@ template<class T> T* GPUBuffer<T>::resize2DBuffer(unsigned int pitch, unsigned i
 
     h_data = h_tmp;
 
+#ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         cudaHostGetDevicePointer(&d_data, h_data, 0);
-
+#endif
     return h_data;
     }
 
