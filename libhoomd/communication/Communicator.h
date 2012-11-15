@@ -350,8 +350,8 @@ class Communicator
 
         GPUVector<char> m_sendbuf;             //!< Buffer for particles that are sent
         GPUVector<char> m_recvbuf;             //!< Buffer for particles that are received
-        GPUBuffer<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
-        GPUBuffer<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
+        GPUArray<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
+        GPUArray<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
         GPUArray<unsigned int> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied

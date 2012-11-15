@@ -83,7 +83,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GPUVector.h"
 #include "GPUFlags.h"
-#include "GPUBuffer.h"
 #include "ExecutionConfiguration.h"
 #include "HOOMDMath.h"
 
@@ -226,7 +225,7 @@ class BondData : boost::noncopyable
          */
         void unpackRemoveBonds(unsigned int num_add_bonds,
                                unsigned int num_remove_bonds,
-                               const GPUBuffer<bond_element>& buf,
+                               const GPUArray<bond_element>& buf,
                                const GPUArray<unsigned int>& remove_mask);
 
         //! Requests bonds to be removed from the bond table
@@ -385,7 +384,7 @@ class BondData : boost::noncopyable
         //! Helper function to unpack and remove bonds on the GPU
         void unpackRemoveBondsGPU(unsigned int num_add_bonds,
                                unsigned int num_remove_bonds,
-                               const GPUBuffer<bond_element>& buf,
+                               const GPUArray<bond_element>& buf,
                                const GPUArray<unsigned int>& remove_mask);
 #endif
     };

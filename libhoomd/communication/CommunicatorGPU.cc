@@ -408,7 +408,11 @@ void CommunicatorGPU::allocateBuffers()
     m_max_send_ptls_face = m_max_send_ptls_face > maxy ? m_max_send_ptls_face : maxy;
     m_max_send_ptls_face = m_max_send_ptls_face > maxz ? m_max_send_ptls_face : maxz;
 
-    GPUBuffer<char> face_send_buf(gpu_pdata_element_size()*m_max_send_ptls_face, 6, m_exec_conf);
+#ifdef ENABLE_MPI_CUDA
+    GPUArray<char> face_send_buf(gpu_pdata_element_size()*m_max_send_ptls_face, 6, m_exec_conf);
+#else
+    GPUBufferMapped<char> face_send_buf(gpu_pdata_element_size()*m_max_send_ptls_face, 6, m_exec_conf);
+#endif
     m_face_send_buf.swap(face_send_buf);
 
     unsigned int maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.y);
@@ -420,16 +424,30 @@ void CommunicatorGPU::allocateBuffers()
     m_max_send_ptls_edge = m_max_send_ptls_edge > maxxz ? m_max_send_ptls_edge : maxxz;
     m_max_send_ptls_edge = m_max_send_ptls_edge > maxyz ? m_max_send_ptls_edge : maxyz;
 
-    GPUBuffer<char> edge_send_buf(gpu_pdata_element_size()*m_max_send_ptls_edge, 12, m_exec_conf);
+#ifdef ENABLE_MPI_CUDA
+    GPUArray<char> edge_send_buf(gpu_pdata_element_size()*m_max_send_ptls_edge, 12, m_exec_conf);
+#else
+    GPUBufferMapped<char> edge_send_buf(gpu_pdata_element_size()*m_max_send_ptls_edge, 12, m_exec_conf);
+#endif
     m_edge_send_buf.swap(edge_send_buf);
 
     unsigned maxxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff*m_r_buff/L.x/L.y/L.z);
     m_max_send_ptls_corner = maxxyz > 1 ? maxxyz : 1;
 
-    GPUBuffer<char> send_buf_corner(gpu_pdata_element_size()*m_max_send_ptls_corner, 8, m_exec_conf);
+#ifdef ENABLE_MPI_CUDA
+    GPUArray<char> send_buf_corner(gpu_pdata_element_size()*m_max_send_ptls_corner, 8, m_exec_conf);
+#else
+    GPUBufferMapped<char> send_buf_corner(gpu_pdata_element_size()*m_max_send_ptls_corner, 8, m_exec_conf);
+#endif
+
     m_corner_send_buf.swap(send_buf_corner);
 
-    GPUBuffer<char> recv_buf(gpu_pdata_element_size()*m_max_send_ptls_face*6, m_exec_conf);
+#ifdef ENABLE_MPI_CUDA
+    GPUArray<char> recv_buf(gpu_pdata_element_size()*m_max_send_ptls_face*6, m_exec_conf);
+#else
+    GPUBufferMapped<char> recv_buf(gpu_pdata_element_size()*m_max_send_ptls_face*6, m_exec_conf);
+#endif
+
     m_recv_buf.swap(recv_buf);
    
     /*
@@ -444,10 +462,14 @@ void CommunicatorGPU::allocateBuffers()
     m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxy ? m_max_copy_ghosts_face : maxy;
     m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxz ? m_max_copy_ghosts_face : maxz;
 
-    GPUBuffer<char> face_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
+#ifdef ENABLE_MPI_CUDA
+    GPUArray<char> face_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
+#else
+    GPUBufferMapped<char> face_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
+#endif
     m_face_ghosts_buf.swap(face_ghosts_buf);
 
-    GPUBuffer<char> face_update_buf(gpu_update_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
+    GPUBufferMapped<char> face_update_buf(gpu_update_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
     m_face_update_buf.swap(face_update_buf);
 
     maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.y);
@@ -459,26 +481,38 @@ void CommunicatorGPU::allocateBuffers()
     m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxxz ? m_max_copy_ghosts_edge : maxxz;
     m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxyz ? m_max_copy_ghosts_edge : maxyz;
 
-    GPUBuffer<char> edge_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
+#ifdef ENABLE_MPI_CUDA
+    GPUArray<char> edge_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
+#else
+    GPUBufferMapped<char> edge_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
+#endif
     m_edge_ghosts_buf.swap(edge_ghosts_buf);
 
-    GPUBuffer<char> edge_update_buf(gpu_update_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
+    GPUBufferMapped<char> edge_update_buf(gpu_update_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
     m_edge_update_buf.swap(edge_update_buf);
 
     maxxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z);
     m_max_copy_ghosts_corner = maxxyz > 1 ? maxxyz : 1;
 
-    GPUBuffer<char> corner_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
+#ifdef ENABLE_MPI_CUDA
+    GPUArray<char> corner_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
+#else
+    GPUBufferMapped<char> corner_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
+#endif
     m_corner_ghosts_buf.swap(corner_ghosts_buf);
 
-    GPUBuffer<char> corner_update_buf(gpu_update_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
+    GPUBufferMapped<char> corner_update_buf(gpu_update_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
     m_corner_update_buf.swap(corner_update_buf);
 
     m_max_recv_ghosts = m_max_copy_ghosts_face*6;
-    GPUBuffer<char> ghost_recv_buf(gpu_ghost_element_size()*m_max_recv_ghosts, m_exec_conf);
+#ifdef ENABLE_MPI_CUDA
+    GPUArray<char> ghost_recv_buf(gpu_ghost_element_size()*m_max_recv_ghosts, m_exec_conf);
+#else
+    GPUBufferMapped<char> ghost_recv_buf(gpu_ghost_element_size()*m_max_recv_ghosts, m_exec_conf);
+#endif
     m_ghosts_recv_buf.swap(ghost_recv_buf);
 
-    GPUBuffer<char> update_recv_buf(gpu_update_element_size()*m_max_recv_ghosts,m_exec_conf);
+    GPUBufferMapped<char> update_recv_buf(gpu_update_element_size()*m_max_recv_ghosts,m_exec_conf);
     m_update_recv_buf.swap(update_recv_buf);
 
     // buffer for particle plans
@@ -532,16 +566,32 @@ void CommunicatorGPU::allocateBuffers()
         m_max_send_bonds_edge = m_max_send_ptls_edge;
         m_max_send_bonds_face = m_max_send_ptls_face;
 
-        GPUBuffer<bond_element> bond_corner_send_buf(m_max_send_bonds_corner,8, m_exec_conf);
+        #ifdef ENABLE_MPI_CUDA
+        GPUArray<bond_element> bond_corner_send_buf(m_max_send_bonds_corner,8, m_exec_conf);
+        #else
+        GPUBufferMapped<bond_element> bond_corner_send_buf(m_max_send_bonds_corner,8, m_exec_conf);
+        #endif
         m_bond_corner_send_buf.swap(bond_corner_send_buf);
 
-        GPUBuffer<bond_element> bond_edge_send_buf(m_max_send_bonds_edge,12, m_exec_conf);
+        #ifdef ENABLE_MPI_CUDA
+        GPUArray<bond_element> bond_edge_send_buf(m_max_send_bonds_edge,12, m_exec_conf);
+        #else
+        GPUBufferMapped<bond_element> bond_edge_send_buf(m_max_send_bonds_edge,12, m_exec_conf);
+        #endif
         m_bond_edge_send_buf.swap(bond_edge_send_buf);
 
-        GPUBuffer<bond_element> bond_face_send_buf(m_max_send_bonds_face,6, m_exec_conf);
+        #ifdef ENABLE_MPI_CUDA
+        GPUArray<bond_element> bond_face_send_buf(m_max_send_bonds_face,6, m_exec_conf);
+        #else
+        GPUBufferMapped<bond_element> bond_face_send_buf(m_max_send_bonds_face,6, m_exec_conf);
+        #endif
         m_bond_face_send_buf.swap(bond_face_send_buf);
 
-        GPUBuffer<bond_element> bond_recv_buf(m_max_send_ptls_face*6, m_exec_conf);
+        #ifdef ENABLE_MPI_CUDA
+        GPUArray<bond_element> bond_recv_buf(m_max_send_ptls_face*6, m_exec_conf);
+        #else
+        GPUBufferMapped<bond_element> bond_recv_buf(m_max_send_ptls_face*6, m_exec_conf);
+        #endif
         m_bond_recv_buf.swap(bond_recv_buf);
 
         // counters for number of sent bonds
@@ -648,6 +698,10 @@ void CommunicatorGPU::migrateAtoms()
             ArrayHandle<unsigned int> d_n_send_ptls_edge(m_n_send_ptls_edge, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_n_send_ptls_face(m_n_send_ptls_face, access_location::device, access_mode::overwrite);
 
+            ArrayHandle<char> d_corner_send_buf(m_corner_send_buf, access_location::device, access_mode::overwrite);
+            ArrayHandle<char> d_edge_send_buf(m_edge_send_buf, access_location::device, access_mode::overwrite);
+            ArrayHandle<char> d_face_send_buf(m_face_send_buf, access_location::device, access_mode::overwrite);
+     
             // Stage particle data for sending, wrap particles
             gpu_migrate_select_particles(m_pdata->getN(),
                                    d_pos.data,
@@ -667,11 +721,11 @@ void CommunicatorGPU::migrateAtoms()
                                    m_max_send_ptls_face,
                                    d_remove_mask.data,
                                    d_ptl_plan.data,
-                                   m_corner_send_buf.getDevicePointer(),
+                                   d_corner_send_buf.data,
                                    m_corner_send_buf.getPitch(),
-                                   m_edge_send_buf.getDevicePointer(),
+                                   d_edge_send_buf.data,
                                    m_edge_send_buf.getPitch(),
-                                   m_face_send_buf.getDevicePointer(),
+                                   d_face_send_buf.data,
                                    m_face_send_buf.getPitch(),
                                    m_pdata->getBox(),
                                    m_pdata->getGlobalBox(),
@@ -789,6 +843,10 @@ void CommunicatorGPU::migrateAtoms()
                 ArrayHandle<unsigned int> d_n_send_bonds_face(m_n_send_bonds_face, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_n_send_bonds_edge(m_n_send_bonds_edge, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_n_send_bonds_corner(m_n_send_bonds_corner, access_location::device, access_mode::overwrite);
+
+                ArrayHandle<bond_element> d_bond_face_send_buf(m_bond_face_send_buf, access_location::device, access_mode::overwrite);
+                ArrayHandle<bond_element> d_bond_edge_send_buf(m_bond_edge_send_buf, access_location::device, access_mode::overwrite);
+                ArrayHandle<bond_element> d_bond_corner_send_buf(m_bond_corner_send_buf, access_location::device, access_mode::overwrite);
                 gpu_send_bonds(bdata->getNumBonds(),
                                m_pdata->getN(),
                                d_bonds.data,
@@ -797,12 +855,12 @@ void CommunicatorGPU::migrateAtoms()
                                d_rtag.data,
                                d_ptl_plan.data,
                                d_bond_remove_mask.data, 
-                               m_bond_face_send_buf.getDevicePointer(),
+                               d_bond_face_send_buf.data,
                                m_bond_face_send_buf.getPitch(),
-                               m_bond_edge_send_buf.getDevicePointer(),
+                               d_bond_edge_send_buf.data,
                                m_bond_edge_send_buf.getPitch(),
-                               m_bond_corner_send_buf.getDevicePointer(),
-                               m_bond_edge_send_buf.getPitch(),
+                               d_bond_corner_send_buf.data,
+                               m_bond_corner_send_buf.getPitch(),
                                d_n_send_bonds_face.data,   
                                d_n_send_bonds_edge.data,   
                                d_n_send_bonds_corner.data,   
@@ -980,25 +1038,25 @@ void CommunicatorGPU::migrateAtoms()
         unsigned int fpitch = m_face_send_buf.getPitch();
 
         #ifdef ENABLE_MPI_CUDA
-        char *corner_send_buf_handle = m_corner_send_buf.getDevicePointer();
-        char *edge_send_buf_handle = m_edge_send_buf.getDevicePointer();
-        char *face_send_buf_handle = m_face_send_buf.getDevicePointer();
-        char *recv_buf_handle = m_recv_buf.getDevicePointer();
+        ArrayHandle<char> corner_send_buf_handle(m_corner_send_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> edge_send_buf_handle(m_edge_send_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> face_send_buf_handle(m_face_send_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> recv_buf_handle(m_recv_buf, access_location::device, access_mode::readwrite);
         #else
-        char *corner_send_buf_handle = m_corner_send_buf.getHostPointer();
-        char *edge_send_buf_handle = m_edge_send_buf.getHostPointer();
-        char *face_send_buf_handle = m_face_send_buf.getHostPointer();
-        char *recv_buf_handle = m_recv_buf.getHostPointer();
+        ArrayHandle<char> corner_send_buf_handle(m_corner_send_buf, access_location::host, access_mode::read);
+        ArrayHandle<char> edge_send_buf_handle(m_edge_send_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> face_send_buf_handle(m_face_send_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> recv_buf_handle(m_recv_buf, access_location::host, access_mode::readwrite);
         #endif
 
         communicateStepTwo(dir,
-                           corner_send_buf_handle,
-                           edge_send_buf_handle,
-                           face_send_buf_handle,
+                           corner_send_buf_handle.data,
+                           edge_send_buf_handle.data,
+                           face_send_buf_handle.data,
                            cpitch,
                            epitch,
                            fpitch,
-                           recv_buf_handle,
+                           recv_buf_handle.data,
                            n_send_ptls_corner,
                            n_send_ptls_edge,
                            n_send_ptls_face,
@@ -1038,11 +1096,13 @@ void CommunicatorGPU::migrateAtoms()
 
         ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::read);
 
+        ArrayHandle<char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
+
         gpu_migrate_fill_particle_arrays(old_nparticles,
                                n_tot_recv_ptls,
                                n_remove_ptls,
                                d_remove_mask.data,
-                               m_recv_buf.getDevicePointer(),
+                               d_recv_buf.data,
                                d_pos.data,
                                d_vel.data,
                                d_accel.data,
@@ -1148,25 +1208,25 @@ void CommunicatorGPU::migrateAtoms()
             unsigned int fpitch = m_bond_face_send_buf.getPitch();
 
             #ifdef ENABLE_MPI_CUDA
-            char *corner_send_buf_handle = (char *) m_bond_corner_send_buf.getDevicePointer();
-            char *edge_send_buf_handle = (char *) m_bond_edge_send_buf.getDevicePointer();
-            char *face_send_buf_handle = (char *) m_bond_face_send_buf.getDevicePointer();
-            char *recv_buf_handle = (char *) m_bond_recv_buf.getDevicePointer();
+            ArrayHandle<bond_element> corner_send_buf_handle(m_bond_corner_send_buf, access_location::device, access_mode::read);
+            ArrayHandle<bond_element> edge_send_buf_handle(m_bond_edge_send_buf, access_location::device, access_mode::readwrite);
+            ArrayHandle<bond_element> face_send_buf_handle(m_bond_face_send_buf, access_location::device, access_mode::readwrite);
+            ArrayHandle<bond_element> recv_buf_handle(m_bond_recv_buf, access_location::device, access_mode::readwrite);
             #else
-            char *corner_send_buf_handle = (char *) m_bond_corner_send_buf.getHostPointer();
-            char *edge_send_buf_handle = (char *) m_bond_edge_send_buf.getHostPointer();
-            char *face_send_buf_handle = (char *) m_bond_face_send_buf.getHostPointer();
-            char *recv_buf_handle = (char *) m_bond_recv_buf.getHostPointer();
+            ArrayHandle<bond_element> corner_send_buf_handle(m_bond_corner_send_buf, access_location::host, access_mode::read);
+            ArrayHandle<bond_element> edge_send_buf_handle(m_bond_edge_send_buf, access_location::host, access_mode::readwrite);
+            ArrayHandle<bond_element> face_send_buf_handle(m_bond_face_send_buf, access_location::host, access_mode::readwrite);
+            ArrayHandle<bond_element> recv_buf_handle(m_bond_recv_buf, access_location::host, access_mode::readwrite);
             #endif
 
             communicateStepTwo(dir,
-                               corner_send_buf_handle,
-                               edge_send_buf_handle,
-                               face_send_buf_handle,
+                               (char *)corner_send_buf_handle.data,
+                               (char *)edge_send_buf_handle.data,
+                               (char *)face_send_buf_handle.data,
                                cpitch*sizeof(bond_element),
                                epitch*sizeof(bond_element),
                                fpitch*sizeof(bond_element),
-                               recv_buf_handle,
+                               (char *)recv_buf_handle.data,
                                n_send_bonds_corner,
                                n_send_bonds_edge,
                                n_send_bonds_face,
@@ -1317,6 +1377,9 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::device, access_mode::overwrite);
 
+            ArrayHandle<char> d_corner_ghosts_buf(m_corner_ghosts_buf, access_location::device, access_mode::overwrite);
+            ArrayHandle<char> d_edge_ghosts_buf(m_edge_ghosts_buf, access_location::device, access_mode::overwrite);
+            ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::overwrite);
             gpu_exchange_ghosts(m_pdata->getN(),
                                 d_plan.data,
                                 d_tag.data,
@@ -1329,11 +1392,11 @@ void CommunicatorGPU::exchangeGhosts()
                                 d_pos.data,
                                 d_charge.data,
                                 d_diameter.data,
-                                m_corner_ghosts_buf.getDevicePointer(),
+                                d_corner_ghosts_buf.data,
                                 m_corner_ghosts_buf.getPitch(),
-                                m_edge_ghosts_buf.getDevicePointer(),
+                                d_edge_ghosts_buf.data,
                                 m_edge_ghosts_buf.getPitch(),
-                                m_face_ghosts_buf.getDevicePointer(),
+                                d_face_ghosts_buf.data,
                                 m_face_ghosts_buf.getPitch(),
                                 d_n_local_ghosts_corner.data,
                                 d_n_local_ghosts_edge.data,
@@ -1517,25 +1580,25 @@ void CommunicatorGPU::exchangeGhosts()
             unsigned int fpitch = m_face_ghosts_buf.getPitch();
 
             #ifdef ENABLE_MPI_CUDA
-            char *corner_ghosts_buf_handle = m_corner_ghosts_buf.getDevicePointer();
-            char *edge_ghosts_buf_handle = m_edge_ghosts_buf.getDevicePointer();
-            char *face_ghosts_buf_handle = m_face_ghosts_buf.getDevicePointer();
-            char *ghosts_recv_buf_handle = m_ghosts_recv_buf.getDevicePointer();
+            ArrayHandle<char> corner_ghosts_buf_handle(m_corner_ghosts_buf, access_location::device, access_mode::read);
+            ArrayHandle<char> edge_ghosts_buf_handle(m_edge_ghosts_buf, access_location::device, access_mode::readwrite);
+            ArrayHandle<char> face_ghosts_buf_handle(m_face_ghosts_buf, access_location::device, access_mode::readwrite);
+            ArrayHandle<char> ghosts_recv_buf_handle(m_ghosts_recv_buf, access_location::device, access_mode::readwrite);
             #else
-            char *corner_ghosts_buf_handle = m_corner_ghosts_buf.getHostPointer();
-            char *edge_ghosts_buf_handle = m_edge_ghosts_buf.getHostPointer();
-            char *face_ghosts_buf_handle = m_face_ghosts_buf.getHostPointer();
-            char *ghosts_recv_buf_handle = m_ghosts_recv_buf.getHostPointer();
+            ArrayHandle<char> corner_ghosts_buf_handle(m_corner_ghosts_buf, access_location::host, access_mode::read);
+            ArrayHandle<char> edge_ghosts_buf_handle(m_edge_ghosts_buf, access_location::host, access_mode::readwrite);
+            ArrayHandle<char> face_ghosts_buf_handle(m_face_ghosts_buf, access_location::host, access_mode::readwrite);
+            ArrayHandle<char> ghosts_recv_buf_handle(m_ghosts_recv_buf, access_location::host, access_mode::readwrite);
             #endif
 
             communicateStepTwo(dir,
-                               corner_ghosts_buf_handle,
-                               edge_ghosts_buf_handle,
-                               face_ghosts_buf_handle,
+                               corner_ghosts_buf_handle.data,
+                               edge_ghosts_buf_handle.data,
+                               face_ghosts_buf_handle.data,
                                cpitch,
                                epitch,
                                fpitch,
-                               ghosts_recv_buf_handle,
+                               ghosts_recv_buf_handle.data,
                                n_copy_ghosts_corner,
                                n_copy_ghosts_edge,
                                n_copy_ghosts_face,
@@ -1603,6 +1666,11 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<unsigned int> d_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::device, access_mode::read);
 
+        ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> d_edge_ghosts_buf(m_edge_ghosts_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> d_corner_ghosts_buf(m_corner_ghosts_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> d_ghosts_recv_buf(m_ghosts_recv_buf, access_location::device, access_mode::read);
+
         gpu_exchange_ghosts_unpack(m_pdata->getN(),
                                      m_n_tot_recv_ghosts,
                                      d_n_local_ghosts_face.data,
@@ -1611,11 +1679,11 @@ void CommunicatorGPU::exchangeGhosts()
                                      d_n_recv_ghosts_local.data,
                                      d_n_recv_ghosts_face.data,
                                      d_n_recv_ghosts_edge.data,
-                                     m_face_ghosts_buf.getDevicePointer(),
+                                     d_face_ghosts_buf.data,
                                      m_face_ghosts_buf.getPitch(),
-                                     m_edge_ghosts_buf.getDevicePointer(),
+                                     d_edge_ghosts_buf.data,
                                      m_edge_ghosts_buf.getPitch(),
-                                     m_ghosts_recv_buf.getDevicePointer(),
+                                     d_ghosts_recv_buf.data,
                                      d_pos.data,
                                      d_charge.data,
                                      d_diameter.data,

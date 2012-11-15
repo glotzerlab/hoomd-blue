@@ -243,10 +243,10 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_bond_remove_mask.swap(bond_remove_mask);
 
         // start with send and receive buffer sizes of one
-        GPUBuffer<bond_element> bond_recv_buf(1, m_exec_conf);
+        GPUArray<bond_element> bond_recv_buf(1, m_exec_conf);
         m_bond_recv_buf.swap(bond_recv_buf);
         
-        GPUBuffer<bond_element> bond_send_buf(1, m_exec_conf);
+        GPUArray<bond_element> bond_send_buf(1, m_exec_conf);
         m_bond_send_buf.swap(bond_send_buf);
         }
     }
@@ -470,7 +470,7 @@ void Communicator::migrateAtoms()
                 }
 
             unsigned add_idx = 0;
-            bond_element *buf = m_bond_send_buf.getHostPointer();
+            ArrayHandle<bond_element> h_bond_send_buf(m_bond_send_buf, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_bond_remove_mask(m_bond_remove_mask, access_location::host, access_mode::readwrite);
 
             select_bond_remove remove_pred(h_rtag.data, m_pdata->getN() - n_send_ptls);
@@ -489,7 +489,7 @@ void Communicator::migrateAtoms()
                     el.bond = bond;
                     el.type = h_bond_type.data[bond_idx];
                     el.tag = h_bond_tag.data[bond_idx];
-                    buf[add_idx++] = el;
+                    h_bond_send_buf.data[add_idx++] = el;
                     }
                 }
             }
@@ -686,14 +686,17 @@ void Communicator::migrateAtoms()
                 }
 
             // exchange actual particle data
-            MPI_Isend(m_bond_send_buf.getHostPointer(),
+            ArrayHandle<bond_element> h_bond_send_buf(m_bond_send_buf, access_location::host, access_mode::read);
+            ArrayHandle<bond_element> h_bond_recv_buf(m_bond_recv_buf, access_location::host, access_mode::overwrite);
+
+            MPI_Isend(h_bond_send_buf.data,
                       n_send_bonds*sizeof(bond_element),
                       MPI_BYTE,
                       send_neighbor,
                       1,
                       m_mpi_comm,
                       & reqs[0]);
-            MPI_Irecv(m_bond_recv_buf.getHostPointer(),
+            MPI_Irecv(h_bond_recv_buf.data,
                       n_recv_bonds*sizeof(bond_element),
                       MPI_BYTE,
                       recv_neighbor,

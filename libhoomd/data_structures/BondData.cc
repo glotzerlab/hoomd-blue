@@ -815,7 +815,7 @@ struct remove_pred
  */
 void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
                        unsigned int num_remove_bonds,
-                       const GPUBuffer<bond_element>& buf,
+                       const GPUArray<bond_element>& buf,
                        const GPUArray<unsigned int>& remove_mask)
     {
     assert(m_bonds.size() == m_bond_type.size());
@@ -842,7 +842,8 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
             ArrayHandle<unsigned int> h_bond_type(m_bond_type, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_remove_mask(remove_mask, access_location::host, access_mode::read);
 
-            const bond_element *recv_buf = buf.getHostPointer();
+            ArrayHandle<bond_element> h_recv_buf(buf, access_location::host, access_mode::read);
+
             // reset rtag of removed particles
             for (unsigned int bond_idx = 0; bond_idx < old_size; ++bond_idx)
                 {
@@ -871,7 +872,7 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
             unsigned int num_bonds_added = 0;
             for (unsigned int recv_idx = 0; recv_idx < num_add_bonds; ++recv_idx)
                 {
-                const bond_element& el = recv_buf[recv_idx];
+                const bond_element& el = h_recv_buf.data[recv_idx];
                 unsigned int tag = el.tag;
 
                 // ignore duplicates
@@ -907,7 +908,7 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
 //! Unpack a buffer with new bonds to be added, and remove bonds according to a mask, GPU version
 void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
                        unsigned int num_remove_bonds,
-                       const GPUBuffer<bond_element>& buf,
+                       const GPUArray<bond_element>& buf,
                        const GPUArray<unsigned int>& remove_mask)
     {
     if (! m_buffers_initialized)
@@ -940,8 +941,9 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
     ArrayHandle<unsigned char> d_recv_bond_active(m_recv_bond_active, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_remove_mask(remove_mask, access_location::device, access_mode::readwrite);
 
+    ArrayHandle<bond_element> d_recv_buf(buf, access_location::device, access_mode::read);
     gpu_mark_recv_bond_duplicates(m_bonds.size(),
-                                  buf.getDevicePointer(),
+                                  d_recv_buf.data,
                                   d_remove_mask.data,
                                   num_add_bonds,
                                   d_bond_rtag.data,
@@ -974,7 +976,7 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
                             num_remove_bonds,
                             d_remove_mask.data,
                             d_recv_bond_active.data,
-                            buf.getDevicePointer(),
+                            d_recv_buf.data,
                             d_bonds.data,
                             d_bond_type.data,
                             d_bond_tag.data,

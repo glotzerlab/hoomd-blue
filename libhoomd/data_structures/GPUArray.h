@@ -226,7 +226,16 @@ template<class T> class GPUArray
         GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
         virtual ~GPUArray();
-        
+      
+#ifdef ENABLE_CUDA
+    protected:
+        //! Constructs a 1-D GPUArray
+        GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
+        //! Constructs a 2-D GPUArray 
+        GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
+
+    public:
+#endif
         //! Copy constructor
         GPUArray(const GPUArray& from);
         //! = operator
@@ -308,21 +317,23 @@ template<class T> class GPUArray
         mutable unsigned int m_num_elements;            //!< Number of elements
         mutable unsigned int m_pitch;                   //!< Pitch of the rows in elements
         mutable unsigned int m_height;                  //!< Number of allocated rows
-        
+      
         mutable bool m_acquired;                //!< Tracks whether the data has been aquired
         mutable data_location::Enum m_data_location;    //!< Tracks the current location of the data
-    
+#ifdef ENABLE_CUDA
+        mutable bool m_mapped;                          //!< True if we are using mapped memory
+#endif
+   
     // ok, this looks weird, but I want m_exec_conf to be protected and not have to go reorder all of the initializers
     protected:
-        mutable boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
-    
-    private:
 #ifdef ENABLE_CUDA
         mutable T* d_data;      //!< Pointer to allocated device memory
 #endif
         
         mutable T* h_data;      //!< Pointer to allocated host memory
-        
+
+        mutable boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
+    private:
         //! Helper function to allocate memory
         inline void allocate();
         //! Helper function to free memory
@@ -392,6 +403,7 @@ template<class T> ArrayHandleAsync<T>::~ArrayHandleAsync()
 template<class T> GPUArray<T>::GPUArray() :
         m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
+        m_mapped(false),
         d_data(NULL),
 #endif
         h_data(NULL)
@@ -402,11 +414,13 @@ template<class T> GPUArray<T>::GPUArray() :
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
-        m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf),
+        m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
+        m_mapped(false),
         d_data(NULL),
 #endif
-        h_data(NULL)
+        h_data(NULL),
+        m_exec_conf(exec_conf)
     {
     // allocate and clear memory
     allocate();
@@ -418,11 +432,13 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
-        m_height(height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf),
+        m_height(height), m_acquired(false), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
+        m_mapped(false),
         d_data(NULL),
 #endif
-        h_data(NULL)
+        h_data(NULL),
+        m_exec_conf(exec_conf)
     {
     // make m_pitch the next multiple of 16 larger or equal to the given width
     m_pitch = (width + (16 - (width & 15)));
@@ -435,17 +451,59 @@ template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height,
     memclear();
     }
 
+#ifdef ENABLE_CUDA
+/*! \param num_elements Number of elements to allocate in the array
+    \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
+    \param mapped True if we are using mapped-pinned memory
+*/
+template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped) :
+        m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host), 
+        m_mapped(mapped),
+        d_data(NULL),
+        h_data(NULL),
+        m_exec_conf(exec_conf)
+    {
+    // allocate and clear memory
+    allocate();
+    memclear();
+    }
+
+/*! \param width Width of the 2-D array to allocate (in elements)
+    \param height Number of rows to allocate in the 2D array
+    \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
+    \param mapped True if we are using mapped-pinned memory
+*/
+template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped) :
+        m_height(height), m_acquired(false), m_data_location(data_location::host),
+        m_mapped(mapped),
+        d_data(NULL),
+        h_data(NULL),
+        m_exec_conf(exec_conf)
+    {
+    // make m_pitch the next multiple of 16 larger or equal to the given width
+    m_pitch = (width + (16 - (width & 15)));
+    
+    // setup the number of elements
+    m_num_elements = m_pitch * m_height;
+    
+    // allocate and clear memory
+    allocate();
+    memclear();
+    }
+#endif
+
 template<class T> GPUArray<T>::~GPUArray()
     {
     deallocate();
     }
 
 template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
-        m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(from.m_exec_conf),
+        m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), m_mapped(from.m_mapped),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
-        h_data(NULL)
+        h_data(NULL),
+        m_exec_conf(from.m_exec_conf) 
     {
     // allocate and clear new memory the same size as the data in from
     allocate();
@@ -474,7 +532,9 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
         m_pitch = rhs.m_pitch;
         m_height = rhs.m_height;
         m_exec_conf = rhs.m_exec_conf;
-        
+#ifdef ENABLE_CUDA
+        m_mapped = rhs.m_mapped;
+#endif 
         // initialize state variables
         m_data_location = data_location::host;
         
@@ -518,6 +578,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     std::swap(m_exec_conf, from.m_exec_conf);
 #ifdef ENABLE_CUDA
     std::swap(d_data, from.d_data);
+    std::swap(m_mapped, from.m_mapped);
 #endif
     std::swap(h_data, from.h_data);
     }
@@ -535,6 +596,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from) const
     std::swap(m_data_location, from.m_data_location);
 #ifdef ENABLE_CUDA
     std::swap(d_data, from.d_data);
+    std::swap(m_mapped, from.m_mapped);
 #endif
     std::swap(h_data, from.h_data);
     }
@@ -549,6 +611,15 @@ template<class T> void GPUArray<T>::allocate()
     if (m_num_elements == 0)
         return;
 
+#ifdef ENABLE_CUDA
+    // we require mapped pinned memory
+    if (m_mapped && !m_exec_conf->dev_prop.canMapHostMemory) 
+        {
+        m_exec_conf->msg->error() << "Device does not support mapped pinned memory." << std::endl << std::endl;
+        throw std::runtime_error("Error allocating GPUArray.");
+        }
+#endif
+
     if (m_exec_conf)
         m_exec_conf->msg->notice(7) << "GPUArray: Allocating " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
 
@@ -562,10 +633,19 @@ template<class T> void GPUArray<T>::allocate()
         {
         void *ptr = NULL;
         posix_memalign(&ptr, getpagesize(), m_num_elements*sizeof(T));
-        cudaHostRegister(ptr,m_num_elements*sizeof(T), cudaHostRegisterDefault);
+        cudaHostRegister(ptr,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
         h_data = (T *) ptr;
-        cudaMalloc(&d_data, m_num_elements*sizeof(T));
-        CHECK_CUDA_ERROR();
+
+        if (m_mapped)
+            {
+            cudaHostGetDevicePointer(&d_data, h_data, 0);
+            CHECK_CUDA_ERROR();
+            }
+        else
+            {
+            cudaMalloc(&d_data, m_num_elements*sizeof(T));
+            CHECK_CUDA_ERROR();
+            }
         }
     else
         {
@@ -597,8 +677,11 @@ template<class T> void GPUArray<T>::deallocate()
         cudaHostUnregister(h_data);
         CHECK_CUDA_ERROR();
         free(h_data);
-        cudaFree(d_data);
-        CHECK_CUDA_ERROR();
+        if (! m_mapped)
+            {
+            cudaFree(d_data);
+            CHECK_CUDA_ERROR();
+            }
         }
     else
         {
@@ -637,7 +720,7 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
             memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
 
         assert(d_data);
-        if (m_data_location == data_location::device || m_data_location == data_location::hostdevice )
+        if (! m_mapped && (m_data_location == data_location::device || m_data_location == data_location::hostdevice) )
             cudaMemset(d_data+first, 0, (m_num_elements-first)*sizeof(T));
         }
 #endif
@@ -652,7 +735,14 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
     // don't do anything if there are no elements
     if (m_num_elements == 0)
         return;
-        
+    
+    if (m_mapped)
+        {
+        // if we are using mapped pinned memory, no need to copy, only synchronize
+        cudaDeviceSynchronize();
+        return;
+        }
+
     m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host" <<  std::endl;
     if (async)
         cudaMemcpyAsync(h_data, d_data, sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost);
@@ -670,7 +760,15 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
     // don't do anything if there are no elements
     if (m_num_elements == 0)
         return;
-        
+
+    if (m_mapped)
+        {
+        // if we are using mapped pinned memory, no need to copy
+        // rely on CUDA's implicit synchronization
+        return;
+        }
+
+       
     m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device" <<  std::endl;
     if (async)
         cudaMemcpyAsync(d_data, h_data, sizeof(T)*m_num_elements, cudaMemcpyHostToDevice);
@@ -868,7 +966,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         {
         void *ptr = NULL;
         posix_memalign(&ptr, getpagesize(), num_elements*sizeof(T));
-        cudaHostRegister(ptr, num_elements*sizeof(T), cudaHostRegisterDefault);
+        cudaHostRegister(ptr, num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
         h_tmp = (T *) ptr;
         }
     else
@@ -903,6 +1001,13 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 #endif
 
     h_data = h_tmp;
+
+#ifdef ENABLE_CUDA
+    // update device pointer
+    if (m_mapped)
+        cudaHostGetDevicePointer(&d_data, h_data, 0);
+#endif        
+
     return h_data;
     }
 
@@ -914,6 +1019,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
     {
     // allocate resized array
     T *h_tmp = NULL;
+
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
@@ -958,6 +1064,13 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 #endif
 
     h_data = h_tmp;
+
+#ifdef ENABLE_CUDA
+    // update device pointer
+    if (m_mapped)
+        cudaHostGetDevicePointer(&d_data, h_data, 0);
+#endif        
+
     return h_data;
     }
 
@@ -968,6 +1081,8 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     {
 #ifdef ENABLE_CUDA
+    if (m_mapped) return NULL;
+
     // allocate resized array
     T *d_tmp;
     cudaMalloc(&d_tmp, num_elements*sizeof(T));
@@ -1002,6 +1117,8 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
 template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsigned int new_pitch, unsigned int height, unsigned int new_height)
     {
 #ifdef ENABLE_CUDA
+    if (m_mapped) return NULL;
+
     // allocate resized array
     T *d_tmp;
     cudaMalloc(&d_tmp, new_pitch*new_height*sizeof(T));
