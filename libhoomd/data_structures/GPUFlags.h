@@ -259,13 +259,19 @@ template<class T> void GPUFlags<T>::allocate()
         {
         if (m_mapped)
             {
-            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocMapped);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), sizeof(T));
+            h_data = (T *) ptr;
+            cudaHostRegister(h_data, sizeof(T), cudaHostRegisterMapped);
             cudaHostGetDevicePointer(&d_data, h_data, 0);
             CHECK_CUDA_ERROR();
             }
         else
             {
-            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocDefault);
+            void *ptr = NULL;
+            posix_memalign(&ptr, getpagesize(), sizeof(T));
+            h_data = (T *) ptr;
+            cudaHostRegister(h_data, sizeof(T), cudaHostRegisterDefault);
             cudaMalloc(&d_data, sizeof(T));
             CHECK_CUDA_ERROR();
             }
@@ -292,7 +298,8 @@ template<class T> void GPUFlags<T>::deallocate()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
-        cudaFreeHost(h_data);
+        cudaHostUnregister(h_data);
+        free(h_data);
         if (!m_mapped)
             cudaFree(d_data);
         CHECK_CUDA_ERROR();
