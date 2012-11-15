@@ -436,16 +436,6 @@ void CellList::computeCellList()
         int jb = (int)(f.y * m_dim.y);
         int kb = (int)(f.z * m_dim.z);
         
-#ifdef ENABLE_MPI
-        if (n >= m_pdata->getN())
-            {
-            // if a ghost particle is out of bounds, silently ignore it
-
-            if (ib < 0 || ib >= (int) m_dim.x || jb < 0 || jb >= (int)m_dim.y || kb < 0 || kb >= (int)m_dim.z)
-                continue;
-            }
-#endif
-
         // need to handle the case where the particle is exactly at the box hi
         if (ib == (int)m_dim.x)
             ib = 0;
@@ -462,7 +452,9 @@ void CellList::computeCellList()
         // check if the particle is inside the dimensions
         if (bin >= ci.getNumElements())
             {
-            conditions.z = n+1;
+            // if a ghost particle is out of bounds, silently ignore it
+            if (n < m_pdata->getN())
+                conditions.z = n+1;
             continue;
             }
 

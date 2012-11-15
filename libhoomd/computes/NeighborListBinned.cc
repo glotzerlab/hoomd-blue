@@ -175,16 +175,16 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos,ghost_width);
-        unsigned int ib = (unsigned int)(f.x * dim.x);
-        unsigned int jb = (unsigned int)(f.y * dim.y);
-        unsigned int kb = (unsigned int)(f.z * dim.z);
+        int ib = (unsigned int)(f.x * dim.x);
+        int jb = (unsigned int)(f.y * dim.y);
+        int kb = (unsigned int)(f.z * dim.z);
 
         // need to handle the case where the particle is exactly at the box hi
-        if (ib == dim.x)
+        if (ib == (int)dim.x)
             ib = 0;
-        if (jb == dim.y)
+        if (jb == (int)dim.y)
             jb = 0;
-        if (kb == dim.z)
+        if (kb == (int)dim.z)
             kb = 0;
             
         // identify the bin
@@ -202,8 +202,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
                
-                if (m_storage_mode == half && i > (int)cur_neigh) continue;
-
                 Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
 
                 Scalar3 dx = my_pos - neigh_pos;
@@ -231,13 +229,16 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     {
                     if (cur_neigh < nparticles || !compute_ghost_nlist)
                         {
-                        // local neighbor
-                        if (cur_n_neigh < m_nlist_indexer.getH())
-                            h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
-                        else
-                            conditions = max(conditions, cur_n_neigh+1);
+                        if (m_storage_mode == full || i < (int)cur_neigh)
+                            {
+                            // local neighbor
+                            if (cur_n_neigh < m_nlist_indexer.getH())
+                                h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
+                            else
+                                conditions = max(conditions, cur_n_neigh+1);
 
-                        cur_n_neigh++;
+                            cur_n_neigh++;
+                            }
                         }
                     else 
                         {
