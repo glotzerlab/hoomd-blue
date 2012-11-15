@@ -67,6 +67,10 @@ using namespace boost;
 
 #include <iostream>
 #include <stdexcept>
+
+#include <algorithm>
+#include <boost/iterator/zip_iterator.hpp>
+
 using namespace std;
 
 /*! \file BondData.cc
@@ -635,7 +639,6 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
         }
 
     assert(snapshot.type_id.size() == getNumBondsGlobal());
-    assert(snapshot.type_mapping.size() == 0);
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -705,8 +708,7 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
             }
         }
 
-    for (unsigned int i = 0; i < m_n_bond_types; i++)
-        snapshot.type_mapping.push_back(m_bond_type_mapping[i]);
+    snapshot.type_mapping = m_bond_type_mapping;
 
     }
 
@@ -788,6 +790,21 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
     setBondTypeMapping(type_mapping);
     }
 
+typedef boost::zip_iterator< boost::tuple < uint2 *,
+                                            unsigned int *,
+                                            unsigned int *,
+                                            unsigned int *
+                                          >
+                            > zipiter;
+
+struct remove_pred
+    {
+    bool operator() (zipiter::reference const x) const
+        {
+        return x.get<3>();
+        }
+    };
+
 //! Unpack a buffer with new bonds to be added, and remove bonds according to a mask
 /*! \post The bond data is initialized with the new buffer content, and bonds marked for
           removal are removed. The remove mask may be modified, if during unpacking it 
@@ -812,58 +829,21 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
         {
         // make room for new bonds
         unsigned int old_size = m_bonds.size();
-        unsigned int max_size = old_size + num_add_bonds;
+        unsigned int size = old_size;
 
-        m_bonds.resize(max_size);
-        m_bond_type.resize(max_size);
-        m_tags.resize(max_size);
+        m_bonds.resize(size+num_add_bonds);
+        m_bond_type.resize(size+num_add_bonds);
+        m_tags.resize(size+num_add_bonds);
 
             {
             ArrayHandle<uint2> h_bonds(m_bonds, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_bond_rtag(m_bond_rtag, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_bond_tag(m_tags, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_bond_type(m_bond_type, access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_remove_mask(remove_mask, access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_remove_mask(remove_mask, access_location::host, access_mode::read);
 
             const bond_element *recv_buf = buf.getHostPointer();
-
-            // first add received bonds at the end
-            unsigned int added_bonds = 0;
-            for (unsigned int recv_idx = 0; recv_idx < num_add_bonds; ++recv_idx)
-                {
-                const bond_element& el = recv_buf[recv_idx];
-                unsigned int tag = el.tag;
-
-                // ignore duplicates
-                unsigned int bond_idx = h_bond_rtag.data[tag];
-                if (bond_idx != BOND_NOT_LOCAL)
-                    {
-                    assert(bond_idx < max_size);
-                    // if this is a duplicate of a local bond that is to be removed,
-                    // keep the local bond, but count as received nevertheless
-                    if (bond_idx < old_size)
-                        if (h_remove_mask.data[bond_idx]) 
-                            {
-                            h_remove_mask.data[bond_idx] = 0;
-                            added_bonds++;
-                            }
-
-                    continue;
-                    }
-
-                h_bonds.data[old_size+added_bonds] = el.bond;
-                h_bond_type.data[old_size+added_bonds] = el.type;
-
-                h_bond_tag.data[old_size+added_bonds] = tag;
-                h_bond_rtag.data[tag] = old_size+added_bonds;
-                added_bonds++;
-                }
-            
-            unsigned int n_fetch_bond = 0;
-
-            max_size -= (num_add_bonds - added_bonds);
-
-            // now remove bonds according to mask, backfilling with bonds from the end
+            // reset rtag of removed particles
             for (unsigned int bond_idx = 0; bond_idx < old_size; ++bond_idx)
                 {
                 if (h_remove_mask.data[bond_idx])
@@ -872,35 +852,54 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
                     unsigned int old_tag = h_bond_tag.data[bond_idx];
                     assert(old_tag < m_num_bonds_global);
                     h_bond_rtag.data[old_tag] = BOND_NOT_LOCAL;
-
-                    if (bond_idx <  max_size -  num_remove_bonds)
-                        {
-                        // fetch a bond from the end
-                        unsigned int n;
-                        do {
-                            n = max_size - 1 - n_fetch_bond++;
-                            assert(n >= max_size - 1 - num_remove_bonds);
-                        } while (h_remove_mask.data[n]);
-
-                        uint2 bond = h_bonds.data[n];
-                        unsigned int type = h_bond_type.data[n];
-                        unsigned int tag = h_bond_tag.data[n];
-
-                        h_bonds.data[bond_idx] = bond;
-                        h_bond_type.data[bond_idx] = type;
-                        h_bond_tag.data[bond_idx] = tag;
-
-                        // update rtag
-                        h_bond_rtag.data[tag] = bond_idx;
-                        }
                     }
                 }
-            }
+           
+            zipiter i(boost::make_tuple(h_bonds.data,
+                                        h_bond_type.data,
+                                        h_bond_tag.data,
+                                        h_remove_mask.data));
+            zipiter e = i+old_size;
 
-        unsigned int new_size = max_size - num_remove_bonds;
-        m_bonds.resize(new_size);
-        m_bond_type.resize(new_size);
-        m_tags.resize(new_size);
+            unsigned int num_bonds_removed =  e - std::remove_if(i,e,remove_pred());
+           
+            assert(num_bonds_removed == num_remove_bonds);
+
+            size -= num_bonds_removed;
+
+            // add received bonds at the end
+            unsigned int num_bonds_added = 0;
+            for (unsigned int recv_idx = 0; recv_idx < num_add_bonds; ++recv_idx)
+                {
+                const bond_element& el = recv_buf[recv_idx];
+                unsigned int tag = el.tag;
+
+                // ignore duplicates
+                unsigned int bond_idx = h_bond_rtag.data[tag];
+                if (bond_idx != BOND_NOT_LOCAL)
+                    continue;
+
+                h_bonds.data[size+num_bonds_added] = el.bond;
+                h_bond_type.data[size+num_bonds_added] = el.type;
+
+                h_bond_tag.data[size+num_bonds_added] = tag;
+                num_bonds_added++;
+                }
+           
+            // udpate rtags
+            size += num_bonds_added;
+
+            for (unsigned int bond_idx = 0; bond_idx < size; ++bond_idx)
+                {
+                unsigned int tag = h_bond_tag.data[bond_idx];
+                assert(tag < m_num_bonds_global);
+                h_bond_rtag.data[tag] = bond_idx;
+                }
+            }
+           
+        m_bonds.resize(size);
+        m_bond_type.resize(size);
+        m_tags.resize(size);
         }
     }
 
