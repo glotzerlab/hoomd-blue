@@ -796,10 +796,10 @@ class bond_data:
     ## \internal
     # \brief Get a bond_proxy reference to the bond with id \a id
     # \param id Bond id to access
-    def __getitem__(self, id):
+    def __getitem__(self, tag):
         if id >= len(self) or id < 0:
             raise IndexError;
-        return bond_data_proxy(self.bdata, id);
+        return bond_data_proxy(self.bdata, tag);
     
     ## \internal
     # \brief Set a bond's properties
@@ -822,12 +822,12 @@ class bond_data:
     ## \internal
     # \brief Get the number of bonds
     def __len__(self):
-        return self.bdata.getNumBonds();
+        return self.bdata.getNumBondsGlobal();
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNumBonds(), self.bdata.getNBondTypes());
+        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNumBondsGlobal(), self.bdata.getNBondTypes());
         return result
     
     ## \internal
@@ -858,15 +858,13 @@ class bond_data_proxy:
     #
     # \param bdata BondData to which this proxy belongs
     # \param id index of this bond in \a bdata (at time of proxy creation)
-    def __init__(self, bdata, id):
+    def __init__(self, bdata, tag):
         self.bdata = bdata;
-        self.tag = self.bdata.getBondTag(id);
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        result += "tag          : " + str(self.tag) + "\n";
         result += "typeid       : " + str(self.typeid) + "\n";
         result += "a            : " + str(self.a) + "\n"
         result += "b            : " + str(self.b) + "\n"
@@ -877,16 +875,16 @@ class bond_data_proxy:
     # \brief Translate attribute accesses into the low level API function calls
     def __getattr__(self, name):
         if name == "a":
-            bond = self.bdata.getBondByTag(self.tag);
+            bond = self.bdata.getBondByTag(tag);
             return bond.a;
         if name == "b":
-            bond = self.bdata.getBondByTag(self.tag);
+            bond = self.bdata.getBondByTag(tag);
             return bond.b;
         if name == "typeid":
-            bond = self.bdata.getBondByTag(self.tag);
+            bond = self.bdata.getBondByTag(tag);
             return bond.type;
         if name == "type":
-            bond = self.bdata.getBondByTag(self.tag);
+            bond = self.bdata.getBondByTag(tag);
             typeid = bond.type;
             return self.bdata.getNameByType(typeid);
 
