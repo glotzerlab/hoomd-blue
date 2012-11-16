@@ -70,6 +70,7 @@ using namespace boost;
 
 #include <algorithm>
 #include <boost/iterator/zip_iterator.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 using namespace std;
 
@@ -1049,7 +1050,11 @@ void export_BondData()
         .def_readonly("a", &Bond::a)
         .def_readonly("b", &Bond::b)
         ;
-    
+
+    class_< std::vector<uint2> >("std_vector_uint2")
+    .def(vector_indexing_suite<std::vector<uint2> >())
+    ; 
+
     class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<shared_ptr<ParticleData>, unsigned int>())
     .def("getNumBonds", &BondData::getNumBonds)
     .def("getNumBondsGlobal", &BondData::getNumBondsGlobal)
