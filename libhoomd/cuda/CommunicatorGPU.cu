@@ -728,7 +728,7 @@ void gpu_send_bonds(const unsigned int n_bonds,
 
     unsigned int block_size = 512;
     
-    gpu_send_bonds_kernel<<<n_particles/block_size+1,block_size>>>(n_bonds,
+    gpu_send_bonds_kernel<<<n_bonds/block_size+1,block_size>>>(n_bonds,
                           n_particles,
                           d_bonds,
                           d_bond_type,

@@ -685,25 +685,27 @@ void Communicator::migrateAtoms()
                 m_bond_recv_buf.resize(new_size);
                 }
 
-            // exchange actual particle data
-            ArrayHandle<bond_element> h_bond_send_buf(m_bond_send_buf, access_location::host, access_mode::read);
-            ArrayHandle<bond_element> h_bond_recv_buf(m_bond_recv_buf, access_location::host, access_mode::overwrite);
+                {
+                // exchange actual particle data
+                ArrayHandle<bond_element> h_bond_send_buf(m_bond_send_buf, access_location::host, access_mode::read);
+                ArrayHandle<bond_element> h_bond_recv_buf(m_bond_recv_buf, access_location::host, access_mode::overwrite);
 
-            MPI_Isend(h_bond_send_buf.data,
-                      n_send_bonds*sizeof(bond_element),
-                      MPI_BYTE,
-                      send_neighbor,
-                      1,
-                      m_mpi_comm,
-                      & reqs[0]);
-            MPI_Irecv(h_bond_recv_buf.data,
-                      n_recv_bonds*sizeof(bond_element),
-                      MPI_BYTE,
-                      recv_neighbor,
-                      1,
-                      m_mpi_comm,
-                      & reqs[1]);
-            MPI_Waitall(2, reqs, status);
+                MPI_Isend(h_bond_send_buf.data,
+                          n_send_bonds*sizeof(bond_element),
+                          MPI_BYTE,
+                          send_neighbor,
+                          1,
+                          m_mpi_comm,
+                          & reqs[0]);
+                MPI_Irecv(h_bond_recv_buf.data,
+                          n_recv_bonds*sizeof(bond_element),
+                          MPI_BYTE,
+                          recv_neighbor,
+                          1,
+                          m_mpi_comm,
+                          & reqs[1]);
+                MPI_Waitall(2, reqs, status);
+                }
 
             // unpack data
             bdata->unpackRemoveBonds(n_recv_bonds,

@@ -121,5 +121,9 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
                              unsigned int *d_bond_tag,
                              unsigned int *d_bond_rtag,
                              unsigned int *d_n_fetch_ptl);
+
+void gpu_update_bond_rtags(unsigned int *d_bond_rtag,
+                           const unsigned int *d_bond_tag,
+                           const unsigned int num_bonds);
 #endif
 

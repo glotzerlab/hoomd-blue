@@ -283,25 +283,26 @@ __global__ void gpu_mark_recv_bond_duplicates_kernel(const unsigned int n_bonds,
     const bond_element& el = recv_bonds[recv_idx];
     unsigned int tag = el.tag;
    
-    // stage the particle 
+    // stage the bond
     unsigned int rtag = atomicMin(&bond_rtag[tag], (unsigned int) BOND_NOT_LOCAL-1);
+
+    bool duplicate = false;
 
     if (rtag != BOND_NOT_LOCAL)
         {
-        recv_bond_active[recv_idx] = 0;
-        bool keep = false;
+        bool remove = false;
         if (rtag < n_bonds)
-            {
-            // if this is a duplicate of a local bond that is to be removed, keep the local bond
-            if (atomicExch(&bond_remove_mask[rtag],0))
-                keep = true;
-            }
+            remove = bond_remove_mask[rtag];
 
-        // only count as duplicate if it was received more than once
-        if (!keep) atomicInc(n_duplicate_recv_bonds, 0xffffffff);
+        // if the bond is a duplicate of a local bond which is not removed, mark it
+        if (! remove)
+            {
+            duplicate = true;
+            atomicInc(n_duplicate_recv_bonds, 0xffffffff);
+            }
         }
-    else
-        recv_bond_active[recv_idx] = 1;
+
+    recv_bond_active[recv_idx] = duplicate ? 0 : 1;
     }
 
 void gpu_mark_recv_bond_duplicates(const unsigned int n_bonds,
@@ -351,11 +352,7 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
         {
         replace = remove_mask[bond_idx];
 
-        // if this bond is to be removed, reset its reverse-lookup tag
-
-        // there is a potential race condition, if a tag is first removed and then received
-        // again in the same step. To cope with this situation, duplicates of local bonds
-        // must be properly marked
+        // reset rtag
         if (replace) bond_rtag[bond_tag[bond_idx]] = BOND_NOT_LOCAL;
         }
     
@@ -380,9 +377,7 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
 
             bonds[bond_idx] = el.bond;
             bond_type[bond_idx] = el.type;
-            unsigned int tag = el.tag;
-            bond_tag[bond_idx] = tag;
-            bond_rtag[tag] = bond_idx;
+            bond_tag[bond_idx] = el.tag;
             }
         else
             {
@@ -391,19 +386,20 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
 
             // we should not normally read past the end of the array, if the number
             // of removed particles correctly reflects the number of remove flags set
-            while (remove)  {
+            while (remove) {
+                // reset rtags as we go
+                bond_rtag[bond_tag[fetch_idx]] = BOND_NOT_LOCAL;
+
                 n = atomicInc(n_fetch_bond, 0xffffffff);
+
                 fetch_idx = new_nbonds + (n - n_recv_bonds);
                 remove = remove_mask[fetch_idx];
-                }
+                };
 
             // backfill with a bond from the end
             bonds[bond_idx] = bonds[fetch_idx];
             bond_type[bond_idx] = bond_type[fetch_idx];
-
-            unsigned int tag = bond_tag[fetch_idx];
-            bond_tag[bond_idx] = tag;
-            bond_rtag[tag] = bond_idx;
+            bond_tag[bond_idx] = bond_tag[fetch_idx];
             }
          } // if replace
     }
@@ -425,7 +421,9 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
     
     cudaMemsetAsync(d_n_fetch_bond, 0, sizeof(unsigned int));
 
-    gpu_fill_bondtable_kernel<<<(old_n_bonds+n_unique_recv_bonds)/block_size+1,block_size>>>(
+    unsigned int end = old_n_bonds + n_unique_recv_bonds;
+
+    gpu_fill_bondtable_kernel<<<end/block_size+1,block_size>>>(
         old_n_bonds,
         n_recv_bonds,
         n_unique_recv_bonds,
@@ -440,4 +438,24 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
         d_n_fetch_bond);
     }
 
+__global__ void gpu_update_bond_rtags_kernel(unsigned int *bond_rtag,
+                                      const unsigned int *bond_tag,
+                                      const unsigned int num_bonds)
+    {
+    unsigned int bond_idx = blockIdx.x*blockDim.x + threadIdx.x;
 
+    if (bond_idx >= num_bonds) return;
+
+    bond_rtag[bond_tag[bond_idx]] = bond_idx;
+    }
+
+void gpu_update_bond_rtags(unsigned int *d_bond_rtag,
+                           const unsigned int *d_bond_tag,
+                           const unsigned int num_bonds)
+    {
+    unsigned int block_size = 512;
+
+    gpu_update_bond_rtags_kernel<<<num_bonds/block_size+1, block_size>>>(d_bond_rtag,
+                                                                         d_bond_tag,
+                                                                         num_bonds);
+    }

@@ -991,6 +991,14 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
     m_bonds.resize(new_size);
     m_bond_type.resize(new_size);
     m_tags.resize(new_size);
+
+    // update bond idx lookup table
+    gpu_update_bond_rtags(d_bond_rtag.data,
+                          d_bond_tag.data,
+                          m_bonds.size());
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     }
 
 #endif
