@@ -209,14 +209,53 @@ const Bond BondData::getBondByTag(unsigned int tag) const
     {
     // Find position of bond in bonds list
     unsigned int bond_idx = m_bond_rtag[tag];
-    if (bond_idx == BOND_NOT_LOCAL)
+
+    uint2 b;
+    unsigned int bond_type;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        m_exec_conf->msg->error() << "Trying to get bond tag " << tag << " which does not exist!" << endl;
-        throw runtime_error("Error getting bond");
+        // set local to rank if the bond is local, -1 if not
+        int rank = bond_idx < m_bonds.size() ? (int) m_exec_conf->getRank() : -1;
+
+        // the largest rank owning the bond sends it to the others
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &rank,
+                      1,
+                      MPI_INT,
+                      MPI_MAX,
+                      m_exec_conf->getMPICommunicator());
+
+        if (rank == -1)
+            {
+            m_exec_conf->msg->error() << "Trying to get bond tag " << tag << " which does not exist!" << endl;
+            throw runtime_error("Error getting bond");
+            }
+
+        if (rank == (int)m_exec_conf->getRank())
+            {
+            b = m_bonds[bond_idx];
+            bond_type = m_bond_type[bond_idx];
+            }
+
+        bcast(b, rank, m_exec_conf->getMPICommunicator());
+        bcast(bond_type, rank, m_exec_conf->getMPICommunicator());
+        }        
+    else
+#endif
+        {
+        if (bond_idx == BOND_NOT_LOCAL)
+            {
+            m_exec_conf->msg->error() << "Trying to get bond tag " << tag << " which does not exist!" << endl;
+            throw runtime_error("Error getting bond");
+            }
+
+        b = m_bonds[bond_idx];
+        bond_type = m_bond_type[bond_idx];
         }
 
-    uint2 b = m_bonds[bond_idx];
-    Bond bond(m_bond_type[bond_idx], b.x, b.y);
+    Bond bond(bond_type, b.x, b.y);
     return bond;
     }
 
@@ -807,10 +846,11 @@ struct remove_pred
 
 //! Unpack a buffer with new bonds to be added, and remove bonds according to a mask
 /*! \post The bond data is initialized with the new buffer content, and bonds marked for
-          removal are removed. The remove mask may be modified, if during unpacking it 
-          is detected that duplicates of local bonds are received.
-          A compact local bond list is maintained.
- 
+          removal are removed. A compact local bond list is maintained.
+
+    \warning The number of bonds to be removed must equal the number of flags set,
+             otherwise undefined behavior will result
+
     unpackRemoveBonds() detects duplicate bond tags in the buffer and discards them.
  */
 void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
