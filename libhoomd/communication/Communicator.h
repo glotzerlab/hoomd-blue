@@ -219,10 +219,14 @@ class Communicator
             {
             assert(ghost_width > 0);
             Scalar3 L= m_pdata->getBox().getL();
-            if (ghost_width >= L.x/Scalar(2.0) || ghost_width >= L.y/Scalar(2.0) || ghost_width >= L.z/Scalar(2.0))
+            const Index3D& di = m_decomposition->getDomainIndexer();
+            if ((ghost_width >= L.x/Scalar(2.0) && di.getW() > 1) ||
+                (ghost_width >= L.y/Scalar(2.0) && di.getH() > 1) ||
+                (ghost_width >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
                 m_exec_conf->msg->error() << "Simulation box too small for ghost layer." << std::endl
-                                          << "Try fewer processors or reduce pair potential cut-off." << std::endl;
+                                          << "Try fewer processors or reduce pair potential cut-off."  << std::endl
+                                          << std::endl;
                 throw std::runtime_error("Error setting up Communicator");
                 }
             m_r_ghost = ghost_width;

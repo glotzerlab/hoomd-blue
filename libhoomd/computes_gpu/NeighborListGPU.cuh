@@ -84,6 +84,8 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
 //! Kernel driver for gpu_compute_nlist_nsq_kernel()
 cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   unsigned int *d_n_neigh,
+                                  unsigned int *d_ghost_nlist,
+                                  unsigned int *d_n_ghost_neigh,
                                   float4 *d_last_updated_pos,
                                   unsigned int *d_conditions,
                                   const Index2D& nli,
@@ -91,7 +93,8 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const unsigned int N,
                                   const unsigned int n_ghost,
                                   const BoxDim& box,
-                                  const float r_maxsq);
+                                  const float r_maxsq,
+                                  bool compute_ghost);
 
 //! GPU function to update the exclusion list on the device
 cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,

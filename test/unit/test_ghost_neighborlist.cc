@@ -1,10 +1,61 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #ifdef ENABLE_MPI
 
 //! name the boost unit test module
 #define BOOST_TEST_MODULE NeighborListGhostTests
-#include "boost_utf_configure.h"
 
-#include "ExecutionConfiguration.h"
+// this has to be included after naming the test module
+#include "MPITestSetup.h"
+
 #include "System.h"
 
 #include <boost/shared_ptr.hpp>
@@ -25,8 +76,6 @@
 
 using namespace boost;
 
-char env_str[] = "MV2_USE_CUDA=1";
-
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef boost::function<shared_ptr<Communicator> (shared_ptr<SystemDefinition> sysdef,
                                                   shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
@@ -37,20 +86,10 @@ shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefini
 #ifdef ENABLE_CUDA
 shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                   shared_ptr<DomainDecomposition> decomposition);
-
-//! Excution Configuration for GPU
-/* For MPI libraries that directly support CUDA, it is required that
-   CUDA be initialized before setting up the MPI environmnet. This
-   global variable stores the ExecutionConfiguration for GPU, which is
-   initialized once
-*/
-boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
 #endif
 
-//! Execution configuration on the CPU
-boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
-
 //! Test that ghost particles are correctly included in the neighborlist
+template<class nlist_class>
 void test_neighborlist_ghosts(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on two processors
@@ -111,24 +150,12 @@ void test_neighborlist_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     // each box should have two ghosts
     BOOST_CHECK_EQUAL(pdata->getNGhosts(), 2);
 
-    shared_ptr<CellList> cell_list;
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        cell_list = shared_ptr<CellList>(new CellListGPU(sysdef));
-    else
-#endif
-        cell_list = shared_ptr<CellList>(new CellList(sysdef));
-
     Scalar r_cut=Scalar(0.25);
     Scalar r_buff=Scalar(0.05);
 
     shared_ptr<NeighborList> nlist;
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        nlist = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef,r_cut,r_buff,cell_list));
-    else
-#endif
-        nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef,r_cut,r_buff,cell_list));
+
+    nlist = shared_ptr<NeighborList>(new nlist_class(sysdef,r_cut,r_buff));
 
     // compute neighbor list
     nlist->compute(0);
@@ -190,6 +217,7 @@ void test_neighborlist_ghosts(communicator_creator comm_creator, shared_ptr<Exec
         }
     }
 
+template<class nlist_class>
 void test_neighborlist_compare(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
     {
     unsigned int n = 1000;
@@ -251,25 +279,13 @@ void test_neighborlist_compare(communicator_creator comm_creator, shared_ptr<Exe
     comm->exchangeGhosts();
 
     // Set up cell & neighbor lists for both systems
-    shared_ptr<CellList> cell_list_1, cell_list_2;
-    cell_list_1 = shared_ptr<CellList>(new CellList(sysdef_1));
-    cell_list_2 = shared_ptr<CellList>(new CellList(sysdef_2));
-
     Scalar r_cut=Scalar(0.2);
     Scalar r_buff=Scalar(0.05);
 
     shared_ptr<NeighborList> nlist_1, nlist_2;
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
         {
-        nlist_1 = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef_1,r_cut,r_buff,cell_list_1));
-        nlist_2 = shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef_2,r_cut,r_buff,cell_list_2));
-        } 
-    else
-#endif
-        {
-        nlist_1 = shared_ptr<NeighborList>(new NeighborListBinned(sysdef_1,r_cut,r_buff,cell_list_1));
-        nlist_2 = shared_ptr<NeighborList>(new NeighborListBinned(sysdef_2,r_cut,r_buff,cell_list_2));
+        nlist_1 = shared_ptr<NeighborList>(new nlist_class(sysdef_1,r_cut,r_buff));
+        nlist_2 = shared_ptr<NeighborList>(new nlist_class(sysdef_2,r_cut,r_buff));
 
         // for this test we need NeighborList::StorageMode full
         nlist_1->setStorageMode(NeighborList::full);
@@ -392,67 +408,54 @@ shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> s
     }
 #endif
 
-//! Fixture to setup and tear down MPI
-struct MPISetup
+BOOST_AUTO_TEST_CASE( nsq_neighborlist_ghosts_test )
     {
-    //! Setup
-    MPISetup()
-        {
-        int argc = boost::unit_test::framework::master_test_suite().argc;
-        char **argv = boost::unit_test::framework::master_test_suite().argv;
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_neighborlist_ghosts<NeighborList>(communicator_creator_base, exec_conf_cpu);
+    }
 
-#ifdef ENABLE_CUDA
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
-#endif
-        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
+BOOST_AUTO_TEST_CASE( nsq_neighborlist_compare_test )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_neighborlist_compare<NeighborList>(communicator_creator_base, exec_conf_cpu);
+    } 
 
-        int provided;
-        #ifdef ENABLE_MPI_CUDA
-        putenv(env_str);
-        #endif
-        MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
-#ifdef ENABLE_CUDA
-        exec_conf_gpu->setMPICommunicator(MPI_COMM_WORLD);
-        exec_conf_gpu->setCUDAErrorChecking(true);
-#endif
-        exec_conf_cpu->setMPICommunicator(MPI_COMM_WORLD);
-        }
-
-    //! Cleanup
-    ~MPISetup()
-        {
-        MPI_Finalize();
-        }
-
-    };
-
-BOOST_GLOBAL_FIXTURE( MPISetup )
-//! Tests particle distribution
 BOOST_AUTO_TEST_CASE( neighborlist_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_neighborlist_ghosts(communicator_creator_base, exec_conf_cpu);
+    test_neighborlist_ghosts<NeighborListBinned>(communicator_creator_base, exec_conf_cpu);
     }
 
 BOOST_AUTO_TEST_CASE( neighborlist_compare_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_neighborlist_compare(communicator_creator_base, exec_conf_cpu);
+    test_neighborlist_compare<NeighborListBinned>(communicator_creator_base, exec_conf_cpu);
     } 
 
 #ifdef ENABLE_CUDA
-//! Tests particle distribution on GPU
+BOOST_AUTO_TEST_CASE( nsq_neighborlist_ghosts_test_GPU )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_neighborlist_ghosts<NeighborListGPU>(communicator_creator_base, exec_conf_gpu);
+    }
+
+BOOST_AUTO_TEST_CASE( nsq_neighborlist_compare_test_GPU )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_neighborlist_compare<NeighborListGPU>(communicator_creator_base, exec_conf_gpu);
+    }
+
 BOOST_AUTO_TEST_CASE( neighborlist_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_neighborlist_ghosts(communicator_creator_base, exec_conf_gpu);
+    test_neighborlist_ghosts<NeighborListGPUBinned>(communicator_creator_base, exec_conf_gpu);
     }
 
 BOOST_AUTO_TEST_CASE( neighborlist_compare_test_GPU )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_neighborlist_compare(communicator_creator_base, exec_conf_gpu);
+    test_neighborlist_compare<NeighborListGPUBinned>(communicator_creator_base, exec_conf_gpu);
     } 
 #endif
 

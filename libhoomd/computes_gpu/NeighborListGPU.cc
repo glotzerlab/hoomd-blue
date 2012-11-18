@@ -142,6 +142,15 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     // access the nlist data arrays
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_ghost_nlist(m_ghost_nlist, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_ghost_neigh, access_location::device, access_mode::overwrite);
+    bool compute_ghost_nlist = false;
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        compute_ghost_nlist = true;
+#endif
+
+
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
     // start by creating a temporary copy of r_cut sqaured
@@ -153,6 +162,8 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 
     gpu_compute_nlist_nsq(d_nlist.data,
                           d_n_neigh.data,
+                          d_ghost_nlist.data,
+                          d_n_ghost_neigh.data,
                           d_last_pos.data,
                           m_conditions.getDeviceFlags(),
                           m_nlist_indexer,
@@ -160,7 +171,8 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
                           m_pdata->getN(),
                           m_pdata->getNGhosts(),
                           box,
-                          rmaxsq);
+                          rmaxsq,
+                          compute_ghost_nlist);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

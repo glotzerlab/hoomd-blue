@@ -989,10 +989,23 @@ void NeighborList::buildNlist(unsigned int timestep)
     // access the nlist data
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_n_ghost_neigh(m_n_ghost_neigh, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_ghost_nlist(m_ghost_nlist, access_location::host, access_mode::overwrite);
+
+    bool compute_ghost_nlist = false;
+
+    #ifdef ENABLE_MPI
+    compute_ghost_nlist = m_pdata->getDomainDecomposition();
+    #endif
+   
+    assert(!m_pdata->getNGhosts() || compute_ghost_nlist);
+
     unsigned int conditions = 0;
 
     // start by clearing the entire list
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    if (compute_ghost_nlist)
+        memset(h_n_ghost_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
     
     // now we can loop over all particles in n^2 fashion and build the list
 #pragma omp parallel for schedule(dynamic, 100)
@@ -1033,17 +1046,17 @@ void NeighborList::buildNlist(unsigned int timestep)
                     {
                     #pragma omp critical
                         {
-                        unsigned int posi = h_n_neigh.data[i];
-                        if (posi < m_Nmax)
-                            h_nlist.data[m_nlist_indexer(i, posi)] = j;
-                        else
-                            conditions = max(conditions, h_n_neigh.data[i]+1);
-                        
-                        h_n_neigh.data[i]++;
-                       
-                        if (j < m_pdata->getN())
+                        if (j < m_pdata->getN() || !compute_ghost_nlist)
                             {
-                            // only store in particle j's neighbor list if it is not a ghost particle
+                            // local neighbor
+                            unsigned int posi = h_n_neigh.data[i];
+                            if (posi < m_Nmax)
+                                h_nlist.data[m_nlist_indexer(i, posi)] = j;
+                            else
+                                conditions = max(conditions, h_n_neigh.data[i]+1);
+                            
+                            h_n_neigh.data[i]++;
+                           
                             unsigned int posj = h_n_neigh.data[j];
                             if (posj < m_Nmax)
                                 h_nlist.data[m_nlist_indexer(j, posj)] = i;
@@ -1052,18 +1065,44 @@ void NeighborList::buildNlist(unsigned int timestep)
 
                             h_n_neigh.data[j]++;
                             }
+                        else
+                            {
+                            // ghost neighbor
+                            unsigned int posi = h_n_ghost_neigh.data[i];
+                            if (posi < m_Nmax)
+                                h_ghost_nlist.data[m_nlist_indexer(i, posi)] = j;
+                            else
+                                conditions = max(conditions, h_n_ghost_neigh.data[i]+1);
+                            
+                            h_n_ghost_neigh.data[i]++;
+                            } 
                         }
                     }
                 else
                     {
-                    unsigned int pos = h_n_neigh.data[i];
-                    
-                    if (pos < m_Nmax)
-                        h_nlist.data[m_nlist_indexer(i, pos)] = j;
+                    if (j < m_pdata->getN() || ! compute_ghost_nlist)
+                        {
+                        // local neighbor
+                        unsigned int pos = h_n_neigh.data[i];
+                        
+                        if (pos < m_Nmax)
+                            h_nlist.data[m_nlist_indexer(i, pos)] = j;
+                        else
+                            conditions = max(conditions, h_n_neigh.data[i]+1);
+                        
+                        h_n_neigh.data[i]++;
+                        }
                     else
-                        conditions = max(conditions, h_n_neigh.data[i]+1);
-                    
-                    h_n_neigh.data[i]++;
+                        {
+                        // ghost neighbor
+                        unsigned int pos = h_n_ghost_neigh.data[i];
+                        if (pos < m_Nmax)
+                            h_ghost_nlist.data[m_nlist_indexer(i, pos)] = j;
+                        else
+                            conditions = max(conditions, h_n_ghost_neigh.data[i]+1);
+                        
+                        h_n_ghost_neigh.data[i]++;
+                        }
                     }
                 }
             }
