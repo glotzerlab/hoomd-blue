@@ -559,37 +559,21 @@ void ParticleGroup::rebuildIndexList()
 #endif
         {
 
-        // start by rebuilding the membership flags for the  indices in the group
-        // it needs to be cleared first
+        // rebuild the membership flags for the  indices in the group and construct member list
         ArrayHandle<unsigned char> h_is_member(m_is_member, access_location::host, access_mode::readwrite);
-        for (unsigned int idx = 0; idx < m_pdata->getN(); idx ++)
-            h_is_member.data[idx] = 0;
-
-
-        // then loop through every particle in the group and set its flag
-            {
-            ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
-            for (unsigned int member_idx = 0; member_idx < m_member_tags.getNumElements(); member_idx++)
-                {
-                if (m_pdata->isParticleLocal(h_member_tags.data[member_idx]))
-                    {
-                    unsigned int idx = m_pdata->getRTag(h_member_tags.data[member_idx]);
-                    assert(idx < m_pdata->getN());
-                    h_is_member.data[idx] = 1;
-                    }
-                }
-            }
-
-
-        // then loop through the flags and add indices to the index list
-        ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::readwrite);
-        unsigned int cur_member = 0;
+        ArrayHandle<unsigned char> h_is_member_tag(m_is_member_tag, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_member_idx(m_member_idx, access_location::host, access_mode::readwrite);
         unsigned int nparticles = m_pdata->getN();
-        for (unsigned int idx = 0; idx < nparticles; idx++)
+        unsigned int cur_member = 0;
+        for (unsigned int idx = 0; idx < nparticles; idx ++)
             {
-            if (h_is_member.data[idx])
+            assert(h_tag.data[idx] < m_pdata->getNGlobal());
+            unsigned char is_member = h_is_member_tag.data[h_tag.data[idx]];
+            h_is_member.data[idx] =  is_member;
+            if (is_member)
                 {
-                h_handle.data[cur_member] = idx;
+                h_member_idx.data[cur_member] = idx;
                 cur_member++;
                 }
             }
