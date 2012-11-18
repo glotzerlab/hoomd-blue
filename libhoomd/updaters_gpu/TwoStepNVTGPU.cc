@@ -102,7 +102,7 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumLocalMembers();
+    unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
     
@@ -147,7 +147,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumLocalMembers();
+    unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
     

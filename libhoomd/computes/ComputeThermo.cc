@@ -192,7 +192,7 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
 */
 void ComputeThermo::computeProperties()
     {
-    unsigned int group_size = m_group->getNumLocalMembers();
+    unsigned int group_size = m_group->getNumMembers();
     // just drop out if the group is an empty group
     if (group_size == 0)
         return;

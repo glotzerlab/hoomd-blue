@@ -86,7 +86,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
 #ifdef ENABLE_CUDA
       , m_max_bond_num(0), m_max_ghost_bond_num(0), m_num_bonds_global(0),
-      , m_buffers_initialized(false)
+      m_buffers_initialized(false)
 #endif
     {
     assert(pdata);

@@ -170,7 +170,7 @@ void ConstForceCompute::setGroupForce(boost::shared_ptr<ParticleGroup> group, Sc
         h_force.data[i].w = 0;
         }
 
-    for (unsigned int i = 0; i < group->getNumLocalMembers(); i++)
+    for (unsigned int i = 0; i < group->getNumMembers(); i++)
         {
         // get the index for the current group member
         unsigned int idx = group->getMemberIndex(i);

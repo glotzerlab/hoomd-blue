@@ -107,7 +107,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
  */
 void ComputeThermoGPU::computeProperties()
     {
-    unsigned int group_size = m_group->getNumLocalMembers();
+    unsigned int group_size = m_group->getNumMembers();
     // just drop out if the group is an empty group
     if (group_size == 0)
         return;
@@ -137,7 +137,7 @@ void ComputeThermoGPU::computeProperties()
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // build up args list
-    m_num_blocks = m_group->getNumLocalMembers() / m_block_size + 1;
+    m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     compute_thermo_args args;
     args.d_net_force = d_net_force.data;
     args.d_net_virial = d_net_virial.data;

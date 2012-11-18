@@ -419,9 +419,9 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         set_union(h_members_a.data,
-                  h_members_a.data + a->getNumMembers(),
+                  h_members_a.data + a->getNumMembersGlobal(),
                   h_members_b.data,
-                  h_members_b.data + b->getNumMembers(),
+                  h_members_b.data + b->getNumMembersGlobal(),
                   ii);
         }
     else
@@ -432,7 +432,7 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         std::copy(h_members_a.data,
-                  h_members_a.data + a->getNumMembers(),
+                  h_members_a.data + a->getNumMembersGlobal(),
                   ii);          
         }
 
@@ -465,9 +465,9 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         set_intersection(h_members_a.data,
-                         h_members_a.data + a->getNumMembers(),
+                         h_members_a.data + a->getNumMembersGlobal(),
                          h_members_b.data,
-                         h_members_b.data + b->getNumMembers(),
+                         h_members_b.data + b->getNumMembersGlobal(),
                          ii);
         }
     else
@@ -478,7 +478,7 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         std::copy(h_members_a.data,
-                  h_members_a.data + a->getNumMembers(),
+                  h_members_a.data + a->getNumMembersGlobal(),
                   ii);          
         }
 
@@ -509,9 +509,9 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
 
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         set_difference(h_members_a.data,
-                  h_members_a.data + a->getNumMembers(),
+                  h_members_a.data + a->getNumMembersGlobal(),
                   h_members_b.data,
-                  h_members_b.data + b->getNumMembers(),
+                  h_members_b.data + b->getNumMembersGlobal(),
                   ii);
         }
     else
@@ -614,7 +614,7 @@ void export_ParticleGroup()
             ("ParticleGroup", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector> >())
             .def(init<boost::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
             .def(init<>())
-            .def("getNumMembers", &ParticleGroup::getNumMembers)
+            .def("getNumMembersGlobal", &ParticleGroup::getNumMembersGlobal)
             .def("getMemberTag", &ParticleGroup::getMemberTag)
             .def("getTotalMass", &ParticleGroup::getTotalMass)
             .def("getCenterOfMass", &ParticleGroup::getCenterOfMass)

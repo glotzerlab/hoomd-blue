@@ -123,7 +123,7 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getNumLocalMembers();
+    unsigned int group_size = m_group->getNumMembers();
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -178,7 +178,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
         
-        unsigned int group_size = m_group->getNumLocalMembers();
+        unsigned int group_size = m_group->getNumMembers();
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU

@@ -171,7 +171,7 @@ Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int times
 void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     {
 #ifdef ENABLE_MPI
-    unsigned int group_size = m_group->getNumLocalMembers();
+    unsigned int group_size = m_group->getNumMembers();
 #else
     unsigned int group_size = m_group->getNumMembers();
 #endif

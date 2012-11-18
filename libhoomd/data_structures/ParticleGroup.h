@@ -222,7 +222,7 @@ class ParticleGroup
         //! Get the number of members in the group
         /*! \returns The number of particles that belong to this group
         */
-        unsigned int getNumMembers() const
+        unsigned int getNumMembersGlobal() const
             {
             return (unsigned int)m_member_tags.getNumElements();
             }
@@ -230,31 +230,31 @@ class ParticleGroup
         //! Get the number of members that are present on the local processor
         /*! \returns The number of particles on the local processor that belong to this group
         */
-        unsigned int getNumLocalMembers() const
+        unsigned int getNumMembers() const
             {
             return m_num_local_members;
             }
 
         //! Get a member from the group
-        /*! \param i Index from 0 to getNumMembers()-1 of the group member to get
+        /*! \param i Index from 0 to getNumMembersGlobal()-1 of the group member to get
             \returns Tag of the member at index \a i
         */
         unsigned int getMemberTag(unsigned int i) const
             {
-            assert(i < getNumMembers());
+            assert(i < getNumMembersGlobal());
             ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
             return h_member_tags.data[i];
             }
             
         //! Get a member index from the group
-        /*! \param j Value from 0 to getNumLocalMembers()-1 of the group member to get
+        /*! \param j Value from 0 to getNumMembers()-1 of the group member to get
             \returns Index of the member at position \a j
             \note getMemberTag(j) \b does \b NOT get the tag of the particle with index getMemberIndex(j). These two
                   lists are stored in different orders. Access the ParticleData to convert between tags and indices.
         */
         unsigned int getMemberIndex(unsigned int j) const
             {
-            assert(j < getNumLocalMembers());
+            assert(j < getNumMembers());
             ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::read);
             unsigned int idx = h_handle.data[j];
             assert(idx < m_pdata->getN());
