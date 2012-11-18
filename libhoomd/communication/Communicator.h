@@ -218,9 +218,13 @@ class Communicator
         void setGhostLayerWidth(Scalar ghost_width)
             {
             assert(ghost_width > 0);
-            assert(ghost_width < m_pdata->getBox().getL().x);
-            assert(ghost_width < m_pdata->getBox().getL().y);
-            assert(ghost_width < m_pdata->getBox().getL().z);
+            Scalar3 L= m_pdata->getBox().getL();
+            if (ghost_width >= L.x/Scalar(2.0) || ghost_width >= L.y/Scalar(2.0) || ghost_width >= L.z/Scalar(2.0))
+                {
+                m_exec_conf->msg->error() << "Simulation box too small for ghost layer." << std::endl
+                                          << "Try fewer processors or reduce pair potential cut-off." << std::endl;
+                throw std::runtime_error("Error setting up Communicator");
+                }
             m_r_ghost = ghost_width;
             }
 

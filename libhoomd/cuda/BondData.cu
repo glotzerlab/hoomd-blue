@@ -51,9 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "BondData.cuh"
-
-#include <thrust/device_ptr.h>
-#include <thrust/extrema.h>
+#include "ParticleData.cuh"
 
 #ifdef WIN32
 #include <cassert>
@@ -92,6 +90,7 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
 
     bool bond_needed = false;
     bool ghost_bond_needed = false;
+    bool missing_ghost = false;
     if (idx1 < N && (idx2 < N || !ghost_bonds))
         {
         unsigned int n = atomicInc(&d_n_bonds[idx1], 0xffffffff);
@@ -107,11 +106,13 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
         {
         unsigned int n = atomicInc(&d_n_ghost_bonds[idx1], 0xffffffff);
         if (n >= cur_ghost_max) ghost_bond_needed = true;
+        missing_ghost |= (idx2 == NOT_LOCAL);
         }
     if (idx2 < N && idx1 >= N && ghost_bonds)
         {
         unsigned int n = atomicInc(&d_n_ghost_bonds[idx2], 0xffffffff);
         if (n >= cur_ghost_max) ghost_bond_needed = true;
+        missing_ghost |= (idx1 == NOT_LOCAL);
         }
 
     if (bond_needed)
@@ -119,6 +120,9 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
 
     if (ghost_bond_needed)
         atomicOr(condition, 2);
+
+    if (missing_ghost)
+        atomicOr(condition, 4);
     }
 
 //! Kernel to fill the GPU bond table

@@ -181,7 +181,7 @@ Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsi
         }
     else
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
+        this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }
@@ -262,7 +262,10 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
         if (ghost && (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL))
             {
             assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
-            this->m_exec_conf->msg->error() << "Found incomplete bond. Try increasing the bond stiffness or reduce number of domains."  << endl << endl;
+            m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " 
+                                      << "Incomplete bond. Maximum allowed bond extension is half the box length." << std::endl
+                                      << "Try fewer processors or increase bond stiffness." << std::endl
+                                      << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
 #endif

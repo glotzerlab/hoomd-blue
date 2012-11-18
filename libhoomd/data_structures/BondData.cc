@@ -421,7 +421,7 @@ void BondData::updateBondTableGPU()
     if (m_pdata->getDomainDecomposition())
         compute_ghost_bonds = true;
 #endif
-    unsigned int need_reallocate = 0;
+    unsigned int condition = 0;
 
     do
         {
@@ -448,20 +448,29 @@ void BondData::updateBondTableGPU()
                 CHECK_CUDA_ERROR();
             }
 
-        need_reallocate = m_condition.readFlags();
+        condition = m_condition.readFlags();
 
-        if (need_reallocate & 1)
+        if (condition & 1)
             {
             // reallocate bond list
             m_gpu_bondlist.resize(m_pdata->getMaxN(), ++m_max_bond_num);
             }
 
-        if (compute_ghost_bonds && (need_reallocate & 2))
+        if (compute_ghost_bonds && (condition & 2))
             {
+            // reallocate ghost bond list
             m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), ++m_max_ghost_bond_num);
             }
+
+        if (condition & 4)
+            {
+            m_exec_conf->msg->error() << "Incomplete bond. Maximum allowed bond extension is half the box length." << std::endl
+                                      << "Try fewer processors or increase bond stiffness."
+                                      << std::endl << std::endl;
+            throw std::runtime_error("Error computing bond table");
+            }
         }
-    while (need_reallocate);
+    while (condition);
 
         {
         ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
