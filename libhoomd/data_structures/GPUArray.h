@@ -360,7 +360,9 @@ template<class T> class GPUArray
 
         // need to be frineds of all the implementations of ArrayHandle and ArrayHandleAsync
         friend class ArrayHandle<T>;
+#ifdef ENABLE_CUDA
         friend class ArrayHandleAsync<T>;
+#endif
     };
 
 //******************************************
@@ -498,8 +500,9 @@ template<class T> GPUArray<T>::~GPUArray()
     }
 
 template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
-        m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), m_mapped(from.m_mapped),
+        m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), 
 #ifdef ENABLE_CUDA
+        m_mapped(from.mapped),
         d_data(NULL),
 #endif
         h_data(NULL),
