@@ -86,8 +86,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \sa export_PotentialPairGPU()
 */
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params),
-                           cudaError_t gpu_igpf()>
+                                                const typename evaluator::param_type *d_params)>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
     public:
@@ -116,9 +115,8 @@ class PotentialPairGPU : public PotentialPair<evaluator>
     };
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params),
-                           cudaError_t gpu_igpf()>
-PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                                const typename evaluator::param_type *d_params)>
+PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
@@ -129,15 +127,11 @@ PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::PotentialPairGPU(boost::share
                   << std::endl;
         throw std::runtime_error("Error initializing PotentialPairGPU");
         }
-
-    // set cache configuration
-    gpu_igpf();
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params),
-                           cudaError_t gpu_igpf()>
-void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned int timestep, bool ghost)
+                                                const typename evaluator::param_type *d_params)>
+void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -185,6 +179,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf, gpu_igpf >::computeForces(unsigned i
                          d_virial.data,
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),
+                         this->m_pdata->getNGhosts(),
                          d_pos.data,
                          d_diameter.data,
                          d_charge.data,

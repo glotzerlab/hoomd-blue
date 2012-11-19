@@ -62,80 +62,47 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairDPDLJThermo.h"
 
-//! init lj pair forces on the gpu with EvaluatorLJ
-cudaError_t gpu_init_ljtemp_forces();
-
-//! init gauss pair forces on the gpu with EvaluatorGauss
-cudaError_t gpu_init_gauss_forces();
-
-//! init slj pair forces on the gpu with EvaluatorShiftedLJ
-cudaError_t gpu_init_slj_forces();
-
-//! init yukawa pair forces on the gpu with EvaluatorYukawa
-cudaError_t gpu_init_yukawa_forces();
-
-//! init morse pair forces on the gpu with EvaluatorMorse
-cudaError_t gpu_init_morse_forces();
-
-//! init dpd thermostat on gpu with EvaluatorDPDThermo 
-cudaError_t gpu_init_dpdthermodpd_forces();
-
-//! init dpd conservative force on gpu with EvaluatorDPDThermo
-cudaError_t gpu_init_dpdthermo_forces();
-
-//! init ewlad pair forces on the gpu with EvaluatorEwald
-cudaError_t gpu_init_ewald_forces();
-                                     
-//! init dpdlj thermostat on gpu with EvaluatorDPDThermo
-cudaError_t gpu_init_dpdljthermodpd_forces();
-
-//! init dpdlj conservative force on gpu with EvaluatorDPDThermo
-cudaError_t gpu_init_dpdljthermo_forces();
-
-//! init force shifted lj pair forces on the gpu with EvaluatorForceShiftedLJ
-cudaError_t gpu_init_force_shifted_lj_forces();
-
-//! compute lj pair forces on the gpu with EvaluatorLJ
+//! Compute lj pair forces on the GPU with PairEvaluatorLJ
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
                                       const float2 *d_params);
 
-//! compute gauss pair forces on the gpu with EvaluatorGauss
+//! Compute gauss pair forces on the GPU with PairEvaluatorGauss
 cudaError_t gpu_compute_gauss_forces(const pair_args_t& pair_args,
                                      const float2 *d_params);
 
-//! compute slj pair forces on the gpu with EvaluatorShiftedLJ
+//! Compute slj pair forces on the GPU with PairEvaluatorGauss
 cudaError_t gpu_compute_slj_forces(const pair_args_t& pair_args,
                                    const float2 *d_params);
 
-//! compute yukawa pair forces on the gpu with EvaluatorYukawa
+//! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
 cudaError_t gpu_compute_yukawa_forces(const pair_args_t& pair_args,
                                       const float2 *d_params);
 
-//! compute morse pair forces on the gpu with EvaluatorMorse
+//! Compute morse pair forces on the GPU with PairEvaluatorMorse
 cudaError_t gpu_compute_morse_forces(const pair_args_t& pair_args,
                                       const float4 *d_params);
 
-//! compute dpd thermostat on gpu with EvaluatorDPDThermo 
+//! Compute dpd thermostat on GPU with PairEvaluatorDPDThermo 
 cudaError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
                                             const float2 *d_params);
 
-//! compute dpd conservative force on gpu with EvaluatorDPDThermo
+//! Compute dpd conservative force on GPU with PairEvaluatorDPDThermo
 cudaError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
                                          const float2 *d_params);
 
-//! compute ewlad pair forces on the gpu with EvaluatorEwald
+//! Compute ewlad pair forces on the GPU with PairEvaluatorEwald
 cudaError_t gpu_compute_ewald_forces(const pair_args_t& pair_args,
                                      const float *d_params);
                                      
-//! compute dpdlj thermostat on gpu with EvaluatorDPDThermo
+//! Compute dpdlj thermostat on GPU with PairEvaluatorDPDThermo
 cudaError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
                                               const float4 *d_params);
 
-//! compute dpdlj conservative force on gpu with EvaluatorDPDThermo
+//! Compute dpdlj conservative force on GPU with PairEvaluatorDPDThermo
 cudaError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
                                            const float4 *d_params);
 
-//! compute force shifted lj pair forces on the gpu with EvaluatorForceShiftedLJ
+//! Compute force shifted lj pair forces on the GPU with PairEvaluatorForceShiftedLJ
 cudaError_t gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
                                                 const float2 *d_params);
 #endif

@@ -66,66 +66,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 
-cudaError_t gpu_init_ljtemp_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairLJ>();
-    }
-
-cudaError_t gpu_init_gauss_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairGauss>();
-    }
-
-cudaError_t gpu_init_slj_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairSLJ>();
-    }
-
-cudaError_t gpu_init_yukawa_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairYukawa>();
-    }
-
-
-cudaError_t gpu_init_morse_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairMorse>();
-    }
-
-cudaError_t gpu_init_dpdthermodpd_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairDPDThermo>();
-    }
-
-
-cudaError_t gpu_init_dpdthermo_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairDPDThermo>();
-    }
-
-
-cudaError_t gpu_init_ewald_forces()
-    {
-    return  gpu_compute_pair_forces_set_cache_config<EvaluatorPairEwald>();
-    }
-
-
-cudaError_t gpu_init_dpdljthermodpd_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairDPDLJThermo>();
-    }
-
-
-cudaError_t gpu_init_dpdljthermo_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairDPDLJThermo>();
-    }
-
-cudaError_t gpu_init_force_shifted_lj_forces()
-    {
-    return gpu_compute_pair_forces_set_cache_config<EvaluatorPairForceShiftedLJ>();
-    }
-
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
                                       const float2 *d_params)
     {

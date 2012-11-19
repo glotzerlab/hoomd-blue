@@ -86,8 +86,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \sa export_PotentialPairDPDThermoGPU()
 */
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params),
-                           cudaError_t gpu_ipdf()>
+                                                const typename evaluator::param_type *d_params) >
 class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
     public:
@@ -115,9 +114,8 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     };
 
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params),
-                           cudaError_t gpu_ipdf()>
-PotentialPairDPDThermoGPU< evaluator, gpu_cpdf, gpu_ipdf >::PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                                const typename evaluator::param_type *d_params) >
+PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : PotentialPairDPDThermo<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
@@ -128,15 +126,11 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf, gpu_ipdf >::PotentialPairDPDTher
                   << std::endl;
         throw std::runtime_error("Error initializing PotentialPairDPDThermoGPU");
         }
-
-    // set cache config
-    gpu_ipdf();
     }
 
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params),
-                           cudaError_t gpu_ipdf()>
-void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf, gpu_ipdf >::computeForces(unsigned int timestep, bool ghost)
+                                                const typename evaluator::param_type *d_params) >
+void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);

@@ -107,27 +107,27 @@ typedef PotentialPair<EvaluatorPairForceShiftedLJ> PotentialPairForceShiftedLJ;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for lj forces on the GPU
-typedef PotentialPairGPU< EvaluatorPairLJ, gpu_compute_ljtemp_forces, gpu_init_ljtemp_forces > PotentialPairLJGPU;
+typedef PotentialPairGPU< EvaluatorPairLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
 //! Pair potential force compute for gaussian forces on the GPU
-typedef PotentialPairGPU< EvaluatorPairGauss, gpu_compute_gauss_forces, gpu_init_gauss_forces > PotentialPairGaussGPU;
+typedef PotentialPairGPU< EvaluatorPairGauss, gpu_compute_gauss_forces > PotentialPairGaussGPU;
 //! Pair potential force compute for slj forces on the GPU
-typedef PotentialPairGPU< EvaluatorPairSLJ, gpu_compute_slj_forces, gpu_init_slj_forces > PotentialPairSLJGPU;
+typedef PotentialPairGPU< EvaluatorPairSLJ, gpu_compute_slj_forces > PotentialPairSLJGPU;
 //! Pair potential force compute for yukawa forces on the GPU
-typedef PotentialPairGPU< EvaluatorPairYukawa, gpu_compute_yukawa_forces, gpu_init_yukawa_forces > PotentialPairYukawaGPU;
+typedef PotentialPairGPU< EvaluatorPairYukawa, gpu_compute_yukawa_forces > PotentialPairYukawaGPU;
 //! Pair potential force compute for ewald forces on the GPU
-typedef PotentialPairGPU< EvaluatorPairEwald, gpu_compute_ewald_forces,gpu_init_ewald_forces > PotentialPairEwaldGPU;
+typedef PotentialPairGPU< EvaluatorPairEwald, gpu_compute_ewald_forces > PotentialPairEwaldGPU;
 //! Pair potential force compute for morse forces on the GPU
-typedef PotentialPairGPU< EvaluatorPairMorse, gpu_compute_morse_forces, gpu_init_morse_forces > PotentialPairMorseGPU;
+typedef PotentialPairGPU< EvaluatorPairMorse, gpu_compute_morse_forces > PotentialPairMorseGPU;
 //! Pair potential force compute for dpd conservative forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces, gpu_init_dpdthermo_forces > PotentialPairDPDGPU;
+typedef PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > PotentialPairDPDGPU;
 //! Pair potential force compute for dpd thermostat and conservative forces on the GPU
-typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces, gpu_init_dpdthermodpd_forces > PotentialPairDPDThermoDPDGPU;
+typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > PotentialPairDPDThermoDPDGPU;
 //! Pair potential force compute for dpdlj conservative forces on the GPU (not intended to be used)
-typedef PotentialPairGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermo_forces, gpu_init_dpdljthermo_forces > PotentialPairDPDLJGPU;
+typedef PotentialPairGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermo_forces > PotentialPairDPDLJGPU;
 //! Pair potential force compute for dpd thermostat and LJ conservative forces on the GPU
-typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermodpd_forces, gpu_init_dpdljthermodpd_forces > PotentialPairDPDLJThermoDPDGPU;
+typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthermodpd_forces > PotentialPairDPDLJThermoDPDGPU;
 //! Pair potential force compute for force shifted LJ on the GPU
-typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, gpu_compute_force_shifted_lj_forces, gpu_init_force_shifted_lj_forces> PotentialPairForceShiftedLJGPU;
+typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, gpu_compute_force_shifted_lj_forces> PotentialPairForceShiftedLJGPU;
 
 #endif
 
