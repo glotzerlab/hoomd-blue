@@ -338,6 +338,21 @@ class BoxDim
             w.y = v.y;
             w.z = v.z;
             }
+
+        //! Check if the displacement is out of bounds
+        /* \param dx The displacement vector
+           \returns True if the displacement exceeds the box length in a direction where periodic
+                    boundary conditions are not applied
+         */
+        HOSTDEVICE bool checkOutOfBounds(Scalar3& dx) const
+            {
+            if (!m_periodic.x && dx.x*dx.x >= m_L.x*m_L.x) return true;
+            if (!m_periodic.y && dx.y*dx.y >= m_L.y*m_L.y) return true;
+            if (!m_periodic.z && dx.z*dx.z >= m_L.z*m_L.z) return true;
+
+            return false;
+            }
+
     private:
         Scalar3 m_lo;      //!< Minimum coords in the box
         Scalar3 m_hi;      //!< Maximum coords in the box

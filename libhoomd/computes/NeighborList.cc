@@ -743,6 +743,12 @@ bool NeighborList::distanceCheck()
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
     Scalar maxsq = delta_max > 0  ? delta_max*delta_max : 0;
 
+    bool boundary_check = false;
+    bool out_of_bounds = false;
+#ifdef ENABLE_MPI
+    boundary_check = m_pdata->getDomainDecomposition();
+#endif
+
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         Scalar3 dx = make_scalar3(h_pos.data[i].x - lambda.x*h_last_pos.data[i].x,
@@ -756,8 +762,21 @@ bool NeighborList::distanceCheck()
             result = true;
             break;
             }
+        if (boundary_check)
+            if (box.checkOutOfBounds(dx))
+                {
+                out_of_bounds = true;
+                break;
+                }
         }
-        
+
+    if (boundary_check && out_of_bounds)
+        {
+        m_exec_conf->msg->error() << "A particle flew farther than the box length between neighbor list builds." << std::endl
+                                  << "I cannot handle this case and will abort." << std::endl << std::endl;
+        throw std::runtime_error("Error checking particle displacements");
+        }
+
     // don't worry about computing flops here, this is fast
     if (m_prof) m_prof->pop();
 
