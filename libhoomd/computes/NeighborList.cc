@@ -745,6 +745,7 @@ bool NeighborList::distanceCheck()
 
     bool boundary_check = false;
     bool out_of_bounds = false;
+    unsigned int out_of_bounds_idx = 0;
 #ifdef ENABLE_MPI
     boundary_check = m_pdata->getDomainDecomposition();
 #endif
@@ -766,14 +767,18 @@ bool NeighborList::distanceCheck()
             if (box.checkOutOfBounds(dx))
                 {
                 out_of_bounds = true;
+                out_of_bounds_idx = i;
                 break;
                 }
         }
 
     if (boundary_check && out_of_bounds)
         {
-        m_exec_conf->msg->error() << "A particle flew farther than the box length between neighbor list builds." << std::endl
-                                  << "I cannot handle this case and will abort." << std::endl << std::endl;
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+        unsigned int tag = h_tag.data[out_of_bounds_idx];
+        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has moved more than one box length"
+                                  << std::endl << "between neighbor list builds."
+                                  << std::endl << std::endl;
         throw std::runtime_error("Error checking particle displacements");
         }
 

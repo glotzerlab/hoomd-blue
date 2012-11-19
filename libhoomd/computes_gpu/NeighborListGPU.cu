@@ -67,12 +67,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param maxshiftsq The maximum drsq a particle can have before an update is needed
     \param lambda Diagonal deformation tensor (for orthorhombic boundaries)
     \param checkn
+    \tparam check_bounds True if we are checking for displacements larger than the box length
     
     gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
     compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
     is set to \a ncheck.
 */
-__global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
+template<bool check_bounds>
+__global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
                                                         const float4 *d_last_pos,
                                                         const float4 *d_pos,
                                                         const unsigned int N,
@@ -97,32 +99,47 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
         dx = box.minImage(dx);
 
         if (dot(dx, dx) >= maxshiftsq)
+            atomicMax(&((*d_result).x), checkn);
+
+        if (check_bounds && box.checkOutOfBounds(dx))
             {
-            *d_result = checkn;
+            atomicMax(&((*d_result).x), checkn+1);
+            (*d_result).y = idx;
             }
         }
     }
 
-cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
+cudaError_t gpu_nlist_needs_update_check_new(uint2 *d_result,
                                              const float4 *d_last_pos,
                                              const float4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
                                              const float maxshiftsq,
                                              const float3 lambda,
-                                             const unsigned int checkn)
+                                             const unsigned int checkn,
+                                             const bool check_bounds)
     {
     unsigned int block_size = 128;
     int n_blocks = N/block_size+1;
-    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size>>>(d_result,
-                                                                      d_last_pos,
-                                                                      d_pos,
-                                                                      N,
-                                                                      box,
-                                                                      maxshiftsq,
-                                                                      lambda,
-                                                                      checkn);
-    
+    if (check_bounds)
+        gpu_nlist_needs_update_check_new_kernel<true><<<n_blocks, block_size>>>(d_result,
+                                                                                d_last_pos,
+                                                                                d_pos,
+                                                                                N,
+                                                                                box,
+                                                                                maxshiftsq,
+                                                                                lambda,
+                                                                                checkn);
+    else
+        gpu_nlist_needs_update_check_new_kernel<false><<<n_blocks, block_size>>>(d_result,
+                                                                                d_last_pos,
+                                                                                d_pos,
+                                                                                N,
+                                                                                box,
+                                                                                maxshiftsq,
+                                                                                lambda,
+                                                                                checkn);
+
     return cudaSuccess;
     }
 
