@@ -464,8 +464,7 @@ void BondData::updateBondTableGPU()
 
         if (condition & 4)
             {
-            m_exec_conf->msg->error() << "Incomplete bond. Maximum allowed bond extension is half the box length." << std::endl
-                                      << "Try fewer processors or increase bond stiffness."
+            m_exec_conf->msg->error() << "bond.*: Incomplete bond detected. Bonds cannot be longer than box length/2."
                                       << std::endl << std::endl;
             throw std::runtime_error("Error computing bond table");
             }

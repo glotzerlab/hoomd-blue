@@ -263,9 +263,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
             {
             assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
             m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " 
-                                      << "Incomplete bond. Maximum allowed bond extension is half the box length." << std::endl
-                                      << "Try fewer processors or increase bond stiffness." << std::endl
-                                      << std::endl;
+                                      << "Incomplete bond detected. Bonds cannot be longer than box length/2."
+                                      << std::endl << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
 #endif
