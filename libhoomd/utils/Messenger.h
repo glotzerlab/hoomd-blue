@@ -361,7 +361,7 @@ class Messenger
             {
             m_shared_filename = fname;
 
-            if (m_mpi_comm)
+            if (m_has_mpi_comm)
                 openSharedFile();
             }
 #endif
