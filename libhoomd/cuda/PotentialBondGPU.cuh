@@ -325,12 +325,6 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
 
     return cudaSuccess;
     }
-
-template<class evaluator>
-cudaError_t gpu_compute_bond_forces_set_cache_config()
-    {
-    return cudaFuncSetCacheConfig(gpu_compute_bond_forces_kernel<evaluator>, cudaFuncCachePreferL1);
-    } 
 #endif
 
 #endif // __POTENTIAL_BOND_GPU_CUH__

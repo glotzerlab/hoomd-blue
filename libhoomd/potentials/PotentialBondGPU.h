@@ -79,8 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
-                                                unsigned int *d_flags),
-                           cudaError_t gpu_igbf() >
+                                                unsigned int *d_flags) >
 class PotentialBondGPU : public PotentialBond<evaluator>
     {
     public:
@@ -110,9 +109,8 @@ class PotentialBondGPU : public PotentialBond<evaluator>
 
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
-                                                unsigned int *d_flags),
-                           cudaError_t gpu_igbf() >
-PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::PotentialBondGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                                unsigned int *d_flags) >
+PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           const std::string& log_suffix)
     : PotentialBond<evaluator>(sysdef, log_suffix), m_block_size(64)
     {
@@ -131,15 +129,12 @@ PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::PotentialBondGPU(boost::share
     GPUArray<unsigned int> flags(1, this->exec_conf);
     m_flags.swap(flags);
 
-    // set cache config
-    gpu_igbf();
     }
 
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
-                                                unsigned int *d_flags),
-                           cudaError_t gpu_igbf()>
-void PotentialBondGPU< evaluator, gpu_cgbf, gpu_igbf >::computeForces(unsigned int timestep, bool ghost)
+                                                unsigned int *d_flags) >
+void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep, bool ghost)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
