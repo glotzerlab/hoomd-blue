@@ -155,7 +155,7 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     else if (quantity == m_logname_list[5])
         {
-        return Scalar(m_group->getNumMembers());
+        return Scalar(m_group->getNumMembersGlobal());
         }
     else if (quantity == m_logname_list[6])
         {
