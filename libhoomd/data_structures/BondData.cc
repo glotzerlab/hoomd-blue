@@ -85,7 +85,8 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
 #ifdef ENABLE_CUDA
-      , m_max_bond_num(0), m_max_ghost_bond_num(0), m_num_bonds_global(0),
+      , m_max_bond_num(0),
+      m_max_ghost_bond_num(0),
       m_buffers_initialized(false)
 #endif
     {
@@ -121,6 +122,8 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     GPUFlags<unsigned int> condition(exec_conf);
     m_condition.swap(condition);
     #endif
+
+    m_num_bonds_global = 0;
     }
 
 BondData::~BondData()
