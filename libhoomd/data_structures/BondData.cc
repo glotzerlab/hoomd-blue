@@ -82,7 +82,8 @@ using namespace std;
     \param n_bond_types Number of bond types in the list
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
-    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
+    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_ghost_bonds_dirty(false),
+      m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
 #ifdef ENABLE_CUDA
       , m_max_bond_num(0),
@@ -205,6 +206,7 @@ unsigned int BondData::addBond(const Bond& bond)
     m_num_bonds_global++;
 
     m_bonds_dirty = true;
+    m_ghost_bonds_dirty = true;
 
 
     return tag;
@@ -325,6 +327,7 @@ void BondData::removeBond(unsigned int tag)
     m_num_bonds_global--;
 
     m_bonds_dirty = true;
+    m_ghost_bonds_dirty = true;
     }
 
 /*! \param bond_type_mapping Mapping array to set
@@ -376,11 +379,13 @@ std::string BondData::getNameByType(unsigned int type)
 
 /*! Updates the bond data on the GPU if needed and returns the data structure needed to access it.
  *
+ * \param ghost True if we are computing the ghost bond table in addition to the regular bond table
+ *
  * \warning The order of bonds in the GPU bond table differs whether it is constructed using
          the GPU implementation of updateBondTableGPU() and the CPU implementation updateBondTable().
          It is therefore unspecified (but in, in any case, deterministic).
 */
-void BondData::checkUpdateBondList()
+void BondData::checkUpdateBondList(bool ghost)
     {
 #ifdef ENABLE_MPI
     // late initialization of ghost bond table
@@ -388,7 +393,7 @@ void BondData::checkUpdateBondList()
         allocateGhostBondTable(1);
 #endif            
 
-    if (m_bonds_dirty)
+    if (m_bonds_dirty || (ghost && m_ghost_bonds_dirty))
         {
         if (m_prof)
             m_prof->push("update btable");
@@ -396,13 +401,15 @@ void BondData::checkUpdateBondList()
 #ifdef ENABLE_CUDA
         // update bond table
         if (exec_conf->isCUDAEnabled())
-            updateBondTableGPU();
+            updateBondTableGPU(ghost);
         else
-            updateBondTable();
+            updateBondTable(ghost);
 #else
         updateBondTable();
 #endif
         m_bonds_dirty = false;
+
+        if (ghost) m_ghost_bonds_dirty = false;
 
         if (m_prof)
             m_prof->pop();
@@ -413,17 +420,14 @@ void BondData::checkUpdateBondList()
 #ifdef ENABLE_CUDA
 /*! Update GPU bond table (GPU version)
 
+    \param ghost True if we are computing the ghost bond table in addition to the regular bond table
+
     \post The bond tag data added via addBond() is translated to bonds based
     on particle index for use in the GPU kernel. This new bond table is then uploaded
     to the device.
 */
-void BondData::updateBondTableGPU()
+void BondData::updateBondTableGPU(bool ghost)
     {
-    bool compute_ghost_bonds = false;
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        compute_ghost_bonds = true;
-#endif
     unsigned int condition = 0;
 
     do
@@ -442,7 +446,7 @@ void BondData::updateBondTableGPU()
                                      m_bonds.size(),
                                      m_pdata->getN(),
                                      d_rtag.data,
-                                     compute_ghost_bonds,
+                                     ghost,
                                      m_max_bond_num,
                                      m_max_ghost_bond_num,
                                      m_condition.getDeviceFlags());
@@ -459,7 +463,7 @@ void BondData::updateBondTableGPU()
             m_gpu_bondlist.resize(m_pdata->getMaxN(), ++m_max_bond_num);
             }
 
-        if (compute_ghost_bonds && (condition & 2))
+        if (ghost && (condition & 2))
             {
             // reallocate ghost bond list
             m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), ++m_max_ghost_bond_num);
@@ -494,7 +498,7 @@ void BondData::updateBondTableGPU()
                              m_gpu_bondlist.getPitch(),
                              m_gpu_ghost_bondlist.getPitch(),
                              m_pdata->getN(),
-                             compute_ghost_bonds);
+                             ghost);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -504,18 +508,14 @@ void BondData::updateBondTableGPU()
 
 /*! Update the GPU bond table (CPU version)
 
+    \param ghost True if we are computing the ghost bond table in addition to the regular bond table
+ 
     \post The bond tag data added via addBond() is translated to bonds based
     on particle index for use in the GPU kernel. This new bond table is then uploaded
     to the device.
 */
-void BondData::updateBondTable()
+void BondData::updateBondTable(bool ghost)
     {
-    bool compute_ghost_bonds = false;
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        compute_ghost_bonds = true;
-#endif
- 
     ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     unsigned int num_bonds_max = 0;
@@ -527,7 +527,7 @@ void BondData::updateBondTable()
         // count the number of bonds per particle
         // start by initializing the n_bonds values to 0
         memset(h_n_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
-        if (compute_ghost_bonds)
+        if (ghost)
             memset(h_n_ghost_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
 
         unsigned int N = m_pdata->getN();
@@ -540,15 +540,15 @@ void BondData::updateBondTable()
             unsigned int idx2 = h_rtag.data[tag2];
 
             // first count only local bond members
-            if (idx1 < N && (idx2 < N || !compute_ghost_bonds))
+            if (idx1 < N && (idx2 < N || !ghost))
                 h_n_bonds.data[idx1]++;
-            if (idx2 < N && (idx1 < N || !compute_ghost_bonds))
+            if (idx2 < N && (idx1 < N || !ghost))
                 h_n_bonds.data[idx2]++;
 
             // then local particles bonded to ghost particles
-            if (idx1 < N && idx2 >= N && compute_ghost_bonds)
+            if (idx1 < N && idx2 >= N && ghost) 
                 h_n_ghost_bonds.data[idx1]++;
-            if (idx2 < N && idx1 >= N && compute_ghost_bonds)
+            if (idx2 < N && idx1 >= N && ghost)
                 h_n_ghost_bonds.data[idx2]++;
             }
 
@@ -557,7 +557,7 @@ void BondData::updateBondTable()
             {
             if (h_n_bonds.data[i] > num_bonds_max)
                 num_bonds_max = h_n_bonds.data[i];
-            if (compute_ghost_bonds)
+            if (ghost)
                 if (h_n_ghost_bonds.data[i] > num_ghost_bonds_max)
                 num_ghost_bonds_max = h_n_ghost_bonds.data[i];
  
@@ -570,7 +570,7 @@ void BondData::updateBondTable()
         m_gpu_bondlist.resize(m_pdata->getMaxN(), num_bonds_max);
         }
 
-    if (compute_ghost_bonds && num_ghost_bonds_max > m_gpu_ghost_bondlist.getHeight())
+    if (ghost && num_ghost_bonds_max > m_gpu_ghost_bondlist.getHeight())
         {
         m_gpu_ghost_bondlist.resize(m_pdata->getMaxN(), num_ghost_bonds_max);
         }
@@ -585,7 +585,7 @@ void BondData::updateBondTable()
         // now, update the actual table
         // zero the number of bonds counter (again)
         memset(h_n_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
-        if (compute_ghost_bonds)
+        if (ghost)
             memset(h_n_ghost_bonds.data, 0, sizeof(unsigned int) * m_pdata->getN());
 
         // loop through all bonds and add them to each column in the list
@@ -604,25 +604,25 @@ void BondData::updateBondTable()
             // add the new bonds to the table
             // increment the number of bonds
             unsigned int N = m_pdata->getN();
-            if (idx1 < N && (idx2 < N || !compute_ghost_bonds))
+            if (idx1 < N && (idx2 < N || !ghost))
                 {
                 unsigned int num1 = h_n_bonds.data[idx1];
                 h_gpu_bondlist.data[num1*pitch + idx1] = make_uint2(idx2, type);
                 h_n_bonds.data[idx1]++;
                 }
-            if (idx2 < N && (idx1 < N || !compute_ghost_bonds))
+            if (idx2 < N && (idx1 < N || !ghost))
                 {
                 unsigned int num2 = h_n_bonds.data[idx2];
                 h_gpu_bondlist.data[num2*pitch + idx2] = make_uint2(idx1, type);
                 h_n_bonds.data[idx2]++;
                 }
-            if (idx1 < N && idx2 >= N && compute_ghost_bonds)
+            if (idx1 < N && idx2 >= N && ghost)
                 {
                 unsigned int num1 = h_n_ghost_bonds.data[idx1];
                 h_gpu_ghost_bondlist.data[num1*ghost_pitch + idx1] = make_uint2(idx2, type);
                 h_n_ghost_bonds.data[idx1]++;
                 }
-            if (idx2 < N && idx1 >= N && compute_ghost_bonds)
+            if (idx2 < N && idx1 >= N && ghost)
                 {
                 unsigned int num2 = h_n_ghost_bonds.data[idx2];
                 h_gpu_ghost_bondlist.data[num2*ghost_pitch + idx2] = make_uint2(idx1, type);

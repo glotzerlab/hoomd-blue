@@ -293,9 +293,17 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 void Integrator::computeNetForce(unsigned int timestep)
     {
 #ifdef ENABLE_MPI
-    // begin with concurrent communication of ghost positions
+    bool concurrent_ghost_update = false;
     if (m_pdata->getDomainDecomposition())
+        {
+        // begin with communication of ghost positions
         m_comm->startGhostsUpdate(timestep);
+
+        concurrent_ghost_update = m_comm->usesThreads();
+        // if we are not using threads, communicate ghosts in one batch
+        if (! concurrent_ghost_update)
+            m_comm->finishGhostsUpdate(timestep);
+        }
 #endif
 
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
@@ -303,7 +311,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         (*force_compute)->compute(timestep);
 
 #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
+    if (m_pdata->getDomainDecomposition() && concurrent_ghost_update)
         {
         // wait for ghost communication to finish
         m_comm->finishGhostsUpdate(timestep);
@@ -469,9 +477,19 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
  
 #ifdef ENABLE_MPI
-    // begin with concurrent communication of ghost positions
+    bool concurrent_ghost_update = false;
+
     if (m_pdata->getDomainDecomposition())
+        {
+        // begin with communication of ghost positions
+        concurrent_ghost_update = m_comm->usesThreads();
+ 
         m_comm->startGhostsUpdate(timestep);
+
+        // if we are not using threads, communicate ghosts in one batch
+        if (! concurrent_ghost_update)
+            m_comm->finishGhostsUpdate(timestep);
+        }
 #endif
 
     // compute all the normal forces first
@@ -481,7 +499,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         (*force_compute)->compute(timestep);
 
 #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
+    if (m_pdata->getDomainDecomposition() && concurrent_ghost_update)
         {
         // wait for ghost communication to finish
         m_comm->finishGhostsUpdate(timestep);

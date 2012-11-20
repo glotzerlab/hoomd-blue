@@ -89,8 +89,8 @@ using namespace std;
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
-      m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
-      m_dist_check(true)
+      m_storage_mode(half), m_ghosts_partial(false), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
+      m_force_update(true), m_dist_check(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -114,28 +114,20 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_every = 0;
     m_Nmax = 0;
     m_exclusions_set = false;
+    m_first_update = true;
 
-    // allocate m_n_neigh and m_last_pos
-    GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
-    m_n_neigh.swap(n_neigh);
-
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        GPUArray<unsigned int> n_ghost_neigh(m_pdata->getMaxN(), exec_conf);
-        m_n_ghost_neigh.swap(n_ghost_neigh);
-        }
-#endif
-    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
-    m_last_pos.swap(last_pos);
-   
+ 
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getL();
 
     // allocate conditions flags
     GPUFlags<unsigned int> conditions(exec_conf);
     m_conditions.swap(conditions);
-    
+
+    // allocate m_last_pos
+    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
+    m_last_pos.swap(last_pos);
+   
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
     GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
@@ -147,9 +139,6 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_ex_list_idx.swap(ex_list_idx);
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), 1);
     m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), 1);
-    
-    // allocate nlist array
-    allocateNlist();
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
 
@@ -165,23 +154,26 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
  */
 void NeighborList::reallocate()
     {
-    m_n_neigh.resize(m_pdata->getMaxN());
+
     m_last_pos.resize(m_pdata->getMaxN());
     m_n_ex_idx.resize(m_pdata->getMaxN());
     unsigned int ex_list_height = m_ex_list_indexer.getH();
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
-    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
 
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
+    if (! m_nlist.isNull())
+        {
+        m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
+        m_n_neigh.resize(m_pdata->getMaxN());
+        }
+
+    if (! m_ghost_nlist.isNull())
         {
         m_ghost_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
         m_n_ghost_neigh.resize(m_pdata->getMaxN());
         }
-#endif
     }
 
 NeighborList::~NeighborList()
@@ -206,6 +198,14 @@ void NeighborList::compute(unsigned int timestep)
         return;
         
     if (m_prof) m_prof->push("Neighbor");
+
+    if (m_first_update)
+        {
+        // we need to allocate late, because some initialization (ghost neighbor list)
+        // on flags that are set only shortly before compute() is called for the first time
+        allocateNlist();
+        m_first_update = false;
+        }
 
     // update the exclusion data if this is a forced update
     if (m_force_update)
@@ -1016,19 +1016,11 @@ void NeighborList::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> h_n_ghost_neigh(m_n_ghost_neigh, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_ghost_nlist(m_ghost_nlist, access_location::host, access_mode::overwrite);
 
-    bool compute_ghost_nlist = false;
-
-    #ifdef ENABLE_MPI
-    compute_ghost_nlist = m_pdata->getDomainDecomposition();
-    #endif
-   
-    assert(!m_pdata->getNGhosts() || compute_ghost_nlist);
-
     unsigned int conditions = 0;
 
     // start by clearing the entire list
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
-    if (compute_ghost_nlist)
+    if (m_ghosts_partial)
         memset(h_n_ghost_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
     
     // now we can loop over all particles in n^2 fashion and build the list
@@ -1070,7 +1062,7 @@ void NeighborList::buildNlist(unsigned int timestep)
                     {
                     #pragma omp critical
                         {
-                        if (j < m_pdata->getN() || !compute_ghost_nlist)
+                        if (j < m_pdata->getN() || !m_ghosts_partial)
                             {
                             // local neighbor
                             unsigned int posi = h_n_neigh.data[i];
@@ -1104,7 +1096,7 @@ void NeighborList::buildNlist(unsigned int timestep)
                     }
                 else
                     {
-                    if (j < m_pdata->getN() || ! compute_ghost_nlist)
+                    if (j < m_pdata->getN() || ! m_ghosts_partial)
                         {
                         // local neighbor
                         unsigned int pos = h_n_neigh.data[i];
@@ -1232,7 +1224,7 @@ void NeighborList::filterNlist()
         }
 
 #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
+    if (m_ghosts_partial)
         {
         // filter ghost neighbor list, too
         for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
@@ -1285,28 +1277,29 @@ void NeighborList::allocateNlist()
 
     if (m_nlist.isNull())
         {
-        // allocate the memory
+        // allocate m_n_neigh
+        GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
+        m_n_neigh.swap(n_neigh);
+
         GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
         m_nlist.swap(nlist);
 
-#ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
+        if (m_ghosts_partial)
             {
+            GPUArray<unsigned int> n_ghost_neigh(m_pdata->getMaxN(), exec_conf);
+            m_n_ghost_neigh.swap(n_ghost_neigh);
+     
             GPUArray<unsigned int> ghost_nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
             m_ghost_nlist.swap(ghost_nlist);
             }
-#endif
         }
     else
         {
         // reallocate
         m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
-#ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
+
+        if (m_ghosts_partial)
             m_ghost_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
-            }
-#endif
         }
 
     // update the indexer
@@ -1374,6 +1367,9 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(rmax);
         m_comm->setRBuff(m_r_buff);
+
+        m_ghosts_partial = m_comm->usesThreads();
+
         }
     }
 

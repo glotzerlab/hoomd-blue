@@ -285,16 +285,18 @@ class BondData : boost::noncopyable
             }
 
         //! Access the bonds on the GPU
-        const GPUArray<uint2>& getGPUBondList()
+        /*! \param ghost True if the ghost bond list should be precomputed
+         */
+        const GPUArray<uint2>& getGPUBondList(bool ghost=false)
             {
-            checkUpdateBondList();
+            checkUpdateBondList(ghost);
             return m_gpu_bondlist;
             }
        
         //! Access the ghost bond list on the GPU
         const GPUArray<uint2> & getGPUGhostBondList()
             {
-            checkUpdateBondList();
+            checkUpdateBondList(true);
             return m_gpu_ghost_bondlist;
             }
 
@@ -318,6 +320,7 @@ class BondData : boost::noncopyable
     private:
         const unsigned int m_n_bond_types;              //!< Number of bond types
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
+        bool m_ghost_bonds_dirty;                       //!< True if the ghost bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
         boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
         GPUVector<uint2> m_bonds;                       //!< List of bonds (x: tag a, y: tag b)
@@ -341,6 +344,7 @@ class BondData : boost::noncopyable
         void setDirty()
             {
             m_bonds_dirty = true;
+            m_ghost_bonds_dirty = true;
             }
             
         GPUArray<uint2> m_gpu_bondlist;         //!< List of bonds on the GPU
@@ -365,14 +369,14 @@ class BondData : boost::noncopyable
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
         //! Helper function to update the bond table on the device
-        void updateBondTableGPU();
+        void updateBondTableGPU(bool ghost);
 #endif
 
         //! Helper function to check and update the GPU bondlist
-        void checkUpdateBondList();
+        void checkUpdateBondList(bool ghost=false);
 
         //! Helper function to update the GPU bond table
-        void updateBondTable();
+        void updateBondTable(bool ghost);
 
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);

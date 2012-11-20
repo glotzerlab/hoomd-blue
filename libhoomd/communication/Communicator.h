@@ -303,6 +303,13 @@ class Communicator
          */
         virtual void exchangeGhosts();
 
+        /*! Returns true if the ghost update uses multi-threading
+         */
+        virtual bool usesThreads()
+            {
+            return false;
+            }
+
     protected:
         //! Set size of a packed data element
         /*! \param size size of data element (in bytes)

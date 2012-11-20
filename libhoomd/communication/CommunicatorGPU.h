@@ -188,6 +188,17 @@ class CommunicatorGPU : public Communicator
          */
         virtual void exchangeGhosts();
 
+        /*! Returns true if the ghost update uses multi-threading
+         */
+        virtual bool usesThreads()
+            {
+            #ifdef ENABLE_MPI_CUDA
+            return false;
+            #else
+            return true;
+            #endif
+            }
+         
         //@}
 
     protected:

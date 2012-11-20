@@ -145,12 +145,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
   
-    bool compute_ghost_nlist = false;
-
-#ifdef ENABLE_MPI
-    compute_ghost_nlist = m_pdata->getDomainDecomposition();
-#endif
-
     ArrayHandle<unsigned int> h_ghost_nlist(m_ghost_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ghost_neigh(m_n_ghost_neigh, access_location::host, access_mode::overwrite);
 
@@ -227,7 +221,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 
                 if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {
-                    if (cur_neigh < nparticles || !compute_ghost_nlist)
+                    if (cur_neigh < nparticles || !m_ghosts_partial)
                         {
                         if (m_storage_mode == full || i < (int)cur_neigh)
                             {
@@ -256,7 +250,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         
         h_n_neigh.data[i] = cur_n_neigh;
        
-        if (compute_ghost_nlist)
+        if (m_ghosts_partial)
             h_n_ghost_neigh.data[i] = cur_n_ghost_neigh;
         }
    

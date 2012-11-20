@@ -144,12 +144,6 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_ghost_nlist(m_ghost_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_ghost_neigh, access_location::device, access_mode::overwrite);
-    bool compute_ghost_nlist = false;
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        compute_ghost_nlist = true;
-#endif
-
 
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
@@ -172,7 +166,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
                           m_pdata->getNGhosts(),
                           box,
                           rmaxsq,
-                          compute_ghost_nlist);
+                          m_ghosts_partial);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -282,7 +276,7 @@ void NeighborListGPU::filterNlist()
                      m_block_size_filter);
   
 #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
+    if (m_ghosts_partial)
         {
         // filter ghost neighbors
         ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_ghost_neigh, access_location::device, access_mode::readwrite);

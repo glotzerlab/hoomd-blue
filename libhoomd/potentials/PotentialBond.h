@@ -237,6 +237,13 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
     ArrayHandle<uint2> h_bonds(m_bond_data->getBondTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_type(m_bond_data->getBondTypes(), access_location::host, access_mode::read);
 
+    bool ghosts_partial = false;
+
+#ifdef ENABLE_MPI
+    // if using threads, we do a partial force computation due to ghosts in a second call
+    if (m_comm) ghosts_partial = m_comm->usesThreads();
+#endif
+
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
     unsigned int nparticles = m_pdata->getN();
@@ -253,19 +260,24 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
         unsigned int idx_b = h_rtag.data[bond.y];
 
 #ifdef ENABLE_MPI
-        if (ghost && (idx_a < nparticles && idx_b < nparticles))
-            continue;
-
-        if (!ghost && (idx_a >= nparticles || idx_b >= nparticles))
-            continue;
-
-        if (ghost && (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL))
+        if (ghosts_partial)
             {
-            assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
-            m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " 
-                                      << "Incomplete bond detected. Bonds cannot be longer than box length/2."
-                                      << std::endl << std::endl;
-            throw std::runtime_error("Error in bond calculation");
+            if (ghost)
+                {
+                if (idx_a < nparticles && idx_b < nparticles) continue;
+                }
+            else
+                if (idx_a >= nparticles || idx_b >= nparticles) continue;
+               
+
+            if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
+                {
+                assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
+                m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " 
+                                          << "Incomplete bond detected. Bonds cannot be longer than box length/2."
+                                          << std::endl << std::endl;
+                throw std::runtime_error("Error in bond calculation");
+                }
             }
 #endif
 

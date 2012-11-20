@@ -396,6 +396,7 @@ class NeighborList : public Compute
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
         bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
         storageMode m_storage_mode; //!< The storage mode
+        bool m_ghosts_partial;          //!< Set to true if there should be a separate neighbor list for ghosts
         
         Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list
         GPUArray<unsigned int> m_nlist;      //!< Neighbor list data
@@ -442,6 +443,7 @@ class NeighborList : public Compute
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
+        bool m_first_update;            //!< True if the arrays are not yet completely initialized
         
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_last_checked_tstep; //!< Track the last time step we have checked

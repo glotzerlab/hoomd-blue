@@ -152,9 +152,13 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
+    bool ghosts_partial = false;
+#ifdef ENABLE_MPI
+    if (this->m_comm) ghosts_partial = this->m_comm->usesThreads();
+#endif
         {
         const GPUArray<uint2>& gpu_bond_list = ghost ? this->m_bond_data->getGPUGhostBondList() :
-                                                       this->m_bond_data->getGPUBondList();
+                                                       this->m_bond_data->getGPUBondList(ghosts_partial);
 
         ArrayHandle<uint2> d_gpu_bondlist(gpu_bond_list, access_location::device, access_mode::read);
         ArrayHandle<unsigned int > d_gpu_n_bonds(ghost ? this->m_bond_data->getNGhostBondsArray() :
