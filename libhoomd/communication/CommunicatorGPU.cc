@@ -261,8 +261,7 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost update" << std::endl;
 
-    if (m_prof)
-        m_prof->push("copy_ghosts");
+    if (m_prof) m_prof->push(m_exec_conf, "copy_ghosts");
 
 #ifndef ENABLE_MPI_CUDA
     // create a worker thread for ghost updates
@@ -407,7 +406,7 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
 
 #endif // ENABLE_MPI_CUDA
 
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 //! Finish ghost communication
@@ -416,7 +415,7 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
     if (timestep < m_next_ghost_update)
         return;
 
-    if (m_prof) m_prof->push("copy_ghosts");
+    if (m_prof) m_prof->push(m_exec_conf,"copy_ghosts");
 
 #ifndef ENABLE_MPI_CUDA
     // wait for worker thread to finish task
@@ -460,7 +459,7 @@ void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
             CHECK_CUDA_ERROR();
         }
 
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void CommunicatorGPU::allocateBuffers()
@@ -702,7 +701,7 @@ void CommunicatorGPU::allocateBuffers()
 void CommunicatorGPU::migrateAtoms()
     {
     if (m_prof)
-        m_prof->push("migrate_particles");
+        m_prof->push(m_exec_conf,"migrate_particles");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
 
@@ -1341,8 +1340,7 @@ void CommunicatorGPU::migrateAtoms()
         } 
 
  
-    if (m_prof)
-        m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // notify ParticleData that addition / removal of particles is complete
     m_pdata->notifyParticleSort();
@@ -1351,8 +1349,7 @@ void CommunicatorGPU::migrateAtoms()
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
 void CommunicatorGPU::exchangeGhosts()
     {
-    if (m_prof)
-        m_prof->push("exchange_ghosts");
+    if (m_prof) m_prof->push(m_exec_conf, "exchange_ghosts");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
     assert(m_r_ghost < (m_pdata->getBox().getL().x));
@@ -1784,8 +1781,7 @@ void CommunicatorGPU::exchangeGhosts()
             CHECK_CUDA_ERROR();
         }
 
-    if (m_prof)
-        m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // we have updated ghost particles, so inform ParticleData about this
     m_pdata->notifyGhostParticleNumberChange();
