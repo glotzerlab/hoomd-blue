@@ -260,18 +260,17 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge
         GPUArray<unsigned int> m_ghost_idx_face;    //!< Indices of particles copied as ghosts via a face
 
+#ifndef ENABLE_MPI_CUDA
         GPUBufferMapped<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions 
         GPUBufferMapped<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions 
         GPUBufferMapped<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions 
         GPUBufferMapped<char> m_update_recv_buf;     //!< Receive buffer for ghost positions 
-
-        #ifndef ENABLE_MPI_CUDA
-        char *h_ghosts_recv_buf;                    //!< Host receive buffer
-        char *h_face_ghosts_buf;                    //!< Host buffer of particles that are sent through a face
-        char *h_edge_ghosts_buf;                    //!< Host buffer of particles that are sent over an edge
-        char *h_corner_ghosts_buf;                  //!< Host buffer of particles that are sent over a corner
-        #endif
-
+#else
+        GPUArray<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions 
+        GPUArray<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions 
+        GPUArray<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions 
+        GPUArray<char> m_update_recv_buf;     //!< Receive buffer for ghost positions 
+#endif
         unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
         unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
         unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
