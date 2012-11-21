@@ -65,9 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Kernel driver for gpu_compute_nlist_binned_new_kernel()
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
-                                     unsigned int *d_ghost_nlist,
                                      unsigned int *d_n_neigh,
-                                     unsigned int *d_n_ghost_neigh,
                                      float4 *d_last_updated_pos,
                                      unsigned int *d_conditions,
                                      const Index2D& nli,
@@ -87,8 +85,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const unsigned int block_size,
                                      bool filter_body,
                                      bool filter_diameter,
-                                     const Scalar3& ghost_width,
-                                     bool compute_ghost_nlist);
+                                     const Scalar3& ghost_width);
 
 //! Kernel driver for gpu_compute_nlist_binned_1x_kernel()
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,

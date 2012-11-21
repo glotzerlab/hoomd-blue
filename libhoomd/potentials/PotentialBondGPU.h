@@ -104,7 +104,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
@@ -134,7 +134,7 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<Syst
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
-void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep, bool ghost)
+void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
@@ -152,17 +152,11 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
-    bool ghosts_partial = false;
-#ifdef ENABLE_MPI
-    if (this->m_comm) ghosts_partial = this->m_comm->usesThreads();
-#endif
         {
-        const GPUArray<uint2>& gpu_bond_list = ghost ? this->m_bond_data->getGPUGhostBondList() :
-                                                       this->m_bond_data->getGPUBondList(ghosts_partial);
+        const GPUArray<uint2>& gpu_bond_list = this->m_bond_data->getGPUBondList();
 
         ArrayHandle<uint2> d_gpu_bondlist(gpu_bond_list, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int > d_gpu_n_bonds(ghost ? this->m_bond_data->getNGhostBondsArray() :
-                                                         this->m_bond_data->getNBondsArray(),
+        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(),
                                                  access_location::device, access_mode::read);
 
         // access the flags array for overwriting
@@ -181,8 +175,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              gpu_bond_list.getPitch(),
                              d_gpu_n_bonds.data,
                              this->m_bond_data->getNBondTypes(),
-                             m_block_size,
-                             ghost),
+                             m_block_size),
                  d_params.data,
                  d_flags.data);
         }

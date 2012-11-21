@@ -89,7 +89,7 @@ using namespace std;
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
-      m_storage_mode(half), m_ghosts_partial(false), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
+      m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
       m_force_update(true), m_dist_check(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
@@ -168,12 +168,6 @@ void NeighborList::reallocate()
         m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
         m_n_neigh.resize(m_pdata->getMaxN());
         }
-
-    if (! m_ghost_nlist.isNull())
-        {
-        m_ghost_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
-        m_n_ghost_neigh.resize(m_pdata->getMaxN());
-        }
     }
 
 NeighborList::~NeighborList()
@@ -201,8 +195,6 @@ void NeighborList::compute(unsigned int timestep)
 
     if (m_first_update)
         {
-        // we need to allocate late, because some initialization (ghost neighbor list)
-        // on flags that are set only shortly before compute() is called for the first time
         allocateNlist();
         m_first_update = false;
         }
@@ -1013,15 +1005,11 @@ void NeighborList::buildNlist(unsigned int timestep)
     // access the nlist data
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_n_ghost_neigh(m_n_ghost_neigh, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_ghost_nlist(m_ghost_nlist, access_location::host, access_mode::overwrite);
 
     unsigned int conditions = 0;
 
     // start by clearing the entire list
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
-    if (m_ghosts_partial)
-        memset(h_n_ghost_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
     
     // now we can loop over all particles in n^2 fashion and build the list
 #pragma omp parallel for schedule(dynamic, 100)
@@ -1062,63 +1050,33 @@ void NeighborList::buildNlist(unsigned int timestep)
                     {
                     #pragma omp critical
                         {
-                        if (j < m_pdata->getN() || !m_ghosts_partial)
-                            {
-                            // local neighbor
-                            unsigned int posi = h_n_neigh.data[i];
-                            if (posi < m_Nmax)
-                                h_nlist.data[m_nlist_indexer(i, posi)] = j;
-                            else
-                                conditions = max(conditions, h_n_neigh.data[i]+1);
-                            
-                            h_n_neigh.data[i]++;
-                           
-                            unsigned int posj = h_n_neigh.data[j];
-                            if (posj < m_Nmax)
-                                h_nlist.data[m_nlist_indexer(j, posj)] = i;
-                            else
-                                conditions = max(conditions, h_n_neigh.data[j]+1);
-
-                            h_n_neigh.data[j]++;
-                            }
-                        else
-                            {
-                            // ghost neighbor
-                            unsigned int posi = h_n_ghost_neigh.data[i];
-                            if (posi < m_Nmax)
-                                h_ghost_nlist.data[m_nlist_indexer(i, posi)] = j;
-                            else
-                                conditions = max(conditions, h_n_ghost_neigh.data[i]+1);
-                            
-                            h_n_ghost_neigh.data[i]++;
-                            } 
-                        }
-                    }
-                else
-                    {
-                    if (j < m_pdata->getN() || ! m_ghosts_partial)
-                        {
-                        // local neighbor
-                        unsigned int pos = h_n_neigh.data[i];
-                        
-                        if (pos < m_Nmax)
-                            h_nlist.data[m_nlist_indexer(i, pos)] = j;
+                        unsigned int posi = h_n_neigh.data[i];
+                        if (posi < m_Nmax)
+                            h_nlist.data[m_nlist_indexer(i, posi)] = j;
                         else
                             conditions = max(conditions, h_n_neigh.data[i]+1);
                         
                         h_n_neigh.data[i]++;
-                        }
-                    else
-                        {
-                        // ghost neighbor
-                        unsigned int pos = h_n_ghost_neigh.data[i];
-                        if (pos < m_Nmax)
-                            h_ghost_nlist.data[m_nlist_indexer(i, pos)] = j;
+                       
+                        unsigned int posj = h_n_neigh.data[j];
+                        if (posj < m_Nmax)
+                            h_nlist.data[m_nlist_indexer(j, posj)] = i;
                         else
-                            conditions = max(conditions, h_n_ghost_neigh.data[i]+1);
-                        
-                        h_n_ghost_neigh.data[i]++;
+                            conditions = max(conditions, h_n_neigh.data[j]+1);
+
+                        h_n_neigh.data[j]++;
                         }
+                    }
+                else
+                    {
+                    unsigned int pos = h_n_neigh.data[i];
+                    
+                    if (pos < m_Nmax)
+                        h_nlist.data[m_nlist_indexer(i, pos)] = j;
+                    else
+                        conditions = max(conditions, h_n_neigh.data[i]+1);
+                    
+                    h_n_neigh.data[i]++;
                     }
                 }
             }
@@ -1184,9 +1142,6 @@ void NeighborList::filterNlist()
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::readwrite);
     
-    ArrayHandle<unsigned int> h_n_ghost_neigh(m_n_ghost_neigh, access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_ghost_nlist(m_ghost_nlist, access_location::host, access_mode::readwrite);
-
     // for each particle's neighbor list
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
@@ -1223,47 +1178,6 @@ void NeighborList::filterNlist()
         h_n_neigh.data[idx] = new_n_neigh;
         }
 
-#ifdef ENABLE_MPI
-    if (m_ghosts_partial)
-        {
-        // filter ghost neighbor list, too
-        for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
-            {
-            unsigned int n_neigh = h_n_ghost_neigh.data[idx];
-            unsigned int n_ex = h_n_ex_idx.data[idx];
-            unsigned int new_n_neigh = 0;
-            
-            // loop over the list, regenerating it as we go
-            for (unsigned int cur_neigh_idx = 0; cur_neigh_idx < n_neigh; cur_neigh_idx++)
-                {
-                unsigned int cur_neigh = h_ghost_nlist.data[m_nlist_indexer(idx, cur_neigh_idx)];
-                
-                // test if excluded
-                bool excluded = false;
-                for (unsigned int cur_ex_idx = 0; cur_ex_idx < n_ex; cur_ex_idx++)
-                    {
-                    unsigned int cur_ex = h_ex_list_idx.data[m_ex_list_indexer(idx, cur_ex_idx)];
-                    if (cur_ex == cur_neigh)
-                        {
-                        excluded = true;
-                        break;
-                        }
-                    }
-                
-                // add it back to the list if it is not excluded
-                if (!excluded)
-                    {
-                    h_ghost_nlist.data[m_nlist_indexer(idx, new_n_neigh)] = cur_neigh;
-                    new_n_neigh++;
-                    }
-                }
-            
-            // update the number of neighbors
-            h_n_ghost_neigh.data[idx] = new_n_neigh;
-            }
-        } 
-#endif 
-
     if (m_prof)
         m_prof->pop();
     }
@@ -1283,23 +1197,11 @@ void NeighborList::allocateNlist()
 
         GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
         m_nlist.swap(nlist);
-
-        if (m_ghosts_partial)
-            {
-            GPUArray<unsigned int> n_ghost_neigh(m_pdata->getMaxN(), exec_conf);
-            m_n_ghost_neigh.swap(n_ghost_neigh);
-     
-            GPUArray<unsigned int> ghost_nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
-            m_ghost_nlist.swap(ghost_nlist);
-            }
         }
     else
         {
         // reallocate
         m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
-
-        if (m_ghosts_partial)
-            m_ghost_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
         }
 
     // update the indexer
@@ -1367,9 +1269,6 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(rmax);
         m_comm->setRBuff(m_r_buff);
-
-        m_ghosts_partial = m_comm->usesThreads();
-
         }
     }
 

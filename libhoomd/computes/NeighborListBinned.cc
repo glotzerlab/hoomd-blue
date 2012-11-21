@@ -144,9 +144,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
-  
-    ArrayHandle<unsigned int> h_ghost_nlist(m_ghost_nlist, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_n_ghost_neigh(m_n_ghost_neigh, access_location::host, access_mode::overwrite);
 
     unsigned int conditions = 0;
 
@@ -161,7 +158,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     for (int i = 0; i < (int)nparticles; i++)
         {
         unsigned int cur_n_neigh = 0;
-        unsigned int cur_n_ghost_neigh = 0;
         
         Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int bodyi = h_body.data[i];
@@ -221,37 +217,21 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 
                 if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {
-                    if (cur_neigh < nparticles || !m_ghosts_partial)
+                    if (m_storage_mode == full || i < (int)cur_neigh)
                         {
-                        if (m_storage_mode == full || i < (int)cur_neigh)
-                            {
-                            // local neighbor
-                            if (cur_n_neigh < m_nlist_indexer.getH())
-                                h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
-                            else
-                                conditions = max(conditions, cur_n_neigh+1);
-
-                            cur_n_neigh++;
-                            }
-                        }
-                    else 
-                        {
-                        // ghost neighbor
-                        if (cur_n_ghost_neigh < m_nlist_indexer.getH())
-                            h_ghost_nlist.data[m_nlist_indexer(i, cur_n_ghost_neigh)] = cur_neigh;
+                        // local neighbor
+                        if (cur_n_neigh < m_nlist_indexer.getH())
+                            h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
                         else
-                            conditions = max(conditions, cur_n_ghost_neigh+1);
+                            conditions = max(conditions, cur_n_neigh+1);
 
-                        cur_n_ghost_neigh++;
+                        cur_n_neigh++;
                         }
-                    }
+                    } 
                 }
             }
         
         h_n_neigh.data[i] = cur_n_neigh;
-       
-        if (m_ghosts_partial)
-            h_n_ghost_neigh.data[i] = cur_n_ghost_neigh;
         }
    
     // write out conditions

@@ -75,9 +75,8 @@ ForceConstraint::ForceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
 
 /*! Does nothing in the base class
     \param timestep Current timestep
-    \param ghost True if we compute forces due to ghost particles
 */
-void ForceConstraint::computeForces(unsigned int timestep, bool ghost)
+void ForceConstraint::computeForces(unsigned int timestep)
     {
     }
 

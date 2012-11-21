@@ -161,9 +161,8 @@ Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, un
 
 /*! Actually perform the force computation
     \param timestep Current time step
-    \param ghost True if we compute forces due to ghost particles
  */
-void HarmonicImproperForceCompute::computeForces(unsigned int timestep, bool ghost)
+void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
     {
     if (m_prof) m_prof->push("Harmonic Improper");
     

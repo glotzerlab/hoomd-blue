@@ -111,11 +111,10 @@ void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int
     \post The force data on the GPU is written with the calculated forces
 
     \param timestep Current time step of the simulation
-    \param ghost True if we are calculating forces due to ghost particles
 
     Calls gpu_compute_harmonic_dihedral_forces to do the dirty work.
 */
-void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
+void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Dihedral");

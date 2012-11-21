@@ -114,7 +114,7 @@ class CGCMMForceCompute : public ForceCompute
         Scalar * __restrict__ m_lj4;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the CGCMMForceCompute class to python

@@ -69,12 +69,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
                                              const unsigned int *d_rtag,
                                              unsigned int *d_n_bonds,
-                                             unsigned int *d_n_ghost_bonds,
                                              unsigned int num_bonds,
                                              unsigned int N,
-                                             bool ghost_bonds,
                                              const unsigned int cur_max,
-                                             const unsigned int cur_ghost_max,
                                              unsigned int *condition)
     {
     int bond_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -89,55 +86,34 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
     unsigned int idx2 = d_rtag[tag2];
 
     bool bond_needed = false;
-    bool ghost_bond_needed = false;
     bool missing_ghost = false;
-    if (idx1 < N && (idx2 < N || !ghost_bonds))
+    if (idx1 < N)
         {
         unsigned int n = atomicInc(&d_n_bonds[idx1], 0xffffffff);
         if (n >= cur_max) bond_needed = true;
         }
-    if (idx2 < N && (idx1 < N || !ghost_bonds))
+    if (idx2 < N)
         {
         unsigned int n = atomicInc(&d_n_bonds[idx2], 0xffffffff);
         if (n >= cur_max) bond_needed = true;
         }
 
-    if (idx1 < N && idx2 >= N && ghost_bonds)
-        {
-        unsigned int n = atomicInc(&d_n_ghost_bonds[idx1], 0xffffffff);
-        if (n >= cur_ghost_max) ghost_bond_needed = true;
-        missing_ghost |= (idx2 == NOT_LOCAL);
-        }
-    if (idx2 < N && idx1 >= N && ghost_bonds)
-        {
-        unsigned int n = atomicInc(&d_n_ghost_bonds[idx2], 0xffffffff);
-        if (n >= cur_ghost_max) ghost_bond_needed = true;
-        missing_ghost |= (idx1 == NOT_LOCAL);
-        }
-
     if (bond_needed)
         atomicOr(condition, 1);
 
-    if (ghost_bond_needed)
-        atomicOr(condition, 2);
-
     if (missing_ghost)
-        atomicOr(condition, 4);
+        atomicOr(condition, 2);
     }
 
 //! Kernel to fill the GPU bond table
 __global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
                                         const unsigned int *bond_type,
                                         uint2 *gpu_btable,
-                                        uint2 *gpu_ghost_btable,
                                         const unsigned int pitch,
-                                        const unsigned int ghost_pitch,
                                         const unsigned int *d_rtag,
                                         unsigned int *d_n_bonds,
-                                        unsigned int *d_n_ghost_bonds,
                                         unsigned int num_bonds,
-                                        unsigned int N,
-                                        bool ghost_bonds)
+                                        unsigned int N)
     {
     int bond_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -151,52 +127,34 @@ __global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
     unsigned int idx1 = d_rtag[tag1];
     unsigned int idx2 = d_rtag[tag2];
 
-    if (idx1 < N && (idx2 < N || !ghost_bonds))
+    if (idx1 < N)
         {
         unsigned int num1 = atomicInc(&d_n_bonds[idx1],0xffffffff);
         gpu_btable[num1*pitch+idx1] = make_uint2(idx2,type);
         }
-    if (idx2 < N && (idx1 < N || !ghost_bonds))
+    if (idx2 < N)
         {
         unsigned int num2 = atomicInc(&d_n_bonds[idx2],0xffffffff);
         gpu_btable[num2*pitch+idx2] = make_uint2(idx1,type);
         }
-
-    if (idx1 < N && idx2 >= N && ghost_bonds)
-        {
-        unsigned int num1 = atomicInc(&d_n_ghost_bonds[idx1],0xffffffff);
-        gpu_ghost_btable[num1*ghost_pitch+idx1] = make_uint2(idx2,type);
-        } 
-
-    if (idx2 < N && idx1 >= N && ghost_bonds)
-        {
-        unsigned int num2 = atomicInc(&d_n_ghost_bonds[idx2],0xffffffff);
-        gpu_ghost_btable[num2*ghost_pitch+idx2] = make_uint2(idx1,type);
-        } 
     }
 
 
 //! Find the maximum number of bonds per particle
 /*! \param d_n_bonds Number of bonds per particle (return array)
-    \param d_n_ghost_bonds Number of ghost bonds per particle (return array)
     \param d_bonds Array of bonds
     \param num_bonds Size of bond array
     \param N Number of particles in the system
     \param d_rtag Array of reverse-lookup particle tag . particle index
-    \param compute_ghost_bonds True if we are considering bonds with ghost particles
     \param cur_max Current maximum bonded particle number
-    \param cur_ghost_max Current maximum bonded ghost particle number
     \param condition Condition variable, set to unequal zero if we exceed the maximum numbers
  */
 cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
-                                     unsigned int *d_n_ghost_bonds,
                                      const uint2 *d_bonds,
                                      const unsigned int num_bonds,
                                      const unsigned int N,
                                      const unsigned int *d_rtag,
-                                     bool compute_ghost_bonds,
                                      const unsigned int cur_max,
-                                     const unsigned int cur_ghost_max,
                                      unsigned int *d_condition)
     {
     assert(d_bonds);
@@ -207,18 +165,13 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
 
     // clear n_bonds array
     cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
-    if (compute_ghost_bonds)
-        cudaMemset(d_n_ghost_bonds, 0, sizeof(unsigned int) * N);
 
     gpu_find_max_bond_number_kernel<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
                                                                               d_rtag,
                                                                               d_n_bonds,
-                                                                              d_n_ghost_bonds,
                                                                               num_bonds,
                                                                               N,
-                                                                              compute_ghost_bonds,
                                                                               cur_max,
-                                                                              cur_ghost_max,
                                                                               d_condition);
 
     return cudaSuccess;
@@ -232,43 +185,30 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
     \param d_rtag Reverse-lookup tag->index
     \param num_bonds Number of bonds in bond list
     \param pitch Pitch of 2D bondtable array
-    \param ghost_pitch Pitch of 2D ghost bondtable array
     \param N Number of particles
-    \param use_ghost_bonds True if we are only considering bonds with ghost particles
  */
 cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
-                                 uint2 *d_gpu_ghost_bondtable,
                                  unsigned int *d_n_bonds,
-                                 unsigned int *d_n_ghost_bonds,
                                  const uint2 *d_bonds,
                                  const unsigned int *d_bond_type,
                                  const unsigned int *d_rtag,
                                  const unsigned int num_bonds,
                                  unsigned int pitch,
-                                 unsigned int ghost_pitch,
-                                 unsigned int N,
-                                 bool compute_ghost_bonds)
+                                 unsigned int N)
     {
     unsigned int block_size = 512;
 
     // clear n_bonds array
     cudaMemset(d_n_bonds, 0, sizeof(unsigned int) * N);
 
-    if (compute_ghost_bonds)
-        cudaMemset(d_n_ghost_bonds, 0, sizeof(unsigned int) * N);
-
     gpu_fill_gpu_bond_table<<<num_bonds/block_size + 1, block_size>>>(d_bonds,
                                                                       d_bond_type,
                                                                       d_gpu_bondtable,
-                                                                      d_gpu_ghost_bondtable,
                                                                       pitch,
-                                                                      ghost_pitch,
                                                                       d_rtag,
                                                                       d_n_bonds,
-                                                                      d_n_ghost_bonds,
                                                                       num_bonds,
-                                                                      N,
-                                                                      compute_ghost_bonds);
+                                                                      N);
     return cudaSuccess;
     }
 

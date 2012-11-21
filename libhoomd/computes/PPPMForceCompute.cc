@@ -387,10 +387,9 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
 
 /*! Actually perform the force computation
   \param timestep Current time step
-  \param ghost True if we are calculating forces due to ghost particles
 */
 
-void PPPMForceCompute::computeForces(unsigned int timestep, bool ghost)
+void PPPMForceCompute::computeForces(unsigned int timestep)
     {
     if (!m_params_set)
         {

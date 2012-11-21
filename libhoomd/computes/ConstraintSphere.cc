@@ -109,9 +109,8 @@ unsigned int ConstraintSphere::getNDOFRemoved()
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
-    \param ghost True if we compute forces due to ghost particles
 */
-void ConstraintSphere::computeForces(unsigned int timestep, bool ghost)
+void ConstraintSphere::computeForces(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)

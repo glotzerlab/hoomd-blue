@@ -292,38 +292,10 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 */
 void Integrator::computeNetForce(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
-    bool concurrent_ghost_update = false;
-    if (m_pdata->getDomainDecomposition())
-        {
-        // begin with communication of ghost positions
-        m_comm->startGhostsUpdate(timestep);
-
-        concurrent_ghost_update = m_comm->usesThreads();
-        // if we are not using threads, communicate ghosts in one batch
-        if (! concurrent_ghost_update)
-            m_comm->finishGhostsUpdate(timestep);
-        }
-#endif
-
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
 
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition() && concurrent_ghost_update)
-        {
-        // wait for ghost communication to finish
-        m_comm->finishGhostsUpdate(timestep);
-
-        // compute additional forces due to ghost atoms
-        std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
-        for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-            (*force_compute)->computeGhostForces(timestep);
-
-        }
-#endif
- 
     if (m_prof)
         {
         m_prof->push("Integrate");
@@ -476,40 +448,11 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         throw runtime_error("Error computing accelerations");
         }
  
-#ifdef ENABLE_MPI
-    bool concurrent_ghost_update = false;
-
-    if (m_pdata->getDomainDecomposition())
-        {
-        // begin with communication of ghost positions
-        concurrent_ghost_update = m_comm->usesThreads();
- 
-        m_comm->startGhostsUpdate(timestep);
-
-        // if we are not using threads, communicate ghosts in one batch
-        if (! concurrent_ghost_update)
-            m_comm->finishGhostsUpdate(timestep);
-        }
-#endif
-
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
-
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition() && concurrent_ghost_update)
-        {
-        // wait for ghost communication to finish
-        m_comm->finishGhostsUpdate(timestep);
-
-        // compute additional forces due to ghost atoms
-        std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
-        for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-            (*force_compute)->computeGhostForces(timestep);
-        }
-#endif
 
     if (m_prof)
         {

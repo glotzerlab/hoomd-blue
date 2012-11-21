@@ -157,7 +157,7 @@ Scalar LJWallForceCompute::getLogValue(const std::string& quantity, unsigned int
         }
     }
 
-void LJWallForceCompute::computeForces(unsigned int timestep, bool ghost)
+void LJWallForceCompute::computeForces(unsigned int timestep)
     {
     // start the profile for this compute
     if (m_prof) m_prof->push("LJ wall");

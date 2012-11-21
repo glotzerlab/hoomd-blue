@@ -137,7 +137,7 @@ class TablePotential : public ForceCompute
         std::string m_log_name;                     //!< Cached log name
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the TablePotential class to python

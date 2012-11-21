@@ -151,20 +151,6 @@ class ForceCompute : public Compute
             return m_external_virial[dir];
             }
 
-#ifdef ENABLE_MPI
-        //! Perform computation of forces due to ghost particles
-        /*! This function may be implemented in forces which depend on ghost particles.
-            It is supposed to be called AFTER a call to compute().
-
-            \param timestep Current time step
-            \param thread_id The thread from which this routine is called
-         */
-        virtual void computeGhostForces(unsigned int timestep)
-            {
-            computeForces(timestep, true);
-            }
-#endif
-
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory
  
@@ -221,10 +207,8 @@ class ForceCompute : public Compute
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.
             \param timestep Current time step
-            \param ghost True = calculate forces due to ghost particles
-                         False = calculate forces due to local particles
         */
-        virtual void computeForces(unsigned int timestep, bool ghost)=0;
+        virtual void computeForces(unsigned int timestep)=0;
     };
 
 //! Exports the ForceCompute class to python

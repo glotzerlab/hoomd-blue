@@ -110,7 +110,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         unsigned int m_block_size;  //!< Block size to execute on the GPU
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
 
     };
 
@@ -131,7 +131,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
-void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep, bool ghost)
+void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -149,12 +149,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
         }
         
     // access the neighbor list
-    ArrayHandle<unsigned int> d_n_neigh(ghost ? this->m_nlist->getNGhostNeighArray() :
-                                                this->m_nlist->getNNeighArray(),
-                                        access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_nlist(ghost ? this->m_nlist->getGhostNListArray() :
-                                              this->m_nlist->getNListArray(),
-                                      access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
@@ -192,8 +188,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          this->m_pdata->getNTypes(),
                          m_block_size,
                          this->m_shift_mode,
-                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         ghost),
+                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]),
              d_params.data);
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

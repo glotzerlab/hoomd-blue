@@ -147,7 +147,7 @@ struct migrate_logical_or
  * to calculate the forces on their local atoms correctly. After construction of the ghost particle list, the positions of these atoms are communicated
  * to the neighboring processors.
  *
- * -# <b> Third stage</b>: Update of ghost positions (copyGhosts())
+ * -# <b> Third stage</b>: Update of ghost positions (updateGhosts())
  * <br> If it is not necessary to renew the list of ghost particles (i.e. when no particle in the global system has moved more than a
  * distance \f$ r_{\mathrm{buff}}/2 \f$), we use the current ghost particle list to update the ghost positions on the neighboring
  * processors.
@@ -253,15 +253,6 @@ class Communicator
          */
         void communicate(unsigned int timestep);
 
-        /*! Start ghost communication.
-         * Ghost-communication can be multi-threaded, if so this method spawns the corresponding thread
-         */
-        virtual void startGhostsUpdate(unsigned int timestep);
-
-        /*! Finish ghost communication.
-         */
-        virtual void finishGhostsUpdate(unsigned int timestep);
-
         //@}
 
         //! Force particle migration
@@ -279,7 +270,7 @@ class Communicator
          * \pre The ghost exchange list has been constructed in a previous time step, using exchangeGhosts().
          * \post The ghost positions on the neighboring processors are current
          */
-        virtual void copyGhosts();
+        virtual void updateGhosts(unsigned int timestep);
 
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
@@ -302,13 +293,6 @@ class Communicator
          *       neighboring processors are current.
          */
         virtual void exchangeGhosts();
-
-        /*! Returns true if the ghost update uses multi-threading
-         */
-        virtual bool usesThreads()
-            {
-            return false;
-            }
 
     protected:
         //! Set size of a packed data element
@@ -395,7 +379,6 @@ class Communicator
         std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
 
-        unsigned int m_next_ghost_update;        //!< Timestep in which the ghosts are next updated
         bool m_is_first_step;                    //!< True if no communication has yet occured
     };
 

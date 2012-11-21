@@ -89,7 +89,7 @@ class TablePotentialGPU : public TablePotential
         int m_block_size;   //!< the block size
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the TablePotentialGPU class to python

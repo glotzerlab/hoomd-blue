@@ -108,7 +108,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         GPUArray<float2>  m_params;     //!< Parameters stored on the GPU (k,chi)
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Export the ImproperForceComputeGPU class to python

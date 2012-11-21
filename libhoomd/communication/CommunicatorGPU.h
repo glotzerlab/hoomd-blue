@@ -60,19 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #ifdef ENABLE_CUDA
 
-// with MPI CUDA implementations, we are not using threads
-#ifndef ENABLE_MPI_CUDA
-#define USE_THREADS
-#endif
-
-#if defined(ENABLE_MPI_CUDA) && defined(USE_THREADS)
-#error "MPI_CUDA and USE_THREADS are not simultaneously supported"
-#endif
-
 #include "Communicator.h"
-
-#include <boost/thread.hpp>
-#include <boost/thread/barrier.hpp>
 
 #include "WorkQueue.h"
 #include "GPUFlags.h"
@@ -81,88 +69,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \ingroup communication
 */
-
-//! Structure for passing around parameters for worker thread invocation
-struct ghost_gpu_thread_params
-    {
-    //! Constructor
-    ghost_gpu_thread_params(char *_corner_update_buf_handle,            
-                            const unsigned int _corner_update_buf_pitch, 
-                            char *_edge_update_buf_handle,             
-                            const unsigned int _edge_update_buf_pitch, 
-                            char *_face_update_buf_handle,             
-                            const unsigned int _face_update_buf_pitch, 
-                            char *_update_recv_buf_handle,             
-                            const unsigned int _recv_ghosts_local_size,
-                            const GPUArray<unsigned int>& _n_recv_ghosts_edge,
-                            const GPUArray<unsigned int>& _n_recv_ghosts_face,
-                            const GPUArray<unsigned int>& _n_recv_ghosts_local,
-                            const GPUArray<unsigned int>& _n_local_ghosts_corner,  
-                            const GPUArray<unsigned int>& _n_local_ghosts_edge,  
-                            const GPUArray<unsigned int>& _n_local_ghosts_face)
-        : corner_update_buf_handle(_corner_update_buf_handle),
-          corner_update_buf_pitch(_corner_update_buf_pitch),
-          edge_update_buf_handle(_edge_update_buf_handle),
-          edge_update_buf_pitch(_edge_update_buf_pitch),
-          face_update_buf_handle(_face_update_buf_handle),
-          face_update_buf_pitch(_face_update_buf_pitch),
-          update_recv_buf_handle(_update_recv_buf_handle),
-          recv_ghosts_local_size(_recv_ghosts_local_size),
-          n_recv_ghosts_edge(_n_recv_ghosts_edge),
-          n_recv_ghosts_face(_n_recv_ghosts_face),
-          n_recv_ghosts_local(_n_recv_ghosts_local),
-          n_local_ghosts_corner(_n_local_ghosts_corner),
-          n_local_ghosts_edge(_n_local_ghosts_edge),
-          n_local_ghosts_face(_n_local_ghosts_face)
-        { }
-
-    char *corner_update_buf_handle;            //!< Send/recv buffer for ghosts that are updated over a corner
-    const unsigned int corner_update_buf_pitch; //!< Pitch of corner ghost update buffer
-    char *edge_update_buf_handle;             //!< Send/recv buffer for ghosts that are updated over a edge
-    const unsigned int edge_update_buf_pitch; //!< Pitch of edge ghost update buffer
-    char *face_update_buf_handle;             //!< Send/recv buffer for ghosts that are updated over a face
-    const unsigned int face_update_buf_pitch; //!< Pitch of face ghost update buffer
-    char *update_recv_buf_handle;             //!< Buffer for ghosts received for the local box
-    const unsigned int recv_ghosts_local_size; //!< Size of receive buffer for ghosts addressed to the local domain
-    const GPUArray<unsigned int> &n_recv_ghosts_edge;   //!< Number of ghosts received for updating over an edge
-    const GPUArray<unsigned int> &n_recv_ghosts_face;   //!< Number of ghosts received for updating over a face
-    const GPUArray<unsigned int> &n_recv_ghosts_local;  //!< Number of ghosts received for the local box
-    const GPUArray<unsigned int>& n_local_ghosts_corner;//!< Number of local ghosts sent over a corner
-    const GPUArray<unsigned int>& n_local_ghosts_edge;  //!< Number of local ghosts sent over an edge
-    const GPUArray<unsigned int>& n_local_ghosts_face;  //!< Number of local ghosts sent over a face
-    };
-
-//! Forward declaration
-class CommunicatorGPU;
-
-//! Thread that handles update of ghost particles
-class ghost_gpu_thread
-    {
-    public:
-        //! Constructor
-        ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
-                         CommunicatorGPU *communicator);
-        virtual ~ghost_gpu_thread();
-
-        //! The thread main routine
-        void operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier);
-
-    private:
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< The execution configuration
-        CommunicatorGPU *m_communicator;                              //!< Pointer to the communciator that called the thread
-
-        unsigned int m_recv_buf_size;                                 //!< Size of host receive buffer
-        unsigned int m_face_update_buf_size;                          //!< Size of host send buffer for 'face' ptls
-        unsigned int m_edge_update_buf_size;                          //!< Size of host send buffer for 'edge' ptls
-        unsigned int m_corner_update_buf_size;                        //!< Size of host send buffer for 'corner' ptls
-
-        bool m_buffers_allocated;                                     //!< True if host buffers have been allocated
-
-        //! The routine that does the actual ghost update
-        /*! \param params The parameters for this update
-         */
-        void update_ghosts(ghost_gpu_thread_params& params);
-    };
 
 //! Class that handles MPI communication (GPU version)
 class CommunicatorGPU : public Communicator
@@ -177,36 +83,18 @@ class CommunicatorGPU : public Communicator
                         boost::shared_ptr<DomainDecomposition> decomposition);
         virtual ~CommunicatorGPU();
 
-        /*! Start ghost communication.
-         * Ghost-communication can be multi-threaded, if so this method spawns the corresponding thread
-         */
-        virtual void startGhostsUpdate(unsigned int timestep);
-
-        /*! Finish ghost communication.
-         */
-        virtual void finishGhostsUpdate(unsigned int timestep);
-
         //! \name communication methods
         //@{
+
+        /*! Perform ghosts update
+         */
+        virtual void updateGhosts(unsigned int timestep);
 
         //! Transfer particles between neighboring domains
         virtual void migrateAtoms();
 
         //! Build a ghost particle list, exchange ghost particle data with neighboring processors
-        /*! \param r_ghost Width of ghost layer
-         */
         virtual void exchangeGhosts();
-
-        /*! Returns true if the ghost update uses multi-threading
-         */
-        virtual bool usesThreads()
-            {
-            #ifdef USE_THREADS
-            return true;
-            #else
-            return false;
-            #endif
-            }
          
         //@}
 
@@ -313,11 +201,6 @@ class CommunicatorGPU : public Communicator
 
         GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
 
-        boost::thread m_worker_thread;              //!< The worker thread for updating ghost positions
-        bool m_thread_created;                      //!< True if the worker thread has been created
-        WorkQueue<ghost_gpu_thread_params> m_work_queue; //!< The queue of parameters processed by the worker thread
-        boost::barrier m_barrier;                   //!< Barrier to synchronize with worker thread
-
 #ifdef MPI3
         MPI_Group m_comm_group;                     //!< Group corresponding to MPI communicator
         MPI_Win m_win_edge[12];                     //!< Shared memory windows for every of the 12 edges
@@ -330,8 +213,6 @@ class CommunicatorGPU : public Communicator
 
         //! Check and resize ghost buffers if necessary
         void checkReallocateGhostBuffers();
-
-        friend class ghost_gpu_thread;
     };
 
 //! Export CommunicatorGPU class to python

@@ -212,7 +212,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_r_buff(Scalar(0.0)),
             m_resize_factor(9.f/8.f),
             m_plan(m_exec_conf),
-            m_next_ghost_update(0),
             m_is_first_step(true)
     {
     // initialize array of neighbor processor ids
@@ -257,20 +256,6 @@ Communicator::~Communicator()
     m_exec_conf->msg->notice(5) << "Destroying Communicator";
     }
 
-//! Start ghosts communication
-/*! This is the serial (non-threaded) version. All updating is done upon calling finishGhostsUpdate
- */
-void Communicator::startGhostsUpdate(unsigned int timestep)
-    {
-    }
-
-//! Finish ghost communication
-void Communicator::finishGhostsUpdate(unsigned int timestep)
-    {
-    if (timestep >= m_next_ghost_update)
-        copyGhosts();
-    }
-
 //! Interface to the communication methods.
 void Communicator::communicate(unsigned int timestep)
     {
@@ -288,9 +273,11 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
-
-        // Skip this timestep for ghost updating
-        m_next_ghost_update = timestep + 1;
+        }
+    else
+        {
+        // just update ghost positions
+        updateGhosts(timestep);
         }
 
     m_is_communicating = false;
@@ -1000,7 +987,7 @@ void Communicator::exchangeGhosts()
     }
 
 //! update positions of ghost particles
-void Communicator::copyGhosts()
+void Communicator::updateGhosts(unsigned int timestep)
     {
     // we have a current m_copy_ghosts liss which contain the indices of particles
     // to send to neighboring processors

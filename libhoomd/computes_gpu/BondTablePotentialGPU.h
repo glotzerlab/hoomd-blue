@@ -88,7 +88,7 @@ class BondTablePotentialGPU : public BondTablePotential
         int m_block_size;   //!< the block size
         GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the BondTablePotentialGPU class to python

@@ -110,11 +110,10 @@ void HarmonicImproperForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
     \post The force data on the GPU is written with the calculated forces
 
     \param timestep Current time step of the simulation
-    \param ghost True if we are calculating forces due to ghost particles
 
     Calls gpu_compute_harmonic_improper_forces to do the dirty work.
 */
-void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
+void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Improper");

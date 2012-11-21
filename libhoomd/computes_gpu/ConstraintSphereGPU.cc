@@ -90,9 +90,8 @@ ConstraintSphereGPU::ConstraintSphereGPU(boost::shared_ptr<SystemDefinition> sys
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
-    \param ghost True if we are calculating forces due to ghost particles
 */
-void ConstraintSphereGPU::computeForces(unsigned int timestep, bool ghost)
+void ConstraintSphereGPU::computeForces(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)

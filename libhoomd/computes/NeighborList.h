@@ -233,22 +233,10 @@ class NeighborList : public Compute
             return m_n_neigh;
             }
        
-        //! Get the number of ghost neighbors array
-        const GPUArray<unsigned int>& getNGhostNeighArray()
-            {
-            return m_n_ghost_neigh;
-            }
-
         //! Get the neighbor list
         const GPUArray<unsigned int>& getNListArray()
             {
             return m_nlist;
-            }
-
-        //! Get the ghost neighbor list
-        const GPUArray<unsigned int>& getGhostNListArray()
-            {
-            return m_ghost_nlist;
             }
 
         //! Get the number of exclusions array
@@ -396,13 +384,10 @@ class NeighborList : public Compute
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
         bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
         storageMode m_storage_mode; //!< The storage mode
-        bool m_ghosts_partial;          //!< Set to true if there should be a separate neighbor list for ghosts
         
         Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list
         GPUArray<unsigned int> m_nlist;      //!< Neighbor list data
         GPUArray<unsigned int> m_n_neigh;    //!< Number of neighbors for each particle
-        GPUArray<unsigned int> m_n_ghost_neigh; //!< Number of ghost neighbors for each particle
-        GPUArray<unsigned int> m_ghost_nlist; //!< Neighbor list for ghost neighbors
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
         Scalar3 m_last_L;                    //!< Box lengths at last update
         unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist

@@ -194,9 +194,8 @@ void ConstForceCompute::rearrangeForces()
 
 /*! This function calls rearrangeForces() whenever the particles have been sorted
     \param timestep Current timestep
-    \param ghost True if we compute force due to ghost particles (irrelevant)
 */
-void ConstForceCompute::computeForces(unsigned int timestep, bool ghost)
+void ConstForceCompute::computeForces(unsigned int timestep)
     {
     if (m_particles_sorted==true) rearrangeForces();
     }

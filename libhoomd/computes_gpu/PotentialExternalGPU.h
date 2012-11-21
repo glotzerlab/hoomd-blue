@@ -81,7 +81,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     protected:
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
 
         //! block size
         unsigned int m_block_size;
@@ -99,11 +99,10 @@ PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_pt
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
-    \param ghost True if we are calculating forces due to ghost particles
 */
 template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
                                                const typename evaluator::param_type *d_params)>
-void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int timestep, bool ghost)
+void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, "PotentialExternalGPU");

@@ -142,8 +142,6 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     // access the nlist data arrays
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_ghost_nlist(m_ghost_nlist, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_ghost_neigh, access_location::device, access_mode::overwrite);
 
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
@@ -156,8 +154,6 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 
     gpu_compute_nlist_nsq(d_nlist.data,
                           d_n_neigh.data,
-                          d_ghost_nlist.data,
-                          d_n_ghost_neigh.data,
                           d_last_pos.data,
                           m_conditions.getDeviceFlags(),
                           m_nlist_indexer,
@@ -165,8 +161,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
                           m_pdata->getN(),
                           m_pdata->getNGhosts(),
                           box,
-                          rmaxsq,
-                          m_ghosts_partial);
+                          rmaxsq);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -275,24 +270,6 @@ void NeighborListGPU::filterNlist()
                      m_pdata->getN(),
                      m_block_size_filter);
   
-#ifdef ENABLE_MPI
-    if (m_ghosts_partial)
-        {
-        // filter ghost neighbors
-        ArrayHandle<unsigned int> d_n_ghost_neigh(m_n_ghost_neigh, access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_ghost_nlist(m_ghost_nlist, access_location::device, access_mode::readwrite);
-
-        gpu_nlist_filter(d_n_ghost_neigh.data,
-                     d_ghost_nlist.data,
-                     m_nlist_indexer,
-                     d_n_ex_idx.data,
-                     d_ex_list_idx.data,
-                     m_ex_list_indexer,
-                     m_pdata->getN(),
-                     m_block_size_filter);
-        }
-#endif
-
     if (m_prof)
         m_prof->pop(exec_conf);
     }

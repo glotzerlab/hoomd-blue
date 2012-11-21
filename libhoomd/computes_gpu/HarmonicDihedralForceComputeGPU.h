@@ -104,7 +104,7 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
         GPUArray<float4> m_params;      //!< Parameters stored on the GPU (k,sign,m)
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Export the DihedralForceComputeGPU class to python

@@ -102,94 +102,6 @@ unsigned int face_plan_lookup[] = { send_east,
 
 
 //! Constructor
-ghost_gpu_thread::ghost_gpu_thread(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
-                                   CommunicatorGPU *communicator)
-    : m_exec_conf(exec_conf),
-      m_communicator(communicator)
-    { }
-
-//! Destructor
-ghost_gpu_thread::~ghost_gpu_thread()
-    {
-    }
-
-//! Main routine of ghost update worker thread
-void ghost_gpu_thread::operator()(WorkQueue<ghost_gpu_thread_params>& queue, boost::barrier& barrier)
-    {
-    bool done = false;
-    while (! done)
-        {
-        try
-            {
-            ghost_gpu_thread_params params = queue.wait_and_pop();
-            update_ghosts(params);
-
-            // synchronize with host thread
-            barrier.wait();
-            }
-        catch(boost::thread_interrupted const)
-            {
-            done = true;
-            }
-        }
-    }
-
-void ghost_gpu_thread::update_ghosts(ghost_gpu_thread_params& params)
-    {
-    unsigned int n_copy_ghosts_face[6];
-    unsigned int n_copy_ghosts_edge[12];
-    unsigned int n_copy_ghosts_corner[8];
-
-        {
-        ArrayHandle<unsigned int> h_n_local_ghosts_face(params.n_local_ghosts_face, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_local_ghosts_edge(params.n_local_ghosts_edge, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_local_ghosts_corner(params.n_local_ghosts_corner, access_location::host, access_mode::read);
-
-        for (unsigned int i = 0; i < 12; ++i)
-            n_copy_ghosts_edge[i] = h_n_local_ghosts_edge.data[i];
-        for (unsigned int i = 0; i < 6; ++i)
-            n_copy_ghosts_face[i] = h_n_local_ghosts_face.data[i];
-        for (unsigned int i = 0; i < 8; ++i)
-            n_copy_ghosts_corner[i] = h_n_local_ghosts_corner.data[i];
-        }
-
-    unsigned int n_tot_recv_ghosts_local = 0;
-
-    for (unsigned int face = 0; face < 6; ++face)
-        {
-        if (! m_communicator->isCommunicating(face)) continue;
-
-        ArrayHandle<unsigned int> h_n_recv_ghosts_face(params.n_recv_ghosts_face, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_recv_ghosts_edge(params.n_recv_ghosts_edge, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_recv_ghosts_local(params.n_recv_ghosts_local, access_location::host, access_mode::read);
-
-        m_communicator->communicateStepTwo(face,
-                                           params.corner_update_buf_handle,
-                                           params.edge_update_buf_handle,
-                                           params.face_update_buf_handle,
-                                           params.corner_update_buf_pitch,
-                                           params.edge_update_buf_pitch,
-                                           params.face_update_buf_pitch,
-                                           params.update_recv_buf_handle,
-                                           n_copy_ghosts_corner,
-                                           n_copy_ghosts_edge,
-                                           n_copy_ghosts_face,
-                                           params.recv_ghosts_local_size,
-                                           n_tot_recv_ghosts_local,
-                                           gpu_update_element_size(),
-                                           false);
-        // update send buffer sizes
-        for (unsigned int i = 0; i < 12; ++i)
-            n_copy_ghosts_edge[i] += h_n_recv_ghosts_edge.data[face*12+i];
-        for (unsigned int i = 0; i < 6; ++i)
-            n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[face*6+i];
-
-        n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[face];
-        } // end communication loop
-
-    } 
-
-//! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
     : Communicator(sysdef, decomposition), m_remove_mask(m_exec_conf),
@@ -203,9 +115,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_max_copy_ghosts_edge(0),
       m_max_copy_ghosts_corner(0),
       m_max_recv_ghosts(0),
-      m_buffers_allocated(false),
-      m_thread_created(false),
-      m_barrier(2)
+      m_buffers_allocated(false)
     { 
     m_exec_conf->msg->notice(5) << "Constructing CommunicatorGPU" << std::endl;
 
@@ -240,40 +150,16 @@ CommunicatorGPU::~CommunicatorGPU()
     m_exec_conf->msg->notice(5) << "Destroying CommunicatorGPU";
 
     gpu_deallocate_tmp_storage();
-    
-    if (m_thread_created)
-        {
-        // finish worker thread
-        m_worker_thread.interrupt();
-        m_worker_thread.join();
-        }
-
     }
 
-//! Start ghosts communication
-/*! This is the multi-threaded version.
- */
-void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
+//! Perform ghosts update
+void CommunicatorGPU::updateGhosts(unsigned int timestep)
     {
-    if (timestep < m_next_ghost_update)
-        return;
-
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost update" << std::endl;
 
     if (m_prof) m_prof->push(m_exec_conf, "copy_ghosts");
 
-#ifdef USE_THREADS
-    // create a worker thread for ghost updates
-    if (! m_thread_created)
-        {
-        m_worker_thread = boost::thread(ghost_gpu_thread(m_exec_conf,
-                                                         this),
-                                        boost::ref(m_work_queue), boost::ref(m_barrier));
-        m_thread_created = true;
-        }
-#endif
-
-        unsigned int n_tot_local_ghosts = 0;
+    unsigned int n_tot_local_ghosts = 0;
         {
         ArrayHandle<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
@@ -325,28 +211,6 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
             CHECK_CUDA_ERROR();
         }
 
-#ifdef USE_THREADS
-    // fill thread parameters
-    ghost_gpu_thread_params params(
-        m_corner_update_buf.getHostPointer(),
-        m_corner_update_buf.getPitch(),
-        m_edge_update_buf.getHostPointer(),
-        m_edge_update_buf.getPitch(),
-        m_face_update_buf.getHostPointer(),
-        m_face_update_buf.getPitch(),
-        m_update_recv_buf.getHostPointer(),
-        m_update_recv_buf.getNumElements(),
-        m_n_recv_ghosts_edge,
-        m_n_recv_ghosts_face,
-        m_n_recv_ghosts_local,
-        m_n_local_ghosts_corner,
-        m_n_local_ghosts_edge,
-        m_n_local_ghosts_face);
-
-    // post the parameters to the worker thread
-    m_work_queue.push(ghost_gpu_thread_params(params));
-#else // USE_THREADS
-    // do communication in main thread
     unsigned int n_copy_ghosts_face[6];
     unsigned int n_copy_ghosts_edge[12];
     unsigned int n_copy_ghosts_corner[8];
@@ -411,23 +275,6 @@ void CommunicatorGPU::startGhostsUpdate(unsigned int timestep)
         n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[face];
         } // end communication loop
 
-#endif // USE_THREADS
-
-    if (m_prof) m_prof->pop(m_exec_conf);
-    }
-
-//! Finish ghost communication
-void CommunicatorGPU::finishGhostsUpdate(unsigned int timestep)
-    {
-    if (timestep < m_next_ghost_update)
-        return;
-
-    if (m_prof) m_prof->push(m_exec_conf,"copy_ghosts");
-
-#ifdef USE_THREADS
-    // wait for worker thread to finish task
-    m_barrier.wait();
-#endif
         {
         // unpack ghost data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);

@@ -99,7 +99,7 @@ class HarmonicImproperForceCompute : public ForceCompute
         boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data to use in computing impropers
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the ImproperForceCompute class to python

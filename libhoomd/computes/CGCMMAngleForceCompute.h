@@ -109,7 +109,7 @@ class CGCMMAngleForceCompute : public ForceCompute
         boost::shared_ptr<AngleData> m_CGCMMAngle_data; //!< Angle data to use in computing angles
         
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the BondForceCompute class to python

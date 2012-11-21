@@ -94,7 +94,7 @@ class LJWallForceCompute :  public ForceCompute
         
     protected:
         //! Computes forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
         
         Scalar m_r_cut;         //!< Cuttoff distance beyond which the force is set to 0
         

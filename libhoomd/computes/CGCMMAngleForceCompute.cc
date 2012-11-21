@@ -220,9 +220,8 @@ Scalar CGCMMAngleForceCompute::getLogValue(const std::string& quantity, unsigned
 
 /*! Actually perform the force computation
     \param timestep Current time step
-    \param ghost True if we compute forces due to ghost particles
  */
-void CGCMMAngleForceCompute::computeForces(unsigned int timestep, bool ghost)
+void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     {
     if (m_prof) m_prof->push("CGCMMAngle");
     

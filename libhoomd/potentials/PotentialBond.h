@@ -108,7 +108,7 @@ class PotentialBond : public ForceCompute
         std::string m_prof_name;                    //!< Cached profiler name
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep, bool ghost);
+        virtual void computeForces(unsigned int timestep);
     };
 
 /*! \param sysdef System to compute forces on
@@ -188,10 +188,9 @@ Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsi
 
 /*! Actually perform the force computation
     \param timestep Current time step
-    \param ghost True if we are calculating forces due to ghost particles
  */
 template< class evaluator >
-void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost)
+void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     {
     if (m_prof) m_prof->push(m_prof_name);
 
@@ -217,12 +216,9 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
     assert(h_diameter.data);
     assert(h_charge.data);
 
-    if (!ghost)
-        {
-        // Zero data for force calculation
-        memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-        memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
-        }
+    // Zero data for force calculation
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -237,16 +233,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
     ArrayHandle<uint2> h_bonds(m_bond_data->getBondTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_type(m_bond_data->getBondTypes(), access_location::host, access_mode::read);
 
-    bool ghosts_partial = false;
-
-#ifdef ENABLE_MPI
-    // if using threads, we do a partial force computation due to ghosts in a second call
-    if (m_comm) ghosts_partial = m_comm->usesThreads();
-#endif
-
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
-    unsigned int nparticles = m_pdata->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
@@ -260,24 +248,13 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep, bool ghost
         unsigned int idx_b = h_rtag.data[bond.y];
 
 #ifdef ENABLE_MPI
-        if (ghosts_partial)
+        if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
             {
-            if (ghost)
-                {
-                if (idx_a < nparticles && idx_b < nparticles) continue;
-                }
-            else
-                if (idx_a >= nparticles || idx_b >= nparticles) continue;
-               
-
-            if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
-                {
-                assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
-                m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " 
-                                          << "Incomplete bond detected. Bonds cannot be longer than box length/2."
-                                          << std::endl << std::endl;
-                throw std::runtime_error("Error in bond calculation");
-                }
+            assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
+            m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " 
+                                      << "Incomplete bond detected. Bonds cannot be longer than box length/2."
+                                      << std::endl << std::endl;
+            throw std::runtime_error("Error in bond calculation");
             }
 #endif
 

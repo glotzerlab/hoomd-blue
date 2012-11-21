@@ -206,7 +206,7 @@ void ForceCompute::compute(unsigned int timestep)
     if (!m_particles_sorted && !shouldCompute(timestep))
         return;
         
-    computeForces(timestep,false);
+    computeForces(timestep);
     m_particles_sorted = false;
     }
 
@@ -220,7 +220,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
     {
     ClockSource t;
     // warm up run
-    computeForces(0,false);
+    computeForces(0);
     
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
@@ -233,7 +233,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
     // benchmark
     uint64_t start_time = t.getTime();
     for (unsigned int i = 0; i < num_iters; i++)
-        computeForces(0,false);
+        computeForces(0);
         
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
@@ -349,11 +349,10 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
     protected:
         //! Calls the overidden ForceCompute::computeForces()
         /*! \param timestep parameter to pass on to the overidden method 
-            \param ghost True = calculate forces due to ghost particles
          */
-        void computeForces(unsigned int timestep, bool ghost)
+        void computeForces(unsigned int timestep)
             {
-            this->get_override("computeForces")(timestep, ghost);
+            this->get_override("computeForces")(timestep);
             }
     };
 
