@@ -98,8 +98,6 @@ GPUEventHandle::~GPUEventHandle()
 
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
-//! Enable multi-threading
-char env_enable_threads[] = "MV2_ENABLE_AFFINITY=0";
 
 /*! \file ExecutionConfiguration.cc
     \brief Defines ExecutionConfiguration and related classes
@@ -257,9 +255,6 @@ ExecutionConfiguration::~ExecutionConfiguration()
 void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     {
 
-    // enable multi-threading (mvapich2)
-    putenv(env_enable_threads);
-
 #ifdef ENABLE_MPI_CUDA
     // if we are using an MPI-CUDA implementation, enable this feature
     // before the MPI_Init
@@ -270,16 +265,8 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
         }
 #endif
 
-    int provided;
-    MPI_Init_thread(0, (char ***) NULL, MPI_THREAD_SERIALIZED, &provided);
+    MPI_Init(0, (char ***) NULL);
 
-#if 0
-    if (provided != MPI_THREAD_SERIALIZED)
-        {
-        msg->error() << "Unable to initialize with MPI_THREAD_SERIALIZED." << std::endl;
-        throw(runtime_error("Error setting up MPI."));
-        }
-#endif     
     m_mpi_comm = MPI_COMM_WORLD;
 
     int num_total_ranks;
