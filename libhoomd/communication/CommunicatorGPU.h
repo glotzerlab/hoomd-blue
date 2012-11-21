@@ -60,6 +60,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #ifdef ENABLE_CUDA
 
+// with MPI CUDA implementations, we are not using threads
+#ifndef ENABLE_MPI_CUDA
+#define USE_THREADS
+#endif
+
+#if defined(ENABLE_MPI_CUDA) && defined(USE_THREADS)
+#error "MPI_CUDA and USE_THREADS are not simultaneously supported"
+#endif
+
 #include "Communicator.h"
 
 #include <boost/thread.hpp>
@@ -192,10 +201,10 @@ class CommunicatorGPU : public Communicator
          */
         virtual bool usesThreads()
             {
-            #ifdef ENABLE_MPI_CUDA
-            return false;
-            #else
+            #ifdef USE_THREADS
             return true;
+            #else
+            return false;
             #endif
             }
          
