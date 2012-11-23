@@ -61,6 +61,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __GPUARRAY_H__
 #define __GPUARRAY_H__
 
+// 4 GB limit for a single GPU buffer
+#define MAXALLOCBYTES UINT_MAX
+
 // for vector types
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -614,6 +617,13 @@ template<class T> void GPUArray<T>::allocate()
     if (m_num_elements == 0)
         return;
 
+    if (m_num_elements > MAXALLOCBYTES/sizeof(T))
+        {
+        m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
+                                  << std::endl << std::endl;
+        throw std::runtime_error("Error allocating GPUArray.");
+        }
+
 #ifdef ENABLE_CUDA
     // we require mapped pinned memory
     if (m_mapped && !m_exec_conf->dev_prop.canMapHostMemory) 
@@ -964,6 +974,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 
     // allocate resized array
     T *h_tmp = NULL;
+
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
@@ -1174,6 +1185,13 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
         return;
         };
 
+    if (num_elements > MAXALLOCBYTES/sizeof(T))
+        {
+        m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
+                                  << std::endl << std::endl;
+        throw std::runtime_error("Error allocating GPUArray.");
+        }
+
     m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
 
     resizeHostArray(num_elements);
@@ -1211,6 +1229,13 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
         m_height = height;
         return;
         };
+
+    if (num_elements > MAXALLOCBYTES/sizeof(T))
+        {
+        m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
+                                  << std::endl << std::endl;
+        throw std::runtime_error("Error allocating GPUArray.");
+        }
 
     resize2DHostArray(m_pitch, new_pitch, m_height, height);
 #ifdef ENABLE_CUDA
