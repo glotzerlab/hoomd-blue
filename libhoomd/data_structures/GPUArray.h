@@ -617,7 +617,7 @@ template<class T> void GPUArray<T>::allocate()
     if (m_num_elements == 0)
         return;
 
-    if (m_num_elements > MAXALLOCBYTES/sizeof(T))
+    if (m_num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
         {
         m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
                                   << std::endl << std::endl;
@@ -1185,7 +1185,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
         return;
         };
 
-    if (num_elements > MAXALLOCBYTES/sizeof(T))
+    if (num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
         {
         m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
                                   << std::endl << std::endl;
@@ -1230,7 +1230,7 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
         return;
         };
 
-    if (num_elements > MAXALLOCBYTES/sizeof(T))
+    if (num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
         {
         m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
                                   << std::endl << std::endl;
