@@ -333,6 +333,13 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
     \param group_size Number of particles in the group
     \param num_partial_sums Number of partial sums in \a d_scratch
 
+    \param external_virial_xx External contribution to virial (xx component)
+    \param external_virial_xy External contribution to virial (xy component)
+    \param external_virial_xz External contribution to virial (xz component)
+    \param external_virial_yy External contribution to virial (yy component)
+    \param external_virial_yz External contribution to virial (yz component)
+    \param external_virial_zz External contribution to virial (zz component)
+
     Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
     sums, the thermodynamic properties are computed and written to d_properties.
 

@@ -76,33 +76,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_CUDA
-
-class ExecutionConfiguration;
-
-//! A wrapper class for reusable CUDA events
-class GPUEventHandle
-    {
-    public:
-        //! Constructor
-        GPUEventHandle(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
-
-        //! Destructor
-        ~GPUEventHandle();
-
-        //! Returns the CUDA event
-        inline operator cudaEvent_t () const
-            {
-            return m_event;
-            }
-
-    private:
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
-        unsigned int m_event_id;                                     //!< Our event id 
-        cudaEvent_t m_event;                                        //!< The actual CUDA event
-    };
-#endif
-
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU
@@ -268,29 +241,11 @@ private:
         return (unsigned int)m_gpu_available.size();
         }
 
-    //! Reserve a reusable event
-    unsigned int acquireEvent() const;
-
-    //! Release a previously reserved event
-    void releaseEvent(unsigned int event_id) const;
- 
-    //! Get a reusable event for concurrent kernel execution
-    cudaEvent_t getEvent(unsigned int event_id) const
-        {
-        assert(event_id < m_events.size());
-        return m_events[event_id];
-        }
-
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
-
-    mutable std::vector<cudaEvent_t> m_events;       //!< Reusable events for every thread
-    mutable std::vector<bool> m_event_in_use;        //!< List of flags that indicate if a stream is in use
-
-    friend class GPUEventHandle;
 #endif
-  
+
 #ifdef ENABLE_MPI
     void initializeMPI(unsigned int n_ranks);               //!< Initialize MPI environment
 

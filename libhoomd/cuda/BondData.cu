@@ -147,7 +147,7 @@ __global__ void gpu_fill_gpu_bond_table(const uint2 *bonds,
     \param N Number of particles in the system
     \param d_rtag Array of reverse-lookup particle tag . particle index
     \param cur_max Current maximum bonded particle number
-    \param condition Condition variable, set to unequal zero if we exceed the maximum numbers
+    \param d_condition Condition variable, set to unequal zero if we exceed the maximum numbers
  */
 cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                      const uint2 *d_bonds,
@@ -212,6 +212,7 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
     return cudaSuccess;
     }
 
+//! Kernel to mark duplicate received bonds
 __global__ void gpu_mark_recv_bond_duplicates_kernel(const unsigned int n_bonds,
                                          const bond_element *recv_bonds,
                                          unsigned int *bond_remove_mask,
@@ -249,6 +250,15 @@ __global__ void gpu_mark_recv_bond_duplicates_kernel(const unsigned int n_bonds,
     recv_bond_active[recv_idx] = duplicate ? 0 : 1;
     }
 
+//! Mark duplicate bonds received
+/*! \param n_bonds Number of bonds in local bond table
+    \param d_recv_bonds Buffer of received bonds
+    \param d_bond_remove_mask Flags for every local bond to indicate removal
+    \param n_recv_bonds Number of bonds received
+    \param d_bond_rtag Bond tag->idx lookup
+    \param d_recv_bond_active Per-received bond flag, 1 if unique, 0 if duplicate (return values)
+    \param d_n_duplicate_recv_bonds Number of duplicates found (return value)
+ */
 void gpu_mark_recv_bond_duplicates(const unsigned int n_bonds,
                                    const bond_element *d_recv_bonds,
                                    unsigned int *d_bond_remove_mask,
@@ -271,6 +281,7 @@ void gpu_mark_recv_bond_duplicates(const unsigned int n_bonds,
         d_n_duplicate_recv_bonds);
     }
 
+//! Kernel to backfill the local bond table with received bonds and remove non-local bonds
 __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
                                                const unsigned int n_recv_bonds,
                                                const unsigned int n_unique_recv_bonds,
@@ -348,6 +359,20 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
          } // if replace
     }
 
+//! Backfill local bond table with received bonds and remove non-local bonds
+/*! \param old_n_bonds Current size of bond table
+    \param n_recv_bonds Size of bond receive buffer
+    \param n_unique_recv_bonds Number of unique received bonds
+    \param n_remove_bonds Number of bonds to be removed from local bond table
+    \param d_remove_mask Flag for every bond, 1 if bond is to be removed, 0 otherwise
+    \param d_recv_bond_active Flag for every received bond, 1 if unique, 0 if duplicate
+    \param d_recv_buf Buffer of received bonds
+    \param d_bonds Local bond table
+    \param d_bond_type Local list of bond types
+    \param d_bond_tag Local list of bond tags
+    \param d_bond_rtag Bond tag->idx lookup table
+    \param d_n_fetch_bond Temporary counter for backfilling of bonds
+*/
 void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
                              const unsigned int n_recv_bonds,
                              const unsigned int n_unique_recv_bonds,
@@ -382,6 +407,7 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
         d_n_fetch_bond);
     }
 
+//! Kernel to update reverse-lookup tags for bonds
 __global__ void gpu_update_bond_rtags_kernel(unsigned int *bond_rtag,
                                       const unsigned int *bond_tag,
                                       const unsigned int num_bonds)
@@ -393,6 +419,11 @@ __global__ void gpu_update_bond_rtags_kernel(unsigned int *bond_rtag,
     bond_rtag[bond_tag[bond_idx]] = bond_idx;
     }
 
+//! Update the bond tag ->idx lookup table
+/*! \param d_bond_rtag Reverse-lookup table
+    \param d_bond_tag Local list of bond tags
+    \param num_bonds Number of local bonds
+ */
 void gpu_update_bond_rtags(unsigned int *d_bond_rtag,
                            const unsigned int *d_bond_tag,
                            const unsigned int num_bonds)

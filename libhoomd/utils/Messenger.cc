@@ -231,7 +231,7 @@ void Messenger::openFile(const std::string& fname)
     }
 
 #ifdef ENABLE_MPI
-/*! \param fname The file name
+/*! Open a shared file for error, warning, and notice streams
 
     A suffix .rank (where rank is the partition number)
     is appended to the filename
@@ -263,7 +263,8 @@ void Messenger::openStd()
     }
 
 #ifdef ENABLE_MPI
-/*! \param mpi_comm The MPI communicator to use for MPI file IO
+/*! \param filename The output filename
+    \param mpi_comm The MPI communicator to use for MPI file IO
  */
 mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
     : m_mpi_comm(mpi_comm),  m_file_open(false)

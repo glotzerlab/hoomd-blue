@@ -290,7 +290,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     pdata->initializeFromSnapshot(snap);
 
     // migrate atoms
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     // check that every domain has exactly one particle
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
@@ -323,7 +323,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     pdata->setPosition(7, make_scalar3(-0.6, -0.1,- 0.2));
 
     // migrate atoms
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     // check that every particle has ended up in the right domain
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 1);
@@ -398,7 +398,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     pdata->setPosition(7, make_scalar3(-0.6, -0.1,- 1.5));
 
     // migrate particles
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     // check number of particles
     switch (exec_conf->getRank())
@@ -779,7 +779,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
     // migrate atoms
     // this should reset the number of ghost particles
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
 
@@ -807,7 +807,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     pdata->setPosition(15, make_scalar3( 0.99, 0.999, 0.9999));
 
     // migrate atoms in their respective boxes
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     // Check number of particles
     switch (exec_conf->getRank())
@@ -1380,7 +1380,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3); 
 
     // exchange ghost particles
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     // check that nothing has changed
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
@@ -1391,7 +1391,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     pdata->setPosition(0, make_scalar3(.3, -0.4, -0.4));
 
     // migrate particles
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     switch(exec_conf->getRank())
         {
@@ -1695,7 +1695,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     // move particle back
     pdata->setPosition(0, make_scalar3(-.4, -0.4, -0.4));
     
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     // check that old state has been restored
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
@@ -1705,7 +1705,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     pdata->setPosition(0, make_scalar3(.4, -0.4, -0.4));
     pdata->setPosition(1, make_scalar3(-.4, -0.4, -0.4));
 
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     switch(exec_conf->getRank())
         {
@@ -1765,7 +1765,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     pdata->setPosition(0, make_scalar3(-.4, 0.4, 0.4));
     pdata->setPosition(6, make_scalar3(.4, -0.4, -0.4));
 
-    comm->migrateAtoms();
+    comm->migrateParticles();
 
     switch(exec_conf->getRank())
         {

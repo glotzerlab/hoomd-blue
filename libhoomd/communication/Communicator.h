@@ -105,8 +105,10 @@ struct pdata_element
 //! Perform a logical or operation on the return values of several signals
 struct migrate_logical_or
     {
-    typedef bool result_type;
-
+    //! Combine return values using logical or
+    /*! \param first First return value
+        \param last Last return value
+     */
     template<typename InputIterator>
     bool operator()(InputIterator first, InputIterator last) const
         {
@@ -133,7 +135,7 @@ struct migrate_logical_or
  * The communication scheme consists of three stages.
  *
  *
- * -# <b> First stage</b>: Atom migration (migrateAtoms())
+ * -# <b> First stage</b>: Atom migration (migrateParticles())
  * <br> Atoms that have left the current domain boundary are deleted from the current processor, exchanged with neighboring
  * processors, and particles received from neighboring processors are added to the system.
  * Atoms are exchanged only infrequently, i.e. only in those steps where the neighbor list needs to be rebuilt.
@@ -282,7 +284,7 @@ class Communicator
          *
          * \post Every particle on every processor can be found inside the local domain boundaries.
          */
-        virtual void migrateAtoms();
+        virtual void migrateParticles();
 
         /*! Particles that are within r_ghost from a neighboring domain's boundary are exchanged with the
          * processor that is responsible for it. Only information needed for calulating the forces (i.e.

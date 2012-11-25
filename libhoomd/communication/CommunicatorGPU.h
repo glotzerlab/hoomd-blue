@@ -71,10 +71,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Class that handles MPI communication (GPU version)
+/*! CommunicatorGPU uses a GPU optimized version of the basic Plimpton communication scheme implemented in the base
+    class Communicator.
+
+    Basically, particles are pre-sorted into face, edge and corner buffers depending whether they neighbor one, two or three
+    boxes. The full algorithm will be documented in a forthcoming publication.
+
+    This scheme guarantees that in between every of the six communication steps, no extra scanning of particle buffers needs
+    to be done and only buffer copying on the host is involved. Since for MPI, data needs to reside on the host anyway,
+    this avoids unnecessary copying of data between the GPU and the host.
+*/
 class CommunicatorGPU : public Communicator
     {
     public:
-        //! Constructor
         //! Constructor
         /*! \param sysdef system definition the communicator is associated with
          *  \param decomposition Information about the decomposition of the global simulation domain
@@ -91,7 +100,7 @@ class CommunicatorGPU : public Communicator
         virtual void updateGhosts(unsigned int timestep);
 
         //! Transfer particles between neighboring domains
-        virtual void migrateAtoms();
+        virtual void migrateParticles();
 
         //! Build a ghost particle list, exchange ghost particle data with neighboring processors
         virtual void exchangeGhosts();

@@ -404,7 +404,7 @@ class NeighborList : public Compute
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
 #ifdef ENABLE_MPI
-        boost::signals::connection m_migrate_request_connection; //! Connection to trigger particle migration
+        boost::signals::connection m_migrate_request_connection; //!< Connection to trigger particle migration
 #endif
 
         //! Performs the distance check

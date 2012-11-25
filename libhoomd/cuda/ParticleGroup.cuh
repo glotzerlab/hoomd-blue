@@ -65,7 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! GPU method for rebuilding the index list of a ParticleGroup
 cudaError_t gpu_rebuild_index_list(unsigned int N,
-                                   unsigned int n_global,
                                    unsigned char *d_is_member_tag,
                                    unsigned char *d_is_member,
                                    unsigned int *d_member_idx,

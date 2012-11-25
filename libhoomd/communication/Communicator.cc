@@ -269,7 +269,7 @@ void Communicator::communicate(unsigned int timestep)
         m_is_first_step = false;
 
         // If so, migrate atoms
-        migrateAtoms();
+        migrateParticles();
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
@@ -284,7 +284,7 @@ void Communicator::communicate(unsigned int timestep)
     }
 
 //! Transfer particles between neighboring domains
-void Communicator::migrateAtoms()
+void Communicator::migrateParticles()
     {
     if (m_prof)
         m_prof->push("migrate_particles");

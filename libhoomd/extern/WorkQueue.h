@@ -8,6 +8,7 @@
 #include <boost/thread/mutex.hpp>
 #include <queue>
 
+//! A work queue for multiple concurrent worker threads
 template<typename Data>
 class WorkQueue
 {

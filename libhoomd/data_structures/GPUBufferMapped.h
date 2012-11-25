@@ -134,7 +134,7 @@ template<class T> GPUBufferMapped<T>::GPUBufferMapped(unsigned int width, unsign
     {
     }
 
-/*! \param ments Number of elements to allocate
+/*! \param num_elements Number of elements to allocate
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
 template<class T> GPUBufferMapped<T>::GPUBufferMapped(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :

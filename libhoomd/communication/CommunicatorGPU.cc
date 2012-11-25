@@ -552,7 +552,7 @@ void CommunicatorGPU::allocateBuffers()
     }
 
 //! Transfer particles between neighboring domains
-void CommunicatorGPU::migrateAtoms()
+void CommunicatorGPU::migrateParticles()
     {
     if (m_prof)
         m_prof->push(m_exec_conf,"migrate_particles");

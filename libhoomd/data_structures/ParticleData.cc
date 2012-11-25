@@ -1057,7 +1057,6 @@ void ParticleData::addGhostParticles(const unsigned int nghosts)
 #ifdef ENABLE_MPI
 //! Find the processor that owns a particle
 /*! \param tag Tag of the particle to search
- * \param is_local True if the particle is local
  */
 unsigned int ParticleData::getOwnerRank(unsigned int tag) const
     {

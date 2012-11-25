@@ -745,6 +745,7 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
     setBondTypeMapping(type_mapping);
     }
 
+//! A combined iterator for filtering bonds
 typedef boost::zip_iterator< boost::tuple < uint2 *,
                                             unsigned int *,
                                             unsigned int *,
@@ -752,8 +753,10 @@ typedef boost::zip_iterator< boost::tuple < uint2 *,
                                           >
                             > zipiter;
 
+//! A predicate to select bonds according to a remove mask
 struct remove_pred
     {
+    //! Returns true if the remove flag is set for a bond
     bool operator() (zipiter::reference const x) const
         {
         return x.get<3>();

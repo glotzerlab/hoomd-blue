@@ -156,6 +156,31 @@ template<class T> class ArrayHandle
     };
 
 #ifdef ENABLE_CUDA
+//! Implementation of ArrayHandle using asynchronous copying between host and device
+/*! This handle can be used to speed up access to the GPUArray data when
+    accessing multiple buffers on the host AND the device.
+
+    ArrayHandleAsync is asynchronous with respect to the host, i.e. multiple
+    ArrayHandleAync objects maybe instantiated for multiple GPUArrays in a row, without
+    incurring significant overhead for each of the handles.
+
+    \warning Because ArrayHandleAsync uses asyncronous copying, however, array data is not
+    guaranteed to be available on the host unless the device has been synchronized.
+
+    Example usage:
+    \code
+GPUArray<int> gpu_array_1(100);
+GPUArray<int> gpu_array_2(100);
+
+    {
+    ArrayHandle<int> h_handle_1(gpu_array_1, access_location::host, access_mode::readwrite);
+    ArrayHandle<int> h_handle_2(gpu_array_2, access_location:::host, access_mode::readwrite);
+    cudaDeviceSynchronize();
+
+    ... use h_handle_1.data and h_handle_2.data ...
+    }
+    \endcode
+*/
 template<class T> class ArrayHandleAsync 
     {
     public:
@@ -304,7 +329,7 @@ template<class T> class GPUArray
         inline void memclear(unsigned int first=0);
 
         //! Acquires the data pointer for use
-        inline T* aquire(const access_location::Enum location, const access_mode::Enum mode, unsigned int gpu
+        inline T* aquire(const access_location::Enum location, const access_mode::Enum mode
         #ifdef ENABLE_CUDA
                          , bool async = false
         #endif
@@ -378,7 +403,7 @@ template<class T> class GPUArray
 */
 template<class T> ArrayHandle<T>::ArrayHandle(const GPUArray<T>& gpu_array, const access_location::Enum location,
                                               const access_mode::Enum mode) :
-        data(gpu_array.aquire(location, mode, 0)), m_gpu_array(gpu_array)
+        data(gpu_array.aquire(location, mode)), m_gpu_array(gpu_array)
     {
     }
 
@@ -391,7 +416,7 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
 #ifdef ENABLE_CUDA
 template<class T> ArrayHandleAsync<T>::ArrayHandleAsync(const GPUArray<T>& gpu_array, const access_location::Enum location,
                                               const access_mode::Enum mode) :
-       data(gpu_array.aquire(location, mode, 0,true)), m_gpu_array(gpu_array)
+       data(gpu_array.aquire(location, mode, true)), m_gpu_array(gpu_array)
     {
     }
 
@@ -795,7 +820,7 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
 
 /*! \param location Desired location to access the data
     \param mode Mode to access the data with
-    \param gpu GPU to access the data on (if accessing on the device)
+    \param async True if array copying should be done async
 
     aquire() is the workhorse of GPUArray. It tracks the internal state variable \a data_location and
     performs all host<->device memory copies as needed during the state changes given the
@@ -803,8 +828,7 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
 
     aquire() cannot be directly called by the user class. Data must be accessed through ArrayHandle.
 */
-template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, const access_mode::Enum mode,
-                                         unsigned int gpu
+template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, const access_mode::Enum mode
 #ifdef ENABLE_CUDA
                                          , bool async
 #endif

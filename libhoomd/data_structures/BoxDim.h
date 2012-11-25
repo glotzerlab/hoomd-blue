@@ -214,6 +214,7 @@ class BoxDim
 
         //! Compute fractional coordinates, allowing for a ghost layer
         /*! \param v Vector to scale
+            \param ghost_width Width of extra ghost padding layer to take into account
             \return a vector with coordinates scaled to range between 0 and 1 (if inside the box + ghost layer).
             The returned vector \a f and the given vector \a v are related by:
             \a v = \a f * (L+2*ghost_width) + lo - ghost_width

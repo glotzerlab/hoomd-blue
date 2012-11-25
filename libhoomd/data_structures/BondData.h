@@ -218,7 +218,7 @@ class BondData : boost::noncopyable
         std::string getNameByType(unsigned int type);
 
         //! Unpack a buffer with new bonds to be added, and remove bonds according to a mask
-        /*! \param num_bonds Number of bonds in the buffer
+        /*! \param num_add_bonds Number of bonds in the buffer
          *  \param num_remove_bonds Number of bonds to be removed
          *  \param buf The buffer containing the bond data
          *  \param remove_mask A mask that indicates whether the bond needs to be removed

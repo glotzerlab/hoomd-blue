@@ -83,19 +83,6 @@ using namespace boost::python;
 using namespace std;
 using namespace boost;
 
-#ifdef ENABLE_CUDA
-//! EventHandle Implementation
-GPUEventHandle::GPUEventHandle(boost::shared_ptr<const ExecutionConfiguration> exec_conf)
-    : m_exec_conf(exec_conf), m_event_id(exec_conf->acquireEvent()),
-      m_event(exec_conf->getEvent(m_event_id))
-    { }
-
-GPUEventHandle::~GPUEventHandle()
-    {
-    m_exec_conf->releaseEvent(m_event_id);
-    }
-#endif
-
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 
@@ -218,19 +205,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
-
-    #ifdef ENABLE_CUDA
-    if (exec_mode == GPU)
-        {
-        // destroy events
-        while (! m_events.empty())
-            {
-            cudaEvent_t ev = m_events.back();
-            cudaEventDestroy(ev);
-            m_events.pop_back();
-            }
-        }
-    #endif
 
     #if defined(ENABLE_CUDA) && !defined(ENABLE_MPI_CUDA)
     if (exec_mode == GPU)
@@ -783,44 +757,6 @@ unsigned int ExecutionConfiguration::getNRanks() const
     return size;
     }
 #endif 
-
-#ifdef ENABLE_CUDA
-/*! Returns a unique, reusable event id
- */
-unsigned int ExecutionConfiguration::acquireEvent() const
-    {
-    assert(exec_mode == GPU);
-   
-    for (unsigned int event_id = 0; event_id < m_event_in_use.size(); ++event_id)
-        if (m_event_in_use[event_id] == false)
-            {
-            // reuse that event
-            m_event_in_use[event_id] = true;
-            return event_id;
-            break;
-            }
-
-    // there was no free event, add a new one to the pool
-    msg->notice(6) << "Creating CUDA event (" << m_events.size() << ")" << std::endl;
-    cudaEvent_t event;
-    cudaEventCreate(&event);
-    checkCUDAError(__FILE__, __LINE__);
-
-    unsigned int event_id = m_events.size();
-    m_events.push_back(event);
-    m_event_in_use.push_back(true);
-    
-    return event_id;
-    }
-
-//! Release a previously reserved event
-void ExecutionConfiguration::releaseEvent(unsigned int event_id) const
-    {
-    assert(m_events.size() > event_id);
-    assert(m_event_in_use[event_id]);
-    m_event_in_use[event_id] = false;
-    }
-#endif
 
 void export_ExecutionConfiguration()
     {

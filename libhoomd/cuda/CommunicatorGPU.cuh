@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondData.cuh"
 
-//! The flags used for indicating the itinerary of a ghost particle
+//! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
     {
     send_east = 1,
@@ -69,6 +69,7 @@ enum gpu_send_flags
     send_down = 32
     };
 
+//! List of valid edges of the local simulation box
 enum gpu_edge_flags
     {
     edge_east_north = 0 ,
@@ -85,6 +86,7 @@ enum gpu_edge_flags
     edge_south_down
     };
 
+//! List of valid faces of the local simulation box
 enum gpu_face_flags
     {
     face_east = 0,
@@ -95,6 +97,7 @@ enum gpu_face_flags
     face_down
     };
 
+//! List of valid corners of the local simulation box
 enum gpu_corner_flags
     {
     corner_east_north_up = 0,
@@ -107,6 +110,7 @@ enum gpu_corner_flags
     corner_west_south_down
     };
 
+//! Buffer element for sending particle data
 struct pdata_element_gpu
     {
     Scalar4 pos;               //!< Position
@@ -122,6 +126,7 @@ struct pdata_element_gpu
 
 unsigned int gpu_pdata_element_size();
 
+//! Buffer element for sending ghost particle data
 struct ghost_element_gpu
     {
     Scalar4 pos;               //!< Position

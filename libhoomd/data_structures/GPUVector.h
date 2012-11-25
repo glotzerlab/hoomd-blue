@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GPUArray.h"
 
-//! The factor with which the array size is incremented
+// The factor with which the array size is incremented
 #define RESIZE_FACTOR 9.f/8.f
 
 template<class T> class GPUArray;
@@ -312,9 +312,9 @@ template<class T> void GPUVector<T>::clear()
 template<class T> T * GPUVector<T>::acquireHost(const access_mode::Enum mode) const
     {
     #ifdef ENABLE_CUDA
-    return GPUArray<T>::aquire(access_location::host, access_mode::readwrite,0, false);
+    return GPUArray<T>::aquire(access_location::host, access_mode::readwrite, false);
     #else
-    return GPUArray<T>::aquire(access_location::host, access_mode::readwrite,0);
+    return GPUArray<T>::aquire(access_location::host, access_mode::readwrite);
     #endif
     }
 

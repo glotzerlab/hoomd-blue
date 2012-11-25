@@ -596,7 +596,6 @@ void ParticleGroup::rebuildIndexListGPU()
     if (m_member_tags.getNumElements() > 0)
         {
         gpu_rebuild_index_list(m_pdata->getN(),
-                           m_pdata->getNGlobal(),
                            d_is_member_tag.data,
                            d_is_member.data,
                            d_member_idx.data,

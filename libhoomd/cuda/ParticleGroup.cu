@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Contains GPU kernel code used by ParticleGroup
 */
 
+//! GPU kernel to translate between global and local membership lookup table
 __global__ void gpu_rebuild_index_list_kernel(unsigned int N,
                                               unsigned int *d_tag,
                                               unsigned char *d_is_member_tag,
@@ -84,15 +85,13 @@ __global__ void gpu_rebuild_index_list_kernel(unsigned int N,
 
 //! GPU method for rebuilding the index list of a ParticleGroup
 /*! \param N number of local particles
-    \param num_members Number of local members of the group
-    \param d_member_tag Tags of local members
+    \param d_is_member_tag Global lookup table for tag -> group membership
     \param d_is_member Array of membership flags
     \param d_member_idx Array of member indices
     \param d_tag Array of tags
     \param num_local_members Number of members on the local processor (return value)
 */
 cudaError_t gpu_rebuild_index_list(unsigned int N,
-                                   unsigned int n_global,
                                    unsigned char *d_is_member_tag,
                                    unsigned char *d_is_member,
                                    unsigned int *d_member_idx,

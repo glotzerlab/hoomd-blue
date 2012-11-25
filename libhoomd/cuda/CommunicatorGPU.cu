@@ -67,16 +67,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace thrust;
 
+//! Return the size the particle data element
 unsigned int gpu_pdata_element_size()
     {
     return sizeof(pdata_element_gpu);
     }
 
+//! Return the size of the ghost particle element
 unsigned int gpu_ghost_element_size()
     {
     return sizeof(ghost_element_gpu);
     }
 
+//! Return the size of the ghost update element
 unsigned int gpu_update_element_size()
     {
     return sizeof(update_element_gpu);
@@ -85,8 +88,8 @@ unsigned int gpu_update_element_size()
 //! Select local particles that within a boundary layer of the neighboring domain in a given direction
 struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
     {
-    float3 lo;
-    float3 hi;
+    float3 lo; //!< Box lo
+    float3 hi; //!< Box hi
     const float r_ghost; //!< Width of boundary layer
 
     //! Constructor
@@ -133,9 +136,9 @@ struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsign
 
 unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
-__constant__ unsigned int d_corner_plan_lookup[8];
-__constant__ unsigned int d_edge_plan_lookup[12];
-__constant__ unsigned int d_face_plan_lookup[6];
+__constant__ unsigned int d_corner_plan_lookup[8]; //!< Lookup-table corner -> plan flags
+__constant__ unsigned int d_edge_plan_lookup[12];  //!< Lookup-table edges -> plan flags
+__constant__ unsigned int d_face_plan_lookup[6];   //!< Lookup-table faces -> plan falgs
 
 __constant__ unsigned int d_is_communicating[6]; //!< Per-direction flag indicating whether we are communicating in that direction
 __constant__ unsigned int d_is_at_boundary[6]; //!< Per-direction flag indicating whether the box has a global boundary
@@ -163,14 +166,6 @@ void gpu_deallocate_tmp_storage()
     }
 
 //! GPU Kernel to find incomplete bonds
-/*! \param btable Bond table
- * \param plan Plan array
- * \param d_pos Array of particle positions
- * \param d_rtag Array of global reverse-lookup tags
- * \param box The local box dimensions
- * \param N number of (local) particles
- * \param n_bonds Number of bonds in bond table
- */
 __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btable,
                                                          unsigned char *plan,
                                                          const float4 *pos,
@@ -425,27 +420,35 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
 
     }
 
-/*! Reorder the particles according to a migration criterium
- *  Particles that remain in the simulation box come first, followed by the particles that are sent in the
- *  specified direction
+/*! Fill send buffers with particles that leave the local box
  *
  *  \param N Number of particles in local simulation box
- *  \param n_send_ptls_corner Number of particles that are sent over a corner (per corner)
- *  \param n_send_ptls_edge Number of particles that are sent over an edge (per edge)
- *  \param n_send_ptls_face Number of particles that are sent over a face (per face)
+ *  \param d_pos Array of particle positions
+ *  \param d_vel Array of particle velocities
+ *  \param d_accel Array of particle accelerations
+ *  \param d_image Array of particle images
+ *  \param d_charge Array of particle charges
+ *  \param d_diameter Array of particle diameters
+ *  \param d_body Array of particle body ids
+ *  \param d_orientation Array of particle orientations
+ *  \param d_tag Array of particle tags
+ *  \param d_n_send_ptls_corner Number of particles that are sent over a corner (per corner)
+ *  \param d_n_send_ptls_edge Number of particles that are sent over an edge (per edge)
+ *  \param d_n_send_ptls_face Number of particles that are sent over a face (per face)
  *  \param n_max_send_ptls_corner Maximum size of corner send buf
  *  \param n_max_send_ptls_edge Maximum size of edge send buf
  *  \param n_max_send_ptls_face Maximum size of face send buf
  *  \param d_remove_mask Per-particle flag if particle has been sent
+ *  \param d_ptl_plan Array of particle itineraries (return array)
  *  \param d_corner_buf 2D Array of particle data elements that are sent over a corner
  *  \param corner_buf_pitch Pitch of 2D corner send buf
  *  \param d_edge_buf 2D Array of particle data elements that are sent over an edge
  *  \param edge_buf_pitch Pitch of 2D edge send buf
  *  \param d_face_buf 2D Array of particle data elements that are sent over a face
  *  \param face_buf_pitch Pitch of 2D face send buf
- *  \param tag_pitch
  *  \param box Dimensions of local simulation box
- *  \param dir Direction to send particles to
+ *  \param global_box Dimensions of global simulation box
+ *  \param d_condition Return value, unequals zero if buffers overflow
  */
 void gpu_migrate_select_particles(unsigned int N,
                                   const Scalar4 *d_pos,
@@ -511,6 +514,7 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     global_box.getL());
     }
 
+//! Kernel to reset particle reverse-lookup tags for removed particles
 __global__ void gpu_reset_rtag_by_mask_kernel(const unsigned int N,
                                        unsigned int *rtag,
                                        const unsigned int *tag,
@@ -523,6 +527,12 @@ __global__ void gpu_reset_rtag_by_mask_kernel(const unsigned int N,
     if (remove_mask[idx]) rtag[tag[idx]] = NOT_LOCAL;
     }
 
+//! Reset particle reverse-lookup tags for removed particles
+/*! \param N Number of particles
+    \param d_rtag Lookup table tag->idx
+    \param d_tag List of local particle tags
+    \param d_remove_mask Mask for particles (1: remove, 0: keep)
+ */
 void gpu_reset_rtag_by_mask(const unsigned int N,
                             unsigned int *d_rtag,
                             const unsigned int *d_tag,
@@ -536,6 +546,7 @@ void gpu_reset_rtag_by_mask(const unsigned int N,
         d_remove_mask);
     }
 
+/*! Helper function to add a bond to the send buffers */
 __device__ void gpu_send_bond_with_ptl(const uint2 bond,
                               const unsigned int type,
                               const unsigned int tag,
@@ -617,6 +628,7 @@ __device__ void gpu_send_bond_with_ptl(const uint2 bond,
         }
     }
 
+//! Kernel to add bonds to send buffers
 __global__ void gpu_send_bonds_kernel(const unsigned int n_bonds,
                                       const unsigned int n_particles,
                                       const uint2 *bonds,
@@ -697,6 +709,30 @@ __global__ void gpu_send_bonds_kernel(const unsigned int n_bonds,
         bond_remove_mask[bond_idx] = 0;
     }
 
+//! Add bonds connected to migrating particles to send buffers
+/*! \param n_bonds Number of local bonds
+    \param n_particles Number of local particles
+    \param d_bonds Local bond list
+    \param d_bond_type Local list of bond types
+    \param d_bond_tag Local list of bond tags
+    \param d_rtag Lookup-table particle tag -> index
+    \param d_ptl_plan Particle iteneraries
+    \param d_bond_remove_mask Per-bond flag, '1' = bond is removed, '0' = bond stays (return array)
+    \param d_face_send_buf Buffer for bonds sent through a face (return array)
+    \param face_send_buf_pitch Offsets for different faces in the buffer
+    \param d_edge_send_buf Buffer for bonds sent over an edge (return array)
+    \param edge_send_buf_pitch Offsets for different edges in the buffer
+    \param d_corner_send_buf Buffer for bonds sent via a corner (return array)
+    \param corner_send_buf_pitch Offsets for different corners in the buffer
+    \param d_n_send_bonds_face Number of bonds sent across a face (return value)
+    \param d_n_send_bonds_edge Number of bonds sent across a edge (return value)
+    \param d_n_send_bonds_corner Number of bonds sent via a corner (return value)
+    \param max_send_bonds_face Size of face send buf
+    \param max_send_bonds_edge Size of edge send buf
+    \param max_send_bonds_corner Size of corner send buf
+    \param d_n_remove_bonds Number of local bonds removed (return value)
+    \param d_condition Return value, unequal zero if bonds do not fit in buffers
+*/
 void gpu_send_bonds(const unsigned int n_bonds,
                     const unsigned int n_particles,
                     const uint2 *d_bonds,
@@ -752,6 +788,7 @@ void gpu_send_bonds(const unsigned int n_bonds,
                           d_condition);
     }
 
+//! Kernel to backfill particle data
 __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_nparticles,
                                              unsigned int n_recv_ptls,
                                              unsigned int n_remove_ptls,
@@ -831,6 +868,23 @@ __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_npartic
         } // if replace
     }
 
+//! Backfill particle data arrays with received particles and remove no longer local particles
+/*! \param old_nparticles Current number of particles
+    \param n_recv_ptls Number of particles received
+    \param n_remove_ptls Number of particles to removed
+    \param d_remove_mask Per-particle flag, '1' = remove local particle
+    \param d_recv_buf Buffer of received particles
+    \param d_pos Array of particle positions
+    \param d_vel Array of particle velocities
+    \param d_accel Array of particle accelerations
+    \param d_image Array of particle images
+    \param d_charge Array of particle charges
+    \param d_diameter Array of particle diameters
+    \param d_body Array of particle body ids
+    \param d_orientation Array of particle orientations
+    \param d_tag Array of particle tags
+    \param d_rtag Lookup table particle tag->idx
+ */
 void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int n_recv_ptls,
                         unsigned int n_remove_ptls,
@@ -889,22 +943,6 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
                     rtag_ptr);
     }
 
-
-//! Update global tag <-> local particle index reverse lookup array
-/*! \param nptl Number of particles for which we are updating the reverse lookup tags
- * \param start_idx starting index of first particle in local particle data arrays
- * \param d_tag array of particle tags
- * \param d_rtag array of particle reverse lookup tags to store information to
- */
-void gpu_update_rtag(unsigned int nptl, unsigned int start_idx, unsigned int *d_tag, unsigned int *d_rtag)
-    {
-    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    thrust::counting_iterator<unsigned int> first(start_idx);
-    thrust::counting_iterator<unsigned int> last = first + nptl;
-    thrust::scatter(first, last, tag_ptr, rtag_ptr);
-    }
 
 //! Construct plans for sending non-bonded ghost particles
 /*! \param d_plan Array of ghost particle plans
@@ -1099,14 +1137,31 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
     }
 
 //! Construct a list of particle tags to send as ghost particles
-/*! \param n_total Total number of particles to check
- * \param N number of local particles
- * \param dir Direction in which ghost particles are sent
+/*! \param N number of local particles
  * \param d_plan Array of particle exchange plans
  * \param d_tag Array of particle global tags
- * \param d_copy_ghosts Array to be fillled with indices of particles that are to be sent as ghosts
- * \param d_ghost_tag Array of ghost particle tags to be sent
- * \param n_copy_ghosts Number of local particles that are sent in the given direction as ghosts (return value)
+ * \param d_ghost_idx_face List of particle indices sent as ghosts through a face (return array)
+ * \param ghost_idx_face_pitch Offset of different faces in ghost index list
+ * \param d_ghost_idx_edge List of particle indices sent as ghosts over an edge (return array)
+ * \param ghost_idx_edge_pitch Offset of different edges in ghost index list
+ * \param d_ghost_idx_corner List of particle indices sent as ghosts via an corner (return array)
+ * \param ghost_idx_corner_pitch Offset of different corners in ghost index list
+ * \param d_pos Array of particle positions
+ * \param d_charge Array of particle charges
+ * \param d_diameter Array of particle diameters
+ * \param d_ghost_corner_buf Buffer for ghosts sent via a corner (return array)
+ * \param corner_buf_pitch Offsets of different corners in send buffer
+ * \param d_ghost_edge_buf Buffer for ghosts sent over an edge (return array)
+ * \param edge_buf_pitch Offsets of different edges in send buffer
+ * \param d_ghost_face_buf Buffer for ghosts sent through a face (return array)
+ * \param face_buf_pitch Offsets of different faces in send buffer
+ * \param d_n_copy_ghosts_corner Number of ghosts sent via a corner (return array)
+ * \param d_n_copy_ghosts_edge Number of ghosts sent over an edge (return array)
+ * \param d_n_copy_ghosts_face Number of ghosts sent via a corner (return array)
+ * \param max_copy_ghosts_corner Size of corner ghost send buffer
+ * \param max_copy_ghosts_edge Size of edge ghost send buffer
+ * \param max_copy_ghosts_face Size of face ghost send buffer
+ * \param d_condition Return value, unequal zero if buffer overflow
  */
 void gpu_exchange_ghosts(const unsigned int N,
                          const unsigned char *d_plan,
@@ -1167,6 +1222,10 @@ void gpu_exchange_ghosts(const unsigned int N,
                          d_condition);
     }
 
+//! Unpack a buffer of received ghost particles into local particle data arrays
+/*! \tparam element_type Type of ghost element
+    \tparam update True if only updating positions, false if copying all fields needed for force calculation
+ */
 template<class element_type, bool update>
 __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   unsigned int n_tot_recv_ghosts,
@@ -1338,6 +1397,28 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
     d_pos[N+ghost_idx] = postype;
     }
 
+//! Unpack received ghosts
+/*! \param N Number of local particles
+    \param n_tot_recv_ghosts Number of received ghosts
+    \param d_n_local_ghosts_face Number of local particles SENT as ghosts across a face
+    \param d_n_local_ghosts_edge Number of local particle SENT as ghosts over an edge
+    \param n_tot_recv_ghosts_local Number of ghosts received for local box
+    \param d_n_recv_ghosts_local Number of ghosts received for local box (per send direction)
+    \param d_n_recv_ghosts_face Number of ghosts received for forwarding across a face (per send-direction and face)
+    \param d_n_recv_ghosts_edge Number of ghosts received for forwarding over an edge (per send-direction an edge)
+    \param d_face_ghosts Buffer of ghosts sent/forwarded across a face
+    \param face_pitch Offsets of different faces in face ghost buffer
+    \param d_edge_ghosts Buffer of ghosts sent/forwarded over an edge
+    \param edge_pitch Offsets of different edges in edge ghost buffer
+    \param d_recv_ghosts Buffer of ghosts received for the local box
+    \param d_pos Array of particle positions
+    \param d_charge Array of particle charges
+    \param d_diameter Array of particle diameters
+    \param d_tag Array of particle tags
+    \param d_rtag Lookup table particle tag->idx
+    \param d_ghost_plan Boundary crossing plans of ghost particles
+    \param global_box Global simulation box
+*/
 void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *d_n_local_ghosts_face,
@@ -1483,6 +1564,24 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
     }
 
 //! Pack local particle data into ghost send buffers
+/*! \param n_copy_ghosts Number of ghosts to be packed
+    \param d_ghost_idx_face List of particle indices sent as ghosts across a face
+    \param ghost_idx_face_pitch Offsets of different box faces in ghost index list
+    \param d_ghost_idx_edge List of particle indices sent as ghosts across a edge
+    \param ghost_idx_edge_pitch Offsets of different box edges in ghost index list
+    \param d_ghost_idx_corner List of particle indices sent as ghosts across a corner
+    \param ghost_idx_corner_pitch Offsets of different box corners in ghost index list
+    \param d_pos Array of particle positions
+    \param d_update_corner_buf Buffer of ghost particle positions sent via corner (return array)
+    \param corner_buf_pitch Offsets of different corners in update buffer
+    \param d_update_edge_buf Buffer of ghost particle positions sent over an edge (return array)
+    \param edge_buf_pitch Offsets of different edges in update buffer
+    \param d_update_face_buf Buffer of ghost particle positions sent over an face (return array)
+    \param face_buf_pitch Buffer of different faces in update buffer 
+    \param d_n_local_ghosts_corner Number of ghosts sent in every corner
+    \param d_n_local_ghosts_edge Number of ghosts sent over every edge
+    \param d_n_local_ghosts_face Number of ghosts sent across every face
+*/
 void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      const unsigned int *d_ghost_idx_face,
                                      const unsigned int ghost_idx_face_pitch,
@@ -1521,6 +1620,25 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                                                              d_n_local_ghosts_face);
     }
 
+//! Unpack received ghosts
+/*! \param N Number of local particles
+    \param n_tot_recv_ghosts Number of received ghosts
+    \param d_n_local_ghosts_face Number of local particles SENT as ghosts across a face
+    \param d_n_local_ghosts_edge Number of local particle SENT as ghosts over an edge
+    \param n_tot_recv_ghosts_local Number of ghosts received for local box
+    \param d_n_recv_ghosts_local Number of ghosts received for local box (per send direction)
+    \param d_n_recv_ghosts_face Number of ghosts received for forwarding across a face (per send-direction and face)
+    \param d_n_recv_ghosts_edge Number of ghosts received for forwarding over an edge (per send-direction an edge)
+    \param d_face_ghosts Buffer of ghosts sent/forwarded across a face
+    \param face_pitch Offsets of different faces in face ghost buffer
+    \param d_edge_ghosts Buffer of ghosts sent/forwarded over an edge
+    \param edge_pitch Offsets of different edges in edge ghost buffer
+    \param d_recv_ghosts Buffer of ghosts received for the local box
+    \param d_pos Array of particle positions
+    \param d_ghost_plan Boundary crossing plans of ghost particles
+    \param global_box Global simulation box
+*/
+v
 void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *d_n_local_ghosts_face,

@@ -80,8 +80,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/serialization/vector.hpp>
 
 #ifdef SINGLE_PRECISION
+//! Define MPI_FLOAT as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
 #else
+//! Define MPI_DOUBLE as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_DOUBLE;
 #endif
 

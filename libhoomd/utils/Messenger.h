@@ -87,9 +87,8 @@ struct nullstream: std::ostream
 class mpi_io
     {
     public:
-        //! Defintions used by boost::iostreams
-        typedef char         char_type;
-        typedef boost::iostreams::sink_tag category;
+        typedef boost::iostreams::sink_tag category;  //!< Define this iostream as a sink
+        typedef char         char_type;               //!< This is a character-type sink
 
         //! Constructor
         mpi_io(const MPI_Comm& mpi_comm, const std::string& filename);

@@ -181,7 +181,7 @@ class Updater : boost::noncopyable
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
         boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration        
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             ///!< The communicator this updater is to use
+        boost::shared_ptr<Communicator> m_comm;             //!< The communicator this updater is to use
 #endif
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
