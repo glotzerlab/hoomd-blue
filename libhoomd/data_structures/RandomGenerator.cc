@@ -326,7 +326,7 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
         
     Scalar z = p.z;
     int iz = 0;
-    if (z > hi.y)
+    if (z > hi.z)
         {
         iz=(((int)((z-hi.y)/L.z))+1);
         z -= L.z*iz;
