@@ -461,17 +461,26 @@ void NeighborList::countExclusions()
 void NeighborList::addExclusionsFromBonds()
     {
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-   
+
     // access bond data by snapshot
-    SnapshotBondData snapshot(bond_data->getNumBondsGlobal()); 
+    SnapshotBondData snapshot(bond_data->getNumBondsGlobal());
     bond_data->takeSnapshot(snapshot);
-   
+
     // broadcast global bond list
     std::vector<uint2> bonds;
-    if (m_exec_conf->getRank() == 0)
-        bonds = snapshot.bonds;
 
-    bcast(bonds, 0, m_exec_conf->getMPICommunicator());
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_exec_conf->getRank() == 0)
+            bonds = snapshot.bonds;
+
+        bcast(bonds, 0, m_exec_conf->getMPICommunicator());
+        }
+    else
+#else
+        bonds = snapshot.bonds;
+#endif
 
     // for each bond
     for (unsigned int i = 0; i < bonds.size(); i++)
