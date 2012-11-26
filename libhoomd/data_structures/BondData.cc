@@ -283,13 +283,8 @@ unsigned int BondData::getBondTag(unsigned int id) const
  */
 void BondData::removeBond(unsigned int tag)
     {
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        m_exec_conf->msg->error() << "Removing bonds in simulations with domain decomposition is not currently supported." << std::endl;
-        throw runtime_error("Error removing bond");
-        }
-#endif
+    m_exec_conf->msg->error() << "This feature is currently unsupported." << std::endl;
+    throw runtime_error("Error removing bond");
 
     // Find position of bond in bonds list
     unsigned int id = m_bond_rtag[tag];
