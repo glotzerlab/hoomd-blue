@@ -222,31 +222,31 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
         
     // resort the particles
     {
-    ArrayHandle<unsigned int> h_global_tag(pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_global_rtag(pdata->getGlobalRTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
 
     // set the types
-    h_global_tag.data[0] = 9;
-    h_global_tag.data[1] = 8;
-    h_global_tag.data[2] = 7;
-    h_global_tag.data[3] = 6;
-    h_global_tag.data[4] = 5;
-    h_global_tag.data[5] = 4;
-    h_global_tag.data[6] = 3;
-    h_global_tag.data[7] = 2;
-    h_global_tag.data[8] = 1;
-    h_global_tag.data[9] = 0;
+    h_tag.data[0] = 9;
+    h_tag.data[1] = 8;
+    h_tag.data[2] = 7;
+    h_tag.data[3] = 6;
+    h_tag.data[4] = 5;
+    h_tag.data[5] = 4;
+    h_tag.data[6] = 3;
+    h_tag.data[7] = 2;
+    h_tag.data[8] = 1;
+    h_tag.data[9] = 0;
 
-    h_global_rtag.data[0] = 9;
-    h_global_rtag.data[1] = 8;
-    h_global_rtag.data[2] = 7;
-    h_global_rtag.data[3] = 6;
-    h_global_rtag.data[4] = 5;
-    h_global_rtag.data[5] = 4;
-    h_global_rtag.data[6] = 3;
-    h_global_rtag.data[7] = 2;
-    h_global_rtag.data[8] = 1;
-    h_global_rtag.data[9] = 0;
+    h_rtag.data[0] = 9;
+    h_rtag.data[1] = 8;
+    h_rtag.data[2] = 7;
+    h_rtag.data[3] = 6;
+    h_rtag.data[4] = 5;
+    h_rtag.data[5] = 4;
+    h_rtag.data[6] = 3;
+    h_rtag.data[7] = 2;
+    h_rtag.data[8] = 1;
+    h_rtag.data[9] = 0;
     }
 
     pdata->notifyParticleSort();
@@ -261,10 +261,10 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
         BOOST_CHECK_EQUAL_UINT(tags04.getMemberIndex(i), i + 5);
         }
     {
-    ArrayHandle<unsigned int> h_global_tag(pdata->getGlobalTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::readwrite);
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        if (h_global_tag.data[i] <= 4)
+        if (h_tag.data[i] <= 4)
             BOOST_CHECK(tags04.isMember(i));
         else
             BOOST_CHECK(!tags04.isMember(i));

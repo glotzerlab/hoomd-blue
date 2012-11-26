@@ -203,11 +203,8 @@ class Messenger
         //! Get a notice stream
         std::ostream& notice(unsigned int level) const;
 
-        //! Get a notice stream for serialized output
-        std::ostream& collectiveNotice();
-
-        //! Output the contents of a collective note in rank order
-        void flushCollectiveNotice(unsigned int level);
+        //! Print a notice message in rank-order
+        void collectiveNoticeStr(unsigned int level, const std::string& msg) const;
 
         //! Alternate method to print notice strings
         void noticeStr(unsigned int level, const std::string& msg) const;
@@ -371,8 +368,6 @@ class Messenger
         std::ostream *m_err_stream;     //!< error stream
         std::ostream *m_warning_stream; //!< warning stream
         std::ostream *m_notice_stream;  //!< notice stream
-
-        std::ostringstream m_collective_notice_stream;  //!< String for serialized notices
 
         boost::shared_ptr<nullstream>    m_nullstream;   //!< null stream
         boost::shared_ptr<std::ostream>  m_file;           //!< File stream

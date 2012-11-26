@@ -530,7 +530,7 @@ template<class T> GPUArray<T>::~GPUArray()
 template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
         m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), 
 #ifdef ENABLE_CUDA
-        m_mapped(from.mapped),
+        m_mapped(from.m_mapped),
         d_data(NULL),
 #endif
         h_data(NULL),

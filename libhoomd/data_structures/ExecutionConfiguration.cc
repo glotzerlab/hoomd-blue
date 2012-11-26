@@ -450,8 +450,7 @@ void ExecutionConfiguration::printGPUStats()
         s << ", DIS";
            
     // We print this information in rank order
-    msg->collectiveNotice() << s.str() << endl;
-    msg->flushCollectiveNotice(1);
+    msg->collectiveNoticeStr(1,s.str());
 
     // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
     if (dev_prop.major <= 1 && dev_prop.minor <= 1)
@@ -742,9 +741,10 @@ void ExecutionConfiguration::setupStats()
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
+        ostringstream s;
         // We print this information in rank oder
-        msg->collectiveNotice() << "Rank " << getRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
-        msg->flushCollectiveNotice(1);
+        s << "Rank " << getRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        msg->collectiveNoticeStr(1,s.str());
         #endif
         }
     }

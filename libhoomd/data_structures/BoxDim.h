@@ -219,7 +219,7 @@ class BoxDim
             The returned vector \a f and the given vector \a v are related by:
             \a v = \a f * (L+2*ghost_width) + lo - ghost_width
         */
-        HOSTDEVICE Scalar3 makeFraction(const Scalar3& v, const Scalar3& ghost_width) const
+        HOSTDEVICE Scalar3 makeFraction(const Scalar3& v, const Scalar3& ghost_width=make_scalar3(0.0,0.0,0.0)) const
             {
             return (v - m_lo + ghost_width) / (m_L + Scalar(2.0)*ghost_width);
             }
