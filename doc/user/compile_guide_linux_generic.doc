@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*! 
-\page page_compile_guide_linux_generic Compiling HOOMD-blue on Linux (generic)
+\page page_compile_guide_linux_generic Compiling HOOMD-blue on Linux (Cluster installation & generic linux)
 
 Table of contents:
  - \ref sec_build_linux_generic_prereq
