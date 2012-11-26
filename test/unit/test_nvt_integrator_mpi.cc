@@ -1,6 +1,6 @@
 //! name the boost unit test module
 #define BOOST_TEST_MODULE NVTUpdaterTestsMPI
-#include "boost_utf_configure.h"
+#include "MPITestSetup.h"
 
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"
@@ -29,24 +29,6 @@
 #endif
 
 using namespace boost;
-extern void set_num_threads(int nthreads);
-
-//! MPI environment
-boost::mpi::environment *env;
-
-//! MPI communicator
-boost::shared_ptr<boost::mpi::communicator> world;
-
-//! Excution Configuration for GPU
-/* For MPI libraries that directly support CUDA, it is required that
-   CUDA be initialized before setting up the MPI environmnet. This
-   global variable stores the ExecutionConfiguration for GPU, which is
-   initialized once
-*/
-boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
-
-//! Execution configuration on the CPU
-boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
 
 void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 {
@@ -74,7 +56,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     SnapshotParticleData snap(N);
     pdata_1->takeSnapshot(snap);
     // initialize domain decomposition on system one
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata_1->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata_1->getBox().getL(), 0));
     pdata_1->setDomainDecomposition(decomposition);
     pdata_1->initializeFromSnapshot(snap);
 
@@ -82,10 +64,10 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     boost::shared_ptr<Communicator> comm;
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
-        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef_1, world, decomposition));
+        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef_1, decomposition));
     else
 #endif
-        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef_1,world,decomposition));
+        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef_1,decomposition));
 
     shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
     shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
@@ -163,7 +145,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     for (int i=0; i< 100; i++)
         {
         // compare temperatures
-        if (world->rank() == 0)
+        if (exec_conf->getRank() == 0)
             BOOST_CHECK_CLOSE(thermo_1->getTemperature(), thermo_2->getTemperature(), tol_small);
       
 //       if (world->rank() ==0)
@@ -179,7 +161,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
             // ... against the serial simulation
             pdata_2->takeSnapshot(snap_2);
 
-            if (world->rank() == 0)
+            if (exec_conf->getRank() == 0)
                 {
                 // check position, velocity and acceleration
                 for (unsigned int j = 0; j < N; j++)
@@ -205,35 +187,9 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
 }
 
-//! Fixture to setup and tear down MPI
-struct MPISetup
-    {
-    //! Setup
-    MPISetup()
-        {
-        int argc = boost::unit_test::framework::master_test_suite().argc;
-        char **argv = boost::unit_test::framework::master_test_suite().argv;
-
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        env = new boost::mpi::environment(argc,argv);
-        world = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());
-        }
-
-    //! Cleanup
-    ~MPISetup()
-        {
-        delete env;
-        }
-
-    };
-
-BOOST_GLOBAL_FIXTURE( MPISetup )
-
 //! Tests MPI domain decomposition with NVT integrator
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVT_test )
     {
-    set_num_threads(1);
     test_nvt_integrator_mpi(exec_conf_cpu);
     }
 

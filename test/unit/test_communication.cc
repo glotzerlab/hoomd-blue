@@ -1081,8 +1081,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
    pdata->setPosition(15, make_scalar3( 0.6, 1.001, 1.012));
 
    // update ghosts
-   comm->startGhostsUpdate(0);
-   comm->finishGhostsUpdate(0);
+   comm->updateGhosts(0);
 
    // check ghost positions, taking into account that the particles should have been wrapped across the boundaries
         {
@@ -2045,12 +2044,12 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
         bdata->getGPUBondList();
 
         // all bonds should be complete, every processor should have three bonds
-        ArrayHandle<uint2> h_gpu_bondlist(bdata->getGPUGhostBondList(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_bonds(bdata->getNGhostBondsArray(), access_location::host, access_mode::read);
+        ArrayHandle<uint2> h_gpu_bondlist(bdata->getGPUBondList(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_n_bonds(bdata->getNBondsArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
 
         BOOST_CHECK_EQUAL(h_n_bonds.data[0],3);
-        unsigned int pitch = bdata->getGPUGhostBondList().getPitch();
+        unsigned int pitch = bdata->getGPUBondList().getPitch();
 
         unsigned int sorted_tags[3];
         sorted_tags[0] = h_tag.data[h_gpu_bondlist.data[0].x];

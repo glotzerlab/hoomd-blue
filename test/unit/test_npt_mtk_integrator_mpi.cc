@@ -90,26 +90,9 @@ using namespace boost;
 
 //! name the boost unit test module
 #define BOOST_TEST_MODULE TwoStepNPTMTKTests
-#include "boost_utf_configure.h"
 
-extern void set_num_threads(int nthreads);
-
-//! MPI environment
-boost::mpi::environment *env;
-
-//! MPI communicator
-boost::shared_ptr<boost::mpi::communicator> world;
-
-//! Excution Configuration for GPU
-/* For MPI libraries that directly support CUDA, it is required that
-   CUDA be initialized before setting up the MPI environmnet. This
-   global variable stores the ExecutionConfiguration for GPU, which is
-   initialized once
-*/
-boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
-
-//! Execution configuration on the CPU
-boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
+// this has to be included after naming the test module
+#include "MPITestSetup.h"
 
 //! Typedef'd NPTMTKUpdator class factory
 typedef boost::function<shared_ptr<TwoStepNPTMTK> (shared_ptr<SystemDefinition> sysdef,
@@ -149,7 +132,7 @@ void npt_mtk_updater_test_mpi(twostep_npt_mtk_creator npt_mtk_creator, boost::sh
     // set up domain decomposition
     SnapshotParticleData snap(N);
     pdata->takeSnapshot(snap);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(world, pdata->getBox().getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), 0));
     pdata->setDomainDecomposition(decomposition);
     pdata->initializeFromSnapshot(snap);
 
@@ -157,10 +140,10 @@ void npt_mtk_updater_test_mpi(twostep_npt_mtk_creator npt_mtk_creator, boost::sh
     boost::shared_ptr<Communicator> comm;
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
-        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef, world, decomposition));
+        comm = shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition));
     else
 #endif
-        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef,world,decomposition));
+        comm = boost::shared_ptr<Communicator>(new Communicator(sysdef, decomposition));
 
     // enable the energy computation
     PDataFlags flags;
@@ -210,11 +193,11 @@ void npt_mtk_updater_test_mpi(twostep_npt_mtk_creator npt_mtk_creator, boost::sh
     // step for a 10,000 timesteps to relax pessure and tempreratue
     // before computing averages
 
-    if (comm->isRoot())
+    if (exec_conf->getRank() == 0)
         std::cout << "Equilibrating 10,000 steps... " << std::endl;
     for (int i = 0; i < 10000; i++)
         {
-        if (comm->isRoot() && (i % 1000 == 0))
+        if (exec_conf->getRank() == 0 && (i % 1000 == 0))
             std::cout << i << std::endl;
         npt_mtk->update(i);
         }
@@ -234,12 +217,12 @@ void npt_mtk_updater_test_mpi(twostep_npt_mtk_creator npt_mtk_creator, boost::sh
     Scalar thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", 0);
     Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
-    if (comm->isRoot())
+    if (exec_conf->getRank()==0)
         std::cout << "Measuring up to 50,000 steps... " << std::endl;
 
     for (int i = 10000; i < 50000; i++)
         {
-        if (comm->isRoot() && (i % 1000 == 0))
+        if (exec_conf->getRank() == 0&& (i % 1000 == 0))
             std::cout << i << std::endl;
 
         if (i % 100 == 0)
@@ -282,31 +265,6 @@ void npt_mtk_updater_test_mpi(twostep_npt_mtk_creator npt_mtk_creator, boost::sh
     MY_BOOST_CHECK_CLOSE(T0, avrT, rough_tol);
 
     }
-
-//! Fixture to setup and tear down MPI
-struct MPISetup
-    {
-    //! Setup
-    MPISetup()
-        {
-        int argc = boost::unit_test::framework::master_test_suite().argc;
-        char **argv = boost::unit_test::framework::master_test_suite().argv;
-
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        env = new boost::mpi::environment(argc,argv);
-        world = boost::shared_ptr<boost::mpi::communicator>(new boost::mpi::communicator());
-        }
-
-    //! Cleanup
-    ~MPISetup()
-        {
-        delete env;
-        }
-
-    };
-
-BOOST_GLOBAL_FIXTURE( MPISetup )
 
 //! IntegratorTwoStepNPTMTK factory for the unit tests
 shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(shared_ptr<SystemDefinition> sysdef,
