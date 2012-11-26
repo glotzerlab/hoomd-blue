@@ -67,6 +67,11 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "HOOMDMPI.h"
+#endif
+
 #include <iostream>
 using namespace std;
 
@@ -107,15 +112,17 @@ void ComputeThermoGPU::computeProperties()
     if (group_size == 0)
         return;
     
-    if (m_prof) m_prof->push("Thermo");
+    if (m_prof) m_prof->push(m_exec_conf,"Thermo");
     
     assert(m_pdata);
     assert(m_ndof != 0);
     
     // access the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
     
+    PDataFlags flags = m_pdata->getFlags();
+
     { // scope these array handles so they are released before the additional terms are added
     // access the net force, pe, and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -130,6 +137,7 @@ void ComputeThermoGPU::computeProperties()
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // build up args list
+    m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     compute_thermo_args args;
     args.d_net_force = d_net_force.data;
     args.d_net_virial = d_net_virial.data;
@@ -140,9 +148,13 @@ void ComputeThermoGPU::computeProperties()
     args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
     args.block_size = m_block_size;
     args.n_blocks = m_num_blocks;
+    args.external_virial_xx = m_pdata->getExternalVirial(0);
+    args.external_virial_xy = m_pdata->getExternalVirial(1);
+    args.external_virial_xz = m_pdata->getExternalVirial(2);
+    args.external_virial_yy = m_pdata->getExternalVirial(3);
+    args.external_virial_yz = m_pdata->getExternalVirial(4);
+    args.external_virial_zz = m_pdata->getExternalVirial(5);
 
-    PDataFlags flags = m_pdata->getFlags();
-    
     // perform the computation on the GPU
     gpu_compute_thermo( d_properties.data,
                         d_vel.data,
@@ -151,13 +163,29 @@ void ComputeThermoGPU::computeProperties()
                         box,
                         args,
                         flags[pdata_flag::pressure_tensor]);
-    
+   
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
     }
 
-    if (m_prof) m_prof->pop();
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
+
+
+        // copy data back to the host to perform collective operations
+        ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
+
+        if (m_prof)
+            m_prof->push("MPI Allreduce");
+        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR, MPI_SUM, mpi_comm);
+        if (m_prof)
+                m_prof->pop();
+        }
+#endif // ENABLE_MPI
+
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_ComputeThermoGPU()

@@ -66,32 +66,36 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param d_diameter Particle diameter array
     \param d_body Particle body array
     \param N Number of particles
+    \param n_ghost Number of ghost particles
     \param Nmax Maximum number of particles that can be placed in a single cell
     \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
+    \param ghost_width Width of ghost layer
     
     \note Optimized for Fermi
 */
 __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              float4 *d_xyzf,
                                              float4 *d_tdb,
-                                             unsigned int *d_conditions,
+                                             uint3 *d_conditions,
                                              const float4 *d_pos,
                                              const float *d_charge,
                                              const float *d_diameter,
                                              const unsigned int *d_body,
                                              const unsigned int N,
+                                             const unsigned int n_ghost,
                                              const unsigned int Nmax,
                                              const bool flag_charge,
                                              const BoxDim box,
                                              const Index3D ci,
-                                             const Index2D cli)
+                                             const Index2D cli,
+                                             const Scalar3 ghost_width) 
     {
     // read in the particle that belongs to this thread
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx >= N)
+    if (idx >= N + n_ghost)
         return;
 
     float4 postype = d_pos[idx];
@@ -116,15 +120,15 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
         {
-        d_conditions[1] = idx+1;
+        (*d_conditions).y = idx+1;
         return;
         }
 
     // find the bin each particle belongs in
-    Scalar3 f = box.makeFraction(pos);
-    unsigned int ib = (unsigned int)(f.x * ci.getW());
-    unsigned int jb = (unsigned int)(f.y * ci.getH());
-    unsigned int kb = (unsigned int)(f.z * ci.getD());
+    Scalar3 f = box.makeFraction(pos,ghost_width);
+    int ib = (int)(f.x * ci.getW());
+    int jb = (int)(f.y * ci.getH());
+    int kb = (int)(f.z * ci.getD());
 
     // need to handle the case where the particle is exactly at the box hi
     if (ib == ci.getW())
@@ -139,7 +143,9 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     // check if the particle is inside the dimensions
     if (bin >= ci.getNumElements())
         {
-        d_conditions[2] = idx+1;
+        // if a ghost particle is out of bounds, silently ignore it
+        if (idx < N)
+            (*d_conditions).z = idx+1;
         return;
         }
 
@@ -154,27 +160,29 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     else
         {
         // handle overflow
-        atomicMax(&d_conditions[0], size+1);
+        atomicMax(&(*d_conditions).x, size+1);
         }
     }
 
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   float4 *d_xyzf,
                                   float4 *d_tdb,
-                                  unsigned int *d_conditions,
+                                  uint3 *d_conditions,
                                   const float4 *d_pos,
                                   const float *d_charge,
                                   const float *d_diameter,
                                   const unsigned int *d_body,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const unsigned int Nmax,
                                   const bool flag_charge,
                                   const BoxDim& box,
                                   const Index3D& ci,
-                                  const Index2D& cli)
+                                  const Index2D& cli,
+                                  const Scalar3& ghost_width)
     {
     unsigned int block_size = 256;
-    int n_blocks = (int)ceil(float(N)/(float)block_size);
+    int n_blocks = (int)ceil(float(N+n_ghost)/(float)block_size);
     
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());
@@ -191,11 +199,13 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                                            d_diameter,
                                                            d_body,
                                                            N,
+                                                           n_ghost,
                                                            Nmax,
                                                            flag_charge,
                                                            box,
                                                            ci,
-                                                           cli);
+                                                           cli,
+                                                           ghost_width);
     
     return cudaSuccess;
     }
@@ -341,11 +351,13 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
     \param d_diameter Particle diameter array
     \param d_body Particle body array
     \param N Number of particles
+    \param n_ghost Number of ghost particles
     \param Nmax Maximum number of particles that can be placed in a single cell
     \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
+    \param ghost_width width of ghost layer
     
     \note Optimized for compute 1.x hardware
 */
@@ -353,17 +365,19 @@ template<unsigned int block_size>
 __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
                                                 float4 *d_xyzf,
                                                 float4 *d_tdb,
-                                                unsigned int *d_conditions,
+                                                uint3 *d_conditions,
                                                 const float4 *d_pos,
                                                 const float *d_charge,
                                                 const float *d_diameter,
                                                 const unsigned int *d_body,
                                                 const unsigned int N,
+                                                const unsigned int n_ghost,
                                                 const unsigned int Nmax,
                                                 const bool flag_charge,
                                                 const BoxDim box,
                                                 const Index3D ci,
-                                                const Index2D cli)
+                                                const Index2D cli,
+                                                const Scalar3 ghost_width)
     {
     // sentinel to label a bin as invalid
     const unsigned int INVALID_BIN = 0xffffffff;
@@ -372,13 +386,13 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     float4 postype = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    if (idx < N)
+    if (idx < N + n_ghost)
         postype = d_pos[idx];
 
     float3 pos = make_float3(postype.x, postype.y, postype.z);
 
     // find the bin each particle belongs in
-    Scalar3 f = box.makeFraction(pos);
+    Scalar3 f = box.makeFraction(pos,ghost_width);
     unsigned int ib = (unsigned int)(f.x * ci.getW());
     unsigned int jb = (unsigned int)(f.y * ci.getH());
     unsigned int kb = (unsigned int)(f.z * ci.getD());
@@ -396,17 +410,17 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     // check if the particle is inside the dimensions
     if (bin >= ci.getNumElements())
         {
-        d_conditions[2] = idx+1;
+        (*d_conditions).z = idx+1;
         bin = INVALID_BIN;
         }
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
         {
-        d_conditions[1] = idx+1;
+        (*d_conditions).y = idx+1;
         bin = INVALID_BIN;
         }
     // if we are past the end of the array, mark the bin as invalid
-    if (idx >= N)
+    if (idx >= N + n_ghost)
         bin = INVALID_BIN;
 
 
@@ -497,27 +511,29 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     else
         {
         // handle overflow
-        atomicMax(&d_conditions[0], size+1);
+        atomicMax(&(*d_conditions).x, size+1);
         }
     }
 
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      float4 *d_xyzf,
                                      float4 *d_tdb,
-                                     unsigned int *d_conditions,
+                                     uint3 *d_conditions,
                                      const float4 *d_pos,
                                      const float *d_charge,
                                      const float *d_diameter,
                                      const unsigned int *d_body,
                                      const unsigned int N,
+                                     const unsigned int n_ghost,
                                      const unsigned int Nmax,
                                      const bool flag_charge,
                                      const BoxDim& box,
                                      const Index3D& ci,
-                                     const Index2D& cli)
+                                     const Index2D& cli,
+                                     const Scalar3& ghost_width)
     {
     const unsigned int block_size = 64;
-    int n_blocks = (int)ceil(float(N)/(float)block_size);
+    int n_blocks = (int)ceil(float(N+n_ghost)/(float)block_size);
     
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());
@@ -535,11 +551,13 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                                               d_diameter,
                                                               d_body,
                                                               N,
+                                                              n_ghost,
                                                               Nmax,
                                                               flag_charge,
                                                               box,
                                                               ci,
-                                                              cli);
+                                                              cli,
+                                                              ghost_width);
     
     return cudaSuccess;
     }

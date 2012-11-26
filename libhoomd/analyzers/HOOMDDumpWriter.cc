@@ -216,10 +216,20 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     m_pdata->takeSnapshot(snapshot);
 
+    SnapshotBondData bdata_snapshot(m_sysdef->getBondData()->getNumBondsGlobal());
+
+    if (m_output_bond)
+        {
+        // take a bond data snapshot
+        shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+
+        bond_data->takeSnapshot(bdata_snapshot);
+        }
+
 #ifdef ENABLE_MPI
     // only the root processor writes the output file
-    if (m_comm)
-        if (! m_comm->isRoot()) return;
+    if (m_pdata->getDomainDecomposition() && ! m_exec_conf->isRoot())
+        return;
 #endif
 
     // open the file for writing
@@ -397,14 +407,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the bond flag is true, output the bonds to the xml file
     if (m_output_bond)
         {
-        f << "<bond num=\"" << m_sysdef->getBondData()->getNumBonds() << "\">" << "\n";
+        f << "<bond num=\"" << bdata_snapshot.bonds.size() << "\">" << "\n";
         shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-        
+
         // loop over all bonds and write them out
-        for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
+        for (unsigned int i = 0; i < bdata_snapshot.bonds.size(); i++)
             {
-            Bond bond = bond_data->getBond(i);
-            f << bond_data->getNameByType(bond.type) << " " << bond.a << " " << bond.b << "\n";
+            uint2 bond = bdata_snapshot.bonds[i];
+            unsigned int bond_type = bdata_snapshot.type_id[i];
+            f << bond_data->getNameByType(bond_type) << " " << bond.x << " " << bond.y << "\n";
             }
             
         f << "</bond>" << "\n";
@@ -499,7 +510,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_orientation)
         {
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_pdata->getDomainDecomposition())
             {
             m_exec_conf->msg->error() << "dump.xml: Saving orientations in MPI simulations is currently not supported." << endl;
             throw runtime_error("Error writing HOOMD dump file");
@@ -508,7 +519,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "<orientation num=\"" << m_pdata->getN() << "\">" << "\n";
         
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getGlobalRTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
         
         for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
@@ -531,9 +542,9 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_moment_inertia)
         {
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_pdata->getDomainDecomposition())
             {
-            m_exec_conf->msg->error() << "dump.xml: Saving moments of intertia in MPI simulations is currently not supported." << endl;
+            m_exec_conf->msg->error() << "dump.xml: Saving moments of inertia in MPI simulations is currently not supported." << endl;
             throw runtime_error("Error writing HOOMD dump file");
             }
 #endif

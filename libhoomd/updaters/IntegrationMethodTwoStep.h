@@ -59,6 +59,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __INTEGRATION_METHOD_TWO_STEP_H__
 #define __INTEGRATION_METHOD_TWO_STEP_H__
 
+#ifdef ENABLE_MPI
+//! Forward declaration
+class Communicator;
+#endif
+
 /*! \file IntegrationMethodTwoStep.h
     \brief Declares a base class for all two-step integration methods
 */
@@ -213,7 +218,18 @@ class IntegrationMethodTwoStep : boost::noncopyable
 
         //! Validate that all members in the particle group are valid (throw an exception if they are not)
         virtual void validateGroup();
-        
+
+#ifdef ENABLE_MPI
+        //! Set the communicator to use
+        /*! \param comm MPI communication class
+         */
+        void setCommunicator(boost::shared_ptr<Communicator> comm)
+            {
+            assert(comm);
+            m_comm = comm;
+            }
+#endif
+
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
         const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
@@ -243,7 +259,12 @@ class IntegrationMethodTwoStep : boost::noncopyable
         
         //! Set whether this restart is valid
         void setValidRestart(bool b) { m_valid_restart = b; }
-    
+
+    protected:
+        bool m_no_wrap_particles[3];                           //!< True if particles should not be wrapped across boundaries in a given direction
+#ifdef ENABLE_MPI
+        boost::shared_ptr<Communicator> m_comm;             //!< The communicator to use for MPI
+#endif
     private:
         unsigned int m_integrator_id;                       //!< Registered integrator id to access the state variables
         bool m_valid_restart;                               //!< True if the restart info was valid when loading

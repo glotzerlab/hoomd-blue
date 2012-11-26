@@ -150,7 +150,7 @@ void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
 
     unsigned int nparticles = m_pdata->getN();

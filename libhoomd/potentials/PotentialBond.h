@@ -90,7 +90,7 @@ class PotentialBond : public ForceCompute
                       const std::string& log_suffix="");
 
         //! Destructor
-        ~PotentialBond();
+        virtual ~PotentialBond();
 
         //! Set the parameters
         virtual void setParams(unsigned int type, const param_type &param);
@@ -125,7 +125,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
     m_log_name = std::string("bond_") + evaluator::getName() + std::string("_energy") + log_suffix;
-    m_prof_name = std::string("Pair ") + evaluator::getName();
+    m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNBondTypes(), exec_conf);
@@ -181,7 +181,7 @@ Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsi
         }
     else
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
+        this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
         throw std::runtime_error("Error getting log value");
         }
     }
@@ -202,8 +202,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
 
     // access the parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
@@ -216,28 +216,47 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     assert(h_diameter.data);
     assert(h_charge.data);
 
-    // Zero data for force calculation.
+    // Zero data for force calculation
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
  
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+
+    Scalar bond_virial[6];
+    for (unsigned int i = 0; i< 6; i++)
+        bond_virial[i]=Scalar(0.0);
+
+    ArrayHandle<uint2> h_bonds(m_bond_data->getBondTable(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_type(m_bond_data->getBondTypes(), access_location::host, access_mode::read);
+
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const Bond& bond = m_bond_data->getBond(i);
-        assert(bond.a < m_pdata->getN());
-        assert(bond.b < m_pdata->getN());
+        const uint2& bond = h_bonds.data[i];
+        assert(bond.x < m_pdata->getNGlobal());
+        assert(bond.y < m_pdata->getNGlobal());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[bond.a];
-        unsigned int idx_b = h_rtag.data[bond.b];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
+        unsigned int idx_a = h_rtag.data[bond.x];
+        unsigned int idx_b = h_rtag.data[bond.y];
+
+#ifdef ENABLE_MPI
+        if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
+            {
+            assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
+            m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " 
+                                      << "Incomplete bond detected. Bonds cannot be longer than box length/2."
+                                      << std::endl << std::endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
+#endif
 
         // calculate d\vec{r}
         // (MEM TRANSFER: 6 Scalars / FLOPS: 3)
@@ -271,7 +290,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         Scalar rsq = dot(dx,dx);
 
         // get parameters for this bond type
-        param_type param = h_params.data[bond.type];
+        param_type param = h_params.data[h_type.data[i]];
 
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
@@ -290,31 +309,39 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         if (evaluated)
             {
             // calculate virial
-            Scalar bond_virial[6];
-            Scalar force_div2r = Scalar(1.0/2.0)*force_divr;
-            bond_virial[0] = dx.x * dx.x * force_div2r; // xx
-            bond_virial[1] = dx.x * dx.y * force_div2r; // xy
-            bond_virial[2] = dx.x * dx.z * force_div2r; // xz
-            bond_virial[3] = dx.y * dx.y * force_div2r; // yy
-            bond_virial[4] = dx.y * dx.z * force_div2r; // yz
-            bond_virial[5] = dx.z * dx.z * force_div2r; // zz
+            if (compute_virial)
+                {
+                Scalar force_div2r = Scalar(1.0/2.0)*force_divr;
+                bond_virial[0] = dx.x * dx.x * force_div2r; // xx
+                bond_virial[1] = dx.x * dx.y * force_div2r; // xy
+                bond_virial[2] = dx.x * dx.z * force_div2r; // xz
+                bond_virial[3] = dx.y * dx.y * force_div2r; // yy
+                bond_virial[4] = dx.y * dx.z * force_div2r; // yz
+                bond_virial[5] = dx.z * dx.z * force_div2r; // zz
+                }
 
-            // add the force to the particles
-            // (MEM TRANSFER: 20 Scalars / FLOPS 16)
-            h_force.data[idx_b].x += force_divr * dx.x;
-            h_force.data[idx_b].y += force_divr * dx.y;
-            h_force.data[idx_b].z += force_divr * dx.z;
-            h_force.data[idx_b].w += bond_eng;
-            for (unsigned int i = 0; i < 6; i++)
-                h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+            // add the force to the particles (only for non-ghost particles)
+            if (idx_b < m_pdata->getN())
+                {
+                h_force.data[idx_b].x += force_divr * dx.x;
+                h_force.data[idx_b].y += force_divr * dx.y;
+                h_force.data[idx_b].z += force_divr * dx.z;
+                h_force.data[idx_b].w += bond_eng;
+                if (compute_virial)
+                    for (unsigned int i = 0; i < 6; i++)
+                        h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+                }
 
-            h_force.data[idx_a].x -= force_divr * dx.x;
-            h_force.data[idx_a].y -= force_divr * dx.y;
-            h_force.data[idx_a].z -= force_divr * dx.z;
-            h_force.data[idx_a].w += bond_eng;
-            for (unsigned int i = 0; i < 6; i++)
-                h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
-
+            if (idx_a < m_pdata->getN())
+                {
+                h_force.data[idx_a].x -= force_divr * dx.x;
+                h_force.data[idx_a].y -= force_divr * dx.y;
+                h_force.data[idx_a].z -= force_divr * dx.z;
+                h_force.data[idx_a].w += bond_eng;
+                if (compute_virial)
+                    for (unsigned int i = 0; i < 6; i++)
+                        h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
+                }
             }
         else
             {

@@ -384,13 +384,14 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.dpdlj', 'pair_dpdlj_setup', 500),                
                 ('pair.dpd_conservative', 'pair_dpd_conservative_setup', 500),
                 ('bond.harmonic', 'bond.harmonic', 10000),
-                ('angle.harmonic', 'angle.harmonic', 3000),
-                ('angle.cgcmm', 'angle.cgcmm', 2000),
-                ('dihedral.harmonic', 'dihedral.harmonic', 1000),
-                ('improper.harmonic', 'improper.harmonic', 1000),
                 ('bond.fene', 'bond_fene_setup', 2000)
                 ];
-    
+
+#               ('angle.harmonic', 'angle.harmonic', 3000),
+#               ('angle.cgcmm', 'angle.cgcmm', 2000),
+#               ('dihedral.harmonic', 'dihedral.harmonic', 1000),
+#               ('improper.harmonic', 'improper.harmonic', 1000),
+ 
     # setup the particle system to benchmark
     polymer = dict(bond_len=1.2, type=['A']*50, bond="linear", count=2000);
     N = len(polymer['type']) * polymer['count'];
@@ -400,22 +401,22 @@ def find_optimal_block_sizes(save = True, only=None):
     sysdef = init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35), seed=12)
     
     # need some angles, dihedrals, and impropers to benchmark
-    angle_data = sysdef.sysdef.getAngleData();
-    dihedral_data = sysdef.sysdef.getDihedralData();
-    improper_data = sysdef.sysdef.getImproperData();
-    num_particles = len(polymer['type']) * polymer['count'];
+    #angle_data = sysdef.sysdef.getAngleData();
+    #dihedral_data = sysdef.sysdef.getDihedralData();
+    #improper_data = sysdef.sysdef.getImproperData();
+    #num_particles = len(polymer['type']) * polymer['count'];
     
-    for i in range(1,num_particles-3):
-        angle_data.addAngle(hoomd.Angle(0, i, i+1, i+2));
+    #for i in range(1,num_particles-3):
+    #    angle_data.addAngle(hoomd.Angle(0, i, i+1, i+2));
     
-    for i in range(1,num_particles-4):
-        dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
-        improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
+    #for i in range(1,num_particles-4):
+    #    dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
+    #    improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
    
-    del angle_data
-    del dihedral_data
-    del improper_data
-    del sysdef
+    #del angle_data
+    #del dihedral_data
+    #del improper_data
+    #del sysdef
     
     # run one time step to resort the particles for optimal memory access patterns
     hoomd_script.run(1);

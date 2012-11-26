@@ -95,13 +95,25 @@ set(TEST_LIST
     test_dpd_integrator
     test_bd_rigid_updater)
 
-foreach (CUR_TEST ${TEST_LIST})
+if(ENABLE_MPI)
+    MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
+    SET("NProc_${_KEY}" "${_VALUE}")
+    SET(MPI_TEST_LIST ${MPI_TEST_LIST} ${_KEY})
+    ENDMACRO(ADD_TO_MPI_TESTS)
+
+    # define every test together with the number of processors
+    ADD_TO_MPI_TESTS(test_communication 8)
+    ADD_TO_MPI_TESTS(test_nvt_integrator_mpi 3)
+    ADD_TO_MPI_TESTS(test_npt_mtk_integrator_mpi 3)
+endif(ENABLE_MPI)
+
+foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     cuda_add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc
             ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu OPTIONS
             ${CUDA_ADDITIONAL_OPTIONS})
-    else(ENABLEC_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+    else(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc)
     endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
 
@@ -110,6 +122,19 @@ foreach (CUR_TEST ${TEST_LIST})
     target_link_libraries(${CUR_TEST} libhoomd ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${CUR_TEST})
 
+    if (ENABLE_MPI)
+        # set appropriate compiler/linker flags
+        if(MPI_COMPILE_FLAGS)
+            set_target_properties(${CUR_TEST} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+        endif(MPI_COMPILE_FLAGS)
+        if(MPI_LINK_FLAGS)
+            set_target_properties(${CUR_TEST} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+        endif(MPI_LINK_FLAGS)
+    endif (ENABLE_MPI)
+endforeach (CUR_TEST)
+
+# add non-MPI tests to test list first
+foreach (CUR_TEST ${TEST_LIST})
     # add it to the unit test list
     get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
     
@@ -128,4 +153,41 @@ foreach (CUR_TEST ${TEST_LIST})
         endif (ENABLE_VALGRIND)
     endif (CMAKE_GENERATOR MATCHES "Xcode")
     endif (MSVC)
-endforeach (CUR_TEST)
+endforeach(CUR_TEST)
+
+# add MPI tests
+foreach (CUR_TEST ${MPI_TEST_LIST})
+    # add it to the unit test list
+    get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
+
+    # add mpi_ prefix to distinguish these tests
+    set(MPI_TEST_NAME mpi-${CUR_TEST})
+
+    # unfortunately, this needs to be handled differently in visual studio
+    if (MSVC)
+        add_test(${MPI_TEST_NAME}
+                 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
+                 ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
+                 ${EXECUTABLE_OUTPUT_PATH}/${CUR_TEST})
+    else (MSVC)
+    # AND it needs to be handled differently for XCODE
+    if (CMAKE_GENERATOR MATCHES "Xcode")
+        add_test(${MPI_TEST_NAME}
+                 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
+                 ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
+                 ${CUR_TEST})
+    else (CMAKE_GENERATOR MATCHES "Xcode")
+        add_test(${MPI_TEST_NAME}
+                 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
+                 ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
+                 ${CUR_TEST_EXE})
+        # add a valgrind executed test if requested
+        if (ENABLE_VALGRIND)
+            add_test(valgrind_${MPI_TEST_NAME}
+                     ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
+                     ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
+                     ${VALGRIND} ${VALGRIND_COMMON_ARGS} ${CUR_TEST_EXE})
+        endif (ENABLE_VALGRIND)
+    endif (CMAKE_GENERATOR MATCHES "Xcode")
+    endif (MSVC)
+endforeach(CUR_TEST)

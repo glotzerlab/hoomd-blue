@@ -168,7 +168,7 @@ def reset():
 # initialized by the neighbor list would be so large that the memory allocation would fail.
 #
 # \sa hoomd_script.data
-def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0):
+def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0, mpi_options=None):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -192,7 +192,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
     
-    _perform_common_init_tasks();
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 ## Reads initial system state from an XML file
@@ -223,7 +223,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.xml
-def read_xml(filename, time_step = None):
+def read_xml(filename, time_step = None, mpi_options=None):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -244,7 +244,7 @@ def read_xml(filename, time_step = None):
         initializer.setTimeStep(time_step)
         globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
     
-    _perform_common_init_tasks();
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 ## Reads initial system state from a binary file
@@ -271,7 +271,7 @@ def read_xml(filename, time_step = None):
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.bin
-def read_bin(filename):
+def read_bin(filename, mpi_options=None):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -288,7 +288,7 @@ def read_bin(filename):
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
     
-    _perform_common_init_tasks();
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 ## Generates N randomly positioned particles of the same type
@@ -315,7 +315,7 @@ def read_bin(filename):
 # The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
-def create_random(N, phi_p, name="A", min_dist=0.7):
+def create_random(N, phi_p, name="A", min_dist=0.7, mpi_options=None):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -356,7 +356,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
     
-    _perform_common_init_tasks();
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 
@@ -457,7 +457,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # The result of init.create_random_polymers can be saved in a variable and later used to read and/or change particle
 # properties later in the script. See hoomd_script.data for more information.
 #
-def create_random_polymers(box, polymers, separation, seed=1):
+def create_random_polymers(box, polymers, separation, seed=1, mpi_options=None):
     util.print_status_line();
         
     # check if initialization has already occured
@@ -519,12 +519,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
         
         # if the bond setting is 'linear' create a default set of bonds
         if poly['bond'] == 'linear':
-
-            # in python 3, xrange is called range
-            if 'xrange' not in dir(__builtins__):
-                xrange = range
-
-            for i in xrange(0,len(poly['type'])-1):
+            for i in range(0,len(poly['type'])-1):
                 bond_a.push_back(i);
                 bond_b.push_back(i+1);
                 bond_name.append('polymer')
@@ -575,7 +570,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
     
-    _perform_common_init_tasks();
+    _perform_common_init_tasks(mpi_options);
     return data.system_data(globals.system_definition);
 
 ## Performs common initialization tasks
@@ -585,26 +580,38 @@ def create_random_polymers(box, polymers, separation, seed=1):
 # be done here. For example, setting up the SFCPackUpdater, initializing
 # the log writer, etc...
 #
-# Currently only creates the sorter
-def _perform_common_init_tasks():
+# Creates the sorter and initializes MPI
+def _perform_common_init_tasks(mpi_options=None):
     from hoomd_script import update;
     from hoomd_script import group;
     from hoomd_script import compute;
+    from hoomd_script import comm;
+
     # create the sorter, using the evil import __main__ trick to provide the user with a default variable
     import __main__;
     __main__.sorter = update.sort();
     
+    if not hoomd.is_MPI_available() and mpi_options is not None:
+        globals.msg.warning("MPI support is not available. Ignoring MPI arguments.")
+
+    # Check if HOOMD has been compiled with MPI support
+    if hoomd.is_MPI_available():
+        # if so, use domain decomposition
+        comm.init_domain_decomposition(mpi_options)
+
     # create the default compute.thermo on the all group
     util._disable_status_lines = True;
     all = group.all();
     compute._get_unique_thermo(group=all);
     util._disable_status_lines = False;
-    
+   
+ 
 ## Initializes the execution configuration
 #
 # \internal
 # Given an initializer, create a particle data with a properly configured ExecutionConfiguration
 def _create_exec_conf():
+    mpi_available = hoomd.is_MPI_available();
     
     # set the openmp thread limits
     if globals.options.ncpu is not None:
@@ -614,7 +621,13 @@ def _create_exec_conf():
 
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:
-        exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
+        if mpi_available:
+            if globals.options.nrank is not None:
+                exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank);
+            else:
+                exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg,True);
+        else:
+            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
     else:
         # determine the GPU on which to execute
         if globals.options.gpu is not None:
@@ -624,9 +637,21 @@ def _create_exec_conf():
         
         # create the specified configuration
         if globals.options.mode == "cpu":
-            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
+            if mpi_available:
+                if globals.options.nrank is not None:
+                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank); 
+                else:
+                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True);
+            else:
+                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
         elif globals.options.mode == "gpu":
-            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
+            if mpi_available:
+                if globals.options.nrank is not None:
+                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank);
+                else:
+                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True);
+            else:
+                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
         else:
             raise RuntimeError("Error initializing");
     
@@ -635,6 +660,6 @@ def _create_exec_conf():
        exec_conf.setCUDAErrorChecking(True);
     
     globals.exec_conf = exec_conf;
-    
+
     return exec_conf;
 

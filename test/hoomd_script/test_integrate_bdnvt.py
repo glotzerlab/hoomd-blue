@@ -54,7 +54,7 @@ class integrate_bdnvt_tests (unittest.TestCase):
         mode = integrate.mode_standard(dt=0.005);
         nve = integrate.bdnvt(group=empty, T=1.2)
         run(1);
-    
+
     def tearDown(self):
         init.reset();
 

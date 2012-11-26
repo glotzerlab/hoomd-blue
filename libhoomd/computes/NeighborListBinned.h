@@ -92,7 +92,6 @@ class NeighborListBinned : public NeighborList
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
-        
     };
 
 //! Exports NeighborListBinned to python

@@ -75,6 +75,12 @@ struct compute_thermo_args
     float *d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch spaace for partial sums of the pressure tensor
     unsigned int block_size;    //!< Block size to execute on the GPU
     unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size
+    Scalar external_virial_xx;  //!< xx component of the external virial
+    Scalar external_virial_xy;  //!< xy component of the external virial
+    Scalar external_virial_xz;  //!< xz component of the external virial
+    Scalar external_virial_yy;  //!< yy component of the external virial
+    Scalar external_virial_yz;  //!< yz component of the external virial
+    Scalar external_virial_zz;  //!< zz component of the external virial
     };
 
 //! Computes the thermodynamic properties for ComputeThermo

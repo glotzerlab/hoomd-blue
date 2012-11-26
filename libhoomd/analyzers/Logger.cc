@@ -71,6 +71,10 @@ using namespace boost::filesystem;
 #include <iomanip>
 using namespace std;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 /*! \param sysdef Specified for Analyzer, but not used directly by Logger
     \param fname File name to write the log to
     \param header_prefix String to write before the header
@@ -82,26 +86,35 @@ Logger::Logger(boost::shared_ptr<SystemDefinition> sysdef,
                const std::string& fname,
                const std::string& header_prefix,
                bool overwrite)
-    : Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_appending(false)
+    : Analyzer(sysdef), m_delimiter("\t"), m_filename(fname), m_header_prefix(header_prefix), m_appending(!overwrite), m_is_initialized(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Logger: " << fname << " " << header_prefix << " " << overwrite << endl;
+    }
 
+void Logger::openOutputFiles()
+    {
+#ifdef ENABLE_MPI
+    // only output to file on root processor
+    if (m_comm)
+        if (! m_exec_conf->isRoot())
+            return;
+#endif
     // open the file
-    if (exists(fname) && !overwrite)
+    if (exists(m_filename) && m_appending)
         {
-        m_exec_conf->msg->notice(3) << "analyze.log: Appending log to existing file \"" << fname << "\"" << endl;
-        m_file.open(fname.c_str(), ios_base::in | ios_base::out | ios_base::ate);
-        m_appending = true;
+        m_exec_conf->msg->notice(3) << "analyze.log: Appending log to existing file \"" << m_filename << "\"" << endl;
+        m_file.open(m_filename.c_str(), ios_base::in | ios_base::out | ios_base::ate);
         }
     else
         {
-        m_exec_conf->msg->notice(3) << "analyze.log: Creating new log in file \"" << fname << "\"" << endl;
-        m_file.open(fname.c_str(), ios_base::out);
+        m_exec_conf->msg->notice(3) << "analyze.log: Creating new log in file \"" << m_filename << "\"" << endl;
+        m_file.open(m_filename.c_str(), ios_base::out);
+        m_appending = false;
         }
         
     if (!m_file.good())
         {
-        m_exec_conf->msg->error() << "analyze.log: Error opening log file " << fname << endl;
+        m_exec_conf->msg->error() << "analyze.log: Error opening log file " << m_filename << endl;
         throw runtime_error("Error initializing Logger");
         }
     }
@@ -175,7 +188,20 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
     // prepare or adjust storage for caching the logger properties.
     cached_timestep = -1;
     cached_quantities.resize(quantities.size());
-    
+
+#ifdef ENABLE_MPI
+    // only output to file on root processor
+    if (m_pdata->getDomainDecomposition())
+        if (! m_exec_conf->isRoot())
+            return;
+#endif
+
+    // open output files for writing
+    if (! m_is_initialized)
+        openOutputFiles();
+
+    m_is_initialized = true;
+
     // only write the header if this is a new file
     if (!m_appending)
         {
@@ -224,6 +250,20 @@ void Logger::analyze(unsigned int timestep)
     {
     if (m_prof) m_prof->push("Log");
     
+    // update info in cache for later use and for immediate output.
+    for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
+        cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
+
+#ifdef ENABLE_MPI
+    // only output to file on root processor
+    if (m_comm)
+        if (! m_exec_conf->isRoot())
+            {
+            if (m_prof) m_prof->pop();
+            return;
+            }
+#endif
+
     // The timestep is always output
     m_file << setprecision(10) << timestep;
     cached_timestep = timestep;
@@ -236,11 +276,7 @@ void Logger::analyze(unsigned int timestep)
         
     // only print the delimiter after the timestep if there are more quantities logged
     m_file << m_delimiter;
-    
-    // update info in cache for later use and for immediate output.
-    for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
-        cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
-        
+       
     // write all but the last of the quantities separated by the delimiter
     for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)
         m_file << setprecision(10) << cached_quantities[i] << m_delimiter;

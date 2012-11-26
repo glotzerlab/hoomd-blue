@@ -58,7 +58,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/utility.hpp>
 
 #ifdef ENABLE_CUDA
+#include <cuda.h>
 #include <cuda_runtime.h>
+#endif
+
+#ifdef ENABLE_MPI
+#include <mpi.h>
 #endif
 
 #include "Messenger.h"
@@ -97,13 +102,48 @@ struct ExecutionConfiguration : boost::noncopyable
         };
         
     //! Default constructor
-    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
+    ExecutionConfiguration(bool min_cpu=false,
+                           bool ignore_display=false,
+                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
+#ifdef ENABLE_MPI
+                           , bool init_mpi = false,
+                           unsigned int n_ranks = 0
+#endif
+                           );
     
     //! Force a mode selection
-    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false, boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>());
+    ExecutionConfiguration(executionMode mode,
+                           int gpu_id=-1,
+                           bool min_cpu=false,
+                           bool ignore_display=false,
+                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
+#ifdef ENABLE_MPI
+                           , bool init_mpi = false,
+                           unsigned int n_ranks = 0
+#endif
+                           );
     
     ~ExecutionConfiguration();
-    
+   
+#ifdef ENABLE_MPI
+    //! Returns the boost MPI communicator
+    const MPI_Comm getMPICommunicator() const
+        {
+        return m_mpi_comm;
+        }
+#endif
+
+    //! Guess rank of this processor
+    /*! \returns Rank guessed from common environment variables, 0 is default
+     */
+    static unsigned int guessRank();
+
+    //! Guess local rank of this processor, used for GPU initialization
+    /*! \returns Local rank guessed from common environment variables
+     *           or -1 if no information is available
+     */
+    static int guessLocalRank();
+
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
@@ -133,7 +173,6 @@ struct ExecutionConfiguration : boost::noncopyable
 
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName() const;
-    
 #ifdef ENABLE_CUDA
     cudaDeviceProp dev_prop;    //!< Cached device properties
     
@@ -148,8 +187,39 @@ struct ExecutionConfiguration : boost::noncopyable
     
     //! Check for cuda errors
     void checkCUDAError(const char *file, unsigned int line) const;
-    
+#endif
+
+    //! Return the rank of this processor in the partition
+    unsigned int getRank() const
+        {
+        return m_rank;
+        }
+ 
+#ifdef ENABLE_MPI
+    //! Returns the partition number of this processor
+    unsigned int getPartition() const
+        {
+        return m_partition;
+        }
+   
+    //! Return the number of ranks in this partition
+    unsigned int getNRanks() const;
+
+    //! Returns true if this is the root processor
+    bool isRoot() const
+        {
+        return getRank() == 0;
+        }
+
+    //! Set the MPI communicator
+    void setMPICommunicator(const MPI_Comm mpi_comm)
+        {
+        m_mpi_comm = mpi_comm;
+        } 
+#endif
+
 private:
+#ifdef ENABLE_CUDA
     //! Initialize the GPU with the given id
     void initializeGPU(int gpu_id, bool min_cpu);
     
@@ -170,12 +240,23 @@ private:
         {
         return (unsigned int)m_gpu_available.size();
         }
-        
+
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
 #endif
-    
+
+#ifdef ENABLE_MPI
+    void initializeMPI(unsigned int n_ranks);               //!< Initialize MPI environment
+
+    unsigned int m_partition;                               //!< The partition number
+
+    MPI_Comm m_mpi_comm;                                    //!< The MPI communicator
+    bool m_has_initialized_mpi;                             //!< True if we have initialized MPI ourselves
+#endif
+
+    unsigned int m_rank;                                    //!< Rank of this processor (0 if running in single-processor mode)
+
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();
     };

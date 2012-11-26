@@ -67,33 +67,37 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   float4 *d_xyzf,
                                   float4 *d_tdb,
-                                  unsigned int *d_conditions,
+                                  uint3 *d_conditions,
                                   const float4 *d_pos,
                                   const float *d_charge,
                                   const float *d_diameter,
                                   const unsigned int *d_body,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const unsigned int Nmax,
                                   const bool flag_charge,
                                   const BoxDim& box,
                                   const Index3D& ci,
-                                  const Index2D& cli);
+                                  const Index2D& cli,
+                                  const Scalar3& ghost_width);
 
 //! Kernel driver for gpu_compute_cell_list_1x_kernel()
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      float4 *d_xyzf,
                                      float4 *d_tdb,
-                                     unsigned int *d_conditions,
+                                     uint3 *d_conditions,
                                      const float4 *d_pos,
                                      const float *d_charge,
                                      const float *d_diameter,
                                      const unsigned int *d_body,
                                      const unsigned int N,
+                                     const unsigned int n_ghost,
                                      const unsigned int Nmax,
                                      const bool flag_charge,
                                      const BoxDim& box,
                                      const Index3D& ci,
-                                     const Index2D& cli);
+                                     const Index2D& cli,
+                                     const Scalar3& ghost_width);
 
 #endif
 

@@ -118,6 +118,12 @@ class IntegratorTwoStep : public Integrator
         //! Get needed pdata flags
         virtual PDataFlags getRequestedPDataFlags();
 
+#ifdef ENABLE_MPI
+        //! Set the communicator to use
+        /*! \param comm The Communicator
+         */
+        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+#endif
     protected:
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();

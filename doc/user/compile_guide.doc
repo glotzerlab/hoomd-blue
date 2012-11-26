@@ -74,7 +74,11 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
 - Useful developer tools
   - Git >= 1.7.0
   - Doxygen  >= 1.7.5
+- For parallel builds
+  - MPI (generic, or with CUDA-Support: MVAPICH2 >= 1.8, OpenMPI >= 1.7)
 
+For the best communication performance with GPUs, use MVAPICH 1.8a2. See \ref sec_build_linux_generic_mpi for
+instructions on building an MPI enabled hoomd.
 <hr>
 \section sec_build_instructions Build instructions for Linux and Mac.
 

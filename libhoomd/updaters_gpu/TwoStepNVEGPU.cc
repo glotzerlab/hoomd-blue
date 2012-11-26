@@ -89,6 +89,7 @@ TwoStepNVEGPU::TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef,
 void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
+    assert(group_size <= m_pdata->getN());
     if (group_size == 0)
         return;
     
@@ -120,7 +121,7 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -132,6 +133,7 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
+    assert(group_size <= m_pdata->getN());
     if (group_size == 0)
         return;
     

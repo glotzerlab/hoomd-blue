@@ -7,5 +7,6 @@
 #cmakedefine SINGLE_PRECISION
 #cmakedefine ENABLE_ZLIB
 #cmakedefine ENABLE_OPENMP
-
+#cmakedefine ENABLE_MPI
+#cmakedefine ENABLE_MPI_CUDA
 #endif // _HOOMD_CONFIG_H

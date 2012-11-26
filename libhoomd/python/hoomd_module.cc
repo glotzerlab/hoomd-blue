@@ -167,6 +167,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PPPMForceComputeGPU.h"
 #endif
 
+// include MPI classes
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "DomainDecomposition.h"
+
+#ifdef ENABLE_CUDA
+#include "CommunicatorGPU.h"
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
+
 #include "SignalHandler.h"
 
 #include "HOOMDVersion.h"
@@ -325,6 +335,17 @@ string get_compiler_version()
     #endif
     }
 
+//! Determine availability of MPI support
+bool is_MPI_available()
+   {
+   return
+#ifdef ENABLE_MPI
+       true;
+#else
+       false;
+#endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -343,6 +364,8 @@ BOOST_PYTHON_MODULE(hoomd)
     scope().attr("__git_refspec__") = HOOMD_GIT_REFSPEC;
     scope().attr("__cuda_version__") = get_cuda_version_tuple();
     scope().attr("__compiler_version__") = get_compiler_version();
+
+    def("is_MPI_available", &is_MPI_available);
 
     // data structures
     class_<std::vector<int> >("std_vector_int")
@@ -496,7 +519,15 @@ BOOST_PYTHON_MODULE(hoomd)
     export_FIREEnergyMinimizerGPU();
     export_FIREEnergyMinimizerRigidGPU();          
 #endif
-    
+
+#ifdef ENABLE_MPI
+    export_Communicator();
+    export_DomainDecomposition();
+#ifdef ENABLE_CUDA
+    export_CommunicatorGPU();
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
+
     // system
     export_System();
     

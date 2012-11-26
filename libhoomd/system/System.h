@@ -65,6 +65,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
+#ifdef ENABLE_MPI
+//! Forward declarations
+class Communicator;
+#endif
+
 /*! \file System.h
     \brief Declares the System class and associated helper classes
 */
@@ -164,7 +169,14 @@ class System
         
         //! Gets the current Integrator
         boost::shared_ptr<Integrator> getIntegrator();
+
+#ifdef ENABLE_MPI
+        // -------------- Methods for communication
         
+        //! Sets the communicator
+        void setCommunicator(boost::shared_ptr<Communicator> comm);
+#endif
+
         // -------------- Methods for running the simulation
         
         //! Runs the simulation for a number of time steps
@@ -424,6 +436,10 @@ class System
         boost::shared_ptr<Integrator> m_integrator;     //!< Integrator that advances time in this System
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< SystemDefinition for this System
         boost::shared_ptr<Profiler> m_profiler;         //!< Profiler to profile runs
+
+#ifdef ENABLE_MPI
+        boost::shared_ptr<Communicator> m_comm;         //!< Communicator to use
+#endif
         unsigned int m_start_tstep;     //!< Intial time step of the current run
         unsigned int m_end_tstep;       //!< Final time step of the current run
         unsigned int m_cur_tstep;       //!< Current time step
