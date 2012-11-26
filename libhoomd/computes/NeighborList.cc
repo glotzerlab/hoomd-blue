@@ -471,8 +471,9 @@ void NeighborList::addExclusionsFromBonds()
         bcast(bonds, 0, m_exec_conf->getMPICommunicator());
         }
     else
-#else
         bonds = snapshot.bonds;
+#else
+    bonds = snapshot.bonds;
 #endif
 
     // for each bond
