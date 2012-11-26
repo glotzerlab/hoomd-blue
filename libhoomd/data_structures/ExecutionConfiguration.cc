@@ -448,7 +448,8 @@ void ExecutionConfiguration::printGPUStats()
     // follow up with some flags to signify device features
     if (dev_prop.kernelExecTimeoutEnabled)
         s << ", DIS";
-           
+         
+    s << std::endl;
     // We print this information in rank order
     msg->collectiveNoticeStr(1,s.str());
 
