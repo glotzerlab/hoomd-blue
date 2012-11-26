@@ -420,9 +420,9 @@ void Integrator::computeNetForce(unsigned int timestep)
                 for (unsigned int k = 0; k < 6; k++)
                     h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
                 }
-            }
             for (unsigned int k = 0; k < 6; k++)
-                external_virial[k] += (*force_compute)->getExternalVirial(k);
+                external_virial[k] += (*force_constraint)->getExternalVirial(k);
+            }
         }
     
     for (unsigned int k = 0; k < 6; k++)

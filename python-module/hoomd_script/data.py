@@ -752,15 +752,15 @@ class bond_data:
     class bond_data_iterator:
         def __init__(self, data):
             self.data = data;
-            self.index = 0;
+            self.tag = 0;
         def __iter__(self):
             return self;
         def __next__(self):
-            if self.index == len(self.data):
+            if self.tag == len(self.data):
                 raise StopIteration;
             
-            result = self.data[self.index];
-            self.index += 1;
+            result = self.data[self.tag];
+            self.tag += 1;
             return result;
         
         # support python2
@@ -797,7 +797,7 @@ class bond_data:
     # \brief Get a bond_proxy reference to the bond with id \a id
     # \param id Bond id to access
     def __getitem__(self, tag):
-        if id >= len(self) or id < 0:
+        if tag >= len(self) or tag < 0:
             raise IndexError;
         return bond_data_proxy(self.bdata, tag);
     
@@ -860,6 +860,7 @@ class bond_data_proxy:
     # \param id index of this bond in \a bdata (at time of proxy creation)
     def __init__(self, bdata, tag):
         self.bdata = bdata;
+        self.tag = tag
     
     ## \internal
     # \brief Get an informal string representing the object
@@ -875,16 +876,16 @@ class bond_data_proxy:
     # \brief Translate attribute accesses into the low level API function calls
     def __getattr__(self, name):
         if name == "a":
-            bond = self.bdata.getBondByTag(tag);
+            bond = self.bdata.getBondByTag(self.tag);
             return bond.a;
         if name == "b":
-            bond = self.bdata.getBondByTag(tag);
+            bond = self.bdata.getBondByTag(self.tag);
             return bond.b;
         if name == "typeid":
-            bond = self.bdata.getBondByTag(tag);
+            bond = self.bdata.getBondByTag(self.tag);
             return bond.type;
         if name == "type":
-            bond = self.bdata.getBondByTag(tag);
+            bond = self.bdata.getBondByTag(self.tag);
             typeid = bond.type;
             return self.bdata.getNameByType(typeid);
 

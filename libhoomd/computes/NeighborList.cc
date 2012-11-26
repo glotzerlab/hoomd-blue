@@ -114,7 +114,6 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_every = 0;
     m_Nmax = 0;
     m_exclusions_set = false;
-    m_first_update = true;
 
  
     // initialize box length at last update
@@ -123,6 +122,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // allocate conditions flags
     GPUFlags<unsigned int> conditions(exec_conf);
     m_conditions.swap(conditions);
+
+    // allocate neighbor list
+    allocateNlist();
 
     // allocate m_last_pos
     GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
@@ -163,11 +165,8 @@ void NeighborList::reallocate()
 
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
 
-    if (! m_nlist.isNull())
-        {
-        m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
-        m_n_neigh.resize(m_pdata->getMaxN());
-        }
+    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
+    m_n_neigh.resize(m_pdata->getMaxN());
     }
 
 NeighborList::~NeighborList()
@@ -192,12 +191,6 @@ void NeighborList::compute(unsigned int timestep)
         return;
         
     if (m_prof) m_prof->push("Neighbor");
-
-    if (m_first_update)
-        {
-        allocateNlist();
-        m_first_update = false;
-        }
 
     // update the exclusion data if this is a forced update
     if (m_force_update)

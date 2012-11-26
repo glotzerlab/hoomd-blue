@@ -220,9 +220,6 @@ class Messenger
         void setRank(unsigned int rank, unsigned int partition)
             {
             // prefix all messages with rank information
-            std::ostringstream oss;
-            oss << "(" << rank << ")";
-            m_rank_prefix = oss.str();
             m_rank = rank;
             m_notice_level = (m_rank == 0) ? m_default_notice_level :0;
             m_partition = partition;
@@ -379,7 +376,6 @@ class Messenger
         unsigned int m_notice_level;    //!< Notice level
         unsigned int m_default_notice_level; //!< Initial notice level
 
-        std::string m_rank_prefix;      //!< Prefix indicating processor rank
         unsigned int m_rank;            //!< The MPI rank (default 0)
         unsigned int m_partition;       //!< The MPI partition
 

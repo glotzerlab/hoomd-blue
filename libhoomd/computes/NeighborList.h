@@ -428,7 +428,6 @@ class NeighborList : public Compute
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
-        bool m_first_update;            //!< True if the arrays are not yet completely initialized
         
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_last_checked_tstep; //!< Track the last time step we have checked

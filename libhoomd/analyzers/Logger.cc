@@ -196,7 +196,8 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 #endif
 
     // open output files for writing
-    openOutputFiles();
+    if (! m_is_initialized)
+        openOutputFiles();
 
     m_is_initialized = true;
 
