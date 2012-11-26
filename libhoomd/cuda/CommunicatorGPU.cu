@@ -1638,7 +1638,6 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
     \param d_ghost_plan Boundary crossing plans of ghost particles
     \param global_box Global simulation box
 */
-v
 void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
                                 const unsigned int *d_n_local_ghosts_face,

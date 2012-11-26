@@ -105,6 +105,9 @@ struct pdata_element
 //! Perform a logical or operation on the return values of several signals
 struct migrate_logical_or
     {
+    //! This is needed by boost::signals
+    typedef bool result_type;
+
     //! Combine return values using logical or
     /*! \param first First return value
         \param last Last return value
