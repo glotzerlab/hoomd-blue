@@ -178,6 +178,11 @@ class SystemDefinition
             return m_integrator_data;
             }
 
+        //! Helper for python memory managment in init.reset
+        long getPDataRefs()
+            {
+            return m_particle_data.use_count();
+            }
             
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
