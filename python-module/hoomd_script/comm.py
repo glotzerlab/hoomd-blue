@@ -50,9 +50,9 @@
 
 # Maintainer: jglaser / All Developers are free to add commands for new features
 
-# \package hoomd_script.comm
+## \package hoomd_script.comm
 # \brief Commands to support MPI communication
-#
+
 import hoomd;
 from hoomd_script import init;
 from hoomd_script import data;
@@ -61,9 +61,8 @@ from hoomd_script import globals;
 
 import sys;
 
-## Setup up domain decomposition
-# \brief Initialize the domain decomposition of the global simulation domain
-# \internal
+## \internal 
+# Setup up domain decomposition
 def init_domain_decomposition(mpi_options):
         if not init.is_initialized():
             globals.msg.error("Possible internal error! Cannot create domain decomposition before initialization.\n")
@@ -129,3 +128,22 @@ def init_domain_decomposition(mpi_options):
 
         if n_bonds_global:
             bdata.initializeFromSnapshot(snap_bdata)
+
+## Get the number of ranks
+# \returns the number of MPI ranks running in parallel
+# \note Returns 1 in non-mpi builds
+def get_num_ranks():
+    if hoomd.is_MPI_available():
+        return globals.exec_conf.getNRanks();
+    else:
+        return 1;
+
+## Test if we are a root rank
+# \returns True if this rank is the root rank of a partition
+# \note Always returns True in non-mpi builds
+def is_root():
+    if hoomd.is_MPI_available():
+        return globals.exec_conf.getRank() == 0;
+    else:
+        return True;
+    
