@@ -123,6 +123,10 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     GPUFlags<unsigned int> conditions(exec_conf);
     m_conditions.swap(conditions);
 
+    // allocate m_n_neigh
+    GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
+    m_n_neigh.swap(n_neigh);
+
     // allocate neighbor list
     allocateNlist();
 
@@ -1190,22 +1194,11 @@ void NeighborList::allocateNlist()
     // round up to the nearest multiple of 8
     m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
 
-    m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating " << m_pdata->getN() << " x " << m_Nmax+1 << endl;
+    m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating " << m_pdata->getMaxN() << " x " << m_Nmax+1 << endl;
 
-    if (m_nlist.isNull())
-        {
-        // allocate m_n_neigh
-        GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
-        m_n_neigh.swap(n_neigh);
-
-        GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
-        m_nlist.swap(nlist);
-        }
-    else
-        {
-        // reallocate
-        m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
-        }
+    // re-allocate, overwriting old neighbor list
+    GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
+    m_nlist.swap(nlist);
 
     // update the indexer
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);

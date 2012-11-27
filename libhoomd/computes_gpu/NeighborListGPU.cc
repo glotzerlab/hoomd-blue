@@ -237,13 +237,24 @@ bool NeighborListGPU::distanceCheck()
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
+        if (m_prof)
+            {
+            m_prof->push(exec_conf, "dist-check");
+            m_prof->push("MPI allreduce");
+            }
         // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
         int local_result = result ? 1 : 0;
         int global_result = 0;
         MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
         result = (global_result > 0);
+        if (m_prof)
+            {
+            m_prof->pop();
+            m_prof->pop();
+            }
         }
 #endif
+
     return result;
     }
 
@@ -279,7 +290,7 @@ void NeighborListGPU::filterNlist()
 void NeighborListGPU::updateExListIdx()
     {
     if (m_prof)
-        m_prof->push("update-ex");
+        m_prof->push(m_exec_conf,"update-ex");
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
@@ -299,7 +310,7 @@ void NeighborListGPU::updateExListIdx()
                               m_pdata->getN());
 
     if (m_prof)
-        m_prof->pop();
+        m_prof->pop(m_exec_conf);
     }
 
 void export_NeighborListGPU()
