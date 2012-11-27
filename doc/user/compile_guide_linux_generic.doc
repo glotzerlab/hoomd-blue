@@ -421,7 +421,7 @@ If this is not the case, set the MPI_HOME env var (if it isn't set already).
 /home/software/rhel5/openmpi-1.4.2/gcc
 \endcode
 
-<b>Compile your own MPI: MVAPICH 1.8rc1</b>
+<b>Compile your own MPI: MVAPICH2</b>
 
 Hoomd-blue supports the use of CUDA enabled MPI libraries. This offers an extra speed-up
 of parallel simulations in some cases. This is likely to be true if the GPUs in one node provide
