@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
+#include <thrust/device_ptr.h>
 #include <thrust/fill.h>
 #include <thrust/copy.h>
 #include <thrust/scatter.h>

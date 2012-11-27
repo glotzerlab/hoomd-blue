@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondData.cuh"
 
+#include <thrust/device_ptr.h>
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/scatter.h>
 #include <thrust/iterator/counting_iterator.h>
