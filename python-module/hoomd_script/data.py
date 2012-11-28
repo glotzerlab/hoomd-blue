@@ -368,7 +368,7 @@ class system_data:
         if name == "dimensions":
             return self.sysdef.getNDimensions();
         elif name == "box":
-            b = self.sysdef.getParticleData().getBox();
+            b = self.sysdef.getParticleData().getGlobalBox();
             L = b.getL();
             return (L.x, L.y, L.z);
         
@@ -436,7 +436,7 @@ class particle_data:
     ## \internal
     # \brief Get the number of particles
     def __len__(self):
-        return self.pdata.getN();
+        return self.pdata.getNGlobal();
     
     ## \internal
     # \brief Get an informal string representing the object
@@ -723,7 +723,12 @@ class force_data_proxy:
             f = self.fdata.cpp_force.getForce(self.tag);
             return (f.x, f.y, f.z);
         if name == "virial":
-            return self.fdata.cpp_force.getVirial(self.tag);
+            return (self.fdata.cpp_force.getVirial(self.tag,0),
+                    self.fdata.cpp_force.getVirial(self.tag,1),
+                    self.fdata.cpp_force.getVirial(self.tag,2),
+                    self.fdata.cpp_force.getVirial(self.tag,3),
+                    self.fdata.cpp_force.getVirial(self.tag,4),
+                    self.fdata.cpp_force.getVirial(self.tag,5));
         if name == "energy":
             energy = self.fdata.cpp_force.getEnergy(self.tag);
             return energy;
@@ -747,15 +752,15 @@ class bond_data:
     class bond_data_iterator:
         def __init__(self, data):
             self.data = data;
-            self.index = 0;
+            self.tag = 0;
         def __iter__(self):
             return self;
         def __next__(self):
-            if self.index == len(self.data):
+            if self.tag == len(self.data):
                 raise StopIteration;
             
-            result = self.data[self.index];
-            self.index += 1;
+            result = self.data[self.tag];
+            self.tag += 1;
             return result;
         
         # support python2
@@ -791,10 +796,10 @@ class bond_data:
     ## \internal
     # \brief Get a bond_proxy reference to the bond with id \a id
     # \param id Bond id to access
-    def __getitem__(self, id):
-        if id >= len(self) or id < 0:
+    def __getitem__(self, tag):
+        if tag >= len(self) or tag < 0:
             raise IndexError;
-        return bond_data_proxy(self.bdata, id);
+        return bond_data_proxy(self.bdata, tag);
     
     ## \internal
     # \brief Set a bond's properties
@@ -817,12 +822,12 @@ class bond_data:
     ## \internal
     # \brief Get the number of bonds
     def __len__(self):
-        return self.bdata.getNumBonds();
+        return self.bdata.getNumBondsGlobal();
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNumBonds(), self.bdata.getNBondTypes());
+        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNumBondsGlobal(), self.bdata.getNBondTypes());
         return result
     
     ## \internal
@@ -853,15 +858,14 @@ class bond_data_proxy:
     #
     # \param bdata BondData to which this proxy belongs
     # \param id index of this bond in \a bdata (at time of proxy creation)
-    def __init__(self, bdata, id):
+    def __init__(self, bdata, tag):
         self.bdata = bdata;
-        self.tag = self.bdata.getBondTag(id);
+        self.tag = tag
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        result += "tag          : " + str(self.tag) + "\n";
         result += "typeid       : " + str(self.typeid) + "\n";
         result += "a            : " + str(self.a) + "\n"
         result += "b            : " + str(self.b) + "\n"

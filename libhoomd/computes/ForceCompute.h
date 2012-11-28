@@ -107,7 +107,7 @@ class ForceCompute : public Compute
         
         //! Computes the forces
         virtual void compute(unsigned int timestep);
-        
+
         //! Benchmark the force compute
         virtual double benchmark(unsigned int num_iters);
         
@@ -115,34 +115,16 @@ class ForceCompute : public Compute
         Scalar calcEnergySum();
 
         //! Easy access to the torque on a single particle
-        Scalar4 getTorque(unsigned int tag)
-            {
-            ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return h_torque.data[i];
-            }
+        Scalar4 getTorque(unsigned int tag);
 
         //! Easy access to the force on a single particle
-        Scalar3 getForce(unsigned int tag)
-            {
-            ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return make_scalar3(h_force.data[i].x,h_force.data[i].y,h_force.data[i].z);
-            }
+        Scalar3 getForce(unsigned int tag);
+
         //! Easy access to the virial on a single particle
-        Scalar getVirial(unsigned int tag)
-            {
-            ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return h_virial.data[i];
-            }
+        Scalar getVirial(unsigned int tag, unsigned int component);
+
         //! Easy access to the energy on a single particle
-        Scalar getEnergy(unsigned int tag)
-            {
-            ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-            unsigned int i = m_pdata->getRTag(tag);
-            return h_force.data[i].w;
-            }
+        Scalar getEnergy(unsigned int tag);
         
         //! Get the array of computed forces
         GPUArray<Scalar4>& getForceArray()
@@ -161,10 +143,17 @@ class ForceCompute : public Compute
             {
             return m_torque;
             }
-        
+       
+        //! Get the contribution to the external virial
+        Scalar getExternalVirial(unsigned int dir)
+            {
+            assert(dir<6);
+            return m_external_virial[dir];
+            }
+
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory
-        
+ 
         //! Helper function called when particles are sorted
         /*! setParticlesSorted() is passed as a slot to the particle sort signal.
             It is used to flag \c m_particles_sorted so that a second call to compute
@@ -176,8 +165,14 @@ class ForceCompute : public Compute
             m_particles_sorted = true;
             }
 
+        //! Reallocate internal arrays
+        void reallocate();
+
         //! Allocates the force and virial partial data
         void allocateThreadPartial();
+
+        //! Re-allocates the force and virial partial data
+        void reallocateThreadPartial();
         
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
                             
@@ -200,9 +195,14 @@ class ForceCompute : public Compute
 
         Index2D m_index_thread_partial;         //!< Indexer to index the above 2 arrays by (particle, thread)
 
+        Scalar m_external_virial[6]; //!< Stores external contribution to virial
+
         //! Connection to the signal notifying when particles are resorted
         boost::signals::connection m_sort_connection;   
-        
+
+        //! Connection to the signal notifying when maximum number of particles changes
+        boost::signals::connection m_max_particle_num_change_connection;
+
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.

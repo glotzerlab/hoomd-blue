@@ -25,7 +25,7 @@ URL:			http://codeblue.umich.edu/hoomd-blue/
 Prefix:			/usr
 Group: 			Applications
 BuildRequires:		gcc-c++, boost-devel, zlib-devel, glibc-devel, python-devel
-Requires:		python >= 2.4, boost >= 1.32
+Requires:		python >= 2.4
 
 %description
 HOOMD-blue stands for Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition. It performs general purpose particle dynamics simulations on a single workstation, taking advantage of NVIDIA GPUs to attain a level of performance equivalent to many processor cores on a fast cluster.

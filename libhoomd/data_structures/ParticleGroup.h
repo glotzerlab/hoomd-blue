@@ -106,7 +106,7 @@ class ParticleSelectorTag : public ParticleSelector
         //! Constructs the selector
         ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sysdef, unsigned int tag_min, unsigned int tag_max);
         virtual ~ParticleSelectorTag() {}
-        
+
         //! Test if a particle meets the selection criteria
         virtual bool isSelected(unsigned int tag) const;
     protected:
@@ -121,7 +121,7 @@ class ParticleSelectorType : public ParticleSelector
         //! Constructs the selector
         ParticleSelectorType(boost::shared_ptr<SystemDefinition> sysdef, unsigned int typ_min, unsigned int typ_max);
         virtual ~ParticleSelectorType() {}
-        
+
         //! Test if a particle meets the selection criteria
         virtual bool isSelected(unsigned int tag) const;
     protected:
@@ -136,7 +136,7 @@ class ParticleSelectorCuboid : public ParticleSelector
         //! Constructs the selector
         ParticleSelectorCuboid(boost::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max);
         virtual ~ParticleSelectorCuboid() {}
-        
+
         //! Test if a particle meets the selection criteria
         virtual bool isSelected(unsigned int tag) const;
     protected:
@@ -151,7 +151,7 @@ class ParticleSelectorRigid : public ParticleSelector
         //! Constructs the selector
         ParticleSelectorRigid(boost::shared_ptr<SystemDefinition> sysdef, bool rigid);
         virtual ~ParticleSelectorRigid() {}
-        
+
         //! Test if a particle meets the selection criteria
         virtual bool isSelected(unsigned int tag) const;
     protected:
@@ -174,7 +174,7 @@ class ParticleSelectorRigid : public ParticleSelector
     Membership in the group is determined through a generic ParticleSelector class. See its documentation for details.
 
     Group membership is determined once at the instantiation of the group. Thus ParticleGroup only supports static
-    groups where membership does not change over the course of a simulation. Dynamic groups, if they are needed, 
+    groups where membership does not change over the course of a simulation. Dynamic groups, if they are needed,
     may require a drastically different design to allow for efficient access.
 
     In many use-cases, ParticleGroup may be accessed many times within inner loops. Thus, it must not aquire any
@@ -183,7 +183,7 @@ class ParticleSelectorRigid : public ParticleSelector
     absolutely require the particle data be released before they are called will be documented as such.
 
     <b>Data Structures and Implementation</b>
-    
+
     The initial and fundamental data structure in the group is a vector listing all of the particle tags in the group,
     in a sorted tag order. This list can be accessed directly via getMemberTag() to meet the 2nd use case listed above.
     In order to iterate through all particles in the group in a cache-efficient manner, an auxilliary list is stored
@@ -202,16 +202,16 @@ class ParticleGroup
     public:
         //! \name Initialization methods
         // @{
-                
+
         //! Constructs an empty particle group
-        ParticleGroup() {};
-        
+        ParticleGroup() : m_num_local_members(0) {};
+
         //! Constructs a particle group of all particles that meet the given selection
         ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector);
-        
+
         //! Constructs a particle group given a list of tags
         ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags);
-        
+
         //! Destructor
         ~ParticleGroup();
         
@@ -222,19 +222,28 @@ class ParticleGroup
         //! Get the number of members in the group
         /*! \returns The number of particles that belong to this group
         */
-        unsigned int getNumMembers() const
+        unsigned int getNumMembersGlobal() const
             {
-            return (unsigned int)m_member_tags.size();
+            return (unsigned int)m_member_tags.getNumElements();
             }
             
+        //! Get the number of members that are present on the local processor
+        /*! \returns The number of particles on the local processor that belong to this group
+        */
+        unsigned int getNumMembers() const
+            {
+            return m_num_local_members;
+            }
+
         //! Get a member from the group
-        /*! \param i Index from 0 to getNumMembers()-1 of the group member to get
+        /*! \param i Index from 0 to getNumMembersGlobal()-1 of the group member to get
             \returns Tag of the member at index \a i
         */
         unsigned int getMemberTag(unsigned int i) const
             {
-            assert(i < getNumMembers());
-            return m_member_tags[i];
+            assert(i < getNumMembersGlobal());
+            ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
+            return h_member_tags.data[i];
             }
             
         //! Get a member index from the group
@@ -247,7 +256,9 @@ class ParticleGroup
             {
             assert(j < getNumMembers());
             ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::read);
-            return h_handle.data[j];
+            unsigned int idx = h_handle.data[j];
+            assert(idx < m_pdata->getN());
+            return idx;
             }
 
         //! Test if a particle index is a member of the group
@@ -256,7 +267,8 @@ class ParticleGroup
         */
         bool isMember(unsigned int idx) const
             {
-            return m_is_member[idx];
+            ArrayHandle<unsigned char> h_handle(m_is_member, access_location::host, access_mode::read);
+            return h_handle.data[idx] == 1;
             }
         
         //! Direct access to the index list
@@ -267,7 +279,7 @@ class ParticleGroup
             {
             return m_member_idx;
             }
-        
+
         // @}
         //! \name Analysis methods
         // @{
@@ -276,7 +288,7 @@ class ParticleGroup
         Scalar getTotalMass() const;
         //! Compute the center of mass of the group
         Scalar3 getCenterOfMass() const;
-        
+
         // @}
         //! \name Combination methods
         // @{
@@ -292,18 +304,32 @@ class ParticleGroup
                                                                 boost::shared_ptr<ParticleGroup> b);
         
         // @}
-        
+
     private:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
-        boost::dynamic_bitset<> m_is_member;            //!< One bit per particle, true if index is a member of the group
+        GPUArray<unsigned char> m_is_member;            //!< One byte per particle, == 1 if index is a local member of the group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        std::vector<unsigned int> m_member_tags;        //!< Lists the tags of the paritcle members
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
+        GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
+        unsigned int m_num_local_members;               //!< Number of members on the local processor
 
+        GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
+
+        //! Helper function to resize array of member tags
+        void reallocate();
 
         //! Helper function to rebuild the index lists afer the particles have been sorted
         void rebuildIndexList();
+
+        //! Helper function to build the 1:1 hash for tag membership
+        void buildTagHash();
+
+#ifdef ENABLE_CUDA
+        //! Helper function to rebuild the index lists afer the particles have been sorted
+        void rebuildIndexListGPU();
+#endif
 
     };
 

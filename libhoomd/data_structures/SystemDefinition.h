@@ -71,6 +71,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SYSTEM_DEFINITION_H__
 #define __SYSTEM_DEFINITION_H__
 
+#ifdef ENABLE_MPI
+//! Forward declaration of Communicator
+class Communicator;
+#endif
 
 //! Container class for all data needed to define the MD system
 /*! SystemDefinition is a big bucket where all of the data defining the MD system goes.
@@ -178,6 +182,11 @@ class SystemDefinition
             return m_integrator_data;
             }
 
+        //! Helper for python memory managment in init.reset
+        long getPDataRefs()
+            {
+            return m_particle_data.use_count();
+            }
             
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
@@ -189,7 +198,6 @@ class SystemDefinition
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system
         boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data for the system
         boost::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
-
     };
 
 //! Exports SystemDefinition to python

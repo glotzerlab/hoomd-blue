@@ -224,7 +224,6 @@ class ComputeThermo : public Compute
         unsigned int m_ndof;            //!< Stores the number of degrees of freedom in the system
         vector<string> m_logname_list;  //!< Cache all generated logged quantities names
 
-        
         //! Does the actual computation
         virtual void computeProperties();
     };

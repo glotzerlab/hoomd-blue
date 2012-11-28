@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 #include "GPUArray.h"
+#include "GPUFlags.h"
 
 #include "Index1D.h"
 #include "Compute.h"
@@ -149,7 +150,7 @@ class CellList : public Compute
             m_nominal_width = width;
             m_params_changed = true;
             }
-        
+
         //! Set the radius of cells to include in the adjacency list
         void setRadius(unsigned int radius)
             {
@@ -236,7 +237,13 @@ class CellList : public Compute
             {
             return m_Nmax;
             }
-        
+
+        //! Get number of ghost cells per direction
+        const uint3 getNGhostCells() const
+            {
+            return m_num_ghost_cells;
+            }
+
         // @}
         //! \name Get data
         // @{
@@ -272,7 +279,7 @@ class CellList : public Compute
         double benchmark(unsigned int num_iters);
         
         // @}
-        
+
     protected:
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
@@ -291,14 +298,14 @@ class CellList : public Compute
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
         unsigned int m_Nmax;         //!< Numer of spaces reserved for particles in each cell
+        uint3 m_num_ghost_cells;     //!< Number of ghost cells in every direction 
         
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
         GPUArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
         GPUArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
-        GPUArray<unsigned int> m_conditions; //!< Condition flags set during the computeCellList() call
-        
+        GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
         boost::signals::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
         
@@ -323,8 +330,11 @@ class CellList : public Compute
         //! Check the status of the conditions
         bool checkConditions();
 
+        //! Reads back the conditions
+        virtual uint3 readConditions();
+
         //! Resets the condition status
-        void resetConditions();
+        virtual void resetConditions();
     };
 
 //! Export the CellList class to python

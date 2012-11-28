@@ -90,8 +90,9 @@ __all__ = [ "analyze",
             "hoomd",
             "compute",
             "charge",
-            "get_hoomd_script_version"];
-            
+            "get_hoomd_script_version",
+            "comm"];
+
 ## \internal
 # \brief Major version of hoomd_script
 version_major = 1;
@@ -191,7 +192,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         globals.integrator.update_forces();
         globals.integrator.update_methods();
         globals.integrator.update_thermos();
-    
+
     # if rigid bodies, setxv  
     if len(data.system_data(globals.system_definition).bodies) > 0:
         data.system_data(globals.system_definition).bodies.updateRV()

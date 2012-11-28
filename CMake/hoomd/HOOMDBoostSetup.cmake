@@ -23,7 +23,7 @@ if ((BOOST_ROOT OR NOT $ENV{BOOST_ROOT} STREQUAL "") OR NOT $ENV{BOOSTROOT} STRE
     set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
-set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signals program_options unit_test_framework iostreams)
+set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signals program_options unit_test_framework iostreams serialization)
 
 # first, see if we can get any supported version of Boost
 find_package(Boost 1.32.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS})

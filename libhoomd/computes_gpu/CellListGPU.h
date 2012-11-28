@@ -79,6 +79,7 @@ class CellListGPU : public CellList
     protected:
         //! Compute the cell list
         virtual void computeCellList();
+
     };
 
 //! Exports CellListGPU to python

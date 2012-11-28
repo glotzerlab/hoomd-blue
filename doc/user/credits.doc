@@ -121,6 +121,7 @@ Jens Glaser, University of Minnesota
  - Framework for external potentials
  - external.periodic
  - ParticleData refactoring
+ - MPI communication
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials

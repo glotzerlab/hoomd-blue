@@ -152,7 +152,9 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
     
     // start by determining the name width
     map<string, ProfileDataElem>::const_iterator i;
-    int child_max_width = 0;
+
+    // it has at least to be four letters wide ("Self")
+    int child_max_width = 4;
     for (i = m_children.begin(); i != m_children.end(); ++i)
         {
         int child_width = (int)(*i).first.size();

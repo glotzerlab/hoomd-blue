@@ -167,7 +167,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
         }
-    
+
     // particles may have been moved slightly outside the box by the above steps, wrap them back into place
     const BoxDim& box = m_pdata->getBox();
 
@@ -178,7 +178,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
         unsigned int j = m_group->getMemberIndex(group_idx);
         box.wrap(h_pos.data[j], h_image.data[j]);
         }
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop();

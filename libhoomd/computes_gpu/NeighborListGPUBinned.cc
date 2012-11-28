@@ -60,6 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                              Scalar r_cut,
                                              Scalar r_buff,
@@ -151,7 +155,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
         throw runtime_error("Error computing neighbor list");
         }
-    
+   
     m_cl->compute(timestep);
     
     // check that at least 3x3x3 cells are computed
@@ -170,7 +174,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    BoxDim box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getBox();
     
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -181,7 +185,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -190,13 +193,17 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
 
-    // take optimized code paths for different GPU generations
+    uint3 num_ghost_cells = m_cl->getNGhostCells();
+    Scalar nominal_width  = m_r_cut + m_r_buff + m_d_max - Scalar(1.0);
+    Scalar3 ghost_width = nominal_width*Scalar(1.0/2.0)*make_scalar3((Scalar)num_ghost_cells.x, (Scalar)num_ghost_cells.y, (Scalar)num_ghost_cells.z);
+
     if (exec_conf->getComputeCapability() >= 200)
         {
+
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
-                                 d_conditions.data,
+                                 m_conditions.getDeviceFlags(),
                                  m_nlist_indexer,
                                  d_pos.data,
                                  d_body.data,
@@ -213,7 +220,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  rmaxsq,
                                  m_block_size,
                                  m_filter_body,
-                                 m_filter_diameter);
+                                 m_filter_diameter,
+                                 ghost_width);
         }
     else
         {
@@ -240,7 +248,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         gpu_compute_nlist_binned_1x(d_nlist.data,
                                     d_n_neigh.data,
                                     d_last_pos.data,
-                                    d_conditions.data,
+                                    m_conditions.getDeviceFlags(),
                                     m_nlist_indexer,
                                     d_pos.data,
                                     d_body.data,
@@ -255,11 +263,14 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     rmaxsq,
                                     m_block_size,
                                     m_filter_body,
-                                    m_filter_diameter);
+                                    m_filter_diameter,
+                                    ghost_width);
         }
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
+        {
         CHECK_CUDA_ERROR();
+        }
 
     if (m_prof)
         m_prof->pop(exec_conf);

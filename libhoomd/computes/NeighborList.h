@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Compute.h"
 #include "GPUArray.h"
+#include "GPUFlags.h"
 #include "Index1D.h"
 
 /*! \file NeighborList.h
@@ -68,6 +69,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef __NEIGHBORLIST_H__
 #define __NEIGHBORLIST_H__
+
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
 
 //! Computes a Neibhorlist from the particles
 /*! \b Overview:
@@ -227,13 +232,13 @@ class NeighborList : public Compute
             {
             return m_n_neigh;
             }
-        
+       
         //! Get the neighbor list
         const GPUArray<unsigned int>& getNListArray()
             {
             return m_nlist;
             }
-        
+
         //! Get the number of exclusions array
         const GPUArray<unsigned int>& getNExArray()
             {
@@ -267,7 +272,18 @@ class NeighborList : public Compute
 
         //! Gives an estimate of the number of nearest neighbors per particle
         virtual Scalar estimateNNeigh();
-        
+
+#ifdef ENABLE_MPI
+        //! Returns the width of the ghost layer in every spatial direction
+        Scalar getRGhost()
+            {
+            Scalar rmax = m_r_cut + m_r_buff;
+            if (!m_filter_diameter)
+                rmax += m_d_max - Scalar(1.0);
+            return rmax;
+            }
+#endif
+
         // @}
         //! \name Handle exclusions
         // @{
@@ -321,6 +337,17 @@ class NeighborList : public Compute
         virtual void setMaximumDiameter(Scalar d_max)
             {
             m_d_max = d_max;
+
+#ifdef ENABLE_MPI
+            if (m_comm)
+                {
+                Scalar rmax = m_r_cut + m_r_buff;
+                // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
+                rmax += m_d_max - Scalar(1.0);
+                m_comm->setGhostLayerWidth(rmax);
+                m_comm->setRBuff(m_r_buff);
+                }
+#endif
             forceUpdate();
             }
         
@@ -335,7 +362,7 @@ class NeighborList : public Compute
         //! Forces a full update of the list on the next call to compute()
         void forceUpdate()
             {
-            m_force_update = true;
+                m_force_update = true;
             }
         
         //! Get the number of updates
@@ -344,6 +371,19 @@ class NeighborList : public Compute
             return m_updates + m_forced_updates;
             }
             
+
+#ifdef ENABLE_MPI
+        //! Set the communicator to use
+        /*! \param comm MPI communication class
+         */
+        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+
+        //! Returns true if the particle migration criterium is fulfilled
+        /*! \param timestep The current timestep
+         */
+        bool peekUpdate(unsigned int timestep);
+#endif
+
     protected:
         Scalar m_r_cut;             //!< The cuttoff radius
         Scalar m_r_buff;            //!< The buffer around the cuttoff
@@ -358,17 +398,22 @@ class NeighborList : public Compute
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
         Scalar3 m_last_L;                    //!< Box lengths at last update
         unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
-        GPUArray<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
+        GPUFlags<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
         
         GPUArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
         GPUArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
         GPUArray<unsigned int> m_n_ex_tag;     //!< Number of exclusions for a given particle tag
         GPUArray<unsigned int> m_n_ex_idx;     //!< Number of exclusions for a given particle index
         Index2D m_ex_list_indexer;             //!< Indexer for accessing the exclusion list
+        Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
         bool m_exclusions_set;                 //!< True if any exclusions have been set
 
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
+#ifdef ENABLE_MPI
+        boost::signals::connection m_migrate_request_connection; //!< Connection to trigger particle migration
+#endif
+
         //! Performs the distance check
         virtual bool distanceCheck();
         
@@ -383,7 +428,6 @@ class NeighborList : public Compute
         
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
-       
 
     private:
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
@@ -393,21 +437,29 @@ class NeighborList : public Compute
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
         
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
+        unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
+        bool m_last_check_result;          //!< Last result of rebuild check
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
         vector<unsigned int> m_update_periods;    //!< Steps between updates
-        
+
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
-        
+
+        //! Reallocate internal data structures
+        void reallocate();
+
         //! Allocate the nlist array
         void allocateNlist();
         
         //! Check the status of the conditions
         bool checkConditions();
 
+        //! Read back the conditions 
+        virtual unsigned int readConditions();
+
         //! Resets the condition status
-        void resetConditions();
-        
+        virtual void resetConditions();
+
         //! Grow the exclusions list memory capacity by one row
         void growExclusionList();
     };

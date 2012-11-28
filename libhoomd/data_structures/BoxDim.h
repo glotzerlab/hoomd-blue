@@ -212,15 +212,18 @@ class BoxDim
             m_L = m_hi - m_lo;
             }
 
-        //! Compute fractional coordinates
+        //! Compute fractional coordinates, allowing for a ghost layer
         /*! \param v Vector to scale
-            \return a vector with coordinates scaled to range between 0 and 1 (if inside the box). The returned
-            vector \a f and the given vector \a v are related by: \a v = \a f * L + lo
+            \param ghost_width Width of extra ghost padding layer to take into account
+            \return a vector with coordinates scaled to range between 0 and 1 (if inside the box + ghost layer).
+            The returned vector \a f and the given vector \a v are related by:
+            \a v = \a f * (L+2*ghost_width) + lo - ghost_width
         */
-        HOSTDEVICE Scalar3 makeFraction(const Scalar3& v) const
+        HOSTDEVICE Scalar3 makeFraction(const Scalar3& v, const Scalar3& ghost_width=make_scalar3(0.0,0.0,0.0)) const
             {
-            return (v - m_lo) * m_Linv;
+            return (v - m_lo + ghost_width) / (m_L + Scalar(2.0)*ghost_width);
             }
+
 
         //! Compute minimum image
         /*! \param v Vector to compute
@@ -336,6 +339,21 @@ class BoxDim
             w.y = v.y;
             w.z = v.z;
             }
+
+        //! Check if the displacement is out of bounds
+        /* \param dx The displacement vector
+           \returns True if the displacement exceeds the box length in a direction where periodic
+                    boundary conditions are not applied
+         */
+        HOSTDEVICE bool checkOutOfBounds(Scalar3& dx) const
+            {
+            if (!m_periodic.x && dx.x*dx.x >= m_L.x*m_L.x) return true;
+            if (!m_periodic.y && dx.y*dx.y >= m_L.y*m_L.y) return true;
+            if (!m_periodic.z && dx.z*dx.z >= m_L.z*m_L.z) return true;
+
+            return false;
+            }
+
     private:
         Scalar3 m_lo;      //!< Minimum coords in the box
         Scalar3 m_hi;      //!< Maximum coords in the box

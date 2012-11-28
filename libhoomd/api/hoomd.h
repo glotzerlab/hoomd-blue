@@ -89,7 +89,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "ComputeThermo.h"
-#include "ComputeThermoGPU.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
 #include "Analyzer.h"
@@ -146,6 +145,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVTRigidGPU.h" 
 #include "TwoStepNPTRigidGPU.h" 
 #include "TwoStepBDNVTRigidGPU.h" 
+#include "ComputeThermoGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
 #include "CGCMMForceComputeGPU.h"
@@ -162,6 +162,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
+#include "ComputeThermoGPU.h"
+#endif
+
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "DomainDecomposition.h"
+#include "HOOMDMPI.h"
+#ifdef ENABLE_CUDA
+#include "CommunicatorGPU.h"
+#endif
 #endif
 
 #include "SignalHandler.h"

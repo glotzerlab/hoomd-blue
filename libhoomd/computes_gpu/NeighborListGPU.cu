@@ -67,12 +67,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param maxshiftsq The maximum drsq a particle can have before an update is needed
     \param lambda Diagonal deformation tensor (for orthorhombic boundaries)
     \param checkn
+    \tparam check_bounds True if we are checking for displacements larger than the box length
     
     gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
     compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
     is set to \a ncheck.
 */
-__global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
+template<bool check_bounds>
+__global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
                                                         const float4 *d_last_pos,
                                                         const float4 *d_pos,
                                                         const unsigned int N,
@@ -97,32 +99,47 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
         dx = box.minImage(dx);
 
         if (dot(dx, dx) >= maxshiftsq)
+            atomicMax(&((*d_result).x), checkn);
+
+        if (check_bounds && box.checkOutOfBounds(dx))
             {
-            *d_result = checkn;
+            atomicMax(&((*d_result).x), checkn+1);
+            (*d_result).y = idx;
             }
         }
     }
 
-cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
+cudaError_t gpu_nlist_needs_update_check_new(uint2 *d_result,
                                              const float4 *d_last_pos,
                                              const float4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
                                              const float maxshiftsq,
                                              const float3 lambda,
-                                             const unsigned int checkn)
+                                             const unsigned int checkn,
+                                             const bool check_bounds)
     {
     unsigned int block_size = 128;
-    int n_blocks = (int)ceil(float(N)/(float)block_size);
-    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size>>>(d_result,
-                                                                      d_last_pos,
-                                                                      d_pos,
-                                                                      N,
-                                                                      box,
-                                                                      maxshiftsq,
-                                                                      lambda,
-                                                                      checkn);
-    
+    int n_blocks = N/block_size+1;
+    if (check_bounds)
+        gpu_nlist_needs_update_check_new_kernel<true><<<n_blocks, block_size>>>(d_result,
+                                                                                d_last_pos,
+                                                                                d_pos,
+                                                                                N,
+                                                                                box,
+                                                                                maxshiftsq,
+                                                                                lambda,
+                                                                                checkn);
+    else
+        gpu_nlist_needs_update_check_new_kernel<false><<<n_blocks, block_size>>>(d_result,
+                                                                                d_last_pos,
+                                                                                d_pos,
+                                                                                N,
+                                                                                box,
+                                                                                maxshiftsq,
+                                                                                lambda,
+                                                                                checkn);
+
     return cudaSuccess;
     }
 
@@ -275,6 +292,7 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
                                   const Index2D nli,
                                   const float4 *d_pos,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const BoxDim box,
                                   const float r_maxsq)
     {
@@ -300,11 +318,12 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
 
     // each block is going to loop over all N particles (this assumes memory is padded to a multiple of blockDim.x)
     // in blocks of blockDim.x
-    for (int start = 0; start < N; start += NLIST_BLOCK_SIZE)
+    // include ghosts as neighbors
+    for (int start = 0; start < N + n_ghost; start += NLIST_BLOCK_SIZE)
         {
         // load data
         float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        if (start + threadIdx.x < N)
+        if (start + threadIdx.x < N + n_ghost)
             neigh_pos = d_pos[start + threadIdx.x];
 
         // make sure everybody is caught up before we stomp on the memory
@@ -320,8 +339,8 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
         // now each thread loops over every particle in shmem, but doesn't loop past the end of the particle list (since
         // the block might extend that far)
         int end_offset= NLIST_BLOCK_SIZE;
-        end_offset = min(end_offset, N - start);
-
+        end_offset = min(end_offset, N + n_ghost - start);
+        
         if (pidx < N)
             {
             for (int cur_offset = 0; cur_offset < end_offset; cur_offset++)
@@ -335,8 +354,10 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
                 // we don't add if we are comparing to ourselves, and we don't add if we are above the cut
                 if ((dot(dx,dx) <= r_maxsq) && ((start + cur_offset) != pidx))
                     {
+                    unsigned int j = start + cur_offset;
+
                     if (n_neigh < nli.getH())
-                        d_nlist[nli(pidx, n_neigh)] = start+cur_offset;
+                        d_nlist[nli(pidx, n_neigh)] = j;
                     else
                         n_neigh_needed = n_neigh+1;
 
@@ -350,12 +371,83 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
     if (pidx < N)
         {
         d_n_neigh[pidx] = n_neigh;
+
         d_last_updated_pos[pidx] = d_pos[pidx];
 
         if (n_neigh_needed > 0)
             atomicMax(&d_conditions[0], n_neigh_needed);
         }
     }
+
+//! GPU kernel to update the exclusions list
+__global__ void gpu_update_exclusion_list_kernel(const unsigned int *tags,
+                                                  const unsigned int *rtags,
+                                                  const unsigned int *n_ex_tag,
+                                                  const unsigned int *ex_list_tag,
+                                                  const Index2D ex_list_tag_indexer,
+                                                  unsigned int *n_ex_idx,
+                                                  unsigned int *ex_list_idx,
+                                                  const Index2D ex_list_indexer,
+                                                  const unsigned int N)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N)
+        return;
+
+    unsigned int tag = tags[idx];
+
+    unsigned int n = n_ex_tag[tag];
+
+    // copy over number of exclusions
+    n_ex_idx[idx] = n;
+
+    for (unsigned int offset = 0; offset < n; offset++)
+        {
+        unsigned int ex_tag = ex_list_tag[ex_list_tag_indexer(tag, offset)];
+        unsigned int ex_idx = rtags[ex_tag];
+
+        ex_list_idx[ex_list_indexer(idx, offset)] = ex_idx;
+        }
+    }
+
+
+//! GPU function to update the exclusion list on the device
+/*! \param d_tag Array of particle tags
+    \param d_rtag Array of reverse-lookup tag->idx
+    \param d_n_ex_tag List of number of exclusions per tag
+    \param d_ex_list_tag 2D Exclusion list per tag
+    \param ex_list_tag_indexer Indexer for per-tag exclusion list
+    \param d_n_ex_idx List of number of exclusions per idx
+    \param d_ex_list_idx Exclusion list per idx
+    \param ex_list_indexer Indexer for per-idx exclusion list
+    \param N number of particles
+ */
+cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
+                                const unsigned int *d_rtag,
+                                const unsigned int *d_n_ex_tag,
+                                const unsigned int *d_ex_list_tag,
+                                const Index2D& ex_list_tag_indexer,
+                                unsigned int *d_n_ex_idx,
+                                unsigned int *d_ex_list_idx,
+                                const Index2D& ex_list_indexer,
+                                const unsigned int N)
+    {
+    unsigned int block_size = 512;
+
+    gpu_update_exclusion_list_kernel<<<N/block_size + 1, block_size>>>(d_tag,
+                                                                       d_rtag,
+                                                                       d_n_ex_tag,
+                                                                       d_ex_list_tag,
+                                                                       ex_list_tag_indexer,
+                                                                       d_n_ex_idx,
+                                                                       d_ex_list_idx,
+                                                                       ex_list_indexer,
+                                                                       N);
+
+    return cudaSuccess;
+    }
+
 
 //! Generate the neighbor list on the GPU in O(N^2) time
 cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
@@ -365,6 +457,7 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const Index2D& nli,
                                   const float4 *d_pos,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const BoxDim& box,
                                   const float r_maxsq)
     {
@@ -381,6 +474,7 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                                       nli,
                                                       d_pos,
                                                       N,
+                                                      n_ghost,
                                                       box,
                                                       r_maxsq);
 

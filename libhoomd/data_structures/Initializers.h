@@ -78,18 +78,13 @@ class SimpleCubicInitializer : public ParticleDataInitializer
         
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
-        
-        //! Returns the number of particle types to be initialized
-        virtual unsigned int getNumParticleTypes() const;
-        
+
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
         
         //! initializes a snapshot with the particle data
         virtual void initSnapshot(SnapshotParticleData &snapshot) const;
         
-        //! Initialize the type name mapping
-        std::vector<std::string> getTypeMapping() const;
     private:
         unsigned int m_M;   //!< Number of particles wide to make the box
         Scalar m_spacing;   //!< Spacing between particles
@@ -113,9 +108,6 @@ class RandomInitializer : public ParticleDataInitializer
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
         
-        //! Returns the number of particle types to be initialized
-        virtual unsigned int getNumParticleTypes() const;
-        
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
 
@@ -125,8 +117,6 @@ class RandomInitializer : public ParticleDataInitializer
         //! Sets the random seed to use in the generation
         void setSeed(unsigned int seed);
         
-        //! Initialize the type name mapping
-        std::vector<std::string> getTypeMapping() const;
     protected:
         unsigned int m_N;           //!< Number of particles to generate
         Scalar m_phi_p;             //!< Packing fraction to generate the particles at

@@ -100,6 +100,7 @@ import sys;
 from hoomd_script import util;
 from hoomd_script import variant;
 from hoomd_script import init;
+from hoomd_script import comm;
 
 ## \internal
 # \brief Base class for integrators
@@ -188,6 +189,7 @@ class _integrator:
             
             for m in globals.integration_methods:
                 self.cpp_integrator.addIntegrationMethod(m.cpp_method);
+
         else:
             if len(globals.integration_methods) > 0:
                 globals.msg.error("This integrator does not support the use of integration methods,\n");
@@ -334,7 +336,7 @@ class mode_standard(_integrator):
         # initialize the reflected c++ class
         self.cpp_integrator = hoomd.IntegratorTwoStep(globals.system_definition, dt);
         self.supports_methods = True;
-        
+       
         globals.system.setIntegrator(self.cpp_integrator);
     
     ## Changes parameters of an existing integration mode

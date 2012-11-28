@@ -52,7 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
-#include "BondData.cuh"
 #include "Index1D.h"
 
 #ifdef WIN32
@@ -76,6 +75,7 @@ struct bond_args_t
               float *_d_virial,
               const unsigned int _virial_pitch,
               const unsigned int _N,
+              const unsigned int _n_ghost,
               const Scalar4 *_d_pos,
               const Scalar *_d_charge,
               const Scalar *_d_diameter,
@@ -89,6 +89,7 @@ struct bond_args_t
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
                   N(_N),
+                  n_ghost(_n_ghost),
                   d_pos(_d_pos),
                   d_charge(_d_charge),
                   d_diameter(_d_diameter),
@@ -105,6 +106,7 @@ struct bond_args_t
     float *d_virial;                   //!< Virial to write out
     const unsigned int virial_pitch;   //!< pitch of 2D array of virial matrix elements
     unsigned int N;                    //!< number of particles
+    unsigned int n_ghost;              //!< number of ghost particles
     const Scalar4 *d_pos;              //!< particle positions
     const Scalar *d_charge;            //!< particle charges
     const Scalar *d_diameter;          //!< particle diameters
@@ -117,6 +119,15 @@ struct bond_args_t
     };
 
 #ifdef NVCC
+//! Texture for reading particle positions
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+
+//! Texture for reading particle diameters
+texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
+
+//! Texture for reading particle charges
+texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
+
 //! Kernel for calculating bond forces
 /*! This kernel is called to calculate the bond forces on all N particles. Actual evaluation of the potentials and
     forces for each bond is handled via the template class \a evaluator.
@@ -177,18 +188,21 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
     __syncthreads();
 
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
-    Scalar4 postype = d_pos[idx];
+    float4 postype = tex1Dfetch(pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // read in the diameter of our particle if needed
-    float diam = 0;
+    Scalar diam(0.0);
     if (evaluator::needsDiameter())
-       diam = d_diameter[idx];
+        diam = tex1Dfetch(pdata_diam_tex, idx);
+    else
+        diam += 1.0f; // shutup compiler warning
 
-    // read in the diameter of our particle if needed
-    float q = 0;
+    Scalar q(0.0);
     if (evaluator::needsCharge())
-       q = d_charge[idx];
+        q = tex1Dfetch(pdata_charge_tex, idx);
+    else
+        q += 0.0f; // shutup compiler warning
 
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -208,8 +222,8 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
         int cur_bond_type = cur_bond.y;
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
-        float4 neigh_postype = d_pos[cur_bond_idx];
-        float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+        float4 neigh_postypej = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
+        float3 neigh_pos= make_float3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
 
         // calculate dr (FLOPS: 3)
         float3 dx = pos - neigh_pos;
@@ -231,12 +245,12 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
         // get the bonded particle's diameter if needed
         if (evaluator::needsDiameter())
             {
-            float neigh_diam = d_diameter[cur_bond_idx];
+            float neigh_diam = tex1Dfetch(pdata_diam_tex, cur_bond_idx);
             eval.setDiameter(diam, neigh_diam);
             }
         if (evaluator::needsCharge())
             {
-            float neigh_q = d_charge[cur_bond_idx];
+            float neigh_q = tex1Dfetch(pdata_charge_tex, cur_bond_idx);
             eval.setCharge(q, neigh_q);
             }
 
@@ -263,6 +277,7 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
         else
             {
             *d_flags = 1;
+            return;
             }
         }
 
@@ -294,6 +309,26 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     // setup the grid to run the kernel
     dim3 grid( bond_args.N / bond_args.block_size + 1, 1, 1);
     dim3 threads(bond_args.block_size, 1, 1);
+
+    // bind the position texture
+    pdata_pos_tex.normalized = false;
+    pdata_pos_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, bond_args.d_pos, sizeof(Scalar4)*(bond_args.N+bond_args.n_ghost));
+    if (error != cudaSuccess)
+        return error;
+
+    // bind the diamter texture
+    pdata_diam_tex.normalized = false;
+    pdata_diam_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.N+bond_args.n_ghost));
+    if (error != cudaSuccess)
+        return error;
+    
+    pdata_charge_tex.normalized = false;
+    pdata_charge_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.N+bond_args.n_ghost));
+    if (error != cudaSuccess)
+        return error;
 
     unsigned int shared_bytes = sizeof(typename evaluator::param_type) *
                                 bond_args.n_bond_types;
