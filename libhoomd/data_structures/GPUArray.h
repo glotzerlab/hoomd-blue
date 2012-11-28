@@ -670,7 +670,12 @@ template<class T> void GPUArray<T>::allocate()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         void *ptr = NULL;
-        posix_memalign(&ptr, getpagesize(), m_num_elements*sizeof(T));
+        int retval = posix_memalign(&ptr, getpagesize(), m_num_elements*sizeof(T));
+        if (retval != 0)
+            {
+            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            throw std::runtime_error("Error allocating GPUArray.");
+            }
         cudaHostRegister(ptr,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
         h_data = (T *) ptr;
 
@@ -1003,7 +1008,12 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         void *ptr = NULL;
-        posix_memalign(&ptr, getpagesize(), num_elements*sizeof(T));
+        int retval = posix_memalign(&ptr, getpagesize(), num_elements*sizeof(T));
+        if (retval != 0)
+            {
+            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            throw std::runtime_error("Error allocating GPUArray.");
+            }
         cudaHostRegister(ptr, num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
         h_tmp = (T *) ptr;
         }
@@ -1063,7 +1073,13 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
         {
         unsigned int size = new_pitch*new_height*sizeof(T);
         void *ptr = NULL;
-        posix_memalign(&ptr, getpagesize(), size);
+        int retval = posix_memalign(&ptr, getpagesize(), size);
+        if (retval != 0)
+            {
+            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            throw std::runtime_error("Error allocating GPUArray.");
+            }
+            
         cudaHostRegister(ptr, size, cudaHostRegisterDefault);
         h_tmp = (T *) ptr;
         }

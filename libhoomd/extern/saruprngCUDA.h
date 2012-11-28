@@ -222,7 +222,7 @@ template <> __device__ inline void  SaruGPU::advanceWeyl<1>() /* especially effi
 /* This seeding was carefully tested for good churning with 1, 2, and
    3 bit flips.  All 32 incrementing counters (each of the circular
    shifts) pass the TestU01 Crush tests. */
-SaruGPU::SaruGPU(unsigned int seed)
+__device__ SaruGPU::SaruGPU(unsigned int seed)
     {
     state.x  = 0x79dedea3*(seed^(((signed int)seed)>>14));
     state.y = seed ^ (((signed int)state.x)>>8);
@@ -232,7 +232,7 @@ SaruGPU::SaruGPU(unsigned int seed)
 
 /* seeding from 2 samples. We lose one bit of entropy since our input
    seeds have 64 bits but at the end, after mixing, we have just 63. */
-SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2)
+__device__ SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2)
     {
     seed2+=seed1<<16;
     seed1+=seed2<<11;
@@ -252,7 +252,7 @@ SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2)
 
 /* 3 seeds. We have to premix the seeds before dropping to 64 bits.
    TODO: this may be better optimized in a future version */
-SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int seed3)
+__device__ SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int seed3)
     {
     seed3^=(seed1<<7)^(seed2>>6);
     seed2+=(seed1>>4)^(seed3>>15);
@@ -272,7 +272,7 @@ SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 
 template <unsigned int offset, unsigned int delta,
 unsigned int modulus, unsigned int steps>
-inline unsigned int SaruGPU::advanceAnyWeyl(unsigned int x)
+__device__ inline unsigned int SaruGPU::advanceAnyWeyl(unsigned int x)
     {
     const unsigned int fullDelta=CTmultmod<delta, steps%modulus, modulus>::value;
     /* the runtime code boils down to this single constant-filled line. */
@@ -342,7 +342,7 @@ __device__ inline unsigned int SaruGPU::u32()
     return (v^(v>>20))*0x6957f5a7;
     }
 
-inline unsigned int SaruGPU::u32()
+__device__ inline unsigned int SaruGPU::u32()
     {
     return u32<1>();
     }

@@ -260,7 +260,12 @@ template<class T> void GPUFlags<T>::allocate()
         if (m_mapped)
             {
             void *ptr = NULL;
-            posix_memalign(&ptr, getpagesize(), sizeof(T));
+            int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
+            if (retval != 0)
+                {
+                m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+                throw std::runtime_error("Error allocating GPUArray.");
+                }
             h_data = (T *) ptr;
             cudaHostRegister(h_data, sizeof(T), cudaHostRegisterMapped);
             cudaHostGetDevicePointer(&d_data, h_data, 0);
@@ -269,7 +274,12 @@ template<class T> void GPUFlags<T>::allocate()
         else
             {
             void *ptr = NULL;
-            posix_memalign(&ptr, getpagesize(), sizeof(T));
+            int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
+            if (retval != 0)
+                {
+                m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+                throw std::runtime_error("Error allocating GPUArray.");
+                }
             h_data = (T *) ptr;
             cudaHostRegister(h_data, sizeof(T), cudaHostRegisterDefault);
             cudaMalloc(&d_data, sizeof(T));
