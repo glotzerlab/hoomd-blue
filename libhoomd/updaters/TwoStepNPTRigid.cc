@@ -493,7 +493,6 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push("NPT rigid step 2");
     
-    Scalar onednft, onednfr;
     Scalar tmp, scale_t, scale_r, akin_t, akin_r;
     Scalar4 mbody, tbody, fquat;
     Scalar dt_half;
