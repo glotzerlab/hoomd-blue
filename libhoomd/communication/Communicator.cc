@@ -212,7 +212,8 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_r_buff(Scalar(0.0)),
             m_resize_factor(9.f/8.f),
             m_plan(m_exec_conf),
-            m_is_first_step(true)
+            m_is_first_step(true),
+            m_check_period(100)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -262,7 +263,7 @@ void Communicator::communicate(unsigned int timestep)
     // Guard to prevent recursive triggering of migration
     m_is_communicating = true;
 
-    // Check if migration of particles is requested
+   // Check if migration of particles is requested
     if (m_force_migrate || m_migrate_requests(timestep) || m_is_first_step)
         {
         m_force_migrate = false;
@@ -280,6 +281,10 @@ void Communicator::communicate(unsigned int timestep)
         updateGhosts(timestep);
         }
 
+    // check if all bonds etc. stay within allowed limits
+    if (m_check_period && (timestep % m_check_period == 0))
+        checkValid(timestep);
+ 
     m_is_communicating = false;
     }
 

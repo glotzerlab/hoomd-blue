@@ -134,7 +134,10 @@ class CommunicatorGPU : public Communicator
                                 const unsigned int n_tot_recv_ptls_local,
                                 const unsigned int element_size,
                                 bool unique_destination);
-
+       
+        //! Check that restrictions imposed by multi-domain simulations are not violated
+        void checkValid(unsigned int timestep);
+ 
     private:
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
         GPUArray<unsigned int> m_ptl_plan;          //!< Particle sending plans
@@ -219,9 +222,6 @@ class CommunicatorGPU : public Communicator
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
-
-        //! Check and resize ghost buffers if necessary
-        void checkReallocateGhostBuffers();
     };
 
 //! Export CommunicatorGPU class to python

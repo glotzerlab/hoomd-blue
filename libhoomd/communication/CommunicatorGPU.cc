@@ -1641,6 +1641,50 @@ void CommunicatorGPU::exchangeGhosts()
     m_pdata->notifyGhostParticleNumberChange();
     }
 
+/*! Multidomain simulations impose certain restrictions on particle displacements
+    and bond lengths. This method checks that these restrictions are not violated, to
+    prevent invalid dynamics from occuring.
+
+    \param timestep The current timestep
+ */
+void CommunicatorGPU::checkValid(unsigned int timestep)
+    {
+    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
+
+    if (bdata->getNumBondsGlobal())
+        { 
+        // check that no bond is longer than half the box length
+        m_condition.resetFlags(0);
+
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+
+        const GPUArray<uint2>& gpu_bond_list = bdata->getGPUBondList();
+        ArrayHandle<uint2> d_gpu_bond_list(gpu_bond_list, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_gpu_nbonds(bdata->getNBondsArray(), access_location::device, access_mode::read);
+
+        gpu_check_bonds(d_pos.data,
+                        m_pdata->getN(),
+                        m_pdata->getNGhosts(),
+                        m_pdata->getBox(),
+                        d_gpu_bond_list.data,
+                        gpu_bond_list.getPitch(),
+                        d_gpu_nbonds.data,
+                        m_condition.getDeviceFlags());
+       
+        unsigned int flags = m_condition.readFlags();
+        if (flags & 1) 
+            {
+            m_exec_conf->msg->error() << "bond.*: Bond exceeds maximum length." << std::endl << std::endl;
+            throw std::runtime_error("Error validating bonds.");
+            }
+        if (flags & 2) 
+            {
+            m_exec_conf->msg->error() << "bond.*: Incomplete bond." << std::endl << std::endl;
+            throw std::runtime_error("Error validating bonds.");
+            }
+        }
+    }
+
 void CommunicatorGPU::communicateStepOne(unsigned int cur_face,
                                         unsigned int *n_send_ptls_corner,
                                         unsigned int *n_send_ptls_edge,

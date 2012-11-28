@@ -259,6 +259,20 @@ class Communicator
         void communicate(unsigned int timestep);
 
         //@}
+        
+        //! \name Accessors
+        //@{
+       
+        /*! Check for consistency of system data every \b period time steps
+         
+            \param period The check period (0 = error checking off)
+         */
+        void setCheckPeriod(unsigned int period)
+            {
+            m_check_period = period;
+            }
+
+        //@}
 
         //! Force particle migration
         void forceMigrate()
@@ -300,14 +314,8 @@ class Communicator
         virtual void exchangeGhosts();
 
     protected:
-        //! Set size of a packed data element
-        /*! \param size size of data element (in bytes)
-         */
-        void setPackedSize(unsigned int size)
-            {
-            assert(size > 0);
-            m_packed_size = size;
-            }
+        //! Check that restrictions imposed by multi-domain simulations are not violated
+        virtual void checkValid(unsigned int timestep) { }
 
         //! The flags used for indicating the itinerary of a ghost particle
         enum Enum
@@ -385,6 +393,8 @@ class Communicator
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
 
         bool m_is_first_step;                    //!< True if no communication has yet occured
+
+        unsigned int m_check_period;             //!< Interval at which we are checking consistency
     };
 
 //! Declaration of python export function

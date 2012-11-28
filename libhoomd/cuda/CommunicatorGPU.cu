@@ -166,6 +166,74 @@ void gpu_deallocate_tmp_storage()
     cudaFree(d_n_fetch_ptl);
     }
 
+//! GPU kernel to check for bonds that exceed a maxium length
+__global__ void gpu_check_bonds_kernel(const Scalar4 *d_postype,
+                                const unsigned int N,
+                                const unsigned int n_ghosts,
+                                const BoxDim box,
+                                const uint2 *blist,
+                                const unsigned int pitch,
+                                const unsigned int *n_bonds_list,
+                                unsigned int *d_condition)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >=N) return;
+
+    unsigned int n_bonds =n_bonds_list[idx];
+    
+    Scalar4 postype = d_postype[idx];
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+
+    Scalar3 L = box.getL();
+    Scalar3 L2 = L/Scalar(2.0);
+
+    // check every bond
+    for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+        {
+        uint2 cur_bond = blist[pitch*bond_idx + idx];
+
+        unsigned int cur_bond_idx = cur_bond.x;
+
+        // signal if a bond is incomplete
+        if (cur_bond_idx >= N + n_ghosts)
+            atomicOr(d_condition,2);
+
+        Scalar4 neigh_postypej = d_postype[cur_bond_idx];
+
+        Scalar3 neigh_pos= make_scalar3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
+
+        Scalar3 dx = pos - neigh_pos;
+        dx = box.minImage(dx);
+
+        // if a bond is longer than half the box length in any direction, raise the flag
+        if (dx.x*dx.x >= L2.x*L2.x || dx.y*dx.y >= L2.y*L2.y || dx.z*dx.z >= L2.z*L2.z)
+            atomicOr(d_condition,1);
+        }
+    }
+
+//! Check for bonds that exceed a maximum length
+void gpu_check_bonds(const Scalar4 *d_postype,
+                     const unsigned int N,
+                     const unsigned int n_ghosts,
+                     const BoxDim box,
+                     const uint2 *d_blist,
+                     const unsigned int pitch,
+                     const unsigned int *d_n_bonds_list,
+                     unsigned int *d_condition)
+    {
+    unsigned int block_size = 512;
+
+    gpu_check_bonds_kernel<<<N/block_size+1, block_size>>>(d_postype,
+                                                           N,
+                                                           n_ghosts,
+                                                           box,
+                                                           d_blist,
+                                                           pitch,
+                                                           d_n_bonds_list,
+                                                           d_condition);
+    }
+
 //! GPU Kernel to find incomplete bonds
 __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btable,
                                                          unsigned char *plan,

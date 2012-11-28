@@ -86,7 +86,6 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
     unsigned int idx2 = d_rtag[tag2];
 
     bool bond_needed = false;
-    bool missing_ghost = false;
     if (idx1 < N)
         {
         unsigned int n = atomicInc(&d_n_bonds[idx1], 0xffffffff);
@@ -100,9 +99,6 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
 
     if (bond_needed)
         atomicOr(condition, 1);
-
-    if (missing_ghost)
-        atomicOr(condition, 2);
     }
 
 //! Kernel to fill the GPU bond table
