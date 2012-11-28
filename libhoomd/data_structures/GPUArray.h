@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __GPUARRAY_H__
 
 // 4 GB limit for a single GPU buffer
-#define MAXALLOCBYTES UINT_MAX
+#define MAXALLOCBYTES 0xffffffff
 
 // for vector types
 #ifdef ENABLE_CUDA
