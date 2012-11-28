@@ -185,8 +185,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
     
     // update barostat variables a half step
-    Scalar kt = boltz * m_temperature->getValue(timestep);
-    
     tmp = -1.0 * dt_half * eta_dot_b[0];
     scale = exp(tmp);
     epsilon_dot += dt_half * f_epsilon;
