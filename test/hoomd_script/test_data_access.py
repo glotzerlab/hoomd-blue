@@ -113,10 +113,12 @@ class bond_data_access_tests (unittest.TestCase):
             b.type
             b.a
             b.b
-            
+         
+        ####################################
+        ## The bond deletion feature is currently disabled   
         # test deletion by tag
-        self.s.bonds.remove(b1);
-        self.assertEqual(2, len(self.s.bonds));
+        #self.s.bonds.remove(b1);
+        #self.assertEqual(2, len(self.s.bonds));
         
         # test deletion by index (check bond a value to delete the bond with a=0)
         #if self.s.bonds[0].tag == b0:
