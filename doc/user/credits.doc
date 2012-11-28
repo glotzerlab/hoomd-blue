@@ -136,7 +136,8 @@ Trung Dac Nguyen
  - integrate.npt_rigid
  - integrate.mode_minimize_rigid_fire
  - associated rigid body data structures and helper functions
- 
+ - integrate.nph_rigid
+
 Ryan Marson
  - unwrap_rigid option to dump.dcd
 
