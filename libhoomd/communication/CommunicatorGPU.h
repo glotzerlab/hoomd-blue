@@ -135,7 +135,7 @@ class CommunicatorGPU : public Communicator
                                 const unsigned int element_size,
                                 bool unique_destination);
        
-        //! Check that restrictions imposed by multi-domain simulations are not violated
+        //! Check that restrictions on bond lengths etc. are not violated
         void checkValid(unsigned int timestep);
  
     private:

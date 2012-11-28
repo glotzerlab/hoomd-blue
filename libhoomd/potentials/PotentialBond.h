@@ -233,6 +233,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<uint2> h_bonds(m_bond_data->getBondTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_type(m_bond_data->getBondTypes(), access_location::host, access_mode::read);
 
+    unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
+
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
     for (unsigned int i = 0; i < size; i++)
@@ -247,16 +249,12 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         unsigned int idx_a = h_rtag.data[bond.x];
         unsigned int idx_b = h_rtag.data[bond.y];
 
-#ifdef ENABLE_MPI
-        if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
+        // throw an error if this bond is incomplete
+        if (idx_a >= max_local || idx_b >= max_local)
             {
-            assert(idx_a != NOT_LOCAL || idx_b != NOT_LOCAL);
-            m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " 
-                                      << "Incomplete bond detected. Bonds cannot be longer than box length/2."
-                                      << std::endl << std::endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": invalid bond." << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
-#endif
 
         // calculate d\vec{r}
         // (MEM TRANSFER: 6 Scalars / FLOPS: 3)

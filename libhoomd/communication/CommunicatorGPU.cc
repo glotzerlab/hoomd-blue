@@ -1649,6 +1649,8 @@ void CommunicatorGPU::exchangeGhosts()
  */
 void CommunicatorGPU::checkValid(unsigned int timestep)
     {
+    if (m_prof) m_prof->push(m_exec_conf, "check valid");
+
     boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
 
     if (bdata->getNumBondsGlobal())
@@ -1683,6 +1685,8 @@ void CommunicatorGPU::checkValid(unsigned int timestep)
             throw std::runtime_error("Error validating bonds.");
             }
         }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void CommunicatorGPU::communicateStepOne(unsigned int cur_face,

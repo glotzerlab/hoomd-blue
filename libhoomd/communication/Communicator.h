@@ -314,8 +314,8 @@ class Communicator
         virtual void exchangeGhosts();
 
     protected:
-        //! Check that restrictions imposed by multi-domain simulations are not violated
-        virtual void checkValid(unsigned int timestep) { }
+        //! Check that restrictions on bond lengths etc. are not violated
+        virtual void checkValid(unsigned int timestep);
 
         //! The flags used for indicating the itinerary of a ghost particle
         enum Enum

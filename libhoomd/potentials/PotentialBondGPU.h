@@ -187,12 +187,16 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
         // check the flags for any errors
         ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
 
-        if (h_flags.data[0]==1)
+        if (h_flags.data[0] &1)
             {
             this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
-
+        if (h_flags.data[0] &2)
+            {
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": invalid bond." << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
         }
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
