@@ -86,13 +86,6 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
                           bool gamma_diam);
         virtual ~TwoStepBDNVTRigid();
         
-        //! Set a new temperature
-        /*! \param T new temperature to set */
-        void setT(boost::shared_ptr<Variant> T)
-            {
-            m_T = T;
-            }
-        
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
 

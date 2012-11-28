@@ -114,7 +114,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBerendsen.h"
 #include "TwoStepNVERigid.h" 
 #include "TwoStepNVTRigid.h"
-#include "TwoStepNPTRigid.h"  
+#include "TwoStepNPTRigid.h"
+#include "TwoStepNPHRigid.h"
 #include "TwoStepBDNVTRigid.h" 
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
@@ -146,6 +147,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h" 
 #include "TwoStepNVTRigidGPU.h" 
+#include "TwoStepNPHRigidGPU.h"
 #include "TwoStepNPTRigidGPU.h" 
 #include "TwoStepBDNVTRigidGPU.h" 
 #include "NeighborListGPU.h"
@@ -498,6 +500,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Berendsen();
     export_TwoStepNVERigid();
     export_TwoStepNVTRigid();
+    export_TwoStepNPHRigid();
     export_TwoStepNPTRigid();
     export_TwoStepBDNVTRigid();
     export_Enforce2DUpdater();
@@ -513,6 +516,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BerendsenGPU();
     export_TwoStepNVERigidGPU();
     export_TwoStepNVTRigidGPU();
+    export_TwoStepNPHRigidGPU();
     export_TwoStepNPTRigidGPU();
     export_TwoStepBDNVTRigidGPU();
     export_Enforce2DUpdaterGPU();

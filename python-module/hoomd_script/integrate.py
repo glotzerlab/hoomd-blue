@@ -1250,6 +1250,80 @@ class npt_rigid(_integration_method):
         if tauP is not None:
             self.cpp_method.setTauP(tauP); 
 
+## NPH Integration for rigid bodies
+#
+# integrate.nph_rigid performs constant pressure, constant enthalpy simulations of the rigid bodies in the system.
+# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
+#
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
+# if you utilize rigid body functionality in your work.
+#
+# integrate.nph_rigid \b only operates on particles that belong to rigid bodies.
+#
+# integrate.nph_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
+# the following modes are active:
+# - integrate.mode_standard
+class nph_rigid(_integration_method):
+    ## Specifies the NPH integration method for rigid bodies
+    # \param group Group of particles on which to apply this method.
+    # \param tauP Time constatnt for the barostat (in time units)
+    # \param P Pressure set point for the barostat (in pressure units)
+    #
+    # \a P can be a variant type, allowing for pressure ramping in simulation runs.
+    #
+    # \b Examples:
+    # \code
+    # rigid = group.rigid()
+    # integrate.nph_rigid(group=all, P=1.0, tauP=1.0)
+    # 
+    # \endcode
+    def __init__(self, group, P, tauP):
+        util.print_status_line();
+        
+        # initialize base class
+        _integration_method.__init__(self);
+        
+        # setup the variant inputs
+        P = variant._setup_variant_input(P);
+        
+         # create the compute thermo
+        thermo_group = compute._get_unique_thermo(group=group);
+        thermo_all = compute._get_unique_thermo(group=globals.group_all);
+        
+        # initialize the reflected c++ class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_method = hoomd.TwoStepNPHRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tauP, P.cpp_variant);
+        else:
+            self.cpp_method = hoomd.TwoStepNPHRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tauP, P.cpp_variant);
+    
+        self.cpp_method.validateGroup()
+    
+    ## Changes parameters of an existing integrator
+    # \param P New pressure (if set) (in pressure units)
+    # \param tauP New coupling constant (if set) (in time units)
+    #
+    # To change the parameters of an existing integrator, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # integrator = integrate.nph_rigid(group=rigid, P=1.0)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # integrator.set_params(P=1.5, tauP=1.0)
+    # \endcode
+    def set_params(self, P=None, tauP=None):
+        util.print_status_line();
+        self.check_initialization();
+        
+        # change the parameters
+        if P is not None:
+            # setup the variant inputs
+            P = variant._setup_variant_input(P);
+            self.cpp_method.setP(P.cpp_variant);
+        if tauP is not None:
+            self.cpp_method.setTauP(tauP); 
+
 ## Energy Minimizer (FIRE)
 #
 # integrate.mode_minimize_fire uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy

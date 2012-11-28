@@ -60,41 +60,64 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-#include "TwoStepNVTRigidGPU.h"
-#include "TwoStepNVTRigidGPU.cuh"
+#include "TwoStepNPHRigidGPU.h"
+#include "TwoStepNPHRigidGPU.cuh"
+#include "TwoStepNPHGPU.cuh"
+#include "TwoStepNVTGPU.cuh"
 
-/*! \file TwoStepNVTRigidGPU.cc
-    \brief Contains code for the TwoStepNVTRigidGPU class
+/*! \file TwoStepNPHRigidGPU.cc
+    \brief Contains code for the TwoStepNPHRigidGPU class
 */
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \param thermo compute for thermodynamic quantities
+    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
+    \param thermo_all ComputeThermo to compute the pressure of the entire system
+    \param tau Time constant for thermostat
+    \param tauP Time constant for barostat
     \param T Controlled temperature
-    \param tau Time constant
-    \param skip_restart Skip initialization of the restart information
+    \param P Controlled pressure
+    \param skip_restart Flag indicating if restart info is skipped
 */
-TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
-                             boost::shared_ptr<ComputeThermo> thermo,  
-                             boost::shared_ptr<Variant> T,
-                             Scalar tau,
-                             bool skip_restart)
-    : TwoStepNVTRigid(sysdef, group, thermo, T, tau, skip_restart)
+TwoStepNPHRigidGPU::TwoStepNPHRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                   boost::shared_ptr<ParticleGroup> group,
+                                   boost::shared_ptr<ComputeThermo> thermo_group,
+                                   boost::shared_ptr<ComputeThermo> thermo_all,
+                                   Scalar tauP, 
+                                   boost::shared_ptr<Variant> P,
+                                   bool skip_restart)
+    : TwoStepNPHRigid(sysdef, group, thermo_group, thermo_all, tauP, P, skip_restart)
     {
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << endl;
-        throw std::runtime_error("Error initializing TwoStepNVTRigidGPU");
+        m_exec_conf->msg->error() << "Creating a TwoStepNPHRigidGPU with no GPU in the execution configuration" << endl;
+        throw std::runtime_error("Error initializing TwoStepNPHRigidGPU");
         }
+    
+    // allocate the total sum variables
+    GPUArray<float> sum2K(1, m_pdata->getExecConf());
+    m_sum2K.swap(sum2K);
+    GPUArray<float> sumW(1, m_pdata->getExecConf());
+    m_sumW.swap(sumW);
+    GPUArray<float> sum_virial_rigid(1, m_pdata->getExecConf());
+    m_sum_virial_rigid.swap(sum_virial_rigid);
+    
+    // initialize the partial sum2K array
+    m_block_size = 128;
+    m_group_num_blocks = m_group->getNumMembers() / m_block_size + 1;
+    m_full_num_blocks = m_pdata->getN() / m_block_size + 1;
+    GPUArray<float> partial_sum2K(m_full_num_blocks, m_pdata->getExecConf());
+    m_partial_sum2K.swap(partial_sum2K);
+    GPUArray<float> partial_sumW(m_full_num_blocks, m_pdata->getExecConf());
+    m_partial_sumW.swap(partial_sumW);
     }
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
+void TwoStepNPHRigidGPU::integrateStepOne(unsigned int timestep)
     {
     if (m_first_step)
         {
@@ -103,7 +126,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
         // sanity check
         if (m_n_bodies <= 0)
             return;
-
+        
         GPUArray<Scalar> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
         m_partial_Ksum_t.swap(partial_Ksum_t);
         
@@ -115,7 +138,10 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
         
         GPUArray<Scalar> Ksum_r(1, m_pdata->getExecConf());
         m_Ksum_r.swap(Ksum_r);
-
+        
+        GPUArray<Scalar4> new_box(1, m_pdata->getExecConf());
+        m_new_box.swap(new_box);
+        
         m_first_step = false;
         }
         
@@ -123,13 +149,60 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
     
+    Scalar scale;
+    Scalar dt_half;    
+    dt_half = 0.5 * m_deltaT;
+
+    // compute the current thermodynamic properties
+    // m_thermo_group->compute(timestep);
+    m_thermo_all->compute(timestep);
+        
+    // compute pressure for the next half time step
+    m_curr_P = m_thermo_all->getPressure();
+    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
+    // rare circumstances, usually at the start of the simulation before things are initialize)
+    if (isnan(m_curr_P))
+        m_curr_P = m_pressure->getValue(timestep);
+    
+
+    // update barostat
+    const BoxDim& box = m_pdata->getBox();
+    Scalar3 L = box.getL();
+        
+    Scalar vol;   // volume
+    if (dimension == 2) 
+        vol = L.x * L.y;
+    else 
+        vol = L.x * L.y * L.z;
+
+    Scalar p_target = m_pressure->getValue(timestep);
+        
+    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
+    f_epsilon /= W;
+    Scalar tmp = exp(-1.0 * dt_half * eta_dot_b[0]);
+    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
+    
+    // update barostat variables a half step
+    
+    tmp = -1.0 * dt_half * eta_dot_b[0];
+    scale = exp(tmp);
+    epsilon_dot += dt_half * f_epsilon;
+    epsilon_dot *= scale;
+    epsilon += m_deltaT * epsilon_dot;
+    dilation = exp(m_deltaT * epsilon_dot);
+    
+    // update thermostat coupled to barostat
+
+    update_nhcb(timestep);
+    
+    {
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT rigid step 1");
+        m_prof->push(exec_conf, "NPT rigid step 1");
     
     // access all the needed data
     BoxDim box = m_pdata->getBox();
-    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
@@ -153,10 +226,8 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> conjqm_handle(rigid_data->getConjqm(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
-    
-    ArrayHandle<unsigned int> d_particle_offset(rigid_data->getParticleOffset(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_particle_orientation(rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
-
+    
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -180,30 +251,70 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
-    d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
 
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> new_box_handle(m_new_box, access_location::device, access_mode::readwrite);
     
-    gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = m_n_bodies;
-    d_nvt_rdata.eta_dot_t0 = eta_dot_t[0];
-    d_nvt_rdata.eta_dot_r0 = eta_dot_r[0];
-    d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-    d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
-
+    gpu_npt_rigid_data d_nph_rdata;
+    d_nph_rdata.n_bodies = m_n_bodies;
+    d_nph_rdata.nf_t = nf_t;
+    d_nph_rdata.nf_r = nf_r;
+    d_nph_rdata.dimension = dimension;
+    d_nph_rdata.epsilon_dot = epsilon_dot;
+    d_nph_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_nph_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_nph_rdata.new_box = new_box_handle.data;
+    d_nph_rdata.dilation = dilation;
+    
     // perform the update on the GPU
-    gpu_nvt_rigid_step_one(d_rdata,
+    gpu_nph_rigid_step_one(d_rdata,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
                            box,
-                           d_nvt_rdata,
+                           d_nph_rdata,
                            m_deltaT);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    
+    }
+    
+    // set new box
+    {
+    ArrayHandle<Scalar4> new_box_handle(m_new_box, access_location::host, access_mode::read);
+    Scalar Lx = new_box_handle.data[0].x;
+    Scalar Ly = new_box_handle.data[0].y;
+    Scalar Lz = new_box_handle.data[0].z;
+    m_pdata->setGlobalBoxL(make_scalar3(Lx, Ly, Lz));
+    }
+    
+    // update thermostats
+    {
+    if (m_prof)
+        m_prof->push(exec_conf, "NPT kinetic energy reduction");
+    
+    ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
+    
+    gpu_npt_rigid_data d_nph_rdata;
+    d_nph_rdata.n_bodies = m_n_bodies;
+    d_nph_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_nph_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_nph_rdata.Ksum_t = Ksum_t_handle.data;
+    d_nph_rdata.Ksum_r = Ksum_r_handle.data;
+
+    gpu_nph_rigid_reduce_ksum(d_nph_rdata);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    
+    if (m_prof)
+        m_prof->pop(exec_conf);
+    }
     
     // done profiling
     if (m_prof)
@@ -213,54 +324,24 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepNPHRigidGPU::integrateStepTwo(unsigned int timestep)
     {
     // sanity check
     if (m_n_bodies <= 0)
         return;
-
-    // phase 1, reduce to find the final Ksum_t and Ksum_r
-    {
-    if (m_prof)
-        m_prof->push(exec_conf, "NVT reducing");
     
-    ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
-
-    gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = m_n_bodies; 
-    d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-    d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
-    d_nvt_rdata.Ksum_t = Ksum_t_handle.data;
-    d_nvt_rdata.Ksum_r = Ksum_r_handle.data;
-
-    gpu_nvt_rigid_reduce_ksum(d_nvt_rdata);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+    Scalar akin_t, akin_r;
+    Scalar dt_half;
+    dt_half = 0.5 * m_deltaT;
     
-    if (m_prof)
-        m_prof->pop(exec_conf);
-    }
-
-    // phase 1.5, move the thermostat variables forward
     {
-    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
-        
-    Scalar Ksum_t = Ksum_t_handle.data[0];
-    Scalar Ksum_r = Ksum_r_handle.data[0];
-    update_nhcp(Ksum_t, Ksum_r, timestep);
-    }
-
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT rigid step 2");
+        m_prof->push(exec_conf, "NPT rigid step 2");
     
     BoxDim box = m_pdata->getBox();
-    const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
-    const GPUArray<Scalar>& net_virial = m_pdata->getNetVirial();
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
@@ -286,8 +367,6 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> conjqm_handle(rigid_data->getConjqm(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
-    
-    ArrayHandle<unsigned int> d_particle_offset(rigid_data->getParticleOffset(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_particle_orientation(rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
 
     gpu_rigid_data_arrays d_rdata;
@@ -312,18 +391,19 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     d_rdata.particle_oldpos = particle_oldpos_handle.data;
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
-    d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
-
+    
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
-    gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = m_n_bodies;
-    d_nvt_rdata.eta_dot_t0 = eta_dot_t[0];
-    d_nvt_rdata.eta_dot_r0 = eta_dot_r[0];
-    d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-    d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    gpu_npt_rigid_data d_nph_rdata;
+    d_nph_rdata.n_bodies = m_n_bodies;
+    d_nph_rdata.nf_t = nf_t;
+    d_nph_rdata.nf_r = nf_r;
+    d_nph_rdata.dimension = dimension;
+    d_nph_rdata.epsilon_dot = epsilon_dot;
+    d_nph_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_nph_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
     gpu_rigid_force(d_rdata,
                     d_index_array.data,
@@ -332,31 +412,74 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                     d_net_torque.data,
                     box, 
                     m_deltaT);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
                                 
     // perform the update on the GPU
-    gpu_nvt_rigid_step_two(d_rdata,
+    gpu_nph_rigid_step_two(d_rdata,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
                            d_net_virial.data,
                            box,
-                           d_nvt_rdata, 
+                           d_nph_rdata, 
                            m_deltaT);
-                                
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
    
+    }
+    
+    // calculate current temperature and pressure
+    {
+    if (m_prof)
+        m_prof->push(exec_conf, "NPT kinetic energy reduction");
+    
+    ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
+
+    gpu_npt_rigid_data d_nph_rdata;
+    d_nph_rdata.n_bodies = m_n_bodies;
+    d_nph_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_nph_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_nph_rdata.Ksum_t = Ksum_t_handle.data;
+    d_nph_rdata.Ksum_r = Ksum_r_handle.data;
+
+    gpu_nph_rigid_reduce_ksum(d_nph_rdata);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    
+    if (m_prof)
+        m_prof->pop(exec_conf);
+    }
+        
+    {
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
+        
+    akin_t = Ksum_t_handle.data[0];
+    akin_r = Ksum_r_handle.data[0];
+        
+    // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
+    m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
+    }
+    
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
     }
 
-void export_TwoStepNVTRigidGPU()
+void export_TwoStepNPHRigidGPU()
     {
-    class_<TwoStepNVTRigidGPU, boost::shared_ptr<TwoStepNVTRigidGPU>, bases<TwoStepNVTRigid>, boost::noncopyable>
-        ("TwoStepNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>, 
+    class_<TwoStepNPHRigidGPU, boost::shared_ptr<TwoStepNPHRigidGPU>, bases<TwoStepNPHRigid>, boost::noncopyable>
+        ("TwoStepNPHRigidGPU", init< boost::shared_ptr<SystemDefinition>, 
         boost::shared_ptr<ParticleGroup>, 
-        boost::shared_ptr<ComputeThermo>, 
+        boost::shared_ptr<ComputeThermo>,
+        boost::shared_ptr<ComputeThermo>,
+        Scalar,
         boost::shared_ptr<Variant> >())
         ;
     }

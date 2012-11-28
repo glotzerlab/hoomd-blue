@@ -50,66 +50,36 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-/*! \file TwoStepNVTRigid.h
-    \brief Declares an updater that implements NVT dynamics for rigid bodies
+/*! \file TwoStepNPHRigidGPU.cuh
+    \brief Declares GPU kernel code for NPH rigid body integration on the GPU. Used by TwoStepNPHRigidGPU.
 */
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
+#include "TwoStepNPTRigidGPU.cuh"
 
-#include "TwoStepNVERigid.h"
+#ifndef __TWO_STEP_NPH_RIGID_CUH__
+#define __TWO_STEP_NPH_RIGID_CUH__
 
-#include <vector>
-#include <boost/shared_ptr.hpp>
+//! Kernel driver for the first part of the NPH update called by TwoStepNPHRigidGPU
+cudaError_t gpu_nph_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   float4 *d_net_force,
+                                   const BoxDim& box, 
+                                   const gpu_npt_rigid_data &npt_rdata,
+                                   float deltaT);
 
-#ifndef __TWO_STEP_NVT_RIGID_H__
-#define __TWO_STEP_NVT_RIGID_H__
+//! Kernel driver for the second part of the NPH update called by TwoStepNPHRigidGPU
+cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   float4 *d_net_force,
+                                   float *d_net_virial,
+                                   const BoxDim& box, 
+                                   const gpu_npt_rigid_data &npt_rdata,
+                                   float deltaT);
 
-//! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant temperature (NVT) dynamics. Particle positions and velocities are
-    updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
-    in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on
-    each particle.
-    
-    Integrator variables mapping:
-     - [0] -> eta_t
-     - [1] -> eta_r
-     - [2] -> eta_dot_t
-     - [3] -> eta_dot_r
-    
-    \ingroup updaters
-*/
+//! Kernel driver for the Ksum reduction final pass called by TwoStepNPHRigidGPU
+cudaError_t gpu_nph_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
 
-class TwoStepNVTRigid : public TwoStepNVERigid
-    {
-    public:
-        //! Constructor
-        TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef, 
-                        boost::shared_ptr<ParticleGroup> group,
-                        boost::shared_ptr<ComputeThermo> thermo,
-                        boost::shared_ptr<Variant> T,
-                        Scalar tau=10.0,
-                        bool skip_restart=false);
-        ~TwoStepNVTRigid();
-        
-        //! Setup the initial net forces, torques and angular momenta
-        void setup();
-        
-        //! First step of velocit Verlet integration
-        virtual void integrateStepOne(unsigned int timestep);
-        
-        //! Second step of velocit Verlet integration
-        virtual void integrateStepTwo(unsigned int timestep);
-        
-    protected:
-        //! Integrator variables
-        virtual void setRestartIntegratorVariables();
-        
-    };
-
-//! Exports the TwoStepNVTRigid class to python
-void export_TwoStepNVTRigid();
-
-#endif
+#endif // __TWO_STEP_NPH_RIGID_CUH__
 

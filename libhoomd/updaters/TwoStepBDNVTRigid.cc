@@ -256,7 +256,6 @@ void export_TwoStepBDNVTRigid()
                          unsigned int,
                          bool
                          >())
-        .def("setT", &TwoStepBDNVTRigid::setT)
         .def("setGamma", &TwoStepBDNVTRigid::setGamma)
         ;
     }
