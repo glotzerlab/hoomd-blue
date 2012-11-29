@@ -1672,7 +1672,10 @@ void CommunicatorGPU::checkValid(unsigned int timestep)
                         gpu_bond_list.getPitch(),
                         d_gpu_nbonds.data,
                         m_condition.getDeviceFlags());
-       
+      
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
         unsigned int flags = m_condition.readFlags();
         if (flags & 1) 
             {

@@ -136,7 +136,6 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
     \param N Number of particles in the system
-    \param n_ghost Number of ghost particles in the system
     \param d_pos particle positions on the GPU
     \param d_charge particle charges
     \param d_diameter particle diameters
@@ -158,7 +157,6 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
                                                float *d_virial,
                                                const unsigned int virial_pitch,
                                                const unsigned int N,
-                                               const unsigned int n_ghost,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_charge,
                                                const Scalar *d_diameter,
@@ -223,10 +221,6 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
         int cur_bond_idx = cur_bond.x;
         int cur_bond_type = cur_bond.y;
 
-        // detect invalid bonds
-        if (cur_bond_idx >= N + n_ghost)
-            atomicOr(d_flags, 2);
-
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
         float4 neigh_postypej = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
         float3 neigh_pos= make_float3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
@@ -282,7 +276,7 @@ __global__ void gpu_compute_bond_forces_kernel(float4 *d_force,
             }
         else
             {
-            atomicOr(d_flags,1);
+            *d_flags = 1;
             return;
             }
         }
@@ -341,7 +335,7 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
 
     // run the kernel
     gpu_compute_bond_forces_kernel<evaluator><<<grid, threads, shared_bytes>>>(
-        bond_args.d_force, bond_args.d_virial, bond_args.virial_pitch, bond_args.N, bond_args.n_ghost,
+        bond_args.d_force, bond_args.d_virial, bond_args.virial_pitch, bond_args.N,
         bond_args.d_pos, bond_args.d_charge, bond_args.d_diameter, bond_args.box, bond_args.d_gpu_bondlist,
         bond_args.pitch, bond_args.d_gpu_n_bonds, bond_args.n_bond_types, d_params, d_flags);
 

@@ -1161,6 +1161,7 @@ void export_Communicator()
     class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<DomainDecomposition> >())
+            .def("setCheckPeriod", &Communicator::setCheckPeriod);
     ;
     }
 #endif // ENABLE_MPI

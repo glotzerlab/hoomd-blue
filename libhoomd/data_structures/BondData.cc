@@ -421,6 +421,7 @@ void BondData::updateBondTableGPU()
                                      d_bonds.data,
                                      m_bonds.size(),
                                      m_pdata->getN(),
+                                     m_pdata->getNGhosts(),
                                      d_rtag.data,
                                      m_max_bond_num,
                                      m_condition.getDeviceFlags());
@@ -435,6 +436,12 @@ void BondData::updateBondTableGPU()
             {
             // reallocate bond list
             m_gpu_bondlist.resize(m_pdata->getMaxN(), ++m_max_bond_num);
+            }
+        if (condition & 2)
+            {
+            // incomplete bond
+            m_exec_conf->msg->error() << "bond.*: Invalid bond." << std::endl << std::endl;
+            throw std::runtime_error("Error updating bond list.");
             }
         }
     while (condition);

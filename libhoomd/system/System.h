@@ -175,6 +175,12 @@ class System
         
         //! Sets the communicator
         void setCommunicator(boost::shared_ptr<Communicator> comm);
+
+        //! Returns the communicator
+        boost::shared_ptr<Communicator> getCommunicator()
+            {
+            return m_comm;
+            }
 #endif
 
         // -------------- Methods for running the simulation
