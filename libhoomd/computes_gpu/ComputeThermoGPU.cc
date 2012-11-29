@@ -92,7 +92,9 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
         }
 
     m_block_size = 512;
-    m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
+    // this allocates more memory than necessary but is needed unless the scratch memory
+    // is reallocated when the maximum number of particles changes
+    m_num_blocks = m_group->getNumMembersGlobal() / m_block_size + 1;
     
     GPUArray< float4 > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
