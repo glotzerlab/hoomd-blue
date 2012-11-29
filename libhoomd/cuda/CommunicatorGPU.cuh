@@ -331,5 +331,14 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 Scalar4 *d_pos,
                                 unsigned int *d_ghost_plan,
                                 const BoxDim& global_box);
+
+void gpu_check_bonds(const Scalar4 *d_postype,
+                     const unsigned int N,
+                     const unsigned int n_ghosts,
+                     const BoxDim box,
+                     const uint2 *d_blist,
+                     const unsigned int pitch,
+                     const unsigned int *d_n_bonds_list,
+                     unsigned int *d_condition);
  
 #endif // ENABLE_MPI

@@ -80,6 +80,7 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                      const uint2 *d_bonds,
                                      const unsigned int num_bonds,
                                      const unsigned int N,
+                                     const unsigned int n_ghosts,
                                      const unsigned int *d_rtag,
                                      const unsigned int cur_max,
                                      unsigned int *d_condition);

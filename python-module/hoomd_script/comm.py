@@ -146,4 +146,3 @@ def is_root():
         return globals.exec_conf.getRank() == 0;
     else:
         return True;
-    

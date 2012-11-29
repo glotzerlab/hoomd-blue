@@ -71,6 +71,7 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
                                              unsigned int *d_n_bonds,
                                              unsigned int num_bonds,
                                              unsigned int N,
+                                             unsigned int n_ghosts,
                                              const unsigned int cur_max,
                                              unsigned int *condition)
     {
@@ -86,22 +87,23 @@ __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
     unsigned int idx2 = d_rtag[tag2];
 
     bool bond_needed = false;
-    bool missing_ghost = false;
+    bool bond_valid = true;
     if (idx1 < N)
         {
         unsigned int n = atomicInc(&d_n_bonds[idx1], 0xffffffff);
+        bond_valid &= (idx2 < N + n_ghosts);
         if (n >= cur_max) bond_needed = true;
         }
     if (idx2 < N)
         {
         unsigned int n = atomicInc(&d_n_bonds[idx2], 0xffffffff);
+        bond_valid &= (idx1 < N + n_ghosts);
         if (n >= cur_max) bond_needed = true;
         }
 
     if (bond_needed)
         atomicOr(condition, 1);
-
-    if (missing_ghost)
+    if (!bond_valid)
         atomicOr(condition, 2);
     }
 
@@ -153,6 +155,7 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                      const uint2 *d_bonds,
                                      const unsigned int num_bonds,
                                      const unsigned int N,
+                                     const unsigned int n_ghosts,
                                      const unsigned int *d_rtag,
                                      const unsigned int cur_max,
                                      unsigned int *d_condition)
@@ -171,6 +174,7 @@ cudaError_t gpu_find_max_bond_number(unsigned int *d_n_bonds,
                                                                               d_n_bonds,
                                                                               num_bonds,
                                                                               N,
+                                                                              n_ghosts,
                                                                               cur_max,
                                                                               d_condition);
 

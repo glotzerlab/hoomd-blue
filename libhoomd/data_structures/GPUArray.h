@@ -614,24 +614,6 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     std::swap(h_data, from.h_data);
     }
 
-//! Swap the pointers of two GPUArrays (const version)
-template<class T> void GPUArray<T>::swap(GPUArray& from) const
-    {
-    assert(!m_acquired && !from.m_acquired);
-
-    std::swap(m_num_elements, from.m_num_elements);
-    std::swap(m_pitch, from.m_pitch);
-    std::swap(m_height, from.m_height);
-    std::swap(m_exec_conf, from.m_exec_conf);
-    std::swap(m_acquired, from.m_acquired);
-    std::swap(m_data_location, from.m_data_location);
-#ifdef ENABLE_CUDA
-    std::swap(d_data, from.d_data);
-    std::swap(m_mapped, from.m_mapped);
-#endif
-    std::swap(h_data, from.h_data);
-    }
-
 /*! \pre m_num_elements is set
     \pre pointers are not allocated
     \post All memory pointers needed for GPUArray are allocated
@@ -754,17 +736,13 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
     assert(first < m_num_elements);
     
     // clear memory
-    if (m_data_location == data_location::host)
-        memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
+    memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
+
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        if (m_data_location == data_location::hostdevice)
-            memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
-
         assert(d_data);
-        if (! m_mapped && (m_data_location == data_location::device || m_data_location == data_location::hostdevice) )
-            cudaMemset(d_data+first, 0, (m_num_elements-first)*sizeof(T));
+        if (! m_mapped) cudaMemset(d_data+first, 0, (m_num_elements-first)*sizeof(T));
         }
 #endif
     }

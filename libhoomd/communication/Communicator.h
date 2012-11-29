@@ -259,7 +259,7 @@ class Communicator
         void communicate(unsigned int timestep);
 
         //@}
-
+        
         //! Force particle migration
         void forceMigrate()
             {
@@ -300,15 +300,6 @@ class Communicator
         virtual void exchangeGhosts();
 
     protected:
-        //! Set size of a packed data element
-        /*! \param size size of data element (in bytes)
-         */
-        void setPackedSize(unsigned int size)
-            {
-            assert(size > 0);
-            m_packed_size = size;
-            }
-
         //! The flags used for indicating the itinerary of a ghost particle
         enum Enum
             {

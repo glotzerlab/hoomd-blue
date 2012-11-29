@@ -129,6 +129,9 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<Syst
     GPUArray<unsigned int> flags(1, this->exec_conf);
     m_flags.swap(flags);
 
+    // reset flags
+    ArrayHandle<unsigned int> h_flags(m_flags,access_location::host, access_mode::overwrite);
+    h_flags.data[0] = 0;
     }
 
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
@@ -160,7 +163,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                                                  access_location::device, access_mode::read);
 
         // access the flags array for overwriting
-        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         gpu_cgbf(bond_args_t(d_force.data,
                              d_virial.data,
@@ -187,12 +190,11 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
         // check the flags for any errors
         ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
 
-        if (h_flags.data[0]==1)
+        if (h_flags.data[0] & 1)
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds (" << h_flags.data[0] << ")" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
-
         }
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
