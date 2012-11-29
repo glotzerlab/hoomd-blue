@@ -118,7 +118,6 @@ def reset():
 
     # note: the check should be against 2, getrefcount counts the temporary reference 
     # passed to it in the argument
-    print("GC count: ", count)
     expected_count = 6
     if count != expected_count:
         globals.msg.warning("Not all saved variables were cleared before calling reset()\n");
