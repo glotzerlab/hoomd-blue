@@ -118,7 +118,7 @@ uint3 CellList::computeDimensions()
 
     if (m_sysdef->getNDimensions() == 2)
         {
-        dim.z = 3;
+        dim.z = 1;
     
         // decrease the number of bins if it exceeds the max
         if (dim.x * dim.y * dim.z > m_max_cells)
@@ -310,7 +310,14 @@ void CellList::initializeMemory()
     // initialize indexers
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
-    m_cell_adj_indexer = Index2D((m_radius*2+1)*(m_radius*2+1)*(m_radius*2+1), m_cell_indexer.getNumElements());
+    
+    unsigned int n_adj;
+    if (m_sysdef->getNDimensions() == 2)
+        n_adj = (m_radius*2+1)*(m_radius*2+1);
+    else
+        n_adj = (m_radius*2+1)*(m_radius*2+1)*(m_radius*2+1);
+    
+    m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
     
     // allocate memory
     GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), exec_conf);
@@ -358,10 +365,16 @@ void CellList::initializeCellAdj()
                 // loop over neighboring cells
                 // need signed integer values for performing index calculations with negative values
                 int r = int(m_radius);
+                int rk = r;
+                if (m_sysdef->getNDimensions() == 2)
+                    rk = 0;
+                
                 int mx = int(m_dim.x);
                 int my = int(m_dim.y);
                 int mz = int(m_dim.z);
-                for (int nk = k-r; nk <= k+r; nk++)
+                
+                
+                for (int nk = k-rk; nk <= k+rk; nk++)
                     for (int nj = j-r; nj <= j+r; nj++)
                         for (int ni = i-r; ni <= i+r; ni++)
                             {
