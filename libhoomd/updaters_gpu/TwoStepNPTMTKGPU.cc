@@ -99,8 +99,9 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_reduction_block_size = 512;
 
-    // this breaks memory scaling (calculate memory requirements from global group size), but shouldn't be a big problem
-    m_num_blocks = m_group->getNumMembers() / m_reduction_block_size + 1;
+    // this breaks memory scaling (calculate memory requirements from global group size)
+    // unless we reallocate memory with every change of the maximum particle number
+    m_num_blocks = m_group->getNumMembersGlobal() / m_reduction_block_size + 1;
     GPUArray< Scalar > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
 
