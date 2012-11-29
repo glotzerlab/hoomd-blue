@@ -212,8 +212,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_r_buff(Scalar(0.0)),
             m_resize_factor(9.f/8.f),
             m_plan(m_exec_conf),
-            m_is_first_step(true),
-            m_check_period(100)
+            m_is_first_step(true)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -280,10 +279,6 @@ void Communicator::communicate(unsigned int timestep)
         // just update ghost positions
         updateGhosts(timestep);
         }
-
-    // check if all bonds etc. stay within allowed limits
-    if (m_check_period && (timestep % m_check_period == 0))
-        checkValid(timestep);
  
     m_is_communicating = false;
     }
@@ -1096,62 +1091,6 @@ void Communicator::updateGhosts(unsigned int timestep)
             m_prof->pop();
     }
 
-//! Check that restrictions on bond lengths etc. are not violated
-void Communicator::checkValid(unsigned int timestep)
-    {
-    if (m_prof) m_prof->push("check valid");
-
-    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
-
-    if (bdata->getNumBondsGlobal())
-        {
-        // check if bonds are valid
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-        const BoxDim& box = m_pdata->getBox();
-
-        ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-
-        const unsigned int size = (unsigned int)bdata->getNumBonds();
-
-        for (unsigned int i = 0; i < size; i++)
-            {
-            const uint2& bond = h_bonds.data[i];
-            assert(bond.x < m_pdata->getNGlobal());
-            assert(bond.y < m_pdata->getNGlobal());
-
-            // transform a and b into indicies into the particle data arrays
-            // (MEM TRANSFER: 4 integers)
-            unsigned int idx_a = h_rtag.data[bond.x];
-            unsigned int idx_b = h_rtag.data[bond.y];
-
-            if (idx_a >= m_pdata->getN() + m_pdata->getNGhosts() ||
-                idx_b >= m_pdata->getN() + m_pdata->getNGhosts())
-                {
-                m_exec_conf->msg->error() << "bond.*: Incomplete bond." << std::endl << std::endl;
-                throw std::runtime_error("Error validating bonds.");
-                }
-
-            Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
-            Scalar3 posb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
-
-            Scalar3 dx = posb - posa;
-
-            dx = box.minImage(dx);
-            Scalar3 L2 = box.getL()/Scalar(2.0);
-            // if a bond is longer than half the box length in any direction, throw an error
-            if (dx.x*dx.x >= L2.x*L2.x || dx.y*dx.y >= L2.y*L2.y || dx.z*dx.z >= L2.z*L2.z)
-                {
-                m_exec_conf->msg->error() << "bond.*: Bond exceeds maximum length." << std::endl << std::endl;
-                throw std::runtime_error("Error validating bonds.");
-                }
-
-            } 
-        }
-    if (m_prof) m_prof->pop();
-    }
-
 //! Export Communicator class to python
 void export_Communicator()
     {
@@ -1161,7 +1100,6 @@ void export_Communicator()
     class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<DomainDecomposition> >())
-            .def("setCheckPeriod", &Communicator::setCheckPeriod);
     ;
     }
 #endif // ENABLE_MPI

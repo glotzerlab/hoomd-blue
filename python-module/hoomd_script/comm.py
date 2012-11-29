@@ -117,9 +117,6 @@ def init_domain_decomposition(mpi_options):
         else:
             cpp_communicator = hoomd.CommunicatorGPU(globals.system_definition, cpp_decomposition)
 
-        # Default check period
-        cpp_communicator.setCheckPeriod(500);
-
         # set Communicator in C++ System
         globals.system.setCommunicator(cpp_communicator)
 
@@ -149,24 +146,3 @@ def is_root():
         return globals.exec_conf.getRank() == 0;
     else:
         return True;
-   
-## Set runtime parameters for MPI communciation
-# The communication routines check for frequent errors, such as over-long bonds etc. during the simulation.
-# The frequency with which these checks occur can be controlled with the parameter \b check_period.
-#
-# \param check_period The number of timesteps between validity checks of the particle data (0 = no checks)
-# 
-def set_params(check_period=None):
-    util.print_status_line();
-    if not hoomd.is_MPI_available():
-        globals.msg.error("This build of HOOMD-blue is not MPI enabled.\n")
-        raise RuntimeError('Error setting communication parameters');
-
-    cpp_communicator = globals.system.getCommunicator()
-
-    if cpp_communicator is None:
-        globals.msg.error("Not running in domain decomposition mode.\n")
-        raise RuntimeError('Cannot set communication parameters');
-    
-    if check_period is not None:
-        cpp_communicator.setCheckPeriod(check_period)
