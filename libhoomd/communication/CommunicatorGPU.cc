@@ -1892,8 +1892,11 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
         MPI_Win_start(send_group, 0, m_win_edge[i]);
     MPI_Win_start(send_group, 0, m_win_local);
 #else
-    MPI_Request send_req, recv_req;
-    MPI_Status send_status, recv_status;
+    // There are (up to) 26 neighborings domains. In one communication step, we are sending to
+    // buffers for at most half the domains = 13 buffers max
+    MPI_Request send_req[13], recv_req[13];
+    unsigned int recv_req_count = 0;
+    unsigned int send_req_count = 0;
     unsigned int recv_nptl;
     unsigned int offset;
     unsigned int tag = 0;
@@ -1971,7 +1974,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           send_neighbor,
                           tag,
                           m_mpi_comm,
-                          &send_req);
+                          &send_req[send_req_count++]);
                 if (recv)
                     MPI_Irecv(edge_send_buf + edge_j * epitch + offset,
                           recv_nptl*element_size,
@@ -1979,9 +1982,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           recv_neighbor,
                           tag,
                           m_mpi_comm,
-                          &recv_req);
-                if (send) MPI_Wait(&send_req,&send_status);
-                if (recv) MPI_Wait(&recv_req,&recv_status);
+                          &recv_req[recv_req_count++]);
                 tag++;
                 recv_eoffset[edge_j] += recv_nptl;
 #endif
@@ -2022,7 +2023,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           send_neighbor,
                           tag,
                           m_mpi_comm,
-                          &send_req);
+                          &send_req[send_req_count++]);
                 if (recv)
                     MPI_Irecv(face_send_buf + face_j * fpitch + offset,
                           recv_nptl*element_size,
@@ -2030,9 +2031,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           recv_neighbor,
                           tag,
                           m_mpi_comm,
-                          &recv_req);
-                if (send) MPI_Wait(&send_req,&send_status);
-                if (recv) MPI_Wait(&recv_req,&recv_status);
+                          &recv_req[recv_req_count++]);
                 tag++;
                 recv_foffset[face_j] += recv_nptl;
 #endif
@@ -2066,7 +2065,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                       send_neighbor,
                       tag,
                       m_mpi_comm,
-                      &send_req);
+                      &send_req[send_req_count++]);
             if (recv)
                 MPI_Irecv(local_recv_buf + offset,
                       recv_nptl*element_size,
@@ -2074,9 +2073,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                       recv_neighbor,
                       tag,
                       m_mpi_comm,
-                      &recv_req);
-            if (send) MPI_Wait(&send_req,&send_status);
-            if (recv) MPI_Wait(&recv_req,&recv_status);
+                      &recv_req[recv_req_count++]);
             tag++;
             recv_loffset += recv_nptl;
 #endif
@@ -2126,7 +2123,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           send_neighbor,
                           tag,
                           m_mpi_comm,
-                          &send_req);
+                          &send_req[send_req_count++]);
                 if (recv)
                     MPI_Irecv(face_send_buf + face_j * fpitch + offset,
                           recv_nptl*element_size,
@@ -2134,9 +2131,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           recv_neighbor,
                           tag,
                           m_mpi_comm,
-                          &recv_req);
-                if (send) MPI_Wait(&send_req,&send_status);
-                if (recv) MPI_Wait(&recv_req,&recv_status);
+                          &recv_req[recv_req_count++]);
                 tag++;
                 recv_foffset[face_j] += recv_nptl;
 #endif
@@ -2170,7 +2165,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                       send_neighbor,
                       tag,
                       m_mpi_comm,
-                      &send_req);
+                      &send_req[send_req_count++]);
             if (recv)
                 MPI_Irecv(local_recv_buf + offset,
                       recv_nptl*element_size,
@@ -2178,9 +2173,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                       recv_neighbor,
                       tag,
                       m_mpi_comm,
-                      &recv_req);
-            if (send) MPI_Wait(&send_req,&send_status);
-            if (recv) MPI_Wait(&recv_req,&recv_status);
+                      &recv_req[recv_req_count++]);
             tag++;
             recv_loffset += recv_nptl;
 #endif
@@ -2222,7 +2215,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                   send_neighbor,
                   tag,
                   m_mpi_comm,
-                  &send_req);
+                  &send_req[send_req_count++]);
         if (recv)
             MPI_Irecv(local_recv_buf + offset,
                   recv_nptl*element_size,
@@ -2230,9 +2223,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                   recv_neighbor,
                   tag,
                   m_mpi_comm,
-                  &recv_req);
-        if (send) MPI_Wait(&send_req,&send_status);
-        if (recv) MPI_Wait(&recv_req,&recv_status);
+                  &recv_req[recv_req_count++]);
         tag++;
         recv_loffset += recv_nptl;
 #endif
@@ -2260,7 +2251,13 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
         MPIX_Win_detach(m_win_face[i], face_send_buf+i*fpitch+n_send_ptls_face[i]*element_size);
 
     MPIX_Win_detach(m_win_local, local_recv_buf+n_tot_recv_ptls_local*element_size);
+#else
+    MPI_Status send_status[13], recv_status[13];
+
+    MPI_Waitall(send_req_count, send_req, send_status);
+    MPI_Waitall(recv_req_count, recv_req, recv_status);
 #endif
+
     }
 
 //! Export CommunicatorGPU class to python
