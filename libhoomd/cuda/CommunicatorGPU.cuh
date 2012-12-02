@@ -160,7 +160,7 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           const unsigned int *d_rtag,
                                           const unsigned int N,
                                           const unsigned int n_bonds,
-                                          const BoxDim box);
+                                          const BoxDim& box);
 
 void gpu_send_bonds(const unsigned int n_bonds,
                     const unsigned int n_particles,
