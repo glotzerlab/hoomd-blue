@@ -123,16 +123,6 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
         cout << "***Warning! random generator is about to allocate a very large amount of memory and may crash." << endl << endl;
         }
         
-    // make even bin dimensions
-    Scalar binx = L.x / Scalar(m_Mx);
-    Scalar biny = L.y / Scalar(m_My);
-    Scalar binz = L.z / Scalar(m_Mz);
-    
-    // precompute scale factors to eliminate division in inner loop
-    m_scalex = Scalar(1.0) / binx;
-    m_scaley = Scalar(1.0) / biny;
-    m_scalez = Scalar(1.0) / binz;
-    
     // setup the memory arrays
     m_bins.resize(m_Mx*m_My*m_Mz);
     }
@@ -153,31 +143,14 @@ bool GeneratedParticles::canPlace(const particle& p)
         }
         
     // first, map the particle back into the box
-    Scalar x = p.x;
-    Scalar3 L = m_box.getL();
-    Scalar3 hi = m_box.getHi();
-    Scalar3 lo = m_box.getLo();
-    if (x > hi.x)
-        x -= L.x*(((int)((x-hi.x)/L.x))+1);
-    else if (x < lo.x)
-        x += L.x*(((int)((lo.x-x)/L.x))+1);
-        
-    Scalar y = p.y;
-    if (y > hi.y)
-        y -= L.y*(((int)((y-hi.y)/L.y))+1);
-    else if (y < lo.y)
-        y += L.y*(((int)((lo.y-y)/L.y))+1);
-
-    Scalar z = p.z;
-    if (z > hi.y)
-        z -= L.z*(((int)((z-hi.y)/L.z))+1);
-    else if (z < lo.z)
-        z += L.z*(((int)((lo.z-z)/L.z))+1);
-        
+    Scalar3 pos = make_scalar3(p.x,p.y,p.z);
+    int3 img = make_int3(0,0,0);
+    m_box.wrap(pos, img);    
     // determine the bin the particle is in
-    int ib = (int)((x-lo.x)*m_scalex);
-    int jb = (int)((y-lo.y)*m_scaley);
-    int kb = (int)((z-lo.z)*m_scalez);
+    Scalar3 f = m_box.makeFraction(pos);
+    int ib = (int)(f.x*m_Mx);
+    int jb = (int)(f.y*m_My);
+    int kb = (int)(f.z*m_Mz);
     
     // need to handle the case where the particle is exactL.y at the box hi
     if (ib == m_Mx)
@@ -229,44 +202,16 @@ bool GeneratedParticles::canPlace(const particle& p)
                     Scalar min_dist = m_radii[p.type] + m_radii[p_cmp.type];
 
                     // map p_cmp into box
-                    Scalar cmp_x = p_cmp.x;
-                    if (cmp_x > hi.x)
-                        cmp_x -= L.x*(((int)((cmp_x-hi.x)/L.x))+1);
-                    else if (x < lo.x)
-                        cmp_x += L.x*(((int)((lo.x-cmp_x)/L.x))+1);
-        
-                    Scalar cmp_y = p_cmp.y;
-                    if (y > hi.y)
-                        cmp_y -= L.y*(((int)((cmp_y-hi.y)/L.y))+1);
-                    else if (y < lo.y)
-                        cmp_y += L.y*(((int)((lo.y-cmp_y)/L.y))+1);
+                    Scalar3 cmp_pos = make_scalar3(p_cmp.x, p_cmp.y, p_cmp.z);
+                    int3 img = make_int3(0,0,0);
+                    
+                    m_box.wrap(cmp_pos, img);
 
-                    Scalar cmp_z = p_cmp.z;
-                    if (cmp_z > hi.y)
-                        cmp_z -= L.z*(((int)((cmp_z-hi.y)/L.z))+1);
-                    else if (cmp_z < lo.z)
-                        cmp_z += L.z*(((int)((lo.z-cmp_z)/L.z))+1);
-
+                    Scalar3 dx = pos - cmp_pos;
                     // minimum image convention for dx
-                    Scalar dx = x - cmp_x;
-                    if (dx > L.x/2.)
-                        dx -= L.x;
-                    else if (dx <= -L.x/2.)
-                        dx += L.x;
+                    dx = m_box.minImage(dx);
                         
-                    Scalar dy = y - cmp_y;
-                    if (dy > L.y/2.)
-                        dy -= L.y;
-                    else if (dy <= -L.y/2.)
-                        dy += L.y;
-                        
-                    Scalar dz = z - cmp_z;
-                    if (dz > L.z/2.)
-                        dz -= L.z;
-                    else if (dz <= -L.z/2.)
-                        dz += L.z;
-                        
-                    if (dx*dx + dy*dy + dz*dz < min_dist)
+                    if (dot(dx,dx) < min_dist*min_dist)
                         return false;
                     }
                 }
@@ -295,61 +240,24 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
         }
         
     // first, map the particle back into the box
-    Scalar x = p.x;
-    Scalar3 L = m_box.getL();
-    Scalar3 lo = m_box.getLo();
-    Scalar3 hi = m_box.getHi();
-    int ix = 0;
-    if (x > hi.x)
-        {
-        ix=(((int)((x-hi.x)/L.x))+1);
-        x -= L.x*ix;
-        }
-    else if (x < lo.x)
-        {
-        ix=-(((int)((lo.x-x)/L.x))+1);
-        x -= L.x*ix;
-        }
-
-    Scalar y = p.y;
-    int iy = 0;
-    if (y > hi.y)
-        {
-        iy=(((int)((y-hi.y)/L.y))+1);
-        y -= L.y*iy;
-        }
-    else if (y < lo.y)
-        {
-        iy=-(((int)((lo.y-y)/L.y))+1);
-        y -= L.y*iy;
-        }
-        
-    Scalar z = p.z;
-    int iz = 0;
-    if (z > hi.z)
-        {
-        iz=(((int)((z-hi.y)/L.z))+1);
-        z -= L.z*iz;
-        }
-    else if (z < lo.z)
-        {
-        iz=-(((int)((lo.z-z)/L.z))+1);
-        z -= L.z*iz;
-        }
+    int3 img = make_int3(0,0,0);
+    Scalar3 pos = make_scalar3(p.x,p.y,p.z);
+    m_box.wrap(pos,img);
 
     // set the particle data
-    m_particles[idx].x = x;
-    m_particles[idx].y = y;
-    m_particles[idx].z = z;
-    m_particles[idx].ix = ix;
-    m_particles[idx].iy = iy;
-    m_particles[idx].iz = iz;
+    m_particles[idx].x = pos.x;
+    m_particles[idx].y = pos.y;
+    m_particles[idx].z = pos.z;
+    m_particles[idx].ix = img.x;
+    m_particles[idx].iy = img.y;
+    m_particles[idx].iz = img.z;
     m_particles[idx].type = p.type;
     
     // determine the bin the particle is in
-    int ib = (int)((x-lo.x)*m_scalex);
-    int jb = (int)((y-lo.y)*m_scaley);
-    int kb = (int)((z-lo.z)*m_scalez);
+    Scalar3 f =m_box.makeFraction(pos);
+    int ib = (int)(f.x*m_Mx);
+    int jb = (int)(f.y*m_My);
+    int kb = (int)(f.z*m_Mz);
     
     // need to handle the case where the particle is exactL.y at the box hi
     if (ib == m_Mx)
@@ -378,61 +286,25 @@ void GeneratedParticles::undoPlace(unsigned int idx)
     
     particle p = m_particles[idx];
     // first, map the particle back into the box
-    Scalar x = p.x;
-    Scalar3 L = m_box.getL();
-    Scalar3 hi = m_box.getHi();
-    Scalar3 lo = m_box.getLo();
-    int ix = 0;
-    if (x > hi.x)
-        {
-        ix=(((int)((x-hi.x)/L.x))+1);
-        x -= L.x*ix;
-        }
-    else if (x < lo.x)
-        {
-        ix=-(((int)((lo.x-x)/L.x))+1);
-        x -= L.x*ix;
-        }
+    int3 img = make_int3(0,0,0);
+    Scalar3 pos = make_scalar3(p.x,p.y,p.z);
 
-    Scalar y = p.y;
-    int iy = 0;
-    if (y > hi.y)
-        {
-        iy=(((int)((y-hi.y)/L.y))+1);
-        y -= L.y*iy;
-        }
-    else if (y < lo.y)
-        {
-        iy=-(((int)((lo.y-y)/L.y))+1);
-        y -= L.y*iy;
-        }
-        
-    Scalar z = p.z;
-    int iz = 0;
-    if (z > hi.y)
-        {
-        iz=(((int)((z-hi.y)/L.z))+1);
-        z -= L.z*iz;
-        }
-    else if (z < lo.z)
-        {
-        iz=-(((int)((lo.z-z)/L.z))+1);
-        z -= L.z*iz;
-        }
+    m_box.wrap(pos,img);
 
     // set the particle data
-    m_particles[idx].x = x;
-    m_particles[idx].y = y;
-    m_particles[idx].z = z;
-    m_particles[idx].ix = ix;
-    m_particles[idx].iy = iy;
-    m_particles[idx].iz = iz;
+    m_particles[idx].x = pos.x;
+    m_particles[idx].y = pos.y;
+    m_particles[idx].z = pos.z;
+    m_particles[idx].ix = img.x;
+    m_particles[idx].iy = img.y;
+    m_particles[idx].iz = img.z;
     m_particles[idx].type = p.type;
     
     // determine the bin the particle is in
-    int ib = (int)((x-lo.x)*m_scalex);
-    int jb = (int)((y-lo.y)*m_scaley);
-    int kb = (int)((z-lo.z)*m_scalez);
+    Scalar3 f = m_box.makeFraction(pos);
+    int ib = (int)(f.x*m_Mx);
+    int jb = (int)(f.y*m_My);
+    int kb = (int)(f.z*m_Mz);
     
     // need to handle the case where the particle is exactL.y at the box hi
     if (ib == m_Mx)
