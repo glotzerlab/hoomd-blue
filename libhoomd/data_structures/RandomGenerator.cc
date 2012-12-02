@@ -553,9 +553,11 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
     for (unsigned int attempt = 0; attempt < m_max_attempts; attempt++)
         {
         // generate the position of the first particle
-        p.x = lo.x + random01(rnd) * L.x;
-        p.y = lo.y + random01(rnd) * L.y;
-        p.z = lo.z + random01(rnd) * L.z;
+        Scalar3 f = make_scalar3(random01(rnd),random01(rnd),random01(rnd));
+        Scalar3 pos = box.makeCoordinates(f);
+        p.x = pos.x;
+        p.y = pos.y;
+        p.z = pos.z;
         
         // see if we can place the particle
         if (!particles.canPlace(p))

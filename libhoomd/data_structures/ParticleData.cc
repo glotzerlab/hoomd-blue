@@ -212,7 +212,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_pt
         m_external_virial[i] = Scalar(0.0);
 
     // initialize box dimensions
-    setGlobalBoxL(init.getBox().getL());
+    setGlobalBox(init.getBox());
 
     SnapshotParticleData snapshot(getN());
 
@@ -254,14 +254,14 @@ const BoxDim & ParticleData::getBox() const
     return m_box;
     }
 
-/*! \param L New box lengths to set
+/*! \param box New box dimensions to set
     \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
         it is the responsibility of the caller to ensure that all particles lie within
         the new box.
 */
-void ParticleData::setGlobalBoxL(const Scalar3 &L)
+void ParticleData::setGlobalBox(const BoxDim& box)
     {
-    m_global_box.setL(L);
+    m_global_box = box;
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -270,7 +270,7 @@ void ParticleData::setGlobalBoxL(const Scalar3 &L)
 #endif
         {
         // local box = global box
-        m_box.setL(L);
+        m_box = box;
         }
  
     m_boxchange_signal();
@@ -522,24 +522,28 @@ bool ParticleData::inBox()
     Scalar3 lo = m_box.getLo();
     Scalar3 hi = m_box.getHi();
 
+    const Scalar tol = Scalar(1e-5);
+
     ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
     for (unsigned int i = 0; i < getN(); i++)
         {
-        if (h_pos.data[i].x < lo.x-Scalar(1e-5) || h_pos.data[i].x > hi.x+Scalar(1e-5))
+        Scalar3 pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        Scalar3 f = m_box.makeFraction(pos);
+        if (f.x < -tol || f.x > Scalar(1.0)+tol)
             {
             m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
             m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
             m_exec_conf->msg->notice(1) << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
-        if (h_pos.data[i].y < lo.y-Scalar(1e-5) || h_pos.data[i].y > hi.y+Scalar(1e-5))
+        if (f.y < -tol || f.y > Scalar(1.0)+tol)
             {
             m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
             m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
             m_exec_conf->msg->notice(1) << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
-        if (h_pos.data[i].z < lo.z-Scalar(1e-5) || h_pos.data[i].z > hi.z+Scalar(1e-5))
+        if (f.z < -tol || f.z > Scalar(1.0)+tol)
             {
             m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
             m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
@@ -1542,6 +1546,7 @@ void export_BoxDim()
     .def(init<Scalar, Scalar, Scalar>())
     .def(init<Scalar3>())
     .def(init<Scalar3, Scalar3, uchar3>())
+    .def(init<Scalar, Scalar, Scalar, Scalar>())
     .def("getPeriodic", &BoxDim::getPeriodic)
     .def("setPeriodic", &BoxDim::setPeriodic)
     .def("getL", &BoxDim::getL)
@@ -1608,6 +1613,7 @@ void export_ParticleData()
     .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
+    .def("setGlobalBox", &ParticleData::setGlobalBox)
     .def("getN", &ParticleData::getN)
     .def("getNGlobal", &ParticleData::getNGlobal)
     .def("getNTypes", &ParticleData::getNTypes)

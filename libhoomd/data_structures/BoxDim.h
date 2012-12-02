@@ -69,8 +69,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
-    that box. Inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y and z.
-    
+    that box. For cubic boxes, inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y and z.
+   
+    For triclinic boxes, tilt factors xy, xz and yz are defined. In this case, m_lo and m_hi are the corners of the
+    corresponding cubic box, for which the tilt factors would be zero.
+
+    The conditions for a particle to be inside the triclinic box are
+
+                      -m_L.z/2 <= z <= m_L.z/2
+               -m_L.y/2 + yz*z <= y <= m_L.y/2 + yz*z
+        -m_L.x/2 + xz*z + xy*y <= x <= m_L.x/2 + xz*rz + xy*y
+
     Boxes constructed via length default to periodic in all 3 directions. Any direction may be made non-periodic with
     setPeriodic(). Boxes constructed via lo and hi must be explicity given periodic flags for each direction.
     The lo value \b must equal the negative for the high value for any direction that is set periodic. This is due to
@@ -100,6 +109,7 @@ class BoxDim
         HOSTDEVICE explicit BoxDim()
             {
             m_lo = m_hi = m_Linv = m_L = make_scalar3(0, 0, 0);
+            m_xz = m_xy = m_yz = Scalar(0.0);
             m_periodic = make_uchar3(1,1,1);
             }
 
@@ -112,6 +122,7 @@ class BoxDim
             {
             setL(make_scalar3(Len, Len, Len));
             m_periodic = make_uchar3(1,1,1);
+            m_xz = m_xy = m_yz = Scalar(0.0);
             }
 
         //! Constructs a box from -Len_x/2 to Len_x/2 for each dimension
@@ -124,6 +135,7 @@ class BoxDim
             {
             setL(make_scalar3(Len_x, Len_y, Len_z));
             m_periodic = make_uchar3(1,1,1);
+            m_xz = m_xy = m_yz = Scalar(0.0);
             }
 
         //! Constructs a box from -L/2 to L/2 for each dimension
@@ -133,6 +145,20 @@ class BoxDim
         HOSTDEVICE explicit BoxDim(Scalar3 L)
             {
             setL(L);
+            m_periodic = make_uchar3(1,1,1);
+            m_xz = m_xy = m_yz = Scalar(0.0);
+            }
+
+        //! Constructs a tilted box with edges of length len for each dimension
+        /*! \param Len Box length
+            \param xy Tilt factor of y-axis in xy plane
+            \param xz Tilt factor of z-axis in xz plane
+            \param yz Tilt factor of z-axis in yz plane
+         */
+        HOSTDEVICE explicit BoxDim(Scalar Len, Scalar xy, Scalar xz, Scalar yz)
+            {
+            setL(make_scalar3(Len,Len,Len));
+            setTiltFactors(xy, xz, yz);
             m_periodic = make_uchar3(1,1,1);
             }
 
@@ -145,6 +171,7 @@ class BoxDim
             {
             setLoHi(lo, hi);
             m_periodic = periodic;
+            m_xz = m_xy = m_yz = Scalar(0.0);
             }
 
         //! Get the periodic flags
@@ -212,6 +239,18 @@ class BoxDim
             m_L = m_hi - m_lo;
             }
 
+        //! Update the box tilt factors
+        /*! \param xy Tilt of y axis in x-y plane
+            \param xz Tilt of z axis in x-z plane
+            \param yz Tilt of z axis in x-y plane
+         */
+        HOSTDEVICE void setTiltFactors(const Scalar xy, const Scalar xz, const Scalar yz)
+            {
+            m_xy = xy;
+            m_xz = xz;
+            m_yz = yz;
+            }
+
         //! Compute fractional coordinates, allowing for a ghost layer
         /*! \param v Vector to scale
             \param ghost_width Width of extra ghost padding layer to take into account
@@ -221,9 +260,23 @@ class BoxDim
         */
         HOSTDEVICE Scalar3 makeFraction(const Scalar3& v, const Scalar3& ghost_width=make_scalar3(0.0,0.0,0.0)) const
             {
-            return (v - m_lo + ghost_width) / (m_L + Scalar(2.0)*ghost_width);
+            Scalar3 delta = v - m_lo;
+            delta.x -= (m_xz-m_yz*m_xy)*v.z+m_xy*v.y;
+            delta.y -= m_yz * v.z;
+            return delta / (m_L + Scalar(2.0)*ghost_width);
             }
 
+        //! Convert fractional coordinates into real coordinates
+        /*! \param f Fractional coordinates between 0 and 1 to scale
+            \return A vector inside the box corresponding to f
+         */
+        HOSTDEVICE Scalar3 makeCoordinates(const Scalar3 &f) const
+            {
+            Scalar3 v = m_lo + f*m_L;
+            v.x += m_xy*v.y+m_xz*v.z;
+            v.y += m_yz*v.z;
+            return v;
+            }
 
         //! Compute minimum image
         /*! \param v Vector to compute
@@ -236,14 +289,57 @@ class BoxDim
             Scalar3 L = getL();
 
             #ifdef NVCC
-            if (m_periodic.x)
-                w.x -= L.x * rintf(w.x * m_Linv.x);
-            if (m_periodic.y)
-                w.y -= L.y * rintf(w.y * m_Linv.y);
             if (m_periodic.z)
-                w.z -= L.z * rintf(w.z * m_Linv.z);
+                {
+                Scalar img = rintf(w.z * m_Linv.z);
+                w.z -= L.z * img;
+                w.y -= L.z * m_yz * img;
+                w.x -= L.z * m_xz * img;
+                }
+
+            if (m_periodic.y)
+                {
+                Scalar img = rintf(w.y * m_Linv.y);
+                w.y -= L.y * img;
+                w.x -= L.y * m_xy * img;
+                }
+
+            if (m_periodic.x)
+                {
+                w.x -= L.x * rintf(w.x * m_Linv.x);
+                }
             #else
             // on the cpu, branches are faster than calling rintf
+            if (m_periodic.z)
+                {
+                if (w.z >= m_hi.z)
+                    {
+                    w.z -= L.z;
+                    w.y -= L.z * m_yz;
+                    w.x -= L.z * m_xz;
+                    }
+                else if (w.z < m_lo.z)
+                    {
+                    w.z += L.z;
+                    w.y += L.z * m_yz;
+                    w.x += L.z * m_xz;
+                    }
+                }
+ 
+            if (m_periodic.y)
+                {
+                if (w.y >= m_hi.y)
+                    {
+                    w.y -= L.y;
+                    w.x -= L.y * m_xy;
+                    }
+                else if (w.y < m_lo.y)
+                    {
+                    w.y += L.y;
+                    w.x += L.y * m_xy;
+                    }
+                }
+
             if (m_periodic.x)
                 {
                 if (w.x >= m_hi.x)
@@ -252,21 +348,6 @@ class BoxDim
                     w.x += L.x;
                 }
 
-            if (m_periodic.y)
-                {
-                if (w.y >= m_hi.y)
-                    w.y -= L.y;
-                else if (w.y < m_lo.y)
-                    w.y += L.y;
-                }
-
-            if (m_periodic.z)
-                {
-                if (w.z >= m_hi.z)
-                    w.z -= L.z;
-                else if (w.z < m_lo.z)
-                    w.z += L.z;
-                }
             #endif
             return w;
             }
@@ -283,12 +364,13 @@ class BoxDim
 
             if (m_periodic.x)
                 {
-                if (w.x >= m_hi.x)
+                Scalar tilt_x = (m_xz - m_xy*m_yz) * w.z + m_xy * w.y;
+                if (w.x >= m_hi.x + tilt_x)
                     {
                     w.x -= L.x;
                     img.x++;
                     }
-                else if (w.x < m_lo.x)
+                else if (w.x < m_lo.x + tilt_x)
                     {
                     w.x += L.x;
                     img.x--;
@@ -297,14 +379,17 @@ class BoxDim
 
             if (m_periodic.y)
                 {
-                if (w.y >= m_hi.y)
+                Scalar tilt_y = m_yz * w.z;
+                if (w.y >= m_hi.y + tilt_y)
                     {
                     w.y -= L.y;
+                    w.x -= L.y * m_xy;
                     img.y++;
                     }
-                else if (w.y < m_lo.y)
+                else if (w.y < m_lo.y + tilt_y)
                     {
                     w.y += L.y;
+                    w.x += L.y * m_xy;
                     img.y--;
                     }
                 }
@@ -314,15 +399,19 @@ class BoxDim
                 if (w.z >= m_hi.z)
                     {
                     w.z -= L.z;
+                    w.y -= L.z * m_yz;
+                    w.x -= L.z * m_xz;
                     img.z++;
                     }
                 else if (w.z < m_lo.z)
                     {
                     w.z += L.z;
+                    w.y += L.z * m_yz;
+                    w.x += L.z * m_xz;
                     img.z--;
                     }
                 }
-            }
+           }
 
         //! Wrap a vector back into the box
         /*! \param w Vector to wrap, updated to the minimum image obeying the periodic settings
@@ -359,6 +448,9 @@ class BoxDim
         Scalar3 m_hi;      //!< Maximum coords in the box
         Scalar3 m_L;       //!< L precomputed (used to avoid subtractions in boundary conditions)
         Scalar3 m_Linv;    //!< 1/L precomputed (used to avoid divisions in boundary conditions)
+        Scalar m_xy;       //!< xy tilt factor
+        Scalar m_xz;       //!< xz tilt factor
+        Scalar m_yz;       //!< yz tilt factor
         uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
     };
 
