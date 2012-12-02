@@ -60,11 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.cuh"
 
 #include <thrust/device_ptr.h>
-#include <thrust/iterator/permutation_iterator.h>
 #include <thrust/scatter.h>
-#include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/zip_iterator.h>
 
 using namespace thrust;
 
@@ -85,55 +82,6 @@ unsigned int gpu_update_element_size()
     {
     return sizeof(update_element_gpu);
     }
-
-//! Select local particles that within a boundary layer of the neighboring domain in a given direction
-struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
-    {
-    float3 lo; //!< Box lo
-    float3 hi; //!< Box hi
-    const float r_ghost; //!< Width of boundary layer
-
-    //! Constructor
-    /*! \param _box Local box dimensions
-     * \param _r_ghost Width of boundary layer
-     */
-    make_nonbonded_plan(const BoxDim _box, float _r_ghost)
-        : r_ghost(_r_ghost)
-        {
-        lo = _box.getLo();
-        hi = _box.getHi();
-        }
-
-    //! Make exchange plan
-    /*! \param t Tuple of Particle position to check and current plan
-        \returns The updated plan for this particle
-     */
-    __host__ __device__ unsigned char operator()(const thrust::tuple<float4, unsigned char>& t)
-        {
-        float4 pos = thrust::get<0>(t);
-
-        unsigned char plan = thrust::get<1>(t);
-        if (pos.x >= hi.x  - r_ghost)
-            plan |= send_east;
-
-        if (pos.x < lo.x + r_ghost)
-            plan |= send_west;
-
-        if (pos.y >= hi.y  - r_ghost)
-            plan |= send_north;
-
-        if (pos.y < lo.y + r_ghost)
-            plan |= send_south;
-
-        if (pos.z >= hi.z  - r_ghost)
-            plan |= send_up;
-
-        if (pos.z < lo.z + r_ghost)
-            plan |= send_down;
-
-        return plan;
-        }
-     };
 
 unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
@@ -1013,6 +961,41 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
     }
 
 
+//! Kernel to select ghost atoms due to non-bonded interactions
+__global__ void gpu_nonbonded_plan_kernel(unsigned char *plan,
+                               const unsigned int N,
+                               Scalar4 *d_postype,
+                               const BoxDim box,
+                               Scalar3 ghost_fraction)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N) return;
+
+    Scalar4 postype = d_postype[idx]; 
+    Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
+    Scalar3 f = box.makeFraction(pos);
+
+    unsigned char p = plan[idx];
+
+    // is particle inside ghost layer? set plan accordingly.
+    if (f.x >= Scalar(1.0) - ghost_fraction.x)
+        p |= send_east;
+    if (f.x < ghost_fraction.x)
+        p |= send_west;
+    if (f.y >= Scalar(1.0) - ghost_fraction.y)
+        p |= send_north;
+    if (f.y < ghost_fraction.y)
+        p |= send_south;
+    if (f.z >= Scalar(1.0) - ghost_fraction.z)
+        p |= send_up;
+    if (f.z < ghost_fraction.z)
+        p |= send_down;
+
+    // write out plan
+    plan[idx] = p;
+    }
+
 //! Construct plans for sending non-bonded ghost particles
 /*! \param d_plan Array of ghost particle plans
  * \param N number of particles to check
@@ -1026,18 +1009,14 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       const BoxDim &box,
                                       float r_ghost)
     {
-    thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::device_ptr<unsigned char> plan_ptr(d_plan);
+    unsigned int block_size = 512;
 
-    thrust::transform(
-        thrust::make_zip_iterator(thrust::make_tuple(
-            pos_ptr,
-            plan_ptr)),
-        thrust::make_zip_iterator(thrust::make_tuple(
-            pos_ptr,
-            plan_ptr)) + N,
-        plan_ptr,
-        make_nonbonded_plan(box, r_ghost));
+    Scalar3 ghost_fraction = r_ghost/box.getL();
+    gpu_nonbonded_plan_kernel<<<N/block_size+1, block_size>>>(d_plan,
+                                                              N,
+                                                              d_pos,
+                                                              box,
+                                                              ghost_fraction);
     }
 
 //! Kernel to pack local particle data into ghost send buffers
