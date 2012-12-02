@@ -92,8 +92,6 @@ __constant__ unsigned int d_face_plan_lookup[6];   //!< Lookup-table faces -> pl
 __constant__ unsigned int d_is_communicating[6]; //!< Per-direction flag indicating whether we are communicating in that direction
 __constant__ unsigned int d_is_at_boundary[6]; //!< Per-direction flag indicating whether the box has a global boundary
 
-__device__ Scalar3 d_L_g;                      //!< Global box dimensions
-
 extern unsigned int *corner_plan_lookup[];
 extern unsigned int *edge_plan_lookup[];
 extern unsigned int *face_plan_lookup[];
@@ -273,48 +271,12 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
         {
         const unsigned int pdata_size = sizeof(pdata_element_gpu);
 
-        int3 image = d_image[idx];
-
-        Scalar3 L = d_L_g;
-
-        // apply global boundary conditions
-        if ((plan & send_east) && d_is_at_boundary[0])
-            {
-            pos.x -= L.x;
-            image.x++;
-            }
-        if ((plan & send_west) && d_is_at_boundary[1])
-            {
-            pos.x += L.x; 
-            image.x--;
-            }
-        if ((plan & send_north) && d_is_at_boundary[2])
-            {
-            pos.y -= L.y;
-            image.y++;
-            }
-        if ((plan & send_south) && d_is_at_boundary[3])
-            {
-            pos.y += L.y;
-            image.y--;
-            }
-        if ((plan & send_up) && d_is_at_boundary[4])
-            {
-            pos.z -= L.z;
-            image.z++;
-            }
-        if ((plan & send_down) && d_is_at_boundary[5])
-            {
-            pos.z += L.z; 
-            image.z--;
-            }
-
         // fill up buffer element
         pdata_element_gpu el;
         el.pos = make_scalar4(pos.x,pos.y,pos.z,postype.w);
         el.vel = d_vel[idx];
         el.accel = d_accel[idx];
-        el.image = image;
+        el.image = d_image[idx];
         el.charge = d_charge[idx];
         el.diameter = d_diameter[idx];
         el.body = d_body[idx];
@@ -429,15 +391,11 @@ void gpu_migrate_select_particles(unsigned int N,
                                   char *d_face_buf,
                                   unsigned int face_buf_pitch,
                                   const BoxDim& box,
-                                  const BoxDim& global_box,
                                   unsigned int *d_condition)
     {
     cudaMemsetAsync(d_n_send_ptls_corner, 0, sizeof(unsigned int)*8);
     cudaMemsetAsync(d_n_send_ptls_edge, 0, sizeof(unsigned int)*12);
     cudaMemsetAsync(d_n_send_ptls_face, 0, sizeof(unsigned int)*6);
-
-    Scalar3 L_g = global_box.getL();
-    cudaMemcpyToSymbol(d_L_g, &L_g, sizeof(Scalar3));
 
     unsigned int block_size = 512;
 
@@ -759,7 +717,8 @@ __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_npartic
                                              unsigned int *d_body,
                                              float4 *d_orientation,
                                              unsigned int *d_tag,
-                                             unsigned int *d_rtag)
+                                             unsigned int *d_rtag,
+                                             const BoxDim global_box)
     {
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -782,10 +741,16 @@ __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_npartic
             // copy over receive buffer data
             pdata_element_gpu &el= ((pdata_element_gpu *) recv_buf)[n];
 
-            d_pos[idx] = el.pos;
+            // wrap particle into global box
+            int3 image = el.image;
+            Scalar4 postype = el.pos;
+            global_box.wrap(postype,image);
+
+            // store data into particle arrays
+            d_pos[idx] = postype;
             d_vel[idx] = el.vel;
             d_accel[idx] = el.accel;
-            d_image[idx] = el.image;
+            d_image[idx] = image;
             d_charge[idx] = el.charge;
             d_diameter[idx] = el.diameter;
             d_body[idx] = el.body;
@@ -839,6 +804,7 @@ __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_npartic
     \param d_orientation Array of particle orientations
     \param d_tag Array of particle tags
     \param d_rtag Lookup table particle tag->idx
+    \param global_box Dimensions of global simulation box
  */
 void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int n_recv_ptls,
@@ -854,7 +820,8 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int *d_body,
                         float4 *d_orientation,
                         unsigned int *d_tag,
-                        unsigned int *d_rtag)
+                        unsigned int *d_rtag,
+                        const BoxDim& global_box)
     {
     cudaMemset(d_n_fetch_ptl, 0, sizeof(unsigned int));
 
@@ -875,7 +842,8 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                                              d_body,
                                              d_orientation,
                                              d_tag,
-                                             d_rtag);
+                                             d_rtag,
+                                             global_box);
     }
 
  

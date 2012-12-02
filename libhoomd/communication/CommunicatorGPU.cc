@@ -669,7 +669,6 @@ void CommunicatorGPU::migrateParticles()
                                    d_face_send_buf.data,
                                    m_face_send_buf.getPitch(),
                                    m_pdata->getBox(),
-                                   m_pdata->getGlobalBox(),
                                    m_condition.getDeviceFlags());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1053,7 +1052,8 @@ void CommunicatorGPU::migrateParticles()
                                d_body.data,
                                d_orientation.data,
                                d_tag.data,
-                               d_rtag.data);
+                               d_rtag.data,
+                               m_pdata->getGlobalBox());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
