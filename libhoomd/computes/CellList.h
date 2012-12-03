@@ -208,6 +208,12 @@ class CellList : public Compute
             return m_width;
             }
         
+        //! Get the nominal width of the cells
+        Scalar getNominalWidth() const
+            {
+            return m_nominal_width;
+            }
+        
         //! Get the dimensions of the cell list
         const uint3& getDim() const
             {
