@@ -1042,7 +1042,7 @@ const BoxDim Communicator::getShiftedBox() const
     {
     // construct the shifted global box for applying global boundary conditions 
     BoxDim shifted_box = m_pdata->getGlobalBox();
-    Scalar3 f= make_scalar3(0.0,0.0,0.0);
+    Scalar3 f= make_scalar3(0.5,0.5,0.5);
 
     // The fractional shift is half the local box length
     // which is also the maximum allowed ghost layer width
@@ -1065,12 +1065,22 @@ const BoxDim Communicator::getShiftedBox() const
                 f.z -= shift.z;
             }
         }
-    Scalar3 dx = shifted_box.makeCoordinates(f) - shifted_box.getLo();
+    Scalar3 dx = shifted_box.makeCoordinates(f);
     Scalar3 lo = shifted_box.getLo();
     Scalar3 hi = shifted_box.getHi();
     lo += dx;
     hi += dx;
     shifted_box.setLoHi(lo, hi);
+
+    // only apply global boundary conditions along the communication directions
+    uchar3 periodic = make_uchar3(0,0,0);
+    
+    periodic.x = isCommunicating(face_east) ? 1 : 0;
+    periodic.y = isCommunicating(face_north) ? 1 : 0;
+    periodic.z = isCommunicating(face_up) ? 1 : 0;
+
+    shifted_box.setPeriodic(periodic);
+
     return shifted_box;
     }
 
