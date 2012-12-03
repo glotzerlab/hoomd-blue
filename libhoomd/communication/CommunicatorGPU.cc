@@ -235,50 +235,52 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
     unsigned int n_tot_recv_ghosts_local = 0;
 
-    #ifdef ENABLE_MPI_CUDA
-    ArrayHandle<char> corner_update_buf_handle(m_corner_update_buf, access_location::device, access_mode::read);
-    ArrayHandle<char> edge_update_buf_handle(m_edge_update_buf, access_location::device, access_mode::readwrite);
-    ArrayHandle<char> face_update_buf_handle(m_face_update_buf, access_location::device, access_mode::readwrite);
-    ArrayHandle<char> update_recv_buf_handle(m_update_recv_buf, access_location::device, access_mode::overwrite);
-    #else
-    ArrayHandle<char> corner_update_buf_handle(m_corner_update_buf, access_location::host, access_mode::read);
-    ArrayHandle<char> edge_update_buf_handle(m_edge_update_buf, access_location::host, access_mode::readwrite);
-    ArrayHandle<char> face_update_buf_handle(m_face_update_buf, access_location::host, access_mode::readwrite);
-    ArrayHandle<char> update_recv_buf_handle(m_update_recv_buf, access_location::host, access_mode::overwrite);
-    #endif
-
-
-    for (unsigned int face = 0; face < 6; ++face)
         {
-        if (! isCommunicating(face)) continue;
+        #ifdef ENABLE_MPI_CUDA
+        ArrayHandle<char> corner_update_buf_handle(m_corner_update_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> edge_update_buf_handle(m_edge_update_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> face_update_buf_handle(m_face_update_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> update_recv_buf_handle(m_update_recv_buf, access_location::device, access_mode::overwrite);
+        #else
+        ArrayHandle<char> corner_update_buf_handle(m_corner_update_buf, access_location::host, access_mode::read);
+        ArrayHandle<char> edge_update_buf_handle(m_edge_update_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> face_update_buf_handle(m_face_update_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> update_recv_buf_handle(m_update_recv_buf, access_location::host, access_mode::overwrite);
+        #endif
 
-        ArrayHandle<unsigned int> h_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::host, access_mode::read);
 
-        communicateStepTwo(face,
-                           corner_update_buf_handle.data,
-                           edge_update_buf_handle.data,
-                           face_update_buf_handle.data,
-                           m_corner_update_buf.getPitch(),
-                           m_edge_update_buf.getPitch(),
-                           m_face_update_buf.getPitch(),
-                           update_recv_buf_handle.data,
-                           n_copy_ghosts_corner,
-                           n_copy_ghosts_edge,
-                           n_copy_ghosts_face,
-                           m_update_recv_buf.getNumElements(),
-                           n_tot_recv_ghosts_local,
-                           gpu_update_element_size(),
-                           false);
-        // update send buffer sizes
-        for (unsigned int i = 0; i < 12; ++i)
-            n_copy_ghosts_edge[i] += h_n_recv_ghosts_edge.data[face*12+i];
-        for (unsigned int i = 0; i < 6; ++i)
-            n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[face*6+i];
+        for (unsigned int face = 0; face < 6; ++face)
+            {
+            if (! isCommunicating(face)) continue;
 
-        n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[face];
-        } // end communication loop
+            ArrayHandle<unsigned int> h_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::host, access_mode::read);
+
+            communicateStepTwo(face,
+                               corner_update_buf_handle.data,
+                               edge_update_buf_handle.data,
+                               face_update_buf_handle.data,
+                               m_corner_update_buf.getPitch(),
+                               m_edge_update_buf.getPitch(),
+                               m_face_update_buf.getPitch(),
+                               update_recv_buf_handle.data,
+                               n_copy_ghosts_corner,
+                               n_copy_ghosts_edge,
+                               n_copy_ghosts_face,
+                               m_update_recv_buf.getNumElements(),
+                               n_tot_recv_ghosts_local,
+                               gpu_update_element_size(),
+                               false);
+            // update send buffer sizes
+            for (unsigned int i = 0; i < 12; ++i)
+                n_copy_ghosts_edge[i] += h_n_recv_ghosts_edge.data[face*12+i];
+            for (unsigned int i = 0; i < 6; ++i)
+                n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[face*6+i];
+
+            n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[face];
+            } // end communication loop
+        }
 
         {
         // unpack ghost data
