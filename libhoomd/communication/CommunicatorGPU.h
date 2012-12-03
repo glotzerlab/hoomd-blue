@@ -202,7 +202,6 @@ class CommunicatorGPU : public Communicator
         GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
         GPUArray<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
         GPUArray<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
-        GPUArray<unsigned int> m_ghost_plan;         //!< Routing plans for received ghost particles
 
         GPUArray<unsigned int> m_ghost_idx_corner;  //!< Indices of particles copied as ghosts via corner
         GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge

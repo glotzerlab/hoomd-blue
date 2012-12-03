@@ -284,8 +284,6 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
         // unpack ghost data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
-        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::read);
-
         ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
 
@@ -315,7 +313,6 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                                  m_edge_update_buf.getPitch(),
                                  d_update_recv_buf.data,
                                  d_pos.data,
-                                 d_ghost_plan.data,
                                  shifted_box);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -478,10 +475,6 @@ void CommunicatorGPU::allocateBuffers()
     
     GPUArray<unsigned int> ghost_idx_corner(m_max_copy_ghosts_corner, 8, m_exec_conf);
     m_ghost_idx_corner.swap(ghost_idx_corner);
-
-    // allocate ghost plan buffer
-    GPUArray<unsigned int> ghost_plan(m_max_copy_ghosts_face*6, m_exec_conf);
-    m_ghost_plan.swap(ghost_plan);
 
     GPUArray<unsigned int> n_local_ghosts_face(6, m_exec_conf);
     m_n_local_ghosts_face.swap(n_local_ghosts_face);
@@ -1586,15 +1579,6 @@ void CommunicatorGPU::exchangeGhosts()
     for (unsigned int i = 0; i < 12; ++i)
         m_n_tot_recv_ghosts += m_n_forward_ghosts_edge[i];
 
-    // resize plan array if necessary
-    if (m_ghost_plan.getNumElements() < m_n_tot_recv_ghosts)
-        {
-        unsigned int new_size = m_ghost_plan.getNumElements();
-        while (new_size < m_n_tot_recv_ghosts)
-            new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-        m_ghost_plan.resize(new_size);
-        }
-
     // update number of ghost particles
     m_pdata->addGhostParticles(m_n_tot_recv_ghosts);
 
@@ -1604,8 +1588,6 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
-
-        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
         ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
@@ -1640,7 +1622,6 @@ void CommunicatorGPU::exchangeGhosts()
                                      d_diameter.data,
                                      d_tag.data,
                                      d_rtag.data,
-                                     d_ghost_plan.data,
                                      shifted_box);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())

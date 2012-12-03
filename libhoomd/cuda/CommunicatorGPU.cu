@@ -1199,7 +1199,6 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   Scalar *d_diameter,
                                                   unsigned int *d_tag,
                                                   unsigned int *d_rtag,
-                                                  unsigned int *d_ghost_plan,
                                                   const BoxDim shifted_global_box)
     {
     unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
@@ -1303,15 +1302,11 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
 
     // we have a pointer to the data element to be unpacked, now unpack
     Scalar4 postype;
-    unsigned int boundary_plan;
     if (update)
         {
         // only update position
         update_element_gpu &el = *(update_element_gpu *) el_ptr;
         postype = el.pos;
-
-        // fetch previously saved plan
-        boundary_plan = d_ghost_plan[ghost_idx];
         }
     else
         {
@@ -1324,10 +1319,6 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
         unsigned int tag = el.tag;
         d_tag[N+ghost_idx] = tag;
         d_rtag[tag] = N+ghost_idx;
-        
-        // save plan
-        boundary_plan = el.plan;
-        d_ghost_plan[ghost_idx] = boundary_plan;
         }
 
     // apply global boundary conditions for received particle
@@ -1356,7 +1347,6 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
     \param d_diameter Array of particle diameters
     \param d_tag Array of particle tags
     \param d_rtag Lookup table particle tag->idx
-    \param d_ghost_plan Boundary crossing plans of ghost particles
     \param shifted_global_box Global simulation box, shifted by one local box if local box has a global boundary
 */
 void gpu_exchange_ghosts_unpack(unsigned int N,
@@ -1377,7 +1367,6 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 Scalar *d_diameter,
                                 unsigned int *d_tag,
                                 unsigned int *d_rtag,
-                                unsigned int *d_ghost_plan,
                                 const BoxDim& shifted_global_box)
     {
     unsigned int block_size = 512;
@@ -1400,7 +1389,6 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                                                            d_diameter,
                                                                            d_tag,
                                                                            d_rtag,
-                                                                           d_ghost_plan,
                                                                            shifted_global_box);
     } 
 
@@ -1576,7 +1564,6 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
     \param edge_pitch Offsets of different edges in edge ghost buffer
     \param d_recv_ghosts Buffer of ghosts received for the local box
     \param d_pos Array of particle positions
-    \param d_ghost_plan Boundary crossing plans of ghost particles
     \param global_box Global simulation box
 */
 void gpu_update_ghosts_unpack(unsigned int N,
@@ -1593,7 +1580,6 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const unsigned int edge_pitch,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
-                                unsigned int *d_ghost_plan,
                                 const BoxDim& shifted_global_box)
     {
     unsigned int block_size = 512;
@@ -1616,7 +1602,6 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                                                            NULL,
                                                                            NULL,
                                                                            NULL,
-                                                                           d_ghost_plan,
                                                                            shifted_global_box);
     } 
 

@@ -314,7 +314,6 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 Scalar *d_diameter,
                                 unsigned int *d_tag,
                                 unsigned int *d_rtag,
-                                unsigned int *d_ghost_plan,
                                 const BoxDim& shifted_global_box);
 
 void gpu_update_ghosts_unpack(unsigned int N,
@@ -331,7 +330,6 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const unsigned int edge_pitch,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
-                                unsigned int *d_ghost_plan,
                                 const BoxDim& shifted_global_box);
 
 void gpu_check_bonds(const Scalar4 *d_postype,
