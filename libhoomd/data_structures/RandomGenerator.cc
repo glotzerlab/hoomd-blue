@@ -88,7 +88,7 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
     // sanity checks
     assert(n_particles > 0);
     assert(m_radii.size() > 0);
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
     
     // find the maximum particle radius
     Scalar max_radius = Scalar(0.0);
@@ -135,7 +135,7 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
 */
 bool GeneratedParticles::canPlace(const particle& p)
     {
-    // begin with an error check that p.type is actualL.y in the radius map
+    // begin with an error check that p.type is actually in the radius map
     if (m_radii.count(p.type) == 0)
         {
         cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
@@ -152,7 +152,7 @@ bool GeneratedParticles::canPlace(const particle& p)
     int jb = (int)(f.y*m_My);
     int kb = (int)(f.z*m_Mz);
     
-    // need to handle the case where the particle is exactL.y at the box hi
+    // need to handle the case where the particle is exactly at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -232,7 +232,7 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
     {
     assert(idx < m_particles.size());
     
-    // begin with an error check that p.type is actualL.y in the radius map
+    // begin with an error check that p.type is actually in the radius map
     if (m_radii.count(p.type) == 0)
         {
         cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
@@ -259,7 +259,7 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
     int jb = (int)(f.y*m_My);
     int kb = (int)(f.z*m_Mz);
     
-    // need to handle the case where the particle is exactL.y at the box hi
+    // need to handle the case where the particle is exactly at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -306,7 +306,7 @@ void GeneratedParticles::undoPlace(unsigned int idx)
     int jb = (int)(f.y*m_My);
     int kb = (int)(f.z*m_Mz);
     
-    // need to handle the case where the particle is exactL.y at the box hi
+    // need to handle the case where the particle is exactly at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -546,9 +546,6 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
     GeneratedParticles::particle p;
     p.type = m_types[0];
     
-    Scalar3 L = box.getL();
-    Scalar3 lo = box.getLo();
-    
     // make a maximum of m_max_attempts tries to generate the polymer
     for (unsigned int attempt = 0; attempt < m_max_attempts; attempt++)
         {
@@ -569,7 +566,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
         if (generateNextParticle(particles, rnd, 1, start_idx, p))
             {
             // success! we are done
-            // create the bonds for this polymer now (polymers are simpL.y linear for now)
+            // create the bonds for this polymer now (polymers are simply linear for now)
             for (unsigned int i = 0; i < m_bond_a.size(); i++)
                 {
                 particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i], m_bond_type[i]);

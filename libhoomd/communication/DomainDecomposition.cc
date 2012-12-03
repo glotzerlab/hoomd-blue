@@ -217,7 +217,7 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     // initialize local box with all properties of global box
     BoxDim box = global_box; 
 
-    // calculate the local box dimensions using domain decomposition information
+    // calculate the local box dimensions by sub-dividing the cartesian lattice
     Scalar3 L = global_box.getL();
     Scalar3 L_local = L / make_scalar3(m_nx, m_ny, m_nz);
 
