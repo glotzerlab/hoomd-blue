@@ -1040,6 +1040,8 @@ void CommunicatorGPU::migrateParticles()
 
         ArrayHandle<char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
 
+        const BoxDim shifted_box = getShiftedBox();
+
         gpu_migrate_fill_particle_arrays(old_nparticles,
                                n_tot_recv_ptls,
                                n_remove_ptls,
@@ -1055,7 +1057,7 @@ void CommunicatorGPU::migrateParticles()
                                d_orientation.data,
                                d_tag.data,
                                d_rtag.data,
-                               m_pdata->getGlobalBox());
+                               shifted_box);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
