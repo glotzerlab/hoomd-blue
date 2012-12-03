@@ -263,7 +263,7 @@ class BoxDim
             Scalar3 delta = v - m_lo;
             delta.x -= (m_xz-m_yz*m_xy)*v.z+m_xy*v.y;
             delta.y -= m_yz * v.z;
-            return delta / (m_L + Scalar(2.0)*ghost_width);
+            return (delta + ghost_width)/ (m_L + Scalar(2.0)*ghost_width);
             }
 
         //! Convert fractional coordinates into real coordinates
