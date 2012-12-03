@@ -445,7 +445,7 @@ void CellList::computeCellList()
             kb = 0;
 
         // sanity check
-        assert(ib < (int)(m_dim.x) && jb < (int)(m_dim.y) && kb < (int)(m_dim.z));
+        assert((ib < (int)(m_dim.x) && jb < (int)(m_dim.y) && kb < (int)(m_dim.z)) || n>=m_pdata->getN());
         
         // record its bin
         unsigned int bin = ci(ib, jb, kb);
@@ -529,11 +529,11 @@ bool CellList::checkConditions()
                                   <<"Particle " << h_tag.data[n] << " is no longer in the simulation box."
                                   << endl << endl;
 
-        m_exec_conf->msg->notice(2) << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
+        m_exec_conf->msg->error() << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
         Scalar3 lo = m_pdata->getBox().getLo();
         Scalar3 hi = m_pdata->getBox().getHi();
-        m_exec_conf->msg->notice(2) << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
-        m_exec_conf->msg->notice(2) << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+        m_exec_conf->msg->error() << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+        m_exec_conf->msg->error() << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
         throw runtime_error("Error computing cell list");
         }
 
