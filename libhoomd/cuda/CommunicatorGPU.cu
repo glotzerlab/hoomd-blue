@@ -913,11 +913,10 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       unsigned int N,
                                       float4 *d_pos,
                                       const BoxDim &box,
-                                      float r_ghost)
+                                      float3 ghost_fraction)
     {
     unsigned int block_size = 512;
 
-    Scalar3 ghost_fraction = r_ghost/box.getL();
     gpu_nonbonded_plan_kernel<<<N/block_size+1, block_size>>>(d_plan,
                                                               N,
                                                               d_pos,

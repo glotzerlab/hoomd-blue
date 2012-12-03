@@ -756,7 +756,9 @@ void Communicator::exchangeGhosts()
     /*
      * Mark non-bonded atoms for sending
      */
-    Scalar3 ghost_fraction = m_r_ghost/box.getL();
+
+    // the ghost layer must be at_least m_r_ghost wide along every lattice direction
+    Scalar3 ghost_fraction = m_r_ghost/box.getNearestPlaneDistance();
         {
         // scan all local atom positions if they are within r_ghost from a neighbor
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);

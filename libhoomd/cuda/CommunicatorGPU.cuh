@@ -249,7 +249,7 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       unsigned int N,
                                       float4 *d_pos,
                                       const BoxDim& box,
-                                      float r_ghost);
+                                      float3 ghost_fraction);
 
 //! Construct a list of particle tags to send as ghost particles
 void gpu_exchange_ghosts(const unsigned int N,

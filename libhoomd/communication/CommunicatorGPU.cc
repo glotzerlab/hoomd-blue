@@ -330,7 +330,7 @@ void CommunicatorGPU::allocateBuffers()
      * initial size of particle send buffers = max of avg. number of ptls in skin layer in any direction
      */ 
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
 
     unsigned int maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.x);
     unsigned int maxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.y);
@@ -1212,9 +1212,6 @@ void CommunicatorGPU::exchangeGhosts()
     if (m_prof) m_prof->push(m_exec_conf, "exchange_ghosts");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
-    assert(m_r_ghost < (m_pdata->getBox().getL().x));
-    assert(m_r_ghost < (m_pdata->getBox().getL().y));
-    assert(m_r_ghost < (m_pdata->getBox().getL().z));
 
         {
         // resize and reset plans
@@ -1255,6 +1252,9 @@ void CommunicatorGPU::exchangeGhosts()
     /*
      * Mark non-bonded atoms for sending
      */
+    // the ghost layer must be at_least m_r_ghost wide along every lattice direction
+    Scalar3 ghost_fraction = m_r_ghost/m_pdata->getBox().getNearestPlaneDistance();
+
         {
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
         ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::readwrite);
@@ -1263,7 +1263,7 @@ void CommunicatorGPU::exchangeGhosts()
                                          m_pdata->getN(),
                                          d_pos.data,
                                          m_pdata->getBox(),
-                                         m_r_ghost);
+                                         ghost_fraction);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
