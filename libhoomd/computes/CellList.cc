@@ -106,7 +106,7 @@ uint3 CellList::computeDimensions()
     // calculate the bin dimensions
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
     dim.x = (unsigned int)((L.x) / (m_nominal_width));
     dim.y = (unsigned int)((L.y) / (m_nominal_width));
 
@@ -275,7 +275,8 @@ void CellList::initializeWidth()
                                        box.getPeriodic().y ? 0 : 2,
                                        box.getPeriodic().z ? 0 : 2);
 
- 
+
+    // calculate width of cells on cartestian lattice
     Scalar3 L = box.getL();
     m_width.x = (L.x + m_nominal_width*m_num_ghost_cells.x) / Scalar(m_dim.x);
     m_width.y = (L.y + m_nominal_width*m_num_ghost_cells.y) / Scalar(m_dim.y);

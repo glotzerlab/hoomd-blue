@@ -229,9 +229,7 @@ class Communicator
                 (ghost_width >= L.y/Scalar(2.0) && di.getH() > 1) ||
                 (ghost_width >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
-                m_exec_conf->msg->error() << "Simulation box too small for ghost layer." << std::endl
-                                          << "Try fewer processors or reduce pair potential cut-off."  << std::endl
-                                          << std::endl;
+                m_exec_conf->msg->error() << "Ghost layer width exceeds half the sub-domain length." << std::endl
                 throw std::runtime_error("Error setting up Communicator");
                 }
             m_r_ghost = ghost_width;

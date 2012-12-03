@@ -202,7 +202,7 @@ class CellList : public Compute
         //! \name Get properties
         // @{
 
-        //! Get the actual width of the cells
+        //! Get the actual width of the cells on a cartestian lattice
         const Scalar3& getWidth() const
             {
             return m_width;

@@ -994,7 +994,7 @@ void NeighborList::buildNlist(unsigned int timestep)
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
     
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;

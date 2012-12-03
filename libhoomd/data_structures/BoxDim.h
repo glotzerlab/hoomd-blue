@@ -67,6 +67,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOSTDEVICE inline
 #endif
 
+// call different optimized sqrt functions on the host / device
+// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
+#ifdef NVCC
+#define RSQRT(x) rsqrtf( (x) )
+#else
+#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
+#endif
+
+
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
     that box. For cubic boxes, inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y and z.
@@ -441,6 +450,24 @@ class BoxDim
             if (!m_periodic.z && dx.z*dx.z >= m_L.z*m_L.z) return true;
 
             return false;
+            }
+
+        //! Get the shortest distance between opposite boundary planes of the box
+        /*! The distance between two planes of the lattice is 2 Pi/|b_i|, where
+         *   b_1 is the reciprocal lattice vector of the Bravais lattice normal to
+         *   the lattice vectors a_2 and a_3 etc.
+         *
+         * \return A Scalar3 containing the distance between the a_2-a_3, a_3-a_1 and
+         *         a_1-a_2 planes for the triclinic lattice         
+         */
+        HOSTDEVICE Scalar3 getNearestPlaneDistance() const
+            {
+            Scalar3 dist;
+            dist.x = m_L.x*RSQRT(Scalar(1.0) + m_xy*m_xy + (m_xy*m_yz - m_xz)*(m_xy*m_yz - m_xz));
+            dist.y = m_L.y*RSQRT(Scalar(1.0) + m_yz*m_yz);
+            dist.z = m_L.z;
+
+            return dist;
             }
 
     private:
