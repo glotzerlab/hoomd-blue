@@ -277,6 +277,9 @@ class CellList : public Compute
         
         //! Benchmark the computation
         double benchmark(unsigned int num_iters);
+
+        //! Print statistics on the cell list
+        virtual void printStats();
         
         // @}
 

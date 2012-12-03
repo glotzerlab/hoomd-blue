@@ -563,6 +563,41 @@ uint3 CellList::readConditions()
     return m_conditions.readFlags();
     }
 
+/*! Generic statistics that apply to any cell list, Derived classes should
+    print any pertinent information they see fit to.
+ */
+void CellList::printStats()
+    {
+    // return earsly if the notice level is less than 1
+    if (m_exec_conf->msg->getNoticeLevel() < 1)
+        return;
+
+    m_exec_conf->msg->notice(1) << "-- Cell list stats:" << endl;
+    m_exec_conf->msg->notice(1) << "Dimension: " << m_dim.x << ", " << m_dim.y << ", " << m_dim.z << "" << endl;
+    m_exec_conf->msg->notice(1) << "Width    : " << m_width.x << ", " << m_width.y << ", " << m_width.z << "" << endl;
+
+    // access the number of cell members to generate stats
+    ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::read);
+
+    // build some simple statistics of the number of neighbors
+    unsigned int n_min = h_cell_size.data[0];
+    unsigned int n_max = h_cell_size.data[0];
+
+    for (unsigned int i = 0; i < m_cell_indexer.getNumElements(); i++)
+        {
+        unsigned int n = (unsigned int)h_cell_size.data[i];
+        if (n < n_min)
+            n_min = n;
+        if (n > n_max)
+            n_max = n;
+        }
+
+    // divide to get the average
+    Scalar n_avg = Scalar(m_pdata->getN() + m_pdata->getNGhosts()) / Scalar(m_cell_indexer.getNumElements());
+    m_exec_conf->msg->notice(1) << "n_min    : " << n_min << " / n_max: " << n_max << " / n_avg: " << n_avg << endl;
+    }
+
+
 void export_CellList()
     {
     class_<CellList, boost::shared_ptr<CellList>, bases<Compute>, boost::noncopyable >
