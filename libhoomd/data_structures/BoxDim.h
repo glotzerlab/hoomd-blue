@@ -430,9 +430,9 @@ class BoxDim
             }
 
         //! Check if the displacement is out of bounds
-        /* \param dx The displacement vector
-           \returns True if the displacement exceeds the box length in a direction where periodic
-                    boundary conditions are not applied
+        /*! \param dx The displacement vector
+            \returns True if the displacement exceeds the box length in a direction where periodic
+                     boundary conditions are not applied
          */
         HOSTDEVICE bool checkOutOfBounds(Scalar3& dx) const
             {
