@@ -310,11 +310,22 @@ class Communicator
             send_up = 16,
             send_down = 32
             };
+        
+        //! Enumeartion of the faces of the simulation box
+        enum faceEnum
+            {
+            face_east = 0,
+            face_west,
+            face_north,
+            face_south,
+            face_up,
+            face_down
+            };
 
         //! Returns true if we are communicating particles along a given direction
         /*! \param dir Direction to return dimensions for
          */
-        bool isCommunicating(unsigned int dir)
+        bool isCommunicating(unsigned int dir) const
             {
             assert(dir < 6);
             const Index3D& di = m_decomposition->getDomainIndexer();
@@ -330,6 +341,9 @@ class Communicator
 
             return res; 
             }
+
+        //! Helper function to update the shifted box for ghost particle PBC
+        const BoxDim getShiftedBox() const;
 
         boost::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         boost::shared_ptr<ParticleData> m_pdata;                      //!< Particle data

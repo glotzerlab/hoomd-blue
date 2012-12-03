@@ -68,37 +68,13 @@ using namespace boost::python;
 //#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
 
 //! This is a lookup from corner to plan
-unsigned int corner_plan_lookup[] = { send_east | send_north | send_up,
-                                      send_east | send_north | send_down,
-                                      send_east | send_south | send_up,
-                                      send_east | send_south | send_down,
-                                      send_west | send_north | send_up,
-                                      send_west | send_north | send_down,
-                                      send_west | send_south | send_up,
-                                      send_west | send_south | send_down};
+unsigned int corner_plan_lookup[8];
 
 //! Lookup from edge to plan
-unsigned int edge_plan_lookup[] = { send_east | send_north,
-                                    send_east | send_south,
-                                    send_east | send_up,
-                                    send_east | send_down,
-                                    send_west | send_north,
-                                    send_west | send_south,
-                                    send_west | send_up,
-                                    send_west | send_down,
-                                    send_north | send_up,
-                                    send_north | send_down,
-                                    send_south | send_up,
-                                    send_south | send_down };
+unsigned int edge_plan_lookup[12];
 
 //! Lookup from face to plan
-unsigned int face_plan_lookup[] = { send_east,
-                                    send_west,
-                                    send_north,
-                                    send_south,
-                                    send_up,
-                                    send_down };
-
+unsigned int face_plan_lookup[6];
 
 
 //! Constructor
@@ -123,6 +99,35 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     unsigned int is_communicating[6];
     for (unsigned int face=0; face<6; ++face)
         is_communicating[face] = isCommunicating(face) ? 1 : 0;
+
+    corner_plan_lookup[corner_east_north_up] = send_east | send_north | send_up;
+    corner_plan_lookup[corner_east_north_down] = send_east | send_north | send_down;
+    corner_plan_lookup[corner_east_south_up] = send_east | send_south | send_up;
+    corner_plan_lookup[corner_east_south_down] = send_east | send_south | send_down;
+    corner_plan_lookup[corner_west_north_up] = send_west | send_north | send_up;
+    corner_plan_lookup[corner_west_north_down] = send_west | send_north | send_down;
+    corner_plan_lookup[corner_west_south_up] = send_west | send_south | send_up;
+    corner_plan_lookup[corner_west_south_down] = send_west | send_south | send_down;
+
+    edge_plan_lookup[edge_east_north] = send_east | send_north;
+    edge_plan_lookup[edge_east_south] = send_east | send_south;
+    edge_plan_lookup[edge_east_up] = send_east | send_up;
+    edge_plan_lookup[edge_east_down] = send_east | send_down;
+    edge_plan_lookup[edge_west_north] = send_west | send_north;
+    edge_plan_lookup[edge_west_south] = send_west | send_south;
+    edge_plan_lookup[edge_west_up] = send_west | send_up;
+    edge_plan_lookup[edge_west_down] = send_west | send_down;
+    edge_plan_lookup[edge_north_up] = send_north | send_up;
+    edge_plan_lookup[edge_north_down] = send_north | send_down;
+    edge_plan_lookup[edge_south_up] = send_south | send_up;
+    edge_plan_lookup[edge_south_down] = send_south | send_down;
+
+    face_plan_lookup[face_east]  = send_east;
+    face_plan_lookup[face_west] = send_west;
+    face_plan_lookup[face_north] = send_north;
+    face_plan_lookup[face_south]  = send_south;
+    face_plan_lookup[face_up] = send_up;
+    face_plan_lookup[face_down] = send_down;
 
     gpu_allocate_tmp_storage(is_communicating,m_is_at_boundary);
 
@@ -291,6 +296,10 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
         ArrayHandle<char> d_edge_update_buf(m_edge_update_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_face_update_buf(m_face_update_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_update_recv_buf(m_update_recv_buf, access_location::device, access_mode::read);
+
+        // get the updated shifted global box 
+        const BoxDim shifted_box = getShiftedBox();
+
         // unpack particles
         gpu_update_ghosts_unpack(m_pdata->getN(),
                                  m_n_tot_recv_ghosts,
@@ -307,7 +316,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                                  d_update_recv_buf.data,
                                  d_pos.data,
                                  d_ghost_plan.data,
-                                 m_pdata->getGlobalBox());
+                                 shifted_box);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1610,6 +1619,9 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<char> d_corner_ghosts_buf(m_corner_ghosts_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_ghosts_recv_buf(m_ghosts_recv_buf, access_location::device, access_mode::read);
 
+        // get the updated shifted global box 
+        const BoxDim shifted_box = getShiftedBox();
+
         gpu_exchange_ghosts_unpack(m_pdata->getN(),
                                      m_n_tot_recv_ghosts,
                                      d_n_local_ghosts_face.data,
@@ -1629,7 +1641,7 @@ void CommunicatorGPU::exchangeGhosts()
                                      d_tag.data,
                                      d_rtag.data,
                                      d_ghost_plan.data,
-                                     m_pdata->getGlobalBox());
+                                     shifted_box);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondData.cuh"
 
+#ifdef NVCC
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
     {
@@ -109,6 +110,7 @@ enum gpu_corner_flags
     corner_west_south_up,
     corner_west_south_down
     };
+#endif
 
 //! Buffer element for sending particle data
 struct pdata_element_gpu
@@ -313,7 +315,7 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int *d_tag,
                                 unsigned int *d_rtag,
                                 unsigned int *d_ghost_plan,
-                                const BoxDim& global_box);
+                                const BoxDim& shifted_global_box);
 
 void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
@@ -330,7 +332,7 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
                                 unsigned int *d_ghost_plan,
-                                const BoxDim& global_box);
+                                const BoxDim& shifted_global_box);
 
 void gpu_check_bonds(const Scalar4 *d_postype,
                      const unsigned int N,

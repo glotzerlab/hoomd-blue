@@ -1200,7 +1200,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   unsigned int *d_tag,
                                                   unsigned int *d_rtag,
                                                   unsigned int *d_ghost_plan,
-                                                  const Scalar3 L)
+                                                  const BoxDim shifted_global_box)
     {
     unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
 
@@ -1331,22 +1331,8 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
         }
 
     // apply global boundary conditions for received particle
-
-    // if the plan indicates the particle has crossed a boundary prior to arriving here,
-    // apply appropriate boundary conditions
-
-    if ((boundary_plan & send_east) && (face_east <= recv_dir) && d_is_at_boundary[face_west])
-        postype.x -= L.x;
-    if ((boundary_plan & send_west) && (face_west <= recv_dir) && d_is_at_boundary[face_east])
-        postype.x += L.x;
-    if ((boundary_plan & send_north) && (face_north <= recv_dir) && d_is_at_boundary[face_south])
-        postype.y -= L.y;
-    if ((boundary_plan & send_south) && (face_south <= recv_dir) && d_is_at_boundary[face_north])
-        postype.y += L.y;
-    if ((boundary_plan & send_up) && (face_up <= recv_dir) && d_is_at_boundary[face_down])
-        postype.z -= L.z;
-    if ((boundary_plan & send_down) && (face_down <= recv_dir) && d_is_at_boundary[face_up])
-        postype.z += L.z;
+    int3 img = make_int3(0,0,0);
+    shifted_global_box.wrap(postype,img);
 
     d_pos[N+ghost_idx] = postype;
     }
@@ -1371,7 +1357,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
     \param d_tag Array of particle tags
     \param d_rtag Lookup table particle tag->idx
     \param d_ghost_plan Boundary crossing plans of ghost particles
-    \param global_box Global simulation box
+    \param shifted_global_box Global simulation box, shifted by one local box if local box has a global boundary
 */
 void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
@@ -1392,9 +1378,10 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int *d_tag,
                                 unsigned int *d_rtag,
                                 unsigned int *d_ghost_plan,
-                                const BoxDim& global_box)
+                                const BoxDim& shifted_global_box)
     {
     unsigned int block_size = 512;
+
     gpu_exchange_ghosts_unpack_kernel<ghost_element_gpu, false><<<n_tot_recv_ghosts/block_size+1, block_size>>>(N,
                                                                            n_tot_recv_ghosts,
                                                                            d_n_local_ghosts_face,
@@ -1414,7 +1401,7 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                                                            d_tag,
                                                                            d_rtag,
                                                                            d_ghost_plan,
-                                                                           global_box.getL());
+                                                                           shifted_global_box);
     } 
 
 //! Kernel to pack local particle data into ghost send buffers
@@ -1607,7 +1594,7 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
                                 unsigned int *d_ghost_plan,
-                                const BoxDim& global_box)
+                                const BoxDim& shifted_global_box)
     {
     unsigned int block_size = 512;
     gpu_exchange_ghosts_unpack_kernel<update_element_gpu, true><<<n_tot_recv_ghosts/block_size+1, block_size>>>
@@ -1630,7 +1617,7 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                                                            NULL,
                                                                            NULL,
                                                                            d_ghost_plan,
-                                                                           global_box.getL());
+                                                                           shifted_global_box);
     } 
 
 #endif

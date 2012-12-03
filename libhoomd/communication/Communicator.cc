@@ -1091,6 +1091,40 @@ void Communicator::updateGhosts(unsigned int timestep)
             m_prof->pop();
     }
 
+const BoxDim Communicator::getShiftedBox() const
+    {
+    // construct the shifted global box for applying boundary conditions to ghosts
+    BoxDim shifted_box = m_pdata->getGlobalBox();
+    Scalar3 f= make_scalar3(0.0,0.0,0.0);
+
+    Scalar3 max_ghost = m_pdata->getBox().getL()/shifted_box.getL()/Scalar(2.0);
+    for (unsigned int dir = 0; dir < 6; dir ++)
+        {
+        if (m_decomposition->isAtBoundary(dir) &&  isCommunicating(dir))
+            {
+            if (dir == face_east)
+                f.x += max_ghost.x;
+            else if (dir == face_west)
+                f.x -= max_ghost.x;
+            else if (dir == face_north)
+                f.y += max_ghost.y;
+            else if (dir == face_south)
+                f.y -= max_ghost.y;
+            else if (dir == face_up)
+                f.z += max_ghost.z;
+            else if (dir == face_down)
+                f.z -= max_ghost.z;
+            }
+        }
+    Scalar3 dx = shifted_box.makeCoordinates(f) - shifted_box.getLo();
+    Scalar3 lo = shifted_box.getLo();
+    Scalar3 hi = shifted_box.getHi();
+    lo += dx;
+    hi += dx;
+    shifted_box.setLoHi(lo, hi);
+    return shifted_box;
+    }
+
 //! Export Communicator class to python
 void export_Communicator()
     {
