@@ -142,10 +142,12 @@ bool GeneratedParticles::canPlace(const particle& p)
         throw runtime_error("Error placing particle");
         }
         
-    // first, map the particle back into the box
+    // first, map the particle back into the box 
     Scalar3 pos = make_scalar3(p.x,p.y,p.z);
-    int3 img = make_int3(0,0,0);
-    m_box.wrap(pos, img);    
+    int3 img = m_box.getImage(pos);
+    int3 negimg = make_int3(-img.x, -img.y, -img.z);
+    m_box.shift(pos, negimg);
+
     // determine the bin the particle is in
     Scalar3 f = m_box.makeFraction(pos);
     int ib = (int)(f.x*m_Mx);
@@ -203,9 +205,10 @@ bool GeneratedParticles::canPlace(const particle& p)
 
                     // map p_cmp into box
                     Scalar3 cmp_pos = make_scalar3(p_cmp.x, p_cmp.y, p_cmp.z);
-                    int3 img = make_int3(0,0,0);
                     
-                    m_box.wrap(cmp_pos, img);
+                    int3 img = m_box.getImage(pos);
+                    int3 negimg = make_int3(-img.x, -img.y, -img.z);
+                    m_box.shift(cmp_pos,negimg);
 
                     Scalar3 dx = pos - cmp_pos;
                     // minimum image convention for dx
@@ -240,9 +243,10 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
         }
         
     // first, map the particle back into the box
-    int3 img = make_int3(0,0,0);
     Scalar3 pos = make_scalar3(p.x,p.y,p.z);
-    m_box.wrap(pos,img);
+    int3 img = m_box.getImage(pos);
+    int3 negimg = make_int3(-img.x,-img.y,-img.z);
+    m_box.shift(pos,negimg);
 
     // set the particle data
     m_particles[idx].x = pos.x;

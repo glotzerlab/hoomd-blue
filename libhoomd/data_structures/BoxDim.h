@@ -438,6 +438,30 @@ class BoxDim
             w.z = v.z;
             }
 
+        //! Get the periodic image a vector belongs to
+        /*! \param v The vector to check
+            \returns the integer coordinates of the periodic image
+         */
+        HOSTDEVICE int3 getImage(Scalar3 &v) const
+            {
+            Scalar3 f = makeFraction(v) - make_scalar3(0.5,0.5,0.5);
+            int3 img;
+            img.x = (int)((f.x >= Scalar(0.0)) ? f.x + Scalar(0.5) : f.x - Scalar(0.5));
+            img.y = (int)((f.y >= Scalar(0.0)) ? f.y + Scalar(0.5) : f.y - Scalar(0.5));
+            img.z = (int)((f.z >= Scalar(0.0)) ? f.z + Scalar(0.5) : f.z - Scalar(0.5));
+            return img;
+            }
+
+
+        //! Shift a vector by a multiple of the lattice vectors
+        /*! \param v The vector to shift
+            \param shift The displacement in lattice coordinates
+         */
+        HOSTDEVICE void shift(Scalar3& v, int3& shift) const
+            {
+            v += makeCoordinates(make_scalar3(0.5,0.5,0.5)+make_scalar3(shift.x,shift.y,shift.z));
+            }
+
         //! Check if the displacement is out of bounds
         /*! \param dx The displacement vector
             \returns True if the displacement exceeds the box length in a direction where periodic

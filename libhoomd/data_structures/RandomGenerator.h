@@ -91,7 +91,7 @@ class GeneratedParticles
         struct particle
             {
             //! Default constructor
-            particle() : x(0.0), y(0.0), z(0.0), type("") {}
+            particle() : x(0.0), y(0.0), z(0.0), ix(0), iy(0), iz(0), type("") {}
             Scalar x;   //!< X-coordinate
             Scalar y;   //!< Y-coordinate
             Scalar z;   //!< Z-coordinate
