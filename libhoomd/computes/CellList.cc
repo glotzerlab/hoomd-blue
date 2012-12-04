@@ -79,6 +79,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_params_changed = true;
     m_particles_sorted = false;
     m_box_changed = false;
+    m_multiple = 1;
 
     GPUFlags<uint3> conditions(exec_conf);
     m_conditions.swap(conditions);
@@ -97,6 +98,18 @@ CellList::~CellList()
     m_boxchange_connection.disconnect();
     }
 
+//! Round down to the nearest multiple
+/*! \param v Value to ound
+    \param m Multiple
+    \returns \a v if it is a multiple of \a m, otherwise, \a v rounded down to the nearest multiple of \a m.
+*/
+static unsigned int roundDown(unsigned int v, unsigned int m)
+    {
+    // use integer floor division
+    unsigned int d = v/m;
+    return d*m;
+    }
+
 /*! \returns Cell dimensions that match with the current width, box dimension, and max_cells setting
 */
 uint3 CellList::computeDimensions()
@@ -107,8 +120,8 @@ uint3 CellList::computeDimensions()
     const BoxDim& box = m_pdata->getBox();
 
     Scalar3 L = box.getL();
-    dim.x = (unsigned int)((L.x) / (m_nominal_width));
-    dim.y = (unsigned int)((L.y) / (m_nominal_width));
+    dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
+    dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
 
     // Add a ghost layer on every side where boundary conditions are non-periodic
     if (! box.getPeriodic().x)
@@ -130,7 +143,7 @@ uint3 CellList::computeDimensions()
         }
     else
         {
-        dim.z = (unsigned int)((L.z) / (m_nominal_width));
+        dim.z = roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple);
 
         // add ghost layer if necessary
         if (! box.getPeriodic().z)

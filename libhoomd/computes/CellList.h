@@ -118,6 +118,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - \c width - minimum width of a cell in any x,y,z direction
      - \c radius - integer radius of cells to generate in \c cell_adj (1,2,3,4,...)
      - \c max_cells - maximum number of cells to allocate
+     - \c multiple - Round down to the nearest multiple number of cells in each direction (only applied to cells
+                     inside the domain, not the ghost cells).
      
     After a set call is made to adjust a parameter, changes do not take effect until the next call to compute().
 
@@ -196,6 +198,15 @@ class CellList : public Compute
         void slotBoxChanged()
             {
             m_box_changed = true;
+            }
+        
+        //! Set the multiple value
+        void setMultiple(unsigned int multiple)
+            {
+            if (multiple != 0)
+                m_multiple = multiple;
+            else
+                m_multiple = 1;
             }
 
         // @}
@@ -299,6 +310,7 @@ class CellList : public Compute
         bool m_params_changed;       //!< Set to true when parameters are changed
         bool m_particles_sorted;     //!< Set to true when the particles have been sorted
         bool m_box_changed;          //!< Set to ttrue when the box size has changed
+        unsigned int m_multiple;     //!< Round cell dimensions down to a multiple of this value
         
         // parameters determined by initialize
         Scalar3 m_width;             //!< Actual width
