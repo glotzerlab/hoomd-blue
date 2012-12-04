@@ -456,6 +456,8 @@ class BoxDim
         //! Shift a vector by a multiple of the lattice vectors
         /*! \param v The vector to shift
             \param shift The displacement in lattice coordinates
+
+            \note This method only works on boxes for which hi=-lo in all directions 
          */
         HOSTDEVICE void shift(Scalar3& v, int3& shift) const
             {
@@ -469,9 +471,14 @@ class BoxDim
          */
         HOSTDEVICE bool checkOutOfBounds(Scalar3& dx) const
             {
-            if (!m_periodic.x && dx.x*dx.x >= m_L.x*m_L.x) return true;
-            if (!m_periodic.y && dx.y*dx.y >= m_L.y*m_L.y) return true;
-            if (!m_periodic.z && dx.z*dx.z >= m_L.z*m_L.z) return true;
+            Scalar3 del;
+            del.x = dx.x - (m_xz - m_xy*m_yz) * dx.z - m_xy * dx.y;
+            del.y = dx.y -  m_yz * dx.z;
+            del.z = dx.z;
+
+            if (!m_periodic.x && del.x*del.x >= m_L.x*m_L.x) return true;
+            if (!m_periodic.y && del.y*del.y >= m_L.y*m_L.y) return true;
+            if (!m_periodic.z && del.z*del.z >= m_L.z*m_L.z) return true;
 
             return false;
             }
