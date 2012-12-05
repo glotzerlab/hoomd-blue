@@ -134,11 +134,7 @@ TwoStepNPTMTK::~TwoStepNPTMTK()
 */
 void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
     unsigned int group_size = m_group->getNumMembers();
-#else
-    unsigned int group_size = m_group->getNumMembers();
-#endif
 
     if (group_size == 0)
         return;

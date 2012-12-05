@@ -68,10 +68,14 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             unsigned int ndof,
-                             Scalar xi,
-                             Scalar3 nu,
-                             Scalar deltaT);
+                             Scalar3 exp_r_fac,
+                             Scalar3 exp_v_fac,
+                             Scalar3 exp_v_fac_2,
+                             Scalar3 sinhx_fac_r,
+                             Scalar3 sinhx_fac_v,
+                             Scalar *eigenvec,
+                             Scalar deltaT,
+                             bool triclinic);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
 cudaError_t gpu_npt_mtk_wrap(const unsigned int N,
@@ -84,10 +88,11 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             unsigned int ndof,
                              Scalar4 *d_net_force,
-                             Scalar3 nu,
-                             Scalar deltaT);
+                             Scalar3 exp_v_fac,
+                             Scalar3 sinhx_fac_v,
+                             Scalar deltaT,
+                             bool triclinic);
 
 //! Kernel driver for reduction of temperature (part of second step)
 cudaError_t gpu_npt_mtk_temperature(float *d_temperature,

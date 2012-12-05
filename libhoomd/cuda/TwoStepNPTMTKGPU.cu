@@ -65,6 +65,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Shared memory used in reducing the sum of the squared velocities
 extern __shared__ Scalar npt_mtk_sdata[];
 
+//! Stores the eigenvectors of the barostat matrix
+__device__ Scalar d_ev[9];
+
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
@@ -78,8 +81,8 @@ extern __shared__ Scalar npt_mtk_sdata[];
     \param sinhx_fac_r sinh(x)/x scaling factor (per direction) for velocity update generate by barostat
     \param deltaT Time to advance (for one full step)
 */
-extern "C" __global__
-void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
+template <bool triclinic>
+__global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
@@ -95,6 +98,10 @@ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+    // initialize eigenvectors
+    Scalar ev[9];
+    for (unsigned int i = 0; i < 9; ++i) ev[i] = d_ev[i];
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
@@ -102,21 +109,67 @@ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
         // fetch particle position
         Scalar4 pos = d_pos[idx];
 
-        Scalar3 r = make_scalar3(pos.x,pos.y,pos.z);
-
         // fetch particle velocity and acceleration
         Scalar4 vel = d_vel[idx];
-        Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
-        Scalar3 accel = d_accel[idx];
+        Scalar3 v,v_tmp;
+        Scalar3 accel;
+        Scalar3 r,r_tmp;
+        if (triclinic)
+            {
+            v = make_scalar3(vel.x, vel.y, vel.z);
+
+            // rotate velocity
+            v_tmp.x = ev[0]*v.x + ev[3]*v.y + ev[6]*v.z;
+            v_tmp.y = ev[1]*v.x + ev[4]*v.y + ev[7]*v.z;
+            v_tmp.z = ev[2]*v.x + ev[5]*v.y + ev[8]*v.z;
+
+            r = make_scalar3(pos.x, pos.y, pos.z);
+            // rotate position
+            r_tmp.x = ev[0]*r.x + ev[3]*r.y + ev[6]*r.z;
+            r_tmp.y = ev[1]*r.x + ev[4]*r.y + ev[7]*r.z;
+            r_tmp.z = ev[2]*r.x + ev[5]*r.y + ev[8]*r.z;
+
+            Scalar3 accel_tmp = d_accel[idx];
+            // rotate acceleration
+            accel.x = ev[0]*accel_tmp.x + ev[3]*accel_tmp.y + ev[6]*accel_tmp.z; 
+            accel.y = ev[1]*accel_tmp.x + ev[4]*accel_tmp.y + ev[7]*accel_tmp.z; 
+            accel.z = ev[2]*accel_tmp.x + ev[5]*accel_tmp.y + ev[8]*accel_tmp.z; 
+            }
+        else
+            {
+            v_tmp = make_scalar3(vel.x, vel.y, vel.z);
+            r_tmp = make_scalar3(pos.x,pos.y,pos.z);
+            accel = d_accel[idx];
+            }
 
         // propagate velocity by half a time step and position by the full time step
         // according to MTK equations of motion
-        v = v*exp_v_fac_2 + Scalar(1.0/2.0)*deltaT*accel*exp_v_fac*sinhx_fac_v;
-        r = r*exp_r_fac_2 + v*exp_r_fac*sinhx_fac_r*deltaT;
+        v_tmp = v_tmp*exp_v_fac_2 + Scalar(1.0/2.0)*deltaT*accel*exp_v_fac*sinhx_fac_v;
+        r_tmp = r_tmp*exp_r_fac_2 + v_tmp*exp_r_fac*sinhx_fac_r*deltaT;
 
-        // write out the results
-        d_pos[idx] = make_scalar4(r.x,r.y,r.z,pos.w);
-        d_vel[idx] = make_scalar4(v.x,v.y,v.z,vel.w);
+        if (triclinic)
+            {
+            // rotate velocity back
+            v.x = ev[0]*v_tmp.x + ev[1]*v_tmp.y + ev[2]*v_tmp.z;
+            v.y = ev[3]*v_tmp.x + ev[4]*v_tmp.y + ev[5]*v_tmp.z;
+            v.z = ev[6]*v_tmp.x + ev[7]*v_tmp.y + ev[8]*v_tmp.z;
+
+            // rotate position back
+            r.x = ev[0]*r_tmp.x + ev[1]*r_tmp.y + ev[2]*r_tmp.z;
+            r.y = ev[3]*r_tmp.x + ev[4]*r_tmp.y + ev[5]*r_tmp.z;
+            r.z = ev[6]*r_tmp.x + ev[7]*r_tmp.y + ev[8]*r_tmp.z;
+
+            // write out the results
+            d_pos[idx] = make_scalar4(r.x,r.y,r.z,pos.w);
+            d_vel[idx] = make_scalar4(v.x,v.y,v.z,vel.w);
+ 
+            }
+        else
+            {
+            // write out the results
+            d_pos[idx] = make_scalar4(r_tmp.x,r_tmp.y,r_tmp.z,pos.w);
+            d_vel[idx] = make_scalar4(v_tmp.x,v_tmp.y,v_tmp.z,vel.w);
+            }
         }
     }
 
@@ -125,10 +178,14 @@ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
     \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
-    \param ndof Number of degrees of freedom in group
-    \param xi theromstat velociy
-    \param nu barostat variable (for every direction)
+    \param exp_r_fac Scaling factor for particle positions
+    \param exp_v_fac Scaling factor for particle velocities
+    \param exp_v_fac_2 Second scaling factor for particle velocities
+    \param sinhx_fac_r sinh(x)/x factor for positions update
+    \param sinhx_fac_v sinh(x)/x factor for velocities update
+    \param eigenvec Eigenvectors of the barostat matrix
     \param deltaT Time to move forward in one whole step
+    \param triclinic True if we should update particle coordinates/velocities/forces in rotated coordinates
 
     This is just a kernel driver for gpu_npt_mtk_step_one_kernel(). See it for more details.
 */
@@ -137,70 +194,54 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             unsigned int ndof,
-                             Scalar xi,
-                             Scalar3 nu,
-                             Scalar deltaT)
+                             Scalar3 exp_r_fac,
+                             Scalar3 exp_v_fac,
+                             Scalar3 exp_v_fac_2,
+                             Scalar3 sinhx_fac_r,
+                             Scalar3 sinhx_fac_v,
+                             Scalar *eigenvec,
+                             Scalar deltaT,
+                             bool triclinic)
     {
     // setup the grid to run the kernel
     unsigned int block_size = 256;
     dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    // precalculate scaling factors for baro/thermostat
-    Scalar mtk_term_2 = (nu.x+nu.y+nu.z)/ndof;
-    Scalar3 v_fac = make_scalar3(Scalar(1.0/4.0)*(nu.x+mtk_term_2),
-                                 Scalar(1.0/4.0)*(nu.y+mtk_term_2),
-                                 Scalar(1.0/4.0)*(nu.z+mtk_term_2));
-    Scalar3 exp_v_fac = make_scalar3(exp(-v_fac.x*deltaT),
-                               exp(-v_fac.y*deltaT),
-                               exp(-v_fac.z*deltaT));
-    Scalar3 exp_v_fac_2 = make_scalar3(exp(-(Scalar(2.0)*v_fac.x+Scalar(1.0/2.0)*xi)*deltaT),
-                               exp(-(Scalar(2.0)*v_fac.y+Scalar(1.0/2.0)*xi)*deltaT),
-                               exp(-(Scalar(2.0)*v_fac.z+Scalar(1.0/2.0)*xi)*deltaT));
-
-    Scalar3 r_fac = make_scalar3(Scalar(1.0/2.0)*nu.x,
-                                 Scalar(1.0/2.0)*nu.y,
-                                 Scalar(1.0/2.0)*nu.z);
-    Scalar3 exp_r_fac = make_scalar3(exp(r_fac.x*deltaT),
-                                     exp(r_fac.y*deltaT),
-                                     exp(r_fac.z*deltaT));
-    Scalar3 exp_r_fac_2 = make_scalar3(exp(Scalar(2.0)*r_fac.x*deltaT),
-                                     exp(Scalar(2.0)*r_fac.y*deltaT),
-                                     exp(Scalar(2.0)*r_fac.z*deltaT));
-
-    // Coefficients of sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 * x^10
-    const Scalar a[] = {Scalar(1.0), Scalar(1.0/6.0), Scalar(1.0/120.0), Scalar(1.0/5040.0), Scalar(1.0/362880.0), Scalar(1.0/39916800.0)};
-
-    Scalar3 arg_v = v_fac*deltaT;
-    Scalar3 arg_r = r_fac*deltaT;
-
-    Scalar3 sinhx_fac_v = make_scalar3(0.0,0.0,0.0);
-    Scalar3 sinhx_fac_r = make_scalar3(0.0,0.0,0.0);
-    Scalar3 term_v = make_scalar3(1.0,1.0,1.0);
-    Scalar3 term_r = make_scalar3(1.0,1.0,1.0);
-
-    for (unsigned int i = 0; i < 6; i++)
-        {
-        sinhx_fac_v += a[i] * term_v;
-        sinhx_fac_r += a[i] * term_r;
-        term_v = term_v * arg_v * arg_v;
-        term_r = term_r * arg_r * arg_r;
-        }
+    // precalculate factor
+    Scalar3 exp_r_fac_2 = exp_r_fac*exp_r_fac;
 
     // run the kernel
-    gpu_npt_mtk_step_one_kernel<<< grid, threads >>>(d_pos,
-                                                 d_vel,
-                                                 d_accel,
-                                                 d_group_members,
-                                                 group_size,
-                                                 exp_v_fac,
-                                                 exp_v_fac_2,
-                                                 exp_r_fac,
-                                                 exp_r_fac_2,
-                                                 sinhx_fac_v,
-                                                 sinhx_fac_r,
-                                                 deltaT);
+    if (triclinic)
+        {
+        cudaMemcpyToSymbol(d_ev, eigenvec, sizeof(Scalar)*9);
+
+        gpu_npt_mtk_step_one_kernel<true><<< grid, threads >>>(d_pos,
+                                                     d_vel,
+                                                     d_accel,
+                                                     d_group_members,
+                                                     group_size,
+                                                     exp_v_fac,
+                                                     exp_v_fac_2,
+                                                     exp_r_fac,
+                                                     exp_r_fac_2,
+                                                     sinhx_fac_v,
+                                                     sinhx_fac_r,
+                                                     deltaT);
+        }
+    else
+        gpu_npt_mtk_step_one_kernel<false><<< grid, threads >>>(d_pos,
+                                                     d_vel,
+                                                     d_accel,
+                                                     d_group_members,
+                                                     group_size,
+                                                     exp_v_fac,
+                                                     exp_v_fac_2,
+                                                     exp_r_fac,
+                                                     exp_r_fac_2,
+                                                     sinhx_fac_v,
+                                                     sinhx_fac_r,
+                                                     deltaT);
 
     return cudaSuccess;
     }
@@ -273,6 +314,7 @@ cudaError_t gpu_npt_mtk_wrap(const unsigned int N,
     \param sinhx_fac_v sinh(x)/x scaling factor (per direction) for velocity update generate by barostat
     \param deltaT Time to advance (for one full step)
 */
+template<bool triclinic>
 __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              const Scalar4 *d_net_force,
@@ -286,13 +328,17 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+    Scalar ev[9];
+    // load eigenvectors
+    for (unsigned int i = 0; i < 9; ++i) ev[i] = d_ev[i];
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
 
         // fetch particle velocity and acceleration
         Scalar4 vel = d_vel[idx];
-        Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
+        Scalar3 v_tmp, v;
 
         // compute acceleration
         Scalar minv = Scalar(1.0)/vel.w;
@@ -300,11 +346,44 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
         Scalar3 accel = make_scalar3(net_force.x, net_force.y, net_force.z);
         accel *= minv;
 
-        // propagate velocity by half a time step and position by the full time step
-        // according to MTK equations of motion
-        v = v*exp_v_fac_2 + Scalar(1.0/2.0)*deltaT*accel*exp_v_fac*sinhx_fac_v;
+        Scalar3 accel_tmp;
+        if (triclinic)
+            {
+            v = make_scalar3(vel.x, vel.y, vel.z);
 
-        d_vel[idx] = make_scalar4(v.x, v.y, v.z, vel.w);
+            // rotate velocity
+            v_tmp.x = ev[0]*v.x + ev[3]*v.y + ev[6]*v.z;
+            v_tmp.y = ev[1]*v.x + ev[4]*v.y + ev[7]*v.z;
+            v_tmp.z = ev[2]*v.x + ev[5]*v.y + ev[8]*v.z;
+
+            // rotate acceleration
+            accel_tmp.x = ev[0]*accel.x + ev[3]*accel.y + ev[6]*accel.z; 
+            accel_tmp.y = ev[1]*accel.x + ev[4]*accel.y + ev[7]*accel.z; 
+            accel_tmp.z = ev[2]*accel.x + ev[5]*accel.y + ev[8]*accel.z; 
+ 
+            }
+        else
+            {
+            v_tmp = make_scalar3(vel.x, vel.y, vel.z);
+            accel_tmp = accel;
+            }
+
+        // propagate velocity by half a time step according to MTK equations of motion
+        v_tmp = v_tmp*exp_v_fac_2 + Scalar(1.0/2.0)*deltaT*accel_tmp*exp_v_fac*sinhx_fac_v;
+
+        if (triclinic)
+            {
+            // rotate velocity back
+            v.x = ev[0]*v_tmp.x + ev[1]*v_tmp.y + ev[2]*v_tmp.z;
+            v.y = ev[3]*v_tmp.x + ev[4]*v_tmp.y + ev[5]*v_tmp.z;
+            v.z = ev[6]*v_tmp.x + ev[7]*v_tmp.y + ev[8]*v_tmp.z;
+ 
+            d_vel[idx] = make_scalar4(v.x, v.y, v.z, vel.w);
+            }
+        else
+            {
+            d_vel[idx] = make_scalar4(v_tmp.x, v_tmp.y, v_tmp.z, vel.w);
+            }
 
         // since we calculate the acceleration, we need to write it for the next step
         d_accel[idx] = accel;
@@ -316,9 +395,10 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
-    \param nu Barostat degrees of freedom
-    \param ndof Number of degrees of freedom of the group
+    \param exp_v_fac Scaling factor for velocities
+    \param sinhx_fac_v sinh(x)/x factor for velocity update
     \param deltaT Time to move forward in one whole step
+    \param triclinic True if we are integrating in triclinic mode
 
     This is just a kernel driver for gpu_npt_mtk_step_kernel(). See it for more details.
 */
@@ -326,49 +406,40 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             unsigned int ndof,
                              Scalar4 *d_net_force,
-                             Scalar3 nu,
-                             Scalar deltaT)
+                             Scalar3 exp_v_fac,
+                             Scalar3 sinhx_fac_v,
+                             Scalar deltaT,
+                             bool triclinic)
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;
     dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    // precalculate scaling factors for baro/thermostat
-    Scalar mtk_term_2 = (nu.x+nu.y+nu.z)/ndof;
-    Scalar3 v_fac = make_scalar3(Scalar(1.0/4.0)*(nu.x+mtk_term_2),
-                                 Scalar(1.0/4.0)*(nu.y+mtk_term_2),
-                                 Scalar(1.0/4.0)*(nu.z+mtk_term_2));
-    Scalar3 exp_v_fac = make_scalar3(exp(-v_fac.x*deltaT),
-                               exp(-v_fac.y*deltaT),
-                               exp(-v_fac.z*deltaT));
-    Scalar3 exp_v_fac_2 = make_scalar3(exp(-Scalar(2.0)*v_fac.x*deltaT),
-                               exp(-Scalar(2.0)*v_fac.y*deltaT),
-                               exp(-Scalar(2.0)*v_fac.z*deltaT));
-
-    // Coefficients of sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 * x^10
-    const Scalar a[] = {Scalar(1.0), Scalar(1.0/6.0), Scalar(1.0/120.0), Scalar(1.0/5040.0), Scalar(1.0/362880.0), Scalar(1.0/39916800.0)};
-    Scalar3 arg_v = v_fac*deltaT;
-    Scalar3 sinhx_fac_v = make_scalar3(0.0,0.0,0.0);
-    Scalar3 term_v = make_scalar3(1.0,1.0,1.0);
-    for (unsigned int i = 0; i < 6; i++)
-        {
-        sinhx_fac_v += a[i] * term_v;
-        term_v = term_v * arg_v * arg_v;
-        }
-
+    Scalar3 exp_v_fac_2 = exp_v_fac*exp_v_fac;
     // run the kernel
-    gpu_npt_mtk_step_two_kernel<<< grid, threads >>>(d_vel,
-                                                     d_accel,
-                                                     d_net_force,
-                                                     d_group_members,
-                                                     group_size,
-                                                     exp_v_fac,
-                                                     exp_v_fac_2,
-                                                     sinhx_fac_v,
-                                                     deltaT);
+    if (triclinic)
+        gpu_npt_mtk_step_two_kernel<true><<< grid, threads >>>(d_vel,
+                                                         d_accel,
+                                                         d_net_force,
+                                                         d_group_members,
+                                                         group_size,
+                                                         exp_v_fac,
+                                                         exp_v_fac_2,
+                                                         sinhx_fac_v,
+                                                         deltaT);
+    else
+        gpu_npt_mtk_step_two_kernel<false><<< grid, threads >>>(d_vel,
+                                                         d_accel,
+                                                         d_net_force,
+                                                         d_group_members,
+                                                         group_size,
+                                                         exp_v_fac,
+                                                         exp_v_fac_2,
+                                                         sinhx_fac_v,
+                                                         deltaT);
+        
 
     return cudaSuccess;
     }

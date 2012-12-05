@@ -133,30 +133,14 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 
     // compute pressure for the next half time step
     assert(m_mode == cubic || m_mode == orthorhombic || m_mode == tetragonal);
-    if (m_mode == cubic)
-        {
-        m_curr_P = m_thermo_group->getPressure();
 
-        // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very
-        // rare circumstances, usually at the start of the simulation before things are initialize)
-        if (isnan(m_curr_P))
-            m_curr_P = m_P->getValue(timestep);
-        }
-    else if (m_mode == orthorhombic || m_mode == tetragonal)
-        {
-        PressureTensor P;
-        P = m_thermo_group->getPressureTensor();
+    PressureTensor P = m_thermo_group->getPressureTensor();
 
-        if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
-            {
-            Scalar extP = m_P->getValue(timestep);
-            m_curr_P_diag = make_scalar3(extP,extP,extP);
-            }
-        else
-            {
-            // store diagonal elements of pressure tensor
-            m_curr_P_diag = make_scalar3(P.xx,P.yy,P.zz);
-            }
+    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
+        {
+        Scalar extP = m_P->getValue(timestep);
+        P.xx = P.yy = P.zz = extP;
+        P.xy = P.xz = P.yz = Scalar(0.0);
         }
 
     // profile this step
@@ -166,36 +150,42 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];  // Thermostat variable
     Scalar& xi = v.variable[1];   // Thermostat velocity
-    Scalar& nux = v.variable[2];  // Barostat variable for x-direction
-    Scalar& nuy = v.variable[3];  // Barostat variable for y-direction
-    Scalar& nuz = v.variable[4];  // Barostat variable for z-direction
-
-    {
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
+    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
+    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
+    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
     // advance barostat (nux, nuy, nuz) half a time step
     Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
     Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
     if (m_mode == cubic)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P - m_P->getValue(timestep)) + mtk_term;
-        nuy = nuz = nux;
+        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_iso - m_P->getValue(timestep)) + mtk_term;
+        nuyy = nuzz = nuxx;
         }
     else if (m_mode == tetragonal)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
-        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((m_curr_P_diag.y+m_curr_P_diag.z)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
-        nuz = nuy;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((P.yy + P.zz)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
+        nuzz = nuyy;
         }
     else if (m_mode == orthorhombic)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
-        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.y - m_P->getValue(timestep)) + mtk_term;
-        nuz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.z - m_P->getValue(timestep)) + mtk_term;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
+        }
+    else if (m_mode == triclinic)
+        {
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
+        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
+        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
         }
 
     // advance thermostat (xi, eta) half a time step
@@ -205,21 +195,150 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 
     eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
 
-    // perform the particle update on the GPU
-    gpu_npt_mtk_step_one(d_pos.data,
-                         d_vel.data,
-                         d_accel.data,
-                         d_index_array.data,
-                         group_size,
-                         m_thermo_group->getNDOF(),
-                         xi_prime,
-                         make_scalar3(nux, nuy, nuz),
-                         m_deltaT);
-    } // end of GPUArray scope
+    // store eigenvectors of barostat matrix in row major order
+    Scalar *evec[3];
+    evec[0] = &m_evec_arr[0];
+    evec[1] = &m_evec_arr[3];
+    evec[2] = &m_evec_arr[6];
+
+    Scalar eval[3];
+    if (m_mode == triclinic)
+        {
+        // find eigenvalues and -vectors of barostat matrix
+
+        // store matrix in row-major order
+        Scalar mat_array[9];
+        Scalar *mat[3];
+        mat[0] = &mat_array[0];
+        mat[1] = &mat_array[3];
+        mat[2] = &mat_array[6];
+
+        mat[0][0] = nuxx; mat[0][1] = nuxy; mat[0][2] = nuxz;
+        mat[1][0] = nuxy; mat[1][1] = nuyy; mat[1][2] = nuyz;
+        mat[2][0] = nuxz; mat[2][1] = nuyz; mat[2][2] = nuzz;
+
+        // the columns of evec are the normalized eigenvectors
+        m_sysdef->getRigidData()->diagonalize(mat, eval, evec);
+        }
+    else
+        {
+        eval[0] = nuxx; eval[1] = nuyy; eval[2] = nuzz;
+        evec[0][0] = Scalar(1.0); evec[0][1] = Scalar(0.0); evec[0][2] = Scalar(0.0);
+        evec[1][0] = Scalar(0.0); evec[1][1] = Scalar(1.0); evec[1][2] = Scalar(0.0);
+        evec[2][0] = Scalar(0.0); evec[2][1] = Scalar(0.0); evec[2][2] = Scalar(1.0);
+        }
+
+    Scalar mtk_term_2 = (nuxx+nuyy+nuzz)/m_thermo_group->getNDOF();
+    Scalar3 v_fac = make_scalar3(Scalar(1.0/4.0)*(eval[0]+mtk_term_2),
+                                 Scalar(1.0/4.0)*(eval[1]+mtk_term_2),
+                                 Scalar(1.0/4.0)*(eval[2]+mtk_term_2));
+
+    m_exp_v_fac = make_scalar3(exp(-v_fac.x*m_deltaT),
+                               exp(-v_fac.y*m_deltaT),
+                               exp(-v_fac.z*m_deltaT));
+    Scalar3 exp_v_fac_2 = make_scalar3(exp(-(Scalar(2.0)*v_fac.x+Scalar(1.0/2.0)*xi_prime)*m_deltaT),
+                               exp(-(Scalar(2.0)*v_fac.y+Scalar(1.0/2.0)*xi_prime)*m_deltaT),
+                               exp(-(Scalar(2.0)*v_fac.z+Scalar(1.0/2.0)*xi_prime)*m_deltaT));
+
+    Scalar3 r_fac = make_scalar3(Scalar(1.0/2.0)*eval[0],
+                                 Scalar(1.0/2.0)*eval[1],
+                                 Scalar(1.0/2.0)*eval[2]);
+    Scalar3 exp_r_fac = make_scalar3(exp(r_fac.x*m_deltaT),
+                                     exp(r_fac.y*m_deltaT),
+                                     exp(r_fac.z*m_deltaT));
+
+    // Coefficients of sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 * x^10
+    const Scalar coeff[] = {Scalar(1.0), Scalar(1.0/6.0), Scalar(1.0/120.0), Scalar(1.0/5040.0), Scalar(1.0/362880.0), Scalar(1.0/39916800.0)};
+
+    Scalar3 arg_v = v_fac*m_deltaT;
+    Scalar3 arg_r = r_fac*m_deltaT;
+
+    m_sinhx_fac_v = make_scalar3(0.0,0.0,0.0);
+    Scalar3 sinhx_fac_r = make_scalar3(0.0,0.0,0.0);
+    Scalar3 term_v = make_scalar3(1.0,1.0,1.0);
+    Scalar3 term_r = make_scalar3(1.0,1.0,1.0);
+
+    for (unsigned int i = 0; i < 6; i++)
+        {
+        m_sinhx_fac_v += coeff[i] * term_v;
+        sinhx_fac_r += coeff[i] * term_r;
+        term_v = term_v * arg_v * arg_v;
+        term_r = term_r * arg_r * arg_r;
+        }
+
+        {
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+
+        // perform the particle update on the GPU
+        gpu_npt_mtk_step_one(d_pos.data,
+                             d_vel.data,
+                             d_accel.data,
+                             d_index_array.data,
+                             group_size,
+                             exp_r_fac,
+                             m_exp_v_fac,
+                             exp_v_fac_2,
+                             sinhx_fac_r,
+                             m_sinhx_fac_v,
+                             m_evec_arr,
+                             m_deltaT,
+                             m_mode == triclinic);
+
+        } // end of GPUArray scope
 
     // advance box lengths
-    Scalar3 box_len_scale = make_scalar3(exp(nux*m_deltaT), exp(nuy*m_deltaT), exp(nuz*m_deltaT));
-    m_L = m_L*box_len_scale;
+    BoxDim global_box = m_pdata->getGlobalBox();
+    Scalar3 a = global_box.getLatticeVector(0);
+    Scalar3 b = global_box.getLatticeVector(1);
+    Scalar3 c = global_box.getLatticeVector(2);
+
+    // (a,b,c) are the columns of the cell parameter matrix
+    Scalar3 scale = exp_r_fac*exp_r_fac;
+    if (m_mode == triclinic)
+        {
+        // rotate cell parameter matrix
+        Scalar3 a_rot, b_rot, c_rot;
+
+        a_rot.x = evec[0][0]*a.x + evec[1][0]*a.y + evec[2][0]*a.z;
+        a_rot.y = evec[0][1]*a.x + evec[1][1]*a.y + evec[2][1]*a.z;
+        a_rot.z = evec[0][2]*a.x + evec[1][2]*a.y + evec[2][2]*a.z;
+
+        b_rot.x = evec[0][0]*b.x + evec[1][0]*b.y + evec[2][0]*b.z;
+        b_rot.y = evec[0][1]*b.x + evec[1][1]*b.y + evec[2][1]*b.z;
+        b_rot.z = evec[0][2]*b.x + evec[1][2]*b.y + evec[2][2]*b.z;
+
+        c_rot.x = evec[0][0]*c.x + evec[1][0]*c.y + evec[2][0]*c.z;
+        c_rot.y = evec[0][1]*c.x + evec[1][1]*c.y + evec[2][1]*c.z;
+        c_rot.z = evec[0][2]*c.x + evec[1][2]*c.y + evec[2][2]*c.z;
+
+        a_rot *= scale;
+        b_rot *= scale;
+        c_rot *= scale;
+
+        // rotate cell parameter matrix back
+        a.x = evec[0][0]*a_rot.x + evec[0][1]*a_rot.y + evec[0][2]*a_rot.z;
+        a.y = evec[1][0]*a_rot.x + evec[1][1]*a_rot.y + evec[1][2]*a_rot.z;
+        a.z = evec[2][0]*a_rot.x + evec[2][1]*a_rot.y + evec[2][2]*a_rot.z;
+
+        b.x = evec[0][0]*b_rot.x + evec[0][1]*b_rot.y + evec[0][2]*b_rot.z;
+        b.y = evec[1][0]*b_rot.x + evec[1][1]*b_rot.y + evec[1][2]*b_rot.z;
+        b.z = evec[2][0]*b_rot.x + evec[2][1]*b_rot.y + evec[2][2]*b_rot.z;
+
+        c.x = evec[0][0]*c_rot.x + evec[0][1]*c_rot.y + evec[0][2]*c_rot.z;
+        c.y = evec[1][0]*c_rot.x + evec[1][1]*c_rot.y + evec[1][2]*c_rot.z;
+        c.z = evec[2][0]*c_rot.x + evec[2][1]*c_rot.y + evec[2][2]*c_rot.z;
+        }
+    else
+        {
+        a *= scale;
+        b *= scale;
+        c *= scale;
+        }
 
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -227,19 +346,26 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nux, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuxx, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuxy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuzz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
 
-        // broadcast box dimensions
-        MPI_Bcast(&m_L,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&a,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&b,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&c,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
-    // calculate volume
-    m_V = m_L.x*m_L.y*m_L.z;
+    // update box dimensions
+    global_box.setLatticeVectors(a,b,c);
 
-    m_pdata->setGlobalBoxL(m_L);
+    // set global box
+    m_pdata->setGlobalBox(global_box);
+
+    m_V = global_box.getVolume();  // volume
 
     // Get new (local) box lengths
     BoxDim box = m_pdata->getBox();
@@ -268,11 +394,8 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
     unsigned int group_size = m_group->getNumMembers();
-#else
-    unsigned int group_size = m_group->getNumMembers();
-#endif
+
     if (group_size == 0)
         return;
 
@@ -285,9 +408,12 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];  // Thermostat variable
     Scalar& xi = v.variable[1];   // Thermostat velocity
-    Scalar& nux = v.variable[2];  // Barostat variable for x-direction
-    Scalar& nuy = v.variable[3];  // Barostat variable for y-direction
-    Scalar& nuz = v.variable[4];  // Barostat variable for z-direction
+    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
+    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
+    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
+    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
     {
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -302,19 +428,20 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
                      d_accel.data,
                      d_index_array.data,
                      group_size,
-                     m_thermo_group->getNDOF(),
                      d_net_force.data,
-                     make_scalar3(nux, nuy, nuz),
-                     m_deltaT);
+                     m_exp_v_fac,
+                     m_sinhx_fac_v,
+                     m_deltaT,
+                     m_mode == triclinic);
 
-    // recalulate temperature
         {
+        // recalulate temperature
         ArrayHandle<Scalar> d_temperature(m_temperature, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
-
-#ifdef ENABLE_MPI
+        
+        // update number of blocks to current group size
         m_num_blocks = m_group->getNumMembers() / m_reduction_block_size + 1;
-#endif
+
         gpu_npt_mtk_temperature(d_temperature.data,
                                 d_vel.data,
                                 d_scratch.data,
@@ -367,31 +494,13 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     m_curr_group_T = m_thermo_group->getTemperature();
 
     // compute pressure for the next half time step
-    assert(m_mode == cubic || m_mode == orthorhombic || m_mode == tetragonal);
-    if (m_mode == cubic)
-        {
-        m_curr_P = m_thermo_group->getPressure();
+    PressureTensor P = m_thermo_group->getPressureTensor();
 
-        // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very
-        // rare circumstances, usually at the start of the simulation before things are initialize)
-        if (isnan(m_curr_P))
-            m_curr_P = m_P->getValue(timestep);
-        }
-    else if (m_mode == orthorhombic || m_mode == tetragonal)
+    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
         {
-        PressureTensor P;
-        P = m_thermo_group->getPressureTensor();
-
-        if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
-            {
-            Scalar extP = m_P->getValue(timestep);
-            m_curr_P_diag = make_scalar3(extP,extP,extP);
-            }
-        else
-            {
-            // store diagonal elements of pressure tensor
-            m_curr_P_diag = make_scalar3(P.xx,P.yy,P.zz);
-            }
+        Scalar extP = m_P->getValue(timestep);
+        P.xx = P.yy = P.zz = extP;
+        P.xy = P.xz = P.yz = Scalar(0.0);
         }
 
     // advance barostat (nux, nuy, nuz) half a time step
@@ -399,20 +508,30 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
     if (m_mode == cubic)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P - m_P->getValue(timestep)) + mtk_term;
-        nuy = nuz = nux;
+        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_iso - m_P->getValue(timestep)) + mtk_term;
+        nuyy = nuzz = nuxx;
         }
     else if (m_mode == tetragonal)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
-        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((m_curr_P_diag.y+m_curr_P_diag.z)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
-        nuz = nuy;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((P.yy + P.zz)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
+        nuzz = nuyy;
         }
     else if (m_mode == orthorhombic)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
-        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.y - m_P->getValue(timestep)) + mtk_term;
-        nuz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.z - m_P->getValue(timestep)) + mtk_term;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
+        }
+    else if (m_mode == triclinic)
+        {
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
+        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
+        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
         }
 
 #ifdef ENABLE_MPI
@@ -421,9 +540,12 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nux, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuxx, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuxy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuzz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 

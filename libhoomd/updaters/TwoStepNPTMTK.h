@@ -173,11 +173,9 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         boost::shared_ptr<Variant> m_P; //!< Pressure set point
         Scalar m_curr_group_T;          //!< Current group temperature
-        Scalar m_curr_P;                //!< Current isotropic system pressure
         Scalar3 m_curr_P_diag;          //!< Current pressure tensor (diagonal elements)
         Scalar m_evec_arr[9];          //!< Eigenvectors of the barostat tensor
         Scalar m_V;                     //!< Current volume
-        Scalar3 m_L;                    //!< Box lengths
 
         Scalar3 m_exp_v_fac;            //!< Factor multiplying velocity
         Scalar3 m_sinhx_fac_v;          //!< Factor multiplying acceleration
