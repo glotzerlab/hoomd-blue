@@ -86,7 +86,8 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             {
             cubic = 0,
             orthorhombic,
-            tetragonal
+            tetragonal,
+            triclinic
             };
 
         //! Constructs the integration method and associates it with the system
@@ -137,7 +138,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         */
         void setPartialScale(bool partial_scale)
             {
-            m_exec_conf->msg->error() << "integrate.npt_mtk: partial_scale option not supported" << endl;
+            m_exec_conf->msg->error() << "integrate.npt: partial_scale option not supported with mtk=True" << endl;
             throw runtime_error("Error setting params in TwoStepNPTMTK");
             }
 
@@ -154,10 +155,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         virtual PDataFlags getRequestedPDataFlags()
             {
             PDataFlags flags;
-            if (m_mode == cubic)
-                flags[pdata_flag::isotropic_virial] = 1;
-            else if (m_mode == orthorhombic || m_mode == tetragonal)
-                flags[pdata_flag::pressure_tensor] = 1;
+            flags[pdata_flag::pressure_tensor] = 1;
             return flags;
             }
 
@@ -177,6 +175,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar m_curr_group_T;          //!< Current group temperature
         Scalar m_curr_P;                //!< Current isotropic system pressure
         Scalar3 m_curr_P_diag;          //!< Current pressure tensor (diagonal elements)
+        Scalar m_evec_arr[9];          //!< Eigenvectors of the barostat tensor
         Scalar m_V;                     //!< Current volume
         Scalar3 m_L;                    //!< Box lengths
 

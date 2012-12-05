@@ -96,23 +96,18 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
     if (m_tauP <= 0.0)
         m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
 
-    // precalculate box lengths
-    const BoxDim& global_box = m_pdata->getGlobalBox();
-    m_L = global_box.getL();
-
-    m_V = m_L.x*m_L.y*m_L.z;   // volume
+    m_V = m_pdata->getGlobalBox().getVolume();  // volume
 
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
 
     // choose dummy values for the current temp and pressure
     m_curr_group_T = 0.0;
-    m_curr_P = 0.0;
 
-    if (!restartInfoTestValid(v, "npt_mtk", 2))
+    if (!restartInfoTestValid(v, "npt_mtk", 8))
         {
         v.type = "npt_mtk";
-        v.variable.resize(5,Scalar(0.0));
+        v.variable.resize(8,Scalar(0.0));
         setValidRestart(false);
         }
     else
@@ -123,6 +118,9 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
     m_log_names.resize(2);
     m_log_names[0] = "npt_mtk_thermostat_energy";
     m_log_names[1] = "npt_mtk_barostat_energy";
+
+    for (unsigned int i = 0; i < 9; ++i)
+        m_evec_arr[i] = Scalar(0.0);
     }
 
 TwoStepNPTMTK::~TwoStepNPTMTK()
@@ -152,31 +150,15 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     m_curr_group_T = m_thermo_group->getTemperature();
 
     // compute pressure for the next half time step
-    assert(m_mode == cubic || m_mode == orthorhombic || m_mode == tetragonal);
-    if (m_mode == cubic)
-        {
-        m_curr_P = m_thermo_group->getPressure();
+    assert(m_mode == cubic || m_mode == orthorhombic || m_mode == tetragonal || m_mode == triclinic);
 
-        // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very
-        // rare circumstances, usually at the start of the simulation before things are initialize)
-        if (isnan(m_curr_P))
-            m_curr_P = m_P->getValue(timestep);
-        }
-    else if (m_mode == orthorhombic || m_mode == tetragonal)
-        {
-        PressureTensor P;
-        P = m_thermo_group->getPressureTensor();
+    PressureTensor P = m_thermo_group->getPressureTensor();
 
-        if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
-            {
-            Scalar extP = m_P->getValue(timestep);
-            m_curr_P_diag = make_scalar3(extP,extP,extP);
-            }
-        else
-            {
-            // store diagonal elements of pressure tensor
-            m_curr_P_diag = make_scalar3(P.xx,P.yy,P.zz);
-            }
+    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
+        {
+        Scalar extP = m_P->getValue(timestep);
+        P.xx = P.yy = P.zz = extP;
+        P.xy = P.xz = P.yz = Scalar(0.0);
         }
 
     // profile this step
@@ -186,34 +168,42 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];  // Thermostat variable
     Scalar& xi = v.variable[1];   // Thermostat velocity
-    Scalar& nux = v.variable[2];  // Barostat variable for x-direction
-    Scalar& nuy = v.variable[3];  // Barostat variable for y-direction
-    Scalar& nuz = v.variable[4];  // Barostat variable for z-direction
+    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
+    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
+    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
+    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
-    {
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-
-    // advance barostat (nux, nuy, nuz) half a time step
+    // advance barostat (nuxx, nuyy, nuzz) half a time step
     Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
     Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
     if (m_mode == cubic)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P - m_P->getValue(timestep)) + mtk_term;
-        nuy = nuz = nux;
+        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_iso - m_P->getValue(timestep)) + mtk_term;
+        nuyy = nuzz = nuxx;
         }
     else if (m_mode == tetragonal)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
-        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((m_curr_P_diag.y+m_curr_P_diag.z)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
-        nuz = nuy;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((P.yy + P.zz)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
+        nuzz = nuyy;
         }
     else if (m_mode == orthorhombic)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
-        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.y - m_P->getValue(timestep)) + mtk_term;
-        nuz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.z - m_P->getValue(timestep)) + mtk_term;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
+        }
+    else if (m_mode == triclinic)
+        {
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
+        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
+        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
         }
 
     // advance thermostat (xi, eta) half a time step
@@ -224,10 +214,44 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
 
     // precompute loop invariant quantities
-    Scalar mtk_term_2 = (nux+nuy+nuz)/m_thermo_group->getNDOF();
-    Scalar3 v_fac = make_scalar3(Scalar(1.0/4.0)*(nux+mtk_term_2),
-                                 Scalar(1.0/4.0)*(nuy+mtk_term_2),
-                                 Scalar(1.0/4.0)*(nuz+mtk_term_2));
+   
+    // store eigenvectors of barostat matrix in row major order
+    Scalar *evec[3];
+    evec[0] = &m_evec_arr[0];
+    evec[1] = &m_evec_arr[3];
+    evec[2] = &m_evec_arr[6];
+
+    Scalar eval[3];
+    if (m_mode == triclinic)
+        {
+        // find eigenvalues and -vectors of barostat matrix
+
+        // store matrix in row-major order
+        Scalar mat_array[9];
+        Scalar *mat[3];
+        mat[0] = &mat_array[0];
+        mat[1] = &mat_array[3];
+        mat[2] = &mat_array[6];
+
+        mat[0][0] = nuxx; mat[0][1] = nuxy; mat[0][2] = nuxz;
+        mat[1][0] = nuxy; mat[1][1] = nuyy; mat[1][2] = nuyz;
+        mat[2][0] = nuxz; mat[2][1] = nuyz; mat[2][2] = nuzz;
+      
+        // the columns of evec are the normalized eigenvectors
+        m_sysdef->getRigidData()->diagonalize(mat, eval, evec);
+        }
+    else
+        {
+        eval[0] = nuxx; eval[1] = nuyy; eval[2] = nuzz;
+        evec[0][0] = Scalar(1.0); evec[0][1] = Scalar(0.0); evec[0][2] = Scalar(0.0);
+        evec[1][0] = Scalar(0.0); evec[1][1] = Scalar(1.0); evec[1][2] = Scalar(0.0);
+        evec[2][0] = Scalar(0.0); evec[2][1] = Scalar(0.0); evec[2][2] = Scalar(1.0);
+        }
+
+    Scalar mtk_term_2 = (nuxx+nuyy+nuzz)/m_thermo_group->getNDOF();
+    Scalar3 v_fac = make_scalar3(Scalar(1.0/4.0)*(eval[0]+mtk_term_2),
+                                 Scalar(1.0/4.0)*(eval[1]+mtk_term_2),
+                                 Scalar(1.0/4.0)*(eval[2]+mtk_term_2));
     m_exp_v_fac = make_scalar3(exp(-v_fac.x*m_deltaT),
                                exp(-v_fac.y*m_deltaT),
                                exp(-v_fac.z*m_deltaT));
@@ -235,15 +259,15 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
                                exp(-(Scalar(2.0)*v_fac.y+Scalar(1.0/2.0)*xi_prime)*m_deltaT),
                                exp(-(Scalar(2.0)*v_fac.z+Scalar(1.0/2.0)*xi_prime)*m_deltaT));
 
-    Scalar3 r_fac = make_scalar3(Scalar(1.0/2.0)*nux,
-                                 Scalar(1.0/2.0)*nuy,
-                                 Scalar(1.0/2.0)*nuz);
+    Scalar3 r_fac = make_scalar3(Scalar(1.0/2.0)*eval[0],
+                                 Scalar(1.0/2.0)*eval[1],
+                                 Scalar(1.0/2.0)*eval[2]);
     Scalar3 exp_r_fac = make_scalar3(exp(r_fac.x*m_deltaT),
                                      exp(r_fac.y*m_deltaT),
                                      exp(r_fac.z*m_deltaT));
 
     // Coefficients of sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 * x^10
-    const Scalar a[] = {Scalar(1.0), Scalar(1.0/6.0), Scalar(1.0/120.0), Scalar(1.0/5040.0), Scalar(1.0/362880.0), Scalar(1.0/39916800.0)};
+    const Scalar coeff[] = {Scalar(1.0), Scalar(1.0/6.0), Scalar(1.0/120.0), Scalar(1.0/5040.0), Scalar(1.0/362880.0), Scalar(1.0/39916800.0)};
 
     Scalar3 arg_v = v_fac*m_deltaT;
     Scalar3 arg_r = r_fac*m_deltaT;
@@ -255,30 +279,124 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 
     for (unsigned int i = 0; i < 6; i++)
         {
-        m_sinhx_fac_v += a[i] * term_v;
-        sinhx_fac_r += a[i] * term_r;
+        m_sinhx_fac_v += coeff[i] * term_v;
+        sinhx_fac_r += coeff[i] * term_r;
         term_v = term_v * arg_v * arg_v;
         term_r = term_r * arg_r * arg_r;
         }
 
-    // perform the first half step of NPT
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
+        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
-        Scalar3 vel = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        vel = vel*exp_v_fac_2 + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j]*m_exp_v_fac*m_sinhx_fac_v;
-        h_vel.data[j].x = vel.x; h_vel.data[j].y = vel.y; h_vel.data[j].z = vel.z;
+        // perform the first half step of NPT
+        if (m_mode == triclinic)
+            {
+            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                {
+                unsigned int j = m_group->getMemberIndex(group_idx);
 
-        Scalar3 r = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-        r = r*exp_r_fac*exp_r_fac + vel*exp_r_fac*sinhx_fac_r*m_deltaT;
-        h_pos.data[j].x = r.x; h_pos.data[j].y = r.y; h_pos.data[j].z = r.z;
-        }
-    } // end of GPUArray scope
+                Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+                Scalar3 accel = h_accel.data[j];
+                Scalar3 r = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+                Scalar3 v_rot, accel_rot, r_rot;
+
+                // rotate velocity
+                v_rot.x = evec[0][0]*v.x + evec[1][0]*v.y + evec[2][0]*v.z;
+                v_rot.y = evec[0][1]*v.x + evec[1][1]*v.y + evec[2][1]*v.z;
+                v_rot.z = evec[0][2]*v.x + evec[1][2]*v.y + evec[2][2]*v.z;
+
+                // rotate acceleration
+                accel_rot.x = evec[0][0]*accel.x + evec[1][0]*accel.y + evec[2][0]*accel.z;
+                accel_rot.y = evec[0][1]*accel.x + evec[1][1]*accel.y + evec[2][1]*accel.z;
+                accel_rot.z = evec[0][2]*accel.x + evec[1][2]*accel.y + evec[2][2]*accel.z;
+
+                // rotate position
+                r_rot.x = evec[0][0]*r.x + evec[1][0]*r.y + evec[2][0]*r.z;
+                r_rot.y = evec[0][1]*r.x + evec[1][1]*r.y + evec[2][1]*r.z;
+                r_rot.z = evec[0][2]*r.x + evec[1][2]*r.y + evec[2][2]*r.z;
+
+                // update rotate velocity and position
+                v_rot = v_rot*exp_v_fac_2 + Scalar(1.0/2.0)*m_deltaT*accel_rot*m_exp_v_fac*m_sinhx_fac_v;
+                r_rot = r_rot*exp_r_fac*exp_r_fac + v_rot*exp_r_fac*sinhx_fac_r*m_deltaT;
+
+                // rotate velocity back and store
+                h_vel.data[j].x = evec[0][0]*v_rot.x + evec[0][1]*v_rot.y + evec[0][2]*v_rot.z;
+                h_vel.data[j].y = evec[1][0]*v_rot.x + evec[1][1]*v_rot.y + evec[1][2]*v_rot.z;
+                h_vel.data[j].z = evec[2][0]*v_rot.x + evec[2][1]*v_rot.y + evec[2][2]*v_rot.z;
+
+                // rotate position back and store
+                h_pos.data[j].x = evec[0][0]*r_rot.x + evec[0][1]*r_rot.y + evec[0][2]*r_rot.z;
+                h_pos.data[j].y = evec[1][0]*r_rot.x + evec[1][1]*r_rot.y + evec[1][2]*r_rot.z;
+                h_pos.data[j].z = evec[2][0]*r_rot.x + evec[2][1]*r_rot.y + evec[2][2]*r_rot.z;
+                }
+            }
+        else
+            {
+            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                {
+                unsigned int j = m_group->getMemberIndex(group_idx);
+
+                Scalar3 vel = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+                vel = vel*exp_v_fac_2 + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j]*m_exp_v_fac*m_sinhx_fac_v;
+                h_vel.data[j].x = vel.x; h_vel.data[j].y = vel.y; h_vel.data[j].z = vel.z;
+
+                Scalar3 r = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+                r = r*exp_r_fac*exp_r_fac + vel*exp_r_fac*sinhx_fac_r*m_deltaT;
+                h_pos.data[j].x = r.x; h_pos.data[j].y = r.y; h_pos.data[j].z = r.z;
+                }
+            }
+        } // end of GPUArray scope
 
     // advance box lengths
-    Scalar3 box_len_scale = make_scalar3(exp(nux*m_deltaT), exp(nuy*m_deltaT), exp(nuz*m_deltaT));
-    m_L = m_L*box_len_scale;
+    BoxDim global_box = m_pdata->getGlobalBox();
+    Scalar3 a = global_box.getLatticeVector(0);
+    Scalar3 b = global_box.getLatticeVector(1);
+    Scalar3 c = global_box.getLatticeVector(2);
+
+    // (a,b,c) are the columns of the cell parameter matrix
+    Scalar3 scale = exp_r_fac*exp_r_fac;
+    if (m_mode == triclinic)
+        {
+        // rotate cell parameter matrix
+        Scalar3 a_rot, b_rot, c_rot;
+
+        a_rot.x = evec[0][0]*a.x + evec[1][0]*a.y + evec[2][0]*a.z;
+        a_rot.y = evec[0][1]*a.x + evec[1][1]*a.y + evec[2][1]*a.z;
+        a_rot.z = evec[0][2]*a.x + evec[1][2]*a.y + evec[2][2]*a.z;
+
+        b_rot.x = evec[0][0]*b.x + evec[1][0]*b.y + evec[2][0]*b.z;
+        b_rot.y = evec[0][1]*b.x + evec[1][1]*b.y + evec[2][1]*b.z;
+        b_rot.z = evec[0][2]*b.x + evec[1][2]*b.y + evec[2][2]*b.z;
+
+        c_rot.x = evec[0][0]*c.x + evec[1][0]*c.y + evec[2][0]*c.z;
+        c_rot.y = evec[0][1]*c.x + evec[1][1]*c.y + evec[2][1]*c.z;
+        c_rot.z = evec[0][2]*c.x + evec[1][2]*c.y + evec[2][2]*c.z;
+
+        a_rot *= scale;
+        b_rot *= scale;
+        c_rot *= scale;
+
+        // rotate cell parameter matrix back
+        a.x = evec[0][0]*a_rot.x + evec[0][1]*a_rot.y + evec[0][2]*a_rot.z;
+        a.y = evec[1][0]*a_rot.x + evec[1][1]*a_rot.y + evec[1][2]*a_rot.z;
+        a.z = evec[2][0]*a_rot.x + evec[2][1]*a_rot.y + evec[2][2]*a_rot.z;
+
+        b.x = evec[0][0]*b_rot.x + evec[0][1]*b_rot.y + evec[0][2]*b_rot.z;
+        b.y = evec[1][0]*b_rot.x + evec[1][1]*b_rot.y + evec[1][2]*b_rot.z;
+        b.z = evec[2][0]*b_rot.x + evec[2][1]*b_rot.y + evec[2][2]*b_rot.z;
+
+        c.x = evec[0][0]*c_rot.x + evec[0][1]*c_rot.y + evec[0][2]*c_rot.z;
+        c.y = evec[1][0]*c_rot.x + evec[1][1]*c_rot.y + evec[1][2]*c_rot.z;
+        c.z = evec[2][0]*c_rot.x + evec[2][1]*c_rot.y + evec[2][2]*c_rot.z;
+        }
+    else
+        {
+        a *= scale;
+        b *= scale;
+        c *= scale;
+        }
 
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -286,19 +404,26 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nux, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuxx, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuxy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuzz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
 
-        // broadcast box dimensions
-        MPI_Bcast(&m_L,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&a,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&b,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&c,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
-    // calculate volume
-    m_V = m_L.x*m_L.y*m_L.z;
+    // update box dimensions
+    global_box.setLatticeVectors(a,b,c);
+  
+    // set global box
+    m_pdata->setGlobalBox(global_box);
 
-    m_pdata->setGlobalBoxL(m_L);
+    m_V = global_box.getVolume();  // volume
 
     // Get new (local) box 
     BoxDim box = m_pdata->getBox();
@@ -324,11 +449,8 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
     unsigned int group_size = m_group->getNumMembers();
-#else
-    unsigned int group_size = m_group->getNumMembers();
-#endif
+
     if (group_size == 0)
         return;
 
@@ -341,18 +463,14 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];  // Thermostat variable
     Scalar& xi = v.variable[1];   // Thermostat velocity
-    Scalar& nux = v.variable[2];  // Barostat variable for x-direction
-    Scalar& nuy = v.variable[3];  // Barostat variable for y-direction
-    Scalar& nuz = v.variable[4];  // Barostat variable for z-direction
+    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
+    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
+    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
+    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
-    Scalar mtk_term_2 = (nux+nuy+nuz)/m_thermo_group->getNDOF();
-    Scalar3 v_fac_2 = make_scalar3(Scalar(1.0/2.0)*(nux+mtk_term_2),
-                                 Scalar(1.0/2.0)*(nuy+mtk_term_2),
-                                 Scalar(1.0/2.0)*(nuz+mtk_term_2));
- 
-    Scalar3 exp_v_fac_2 = make_scalar3(exp(-v_fac_2.x*m_deltaT),
-                               exp(-v_fac_2.y*m_deltaT),
-                               exp(-v_fac_2.z*m_deltaT));
+    Scalar3 exp_v_fac_2 = m_exp_v_fac*m_exp_v_fac;
 
     {
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
@@ -363,25 +481,76 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     // Kinetic energy * 2
     Scalar m_v2_sum(0.0);
 
+    // eigenvectors of barostat matrix in row major order
+    Scalar *evec[3];
+    evec[0] = &m_evec_arr[0];
+    evec[1] = &m_evec_arr[3];
+    evec[2] = &m_evec_arr[6];
+
     // perform second half step of NPT integration
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    if (m_mode == triclinic)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
 
-        // first, calculate acceleration from the net force
-        Scalar m = h_vel.data[j].w;
-        Scalar minv = Scalar(1.0) / m;
-        h_accel.data[j].x = h_net_force.data[j].x*minv;
-        h_accel.data[j].y = h_net_force.data[j].y*minv;
-        h_accel.data[j].z = h_net_force.data[j].z*minv;
+            // first, calculate acceleration from the net force
+            Scalar m = h_vel.data[j].w;
+            Scalar minv = Scalar(1.0) / m;
+            h_accel.data[j].x = h_net_force.data[j].x*minv;
+            h_accel.data[j].y = h_net_force.data[j].y*minv;
+            h_accel.data[j].z = h_net_force.data[j].z*minv;
 
-        // then, update the velocity
-        Scalar3 vel = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        vel = vel*exp_v_fac_2 + Scalar(1.0/2.0)*m_deltaT*m_exp_v_fac*h_accel.data[j]*m_sinhx_fac_v;
-        h_vel.data[j].x = vel.x; h_vel.data[j].y = vel.y; h_vel.data[j].z = vel.z;
 
-        // reduce E_kin
-        m_v2_sum += m*(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
+            // rotate velocity
+            Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+            Scalar3 v_rot;
+            v_rot.x = evec[0][0]*v.x + evec[1][0]*v.y + evec[2][0]*v.z;
+            v_rot.y = evec[0][1]*v.x + evec[1][1]*v.y + evec[2][1]*v.z;
+            v_rot.z = evec[0][2]*v.x + evec[1][2]*v.y + evec[2][2]*v.z;
+
+            // rotate accelerations
+            Scalar3 accel_rot;
+            Scalar3 accel = h_accel.data[j];
+            accel_rot.x = evec[0][0]*accel.x + evec[1][0]*accel.y + evec[2][0]*accel.z;
+            accel_rot.y = evec[0][1]*accel.x + evec[1][1]*accel.y + evec[2][1]*accel.z;
+            accel_rot.z = evec[0][2]*accel.x + evec[1][2]*accel.y + evec[2][2]*accel.z;
+
+            // then, update the velocity
+            v_rot = v_rot*exp_v_fac_2 + Scalar(1.0/2.0)*m_deltaT*m_exp_v_fac*accel_rot*m_sinhx_fac_v;
+
+            // rotate velocity back and store
+            v.x = evec[0][0]*v_rot.x + evec[0][1]*v_rot.y + evec[0][2]*v_rot.z;
+            v.y = evec[1][0]*v_rot.x + evec[1][1]*v_rot.y + evec[1][2]*v_rot.z;
+            v.z = evec[2][0]*v_rot.x + evec[2][1]*v_rot.y + evec[2][2]*v_rot.z;
+            h_vel.data[j].x = v.x; h_vel.data[j].y = v.y; h_vel.data[j].z = v.z;
+
+            // reduce E_kin
+            m_v2_sum += m*(v.x*v.x + v.y*v.y + v.z*v.z);
+            }
+        }
+    else
+        {
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+
+            // first, calculate acceleration from the net force
+            Scalar m = h_vel.data[j].w;
+            Scalar minv = Scalar(1.0) / m;
+            h_accel.data[j].x = h_net_force.data[j].x*minv;
+            h_accel.data[j].y = h_net_force.data[j].y*minv;
+            h_accel.data[j].z = h_net_force.data[j].z*minv;
+
+            Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+
+            // then, update the velocity
+            v= v*exp_v_fac_2 + Scalar(1.0/2.0)*m_deltaT*m_exp_v_fac*h_accel.data[j]*m_sinhx_fac_v;
+            h_vel.data[j].x = v.x; h_vel.data[j].y = v.y; h_vel.data[j].z = v.z;
+ 
+            // reduce E_kin
+            m_v2_sum += m*(v.x*v.x + v.y*v.y + v.z*v.z);
+            }
         }
 
 #ifdef ENABLE_MPI
@@ -425,52 +594,45 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     m_curr_group_T = m_thermo_group->getTemperature();
 
     // compute pressure for the next half time step
-    assert(m_mode == cubic || m_mode == orthorhombic || m_mode == tetragonal);
-    if (m_mode == cubic)
-        {
-        m_curr_P = m_thermo_group->getPressure();
+    PressureTensor P = m_thermo_group->getPressureTensor();
 
-        // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very
-        // rare circumstances, usually at the start of the simulation before things are initialize)
-        if (isnan(m_curr_P))
-            m_curr_P = m_P->getValue(timestep);
-        }
-    else if (m_mode == orthorhombic || m_mode == tetragonal)
+    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
         {
-        PressureTensor P;
-        P = m_thermo_group->getPressureTensor();
-
-        if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
-            {
-            Scalar extP = m_P->getValue(timestep);
-            m_curr_P_diag = make_scalar3(extP,extP,extP);
-            }
-        else
-            {
-            // store diagonal elements of pressure tensor
-            m_curr_P_diag = make_scalar3(P.xx,P.yy,P.zz);
-            }
+        Scalar extP = m_P->getValue(timestep);
+        P.xx = P.yy = P.zz = extP;
+        P.xy = P.xz = P.yz = Scalar(0.0);
         }
 
-    // advance barostat (nux, nuy, nuz) half a time step
+
+    // advance barostat (nuxx, nuyy, nuzz) half a time step
     Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
     Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
     if (m_mode == cubic)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P - m_P->getValue(timestep)) + mtk_term;
-        nuy = nuz = nux;
+        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_iso - m_P->getValue(timestep)) + mtk_term;
+        nuyy = nuzz = nuxx;
         }
     else if (m_mode == tetragonal)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
-        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((m_curr_P_diag.y+m_curr_P_diag.z)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
-        nuz = nuy;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((P.yy + P.zz)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
+        nuzz = nuyy;
         }
     else if (m_mode == orthorhombic)
         {
-        nux += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.x - m_P->getValue(timestep)) + mtk_term;
-        nuy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.y - m_P->getValue(timestep)) + mtk_term;
-        nuz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(m_curr_P_diag.z - m_P->getValue(timestep)) + mtk_term;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
+        }
+    else if (m_mode == triclinic)
+        {
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
+        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
+        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
+        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
         }
 
 #ifdef ENABLE_MPI
@@ -479,9 +641,12 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nux, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&nuz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuxx, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuxy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuzz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -520,13 +685,14 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
         {
         my_quantity_flag = true;
         IntegratorVariables v = getIntegratorVariables();
-        Scalar& nux = v.variable[2];
-        Scalar& nuy = v.variable[3];
-        Scalar& nuz = v.variable[4];
+
+        Scalar& nuxx = v.variable[2];
+        Scalar& nuyy = v.variable[3];
+        Scalar& nuzz = v.variable[4];
 
         Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
         Scalar barostat_energy = Scalar(0.0);
-        barostat_energy = W*(nux*nux+nuy*nuy+nuz*nuz) / Scalar(2.0);
+        barostat_energy = W*(nuxx*nuxx+nuyy*nuyy+nuzz*nuzz) / Scalar(2.0);
 
         return barostat_energy;
         }
@@ -556,6 +722,7 @@ void export_TwoStepNPTMTK()
     .value("cubic", TwoStepNPTMTK::cubic)
     .value("orthorhombic", TwoStepNPTMTK::orthorhombic)
     .value("tetragonal", TwoStepNPTMTK::tetragonal)
+    .value("triclinic", TwoStepNPTMTK::triclinic)
     ;
 
     }

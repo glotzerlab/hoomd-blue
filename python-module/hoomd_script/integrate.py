@@ -522,6 +522,8 @@ class npt(_integration_method):
                 cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.orthorhombic
             elif mode == "tetragonal":
                 cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.tetragonal
+            elif mode == "triclinic":
+                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.triclinic
             else:
                 globals.msg.error("Invalid integration mode\n");
                 raise RuntimeError("Error setting up NPT integration.");

@@ -66,15 +66,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #define HOSTDEVICE inline
 #endif
-
+ 
 // call different optimized sqrt functions on the host / device
+// SQRT is sqrtf when included in nvcc and sqrt when included into the host compiler
+#ifdef NVCC
+#define SQRT sqrtf
+#else
+#define SQRT sqrt
+#endif
+
 // RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
 #ifdef NVCC
 #define RSQRT(x) rsqrtf( (x) )
 #else
 #define RSQRT(x) Scalar(1.0) / sqrt( (x) )
 #endif
-
 
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
@@ -501,6 +507,71 @@ class BoxDim
             return dist;
             }
 
+        //! Get the volume of the box
+        /*! \returns the volume
+         */
+        HOSTDEVICE Scalar getVolume() const
+            {
+            return m_L.x*m_L.y*m_L.z;
+            }
+
+        //! Initialize the box dimensions with a given set of lattice vectors
+        /*! The lattice basis is rotated so that the first lattice vector aligns with the x-axis
+            the second lattice vector lies in the xy-plane. 
+
+            \param a first lattice vector
+            \param b second lattice vector
+            \param c third lattice vector
+
+            \note a,b,c must form a right-handed basis.
+            \npte The box is constructed so that lo=-hi
+
+            These are the same rotations that are applied in LAMMPS
+        */
+        HOSTDEVICE void setLatticeVectors(Scalar3 a, Scalar3 b, Scalar3 c)
+            {
+            Scalar length_a = SQRT(dot(a,a));
+            Scalar length_b = SQRT(dot(b,b));
+            Scalar length_c = SQRT(dot(c,c));
+
+            Scalar3 L;
+            L.x = length_a;
+            Scalar xy = dot(a,b)/length_a;
+            L.y = SQRT(length_b*length_b - xy*xy);
+            Scalar xz = dot(c,a)/length_a;
+            Scalar yz = (dot(b,c)-xy*xz)/L.y;
+            L.z = SQRT(length_c*length_c-xz*xz-yz*yz);
+            xy /= L.y;
+            xz /= L.z;
+            yz /= L.z;
+
+            setTiltFactors(xy, xz, yz);
+            setL(L);
+            }
+
+        /*! Get the lattice vector with index i
+         
+            \param i Index (0<=i<=2) of the lattice vector
+            \returns the lattice vector with index i, or (0,0,0) if i is invalid
+         */
+        HOSTDEVICE Scalar3 getLatticeVector(unsigned int i) const
+            {
+            if (i == 0)
+                {
+                return make_scalar3(m_L.x,0.0,0.0);
+                }
+            else if (i == 1)
+                {
+                return make_scalar3(m_L.y*m_xy, m_L.y, 0.0);
+                }
+            else if (i == 2)
+                {
+                return make_scalar3(m_L.z*m_xz, m_L.z*m_yz, m_L.z);
+                }
+
+            return make_scalar3(0.0,0.0,0.0);
+            }
+
     private:
         Scalar3 m_lo;      //!< Minimum coords in the box
         Scalar3 m_hi;      //!< Maximum coords in the box
@@ -515,5 +586,6 @@ class BoxDim
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE
-
+#undef RSQRT
+#undef SQRT
 #endif // __BOXDIM_H__
