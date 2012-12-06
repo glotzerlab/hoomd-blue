@@ -308,13 +308,9 @@ void CellList::initializeMemory()
     if (m_Nmax == 0)
         {
         unsigned int estim_Nmax = (unsigned int)(ceilf(float((m_pdata->getN()+m_pdata->getNGhosts())*1.0f / float(m_dim.x*m_dim.y*m_dim.z))));
-        m_Nmax = estim_Nmax + 8 - (estim_Nmax & 7);
-        }
-    else
-        {
-        // otherwise, round up to the nearest multiple of 8 if we are not already on one
-        if ((m_Nmax & 7) != 0)
-            m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
+        m_Nmax = estim_Nmax;
+        if (m_Nmax == 0)
+            m_Nmax = 1;
         }
 
     m_exec_conf->msg->notice(6) << "cell list: allocating " << m_dim.x << " x " << m_dim.y << " x " << m_dim.z
