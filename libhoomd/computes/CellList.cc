@@ -68,7 +68,7 @@ using namespace std;
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0f)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
-      m_flag_charge(false)
+      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
@@ -354,6 +354,30 @@ void CellList::initializeMemory()
         m_tdb.swap(tdb);
         }
 
+    if (m_compute_orientation)
+        {
+        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), exec_conf);
+        m_orientation.swap(orientation);
+        }
+    else
+        {
+        // array is no longer needed, discard it
+        GPUArray<Scalar4> orientation;
+        m_orientation.swap(orientation);
+        }
+
+    if (m_compute_idx)
+        {
+        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), exec_conf);
+        m_idx.swap(idx);
+        }
+    else
+        {
+        // array is no longer needed, discard it
+        GPUArray<unsigned int> idx;
+        m_idx.swap(idx);
+        }
+
     if (m_prof)
         m_prof->pop();
     
@@ -424,6 +448,7 @@ void CellList::computeCellList()
     
     // acquire the particle data
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle< Scalar4 > h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
@@ -432,6 +457,8 @@ void CellList::computeCellList()
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_xyzf(m_xyzf, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_cell_orientation(m_orientation, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_cell_idx(m_idx, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_tdb(m_tdb, access_location::host, access_mode::overwrite);
     uint3 conditions = make_uint3(0,0,0);
 
@@ -488,6 +515,8 @@ void CellList::computeCellList()
         Scalar flag;
         if (m_flag_charge)
             flag = h_charge.data[n];
+        if (m_flag_type)
+            flag = h_pos.data[n].w;
         else
             flag = __int_as_scalar(n);
 
@@ -503,6 +532,16 @@ void CellList::computeCellList()
                                                             h_diameter.data[n],
                                                             __int_as_scalar(h_body.data[n]),
                                                             Scalar(0.0));
+                }
+            
+            if (m_compute_orientation)
+                {
+                h_cell_orientation.data[cli(offset, bin)] = h_orientation.data[n];
+                }
+            
+            if (m_compute_idx)
+                {
+                h_cell_idx.data[cli(offset, bin)] = n;
                 }
             }
         else

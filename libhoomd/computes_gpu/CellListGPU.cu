@@ -60,8 +60,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \param d_cell_size Number of particles in each cell
     \param d_xyzf Cell XYZF data array
     \param d_tdb Cell TDB data array
+    \param d_cell_orientation Particle orientation in cell list
+    \param d_cell_idx Particle index in cell list
     \param d_conditions Conditions flags for detecting overflow and other error conditions
     \param d_pos Particle position array
+    \param d_orientation Particle orientation array
     \param d_charge Particle charge array
     \param d_diameter Particle diameter array
     \param d_body Particle body array
@@ -69,6 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param n_ghost Number of ghost particles
     \param Nmax Maximum number of particles that can be placed in a single cell
     \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
+    \param flag_type Set to true to store type in the flag position in \a d_xyzf
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
@@ -79,8 +83,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              float4 *d_xyzf,
                                              float4 *d_tdb,
+                                             float4 *d_cell_orientation,
+                                             unsigned int *d_cell_idx,
                                              uint3 *d_conditions,
                                              const float4 *d_pos,
+                                             const float4 *d_orientation,
                                              const float *d_charge,
                                              const float *d_diameter,
                                              const unsigned int *d_body,
@@ -88,6 +95,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              const unsigned int n_ghost,
                                              const unsigned int Nmax,
                                              const bool flag_charge,
+                                             const bool flag_type,
                                              const BoxDim box,
                                              const Index3D ci,
                                              const Index2D cli,
@@ -105,15 +113,22 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     float diameter = 0.0f;
     float body = 0;
     float type = 0;
+    float4 orientation = make_float4(0,0,0,0);
     if (d_tdb != NULL)
         {
         diameter = d_diameter[idx];
         body = __int_as_float(d_body[idx]);
         type = postype.w;
         }
+    if (d_cell_orientation != NULL)
+        {
+        orientation = d_orientation[idx];
+        }
 
     if (flag_charge)
         flag = d_charge[idx];
+    else if (flag_type)
+        flag = type;
     else
         flag = __int_as_float(idx);
 
@@ -156,6 +171,10 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         d_xyzf[write_pos] = make_float4(pos.x, pos.y, pos.z, flag);
         if (d_tdb != NULL)
             d_tdb[write_pos] = make_float4(type, diameter, body, 0.0f);
+        if (d_cell_orientation != NULL)
+            d_cell_orientation[write_pos] = orientation;
+        if (d_cell_idx != NULL)
+            d_cell_idx[write_pos] = idx;
         }
     else
         {
@@ -167,8 +186,11 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   float4 *d_xyzf,
                                   float4 *d_tdb,
+                                  float4 *d_cell_orientation,
+                                  unsigned int *d_cell_idx,
                                   uint3 *d_conditions,
                                   const float4 *d_pos,
+                                  const float4 *d_orientation,
                                   const float *d_charge,
                                   const float *d_diameter,
                                   const unsigned int *d_body,
@@ -176,6 +198,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const unsigned int n_ghost,
                                   const unsigned int Nmax,
                                   const bool flag_charge,
+                                  const bool flag_type,
                                   const BoxDim& box,
                                   const Index3D& ci,
                                   const Index2D& cli,
@@ -193,8 +216,11 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     gpu_compute_cell_list_kernel<<<n_blocks, block_size>>>(d_cell_size,
                                                            d_xyzf,
                                                            d_tdb,
+                                                           d_cell_orientation,
+                                                           d_cell_idx,
                                                            d_conditions,
                                                            d_pos,
+                                                           d_orientation,
                                                            d_charge,
                                                            d_diameter,
                                                            d_body,
@@ -202,6 +228,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                                            n_ghost,
                                                            Nmax,
                                                            flag_charge,
+                                                           flag_type,
                                                            box,
                                                            ci,
                                                            cli,
@@ -345,8 +372,11 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
 /*! \param d_cell_size Number of particles in each cell
     \param d_xyzf Cell XYZF data array
     \param d_tdb Cell TDB data array
+    \param d_cell_orientation Particle orientation in cell list
+    \param d_cell_idx Particle index in cell list
     \param d_conditions Conditions flags for detecting overflow and other error conditions
     \param d_pos Particle position array
+    \param d_orientation Particle orientation array
     \param d_charge Particle charge array
     \param d_diameter Particle diameter array
     \param d_body Particle body array
@@ -354,6 +384,7 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
     \param n_ghost Number of ghost particles
     \param Nmax Maximum number of particles that can be placed in a single cell
     \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
+    \param flag_type Set to true to store type in the flag position in \a d_xyzf
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
@@ -365,8 +396,11 @@ template<unsigned int block_size>
 __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
                                                 float4 *d_xyzf,
                                                 float4 *d_tdb,
+                                                float4 *d_cell_orientation,
+                                                unsigned int *d_cell_idx,
                                                 uint3 *d_conditions,
                                                 const float4 *d_pos,
+                                                const float4 *d_orientation,
                                                 const float *d_charge,
                                                 const float *d_diameter,
                                                 const unsigned int *d_body,
@@ -374,6 +408,7 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
                                                 const unsigned int n_ghost,
                                                 const unsigned int Nmax,
                                                 const bool flag_charge,
+                                                const bool flag_type,
                                                 const BoxDim box,
                                                 const Index3D ci,
                                                 const Index2D cli,
@@ -491,21 +526,32 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
             float diameter = 0.0f;
             float body = 0;
             float type = 0;
+            float4 orientation = make_float4(0,0,0,0);
             if (d_tdb != NULL)
                 {
                 diameter = d_diameter[write_id];
                 body = __int_as_float(d_body[write_id]);
                 type = write_pos.w;
                 }
-                
+            if (d_cell_orientation != NULL)
+                {
+                orientation = d_orientation[write_id];
+                }
+            
             if (flag_charge)
                 flag = d_charge[write_id];
+            else if (flag_type)
+                flag = type;
             else
                 flag = __int_as_float(write_id);
             
             d_xyzf[write_location] = make_float4(write_pos.x, write_pos.y, write_pos.z, flag);
             if (d_tdb != NULL)
                 d_tdb[write_location] = make_float4(type, diameter, body, 0.0f);
+            if (d_cell_orientation != NULL)
+                d_cell_orientation[write_location] = orientation;
+            if (d_cell_idx != NULL)
+                d_cell_idx[write_location] = write_id;
             }
         }
     else
@@ -518,8 +564,11 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      float4 *d_xyzf,
                                      float4 *d_tdb,
+                                     float4 *d_cell_orientation,
+                                     unsigned int *d_cell_idx,
                                      uint3 *d_conditions,
                                      const float4 *d_pos,
+                                     const float4 *d_orientation,
                                      const float *d_charge,
                                      const float *d_diameter,
                                      const unsigned int *d_body,
@@ -527,6 +576,7 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const unsigned int n_ghost,
                                      const unsigned int Nmax,
                                      const bool flag_charge,
+                                     const bool flag_type,
                                      const BoxDim& box,
                                      const Index3D& ci,
                                      const Index2D& cli,
@@ -545,8 +595,11 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                    <<<n_blocks, block_size>>>(d_cell_size,
                                                               d_xyzf,
                                                               d_tdb,
+                                                              d_cell_orientation,
+                                                              d_cell_idx,
                                                               d_conditions,
                                                               d_pos,
+                                                              d_orientation,
                                                               d_charge,
                                                               d_diameter,
                                                               d_body,
@@ -554,6 +607,7 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                                               n_ghost,
                                                               Nmax,
                                                               flag_charge,
+                                                              flag_type,
                                                               box,
                                                               ci,
                                                               cli,
