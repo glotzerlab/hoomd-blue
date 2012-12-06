@@ -515,7 +515,7 @@ void CellList::computeCellList()
         Scalar flag;
         if (m_flag_charge)
             flag = h_charge.data[n];
-        if (m_flag_type)
+        else if (m_flag_type)
             flag = h_pos.data[n].w;
         else
             flag = __int_as_scalar(n);
