@@ -515,40 +515,6 @@ class BoxDim
             return m_L.x*m_L.y*m_L.z;
             }
 
-        //! Initialize the box dimensions with a given set of lattice vectors
-        /*! The lattice basis is rotated so that the first lattice vector aligns with the x-axis
-            the second lattice vector lies in the xy-plane. 
-
-            \param a first lattice vector
-            \param b second lattice vector
-            \param c third lattice vector
-
-            \note a,b,c must form a right-handed basis.
-            \npte The box is constructed so that lo=-hi
-
-            These are the same rotations that are applied in LAMMPS
-        */
-        HOSTDEVICE void setLatticeVectors(Scalar3 a, Scalar3 b, Scalar3 c)
-            {
-            Scalar length_a = SQRT(dot(a,a));
-            Scalar length_b = SQRT(dot(b,b));
-            Scalar length_c = SQRT(dot(c,c));
-
-            Scalar3 L;
-            L.x = length_a;
-            Scalar xy = dot(a,b)/length_a;
-            L.y = SQRT(length_b*length_b - xy*xy);
-            Scalar xz = dot(c,a)/length_a;
-            Scalar yz = (dot(b,c)-xy*xz)/L.y;
-            L.z = SQRT(length_c*length_c-xz*xz-yz*yz);
-            xy /= L.y;
-            xz /= L.z;
-            yz /= L.z;
-
-            setTiltFactors(xy, xz, yz);
-            setL(L);
-            }
-
         /*! Get the lattice vector with index i
          
             \param i Index (0<=i<=2) of the lattice vector

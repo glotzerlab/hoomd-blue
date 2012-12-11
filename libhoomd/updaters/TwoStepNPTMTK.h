@@ -177,8 +177,18 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar m_evec_arr[9];          //!< Eigenvectors of the barostat tensor
         Scalar m_V;                     //!< Current volume
 
+        Scalar3 m_v_fac;                //!< Exponent of factor multiplying velocity
         Scalar3 m_exp_v_fac;            //!< Factor multiplying velocity
         Scalar3 m_sinhx_fac_v;          //!< Factor multiplying acceleration
+
+        Scalar m_mat_exp_v[6];          //!< Matrix exponential for velocity update (upper triangular)
+        Scalar m_mat_exp_r[6];          //!< Matrix exponential for position update (upper triangular)
+        Scalar m_mat_exp_v_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
+        Scalar m_mat_exp_r_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
+        Scalar m_power_v_xz;            //!< Power series of sinh(x)/x, xz component
+        Scalar m_power_v_xy;            //!< Power series of sinh(x)/x, xy component
+        Scalar m_power_v_yz;            //!< Power series of sinh(x)/x, yz component
+        Scalar m_power_v_yz_2;          //!< Power series of sinh(x)/x, yz component, half the argument
 
         integrationMode m_mode;         //!< Current integration mode
 

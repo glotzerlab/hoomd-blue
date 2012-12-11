@@ -360,7 +360,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 #endif
 
     // update box dimensions
-    global_box.setLatticeVectors(a,b,c);
+//    global_box.setLatticeVectors(a,b,c);
 
     // set global box
     m_pdata->setGlobalBox(global_box);
