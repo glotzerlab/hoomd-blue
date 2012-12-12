@@ -226,8 +226,8 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_rigid )
     rdata->setBodyVel(0, make_scalar3(1.0, 8.0, -3.0));
     rdata->setBodyVel(1, make_scalar3(2.0, 12.0, -2.0));
     
-    rdata->setAngMom(0, make_scalar4(0.5, 2.3, 1.4, 0.0));
-    rdata->setAngMom(1, make_scalar4(8.2, 3.1, 6.4, 0.0));
+    rdata->setAngMom(0, make_scalar3(0.5, 2.3, 1.4));
+    rdata->setAngMom(1, make_scalar3(8.2, 3.1, 6.4));
     
     rdata->setRV(false);
     
