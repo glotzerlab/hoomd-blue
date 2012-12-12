@@ -310,11 +310,23 @@ class NeighborList : public Compute
                 }
             }
         
+        //! Test if body filtering is set
+        virtual bool getFilterBody()
+            {
+            return m_filter_body;
+            }
+        
         //! Enable/disable diameter filtering
         virtual void setFilterDiameter(bool filter_diameter)
             {
             m_filter_diameter = filter_diameter;
             forceUpdate();
+            }
+        
+        //! Test if diameter filtering is set
+        virtual bool getFilterDiameter()
+            {
+            return m_filter_diameter;
             }
         
         //! Set the maximum diameter to use in computing neighbor lists
