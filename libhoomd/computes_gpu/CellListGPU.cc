@@ -80,6 +80,7 @@ void CellListGPU::computeCellList()
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
@@ -90,6 +91,9 @@ void CellListGPU::computeCellList()
     ArrayHandle<unsigned int> d_cell_size(m_cell_size, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_tdb(m_tdb, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_cell_orientation(m_orientation, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_cell_idx(m_idx, access_location::device, access_mode::overwrite);
+
 
     Scalar3 ghost_width = m_nominal_width/Scalar(2.0)*make_scalar3((Scalar)m_num_ghost_cells.x, (Scalar)m_num_ghost_cells.y, (Scalar)m_num_ghost_cells.z);
 
@@ -99,8 +103,11 @@ void CellListGPU::computeCellList()
         gpu_compute_cell_list(d_cell_size.data,
                               d_xyzf.data,
                               d_tdb.data,
+                              d_cell_orientation.data,
+                              d_cell_idx.data,
                               m_conditions.getDeviceFlags(),
                               d_pos.data,
+                              d_orientation.data,
                               d_charge.data,
                               d_diameter.data,
                               d_body.data,
@@ -108,6 +115,7 @@ void CellListGPU::computeCellList()
                               m_pdata->getNGhosts(),
                               m_Nmax,
                               m_flag_charge,
+                              m_flag_type,
                               box,
                               m_cell_indexer,
                               m_cell_list_indexer,
@@ -118,8 +126,11 @@ void CellListGPU::computeCellList()
         gpu_compute_cell_list_1x(d_cell_size.data,
                                  d_xyzf.data,
                                  d_tdb.data,
+                                 d_cell_orientation.data,
+                                 d_cell_idx.data,
                                  m_conditions.getDeviceFlags(),
                                  d_pos.data,
+                                 d_orientation.data,
                                  d_charge.data,
                                  d_diameter.data,
                                  d_body.data,
@@ -127,6 +138,7 @@ void CellListGPU::computeCellList()
                                  m_pdata->getNGhosts(),
                                  m_Nmax,
                                  m_flag_charge,
+                                 m_flag_type,
                                  box,
                                  m_cell_indexer,
                                  m_cell_list_indexer,

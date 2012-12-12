@@ -68,7 +68,7 @@ using namespace std;
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0f)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
-      m_flag_charge(false)
+      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
@@ -79,6 +79,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_params_changed = true;
     m_particles_sorted = false;
     m_box_changed = false;
+    m_multiple = 1;
 
     GPUFlags<uint3> conditions(exec_conf);
     m_conditions.swap(conditions);
@@ -97,6 +98,18 @@ CellList::~CellList()
     m_boxchange_connection.disconnect();
     }
 
+//! Round down to the nearest multiple
+/*! \param v Value to ound
+    \param m Multiple
+    \returns \a v if it is a multiple of \a m, otherwise, \a v rounded down to the nearest multiple of \a m.
+*/
+static unsigned int roundDown(unsigned int v, unsigned int m)
+    {
+    // use integer floor division
+    unsigned int d = v/m;
+    return d*m;
+    }
+
 /*! \returns Cell dimensions that match with the current width, box dimension, and max_cells setting
 */
 uint3 CellList::computeDimensions()
@@ -107,8 +120,8 @@ uint3 CellList::computeDimensions()
     const BoxDim& box = m_pdata->getBox();
 
     Scalar3 L = box.getL();
-    dim.x = (unsigned int)((L.x) / (m_nominal_width));
-    dim.y = (unsigned int)((L.y) / (m_nominal_width));
+    dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
+    dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
 
     // Add a ghost layer on every side where boundary conditions are non-periodic
     if (! box.getPeriodic().x)
@@ -118,7 +131,7 @@ uint3 CellList::computeDimensions()
 
     if (m_sysdef->getNDimensions() == 2)
         {
-        dim.z = 3;
+        dim.z = 1;
     
         // decrease the number of bins if it exceeds the max
         if (dim.x * dim.y * dim.z > m_max_cells)
@@ -130,7 +143,7 @@ uint3 CellList::computeDimensions()
         }
     else
         {
-        dim.z = (unsigned int)((L.z) / (m_nominal_width));
+        dim.z = roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple);
 
         // add ghost layer if necessary
         if (! box.getPeriodic().z)
@@ -295,13 +308,9 @@ void CellList::initializeMemory()
     if (m_Nmax == 0)
         {
         unsigned int estim_Nmax = (unsigned int)(ceilf(float((m_pdata->getN()+m_pdata->getNGhosts())*1.0f / float(m_dim.x*m_dim.y*m_dim.z))));
-        m_Nmax = estim_Nmax + 8 - (estim_Nmax & 7);
-        }
-    else
-        {
-        // otherwise, round up to the nearest multiple of 8 if we are not already on one
-        if ((m_Nmax & 7) != 0)
-            m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
+        m_Nmax = estim_Nmax;
+        if (m_Nmax == 0)
+            m_Nmax = 1;
         }
 
     m_exec_conf->msg->notice(6) << "cell list: allocating " << m_dim.x << " x " << m_dim.y << " x " << m_dim.z
@@ -310,7 +319,14 @@ void CellList::initializeMemory()
     // initialize indexers
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
-    m_cell_adj_indexer = Index2D((m_radius*2+1)*(m_radius*2+1)*(m_radius*2+1), m_cell_indexer.getNumElements());
+    
+    unsigned int n_adj;
+    if (m_sysdef->getNDimensions() == 2)
+        n_adj = (m_radius*2+1)*(m_radius*2+1);
+    else
+        n_adj = (m_radius*2+1)*(m_radius*2+1)*(m_radius*2+1);
+    
+    m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
     
     // allocate memory
     GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), exec_conf);
@@ -332,6 +348,30 @@ void CellList::initializeMemory()
         // array is no longer needed, discard it
         GPUArray<Scalar4> tdb;
         m_tdb.swap(tdb);
+        }
+
+    if (m_compute_orientation)
+        {
+        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), exec_conf);
+        m_orientation.swap(orientation);
+        }
+    else
+        {
+        // array is no longer needed, discard it
+        GPUArray<Scalar4> orientation;
+        m_orientation.swap(orientation);
+        }
+
+    if (m_compute_idx)
+        {
+        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), exec_conf);
+        m_idx.swap(idx);
+        }
+    else
+        {
+        // array is no longer needed, discard it
+        GPUArray<unsigned int> idx;
+        m_idx.swap(idx);
         }
 
     if (m_prof)
@@ -358,10 +398,16 @@ void CellList::initializeCellAdj()
                 // loop over neighboring cells
                 // need signed integer values for performing index calculations with negative values
                 int r = int(m_radius);
+                int rk = r;
+                if (m_sysdef->getNDimensions() == 2)
+                    rk = 0;
+                
                 int mx = int(m_dim.x);
                 int my = int(m_dim.y);
                 int mz = int(m_dim.z);
-                for (int nk = k-r; nk <= k+r; nk++)
+                
+                
+                for (int nk = k-rk; nk <= k+rk; nk++)
                     for (int nj = j-r; nj <= j+r; nj++)
                         for (int ni = i-r; ni <= i+r; ni++)
                             {
@@ -398,6 +444,7 @@ void CellList::computeCellList()
     
     // acquire the particle data
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle< Scalar4 > h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle< Scalar > h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
@@ -406,6 +453,8 @@ void CellList::computeCellList()
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_xyzf(m_xyzf, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_cell_orientation(m_orientation, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_cell_idx(m_idx, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_tdb(m_tdb, access_location::host, access_mode::overwrite);
     uint3 conditions = make_uint3(0,0,0);
 
@@ -462,6 +511,8 @@ void CellList::computeCellList()
         Scalar flag;
         if (m_flag_charge)
             flag = h_charge.data[n];
+        else if (m_flag_type)
+            flag = h_pos.data[n].w;
         else
             flag = __int_as_scalar(n);
 
@@ -477,6 +528,16 @@ void CellList::computeCellList()
                                                             h_diameter.data[n],
                                                             __int_as_scalar(h_body.data[n]),
                                                             Scalar(0.0));
+                }
+            
+            if (m_compute_orientation)
+                {
+                h_cell_orientation.data[cli(offset, bin)] = h_orientation.data[n];
+                }
+            
+            if (m_compute_idx)
+                {
+                h_cell_idx.data[cli(offset, bin)] = n;
                 }
             }
         else
@@ -549,6 +610,45 @@ uint3 CellList::readConditions()
     {
     return m_conditions.readFlags();
     }
+
+/*! Generic statistics that apply to any cell list, Derived classes should
+    print any pertinent information they see fit to.
+ */
+void CellList::printStats()
+    {
+    // return earsly if the notice level is less than 1
+    if (m_exec_conf->msg->getNoticeLevel() < 1)
+        return;
+
+    m_exec_conf->msg->notice(1) << "-- Cell list stats:" << endl;
+    m_exec_conf->msg->notice(1) << "Dimension: " << m_dim.x << ", " << m_dim.y << ", " << m_dim.z << "" << endl;
+    m_exec_conf->msg->notice(1) << "Width    : " << m_width.x << ", " << m_width.y << ", " << m_width.z << "" << endl;
+
+    // access the number of cell members to generate stats
+    ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::read);
+
+    // handle the rare case where printStats is called before the cell list is initialized
+    if (h_cell_size.data != NULL)
+        {
+        // build some simple statistics of the number of neighbors
+        unsigned int n_min = h_cell_size.data[0];
+        unsigned int n_max = h_cell_size.data[0];
+
+        for (unsigned int i = 0; i < m_cell_indexer.getNumElements(); i++)
+            {
+            unsigned int n = (unsigned int)h_cell_size.data[i];
+            if (n < n_min)
+                n_min = n;
+            if (n > n_max)
+                n_max = n;
+            }
+
+        // divide to get the average
+        Scalar n_avg = Scalar(m_pdata->getN() + m_pdata->getNGhosts()) / Scalar(m_cell_indexer.getNumElements());
+        m_exec_conf->msg->notice(1) << "n_min    : " << n_min << " / n_max: " << n_max << " / n_avg: " << n_avg << endl;
+        }
+    }
+
 
 void export_CellList()
     {
