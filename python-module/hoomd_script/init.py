@@ -96,6 +96,15 @@ def is_initialized():
 # to eventually run the system out of memory. reset() will throw an error if it detects that this 
 # is the case.
 #
+# \note When using the python data access in hoomd scripts, iterators must also be deleted
+# \code
+# for p in sysdef.particles:
+#   # do something
+#
+# del p
+# init.reste()
+# \endcode
+#
 # \b Example:
 # \code
 # init.create_random(N=1000, phi_p = 0.2)
